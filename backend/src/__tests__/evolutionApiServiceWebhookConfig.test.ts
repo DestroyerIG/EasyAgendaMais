@@ -25,6 +25,7 @@ describe('evolutionApiService webhook configuration', () => {
     process.env.EVOLUTION_API_KEY = 'test-key';
     process.env.EVOLUTION_INSTANCE_NAME = 'easybarber';
     process.env.EVOLUTION_WEBHOOK_URL = 'https://api.easybarber.test/api/v1/whatsapp/webhook/messages-upsert';
+    delete process.env.BACKEND_WEBHOOK_BASE_URL;
     process.env.EVOLUTION_WEBHOOK_EVENTS = 'MESSAGES_UPSERT, CONNECTION_UPDATE, MESSAGES_SET, chats-update';
 
     global.fetch = vi.fn().mockResolvedValue({
@@ -79,6 +80,31 @@ describe('evolutionApiService webhook configuration', () => {
     });
     expect(parsedBody.webhook.events).toEqual(['MESSAGES_UPSERT', 'CONNECTION_UPDATE']);
     expect(parsedBody.webhook.events).not.toContain('MESSAGES_SET');
+  });
+
+  it('usa BACKEND_WEBHOOK_BASE_URL na criacao quando EVOLUTION_WEBHOOK_URL nao esta configurada', async () => {
+    delete process.env.EVOLUTION_WEBHOOK_URL;
+    process.env.BACKEND_WEBHOOK_BASE_URL = 'https://api.easybarber.test/api/v1/whatsapp/webhook';
+
+    await createInstance({ instanceName: 'easybarber' });
+
+    const [url, requestInit] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('http://evolution.local/instance/create');
+    expect(JSON.parse(requestInit.body as string).webhook).toMatchObject({
+      enabled: true,
+      url: 'https://api.easybarber.test/api/v1/whatsapp/webhook',
+    });
+  });
+
+  it('prioriza BACKEND_WEBHOOK_BASE_URL sobre EVOLUTION_WEBHOOK_URL, igual ao modulo whatsapp', async () => {
+    process.env.BACKEND_WEBHOOK_BASE_URL = 'https://api.easybarber.test/api/v1/whatsapp/webhook';
+
+    await createInstance({ instanceName: 'easybarber' });
+
+    const [, requestInit] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(requestInit.body as string).webhook.url).toBe(
+      'https://api.easybarber.test/api/v1/whatsapp/webhook',
+    );
   });
 
   it('reaplica webhook minimo seguro quando a instancia existente diverge da configuracao desejada', async () => {

@@ -207,9 +207,13 @@ const getConfig = (overrides: { instanceName?: string | null; webhookUrl?: strin
   // misrouting calls to a hardcoded tenant (previously 'easybarber').
   const fallbackInstanceName = process.env.EVOLUTION_INSTANCE_NAME || '';
   const instanceName = normalizeInstanceName(overrides.instanceName) || normalizeInstanceName(fallbackInstanceName);
+  // Same precedence as modules/whatsapp/whatsapp.service.ts. Reading only the
+  // legacy name made instances recreated through this path (/restart, session
+  // recovery) come up without a per-instance webhook when production only sets
+  // BACKEND_WEBHOOK_BASE_URL.
   const webhookUrl = typeof overrides.webhookUrl === 'string'
     ? overrides.webhookUrl.trim()
-    : (process.env.EVOLUTION_WEBHOOK_URL || '');
+    : (process.env.BACKEND_WEBHOOK_BASE_URL || process.env.EVOLUTION_WEBHOOK_URL || '').trim().replace(/\/+$/, '');
   const timeoutFromEnv = Number.parseInt(
     process.env.EVOLUTION_API_TIMEOUT_MS || String(DEFAULT_TIMEOUT_MS),
     10
@@ -873,7 +877,7 @@ export const ensureInstanceWebhookConfig = async ({ instanceName = null, webhook
       {
         instanceName: desiredConfig.instanceName,
       },
-      'Reaplicacao de webhook da Evolution ignorada: EVOLUTION_WEBHOOK_URL ausente'
+      'Reaplicacao de webhook da Evolution ignorada: BACKEND_WEBHOOK_BASE_URL/EVOLUTION_WEBHOOK_URL ausentes'
     );
 
     return {

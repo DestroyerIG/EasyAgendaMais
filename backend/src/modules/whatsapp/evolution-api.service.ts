@@ -3,18 +3,17 @@ import { EvolutionApiError, InstanceNotFoundError } from './whatsapp.types.js';
 
 const TIMEOUT_MS = 15_000;
 
-// Canonical list of Evolution v2 webhook events we subscribe to.
+// Canonical list of Evolution v2 webhook events we subscribe to, registered
+// per instance (createInstance / setWebhook) — never via WEBHOOK_GLOBAL_*.
+// Keep it in sync with the switch in webhook.handler.ts: every extra event
+// (MESSAGES_UPDATE, SEND_MESSAGE, ...) is still delivered, parsed and then
+// discarded, which costs RAM on the backend for nothing.
 // CASE MATTERS: Evolution v2 expects SCREAMING_SNAKE_CASE on the wire.
 // Exported so the admin diagnostics endpoint can echo it back.
 export const WEBHOOK_EVENTS = [
-  'APPLICATION_STARTUP',
-  'QRCODE_UPDATED',
-  'CONNECTION_UPDATE',
   'MESSAGES_UPSERT',
-  'MESSAGES_UPDATE',
-  'MESSAGES_DELETE',
-  'SEND_MESSAGE',
-  'CALL',
+  'CONNECTION_UPDATE',
+  'QRCODE_UPDATED',
 ];
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));

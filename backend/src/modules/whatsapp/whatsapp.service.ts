@@ -123,7 +123,9 @@ export const buildWebhookUrl = (baseUrl: string, event: string): string => {
 };
 
 const webhookUrl = (): string => {
-  const raw = process.env.BACKEND_WEBHOOK_BASE_URL ?? process.env.EVOLUTION_WEBHOOK_URL ?? '';
+  // `||` (not `??`): an empty BACKEND_WEBHOOK_BASE_URL= line in .env must fall
+  // back to the legacy name, as documented in .env.example.
+  const raw = process.env.BACKEND_WEBHOOK_BASE_URL || process.env.EVOLUTION_WEBHOOK_URL || '';
   return normalizeWebhookBaseUrl(raw);
 };
 
@@ -221,18 +223,52 @@ async function reuseExistingInstanceForQr(instanceName: string, url: string): Pr
   return obtainQr(instanceName, null);
 }
 
-async function verifyAndFixWebhook(instanceName: string, url: string): Promise<void> {
+const normalizeEventToken = (value: unknown): string =>
+  String(value ?? '')
+    .trim()
+    .toUpperCase()
+    .replace(/[.\-\s]+/g, '_');
+
+/**
+ * True when the instance webhook stored on Evolution already matches what we
+ * register: enabled, our URL, per-event delivery and exactly WEBHOOK_EVENTS.
+ * Accepts both GET /webhook/find shapes: v2 (flat, camelCase webhookByEvents)
+ * and v1 (nested under `webhook`, snake_case webhook_by_events). A null body
+ * (instance without its own webhook) never matches.
+ */
+function isWebhookUpToDate(res: unknown, url: string): boolean {
+  const root = (res ?? {}) as Record<string, unknown>;
+  const wh = (
+    root['webhook'] && typeof root['webhook'] === 'object' ? root['webhook'] : root
+  ) as Record<string, unknown>;
+
+  const enabled = wh['enabled'] ?? Boolean(wh['url']);
+  const byEvents = wh['webhookByEvents'] ?? wh['webhook_by_events'] ?? wh['byEvents'];
+  const events = new Set(Array.isArray(wh['events']) ? wh['events'].map(normalizeEventToken) : []);
+
+  return (
+    enabled === true &&
+    wh['url'] === url &&
+    byEvents === true &&
+    events.size === WEBHOOK_EVENTS.length &&
+    WEBHOOK_EVENTS.every((event) => events.has(event))
+  );
+}
+
+/** Returns true when the webhook had to be (re)applied on the instance. */
+async function verifyAndFixWebhook(instanceName: string, url: string): Promise<boolean> {
   try {
     const res = await evolutionApi.getWebhook(instanceName);
-    const wh = ((res as Record<string, unknown>)?.webhook ?? res) as Record<string, unknown>;
-    if (wh?.webhook_by_events !== true || wh?.url !== url) {
-      logger.warn({ instanceName }, 'whatsapp-service: webhook diverge do esperado, reaplicando');
-      await evolutionApi.setWebhook(instanceName, url);
-    }
+    if (isWebhookUpToDate(res, url)) return false;
+    logger.warn(
+      { instanceName, expectedEvents: WEBHOOK_EVENTS },
+      'whatsapp-service: webhook diverge do esperado, reaplicando',
+    );
   } catch {
     logger.warn({ instanceName }, 'whatsapp-service: falha ao verificar webhook, reaplicando');
-    await evolutionApi.setWebhook(instanceName, url);
   }
+  await evolutionApi.setWebhook(instanceName, url);
+  return true;
 }
 
 export const whatsappService = {
@@ -645,9 +681,10 @@ export const whatsappService = {
   },
 
   /**
-   * Re-applies the canonical webhook config (webhook_by_events=true, all
-   * expected events, our URL) to every Evolution instance whose name is
-   * registered in the DB.
+   * Re-applies the canonical per-instance webhook config (webhook_by_events=true,
+   * WEBHOOK_EVENTS, our URL) via POST /webhook/set/{instance} to every Evolution
+   * instance whose name is registered in the DB. Instances already matching
+   * are left untouched (`reapplied: false`).
    *
    * IMPORTANT: previously this iterated `fetchInstances()` and called
    * setWebhook on whatever Evolution returned, which meant zombies (e.g.
@@ -664,7 +701,7 @@ export const whatsappService = {
     fixed: number;
     failed: number;
     skippedOrphans: string[];
-    instances: Array<{ name: string; ok: boolean; error?: string }>;
+    instances: Array<{ name: string; ok: boolean; reapplied?: boolean; error?: string }>;
   }> {
     const url = webhookUrl();
     if (!url) throw new Error('EVOLUTION_WEBHOOK_URL não configurado');
@@ -681,7 +718,7 @@ export const whatsappService = {
     );
 
     const list = await evolutionApi.fetchInstances();
-    const instances: Array<{ name: string; ok: boolean; error?: string }> = [];
+    const instances: Array<{ name: string; ok: boolean; reapplied?: boolean; error?: string }> = [];
     const skippedOrphans: string[] = [];
     let fixed = 0;
     let failed = 0;
@@ -701,17 +738,19 @@ export const whatsappService = {
 
       if (!canonicalSet.has(name.toLowerCase())) {
         skippedOrphans.push(name);
+        // The Evolution server is shared with other systems: an instance
+        // missing from our DB may belong to them, so never suggest deleting it.
         logger.warn(
           { instanceName: name },
-          'whatsapp-service: instância órfã ignorada em syncAllWebhooks; rode admin/cleanup-corrupted',
+          'whatsapp-service: instância fora do banco ignorada em syncAllWebhooks (pode pertencer a outro sistema na mesma Evolution)',
         );
         continue;
       }
 
       try {
-        await verifyAndFixWebhook(name, url);
-        fixed += 1;
-        instances.push({ name, ok: true });
+        const reapplied = await verifyAndFixWebhook(name, url);
+        if (reapplied) fixed += 1;
+        instances.push({ name, ok: true, reapplied });
       } catch (err) {
         failed += 1;
         const msg = err instanceof Error ? err.message : String(err);
