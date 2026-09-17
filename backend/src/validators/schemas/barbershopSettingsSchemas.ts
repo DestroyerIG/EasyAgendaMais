@@ -27,13 +27,7 @@ export const updateBarbershopSettingsSchema = z.object({
   }),
   allowWalkins: z.boolean(),
   autoConfirmAppointments: z.boolean(),
-  emailReminders: z.boolean(),
   whatsappReminders: z.boolean(),
-  googleCalendarEnabled: z.boolean(),
-  customWebhookUrl: z
-    .union([z.literal(''), z.string().url('Webhook deve ser uma URL válida')])
-    .optional()
-    .default(''),
 });
 
 export const updateBarbershopProfileSchema = z.object({

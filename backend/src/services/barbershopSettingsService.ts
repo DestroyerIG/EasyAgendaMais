@@ -20,10 +20,7 @@ interface UpdateSettingsData {
   diasAbertos?: unknown;
   allowWalkins?: unknown;
   autoConfirmAppointments?: unknown;
-  emailReminders?: unknown;
   whatsappReminders?: unknown;
-  googleCalendarEnabled?: unknown;
-  customWebhookUrl?: unknown;
 }
 
 interface UpdateProfileData {
@@ -180,10 +177,7 @@ export const barbershopSettingsService = {
       slotIntervalMinutes: data.slotIntervalMinutes,
       allowWalkins: data.allowWalkins,
       autoConfirmAppointments: data.autoConfirmAppointments,
-      emailReminders: data.emailReminders,
       whatsappReminders: data.whatsappReminders,
-      googleCalendarEnabled: data.googleCalendarEnabled,
-      customWebhookUrl: String(data.customWebhookUrl || '').trim() || null,
     };
 
     let settings: unknown;

@@ -9,10 +9,7 @@ const mapRowToSettings = (row: Record<string, unknown>) => ({
   slotIntervalMinutes: row.slot_interval_minutes,
   allowWalkins: row.allow_walkins,
   autoConfirmAppointments: row.auto_confirm_appointments,
-  emailReminders: row.email_reminders,
   whatsappReminders: row.whatsapp_reminders,
-  googleCalendarEnabled: row.google_calendar_enabled,
-  customWebhookUrl: row.custom_webhook_url,
 });
 
 const mapRowToProfile = (row: Record<string, unknown>) => ({
@@ -63,10 +60,7 @@ export const barbershopSettingsRepository = {
          COALESCE(s.dias_abertos, ARRAY['seg','ter','qua','qui','sex']::text[]) AS dias_abertos,
          COALESCE(s.allow_walkins, true) AS allow_walkins,
          COALESCE(s.auto_confirm_appointments, false) AS auto_confirm_appointments,
-         COALESCE(s.email_reminders, true) AS email_reminders,
-         COALESCE(s.whatsapp_reminders, true) AS whatsapp_reminders,
-         COALESCE(s.google_calendar_enabled, false) AS google_calendar_enabled,
-         COALESCE(s.custom_webhook_url, '') AS custom_webhook_url
+         COALESCE(s.whatsapp_reminders, true) AS whatsapp_reminders
        FROM barbershops b
        LEFT JOIN barbershop_settings s ON s.barbershop_id = b.id
        WHERE b.id = ${barbershopId}::uuid AND b.active = true
@@ -348,10 +342,7 @@ export const barbershopSettingsRepository = {
       diasAbertos: unknown;
       allowWalkins: unknown;
       autoConfirmAppointments: unknown;
-      emailReminders: unknown;
       whatsappReminders: unknown;
-      googleCalendarEnabled: unknown;
-      customWebhookUrl: unknown;
     },
   ) {
     // Transaction support deferred — run as sequential queries
@@ -375,10 +366,7 @@ export const barbershopSettingsRepository = {
          dias_abertos,
          allow_walkins,
          auto_confirm_appointments,
-         email_reminders,
-         whatsapp_reminders,
-         google_calendar_enabled,
-         custom_webhook_url
+         whatsapp_reminders
        ) VALUES (
          ${barbershopId}::uuid,
          ${payload.openingTime}::time,
@@ -387,10 +375,7 @@ export const barbershopSettingsRepository = {
          ${payload.diasAbertos},
          ${payload.allowWalkins},
          ${payload.autoConfirmAppointments},
-         ${payload.emailReminders},
-         ${payload.whatsappReminders},
-         ${payload.googleCalendarEnabled},
-         ${payload.customWebhookUrl}
+         ${payload.whatsappReminders}
        )
        ON CONFLICT (barbershop_id) DO UPDATE SET
          opening_time = EXCLUDED.opening_time,
@@ -399,10 +384,7 @@ export const barbershopSettingsRepository = {
          dias_abertos = EXCLUDED.dias_abertos,
          allow_walkins = EXCLUDED.allow_walkins,
          auto_confirm_appointments = EXCLUDED.auto_confirm_appointments,
-         email_reminders = EXCLUDED.email_reminders,
          whatsapp_reminders = EXCLUDED.whatsapp_reminders,
-         google_calendar_enabled = EXCLUDED.google_calendar_enabled,
-         custom_webhook_url = EXCLUDED.custom_webhook_url,
          updated_at = CURRENT_TIMESTAMP
     `);
 

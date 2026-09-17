@@ -62,10 +62,7 @@ interface SettingsState {
   slotIntervalMinutes: number;
   allowWalkins: boolean;
   autoConfirmAppointments: boolean;
-  emailReminders: boolean;
   whatsappReminders: boolean;
-  googleCalendarEnabled: boolean;
-  customWebhookUrl: string;
 }
 
 interface AccountProfileState {
@@ -100,10 +97,7 @@ const buildDefaultSettings = (): SettingsState => ({
   slotIntervalMinutes: 30,
   allowWalkins: true,
   autoConfirmAppointments: false,
-  emailReminders: true,
   whatsappReminders: true,
-  googleCalendarEnabled: false,
-  customWebhookUrl: '',
 });
 
 const buildDefaultAccountProfile = (barbershopName: string, email: string): AccountProfileState => ({
@@ -934,12 +928,6 @@ export function SettingsModule({ initialBarbershopName }: SettingsModuleProps) {
                 checked={settings.whatsappReminders}
                 onChange={(checked) => updateSettingsField('whatsappReminders', checked)}
               />
-              <ToggleRow
-                title="Enviar lembretes por e-mail"
-                description="Mantém um segundo canal ativo para confirmações e reforço da comunicação."
-                checked={settings.emailReminders}
-                onChange={(checked) => updateSettingsField('emailReminders', checked)}
-              />
             </div>
           )}
         </SettingsPanel>
@@ -954,38 +942,17 @@ export function SettingsModule({ initialBarbershopName }: SettingsModuleProps) {
           {settingsLoading ? (
             <LoadingBlock lines={4} />
           ) : (
-            <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-              <div className="space-y-3">
-                <ToggleRow
-                  title="Sincronizar com Google Calendar"
-                  description="Ative para integrar o calendário externo quando essa rotina estiver habilitada."
-                  checked={settings.googleCalendarEnabled}
-                  onChange={(checked) => updateSettingsField('googleCalendarEnabled', checked)}
+            <div className="grid grid-cols-1 gap-5">
+              <Field id="whatsappInstanceName" label="Nome da instância WhatsApp (Evolution)">
+                <input
+                  id="whatsappInstanceName"
+                  className={`${FIELD_CLASS} opacity-80`}
+                  value={settings.whatsappInstanceName}
+                  onChange={(event) => updateSettingsField('whatsappInstanceName', event.target.value)}
+                  placeholder="Gerado automaticamente ao conectar"
+                  readOnly
                 />
-              </div>
-
-              <div className="grid grid-cols-1 gap-5">
-                <Field id="whatsappInstanceName" label="Nome da instância WhatsApp (Evolution)">
-                  <input
-                    id="whatsappInstanceName"
-                    className={`${FIELD_CLASS} opacity-80`}
-                    value={settings.whatsappInstanceName}
-                    onChange={(event) => updateSettingsField('whatsappInstanceName', event.target.value)}
-                    placeholder="Gerado automaticamente ao conectar"
-                    readOnly
-                  />
-                </Field>
-
-                <Field id="customWebhookUrl" label="Webhook personalizado" hint="Opcional">
-                  <input
-                    id="customWebhookUrl"
-                    className={FIELD_CLASS}
-                    value={settings.customWebhookUrl}
-                    onChange={(event) => updateSettingsField('customWebhookUrl', event.target.value)}
-                    placeholder="https://seu-webhook.exemplo.com/eventos"
-                  />
-                </Field>
-              </div>
+              </Field>
             </div>
           )}
         </SettingsPanel>
