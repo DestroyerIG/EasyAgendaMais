@@ -75,9 +75,6 @@ import { startReminderCron } from './services/cronService.js';
 // @ts-ignore
 import { getAsaasApiKeyDiagnostics } from './integrations/asaas/client.js';
 
-// @ts-ignore
-import debugRoutes from './routes/debug.js';
-
 dotenv.config();
 
 const requiredEnvVars = [
@@ -450,13 +447,6 @@ app.use(
   `${API_V1}/admin`,
   adminRoutes
 );
-
-app.use(
-  `${API_V1}/debug`,
-  debugRoutes
-);
-
-app.use('/debug', debugRoutes);
 
 app.get(
   '/',
