@@ -286,7 +286,7 @@ describe('asaasService', () => {
       .mockResolvedValueOnce({
         id: 'pay_pix_1',
         status: 'PENDING',
-        dueDate: '2026-06-30',
+        dueDate: '2099-06-30',
         value: 99.9,
         customer: 'cus_pix_1',
       });
@@ -300,7 +300,7 @@ describe('asaasService', () => {
         whatsapp: '+55 (83) 99999-9999',
       },
       plan: 'profissional',
-      nextDueDate: '2026-06-30',
+      nextDueDate: '2099-06-30',
       idempotencyKey: 'pix-checkout:test-2',
     });
 
@@ -322,7 +322,8 @@ describe('asaasService', () => {
         customer: 'cus_pix_1',
         billingType: 'PIX',
         value: 99.9,
-        dueDate: '2026-06-30',
+        dueDate: '2099-06-30',
+        externalReference: 'barbershop:tenant-asaas-3:plan:profissional',
       }
     );
 

@@ -208,7 +208,7 @@ describe('Auth API — Supabase only', () => {
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
       expect(res.body.data.verificationRequired).toBe(true);
-      expect(res.body.data.barbershop.plan).toBe('basico');
+      expect(res.body.data.barbershop.plan).toBe('profissional');
       expect(res.body.data.barbershop.desiredPlan).toBe('premium');
       expect(mockSupabaseAuthService.signUpForEmailVerification).toHaveBeenCalledWith(
         'joao@teste.com',
