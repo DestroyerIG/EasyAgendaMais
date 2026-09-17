@@ -71,6 +71,18 @@ describe('runReminderJob', () => {
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 
+  it('mantém os lembretes ligados quando o negócio não tem linha de configuração', async () => {
+    mockFindSettings.mockResolvedValue(null);
+
+    await runReminderJob(new Date('2026-09-17T12:00:00.000Z'));
+
+    expect(mockSendWhatsAppMessage).toHaveBeenCalledTimes(1);
+    expect(mockUpdate).toHaveBeenCalledWith({
+      where: { id: 'appointment-1' },
+      data: { reminderSent: true },
+    });
+  });
+
   it('consulta a configuração uma vez por negócio', async () => {
     mockFindSettings.mockResolvedValue({ whatsappReminders: true });
     mockFindMany.mockResolvedValue([appointment, { ...appointment, id: 'appointment-2' }]);
