@@ -93,17 +93,148 @@ ALTER TABLE public.whatsapp_menu_options  RENAME CONSTRAINT whatsapp_menu_option
 ALTER TABLE public.audit_logs             RENAME CONSTRAINT audit_logs_actor_barbershop_id_fkey       TO audit_logs_actor_business_id_fkey;
 ALTER TABLE public.audit_logs             RENAME CONSTRAINT audit_logs_target_barbershop_id_fkey      TO audit_logs_target_business_id_fkey;
 
-ALTER INDEX public.barbershops_email_key                          RENAME TO businesses_email_key;
-ALTER INDEX public.barbershops_stripe_customer_id_key             RENAME TO businesses_stripe_customer_id_key;
-ALTER INDEX public.barbershops_stripe_subscription_id_key         RENAME TO businesses_stripe_subscription_id_key;
 ALTER INDEX public.whatsapp_bot_config_barbershop_id_key          RENAME TO whatsapp_bot_config_business_id_key;
 ALTER INDEX public.barbershop_settings_barbershop_id_key          RENAME TO business_settings_business_id_key;
 ALTER INDEX public.whatsapp_menu_options_barbershop_id_option_order_key RENAME TO whatsapp_menu_options_business_id_option_order_key;
--- uq_barbershops_whatsapp_instance_name_norm não existe nas migrations rastreadas
--- (não aparece em nenhuma migration aplicada localmente, apenas em legacy-migrations
--- não usadas); segue o mesmo padrão de pending_registrations: guarda com IF EXISTS
--- para o caso de existir apenas em produção, criada fora do histórico do Prisma.
-ALTER INDEX IF EXISTS public.uq_barbershops_whatsapp_instance_name_norm RENAME TO uq_businesses_whatsapp_instance_name_norm;
+
+-- ─── 5b. Unicidade de businesses resolvida por coluna, não por nome fixo ──────
+-- Produção NÃO foi construída pelo baseline 0_init: foi construída pelas
+-- legacy-migrations (ver backend/prisma/legacy-migrations/README.md), então a
+-- unicidade de stripe_customer_id/stripe_subscription_id/email pode existir lá
+-- como CONSTRAINT com nome de legado (uq_barbershops_stripe_customer,
+-- uq_barbershops_stripe_subscription — migration_v5.sql:26,34) em vez do índice
+-- com nome padrão do Prisma que este ambiente local tem. Resolve por coluna:
+-- acha o objeto de unicidade (índice solto OU índice que sustenta uma
+-- constraint) sobre businesses(coluna) e renomeia o que encontrar para o nome
+-- padrão do Prisma. Tolerante: sem objeto encontrado, ou nome alvo já em uso,
+-- não faz nada.
+DO $$
+DECLARE
+  cols     text[] := ARRAY['email', 'stripe_customer_id', 'stripe_subscription_id'];
+  targets  text[] := ARRAY['businesses_email_key', 'businesses_stripe_customer_id_key', 'businesses_stripe_subscription_id_key'];
+  i            int;
+  v_col        text;
+  v_target     text;
+  v_indexrelid oid;
+  v_indexname  text;
+  v_conname    text;
+BEGIN
+  FOR i IN 1..array_length(cols, 1) LOOP
+    v_col    := cols[i];
+    v_target := targets[i];
+
+    IF EXISTS (SELECT 1 FROM pg_class WHERE relname = v_target AND relnamespace = 'public'::regnamespace)
+       OR EXISTS (SELECT 1 FROM pg_constraint WHERE conname = v_target AND connamespace = 'public'::regnamespace) THEN
+      CONTINUE; -- já existe objeto com o nome alvo; idempotente
+    END IF;
+
+    v_indexrelid := NULL;
+    SELECT ix.indexrelid, ic.relname
+      INTO v_indexrelid, v_indexname
+    FROM pg_index ix
+    JOIN pg_class ic ON ic.oid = ix.indexrelid
+    JOIN pg_class tc ON tc.oid = ix.indrelid
+    JOIN pg_namespace n ON n.oid = tc.relnamespace
+    WHERE tc.relname = 'businesses'
+      AND n.nspname = 'public'
+      AND ix.indisunique
+      AND ix.indnkeyatts = 1
+      AND ix.indkey[0] = (
+        SELECT attnum FROM pg_attribute WHERE attrelid = tc.oid AND attname = v_col
+      )
+    LIMIT 1;
+
+    IF v_indexrelid IS NULL THEN
+      CONTINUE; -- nenhum objeto de unicidade sobre essa coluna; nada a renomear
+    END IF;
+
+    v_conname := NULL;
+    SELECT conname INTO v_conname FROM pg_constraint WHERE conindid = v_indexrelid LIMIT 1;
+
+    IF v_conname IS NOT NULL THEN
+      EXECUTE format('ALTER TABLE public.businesses RENAME CONSTRAINT %I TO %I', v_conname, v_target);
+    ELSE
+      EXECUTE format('ALTER INDEX public.%I RENAME TO %I', v_indexname, v_target);
+    END IF;
+  END LOOP;
+END $$;
+
+-- ─── 5c. Limpeza genérica de nomes legados restantes ──────────────────────────
+-- Produção carrega dezenas de índices/constraints nomeados pelas legacy-migrations
+-- que este script não lista um a um (ex.: idx_appointments_barbershop_date,
+-- idx_barbers_barbershop_active, check_barbershops_provider,
+-- chk_barbershops_cpf_cnpj_digits, clients_barbershop_id_phone_key,
+-- uq_barbershops_whatsapp_instance_name_norm). Varre o que sobrar com %barb% em
+-- public e renomeia por substituição de substring, na ordem mais específica
+-- primeiro (senão "barbershop" vira "businesss" ao passar por "barber" antes).
+-- Índices que sustentam uma constraint são pulados aqui e resolvidos no laço de
+-- constraints (renomear a constraint renomeia o índice de suporte junto).
+-- Tolerante: nome alvo já em uso não derruba a migration, só pula esse objeto.
+DO $$
+DECLARE
+  rec      record;
+  new_name text;
+  owner    text;
+BEGIN
+  FOR rec IN
+    SELECT c.relname AS name
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relkind = 'i'
+      AND c.relname ILIKE '%barb%'
+      AND NOT EXISTS (SELECT 1 FROM pg_constraint pc WHERE pc.conindid = c.oid)
+  LOOP
+    new_name := rec.name;
+    new_name := REPLACE(new_name, 'barbershops', 'businesses');
+    new_name := REPLACE(new_name, 'barbershop',  'business');
+    new_name := REPLACE(new_name, 'barbers',     'professionals');
+    new_name := REPLACE(new_name, 'barber',      'professional');
+
+    IF new_name = rec.name THEN
+      CONTINUE;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM pg_class WHERE relname = new_name AND relnamespace = 'public'::regnamespace) THEN
+      CONTINUE;
+    END IF;
+
+    EXECUTE format('ALTER INDEX public.%I RENAME TO %I', rec.name, new_name);
+  END LOOP;
+
+  FOR rec IN
+    SELECT conname AS name
+    FROM pg_constraint
+    WHERE connamespace = 'public'::regnamespace
+      AND conname ILIKE '%barb%'
+  LOOP
+    new_name := rec.name;
+    new_name := REPLACE(new_name, 'barbershops', 'businesses');
+    new_name := REPLACE(new_name, 'barbershop',  'business');
+    new_name := REPLACE(new_name, 'barbers',     'professionals');
+    new_name := REPLACE(new_name, 'barber',      'professional');
+
+    IF new_name = rec.name THEN
+      CONTINUE;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = new_name AND connamespace = 'public'::regnamespace) THEN
+      CONTINUE;
+    END IF;
+
+    SELECT rel.relname INTO owner
+    FROM pg_constraint pc
+    JOIN pg_class rel ON rel.oid = pc.conrelid
+    WHERE pc.conname = rec.name AND pc.connamespace = 'public'::regnamespace
+    LIMIT 1;
+
+    IF owner IS NULL THEN
+      CONTINUE; -- constraint sem tabela dona (não deveria ocorrer neste schema)
+    END IF;
+
+    EXECUTE format('ALTER TABLE public.%I RENAME CONSTRAINT %I TO %I', owner, rec.name, new_name);
+  END LOOP;
+END $$;
 
 -- ─── 6. Função e políticas de RLS com os nomes novos ──────────────────────────
 
@@ -272,16 +403,30 @@ BEGIN
 END $$;
 
 -- ─── 8. Textos salvos do bot ──────────────────────────────────────────────────
--- Colunas reais de whatsapp_bot_config conferidas via \d: não existe
--- `welcome_message` (o brief assumia esse nome); a coluna de boas-vindas é
--- `welcome_header`, que contém {nome_barbearia} (ver DEFAULT_BOT_CONFIG em
--- backend/src/services/whatsapp/whatsappConstants.ts). `confirmation_message`
--- também contém {barbeiro} e foi incluída.
-
-UPDATE public.whatsapp_bot_config SET
-  welcome_header       = REPLACE(REPLACE(welcome_header,       '{nome_barbearia}', '{nome_negocio}'), '{barbeiro}', '{profissional}'),
-  confirmation_message = REPLACE(REPLACE(confirmation_message, '{nome_barbearia}', '{nome_negocio}'), '{barbeiro}', '{profissional}'),
-  reminder_message      = REPLACE(REPLACE(reminder_message,     '{nome_barbearia}', '{nome_negocio}'), '{barbeiro}', '{profissional}')
-WHERE welcome_header       LIKE '%{nome_barbearia}%' OR welcome_header       LIKE '%{barbeiro}%'
-   OR confirmation_message LIKE '%{nome_barbearia}%' OR confirmation_message LIKE '%{barbeiro}%'
-   OR reminder_message      LIKE '%{nome_barbearia}%' OR reminder_message      LIKE '%{barbeiro}%';
+-- whatsappMessageService.formatMessage aplica a substituição {nome_barbearia}/
+-- {barbeiro} em QUALQUER template, e o MessageConfigPanel do frontend permite
+-- usar essas variáveis em colunas além de welcome/confirmation/reminder (ex.:
+-- promotions_message, instagram_message). Um tenant pode ter editado qualquer
+-- mensagem para incluir esses tokens, então a troca varre todas as colunas de
+-- texto de whatsapp_bot_config, não uma lista fixa. É um no-op onde o token não
+-- aparece. Colunas não-texto (id, business_id, timestamps) ficam de fora pelo
+-- filtro de data_type.
+DO $$
+DECLARE
+  col record;
+BEGIN
+  FOR col IN
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'whatsapp_bot_config'
+      AND data_type IN ('text', 'character varying', 'character')
+  LOOP
+    EXECUTE format(
+      $f$UPDATE public.whatsapp_bot_config
+         SET %I = REPLACE(REPLACE(%I, '{nome_barbearia}', '{nome_negocio}'), '{barbeiro}', '{profissional}')
+         WHERE %I LIKE '%%{nome_barbearia}%%' OR %I LIKE '%%{barbeiro}%%'$f$,
+      col.column_name, col.column_name, col.column_name, col.column_name
+    );
+  END LOOP;
+END $$;
