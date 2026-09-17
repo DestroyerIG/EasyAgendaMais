@@ -16,7 +16,7 @@ export const SAAS_PLANS: SaaSPlan[] = [
     id: 'basico',
     name: 'Básico',
     price: 49.9,
-    trialDays: 7,
+    trialDays: 14,
     description: 'Para barbearias enxutas que precisam organizar a operação sem complexidade.',
     ctaLabel: 'Começar no Básico',
     features: [
@@ -31,7 +31,7 @@ export const SAAS_PLANS: SaaSPlan[] = [
     id: 'profissional',
     name: 'Profissional',
     price: 99.9,
-    trialDays: 7,
+    trialDays: 14,
     description: 'Plano ideal para crescimento com mais equipe, previsibilidade e performance.',
     recommended: true,
     ctaLabel: 'Assinar Profissional',
@@ -48,7 +48,7 @@ export const SAAS_PLANS: SaaSPlan[] = [
     id: 'premium',
     name: 'Premium',
     price: 199.9,
-    trialDays: 7,
+    trialDays: 14,
     description: 'Para operações em expansão que exigem escala, controle e visão estratégica.',
     ctaLabel: 'Escalar com Premium',
     features: [

@@ -1,7 +1,8 @@
 import type Stripe from 'stripe';
 import { getFrontendBaseUrl } from '../config/stripe.js';
+import { TRIAL_DAYS } from '../config/trial.js';
 
-export const RECURRING_TRIAL_DAYS = 7;
+export const RECURRING_TRIAL_DAYS = TRIAL_DAYS;
 export const ONE_TIME_ACCESS_DAYS = 30;
 
 type PaymentMethodType = 'card' | 'boleto';
