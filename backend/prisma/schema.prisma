@@ -17,11 +17,6 @@ model Business {
   email                        String    @unique @db.VarChar(255)
   whatsapp                     String    @db.VarChar(20)
   whatsappInstanceName         String?   @map("whatsapp_instance_name") @db.VarChar(255)
-  // Meta WhatsApp Cloud API (per-business bot). When phoneNumberId is set,
-  // the Meta provider is used instead of Evolution.
-  whatsappPhoneNumberId        String?   @map("whatsapp_phone_number_id") @db.VarChar(64)
-  whatsappWabaId               String?   @map("whatsapp_waba_id") @db.VarChar(64)
-  whatsappAccessToken          String?   @map("whatsapp_access_token")
   cpfCnpj                      String?   @map("cpf_cnpj") @db.VarChar(20)
 
   // Plano e assinatura
@@ -79,7 +74,6 @@ model Business {
   whatsappRatings      WhatsappRating[]
   settings             BusinessSettings?
 
-  @@index([whatsappPhoneNumberId], map: "businesses_whatsapp_phone_number_id_idx")
   @@map("businesses")
 }
 
@@ -410,16 +404,13 @@ model BusinessSettings {
   businessId             String   @unique @map("business_id") @db.Uuid
   contactPhone             String?  @map("contact_phone") @db.VarChar(30)
   address                  String?  @db.VarChar(255)
-  openingTime              DateTime @default(dbgenerated("'09:00:00'::time")) @map("opening_time") @db.Time(6)
-  closingTime              DateTime @default(dbgenerated("'20:00:00'::time")) @map("closing_time") @db.Time(6)
+  openingTime              DateTime @default(dbgenerated("'09:00:00'::time without time zone")) @map("opening_time") @db.Time(6)
+  closingTime              DateTime @default(dbgenerated("'20:00:00'::time without time zone")) @map("closing_time") @db.Time(6)
   slotIntervalMinutes      Int      @default(30) @map("slot_interval_minutes")
   diasAbertos              String[] @default(["seg", "ter", "qua", "qui", "sex"]) @map("dias_abertos")
   allowWalkins             Boolean  @default(true) @map("allow_walkins")
   autoConfirmAppointments  Boolean  @default(false) @map("auto_confirm_appointments")
-  emailReminders           Boolean  @default(true) @map("email_reminders")
   whatsappReminders        Boolean  @default(true) @map("whatsapp_reminders")
-  googleCalendarEnabled    Boolean  @default(false) @map("google_calendar_enabled")
-  customWebhookUrl         String?  @map("custom_webhook_url") @db.Text
   createdAt                DateTime @default(now()) @map("created_at")
   updatedAt                DateTime @default(now()) @updatedAt @map("updated_at")
 
