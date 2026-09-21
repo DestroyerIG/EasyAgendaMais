@@ -20,7 +20,7 @@ curl http://localhost:5000/health
 2. Revise `backend/.env`:
 
 ```env
-DATABASE_URL=postgresql://postgres:senha@localhost:5432/barberpro
+DATABASE_URL=postgresql://postgres:senha@localhost:5432/easyagenda
 JWT_SECRET=uma_chave_forte_com_32_ou_mais_caracteres
 FRONTEND_URL=http://localhost:3000
 APP_URL=http://localhost:3000
@@ -49,9 +49,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
 5. Confirme schema completo:
 
 ```bash
-psql -h localhost -p 5432 -U postgres -d barberpro -c "SELECT to_regclass('public.auth_signup_pending');"
-psql -h localhost -p 5432 -U postgres -d barberpro -c "SELECT to_regclass('public.billing_events');"
-psql -h localhost -p 5432 -U postgres -d barberpro -c "SELECT to_regclass('public.whatsapp_menu_options');"
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT to_regclass('public.auth_signup_pending');"
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT to_regclass('public.billing_events');"
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT to_regclass('public.whatsapp_menu_options');"
 ```
 
 ## Pontos que Mais Quebram

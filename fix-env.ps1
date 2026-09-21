@@ -48,7 +48,7 @@ if (Test-Path $envFile) {
     Write-Host "Corrigindo arquivo .env..." -ForegroundColor Cyan
 
     $escapedPassword = [Uri]::EscapeDataString($pgPasswordText)
-    $newDatabaseUrl = "postgresql://postgres:$escapedPassword@localhost:5432/barberpro"
+    $newDatabaseUrl = "postgresql://postgres:$escapedPassword@localhost:5432/easyagenda"
     $newContent = $content -replace "DATABASE_URL=.*", "DATABASE_URL=$newDatabaseUrl"
 
     # Remove variaveis legadas nao utilizadas pelo backend atual
@@ -87,7 +87,7 @@ if (Test-Path $envFile) {
     Write-Host ""
     Write-Host "Arquivo .env corrigido com sucesso!" -ForegroundColor Green
     Write-Host "Nova configuracao:"
-    Write-Host "DATABASE_URL=postgresql://postgres:****@localhost:5432/barberpro" -ForegroundColor Green
+    Write-Host "DATABASE_URL=postgresql://postgres:****@localhost:5432/easyagenda" -ForegroundColor Green
     Write-Host ""
 
 } else {
@@ -107,7 +107,7 @@ if (Test-Path $envFile) {
 
     $envContent = @"
 PORT=5000
-DATABASE_URL=postgresql://postgres:$([Uri]::EscapeDataString($pgPasswordText))@localhost:5432/barberpro
+DATABASE_URL=postgresql://postgres:$([Uri]::EscapeDataString($pgPasswordText))@localhost:5432/easyagenda
 JWT_SECRET=$jwtSecret
 NODE_ENV=development
 LOG_LEVEL=info
@@ -132,7 +132,7 @@ Write-Host "PROXIMOS PASSOS:" -ForegroundColor Magenta
 Write-Host ""
 Write-Host "1. O backend vai reiniciar automaticamente (nodemon)"
 Write-Host "2. Aguarde aparecer: Conectado ao banco de dados"
-Write-Host "3. Tente cadastrar a barbearia novamente"
+Write-Host "3. Tente cadastrar o negocio novamente"
 Write-Host ""
 Write-Host "------------------------------------------------------------" -ForegroundColor Gray
 Write-Host ""

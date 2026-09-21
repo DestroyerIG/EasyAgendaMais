@@ -82,10 +82,6 @@ Status simples da API.
 
 Valida API e conexão com banco.
 
-### `GET /debug/ip`
-
-Retorna IP público visto pelo backend.
-
 ## Auth
 
 Prefixo: `/auth`.
@@ -153,9 +149,9 @@ Prefixo: `/finance`.
 | PUT | `/expenses/:id` | `finance` |
 | DELETE | `/expenses/:id` | `finance` |
 
-## Barbearia
+## Negócio
 
-Prefixo: `/barbershop`.
+Prefixo: `/business`.
 
 | Método | Rota | Feature/Role |
 | --- | --- | --- |
@@ -163,10 +159,10 @@ Prefixo: `/barbershop`.
 | POST | `/services` | `services` |
 | PUT | `/services/:id` | `services` |
 | DELETE | `/services/:id` | `services` |
-| GET | `/barbers` | `services` |
-| POST | `/barbers` | `services` |
-| PUT | `/barbers/:id` | `services` |
-| DELETE | `/barbers/:id` | `services` |
+| GET | `/professionals` | `services` |
+| POST | `/professionals` | `services` |
+| PUT | `/professionals/:id` | `services` |
+| DELETE | `/professionals/:id` | `services` |
 | GET | `/settings` | `advanced_admin` |
 | PUT | `/settings` | `advanced_admin` |
 | GET | `/profile` | `billing` |
@@ -177,7 +173,7 @@ Prefixo: `/barbershop`.
 
 ### Configurações operacionais
 
-`GET /barbershop/settings` retorna as preferências da barbearia. `PUT /barbershop/settings` aceita, entre outros campos:
+`GET /business/settings` retorna as preferências do negócio. `PUT /business/settings` aceita, entre outros campos:
 
 ```json
 {
@@ -273,22 +269,6 @@ Prefixo: `/admin`. Requer auth e role admin de plataforma.
 | GET | `/subscriptions` |
 | POST | `/subscriptions/:id/resync` |
 | GET | `/logs` |
-
-## Debug
-
-Prefixos: `/api/v1/debug` e `/debug`.
-
-As rotas de debug exigem:
-
-- `ENABLE_DEBUG_ROUTES=true`
-- `DEBUG_TOKEN`
-- Header `x-debug-token`
-
-Rotas:
-
-- `GET /asaas-auth`
-- `GET /asaas/customer-test`
-- `GET /asaas/pix-minimal`
 
 ## Autorização por Plano
 

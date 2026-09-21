@@ -1,4 +1,4 @@
-# Deploy — EasyBarber SaaS 2.0
+# Deploy — EasyAgenda+ SaaS 2.0
 
 Guia de produção. Stack: Node.js 20 + Express + Prisma + PostgreSQL (Supabase) + Vercel (frontend) + Render (backend).
 
@@ -17,7 +17,7 @@ Guia de produção. Stack: Node.js 20 + Express + Prisma + PostgreSQL (Supabase)
 ### Obrigatórias
 
 ```env
-DATABASE_URL=postgresql://user:password@host:5432/barberpro?sslmode=require
+DATABASE_URL=postgresql://user:password@host:5432/easyagenda?sslmode=require
 JWT_SECRET=chave_forte_32_chars_minimo
 NODE_ENV=production
 PORT=5000
@@ -62,11 +62,11 @@ LOG_LEVEL=info
 API_JSON_BODY_LIMIT=1mb
 WHATSAPP_WEBHOOK_BODY_LIMIT=6mb
 BUSINESS_TIMEZONE=America/Sao_Paulo
-VERCEL_PROJECT_PREFIX=barberpro-saas-2-0
+VERCEL_PROJECT_PREFIX=easyagenda-saas-2-0
 OTEL_ENABLED=false
 ```
 
-`BUSINESS_TIMEZONE` define o fuso usado pelo cron de lembretes. O servidor roda em UTC, mas os agendamentos gravam o relógio local da barbearia; sem essa variável o alvo dos lembretes pode sair errado. Padrão: `America/Sao_Paulo`.
+`BUSINESS_TIMEZONE` define o fuso usado pelo cron de lembretes. O servidor roda em UTC, mas os agendamentos gravam o relógio local do negócio; sem essa variável o alvo dos lembretes pode sair errado. Padrão: `America/Sao_Paulo`.
 
 ---
 

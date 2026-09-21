@@ -1,6 +1,6 @@
 # Instalação Completa
 
-Guia completo para instalar o EasyBarber SaaS 2.0 em ambiente local.
+Guia completo para instalar o EasyAgenda+ SaaS 2.0 em ambiente local.
 
 ## 1. Pré-requisitos
 
@@ -23,7 +23,7 @@ git --version
 
 ```bash
 git clone <url-do-repositorio>
-cd Barberpro-saas-2.0
+cd easyagenda-saas
 ```
 
 ## 3. Instalar Dependências
@@ -53,7 +53,7 @@ Campos mínimos:
 PORT=5000
 NODE_ENV=development
 LOG_LEVEL=info
-DATABASE_URL=postgresql://postgres:senha@localhost:5432/barberpro
+DATABASE_URL=postgresql://postgres:senha@localhost:5432/easyagenda
 JWT_SECRET=troque_por_uma_chave_forte
 FRONTEND_URL=http://localhost:3000
 APP_URL=http://localhost:3000
@@ -70,7 +70,7 @@ Variáveis opcionais por módulo:
 - Stripe: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` e price IDs.
 - Asaas Pix: `ASAAS_API_KEY`, `ASAAS_BASE_URL`, `ASAAS_WEBHOOK_TOKEN`.
 - WhatsApp: `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE_NAME`, `BACKEND_WEBHOOK_BASE_URL` (alias legado: `EVOLUTION_WEBHOOK_URL`).
-- Lembretes: `BUSINESS_TIMEZONE` (padrão `America/Sao_Paulo`); servidor em UTC precisa do fuso da barbearia.
+- Lembretes: `BUSINESS_TIMEZONE` (padrão `America/Sao_Paulo`); servidor em UTC precisa do fuso do negócio.
 - SMTP: opcional; não é usado para confirmação de autenticação no fluxo atual.
 
 `AUTH_PROVIDER_MODE` é obsoleto. Supabase Auth é obrigatório.
@@ -96,8 +96,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
 Crie o banco:
 
 ```bash
-createdb -h localhost -p 5432 -U postgres --encoding=UTF8 barberpro
-psql -h localhost -p 5432 -U postgres -d barberpro -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+createdb -h localhost -p 5432 -U postgres --encoding=UTF8 easyagenda
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
 ```
 
 Aplique os arquivos SQL nesta ordem:
@@ -125,7 +125,7 @@ Linux/macOS:
 
 ```bash
 for file in backend/src/config/database.sql backend/src/config/migration_v3.sql backend/src/config/migration_v4.sql backend/src/config/migration_v5.sql backend/src/config/migration_v6.sql backend/src/config/migration_v7.sql backend/src/config/migration_v8.sql backend/src/config/migration_v9.sql backend/src/config/migration_v10.sql backend/src/config/migration_v11.sql backend/src/config/migration_v12.sql backend/src/config/migration_v13.sql backend/src/config/migration_v14.sql backend/src/config/migration_v15.sql backend/src/config/migration_v16_supabase_only_auth.sql backend/src/config/migration_v17_subscription_access_gate.sql backend/src/config/migration_v18_asaas_customer_id.sql backend/src/config/migration_v19_business_days_and_intervals.sql; do
-  psql -h localhost -p 5432 -U postgres -d barberpro -v ON_ERROR_STOP=1 -f "$file"
+  psql -h localhost -p 5432 -U postgres -d easyagenda -v ON_ERROR_STOP=1 -f "$file"
 done
 ```
 
@@ -153,7 +153,7 @@ $files = @(
   "backend/src/config/migration_v19_business_days_and_intervals.sql"
 )
 foreach ($file in $files) {
-  psql -h localhost -p 5432 -U postgres -d barberpro -v ON_ERROR_STOP=1 -f $file
+  psql -h localhost -p 5432 -U postgres -d easyagenda -v ON_ERROR_STOP=1 -f $file
 }
 ```
 

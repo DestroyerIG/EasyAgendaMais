@@ -6,14 +6,14 @@ Guia técnico do módulo WhatsApp.
 
 Implementação atual:
 
-- Backend EasyBarber consome Evolution API v2 por HTTP.
+- Backend EasyAgenda+ consome Evolution API v2 por HTTP.
 - Evolution API roda como serviço externo.
 - Frontend chama apenas endpoints internos do backend.
 
 Fluxo:
 
 ```text
-Frontend -> Backend EasyBarber -> Evolution API v2
+Frontend -> Backend EasyAgenda+ -> Evolution API v2
 ```
 
 ## Pré-requisitos
@@ -30,18 +30,18 @@ Frontend -> Backend EasyBarber -> Evolution API v2
 WHATSAPP_PROVIDER=evolution
 EVOLUTION_API_URL=https://sua-evolution.com
 EVOLUTION_API_KEY=sua_chave
-EVOLUTION_INSTANCE_NAME=easybarber
+EVOLUTION_INSTANCE_NAME=easyagenda
 BACKEND_WEBHOOK_BASE_URL=https://sua-api.com/api/v1/whatsapp/webhook
 EVOLUTION_WEBHOOK_URL=
 EVOLUTION_API_TIMEOUT_MS=10000
 WHATSAPP_WEBHOOK_BODY_LIMIT=6mb
 WHATSAPP_SESSION_TIMEOUT_MS=1800000
-WHATSAPP_INSTANCE_BARBERSHOP_MAP=
+WHATSAPP_INSTANCE_BUSINESS_MAP=
 ```
 
 `BACKEND_WEBHOOK_BASE_URL` é o nome preferido para a URL pública do webhook. `EVOLUTION_WEBHOOK_URL` é mantido como alias legado e só é usado como fallback quando o novo nome está vazio. Sem barra final.
 
-`WHATSAPP_INSTANCE_BARBERSHOP_MAP` aceita JSON ou `key=value`, mas é fallback legado. A fonte de verdade multi-tenant é `barbershops.whatsapp_instance_name`.
+`WHATSAPP_INSTANCE_BUSINESS_MAP` aceita JSON ou `key=value`, mas é fallback legado. A fonte de verdade multi-tenant é `businesses.whatsapp_instance_name`.
 
 ## Webhooks Evolution
 
@@ -124,7 +124,7 @@ O módulo permite:
 
 ## Configuração Operacional
 
-O bot usa as preferências salvas em `/barbershop/settings` para gerar horários:
+O bot usa as preferências salvas em `/business/settings` para gerar horários:
 
 - `diasAbertos`: array com ids dos dias abertos (`seg`, `ter`, `qua`, `qui`, `sex`, `sab`, `dom`). O padrão é segunda a sexta.
 - `openingTime` e `closingTime`: janela diária de atendimento.
@@ -139,10 +139,10 @@ Um cron in-process (`src/services/cronService.ts`) envia lembretes de agendament
 
 - Executa a cada 10 minutos (`*/10 * * * *`).
 - Busca agendamentos com status `confirmado`, `reminderSent=false`, que começam ~2h à frente.
-- Usa o template `reminderMessage` do `whatsappBotConfig` da barbearia ou um padrão.
+- Usa o template `reminderMessage` do `whatsappBotConfig` do negócio ou um padrão.
 - Marca `reminderSent=true` após envio bem-sucedido.
 
-Agendamentos gravam `date`/`time` no relógio local da barbearia (BR), não UTC. Como o servidor (Render) roda em UTC, o alvo é calculado no fuso de negócio:
+Agendamentos gravam `date`/`time` no relógio local do negócio (BR), não UTC. Como o servidor (Render) roda em UTC, o alvo é calculado no fuso do negócio:
 
 ```env
 BUSINESS_TIMEZONE=America/Sao_Paulo
@@ -161,13 +161,13 @@ Endpoint:
 Uso esperado:
 
 - Testar fluxos sem depender de mensagem real.
-- Validar contexto da barbearia autenticada.
+- Validar contexto do negócio autenticado.
 - Reproduzir respostas do bot no dashboard.
 
 ## Troubleshooting
 
 - QR Code não aparece: valide `EVOLUTION_API_URL`, `EVOLUTION_API_KEY` e conectividade da Evolution.
 - Webhook não processa: confirme URL pública, evento `MESSAGES_UPSERT` e logs do backend.
-- Tenant incorreto: confira `barbershops.whatsapp_instance_name`.
+- Tenant incorreto: confira `businesses.whatsapp_instance_name`.
 - Payload 413: remova eventos pesados e aumente `WHATSAPP_WEBHOOK_BODY_LIMIT` apenas se necessário.
 - Feature bloqueada: confira plano/status em PLANOS.md.

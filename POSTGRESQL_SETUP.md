@@ -39,15 +39,15 @@ Ordem recomendada para banco novo:
 Linux/macOS:
 
 ```bash
-createdb -h localhost -p 5432 -U postgres --encoding=UTF8 barberpro
-psql -h localhost -p 5432 -U postgres -d barberpro -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+createdb -h localhost -p 5432 -U postgres --encoding=UTF8 easyagenda
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
 ```
 
 Windows PowerShell:
 
 ```powershell
-createdb -h localhost -p 5432 -U postgres --encoding=UTF8 barberpro
-psql -h localhost -p 5432 -U postgres -d barberpro -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+createdb -h localhost -p 5432 -U postgres --encoding=UTF8 easyagenda
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
 ```
 
 ## Encoding
@@ -96,7 +96,7 @@ for file in \
   backend/src/config/migration_v18_asaas_customer_id.sql \
   backend/src/config/migration_v19_business_days_and_intervals.sql
 do
-  psql -h localhost -p 5432 -U postgres -d barberpro -v ON_ERROR_STOP=1 -f "$file"
+  psql -h localhost -p 5432 -U postgres -d easyagenda -v ON_ERROR_STOP=1 -f "$file"
 done
 ```
 
@@ -124,7 +124,7 @@ $files = @(
   "backend/src/config/migration_v19_business_days_and_intervals.sql"
 )
 foreach ($file in $files) {
-  psql -h localhost -p 5432 -U postgres -d barberpro -v ON_ERROR_STOP=1 -f $file
+  psql -h localhost -p 5432 -U postgres -d easyagenda -v ON_ERROR_STOP=1 -f $file
 }
 ```
 
@@ -164,29 +164,29 @@ docker compose up -d db
 Aplique as migrations restantes:
 
 ```bash
-cat backend/src/config/migration_v16_supabase_only_auth.sql | docker compose exec -T db psql -U barberpro -d barberpro -v ON_ERROR_STOP=1
-cat backend/src/config/migration_v17_subscription_access_gate.sql | docker compose exec -T db psql -U barberpro -d barberpro -v ON_ERROR_STOP=1
-cat backend/src/config/migration_v18_asaas_customer_id.sql | docker compose exec -T db psql -U barberpro -d barberpro -v ON_ERROR_STOP=1
-cat backend/src/config/migration_v19_business_days_and_intervals.sql | docker compose exec -T db psql -U barberpro -d barberpro -v ON_ERROR_STOP=1
+cat backend/src/config/migration_v16_supabase_only_auth.sql | docker compose exec -T db psql -U easyagenda -d easyagenda -v ON_ERROR_STOP=1
+cat backend/src/config/migration_v17_subscription_access_gate.sql | docker compose exec -T db psql -U easyagenda -d easyagenda -v ON_ERROR_STOP=1
+cat backend/src/config/migration_v18_asaas_customer_id.sql | docker compose exec -T db psql -U easyagenda -d easyagenda -v ON_ERROR_STOP=1
+cat backend/src/config/migration_v19_business_days_and_intervals.sql | docker compose exec -T db psql -U easyagenda -d easyagenda -v ON_ERROR_STOP=1
 ```
 
 PowerShell:
 
 ```powershell
-Get-Content .\backend\src\config\migration_v16_supabase_only_auth.sql | docker compose exec -T db psql -U barberpro -d barberpro -v ON_ERROR_STOP=1
-Get-Content .\backend\src\config\migration_v17_subscription_access_gate.sql | docker compose exec -T db psql -U barberpro -d barberpro -v ON_ERROR_STOP=1
-Get-Content .\backend\src\config\migration_v18_asaas_customer_id.sql | docker compose exec -T db psql -U barberpro -d barberpro -v ON_ERROR_STOP=1
-Get-Content .\backend\src\config\migration_v19_business_days_and_intervals.sql | docker compose exec -T db psql -U barberpro -d barberpro -v ON_ERROR_STOP=1
+Get-Content .\backend\src\config\migration_v16_supabase_only_auth.sql | docker compose exec -T db psql -U easyagenda -d easyagenda -v ON_ERROR_STOP=1
+Get-Content .\backend\src\config\migration_v17_subscription_access_gate.sql | docker compose exec -T db psql -U easyagenda -d easyagenda -v ON_ERROR_STOP=1
+Get-Content .\backend\src\config\migration_v18_asaas_customer_id.sql | docker compose exec -T db psql -U easyagenda -d easyagenda -v ON_ERROR_STOP=1
+Get-Content .\backend\src\config\migration_v19_business_days_and_intervals.sql | docker compose exec -T db psql -U easyagenda -d easyagenda -v ON_ERROR_STOP=1
 ```
 
 ## Validação Rápida
 
 ```bash
-psql -h localhost -p 5432 -U postgres -d barberpro -c "SELECT 1;"
-psql -h localhost -p 5432 -U postgres -d barberpro -c "SELECT to_regclass('public.auth_signup_pending');"
-psql -h localhost -p 5432 -U postgres -d barberpro -c "SELECT to_regclass('public.billing_events');"
-psql -h localhost -p 5432 -U postgres -d barberpro -c "SELECT to_regclass('public.whatsapp_menu_options');"
-psql -h localhost -p 5432 -U postgres -d barberpro -c "SELECT column_name FROM information_schema.columns WHERE table_name = 'barbershop_settings' AND column_name = 'dias_abertos';"
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT 1;"
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT to_regclass('public.auth_signup_pending');"
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT to_regclass('public.billing_events');"
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT to_regclass('public.whatsapp_menu_options');"
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT column_name FROM information_schema.columns WHERE table_name = 'business_settings' AND column_name = 'dias_abertos';"
 ```
 
 ## Backup Antes de Produção
@@ -194,7 +194,7 @@ psql -h localhost -p 5432 -U postgres -d barberpro -c "SELECT column_name FROM i
 Antes de aplicar migration em banco com dados:
 
 ```bash
-pg_dump "$DATABASE_URL" > backup_barberpro_$(date +%Y%m%d_%H%M%S).sql
+pg_dump "$DATABASE_URL" > backup_easyagenda_$(date +%Y%m%d_%H%M%S).sql
 ```
 
 ## Erros Comuns

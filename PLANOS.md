@@ -43,13 +43,13 @@ Regras:
 - `active` e `trialing`: acesso conforme plano.
 - `pending`, `past_due`, `unpaid`, `incomplete` e `canceled`: acesso restrito a `billing` e `subscription_status`.
 
-## Limites de Barbeiros
+## Limites de Profissionais
 
-Fonte: `backend/src/services/barberService.js`.
+Fonte: `backend/src/services/professionalService.js`.
 
-- `basico`: 1 barbeiro ativo.
-- `profissional`: 5 barbeiros ativos.
-- `premium`: 999 barbeiros ativos, tratado como ilimitado na prática.
+- `basico`: 1 profissional ativo.
+- `profissional`: 5 profissionais ativos.
+- `premium`: 999 profissionais ativos, tratado como ilimitado na prática.
 
 ## Billing
 
@@ -84,7 +84,7 @@ Variáveis:
 
 ## Trial
 
-O fluxo Stripe suporta trial de 7 dias apenas na primeira assinatura recorrente da barbearia. Pix via Asaas inicia como `pending` e só libera acesso após confirmação do pagamento pelo webhook.
+O fluxo Stripe suporta trial de 7 dias apenas na primeira assinatura recorrente do negócio. Pix via Asaas inicia como `pending` e só libera acesso após confirmação do pagamento pelo webhook.
 
 ## Onde o Gate é Aplicado
 

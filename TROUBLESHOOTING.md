@@ -6,7 +6,7 @@ Guia de diagnóstico para erros comuns em desenvolvimento e operação.
 
 ```bash
 curl http://localhost:5000/health
-psql -h localhost -p 5432 -U postgres -d barberpro -c "SELECT 1;"
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT 1;"
 node -v
 npm -v
 ```
@@ -32,7 +32,7 @@ Checklist:
 ### Conexão recusada
 
 ```bash
-psql -h localhost -p 5432 -U postgres -d barberpro -c "SELECT current_database();"
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT current_database();"
 ```
 
 Verifique serviço, host, porta, usuário e senha.
@@ -42,10 +42,10 @@ Verifique serviço, host, porta, usuário e senha.
 Valide tabelas críticas:
 
 ```bash
-psql -h localhost -p 5432 -U postgres -d barberpro -c "SELECT to_regclass('public.auth_signup_pending');"
-psql -h localhost -p 5432 -U postgres -d barberpro -c "SELECT to_regclass('public.billing_events');"
-psql -h localhost -p 5432 -U postgres -d barberpro -c "SELECT to_regclass('public.whatsapp_menu_options');"
-psql -h localhost -p 5432 -U postgres -d barberpro -c "SELECT column_name FROM information_schema.columns WHERE table_name = 'barbershop_settings' AND column_name = 'dias_abertos';"
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT to_regclass('public.auth_signup_pending');"
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT to_regclass('public.billing_events');"
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT to_regclass('public.whatsapp_menu_options');"
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT column_name FROM information_schema.columns WHERE table_name = 'business_settings' AND column_name = 'dias_abertos';"
 ```
 
 Se alguma retornar vazio, aplique migrations até `migration_v19_business_days_and_intervals.sql`.
@@ -55,10 +55,10 @@ Se alguma retornar vazio, aplique migrations até `migration_v19_business_days_a
 O compose atual aplica automaticamente até v15 no primeiro volume. Aplique v16-v19 manualmente:
 
 ```bash
-cat backend/src/config/migration_v16_supabase_only_auth.sql | docker compose exec -T db psql -U barberpro -d barberpro -v ON_ERROR_STOP=1
-cat backend/src/config/migration_v17_subscription_access_gate.sql | docker compose exec -T db psql -U barberpro -d barberpro -v ON_ERROR_STOP=1
-cat backend/src/config/migration_v18_asaas_customer_id.sql | docker compose exec -T db psql -U barberpro -d barberpro -v ON_ERROR_STOP=1
-cat backend/src/config/migration_v19_business_days_and_intervals.sql | docker compose exec -T db psql -U barberpro -d barberpro -v ON_ERROR_STOP=1
+cat backend/src/config/migration_v16_supabase_only_auth.sql | docker compose exec -T db psql -U easyagenda -d easyagenda -v ON_ERROR_STOP=1
+cat backend/src/config/migration_v17_subscription_access_gate.sql | docker compose exec -T db psql -U easyagenda -d easyagenda -v ON_ERROR_STOP=1
+cat backend/src/config/migration_v18_asaas_customer_id.sql | docker compose exec -T db psql -U easyagenda -d easyagenda -v ON_ERROR_STOP=1
+cat backend/src/config/migration_v19_business_days_and_intervals.sql | docker compose exec -T db psql -U easyagenda -d easyagenda -v ON_ERROR_STOP=1
 ```
 
 ## Cadastro, Confirmação e Login
@@ -111,8 +111,6 @@ Verifique:
 - Endpoint `/api/v1/billing/webhooks/asaas`.
 - CPF/CNPJ válido no checkout.
 
-Rotas de debug existem sob `/api/v1/debug`, mas só respondem quando `ENABLE_DEBUG_ROUTES=true` e `x-debug-token` corresponde a `DEBUG_TOKEN`.
-
 ## WhatsApp
 
 Checklist:
@@ -122,7 +120,7 @@ Checklist:
 - Webhook da Evolution aponta para `/api/v1/whatsapp/webhook`.
 - Eventos recomendados: `MESSAGES_UPSERT` e `CONNECTION_UPDATE`.
 - `MESSAGES_SET` desabilitado.
-- `barbershops.whatsapp_instance_name` configurado para o tenant.
+- `businesses.whatsapp_instance_name` configurado para o tenant.
 - Plano/status permite `whatsapp_automation`.
 
 ## Lembretes não enviados
