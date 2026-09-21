@@ -54,7 +54,7 @@ const KNOWN_EVENT_SUFFIXES = [
  * routes and returns 404). We fail loud on misconfiguration instead of
  * silently registering an unreachable URL on the Evolution server.
  */
-const FRONTEND_HOST_BLOCKLIST = [/\.vercel\.app$/i, /easyagenda-saas/i];
+const FRONTEND_HOST_BLOCKLIST = [/\.vercel\.app$/i, /barberpro-saas/i];
 
 /**
  * Returns the canonical webhook BASE url to register on Evolution v2.

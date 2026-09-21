@@ -92,7 +92,7 @@ interface ResendVerificationResult {
 let supabaseClient: SupabaseClient | undefined;
 let supabaseAdminClient: SupabaseClient | undefined;
 const DEFAULT_SUPABASE_AUTH_TIMEOUT_MS = 12000;
-const DEFAULT_PRODUCTION_APP_URL = 'https://easyagenda-saas-2-0.vercel.app';
+const DEFAULT_PRODUCTION_APP_URL = 'https://barberpro-saas-2-0.vercel.app';
 
 // ─── Config helpers ───────────────────────────────────────────────────────────
 

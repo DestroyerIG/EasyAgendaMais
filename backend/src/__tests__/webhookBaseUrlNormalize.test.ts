@@ -41,7 +41,7 @@ describe('normalizeWebhookBaseUrl', () => {
   it('rejects Vercel frontend hosts (bug 2: webhook must hit backend, not Vercel)', () => {
     expect(() =>
       normalizeWebhookBaseUrl(
-        'https://easyagenda-saas-2-0.vercel.app/api/v1/whatsapp/webhook',
+        'https://barberpro-saas-2-0.vercel.app/api/v1/whatsapp/webhook',
       ),
     ).toThrow(/frontend/i);
   });

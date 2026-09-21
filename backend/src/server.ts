@@ -159,7 +159,7 @@ const allowedOrigins = [
 
 const vercelProjectPrefix =
   process.env.VERCEL_PROJECT_PREFIX ||
-  'easyagenda-saas-2-0';
+  'barberpro-saas-2-0';
 
 const isAllowedVercelPreview = (
   origin: string
