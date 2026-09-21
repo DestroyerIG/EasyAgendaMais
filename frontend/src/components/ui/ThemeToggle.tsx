@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Moon, Sun } from 'lucide-react';
 
 const THEME_KEY = 'easyagenda-theme';
-const LEGACY_THEME_KEY = 'professionalpro-theme';
 
 export function ThemeToggle() {
   // Inicializa com base no que já está no <html> (aplicado pelo script inline do layout)
@@ -17,7 +16,7 @@ export function ThemeToggle() {
 
   useEffect(() => {
     // Sincroniza com localStorage na montagem
-    const stored = localStorage.getItem(THEME_KEY) || localStorage.getItem(LEGACY_THEME_KEY);
+    const stored = localStorage.getItem(THEME_KEY);
     const dark = stored !== 'light';
     setIsDark(dark);
     if (dark) {

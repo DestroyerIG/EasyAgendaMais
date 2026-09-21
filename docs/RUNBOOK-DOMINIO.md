@@ -4,6 +4,7 @@ Executar quando o domínio novo for comprado. Nada aqui foi feito na Fundação.
 
 1. DNS: apontar o domínio para a Vercel e validar o certificado.
 2. Vercel: adicionar o domínio ao projeto e definir `BACKEND_ORIGIN`, `NEXT_PUBLIC_API_URL` e `NEXT_PUBLIC_SITE_URL`.
+   - `frontend/src/lib/appUrl.ts` tem como padrão o endereço Vercel atual (`https://barberpro-saas-2-0.vercel.app`); ao trocar de domínio, defina `NEXT_PUBLIC_APP_URL` no Vercel para o domínio novo, senão o app volta a cair nesse padrão antigo quando as demais variáveis não resolverem.
 3. Redirecionamento permanente (301) do endereço antigo para o novo.
 4. Supabase: atualizar Site URL e Redirect URLs (login, confirmação de e-mail, recuperação de senha).
 5. Stripe: atualizar a URL do webhook e as URLs de sucesso e cancelamento do checkout.

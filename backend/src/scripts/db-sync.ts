@@ -51,7 +51,7 @@ function runCommand(cmd: string, label: string): void {
 }
 
 async function main(): Promise<void> {
-  console.log('=== Professionalpro DB Sync ===\n');
+  console.log('=== EasyAgenda DB Sync ===\n');
 
   try {
     await prisma.$queryRaw`SELECT 1`;
