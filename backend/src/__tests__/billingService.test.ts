@@ -1,7 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 const mockSubscriptionRepository = vi.hoisted(() => ({
-  getBarbershopBillingContext: vi.fn(),
+  getBusinessBillingContext: vi.fn(),
   updateSubscriptionState: vi.fn(),
   upsertBillingPayment: vi.fn(),
   findBillingPaymentByProviderPaymentId: vi.fn(),
@@ -18,7 +18,7 @@ const mockAsaasService = vi.hoisted(() => ({
 
 const mockAsaasMapper = vi.hoisted(() => ({
   mapAsaasPaymentToPixData: vi.fn(),
-  extractBarbershopIdFromExternalReference: vi.fn(),
+  extractBusinessIdFromExternalReference: vi.fn(),
 }));
 
 const mockLogger = vi.hoisted(() => ({
@@ -71,7 +71,7 @@ describe('billingService', () => {
       confirmedDate: null,
     });
 
-    mockAsaasMapper.extractBarbershopIdFromExternalReference.mockReturnValue('tenant-3');
+    mockAsaasMapper.extractBusinessIdFromExternalReference.mockReturnValue('tenant-3');
   });
 
   it('creates Stripe checkout session preserving provider response', async () => {
@@ -83,7 +83,7 @@ describe('billingService', () => {
       }),
     };
 
-    mockSubscriptionRepository.getBarbershopBillingContext.mockResolvedValue({
+    mockSubscriptionRepository.getBusinessBillingContext.mockResolvedValue({
       id: 'tenant-1',
       plan: 'basico',
       desired_plan: 'premium',
@@ -102,7 +102,7 @@ describe('billingService', () => {
     });
 
     expect(stripeProvider.createSubscription).toHaveBeenCalledWith({
-      barbershopId: 'tenant-1',
+      businessId: 'tenant-1',
       plan: 'premium',
       paymentMethod: 'card',
     });
@@ -120,7 +120,7 @@ describe('billingService', () => {
           value: 99.9,
           invoiceUrl: 'https://asaas.test/invoice/pay_asaas',
           bankSlipUrl: 'https://asaas.test/boleto/pay_asaas',
-          externalReference: 'barbershop:tenant-2:plan:profissional',
+          externalReference: 'business:tenant-2:plan:profissional',
         },
         pixData: {
           qrCode: 'data:image/png;base64,abc',
@@ -131,11 +131,11 @@ describe('billingService', () => {
       mapExternalStatusToInternalStatus: vi.fn().mockReturnValue('pending'),
     };
 
-    mockSubscriptionRepository.getBarbershopBillingContext.mockResolvedValue({
+    mockSubscriptionRepository.getBusinessBillingContext.mockResolvedValue({
       id: 'tenant-2',
       name: 'Barbearia Teste',
       owner_name: 'Joao',
-      email: 'teste@barber.com',
+      email: 'teste@professional.com',
       whatsapp: '11999999999',
       plan: 'basico',
       desired_plan: 'profissional',
@@ -196,7 +196,7 @@ describe('billingService', () => {
           status: 'CONFIRMED',
           dueDate: '2026-04-20',
           value: 99.9,
-          externalReference: 'barbershop:tenant-active-pix:plan:profissional',
+          externalReference: 'business:tenant-active-pix:plan:profissional',
         },
         pixData: {
           qrCode: null,
@@ -207,11 +207,11 @@ describe('billingService', () => {
       mapExternalStatusToInternalStatus: vi.fn().mockReturnValue('active'),
     };
 
-    mockSubscriptionRepository.getBarbershopBillingContext.mockResolvedValue({
+    mockSubscriptionRepository.getBusinessBillingContext.mockResolvedValue({
       id: 'tenant-active-pix',
       name: 'Barbearia Teste',
       owner_name: 'Joao',
-      email: 'teste@barber.com',
+      email: 'teste@professional.com',
       whatsapp: '11999999999',
       plan: 'basico',
       desired_plan: 'profissional',
@@ -271,11 +271,11 @@ describe('billingService', () => {
       mapExternalStatusToInternalStatus: vi.fn(),
     };
 
-    mockSubscriptionRepository.getBarbershopBillingContext.mockResolvedValue({
+    mockSubscriptionRepository.getBusinessBillingContext.mockResolvedValue({
       id: 'tenant-asaas-error-1',
       name: 'Barbearia Teste',
       owner_name: 'Joao',
-      email: 'teste@barber.com',
+      email: 'teste@professional.com',
       whatsapp: '11999999999',
       plan: 'basico',
       desired_plan: 'profissional',
@@ -299,7 +299,7 @@ describe('billingService', () => {
     expect(mockLogger.error).toHaveBeenCalledWith(
       expect.objectContaining({
         event: 'billing_checkout_error',
-        barbershopId: 'tenant-asaas-error-1',
+        businessId: 'tenant-asaas-error-1',
         paymentMethod: 'pix',
         code: 'ASAAS_CUSTOMER_CREATE_ERROR',
       }),
@@ -318,7 +318,7 @@ describe('billingService', () => {
           confirmedDate: '2026-04-16',
           dueDate: '2026-04-16',
           value: 49.9,
-          externalReference: 'barbershop:tenant-3:plan:basico',
+          externalReference: 'business:tenant-3:plan:basico',
         },
         pixData: {
           qrCode: null,
@@ -336,10 +336,10 @@ describe('billingService', () => {
     mockSubscriptionRepository.findBillingPaymentByProviderPaymentId.mockResolvedValue({
       provider: 'asaas',
       provider_payment_id: 'pay_refresh',
-      barbershop_id: 'tenant-3',
+      business_id: 'tenant-3',
     });
 
-    mockSubscriptionRepository.getBarbershopBillingContext.mockResolvedValue({
+    mockSubscriptionRepository.getBusinessBillingContext.mockResolvedValue({
       id: 'tenant-3',
       plan: 'basico',
       provider_subscription_id: 'sub_refresh',

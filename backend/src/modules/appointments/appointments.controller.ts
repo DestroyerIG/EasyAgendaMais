@@ -10,7 +10,7 @@ export const getAppointments = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const data = await appointmentsService.getAll(req.user.barbershopId!, req.query as never);
+    const data = await appointmentsService.getAll(req.user.businessId!, req.query as never);
     sendSuccess(res, data.map(toAppointmentDto));
   } catch (error) {
     next(error);
@@ -23,7 +23,7 @@ export const createAppointment = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const data = await appointmentsService.create(req.user.barbershopId!, req.body);
+    const data = await appointmentsService.create(req.user.businessId!, req.body);
     sendCreated(res, toAppointmentDto(data));
   } catch (error) {
     next(error);
@@ -38,7 +38,7 @@ export const updateAppointmentStatus = async (
   try {
     const data = await appointmentsService.updateStatus(
       String(req.params['id']),
-      req.user.barbershopId!,
+      req.user.businessId!,
       req.body.status as AppointmentStatus
     );
     sendSuccess(res, toAppointmentDto(data));
@@ -55,7 +55,7 @@ export const updateAppointment = async (
   try {
     const data = await appointmentsService.update(
       String(req.params['id']),
-      req.user.barbershopId!,
+      req.user.businessId!,
       req.body
     );
     sendSuccess(res, toAppointmentDto(data));
@@ -70,7 +70,7 @@ export const deleteAppointment = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    await appointmentsService.delete(String(req.params['id']), req.user.barbershopId!);
+    await appointmentsService.delete(String(req.params['id']), req.user.businessId!);
     sendSuccess(res, { message: 'Agendamento cancelado com sucesso' });
   } catch (error) {
     next(error);
@@ -84,7 +84,7 @@ export const getAvailableSlots = async (
 ): Promise<void> => {
   try {
     const data = await appointmentsService.getAvailableSlots(
-      req.user.barbershopId!,
+      req.user.businessId!,
       req.query as never
     );
     sendSuccess(res, data);

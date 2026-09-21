@@ -14,13 +14,13 @@ export { createAppointmentSchema, updateAppointmentSchema, updateStatusSchema } 
 export { createClientSchema, updateClientSchema } from './clientSchemas.js';
 export { addExpenseSchema, updateExpenseSchema } from './financeSchemas.js';
 export { createServiceSchema, updateServiceSchema } from './serviceSchemas.js';
-export { createBarberSchema, updateBarberSchema } from './barberSchemas.js';
+export { createProfessionalSchema, updateProfessionalSchema } from './professionalSchemas.js';
 export {
-	updateBarbershopSettingsSchema,
-	updateBarbershopProfileSchema,
+	updateBusinessSettingsSchema,
+	updateBusinessProfileSchema,
 	updateAccountProfileSchema,
 	updateAccountPasswordSchema,
-} from './barbershopSettingsSchemas.js';
+} from './businessSettingsSchemas.js';
 export { createCheckoutSessionSchema } from './subscriptionSchemas.js';
 export {
 	createBillingCheckoutSessionSchema,

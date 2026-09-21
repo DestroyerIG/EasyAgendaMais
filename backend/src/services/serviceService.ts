@@ -8,34 +8,34 @@ interface ServiceData {
 }
 
 export const serviceService = {
-  async getServices(barbershopId: string) {
-    return serviceRepository.findAllActive(barbershopId);
+  async getServices(businessId: string) {
+    return serviceRepository.findAllActive(businessId);
   },
 
-  async createService(barbershopId: string, data: ServiceData) {
+  async createService(businessId: string, data: ServiceData) {
     return (serviceRepository as unknown as {
       create(data: {
-        barbershop_id: string;
+        business_id: string;
         name: string;
         price: number;
         duration_minutes: number;
       }): Promise<unknown>;
     }).create({
-      barbershop_id: barbershopId,
+      business_id: businessId,
       name: data.name,
       price: data.price,
       duration_minutes: data.duration_minutes,
     });
   },
 
-  async updateService(id: string, barbershopId: string, data: ServiceData) {
+  async updateService(id: string, businessId: string, data: ServiceData) {
     const result = await (serviceRepository as unknown as {
       update(
         id: string,
-        barbershopId: string,
+        businessId: string,
         data: { name: string; price: number; duration_minutes: number }
       ): Promise<unknown>;
-    }).update(id, barbershopId, {
+    }).update(id, businessId, {
       name: data.name,
       price: data.price,
       duration_minutes: data.duration_minutes,
@@ -44,10 +44,10 @@ export const serviceService = {
     return result;
   },
 
-  async deleteService(id: string, barbershopId: string): Promise<void> {
+  async deleteService(id: string, businessId: string): Promise<void> {
     const result = await (serviceRepository as unknown as {
-      softDelete(id: string, barbershopId: string): Promise<unknown>;
-    }).softDelete(id, barbershopId);
+      softDelete(id: string, businessId: string): Promise<unknown>;
+    }).softDelete(id, businessId);
     if (!result) throw new NotFoundError('Serviço');
   },
 };

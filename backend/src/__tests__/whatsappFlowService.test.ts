@@ -10,7 +10,7 @@ const mockUpdateSession = vi.hoisted(() => vi.fn());
 const mockDeleteSession = vi.hoisted(() => vi.fn());
 const mockGetBotConfig = vi.hoisted(() => vi.fn());
 const mockGetMenuOptions = vi.hoisted(() => vi.fn());
-const mockGetBarbershopBusinessSettings = vi.hoisted(() => vi.fn());
+const mockGetBusinessBusinessSettings = vi.hoisted(() => vi.fn());
 const mockIsWithinBusinessHours = vi.hoisted(() => vi.fn());
 const mockIsBusinessOpenOnDate = vi.hoisted(() => vi.fn());
 const mockGenerateAvailableTimeSlots = vi.hoisted(() => vi.fn());
@@ -24,7 +24,7 @@ vi.mock('../config/database.js', () => ({
 }));
 
 // Shim Prisma so existing assertions on mockPoolQuery still match.
-// flowService + barbershopSettingsRepository moved from raw pool.query to
+// flowService + businessSettingsRepository moved from raw pool.query to
 // prisma.$queryRaw(Prisma.sql`…`); we proxy that through the same mock by
 // extracting the SQL text from the Prisma.Sql object.
 vi.mock('../config/prisma.js', () => {
@@ -62,7 +62,7 @@ vi.mock('../config/prisma.js', () => {
       }),
       $connect: vi.fn().mockResolvedValue(undefined),
       $disconnect: vi.fn().mockResolvedValue(undefined),
-      barbershop: {
+      business: {
         findFirst: stubResolveNull(),
         findUnique: stubResolveNull(),
         findMany: stubResolveEmpty(),
@@ -78,7 +78,7 @@ vi.mock('../config/prisma.js', () => {
         findFirst: stubResolveNull(),
         findMany: stubResolveEmpty(),
       },
-      barber: {
+      professional: {
         findFirst: stubResolveNull(),
         findMany: stubResolveEmpty(),
       },
@@ -138,8 +138,8 @@ vi.mock('../services/whatsapp/whatsappConfigService.js', () => ({
   getMenuOptions: mockGetMenuOptions,
 }));
 
-vi.mock('../services/barbershopBusinessSettingsService.js', () => ({
-  getBarbershopBusinessSettings: mockGetBarbershopBusinessSettings,
+vi.mock('../services/scheduleSettingsService.js', () => ({
+  getBusinessScheduleSettings: mockGetBusinessBusinessSettings,
   isWithinBusinessHours: mockIsWithinBusinessHours,
   isBusinessOpenOnDate: mockIsBusinessOpenOnDate,
   generateAvailableTimeSlots: mockGenerateAvailableTimeSlots,
@@ -163,8 +163,8 @@ describe('whatsappFlowService guards', () => {
     // Reset mockPoolQuery (clears the .mockResolvedValueOnce queue).
     // Other mocks only need their call history cleared.
     mockPoolQuery.mockReset();
-    delete process.env.WHATSAPP_DEFAULT_BARBERSHOP_ID;
-    delete process.env.WHATSAPP_INSTANCE_BARBERSHOP_MAP;
+    delete process.env.WHATSAPP_DEFAULT_BUSINESS_ID;
+    delete process.env.WHATSAPP_INSTANCE_BUSINESS_MAP;
     mockPoolQuery.mockResolvedValue({ rows: [] });
     mockSendWhatsAppMessage.mockResolvedValue(true);
     mockAppointmentServiceCreate.mockResolvedValue({
@@ -187,7 +187,7 @@ describe('whatsappFlowService guards', () => {
       end_session_message: 'Atendimento encerrado',
     });
     mockGetMenuOptions.mockResolvedValue([{ label: 'Agendar um horario', emoji: '💈' }]);
-    mockGetBarbershopBusinessSettings.mockResolvedValue({
+    mockGetBusinessBusinessSettings.mockResolvedValue({
       openingTime: '08:00',
       closingTime: '18:00',
       slotIntervalMinutes: 30,
@@ -267,7 +267,7 @@ describe('whatsappFlowService guards', () => {
       expect.objectContaining({
         ok: false,
         ignored: true,
-        reason: 'barbershop_not_resolved',
+        reason: 'business_not_resolved',
       })
     );
     expect(mockSendWhatsAppMessage).not.toHaveBeenCalled();
@@ -275,14 +275,14 @@ describe('whatsappFlowService guards', () => {
 
   it('resolve tenant via mapeamento da instancia quando connectedNumber estiver nulo', async () => {
     mockPoolQuery.mockResolvedValueOnce({ rows: [] });
-    process.env.WHATSAPP_INSTANCE_BARBERSHOP_MAP = 'easybarber=tenant-map';
+    process.env.WHATSAPP_INSTANCE_BUSINESS_MAP = 'easyagenda=tenant-map';
     mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
     mockIsWithinBusinessHours.mockReturnValue(false);
 
     const payload = {
       event: 'messages-upsert',
       instance: {
-        instanceName: 'easybarber',
+        instanceName: 'easyagenda',
       },
       key: {
         remoteJid: '5511777777777@s.whatsapp.net',
@@ -312,7 +312,7 @@ describe('whatsappFlowService guards', () => {
     );
 
     expect(instanceDbLookupCall).toBeDefined();
-    expect(mockGetBarbershopBusinessSettings).toHaveBeenCalledWith('tenant-map');
+    expect(mockGetBusinessBusinessSettings).toHaveBeenCalledWith('tenant-map');
 
     const tenantLookupCall = (mockPoolQuery.mock.calls as unknown as [string, unknown[]][]).find(
       ([query]) =>
@@ -328,14 +328,14 @@ describe('whatsappFlowService guards', () => {
 
   it('resolve tenant via instanceName no banco como fonte primaria', async () => {
     mockPoolQuery.mockResolvedValueOnce({
-      rows: [{ id: 'tenant-db', name: 'Barber DB', whatsapp_instance_name: 'easybarber' }],
+      rows: [{ id: 'tenant-db', name: 'Professional DB', whatsapp_instance_name: 'easyagenda' }],
     });
     mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
     mockIsWithinBusinessHours.mockReturnValue(false);
 
     const payload = {
       event: 'messages-upsert',
-      instanceName: 'easybarber',
+      instanceName: 'easyagenda',
       key: {
         remoteJid: '5511777777777@s.whatsapp.net',
         fromMe: false,
@@ -356,7 +356,7 @@ describe('whatsappFlowService guards', () => {
         ignored: false,
       })
     );
-    expect(mockGetBarbershopBusinessSettings).toHaveBeenCalledWith('tenant-db');
+    expect(mockGetBusinessBusinessSettings).toHaveBeenCalledWith('tenant-db');
 
     const instanceDbLookupCall = (mockPoolQuery.mock.calls as unknown as [string, unknown[]][]).find(
       ([query]) =>
@@ -369,7 +369,7 @@ describe('whatsappFlowService guards', () => {
 
   it('resolve tenant via owner quando instanceName nao vier no payload', async () => {
     mockPoolQuery.mockResolvedValueOnce({
-      rows: [{ id: 'tenant-owner', name: 'Barber Owner', whatsapp_instance_name: 'owner-inst' }],
+      rows: [{ id: 'tenant-owner', name: 'Professional Owner', whatsapp_instance_name: 'owner-inst' }],
     });
     mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
     mockIsWithinBusinessHours.mockReturnValue(false);
@@ -392,19 +392,19 @@ describe('whatsappFlowService guards', () => {
     });
 
     expect(result).toEqual(expect.objectContaining({ ok: true, ignored: false }));
-    expect(mockGetBarbershopBusinessSettings).toHaveBeenCalledWith('tenant-owner');
+    expect(mockGetBusinessBusinessSettings).toHaveBeenCalledWith('tenant-owner');
   });
 
   it('processa inbound real com JID normal, resolve tenant por instanceName e responde saudacao', async () => {
     mockPoolQuery.mockResolvedValueOnce({
-      rows: [{ id: 'tenant-db', name: 'Barber DB', whatsapp_instance_name: 'easybarber' }],
+      rows: [{ id: 'tenant-db', name: 'Professional DB', whatsapp_instance_name: 'easyagenda' }],
     });
     mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: '5511888888888' });
     mockIsWithinBusinessHours.mockReturnValue(true);
 
     const payload = {
       event: 'messages-upsert',
-      instanceName: 'easybarber',
+      instanceName: 'easyagenda',
       key: {
         remoteJid: '558399849151@s.whatsapp.net',
         fromMe: false,
@@ -421,28 +421,28 @@ describe('whatsappFlowService guards', () => {
     });
 
     expect(result).toEqual(expect.objectContaining({ ok: true, ignored: false }));
-    expect(mockGetBarbershopBusinessSettings).toHaveBeenCalledWith('tenant-db');
+    expect(mockGetBusinessBusinessSettings).toHaveBeenCalledWith('tenant-db');
     expect(mockCreateSession).toHaveBeenCalledWith('558399849151', 'tenant-db');
     expect(mockSendWhatsAppMessage).toHaveBeenCalledWith(
       '558399849151',
       expect.any(String),
       expect.objectContaining({
         eventName: 'messages-upsert',
-        instanceName: 'easybarber',
+        instanceName: 'easyagenda',
       })
     );
   });
 
   it('aceita inbound real @lid com metadata confiavel mesmo sem participant no payload principal', async () => {
     mockPoolQuery.mockResolvedValueOnce({
-      rows: [{ id: 'tenant-db', name: 'Barber DB', whatsapp_instance_name: 'easybarber' }],
+      rows: [{ id: 'tenant-db', name: 'Professional DB', whatsapp_instance_name: 'easyagenda' }],
     });
     mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: '558396311811' });
     mockIsWithinBusinessHours.mockReturnValue(true);
 
     const payload = {
       event: 'messages-upsert',
-      instanceName: 'easybarber',
+      instanceName: 'easyagenda',
       key: {
         remoteJid: '236197968359561@lid',
         fromMe: false,
@@ -468,7 +468,7 @@ describe('whatsappFlowService guards', () => {
       expect.any(String),
       expect.objectContaining({
         eventName: 'messages-upsert',
-        instanceName: 'easybarber',
+        instanceName: 'easyagenda',
         allowLidDestination: true,
       })
     );
@@ -530,20 +530,20 @@ describe('whatsappFlowService guards', () => {
 
     expect(resultA).toEqual(expect.objectContaining({ ok: true, ignored: false }));
     expect(resultB).toEqual(expect.objectContaining({ ok: true, ignored: false }));
-    expect(mockGetBarbershopBusinessSettings).toHaveBeenNthCalledWith(1, 'tenant-a');
-    expect(mockGetBarbershopBusinessSettings).toHaveBeenNthCalledWith(2, 'tenant-b');
+    expect(mockGetBusinessBusinessSettings).toHaveBeenNthCalledWith(1, 'tenant-a');
+    expect(mockGetBusinessBusinessSettings).toHaveBeenNthCalledWith(2, 'tenant-b');
   });
 
   it('nao mistura tenant por contexto de sessao quando instanceName foi resolvido no banco', async () => {
     mockPoolQuery.mockResolvedValueOnce({
-      rows: [{ id: 'tenant-db', name: 'Barber DB', whatsapp_instance_name: 'easybarber' }],
+      rows: [{ id: 'tenant-db', name: 'Professional DB', whatsapp_instance_name: 'easyagenda' }],
     });
     mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
     mockIsWithinBusinessHours.mockReturnValue(false);
 
     const payload = {
       event: 'messages-upsert',
-      instanceName: 'easybarber',
+      instanceName: 'easyagenda',
       key: {
         remoteJid: '5511777777777@s.whatsapp.net',
         fromMe: false,
@@ -577,11 +577,11 @@ describe('whatsappFlowService guards', () => {
       data: {
         availableSlots: ['10:00'],
         selectedDate: '2026-04-20',
-        barberId: 'barber-1',
+        professionalId: 'professional-1',
         clientId: 'client-1',
         serviceId: 'service-1',
         serviceName: 'Corte',
-        barberName: 'Joao',
+        professionalName: 'Joao',
         servicePrice: 55,
       },
     });
@@ -608,7 +608,7 @@ describe('whatsappFlowService guards', () => {
     expect(result).toEqual(expect.objectContaining({ ok: true, ignored: false }));
     expect(mockAppointmentServiceCreate).toHaveBeenCalledWith('tenant-db', {
       clientId: 'client-1',
-      barberId: 'barber-1',
+      professionalId: 'professional-1',
       serviceId: 'service-1',
       date: '2026-04-20',
       time: '10:00',
@@ -640,7 +640,7 @@ describe('whatsappFlowService guards', () => {
       expect.objectContaining({
         ok: false,
         ignored: true,
-        reason: 'barbershop_not_resolved',
+        reason: 'business_not_resolved',
       })
     );
 
@@ -657,7 +657,7 @@ describe('whatsappFlowService guards', () => {
     mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
     mockIsWithinBusinessHours.mockReturnValue(false);
     mockPoolQuery.mockResolvedValueOnce({
-      rows: [{ barbershop_id: 'tenant-session' }],
+      rows: [{ business_id: 'tenant-session' }],
     });
 
     const result = await handleIncomingMessage('5511777777777', 'oi', {
@@ -670,7 +670,7 @@ describe('whatsappFlowService guards', () => {
         ignored: false,
       })
     );
-    expect(mockGetBarbershopBusinessSettings).toHaveBeenCalledWith('tenant-session');
+    expect(mockGetBusinessBusinessSettings).toHaveBeenCalledWith('tenant-session');
 
     const sessionLookupCall = (mockPoolQuery.mock.calls as unknown as [string, unknown[]][]).find(
       ([query]) => typeof query === 'string' && query.includes('FROM whatsapp_sessions')
@@ -679,7 +679,7 @@ describe('whatsappFlowService guards', () => {
     expect(sessionLookupCall).toBeDefined();
   });
 
-  it('processa simulador com barbershopId explicito sem depender de connectedNumber', async () => {
+  it('processa simulador com businessId explicito sem depender de connectedNumber', async () => {
     mockGetWhatsAppStatus.mockReturnValue({
       connectedNumber: null,
     });
@@ -687,8 +687,8 @@ describe('whatsappFlowService guards', () => {
 
     const result = await handleIncomingMessage('5511777777777', 'oi', {
       simulationMode: true,
-      barbershopId: 'tenant-sim',
-      barbershopContextSource: 'payload',
+      businessId: 'tenant-sim',
+      businessContextSource: 'payload',
       now: new Date('2026-04-18T07:30:00-03:00'),
     });
 
@@ -698,7 +698,7 @@ describe('whatsappFlowService guards', () => {
         ignored: false,
       })
     );
-    expect(mockGetBarbershopBusinessSettings).toHaveBeenCalledWith('tenant-sim');
+    expect(mockGetBusinessBusinessSettings).toHaveBeenCalledWith('tenant-sim');
 
     const tenantLookupCall = (mockPoolQuery.mock.calls as unknown as [string, unknown[]][]).find(
       ([query]) =>
@@ -856,7 +856,7 @@ describe('whatsappFlowService guards', () => {
   it('responde dentro do expediente quando mensagem chega as 10:00', async () => {
     mockPoolQuery
       .mockResolvedValueOnce({ rows: [{ id: 'tenant-1' }] })
-      .mockResolvedValueOnce({ rows: [{ name: 'Barber Prime' }] });
+      .mockResolvedValueOnce({ rows: [{ name: 'Professional Prime' }] });
 
     mockIsWithinBusinessHours.mockReturnValue(true);
 
@@ -879,7 +879,7 @@ describe('whatsappFlowService guards', () => {
   it('detecta saudacao com variacao de caixa e espacos e reinicia o fluxo de forma controlada', async () => {
     mockPoolQuery
       .mockResolvedValueOnce({ rows: [{ id: 'tenant-1' }] })
-      .mockResolvedValueOnce({ rows: [{ name: 'Barber Prime' }] });
+      .mockResolvedValueOnce({ rows: [{ name: 'Professional Prime' }] });
     mockIsWithinBusinessHours.mockReturnValue(true);
     mockGetSession.mockResolvedValueOnce({
       step: 'choose_service',
@@ -902,13 +902,13 @@ describe('whatsappFlowService guards', () => {
 
   it('processa inbound @lid real com sender da instancia e participantPn flattenizado, disparando saudacao', async () => {
     mockPoolQuery
-      .mockResolvedValueOnce({ rows: [{ id: 'tenant-1', name: 'Barber Prime', whatsapp_instance_name: 'easybarber' }] })
-      .mockResolvedValueOnce({ rows: [{ name: 'Barber Prime' }] });
+      .mockResolvedValueOnce({ rows: [{ id: 'tenant-1', name: 'Professional Prime', whatsapp_instance_name: 'easyagenda' }] })
+      .mockResolvedValueOnce({ rows: [{ name: 'Professional Prime' }] });
     mockIsWithinBusinessHours.mockReturnValue(true);
 
     const payload = {
       event: 'messages-upsert',
-      instanceName: 'easybarber',
+      instanceName: 'easyagenda',
       key: {
         remoteJid: '236197968359561@lid',
         fromMe: false,
@@ -936,7 +936,7 @@ describe('whatsappFlowService guards', () => {
       expect.objectContaining({
         remoteJidOriginal: '236197968359561@lid',
         eventName: 'messages-upsert',
-        instanceName: 'easybarber',
+        instanceName: 'easyagenda',
       })
     );
   });
@@ -956,7 +956,7 @@ describe('whatsappFlowService guards', () => {
   ])('dispara menu inicial para saudacao "%s"', async (greeting) => {
     mockPoolQuery
       .mockResolvedValueOnce({ rows: [{ id: 'tenant-1' }] })
-      .mockResolvedValueOnce({ rows: [{ name: 'Barber Prime' }] });
+      .mockResolvedValueOnce({ rows: [{ name: 'Professional Prime' }] });
     mockIsWithinBusinessHours.mockReturnValue(true);
 
     const result = await handleIncomingMessage('5511777777777', greeting, {
@@ -975,7 +975,7 @@ describe('whatsappFlowService guards', () => {
     ['ok'],
     ['1'],
   ])('nao abre menu automaticamente sem sessao quando recebe "%s"', async (input) => {
-    process.env.WHATSAPP_DEFAULT_BARBERSHOP_ID = 'tenant-1';
+    process.env.WHATSAPP_DEFAULT_BUSINESS_ID = 'tenant-1';
     mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
     mockIsWithinBusinessHours.mockReturnValue(true);
     mockGetSession.mockResolvedValue(null);
@@ -997,7 +997,7 @@ describe('whatsappFlowService guards', () => {
   });
 
   it('nao reabre menu automaticamente quando a sessao expirou e a nova mensagem nao e saudacao', async () => {
-    process.env.WHATSAPP_DEFAULT_BARBERSHOP_ID = 'tenant-1';
+    process.env.WHATSAPP_DEFAULT_BUSINESS_ID = 'tenant-1';
     mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
     mockIsWithinBusinessHours.mockReturnValue(true);
     mockGetSession.mockResolvedValue({
@@ -1023,7 +1023,7 @@ describe('whatsappFlowService guards', () => {
   });
 
   it('reabre menu com saudacao apos sessao expirada', async () => {
-    process.env.WHATSAPP_DEFAULT_BARBERSHOP_ID = 'tenant-1';
+    process.env.WHATSAPP_DEFAULT_BUSINESS_ID = 'tenant-1';
     mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
     mockIsWithinBusinessHours.mockReturnValue(true);
     mockGetSession.mockResolvedValue({
@@ -1032,8 +1032,8 @@ describe('whatsappFlowService guards', () => {
     });
     mockIsSessionExpired.mockReturnValue(true);
     mockPoolQuery.mockImplementation(async (query: unknown) => {
-      if (typeof query === 'string' && query.includes('SELECT name FROM barbershops')) {
-        return { rows: [{ name: 'Barber Prime' }] };
+      if (typeof query === 'string' && query.includes('SELECT name FROM businesses')) {
+        return { rows: [{ name: 'Professional Prime' }] };
       }
 
       return { rows: [] };
@@ -1054,7 +1054,7 @@ describe('whatsappFlowService guards', () => {
   });
 
   it('encerra atendimento normalmente quando a sessao ativa escolhe a opcao de encerrar', async () => {
-    process.env.WHATSAPP_DEFAULT_BARBERSHOP_ID = 'tenant-1';
+    process.env.WHATSAPP_DEFAULT_BUSINESS_ID = 'tenant-1';
     mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
     mockIsWithinBusinessHours.mockReturnValue(true);
     mockGetSession.mockResolvedValue({
@@ -1099,16 +1099,16 @@ describe('whatsappFlowService guards', () => {
       data: {
         availableSlots: ['10:00'],
         selectedDate: '2026-04-20',
-        barberId: 'barber-1',
+        professionalId: 'professional-1',
         clientId: 'client-1',
         serviceId: 'service-1',
         serviceName: 'Corte',
-        barberName: 'Joao',
+        professionalName: 'Joao',
         servicePrice: 55,
       },
     });
 
-    mockGetBarbershopBusinessSettings.mockResolvedValue({
+    mockGetBusinessBusinessSettings.mockResolvedValue({
       openingTime: '08:00',
       closingTime: '18:00',
       slotIntervalMinutes: 30,
@@ -1124,7 +1124,7 @@ describe('whatsappFlowService guards', () => {
     expect(result).toEqual(expect.objectContaining({ ok: true, ignored: false }));
     expect(mockAppointmentServiceCreate).toHaveBeenCalledWith('tenant-1', {
       clientId: 'client-1',
-      barberId: 'barber-1',
+      professionalId: 'professional-1',
       serviceId: 'service-1',
       date: '2026-04-20',
       time: '10:00',
@@ -1151,11 +1151,11 @@ describe('whatsappFlowService guards', () => {
       data: {
         availableSlots: ['10:00'],
         selectedDate: '2026-04-20',
-        barberId: 'barber-1',
+        professionalId: 'professional-1',
         clientId: 'client-1',
         serviceId: 'service-1',
         serviceName: 'Corte',
-        barberName: 'Joao',
+        professionalName: 'Joao',
         servicePrice: 55,
       },
     });
@@ -1184,13 +1184,13 @@ describe('whatsappFlowService guards', () => {
     mockGetSession.mockResolvedValue({
       step: 'choose_date',
       data: {
-        barberId: 'barber-1',
+        professionalId: 'professional-1',
         serviceDuration: 30,
         availableDates: ['2026-04-20'],
       },
     });
 
-    mockGetBarbershopBusinessSettings.mockResolvedValue({
+    mockGetBusinessBusinessSettings.mockResolvedValue({
       openingTime: '08:00',
       closingTime: '18:00',
       slotIntervalMinutes: 30,

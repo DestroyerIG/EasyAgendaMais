@@ -14,7 +14,7 @@ const mockUpdateSession = vi.hoisted(() => vi.fn());
 const mockDeleteSession = vi.hoisted(() => vi.fn());
 const mockGetBotConfig = vi.hoisted(() => vi.fn());
 const mockGetMenuOptions = vi.hoisted(() => vi.fn());
-const mockGetBarbershopBusinessSettings = vi.hoisted(() => vi.fn());
+const mockGetBusinessBusinessSettings = vi.hoisted(() => vi.fn());
 const mockIsWithinBusinessHours = vi.hoisted(() => vi.fn());
 const mockGenerateAvailableTimeSlots = vi.hoisted(() => vi.fn());
 const mockFormatBusinessHoursRange = vi.hoisted(() => vi.fn());
@@ -61,8 +61,8 @@ vi.mock('../services/whatsapp/whatsappConfigService.js', () => ({
   getMenuOptions: mockGetMenuOptions,
 }));
 
-vi.mock('../services/barbershopBusinessSettingsService.js', () => ({
-  getBarbershopBusinessSettings: mockGetBarbershopBusinessSettings,
+vi.mock('../services/scheduleSettingsService.js', () => ({
+  getBusinessScheduleSettings: mockGetBusinessBusinessSettings,
   isWithinBusinessHours: mockIsWithinBusinessHours,
   isBusinessOpenOnDate: vi.fn(() => true),
   generateAvailableTimeSlots: mockGenerateAvailableTimeSlots,
@@ -92,7 +92,7 @@ describe('whatsappSelfReplyGuard — bot nao deve responder a si proprio', () =>
       session_expired_message: 'Expirado',
     });
     mockGetMenuOptions.mockResolvedValue([{ label: 'Agendar', emoji: '💈' }]);
-    mockGetBarbershopBusinessSettings.mockResolvedValue({
+    mockGetBusinessBusinessSettings.mockResolvedValue({
       openingTime: '08:00',
       closingTime: '18:00',
       slotIntervalMinutes: 30,
@@ -193,7 +193,7 @@ describe('whatsappSelfReplyGuard — bot nao deve responder a si proprio', () =>
     const CLIENT_NUMBER_12D = '558396311811';
 
     mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: 'tenant-1' }] });
-    mockPoolQuery.mockResolvedValueOnce({ rows: [{ name: 'Barber Prime' }] });
+    mockPoolQuery.mockResolvedValueOnce({ rows: [{ name: 'Professional Prime' }] });
 
     const payload = {
       key: {
@@ -204,7 +204,7 @@ describe('whatsappSelfReplyGuard — bot nao deve responder a si proprio', () =>
     };
 
     const result = await handleIncomingMessage(payload, 'quero agendar', {
-      barbershopId: 'tenant-1',
+      businessId: 'tenant-1',
       eventName: 'messages-upsert',
       preExtractedPhone: CLIENT_NUMBER_12D,
       preExtractedInstanceNumbers: [BOT_NUMBER_13D],
@@ -250,7 +250,7 @@ describe('whatsappSelfReplyGuard — bot nao deve responder a si proprio', () =>
     };
 
     const result = await handleIncomingMessage(payload, 'oi', {
-      barbershopId: 'tenant-1',
+      businessId: 'tenant-1',
       eventName: 'messages-upsert',
       preExtractedPhone: CLIENT_NUMBER,
       preExtractedInstanceNumbers: [INSTANCE_NUMBER],
@@ -270,7 +270,7 @@ describe('whatsappSelfReplyGuard — bot nao deve responder a si proprio', () =>
 
   it('nunca envia mensagem para o numero da propria instancia', async () => {
     mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: 'tenant-1' }] });
-    mockPoolQuery.mockResolvedValueOnce({ rows: [{ name: 'Barber Prime' }] });
+    mockPoolQuery.mockResolvedValueOnce({ rows: [{ name: 'Professional Prime' }] });
 
     const CLIENT_NUMBER = '5521988887777';
     const payload = {
@@ -307,7 +307,7 @@ describe('whatsappSelfReplyGuard — bot nao deve responder a si proprio', () =>
     const PARTICIPANT_NUMBER = '5521977776666';
 
     mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: 'tenant-1' }] });
-    mockPoolQuery.mockResolvedValueOnce({ rows: [{ name: 'Barber Prime' }] });
+    mockPoolQuery.mockResolvedValueOnce({ rows: [{ name: 'Professional Prime' }] });
 
     const payload = {
       event: 'messages.upsert',
@@ -342,7 +342,7 @@ describe('whatsappSelfReplyGuard — bot nao deve responder a si proprio', () =>
     const CUSTOMER_NUMBER = '5521977776666';
 
     mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: 'tenant-1' }] });
-    mockPoolQuery.mockResolvedValueOnce({ rows: [{ name: 'Barber Prime' }] });
+    mockPoolQuery.mockResolvedValueOnce({ rows: [{ name: 'Professional Prime' }] });
 
     const payload = {
       event: 'messages.upsert',
@@ -364,11 +364,11 @@ describe('whatsappSelfReplyGuard — bot nao deve responder a si proprio', () =>
         ],
       },
       sender: `${INSTANCE_NUMBER}@s.whatsapp.net`,
-      instanceName: 'easybarber',
+      instanceName: 'easyagenda',
     };
 
     const result = await handleIncomingMessage(payload, 'Olá', {
-      barbershopId: 'tenant-1',
+      businessId: 'tenant-1',
       eventName: 'messages-upsert',
       preExtractedInstanceNumbers: [INSTANCE_NUMBER],
       preExtractedPhone: CUSTOMER_NUMBER,

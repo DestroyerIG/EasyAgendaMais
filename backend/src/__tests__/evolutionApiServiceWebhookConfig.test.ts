@@ -23,15 +23,15 @@ describe('evolutionApiService webhook configuration', () => {
     vi.clearAllMocks();
     process.env.EVOLUTION_API_URL = 'http://evolution.local';
     process.env.EVOLUTION_API_KEY = 'test-key';
-    process.env.EVOLUTION_INSTANCE_NAME = 'easybarber';
-    process.env.EVOLUTION_WEBHOOK_URL = 'https://api.easybarber.test/api/v1/whatsapp/webhook/messages-upsert';
+    process.env.EVOLUTION_INSTANCE_NAME = 'easyagenda';
+    process.env.EVOLUTION_WEBHOOK_URL = 'https://api.easyagenda.test/api/v1/whatsapp/webhook/messages-upsert';
     delete process.env.BACKEND_WEBHOOK_BASE_URL;
     process.env.EVOLUTION_WEBHOOK_EVENTS = 'MESSAGES_UPSERT, CONNECTION_UPDATE, MESSAGES_SET, chats-update';
 
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 201,
-      text: async () => JSON.stringify({ instance: { instanceName: 'easybarber' } }),
+      text: async () => JSON.stringify({ instance: { instanceName: 'easyagenda' } }),
     }) as unknown as typeof fetch;
   });
 
@@ -45,21 +45,21 @@ describe('evolutionApiService webhook configuration', () => {
       .mockResolvedValueOnce({
         ok: true,
         status: 201,
-        text: async () => JSON.stringify({ instance: { instanceName: 'easybarber' } }),
+        text: async () => JSON.stringify({ instance: { instanceName: 'easyagenda' } }),
       })
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
         text: async () => JSON.stringify({
           enabled: true,
-          url: 'https://api.easybarber.test/api/v1/whatsapp/webhook/messages-upsert',
+          url: 'https://api.easyagenda.test/api/v1/whatsapp/webhook/messages-upsert',
           events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE'],
           webhook_by_events: true,
           webhook_base64: false,
         }),
       });
 
-    await createInstance({ instanceName: 'easybarber' });
+    await createInstance({ instanceName: 'easyagenda' });
 
     expect(global.fetch).toHaveBeenCalledTimes(2);
 
@@ -70,10 +70,10 @@ describe('evolutionApiService webhook configuration', () => {
     // Newer Evolution payload nests webhook config under a `webhook` object
     // instead of flat top-level fields.
     expect(parsedBody).toMatchObject({
-      instanceName: 'easybarber',
+      instanceName: 'easyagenda',
       integration: 'WHATSAPP-BAILEYS',
       webhook: {
-        url: 'https://api.easybarber.test/api/v1/whatsapp/webhook/messages-upsert',
+        url: 'https://api.easyagenda.test/api/v1/whatsapp/webhook/messages-upsert',
         webhook_by_events: true,
         webhook_base64: false,
       },
@@ -84,26 +84,26 @@ describe('evolutionApiService webhook configuration', () => {
 
   it('usa BACKEND_WEBHOOK_BASE_URL na criacao quando EVOLUTION_WEBHOOK_URL nao esta configurada', async () => {
     delete process.env.EVOLUTION_WEBHOOK_URL;
-    process.env.BACKEND_WEBHOOK_BASE_URL = 'https://api.easybarber.test/api/v1/whatsapp/webhook';
+    process.env.BACKEND_WEBHOOK_BASE_URL = 'https://api.easyagenda.test/api/v1/whatsapp/webhook';
 
-    await createInstance({ instanceName: 'easybarber' });
+    await createInstance({ instanceName: 'easyagenda' });
 
     const [url, requestInit] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
     expect(url).toBe('http://evolution.local/instance/create');
     expect(JSON.parse(requestInit.body as string).webhook).toMatchObject({
       enabled: true,
-      url: 'https://api.easybarber.test/api/v1/whatsapp/webhook',
+      url: 'https://api.easyagenda.test/api/v1/whatsapp/webhook',
     });
   });
 
   it('prioriza BACKEND_WEBHOOK_BASE_URL sobre EVOLUTION_WEBHOOK_URL, igual ao modulo whatsapp', async () => {
-    process.env.BACKEND_WEBHOOK_BASE_URL = 'https://api.easybarber.test/api/v1/whatsapp/webhook';
+    process.env.BACKEND_WEBHOOK_BASE_URL = 'https://api.easyagenda.test/api/v1/whatsapp/webhook';
 
-    await createInstance({ instanceName: 'easybarber' });
+    await createInstance({ instanceName: 'easyagenda' });
 
     const [, requestInit] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(requestInit.body as string).webhook.url).toBe(
-      'https://api.easybarber.test/api/v1/whatsapp/webhook',
+      'https://api.easyagenda.test/api/v1/whatsapp/webhook',
     );
   });
 
@@ -125,9 +125,9 @@ describe('evolutionApiService webhook configuration', () => {
         status: 201,
         text: async () => JSON.stringify({
           webhook: {
-            instanceName: 'easybarber',
+            instanceName: 'easyagenda',
             webhook: {
-              url: 'https://api.easybarber.test/api/v1/whatsapp/webhook/messages-upsert',
+              url: 'https://api.easyagenda.test/api/v1/whatsapp/webhook/messages-upsert',
               events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE'],
               enabled: true,
               webhook_by_events: true,
@@ -137,7 +137,7 @@ describe('evolutionApiService webhook configuration', () => {
         }),
       });
 
-    const result = await ensureInstanceWebhookConfig({ instanceName: 'easybarber' });
+    const result = await ensureInstanceWebhookConfig({ instanceName: 'easyagenda' });
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -149,14 +149,14 @@ describe('evolutionApiService webhook configuration', () => {
     expect(global.fetch).toHaveBeenCalledTimes(2);
 
     const calls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls as [string, RequestInit][];
-    expect(calls[0][0]).toBe('http://evolution.local/webhook/find/easybarber');
-    expect(calls[1][0]).toBe('http://evolution.local/webhook/set/easybarber');
+    expect(calls[0][0]).toBe('http://evolution.local/webhook/find/easyagenda');
+    expect(calls[1][0]).toBe('http://evolution.local/webhook/set/easyagenda');
 
     const setWebhookBody = JSON.parse(calls[1][1].body as string);
     expect(setWebhookBody).toEqual({
       webhook: {
         enabled: true,
-        url: 'https://api.easybarber.test/api/v1/whatsapp/webhook/messages-upsert',
+        url: 'https://api.easyagenda.test/api/v1/whatsapp/webhook/messages-upsert',
         events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE'],
         webhook_by_events: true,
         webhook_base64: false,

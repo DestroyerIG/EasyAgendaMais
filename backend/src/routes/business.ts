@@ -10,28 +10,28 @@ import { validate } from '../middleware/validate.js';
 // @ts-ignore
 import { getServices, createService, updateService, deleteService } from '../controllers/serviceController.js';
 // @ts-ignore
-import { getBarbers, createBarber, updateBarber, deleteBarber } from '../controllers/barberController.js';
+import { getProfessionals, createProfessional, updateProfessional, deleteProfessional } from '../controllers/professionalController.js';
 // @ts-ignore
 import {
 	createServiceSchema,
 	updateServiceSchema,
-	createBarberSchema,
-	updateBarberSchema,
-	updateBarbershopSettingsSchema,
-	updateBarbershopProfileSchema,
+	createProfessionalSchema,
+	updateProfessionalSchema,
+	updateBusinessSettingsSchema,
+	updateBusinessProfileSchema,
 	updateAccountProfileSchema,
 	updateAccountPasswordSchema,
 } from '../validators/schemas/index.js';
 // @ts-ignore
 import {
-	getBarbershopSettings,
-	getBarbershopProfile,
-	updateBarbershopProfile,
-	updateBarbershopSettings,
+	getBusinessSettings,
+	getBusinessProfile,
+	updateBusinessProfile,
+	updateBusinessSettings,
 	getAccountProfile,
 	updateAccountProfile,
 	updateAccountPassword,
-} from '../controllers/barbershopSettingsController.js';
+} from '../controllers/businessSettingsController.js';
 
 const router = express.Router();
 
@@ -40,16 +40,16 @@ router.post('/services', authMiddleware, requireTenantRoles, requireFeature('ser
 router.put('/services/:id', authMiddleware, requireTenantRoles, requireFeature('services'), validate({ body: updateServiceSchema }), updateService);
 router.delete('/services/:id', authMiddleware, requireTenantRoles, requireFeature('services'), deleteService);
 
-router.get('/barbers', authMiddleware, requireTenantRoles, requireFeature('services'), getBarbers);
-router.post('/barbers', authMiddleware, requireTenantRoles, requireFeature('services'), validate({ body: createBarberSchema }), createBarber);
-router.put('/barbers/:id', authMiddleware, requireTenantRoles, requireFeature('services'), validate({ body: updateBarberSchema }), updateBarber);
-router.delete('/barbers/:id', authMiddleware, requireTenantRoles, requireFeature('services'), deleteBarber);
+router.get('/professionals', authMiddleware, requireTenantRoles, requireFeature('services'), getProfessionals);
+router.post('/professionals', authMiddleware, requireTenantRoles, requireFeature('services'), validate({ body: createProfessionalSchema }), createProfessional);
+router.put('/professionals/:id', authMiddleware, requireTenantRoles, requireFeature('services'), validate({ body: updateProfessionalSchema }), updateProfessional);
+router.delete('/professionals/:id', authMiddleware, requireTenantRoles, requireFeature('services'), deleteProfessional);
 
-router.get('/settings', authMiddleware, requireTenantRoles, requireFeature('advanced_admin'), getBarbershopSettings);
-router.put('/settings', authMiddleware, requireTenantRoles, requireFeature('advanced_admin'), validate({ body: updateBarbershopSettingsSchema }), updateBarbershopSettings);
+router.get('/settings', authMiddleware, requireTenantRoles, requireFeature('advanced_admin'), getBusinessSettings);
+router.put('/settings', authMiddleware, requireTenantRoles, requireFeature('advanced_admin'), validate({ body: updateBusinessSettingsSchema }), updateBusinessSettings);
 
-router.get('/profile', authMiddleware, requireTenantRoles, requireFeature('billing'), getBarbershopProfile);
-router.put('/profile', authMiddleware, requireTenantRoles, requireFeature('billing'), validate({ body: updateBarbershopProfileSchema }), updateBarbershopProfile);
+router.get('/profile', authMiddleware, requireTenantRoles, requireFeature('billing'), getBusinessProfile);
+router.put('/profile', authMiddleware, requireTenantRoles, requireFeature('billing'), validate({ body: updateBusinessProfileSchema }), updateBusinessProfile);
 router.get('/account-profile', authMiddleware, requireRole(['tenant_admin']), getAccountProfile);
 router.put('/account-profile', authMiddleware, requireRole(['tenant_admin']), validate({ body: updateAccountProfileSchema }), updateAccountProfile);
 router.put('/account-password', authMiddleware, requireRole(['tenant_admin']), requireFeature('advanced_admin'), validate({ body: updateAccountPasswordSchema }), updateAccountPassword);

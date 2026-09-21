@@ -1,7 +1,7 @@
-import { barbershopSettingsRepository } from '../../repositories/barbershopSettingsRepository.js';
+import { businessSettingsRepository } from '../../repositories/businessSettingsRepository.js';
 import { NotFoundError, ValidationError } from '../../utils/errors.js';
 
-const INSTANCE_PREFIX = 'easybarber';
+const INSTANCE_PREFIX = 'easyagenda';
 const INSTANCE_MAX_LENGTH = 80;
 const INSTANCE_SUFFIX_LENGTH = 8;
 
@@ -25,8 +25,8 @@ export const normalizeWhatsAppInstanceName = (value: string | null | undefined):
 const sanitizeInstanceToken = (value: string | null | undefined, fallback: string = INSTANCE_PREFIX): string =>
   normalizeWhatsAppInstanceName(value) || fallback;
 
-const buildBarbershopSuffix = (barbershopId: string | number | null | undefined): string => {
-  const compactId = String(barbershopId || '')
+const buildBusinessSuffix = (businessId: string | number | null | undefined): string => {
+  const compactId = String(businessId || '')
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '');
 
@@ -38,13 +38,13 @@ const buildBarbershopSuffix = (barbershopId: string | number | null | undefined)
 };
 
 export const buildDeterministicWhatsAppInstanceName = ({
-  barbershopId,
+  businessId,
   shopName,
 }: {
-  barbershopId: string | number | null | undefined;
+  businessId: string | number | null | undefined;
   shopName: string | null | undefined;
 }): string => {
-  const suffix = buildBarbershopSuffix(barbershopId);
+  const suffix = buildBusinessSuffix(businessId);
   const baseSlug = sanitizeInstanceToken(shopName, INSTANCE_PREFIX);
   const fixedSuffixLength = suffix.length + 1;
   const maxBaseLength = Math.max(12, INSTANCE_MAX_LENGTH - fixedSuffixLength);
@@ -59,10 +59,10 @@ interface WhatsAppInstanceContext {
   [key: string]: unknown;
 }
 
-export const getBarbershopWhatsAppInstanceContext = async (
-  barbershopId: string,
+export const getBusinessWhatsAppInstanceContext = async (
+  businessId: string,
 ): Promise<WhatsAppInstanceContext> => {
-  const context = await barbershopSettingsRepository.findWhatsAppInstanceContextByBarbershopId(barbershopId);
+  const context = await businessSettingsRepository.findWhatsAppInstanceContextByBusinessId(businessId);
 
   if (!context || context.active !== true) {
     throw new NotFoundError('Barbearia');
@@ -74,16 +74,16 @@ export const getBarbershopWhatsAppInstanceContext = async (
   } as WhatsAppInstanceContext;
 };
 
-export const ensureBarbershopWhatsAppInstanceName = async (
-  barbershopId: string,
+export const ensureBusinessWhatsAppInstanceName = async (
+  businessId: string,
 ): Promise<WhatsAppInstanceContext> => {
   let context: WhatsAppInstanceContext;
 
   try {
-    context = await barbershopSettingsRepository.ensureWhatsAppInstanceName(
-      barbershopId,
+    context = await businessSettingsRepository.ensureWhatsAppInstanceName(
+      businessId,
       ({ id, name }: { id: unknown; name: unknown }) => buildDeterministicWhatsAppInstanceName({
-        barbershopId: id as string,
+        businessId: id as string,
         shopName: name as string,
       })
     ) as WhatsAppInstanceContext;
@@ -92,7 +92,7 @@ export const ensureBarbershopWhatsAppInstanceName = async (
     const uniqueViolation = err?.code === '23505';
     const constraint = String(err?.constraint || '').trim();
 
-    if (uniqueViolation && constraint === 'uq_barbershops_whatsapp_instance_name_norm') {
+    if (uniqueViolation && constraint === 'uq_businesses_whatsapp_instance_name_norm') {
       throw new ValidationError(
         'Nao foi possivel reservar a instancia WhatsApp',
         ['Ja existe outra barbearia usando o identificador gerado. Tente novamente.']

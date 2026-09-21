@@ -1,4 +1,4 @@
-import { barbershopSettingsRepository } from '../repositories/barbershopSettingsRepository.js';
+import { businessSettingsRepository } from '../repositories/businessSettingsRepository.js';
 import logger from '../utils/logger.js';
 
 const DEFAULT_TIMEZONE = 'America/Sao_Paulo';
@@ -16,7 +16,7 @@ const DEFAULT_DIAS_ABERTOS: Record<DiaSemana, boolean> = {
   dom: false,
 };
 
-export const DEFAULT_BUSINESS_SETTINGS = {
+export const DEFAULT_SCHEDULE_SETTINGS = {
   openingTime: '08:00',
   closingTime: '18:00',
   slotIntervalMinutes: 30,
@@ -26,7 +26,7 @@ export const DEFAULT_BUSINESS_SETTINGS = {
   timezone: DEFAULT_TIMEZONE,
 };
 
-export interface BusinessSettings {
+export interface ScheduleSettings {
   openingTime?: string;
   closingTime?: string;
   slotIntervalMinutes?: unknown;
@@ -36,7 +36,7 @@ export interface BusinessSettings {
   timezone?: unknown;
 }
 
-export interface NormalizedBusinessSettings {
+export interface NormalizedScheduleSettings {
   openingTime: string;
   closingTime: string;
   slotIntervalMinutes: number;
@@ -96,7 +96,7 @@ const normalizeSlotInterval = (value: unknown): number => {
     return numeric;
   }
 
-  return DEFAULT_BUSINESS_SETTINGS.slotIntervalMinutes;
+  return DEFAULT_SCHEDULE_SETTINGS.slotIntervalMinutes;
 };
 
 const normalizeDiasAbertos = (value: unknown): Record<DiaSemana, boolean> => {
@@ -195,16 +195,16 @@ const normalizeBookedTimes = (bookedTimes: unknown[] = []): Set<string> => {
   return normalized;
 };
 
-export const normalizeBusinessSettings = (settings: BusinessSettings = {}): NormalizedBusinessSettings => {
-  const openingTime = normalizeTime(settings.openingTime, DEFAULT_BUSINESS_SETTINGS.openingTime);
-  const closingTime = normalizeTime(settings.closingTime, DEFAULT_BUSINESS_SETTINGS.closingTime);
+export const normalizeScheduleSettings = (settings: ScheduleSettings = {}): NormalizedScheduleSettings => {
+  const openingTime = normalizeTime(settings.openingTime, DEFAULT_SCHEDULE_SETTINGS.openingTime);
+  const closingTime = normalizeTime(settings.closingTime, DEFAULT_SCHEDULE_SETTINGS.closingTime);
 
   let normalizedOpening = openingTime;
   let normalizedClosing = closingTime;
 
   if (toMinutes(normalizedClosing) <= toMinutes(normalizedOpening)) {
-    normalizedOpening = DEFAULT_BUSINESS_SETTINGS.openingTime;
-    normalizedClosing = DEFAULT_BUSINESS_SETTINGS.closingTime;
+    normalizedOpening = DEFAULT_SCHEDULE_SETTINGS.openingTime;
+    normalizedClosing = DEFAULT_SCHEDULE_SETTINGS.closingTime;
   }
 
   return {
@@ -212,29 +212,29 @@ export const normalizeBusinessSettings = (settings: BusinessSettings = {}): Norm
     closingTime: normalizedClosing,
     slotIntervalMinutes: normalizeSlotInterval(settings.slotIntervalMinutes),
     diasAbertos: normalizeDiasAbertos(settings.diasAbertos),
-    allowWalkins: normalizeBoolean(settings.allowWalkins, DEFAULT_BUSINESS_SETTINGS.allowWalkins),
-    autoConfirmAppointments: normalizeBoolean(settings.autoConfirmAppointments, DEFAULT_BUSINESS_SETTINGS.autoConfirmAppointments),
+    allowWalkins: normalizeBoolean(settings.allowWalkins, DEFAULT_SCHEDULE_SETTINGS.allowWalkins),
+    autoConfirmAppointments: normalizeBoolean(settings.autoConfirmAppointments, DEFAULT_SCHEDULE_SETTINGS.autoConfirmAppointments),
     timezone: normalizeTimezone(settings.timezone),
   };
 };
 
-export const getBarbershopBusinessSettings = async (barbershopId: string): Promise<NormalizedBusinessSettings> => {
+export const getBusinessScheduleSettings = async (businessId: string): Promise<NormalizedScheduleSettings> => {
   try {
-    const settings = await barbershopSettingsRepository.findOperationalSettingsByBarbershopId(barbershopId);
+    const settings = await businessSettingsRepository.findOperationalSettingsByBusinessId(businessId);
 
     if (!settings) {
       logger.warn(
-        { barbershopId },
+        { businessId },
         'Configuracao operacional nao encontrada; aplicando fallback seguro para o atendimento'
       );
-      return { ...DEFAULT_BUSINESS_SETTINGS };
+      return { ...DEFAULT_SCHEDULE_SETTINGS };
     }
 
-    const normalized = normalizeBusinessSettings(settings as BusinessSettings);
+    const normalized = normalizeScheduleSettings(settings as ScheduleSettings);
 
     logger.debug(
       {
-        barbershopId,
+        businessId,
         openingTime: normalized.openingTime,
         closingTime: normalized.closingTime,
         slotIntervalMinutes: normalized.slotIntervalMinutes,
@@ -249,21 +249,21 @@ export const getBarbershopBusinessSettings = async (barbershopId: string): Promi
     return normalized;
   } catch (error) {
     logger.error(
-      { err: error, barbershopId },
+      { err: error, businessId },
       'Falha ao carregar configuracao operacional; aplicando fallback seguro para o atendimento'
     );
 
-    return { ...DEFAULT_BUSINESS_SETTINGS };
+    return { ...DEFAULT_SCHEDULE_SETTINGS };
   }
 };
 
-export const formatBusinessHoursRange = (settings: BusinessSettings = {}): string => {
-  const normalized = normalizeBusinessSettings(settings);
+export const formatBusinessHoursRange = (settings: ScheduleSettings = {}): string => {
+  const normalized = normalizeScheduleSettings(settings);
   return `${normalized.openingTime} as ${normalized.closingTime}`;
 };
 
-export const isWithinBusinessHours = (settings: BusinessSettings = {}, currentDate: Date = new Date()): boolean => {
-  const normalized = normalizeBusinessSettings(settings);
+export const isWithinBusinessHours = (settings: ScheduleSettings = {}, currentDate: Date = new Date()): boolean => {
+  const normalized = normalizeScheduleSettings(settings);
   const now = getClockInTimezone(currentDate, normalized.timezone).totalMinutes;
   const openingMinutes = toMinutes(normalized.openingTime);
   const closingMinutes = toMinutes(normalized.closingTime);
@@ -271,8 +271,8 @@ export const isWithinBusinessHours = (settings: BusinessSettings = {}, currentDa
   return now >= openingMinutes && now < closingMinutes;
 };
 
-export const isBusinessOpenOnDate = (settings: BusinessSettings = {}, selectedDate: Date | string = new Date()): boolean => {
-  const normalized = normalizeBusinessSettings(settings);
+export const isBusinessOpenOnDate = (settings: ScheduleSettings = {}, selectedDate: Date | string = new Date()): boolean => {
+  const normalized = normalizeScheduleSettings(settings);
   const diaSemana = getDiaSemanaFromDate(selectedDate);
 
   if (!diaSemana) {
@@ -289,7 +289,7 @@ interface GenerateSlotsOptions {
 }
 
 export const generateAvailableTimeSlots = (
-  settings: BusinessSettings = {},
+  settings: ScheduleSettings = {},
   selectedDate: string | null | undefined,
   {
     serviceDurationMinutes,
@@ -297,7 +297,7 @@ export const generateAvailableTimeSlots = (
     currentDate = new Date(),
   }: GenerateSlotsOptions = {}
 ): string[] => {
-  const normalized = normalizeBusinessSettings(settings);
+  const normalized = normalizeScheduleSettings(settings);
   if (!isBusinessOpenOnDate(normalized, selectedDate || currentDate)) {
     return [];
   }
@@ -306,7 +306,7 @@ export const generateAvailableTimeSlots = (
   const closingMinutes = toMinutes(normalized.closingTime);
   const duration = Number.isInteger(serviceDurationMinutes) && (serviceDurationMinutes as number) > 0
     ? serviceDurationMinutes as number
-    : DEFAULT_BUSINESS_SETTINGS.slotIntervalMinutes;
+    : DEFAULT_SCHEDULE_SETTINGS.slotIntervalMinutes;
   const slotStep = normalized.slotIntervalMinutes > 0 ? normalized.slotIntervalMinutes : duration;
 
   const normalizedBookedTimes = normalizeBookedTimes(bookedTimes);

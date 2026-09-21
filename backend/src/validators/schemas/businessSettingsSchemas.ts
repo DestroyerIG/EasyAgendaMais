@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { passwordSchema } from './common.js';
 import { isValidCpfCnpj, normalizeDocumentDigits } from '../../utils/cpfCnpj.js';
 
-export const updateBarbershopSettingsSchema = z.object({
+export const updateBusinessSettingsSchema = z.object({
   whatsappInstanceName: z
     .union([
       z.literal(''),
@@ -30,7 +30,7 @@ export const updateBarbershopSettingsSchema = z.object({
   whatsappReminders: z.boolean(),
 });
 
-export const updateBarbershopProfileSchema = z.object({
+export const updateBusinessProfileSchema = z.object({
   cpfCnpj: z
     .string()
     .trim()
@@ -45,7 +45,7 @@ export const updateBarbershopProfileSchema = z.object({
 });
 
 export const updateAccountProfileSchema = z.object({
-  barbershopName: z.string().trim().min(1, 'Nome da barbearia é obrigatório').max(255),
+  businessName: z.string().trim().min(1, 'Nome da barbearia é obrigatório').max(255),
   ownerName: z.string().trim().min(1, 'Nome do responsável é obrigatório').max(255),
   whatsapp: z
     .string()
@@ -85,7 +85,7 @@ export const updateAccountPasswordSchema = z
     }
   });
 
-export type UpdateBarbershopSettings = z.infer<typeof updateBarbershopSettingsSchema>;
-export type UpdateBarbershopProfile = z.infer<typeof updateBarbershopProfileSchema>;
+export type UpdateBusinessSettings = z.infer<typeof updateBusinessSettingsSchema>;
+export type UpdateBusinessProfile = z.infer<typeof updateBusinessProfileSchema>;
 export type UpdateAccountProfile = z.infer<typeof updateAccountProfileSchema>;
 export type UpdateAccountPassword = z.infer<typeof updateAccountPasswordSchema>;

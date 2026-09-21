@@ -27,9 +27,9 @@ interface ExpenseFilters {
 }
 
 export const financeService = {
-  async getSummary(barbershopId: string) {
+  async getSummary(businessId: string) {
     const today = getLocalDate();
-    const data = await financeRepository.getSummary(barbershopId, today as unknown as Date);
+    const data = await financeRepository.getSummary(businessId, today as unknown as Date);
 
     return {
       today: {
@@ -45,13 +45,13 @@ export const financeService = {
     };
   },
 
-  async getMonthlyReport(barbershopId: string, { month, year }: MonthYearParams) {
+  async getMonthlyReport(businessId: string, { month, year }: MonthYearParams) {
     if (!month || !year) {
       throw new ValidationError('month e year são obrigatórios');
     }
 
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const rows = await financeRepository.getMonthlyReport(barbershopId, startDate);
+    const rows = await financeRepository.getMonthlyReport(businessId, startDate);
 
     return rows.map((row) => ({
       date: row.date,
@@ -61,22 +61,22 @@ export const financeService = {
     }));
   },
 
-  async addExpense(barbershopId: string, data: ExpenseData) {
-    return financeRepository.createExpense(barbershopId, data);
+  async addExpense(businessId: string, data: ExpenseData) {
+    return financeRepository.createExpense(businessId, data);
   },
 
-  async updateExpense(id: string, barbershopId: string, data: ExpenseUpdateData) {
-    const result = await financeRepository.updateExpense(id, barbershopId, data);
+  async updateExpense(id: string, businessId: string, data: ExpenseUpdateData) {
+    const result = await financeRepository.updateExpense(id, businessId, data);
     if (!result) throw new NotFoundError('Gasto');
     return result;
   },
 
-  async deleteExpense(id: string, barbershopId: string): Promise<void> {
-    const result = await financeRepository.deleteExpense(id, barbershopId);
+  async deleteExpense(id: string, businessId: string): Promise<void> {
+    const result = await financeRepository.deleteExpense(id, businessId);
     if (!result) throw new NotFoundError('Gasto');
   },
 
-  async getExpenses(barbershopId: string, filters: ExpenseFilters) {
-    return financeRepository.getExpenses(barbershopId, filters);
+  async getExpenses(businessId: string, filters: ExpenseFilters) {
+    return financeRepository.getExpenses(businessId, filters);
   },
 };

@@ -3,23 +3,23 @@ import type { AppointmentWithRelations, CreateAppointmentInput } from './appoint
 
 const APPOINTMENT_INCLUDE = {
   client: { select: { name: true, phone: true } },
-  barber: { select: { name: true } },
+  professional: { select: { name: true } },
   service: { select: { name: true, price: true } },
 } as const;
 
 export const appointmentsPrismaRepository = {
   async findAll(
-    barbershopId: string,
+    businessId: string,
     filters: {
       date?: string;
       status?: string;
       view?: 'day' | 'week';
-      barberId?: string;
+      professionalId?: string;
     }
   ): Promise<AppointmentWithRelations[]> {
-    const where: Record<string, unknown> = { barbershopId };
+    const where: Record<string, unknown> = { businessId };
 
-    if (filters.barberId) where['barberId'] = filters.barberId;
+    if (filters.professionalId) where['professionalId'] = filters.professionalId;
     if (filters.status) where['status'] = filters.status;
 
     if (filters.date) {
@@ -42,51 +42,51 @@ export const appointmentsPrismaRepository = {
 
   async findById(
     id: string,
-    barbershopId: string
+    businessId: string
   ): Promise<AppointmentWithRelations | null> {
     return prisma.appointment.findFirst({
-      where: { id, barbershopId },
+      where: { id, businessId },
       include: APPOINTMENT_INCLUDE,
     }) as unknown as AppointmentWithRelations | null;
   },
 
   async validateOwnership(
-    barbershopId: string,
-    data: { clientId: string; barberId: string; serviceId: string }
-  ): Promise<{ clientOk: boolean; barberOk: boolean; serviceOk: boolean }> {
-    const [client, barber, service] = await Promise.all([
+    businessId: string,
+    data: { clientId: string; professionalId: string; serviceId: string }
+  ): Promise<{ clientOk: boolean; professionalOk: boolean; serviceOk: boolean }> {
+    const [client, professional, service] = await Promise.all([
       prisma.client.findFirst({
-        where: { id: data.clientId, barbershopId, active: true },
+        where: { id: data.clientId, businessId, active: true },
         select: { id: true },
       }),
-      prisma.barber.findFirst({
-        where: { id: data.barberId, barbershopId, active: true },
+      prisma.professional.findFirst({
+        where: { id: data.professionalId, businessId, active: true },
         select: { id: true },
       }),
       prisma.service.findFirst({
-        where: { id: data.serviceId, barbershopId, active: true },
+        where: { id: data.serviceId, businessId, active: true },
         select: { id: true },
       }),
     ]);
 
     return {
       clientOk: client !== null,
-      barberOk: barber !== null,
+      professionalOk: professional !== null,
       serviceOk: service !== null,
     };
   },
 
   async hasConflict(
-    barbershopId: string,
-    barberId: string,
+    businessId: string,
+    professionalId: string,
     date: string,
     time: string,
     excludeId?: string
   ): Promise<boolean> {
     const existing = await prisma.appointment.findFirst({
       where: {
-        barbershopId,
-        barberId,
+        businessId,
+        professionalId,
         date: new Date(date),
         time: new Date(`1970-01-01T${time}`),
         status: 'confirmado',
@@ -97,12 +97,12 @@ export const appointmentsPrismaRepository = {
     return existing !== null;
   },
 
-  async create(data: CreateAppointmentInput & { barbershopId: string }): Promise<AppointmentWithRelations> {
+  async create(data: CreateAppointmentInput & { businessId: string }): Promise<AppointmentWithRelations> {
     return prisma.appointment.create({
       data: {
-        barbershopId: data.barbershopId,
+        businessId: data.businessId,
         clientId: data.clientId,
-        barberId: data.barberId,
+        professionalId: data.professionalId,
         serviceId: data.serviceId,
         date: new Date(data.date),
         time: new Date(`1970-01-01T${data.time}:00`),
@@ -114,11 +114,11 @@ export const appointmentsPrismaRepository = {
 
   async updateStatus(
     id: string,
-    barbershopId: string,
+    businessId: string,
     status: string
   ): Promise<AppointmentWithRelations | null> {
     const existing = await prisma.appointment.findFirst({
-      where: { id, barbershopId },
+      where: { id, businessId },
       select: { id: true },
     });
     if (!existing) return null;
@@ -132,11 +132,11 @@ export const appointmentsPrismaRepository = {
 
   async update(
     id: string,
-    barbershopId: string,
+    businessId: string,
     data: Partial<CreateAppointmentInput>
   ): Promise<AppointmentWithRelations | null> {
     const existing = await prisma.appointment.findFirst({
-      where: { id, barbershopId, status: 'confirmado' },
+      where: { id, businessId, status: 'confirmado' },
       select: { id: true },
     });
     if (!existing) return null;
@@ -145,7 +145,7 @@ export const appointmentsPrismaRepository = {
       where: { id },
       data: {
         ...(data.clientId && { clientId: data.clientId }),
-        ...(data.barberId && { barberId: data.barberId }),
+        ...(data.professionalId && { professionalId: data.professionalId }),
         ...(data.serviceId && { serviceId: data.serviceId }),
         ...(data.date && { date: new Date(data.date) }),
         ...(data.time && { time: new Date(`1970-01-01T${data.time}:00`) }),
@@ -154,9 +154,9 @@ export const appointmentsPrismaRepository = {
     }) as unknown as AppointmentWithRelations;
   },
 
-  async softDelete(id: string, barbershopId: string): Promise<boolean> {
+  async softDelete(id: string, businessId: string): Promise<boolean> {
     const existing = await prisma.appointment.findFirst({
-      where: { id, barbershopId, status: 'confirmado' },
+      where: { id, businessId, status: 'confirmado' },
       select: { id: true },
     });
     if (!existing) return false;
@@ -169,14 +169,14 @@ export const appointmentsPrismaRepository = {
   },
 
   async getBookedSlots(
-    barbershopId: string,
-    barberId: string,
+    businessId: string,
+    professionalId: string,
     date: string
   ): Promise<string[]> {
     const appointments = await prisma.appointment.findMany({
       where: {
-        barbershopId,
-        barberId,
+        businessId,
+        professionalId,
         date: new Date(date),
         status: 'confirmado',
       },
@@ -191,9 +191,9 @@ export const appointmentsPrismaRepository = {
     });
   },
 
-  async getServiceDetails(serviceId: string, barbershopId: string) {
+  async getServiceDetails(serviceId: string, businessId: string) {
     return prisma.service.findFirst({
-      where: { id: serviceId, barbershopId, active: true },
+      where: { id: serviceId, businessId, active: true },
       select: { price: true, durationMinutes: true },
     });
   },

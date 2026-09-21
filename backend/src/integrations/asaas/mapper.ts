@@ -67,7 +67,7 @@ export interface NormalizedAsaasWebhookPayload {
   subscriptionId: string | null;
   customerId: string | null;
   externalReference: string | null;
-  barbershopId: string | null;
+  businessId: string | null;
   amount: number | null;
   dueDate: string | null;
   confirmedDate: string | null;
@@ -119,7 +119,7 @@ const sanitizeUuidLike = (value: unknown): string | null => {
   return uuidRegex.test(trimmed) ? trimmed : null;
 };
 
-export const extractBarbershopIdFromExternalReference = (
+export const extractBusinessIdFromExternalReference = (
   externalReference: unknown
 ): string | null => {
   if (typeof externalReference !== 'string' || externalReference.trim().length === 0) {
@@ -133,7 +133,7 @@ export const extractBarbershopIdFromExternalReference = (
     return directMatch;
   }
 
-  const prefixedMatch = trimmed.match(/barbershop:([0-9a-f-]{36})/i);
+  const prefixedMatch = trimmed.match(/business:([0-9a-f-]{36})/i);
   if (prefixedMatch?.[1]) {
     return sanitizeUuidLike(prefixedMatch[1]);
   }
@@ -236,7 +236,7 @@ export const normalizeAsaasWebhookPayload = (
     subscriptionId: payment?.subscription || null,
     customerId: payment?.customer || null,
     externalReference: payment?.externalReference || null,
-    barbershopId: extractBarbershopIdFromExternalReference(payment?.externalReference),
+    businessId: extractBusinessIdFromExternalReference(payment?.externalReference),
     amount: typeof payment?.value === 'number' ? payment.value : null,
     dueDate: toIso(payment?.dueDate),
     confirmedDate: toIso(
@@ -248,7 +248,7 @@ export const normalizeAsaasWebhookPayload = (
 
 export const asaasMapper = {
   buildAsaasWebhookEventId,
-  extractBarbershopIdFromExternalReference,
+  extractBusinessIdFromExternalReference,
   mapAsaasPaymentToPixData,
   normalizeAsaasWebhookPayload,
 };

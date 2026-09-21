@@ -22,7 +22,7 @@ function isInstanceAlreadyInUse(err: unknown): boolean {
 
 export const getStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const data = await whatsappService.getStatus(req.user.barbershopId!);
+    const data = await whatsappService.getStatus(req.user.businessId!);
     res.json({ success: true, data });
   } catch (err) {
     next(err);
@@ -30,9 +30,9 @@ export const getStatus = async (req: Request, res: Response, next: NextFunction)
 };
 
 export const initialize = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const barbershopId = req.user.barbershopId!;
+  const businessId = req.user.businessId!;
   try {
-    const data = await whatsappService.connectWhatsApp(barbershopId);
+    const data = await whatsappService.connectWhatsApp(businessId);
     res.json({ success: true, data });
   } catch (err) {
     // Defense-in-depth: the service already handles the "already in use" race
@@ -41,7 +41,7 @@ export const initialize = async (req: Request, res: Response, next: NextFunction
     // instance is connecting and let the status/QR polling take over.
     if (isInstanceAlreadyInUse(err)) {
       logger.warn(
-        { barbershopId, status: 403 },
+        { businessId, status: 403 },
         'whatsapp-controller: Evolution reported already-in-use, returning soft success',
       );
       res.json({
@@ -59,7 +59,7 @@ export const initialize = async (req: Request, res: Response, next: NextFunction
 
     if (err instanceof EvolutionApiError) {
       logger.error(
-        { err, status: err.status, body: err.body, barbershopId },
+        { err, status: err.status, body: err.body, businessId },
         'whatsapp-controller: Evolution API error on initialize',
       );
     }
@@ -69,7 +69,7 @@ export const initialize = async (req: Request, res: Response, next: NextFunction
 
 export const getQrCode = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const qrCode = await whatsappService.getQRCode(req.user.barbershopId!);
+    const qrCode = await whatsappService.getQRCode(req.user.businessId!);
     res.json({ success: true, data: { qrCode } });
   } catch (err) {
     next(err);
@@ -78,7 +78,7 @@ export const getQrCode = async (req: Request, res: Response, next: NextFunction)
 
 export const disconnect = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    await whatsappService.disconnect(req.user.barbershopId!);
+    await whatsappService.disconnect(req.user.businessId!);
     res.json({ success: true, data: { disconnected: true } });
   } catch (err) {
     next(err);
@@ -92,7 +92,7 @@ export const sendMessage = async (req: Request, res: Response, next: NextFunctio
       res.status(400).json({ success: false, error: 'Campos number e text são obrigatórios' });
       return;
     }
-    const data = await whatsappService.sendText(req.user.barbershopId!, number, text);
+    const data = await whatsappService.sendText(req.user.businessId!, number, text);
     res.json({ success: true, data });
   } catch (err) {
     next(err);

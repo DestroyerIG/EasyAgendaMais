@@ -62,7 +62,7 @@ const extractConnectedPhone = (rawPayload: unknown): string | null => {
 const updateConnectedNumber = async (instanceName: string, phone: string): Promise<void> => {
   try {
     await prisma.$executeRaw(Prisma.sql`
-      UPDATE barbershops
+      UPDATE businesses
          SET whatsapp = ${phone}
        WHERE lower(btrim(whatsapp_instance_name)) = ${instanceName.trim().toLowerCase()}
          AND active = true

@@ -2,7 +2,7 @@ import cron from 'node-cron';
 import { prisma } from '../config/prisma.js';
 import logger from '../utils/logger.js';
 import { subscriptionRepository } from '../repositories/subscriptionRepository.js';
-import { barbershopSettingsRepository } from '../repositories/barbershopSettingsRepository.js';
+import { businessSettingsRepository } from '../repositories/businessSettingsRepository.js';
 
 // @ts-ignore — sendWhatsAppMessage is a legacy JS service not yet typed
 import { sendWhatsAppMessage } from './whatsapp/index.js';
@@ -61,32 +61,32 @@ export const runReminderJob = async (now: Date = new Date()): Promise<void> => {
       include: {
         client: { select: { phone: true, name: true } },
         service: { select: { name: true } },
-        barber: { select: { name: true } },
+        professional: { select: { name: true } },
       },
     });
 
     // Uma consulta de configuração por negócio, não por agendamento.
-    const remindersEnabledByBarbershop = new Map<string, boolean>();
+    const remindersEnabledByBusiness = new Map<string, boolean>();
 
-    const remindersEnabled = async (barbershopId: string): Promise<boolean> => {
-      const cached = remindersEnabledByBarbershop.get(barbershopId);
+    const remindersEnabled = async (businessId: string): Promise<boolean> => {
+      const cached = remindersEnabledByBusiness.get(businessId);
       if (cached !== undefined) return cached;
 
-      const settings = await barbershopSettingsRepository.findByBarbershopId(barbershopId);
+      const settings = await businessSettingsRepository.findByBusinessId(businessId);
       const enabled = settings ? (settings as { whatsappReminders?: unknown }).whatsappReminders !== false : true;
 
-      remindersEnabledByBarbershop.set(barbershopId, enabled);
+      remindersEnabledByBusiness.set(businessId, enabled);
       return enabled;
     };
 
     for (const appointment of appointments) {
-      if (!(await remindersEnabled(appointment.barbershopId))) {
-        logger.debug({ barbershopId: appointment.barbershopId }, 'Lembretes por WhatsApp desligados; pulando');
+      if (!(await remindersEnabled(appointment.businessId))) {
+        logger.debug({ businessId: appointment.businessId }, 'Lembretes por WhatsApp desligados; pulando');
         continue;
       }
 
       const config = await prisma.whatsappBotConfig.findFirst({
-        where: { barbershopId: appointment.barbershopId },
+        where: { businessId: appointment.businessId },
         select: { reminderMessage: true },
       });
 
@@ -99,11 +99,11 @@ export const runReminderJob = async (now: Date = new Date()): Promise<void> => {
       const message = template
         .replace(/{nome_cliente}/g, appointment.client.name)
         .replace(/{servico}/g, appointment.service.name)
-        .replace(/{barbeiro}/g, appointment.barber.name)
+        .replace(/{barbeiro}/g, appointment.professional.name)
         .replace(/{horario}/g, timeStr);
 
       const sent = await sendWhatsAppMessage(appointment.client.phone, message, {
-        barbershopId: appointment.barbershopId,
+        businessId: appointment.businessId,
       });
 
       if (sent) {
@@ -126,10 +126,10 @@ export const startReminderCron = (): void => {
 
   cron.schedule('15 * * * *', async () => {
     try {
-      const { expiredCount, barbershopIds } = await subscriptionRepository.expireOneTimeSubscriptions();
+      const { expiredCount, businessIds } = await subscriptionRepository.expireOneTimeSubscriptions();
 
       if (expiredCount > 0) {
-        logger.info({ expiredCount, barbershopIds }, 'Assinaturas one-time marcadas como inadimplentes automaticamente');
+        logger.info({ expiredCount, businessIds }, 'Assinaturas one-time marcadas como inadimplentes automaticamente');
       }
     } catch (error) {
       logger.error({ err: error }, 'Erro ao expirar assinaturas one-time');
@@ -139,7 +139,7 @@ export const startReminderCron = (): void => {
   cron.schedule('0 3 * * *', async () => {
     try {
       const expired = await prisma.$executeRaw`
-        UPDATE barbershops
+        UPDATE businesses
         SET subscription_status = 'incomplete'
         WHERE subscription_status = 'trialing'
           AND subscription_current_period_end < NOW()

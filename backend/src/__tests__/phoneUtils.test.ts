@@ -158,7 +158,7 @@ describe('resolveAuthorPhone', () => {
   it('@lid payload → phone from sender, skip=false', () => {
     const payload = {
       event: 'messages-upsert',
-      instance: 'itallobarber_12f46de4',
+      instance: 'italloprofessional_12f46de4',
       data: {
         key: {
           remoteJid: '247269873942566@lid',

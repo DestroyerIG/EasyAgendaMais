@@ -13,14 +13,14 @@ export interface SendWhatsAppMessageContext {
   captureCollector?: (message: string) => void;
   simulate?: boolean;
   instanceName?: string | null;
-  barbershopId?: string | null;
+  businessId?: string | null;
   [key: string]: unknown;
 }
 
 export interface FormatMessageData {
-  barbershopName?: string;
+  businessName?: string;
   serviceName?: string;
-  barberName?: string;
+  professionalName?: string;
   dateFormatted?: string;
   time?: string;
   servicePrice?: string;
@@ -99,9 +99,9 @@ export const formatMessage = (template: string, data: FormatMessageData = {}): s
 
   let message = template;
   const placeholders: Record<string, string> = {
-    '{nome_barbearia}': data.barbershopName || '',
+    '{nome_barbearia}': data.businessName || '',
     '{servico}': data.serviceName || '',
-    '{barbeiro}': data.barberName || '',
+    '{barbeiro}': data.professionalName || '',
     '{data}': data.dateFormatted || '',
     '{horario}': data.time || '',
     '{valor}': data.servicePrice || '',
@@ -123,9 +123,9 @@ export const formatMessage = (template: string, data: FormatMessageData = {}): s
 export const buildWelcomeMessage = (
   welcomeHeader: string | null | undefined,
   menuOptions: MenuOption[],
-  barbershopName: string,
+  businessName: string,
 ): string => {
-  const header = formatMessage(welcomeHeader || 'Olá 👋 Bem-vindo!', { barbershopName });
+  const header = formatMessage(welcomeHeader || 'Olá 👋 Bem-vindo!', { businessName });
 
   const numberEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
 

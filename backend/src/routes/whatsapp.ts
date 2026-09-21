@@ -17,7 +17,7 @@ import {
   getWhatsAppHealthStats,
 } from '../services/whatsappClient.js';
 import { updateInstanceFromPayload } from '../services/whatsapp/whatsappInstanceCache.js';
-import { getBarbershopWhatsAppInstanceContext } from '../services/whatsapp/whatsappInstanceService.js';
+import { getBusinessWhatsAppInstanceContext } from '../services/whatsapp/whatsappInstanceService.js';
 import { getBotConfig } from '../services/whatsapp/whatsappConfigService.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireTenantRoles } from '../middleware/rbac.js';
@@ -60,17 +60,17 @@ interface DisconnectedStatusPayload {
 
 interface WhatsAppContext {
   [key: string]: unknown;
-  barbershopId: string | null;
+  businessId: string | null;
   instanceName: string | null;
 }
 
-interface SimulatorBarbershopContextOk {
+interface SimulatorBusinessContextOk {
   ok: true;
-  barbershopId: string;
+  businessId: string;
   source: string;
 }
 
-interface SimulatorBarbershopContextErr {
+interface SimulatorBusinessContextErr {
   ok: false;
   statusCode: number;
   code: string;
@@ -80,7 +80,7 @@ interface SimulatorBarbershopContextErr {
   error?: unknown;
 }
 
-type SimulatorBarbershopContext = SimulatorBarbershopContextOk | SimulatorBarbershopContextErr;
+type SimulatorBusinessContext = SimulatorBusinessContextOk | SimulatorBusinessContextErr;
 
 interface AuthorExtraction {
   phone: string | null;
@@ -144,24 +144,24 @@ const buildDisconnectedStatusPayload = (instanceName: string | null = null): Dis
 });
 
 const resolveAuthenticatedWhatsAppContext = async (req: Request): Promise<WhatsAppContext> => {
-  const barbershopId = req.user?.barbershopId ?? null;
+  const businessId = req.user?.businessId ?? null;
 
-  if (!barbershopId) {
+  if (!businessId) {
     return {
-      barbershopId: null,
+      businessId: null,
       instanceName: null,
     };
   }
 
-  const context = await getBarbershopWhatsAppInstanceContext(barbershopId);
+  const context = await getBusinessWhatsAppInstanceContext(businessId);
 
   return {
-    barbershopId,
+    businessId,
     instanceName: (context as { whatsappInstanceName?: string | null }).whatsappInstanceName ?? null,
   };
 };
 
-const normalizeSimulatorBarbershopId = (value: unknown): string | null => {
+const normalizeSimulatorBusinessId = (value: unknown): string | null => {
   if (typeof value !== 'string') {
     return null;
   }
@@ -170,61 +170,61 @@ const normalizeSimulatorBarbershopId = (value: unknown): string | null => {
   return normalized || null;
 };
 
-const resolveSimulatorBarbershopContext = async ({
-  payloadBarbershopId,
-  authBarbershopId,
+const resolveSimulatorBusinessContext = async ({
+  payloadBusinessId,
+  authBusinessId,
 }: {
-  payloadBarbershopId: string | null;
-  authBarbershopId: string | null;
-}): Promise<SimulatorBarbershopContext> => {
-  if (!payloadBarbershopId && !authBarbershopId) {
+  payloadBusinessId: string | null;
+  authBusinessId: string | null;
+}): Promise<SimulatorBusinessContext> => {
+  if (!payloadBusinessId && !authBusinessId) {
     return {
       ok: false,
       statusCode: 400,
-      code: 'WHATSAPP_SIMULATOR_BARBERSHOP_REQUIRED',
-      message: 'Campo barbershopId e obrigatorio no simulador quando o contexto autenticado nao estiver disponivel',
-      reason: 'missing_barbershop_context',
+      code: 'WHATSAPP_SIMULATOR_BUSINESS_REQUIRED',
+      message: 'Campo businessId e obrigatorio no simulador quando o contexto autenticado nao estiver disponivel',
+      reason: 'missing_business_context',
       source: null,
     };
   }
 
-  if (!authBarbershopId) {
+  if (!authBusinessId) {
     return {
       ok: false,
       statusCode: 400,
       code: 'WHATSAPP_SIMULATOR_AUTH_CONTEXT_MISSING',
-      message: 'Contexto autenticado sem barbershopId. Faca login novamente para usar o simulador.',
-      reason: 'missing_auth_barbershop_context',
+      message: 'Contexto autenticado sem businessId. Faca login novamente para usar o simulador.',
+      reason: 'missing_auth_business_context',
       source: null,
     };
   }
 
-  if (payloadBarbershopId && payloadBarbershopId !== authBarbershopId) {
+  if (payloadBusinessId && payloadBusinessId !== authBusinessId) {
     return {
       ok: false,
       statusCode: 403,
-      code: 'WHATSAPP_SIMULATOR_BARBERSHOP_FORBIDDEN',
-      message: 'barbershopId do payload nao corresponde ao tenant autenticado',
+      code: 'WHATSAPP_SIMULATOR_BUSINESS_FORBIDDEN',
+      message: 'businessId do payload nao corresponde ao tenant autenticado',
       reason: 'payload_auth_mismatch',
       source: 'payload',
     };
   }
 
-  const resolvedBarbershopId = payloadBarbershopId ?? authBarbershopId;
-  const contextSource = payloadBarbershopId ? 'payload' : 'auth';
+  const resolvedBusinessId = payloadBusinessId ?? authBusinessId;
+  const contextSource = payloadBusinessId ? 'payload' : 'auth';
 
   try {
     const rows = await prisma.$queryRaw<{ id: string }[]>(
-      Prisma.sql`SELECT id FROM barbershops WHERE id = ${resolvedBarbershopId}::uuid LIMIT 1`
+      Prisma.sql`SELECT id FROM businesses WHERE id = ${resolvedBusinessId}::uuid LIMIT 1`
     );
 
     if (!rows.length) {
       return {
         ok: false,
         statusCode: 400,
-        code: 'WHATSAPP_SIMULATOR_INVALID_BARBERSHOP',
-        message: 'barbershopId informado para o simulador e invalido',
-        reason: 'barbershop_not_found',
+        code: 'WHATSAPP_SIMULATOR_INVALID_BUSINESS',
+        message: 'businessId informado para o simulador e invalido',
+        reason: 'business_not_found',
         source: contextSource,
       };
     }
@@ -234,7 +234,7 @@ const resolveSimulatorBarbershopContext = async ({
       statusCode: 500,
       code: 'WHATSAPP_SIMULATOR_CONTEXT_VALIDATION_FAILED',
       message: 'Falha ao validar o contexto da barbearia no simulador',
-      reason: 'barbershop_validation_query_failed',
+      reason: 'business_validation_query_failed',
       source: contextSource,
       error,
     };
@@ -242,7 +242,7 @@ const resolveSimulatorBarbershopContext = async ({
 
   return {
     ok: true,
-    barbershopId: resolvedBarbershopId,
+    businessId: resolvedBusinessId,
     source: contextSource,
   };
 };
@@ -840,7 +840,7 @@ const resolveConnectedNumberFromDatabase = async (instanceName: string | null = 
   try {
     const rows = await prisma.$queryRaw<{ whatsapp: string | null }[]>(
       Prisma.sql`SELECT whatsapp
-         FROM barbershops
+         FROM businesses
         WHERE active = true
           AND NULLIF(btrim(whatsapp_instance_name), '') IS NOT NULL
           AND lower(btrim(whatsapp_instance_name)) = ${normalizedInstanceName}
@@ -1671,8 +1671,8 @@ router.post('/simulator/message', ...waProtected, async (req: Request, res: Resp
     const text = typeof body['text'] === 'string' ? body['text'].trim() : '';
     const fallbackPhone = '5511999999999';
     const phone = normalizeWhatsAppNumber(body['phone']) ?? fallbackPhone;
-    const payloadBarbershopId = normalizeSimulatorBarbershopId(body['barbershopId']);
-    const authBarbershopId = normalizeSimulatorBarbershopId(req.user?.barbershopId);
+    const payloadBusinessId = normalizeSimulatorBusinessId(body['businessId']);
+    const authBusinessId = normalizeSimulatorBusinessId(req.user?.businessId);
     const pushName =
       typeof body['pushName'] === 'string' && body['pushName'].trim()
         ? body['pushName'].trim()
@@ -1680,8 +1680,8 @@ router.post('/simulator/message', ...waProtected, async (req: Request, res: Resp
 
     logger.info(
       {
-        payloadBarbershopId,
-        authBarbershopId,
+        payloadBusinessId,
+        authBusinessId,
       },
       'Simulador WhatsApp: contexto recebido'
     );
@@ -1696,15 +1696,15 @@ router.post('/simulator/message', ...waProtected, async (req: Request, res: Resp
       return;
     }
 
-    const context = await resolveSimulatorBarbershopContext({
-      payloadBarbershopId,
-      authBarbershopId,
+    const context = await resolveSimulatorBusinessContext({
+      payloadBusinessId,
+      authBusinessId,
     });
 
     if (!context.ok) {
       const logPayload = {
-        payloadBarbershopId,
-        authBarbershopId,
+        payloadBusinessId,
+        authBusinessId,
         reason: context.reason,
         source: context.source,
       };
@@ -1727,7 +1727,7 @@ router.post('/simulator/message', ...waProtected, async (req: Request, res: Resp
 
     logger.info(
       {
-        barbershopId: context.barbershopId,
+        businessId: context.businessId,
         contextSource: context.source,
       },
       'Simulador WhatsApp: contexto resolvido'
@@ -1764,14 +1764,14 @@ router.post('/simulator/message', ...waProtected, async (req: Request, res: Resp
       messageId,
       simulationMode: true,
       responseCollector: botResponses,
-      barbershopId: context.barbershopId,
-      barbershopContextSource: context.source,
+      businessId: context.businessId,
+      businessContextSource: context.source,
     }) as { ok?: boolean; ignored?: boolean; reason?: string } | null;
 
-    if (result?.reason === 'barbershop_not_resolved') {
+    if (result?.reason === 'business_not_resolved') {
       logger.warn(
         {
-          barbershopId: context.barbershopId,
+          businessId: context.businessId,
           contextSource: context.source,
           reason: result.reason,
         },
@@ -1825,7 +1825,7 @@ router.get('/status', ...waProtected, async (req: Request, res: Response, next: 
 
 router.post('/connect', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const tenantContext = { barbershopId: req.user.barbershopId };
+    const tenantContext = { businessId: req.user.businessId };
     const connected = await connectWhatsApp(tenantContext);
     const resolvedContext = await resolveAuthenticatedWhatsAppContext(req);
     const status = resolvedContext.instanceName
@@ -1863,7 +1863,7 @@ router.post('/connect', ...waProtected, async (req: Request, res: Response, next
 
 router.post('/initialize', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const tenantContext = { barbershopId: req.user.barbershopId };
+    const tenantContext = { businessId: req.user.businessId };
     const result = await initializeWhatsAppInstance(tenantContext) as { ok?: boolean; status?: Record<string, unknown> } | null;
     const status = result?.status ?? getWhatsAppStatus();
 
@@ -1894,7 +1894,7 @@ router.post('/initialize', ...waProtected, async (req: Request, res: Response, n
 
 router.get('/qrcode', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const status = await refreshWhatsAppStatus({ barbershopId: req.user.barbershopId }) as Record<string, unknown>;
+    const status = await refreshWhatsAppStatus({ businessId: req.user.businessId }) as Record<string, unknown>;
     const resolvedContext = await resolveAuthenticatedWhatsAppContext(req);
 
     if (status['status'] === 'provider_unavailable' || status['status'] === 'unavailable') {
@@ -1917,7 +1917,7 @@ router.get('/qrcode', ...waProtected, async (req: Request, res: Response, next: 
       return;
     }
 
-    const qrCode = await getWhatsAppQrCode({ barbershopId: req.user.barbershopId });
+    const qrCode = await getWhatsAppQrCode({ businessId: req.user.businessId });
     const refreshedContext = await resolveAuthenticatedWhatsAppContext(req);
     const refreshed = refreshedContext.instanceName
       ? getWhatsAppStatusByInstance(refreshedContext.instanceName)
@@ -1948,7 +1948,7 @@ router.get('/qrcode', ...waProtected, async (req: Request, res: Response, next: 
 
 router.post('/disconnect', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const success = await disconnectWhatsApp({ barbershopId: req.user.barbershopId });
+    const success = await disconnectWhatsApp({ businessId: req.user.businessId });
     const tenantContext = await resolveAuthenticatedWhatsAppContext(req);
 
     if (success) {
@@ -2002,7 +2002,7 @@ router.post('/send', ...waProtected, async (req: Request, res: Response, next: N
 
     const sent = await sendWhatsAppText(normalizedPhone, normalizedMessage, {
       remoteJidOriginal: normalizedRemoteJidOriginal,
-      barbershopId: req.user.barbershopId,
+      businessId: req.user.businessId,
     });
 
     if (!sent) {
@@ -2058,7 +2058,7 @@ router.post('/test-send', ...waProtected, async (req: Request, res: Response, ne
 
     const sent = await sendWhatsAppText(normalizedPhone, normalizedMessage, {
       remoteJidOriginal: normalizedRemoteJidOriginal,
-      barbershopId: req.user.barbershopId,
+      businessId: req.user.businessId,
     });
 
     if (!sent) {
@@ -2142,7 +2142,7 @@ router.post('/debug-send', ...waProtected, async (req: Request, res: Response, n
     const sent = await sendWhatsAppMessage(normalizedPhone, normalizedMessage, {
       remoteJidOriginal: normalizedRemoteJidOriginal,
       eventName: 'debug-send',
-      barbershopId: req.user.barbershopId,
+      businessId: req.user.businessId,
     });
 
     if (!sent) {
@@ -2186,7 +2186,7 @@ router.post('/debug-send', ...waProtected, async (req: Request, res: Response, n
 
 router.get('/qr', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const status = await refreshWhatsAppStatus({ barbershopId: req.user.barbershopId }) as Record<string, unknown>;
+    const status = await refreshWhatsAppStatus({ businessId: req.user.businessId }) as Record<string, unknown>;
     const resolvedContext = await resolveAuthenticatedWhatsAppContext(req);
 
     if (status['status'] === 'provider_unavailable' || status['status'] === 'unavailable') {
@@ -2209,7 +2209,7 @@ router.get('/qr', ...waProtected, async (req: Request, res: Response, next: Next
       return;
     }
 
-    const qrCode = await getWhatsAppQrCode({ barbershopId: req.user.barbershopId });
+    const qrCode = await getWhatsAppQrCode({ businessId: req.user.businessId });
     const refreshedContext = await resolveAuthenticatedWhatsAppContext(req);
     const refreshed = refreshedContext.instanceName
       ? getWhatsAppStatusByInstance(refreshedContext.instanceName)
@@ -2227,7 +2227,7 @@ router.get('/qr', ...waProtected, async (req: Request, res: Response, next: Next
 
 router.post('/logout', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const success = await logoutWhatsApp({ barbershopId: req.user.barbershopId });
+    const success = await logoutWhatsApp({ businessId: req.user.businessId });
     const tenantContext = await resolveAuthenticatedWhatsAppContext(req);
 
     if (success) {
@@ -2248,7 +2248,7 @@ router.post('/logout', ...waProtected, async (req: Request, res: Response, next:
 
 router.post('/restart', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    await restartWhatsApp({ barbershopId: req.user.barbershopId });
+    await restartWhatsApp({ businessId: req.user.businessId });
     const tenantContext = await resolveAuthenticatedWhatsAppContext(req);
     sendSuccess(
       res,
@@ -2265,8 +2265,8 @@ router.post('/restart', ...waProtected, async (req: Request, res: Response, next
 
 router.get('/config', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { barbershopId } = req.user;
-    const config = await getBotConfig(barbershopId!);
+    const { businessId } = req.user;
+    const config = await getBotConfig(businessId!);
     sendSuccess(res, config);
   } catch (error) {
     next(error);
@@ -2275,7 +2275,7 @@ router.get('/config', ...waProtected, async (req: Request, res: Response, next: 
 
 router.put('/config', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { barbershopId } = req.user;
+    const { businessId } = req.user;
     const body = req.body as Record<string, unknown>;
     const {
       welcome_header,
@@ -2302,7 +2302,7 @@ router.put('/config', ...waProtected, async (req: Request, res: Response, next: 
 
     const rows = await prisma.$queryRaw<Record<string, unknown>[]>(
       Prisma.sql`INSERT INTO whatsapp_bot_config (
-          barbershop_id, welcome_header, ask_name_message, attendant_message,
+          business_id, welcome_header, ask_name_message, attendant_message,
           confirmation_message, reminder_message, invalid_option_message,
           session_expired_message, end_session_message, name_validation_message,
           no_slots_message, cancel_no_appointments_message, cancel_list_message,
@@ -2310,7 +2310,7 @@ router.put('/config', ...waProtected, async (req: Request, res: Response, next: 
           no_previous_appointments_message, rating_question_message, rating_confirmation_message,
           promotions_message, instagram_message, updated_at
       ) VALUES (
-        ${barbershopId}::uuid,${welcome_header ?? null},${ask_name_message ?? null},${attendant_message ?? null},
+        ${businessId}::uuid,${welcome_header ?? null},${ask_name_message ?? null},${attendant_message ?? null},
         ${confirmation_message ?? null},${reminder_message ?? null},${invalid_option_message ?? null},
         ${session_expired_message ?? null},${end_session_message ?? null},${name_validation_message ?? null},
         ${no_slots_message ?? null},${cancel_no_appointments_message ?? null},${cancel_list_message ?? null},
@@ -2318,7 +2318,7 @@ router.put('/config', ...waProtected, async (req: Request, res: Response, next: 
         ${no_previous_appointments_message ?? null},${rating_question_message ?? null},${rating_confirmation_message ?? null},
         ${promotions_message ?? null},${instagram_message ?? null},CURRENT_TIMESTAMP
       )
-      ON CONFLICT (barbershop_id)
+      ON CONFLICT (business_id)
       DO UPDATE SET
           welcome_header = COALESCE(EXCLUDED.welcome_header, whatsapp_bot_config.welcome_header),
           ask_name_message = COALESCE(EXCLUDED.ask_name_message, whatsapp_bot_config.ask_name_message),
@@ -2352,15 +2352,15 @@ router.put('/config', ...waProtected, async (req: Request, res: Response, next: 
 
 router.post('/config/reset', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { barbershopId } = req.user;
+    const { businessId } = req.user;
 
     await prisma.$queryRaw(
-      Prisma.sql`DELETE FROM whatsapp_bot_config WHERE barbershop_id = ${barbershopId}::uuid`
+      Prisma.sql`DELETE FROM whatsapp_bot_config WHERE business_id = ${businessId}::uuid`
     );
 
     const rows = await prisma.$queryRaw<Record<string, unknown>[]>(
-      Prisma.sql`INSERT INTO whatsapp_bot_config (barbershop_id)
-       VALUES (${barbershopId}::uuid)
+      Prisma.sql`INSERT INTO whatsapp_bot_config (business_id)
+       VALUES (${businessId}::uuid)
        RETURNING *`
     );
 
@@ -2386,23 +2386,23 @@ const DEFAULT_MENU_OPTIONS: DefaultMenuOption[] = [
 
 router.get('/config/menu', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { barbershopId } = req.user;
+    const { businessId } = req.user;
 
     let rows = await prisma.$queryRaw<Record<string, unknown>[]>(
-      Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE barbershop_id = ${barbershopId}::uuid ORDER BY option_order ASC`
+      Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid ORDER BY option_order ASC`
     );
 
     if (rows.length === 0) {
       for (const opt of DEFAULT_MENU_OPTIONS) {
         await prisma.$queryRaw(
-          Prisma.sql`INSERT INTO whatsapp_menu_options (barbershop_id, option_order, label, emoji, type, handler, active)
-           VALUES (${barbershopId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)
-           ON CONFLICT (barbershop_id, option_order) DO NOTHING`
+          Prisma.sql`INSERT INTO whatsapp_menu_options (business_id, option_order, label, emoji, type, handler, active)
+           VALUES (${businessId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)
+           ON CONFLICT (business_id, option_order) DO NOTHING`
         );
       }
 
       rows = await prisma.$queryRaw<Record<string, unknown>[]>(
-        Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE barbershop_id = ${barbershopId}::uuid ORDER BY option_order ASC`
+        Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid ORDER BY option_order ASC`
       );
     }
 
@@ -2414,7 +2414,7 @@ router.get('/config/menu', ...waProtected, async (req: Request, res: Response, n
 
 router.post('/config/menu', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { barbershopId } = req.user;
+    const { businessId } = req.user;
     const body = req.body as Record<string, unknown>;
     const label = body['label'] as string | undefined;
     const emoji = body['emoji'] as string | undefined;
@@ -2429,7 +2429,7 @@ router.post('/config/menu', ...waProtected, async (req: Request, res: Response, 
     }
 
     const maxOrderRows = await prisma.$queryRaw<{ max_order: bigint | number }[]>(
-      Prisma.sql`SELECT COALESCE(MAX(option_order), 0) as max_order FROM whatsapp_menu_options WHERE barbershop_id = ${barbershopId}::uuid`
+      Prisma.sql`SELECT COALESCE(MAX(option_order), 0) as max_order FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid`
     );
 
     const nextOrder = Number(maxOrderRows[0]?.max_order ?? 0) + 1;
@@ -2443,8 +2443,8 @@ router.post('/config/menu', ...waProtected, async (req: Request, res: Response, 
     }
 
     const rows = await prisma.$queryRaw<Record<string, unknown>[]>(
-      Prisma.sql`INSERT INTO whatsapp_menu_options (barbershop_id, option_order, label, emoji, type, response_message, active)
-       VALUES (${barbershopId}::uuid, ${nextOrder}, ${label}, ${emoji ?? ''}, 'custom', ${response_message}, true)
+      Prisma.sql`INSERT INTO whatsapp_menu_options (business_id, option_order, label, emoji, type, response_message, active)
+       VALUES (${businessId}::uuid, ${nextOrder}, ${label}, ${emoji ?? ''}, 'custom', ${response_message}, true)
        RETURNING *`
     );
 
@@ -2456,7 +2456,7 @@ router.post('/config/menu', ...waProtected, async (req: Request, res: Response, 
 
 router.put('/config/menu/:id', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { barbershopId } = req.user;
+    const { businessId } = req.user;
     const id = req.params['id'];
     const body = req.body as Record<string, unknown>;
     const label = body['label'] as string | null | undefined;
@@ -2465,7 +2465,7 @@ router.put('/config/menu/:id', ...waProtected, async (req: Request, res: Respons
     const response_message = body['response_message'] as string | null | undefined;
 
     const existing = await prisma.$queryRaw<Record<string, unknown>[]>(
-      Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE id = ${id}::uuid AND barbershop_id = ${barbershopId}::uuid`
+      Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE id = ${id}::uuid AND business_id = ${businessId}::uuid`
     );
 
     if (existing.length === 0) {
@@ -2483,7 +2483,7 @@ router.put('/config/menu/:id', ...waProtected, async (req: Request, res: Respons
           active = COALESCE(${active ?? null}, active),
           response_message = COALESCE(${response_message ?? null}, response_message),
           updated_at = CURRENT_TIMESTAMP
-       WHERE id = ${id}::uuid AND barbershop_id = ${barbershopId}::uuid
+       WHERE id = ${id}::uuid AND business_id = ${businessId}::uuid
        RETURNING *`
     );
 
@@ -2495,11 +2495,11 @@ router.put('/config/menu/:id', ...waProtected, async (req: Request, res: Respons
 
 router.delete('/config/menu/:id', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { barbershopId } = req.user;
+    const { businessId } = req.user;
     const id = req.params['id'];
 
     const existing = await prisma.$queryRaw<Record<string, unknown>[]>(
-      Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE id = ${id}::uuid AND barbershop_id = ${barbershopId}::uuid`
+      Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE id = ${id}::uuid AND business_id = ${businessId}::uuid`
     );
 
     if (existing.length === 0) {
@@ -2521,13 +2521,13 @@ router.delete('/config/menu/:id', ...waProtected, async (req: Request, res: Resp
     const deletedOrder = existing[0]?.['option_order'] as number;
 
     await prisma.$queryRaw(
-      Prisma.sql`DELETE FROM whatsapp_menu_options WHERE id = ${id}::uuid AND barbershop_id = ${barbershopId}::uuid`
+      Prisma.sql`DELETE FROM whatsapp_menu_options WHERE id = ${id}::uuid AND business_id = ${businessId}::uuid`
     );
 
     await prisma.$queryRaw(
       Prisma.sql`UPDATE whatsapp_menu_options
        SET option_order = option_order - 1, updated_at = CURRENT_TIMESTAMP
-       WHERE barbershop_id = ${barbershopId}::uuid AND option_order > ${deletedOrder}`
+       WHERE business_id = ${businessId}::uuid AND option_order > ${deletedOrder}`
     );
 
     sendSuccess(res, { message: 'Opção excluída com sucesso' });
@@ -2538,7 +2538,7 @@ router.delete('/config/menu/:id', ...waProtected, async (req: Request, res: Resp
 
 router.put('/config/menu-reorder', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { barbershopId } = req.user;
+    const { businessId } = req.user;
     const body = req.body as Record<string, unknown>;
     const order = body['order'];
 
@@ -2556,7 +2556,7 @@ router.put('/config/menu-reorder', ...waProtected, async (req: Request, res: Res
       await prisma.$queryRaw(
         Prisma.sql`UPDATE whatsapp_menu_options
          SET option_order = ${tempOrder}, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ${itemId}::uuid AND barbershop_id = ${barbershopId}::uuid`
+         WHERE id = ${itemId}::uuid AND business_id = ${businessId}::uuid`
       );
     }
 
@@ -2566,12 +2566,12 @@ router.put('/config/menu-reorder', ...waProtected, async (req: Request, res: Res
       await prisma.$queryRaw(
         Prisma.sql`UPDATE whatsapp_menu_options
          SET option_order = ${finalOrder}
-         WHERE id = ${itemId}::uuid AND barbershop_id = ${barbershopId}::uuid`
+         WHERE id = ${itemId}::uuid AND business_id = ${businessId}::uuid`
       );
     }
 
     const rows = await prisma.$queryRaw<Record<string, unknown>[]>(
-      Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE barbershop_id = ${barbershopId}::uuid ORDER BY option_order ASC`
+      Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid ORDER BY option_order ASC`
     );
 
     sendSuccess(res, rows);
@@ -2582,21 +2582,21 @@ router.put('/config/menu-reorder', ...waProtected, async (req: Request, res: Res
 
 router.post('/config/menu/reset', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { barbershopId } = req.user;
+    const { businessId } = req.user;
 
     await prisma.$queryRaw(
-      Prisma.sql`DELETE FROM whatsapp_menu_options WHERE barbershop_id = ${barbershopId}::uuid`
+      Prisma.sql`DELETE FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid`
     );
 
     for (const opt of DEFAULT_MENU_OPTIONS) {
       await prisma.$queryRaw(
-        Prisma.sql`INSERT INTO whatsapp_menu_options (barbershop_id, option_order, label, emoji, type, handler, active)
-         VALUES (${barbershopId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)`
+        Prisma.sql`INSERT INTO whatsapp_menu_options (business_id, option_order, label, emoji, type, handler, active)
+         VALUES (${businessId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)`
       );
     }
 
     const rows = await prisma.$queryRaw<Record<string, unknown>[]>(
-      Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE barbershop_id = ${barbershopId}::uuid ORDER BY option_order ASC`
+      Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid ORDER BY option_order ASC`
     );
 
     sendSuccess(res, rows);

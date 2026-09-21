@@ -4,7 +4,7 @@ import { prisma } from '../config/prisma.js';
 // ── DTO plano em snake_case esperado pelo frontend (type Client) ──────────────
 interface ClientDto {
   id: string;
-  barbershop_id: string;
+  business_id: string;
   name: string;
   phone: string;
   email: string | null;
@@ -23,7 +23,7 @@ interface ClientAggregate {
 
 type RawClient = {
   id: string;
-  barbershopId: string;
+  businessId: string;
   name: string;
   phone: string;
   email: string | null;
@@ -44,7 +44,7 @@ const dateOnlyLocalIso = (d: Date | string | null): string | null => {
 
 // total_spent = soma dos earnings (gerados ao concluir); last_visit = último concluído.
 const fetchAggregates = async (
-  barbershopId: string
+  businessId: string
 ): Promise<Map<string, ClientAggregate>> => {
   const rows = await prisma.$queryRaw<
     { client_id: string; last_visit: Date | null; total_spent: unknown }[]
@@ -54,7 +54,7 @@ const fetchAggregates = async (
            COALESCE(SUM(e.amount), 0) AS total_spent
       FROM appointments a
       LEFT JOIN earnings e ON e.appointment_id = a.id
-     WHERE a.barbershop_id = ${barbershopId}::uuid
+     WHERE a.business_id = ${businessId}::uuid
      GROUP BY a.client_id
   `);
 
@@ -70,7 +70,7 @@ const fetchAggregates = async (
 
 const toClientDto = (client: RawClient, agg?: ClientAggregate): ClientDto => ({
   id: client.id,
-  barbershop_id: client.barbershopId,
+  business_id: client.businessId,
   name: client.name,
   phone: client.phone,
   email: client.email,
@@ -83,43 +83,43 @@ const toClientDto = (client: RawClient, agg?: ClientAggregate): ClientDto => ({
 });
 
 export const clientRepository = {
-  async findByPhone(barbershopId: string, phone: string) {
+  async findByPhone(businessId: string, phone: string) {
     return prisma.client.findFirst({
-      where: { barbershopId, phone },
+      where: { businessId, phone },
       select: { id: true },
     });
   },
 
-  async findMany(barbershopId: string, _options?: { orderBy?: string }): Promise<ClientDto[]> {
+  async findMany(businessId: string, _options?: { orderBy?: string }): Promise<ClientDto[]> {
     const [clients, aggregates] = await Promise.all([
       prisma.client.findMany({
-        where: { barbershopId },
+        where: { businessId },
         orderBy: { createdAt: 'desc' },
       }),
-      fetchAggregates(barbershopId),
+      fetchAggregates(businessId),
     ]);
     return clients.map((c) => toClientDto(c as RawClient, aggregates.get(c.id)));
   },
 
   async findManyPaginated(
-    barbershopId: string,
+    businessId: string,
     options: { page: number; limit: number; orderBy?: string }
   ): Promise<ClientDto[]> {
     const skip = (options.page - 1) * options.limit;
     const [clients, aggregates] = await Promise.all([
       prisma.client.findMany({
-        where: { barbershopId },
+        where: { businessId },
         skip,
         take: options.limit,
         orderBy: { createdAt: 'desc' },
       }),
-      fetchAggregates(barbershopId),
+      fetchAggregates(businessId),
     ]);
     return clients.map((c) => toClientDto(c as RawClient, aggregates.get(c.id)));
   },
 
   async create(data: {
-    barbershopId: string;
+    businessId: string;
     name: string;
     phone: string;
     email: string | null;
@@ -129,7 +129,7 @@ export const clientRepository = {
   }): Promise<ClientDto> {
     const created = await prisma.client.create({
       data: {
-        barbershopId: data.barbershopId,
+        businessId: data.businessId,
         name: data.name,
         phone: data.phone,
         email: data.email,
@@ -143,7 +143,7 @@ export const clientRepository = {
 
   async update(
     id: string,
-    barbershopId: string,
+    businessId: string,
     data: {
       name?: string;
       phone?: string;
@@ -154,7 +154,7 @@ export const clientRepository = {
     }
   ): Promise<ClientDto | null> {
     const result = await prisma.client.updateMany({
-      where: { id, barbershopId },
+      where: { id, businessId },
       data: {
         ...(data.name !== undefined && { name: data.name }),
         ...(data.phone !== undefined && { phone: data.phone }),
@@ -168,15 +168,15 @@ export const clientRepository = {
     });
     if (result.count === 0) return null;
 
-    const updated = await prisma.client.findFirst({ where: { id, barbershopId } });
+    const updated = await prisma.client.findFirst({ where: { id, businessId } });
     return updated ? toClientDto(updated as RawClient) : null;
   },
 
-  async getHistory(barbershopId: string, clientId: string) {
+  async getHistory(businessId: string, clientId: string) {
     return prisma.appointment.findMany({
-      where: { barbershopId, clientId },
+      where: { businessId, clientId },
       include: {
-        barber: { select: { name: true } },
+        professional: { select: { name: true } },
         service: { select: { name: true, price: true } },
       },
       orderBy: [{ date: 'desc' }, { time: 'desc' }],

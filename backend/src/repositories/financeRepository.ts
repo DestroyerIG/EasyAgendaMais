@@ -3,15 +3,15 @@ import { Prisma } from '@prisma/client';
 import { toDate, startOfDay, endOfDay } from '../utils/dateUtils.js';
 
 export const financeRepository = {
-  async getSummary(barbershopId: string, rawToday: Date | string) {
+  async getSummary(businessId: string, rawToday: Date | string) {
     const today = toDate(rawToday);
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
     const [earningsToday, expensesToday, earningsMonth, expensesMonth] = await Promise.all([
-      prisma.earning.aggregate({ where: { barbershopId, date: { gte: startOfDay(today), lte: endOfDay(today) } }, _sum: { amount: true } }),
-      prisma.expense.aggregate({ where: { barbershopId, date: { gte: startOfDay(today), lte: endOfDay(today) } }, _sum: { amount: true } }),
-      prisma.earning.aggregate({ where: { barbershopId, date: { gte: startOfMonth } }, _sum: { amount: true } }),
-      prisma.expense.aggregate({ where: { barbershopId, date: { gte: startOfMonth } }, _sum: { amount: true } }),
+      prisma.earning.aggregate({ where: { businessId, date: { gte: startOfDay(today), lte: endOfDay(today) } }, _sum: { amount: true } }),
+      prisma.expense.aggregate({ where: { businessId, date: { gte: startOfDay(today), lte: endOfDay(today) } }, _sum: { amount: true } }),
+      prisma.earning.aggregate({ where: { businessId, date: { gte: startOfMonth } }, _sum: { amount: true } }),
+      prisma.expense.aggregate({ where: { businessId, date: { gte: startOfMonth } }, _sum: { amount: true } }),
     ]);
 
     return {
@@ -22,14 +22,14 @@ export const financeRepository = {
     };
   },
 
-  async getMonthlyReport(barbershopId: string, startDate: string) {
+  async getMonthlyReport(businessId: string, startDate: string) {
     // Uses generate_series — preserve raw SQL
     return prisma.$queryRaw<Array<{ date: Date; earnings: string; expenses: string }>>(
       Prisma.sql`
         SELECT
           date,
-          (SELECT COALESCE(SUM(amount), 0) FROM earnings WHERE barbershop_id = ${barbershopId}::uuid AND date = days.date) AS earnings,
-          (SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE barbershop_id = ${barbershopId}::uuid AND date = days.date) AS expenses
+          (SELECT COALESCE(SUM(amount), 0) FROM earnings WHERE business_id = ${businessId}::uuid AND date = days.date) AS earnings,
+          (SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE business_id = ${businessId}::uuid AND date = days.date) AS expenses
         FROM generate_series(
           ${startDate}::date,
           (${startDate}::date + INTERVAL '1 month - 1 day')::date,
@@ -40,10 +40,10 @@ export const financeRepository = {
     );
   },
 
-  async createExpense(barbershopId: string, data: { description: string; category: string; amount: number; date: string }) {
+  async createExpense(businessId: string, data: { description: string; category: string; amount: number; date: string }) {
     return prisma.expense.create({
       data: {
-        barbershopId,
+        businessId,
         description: data.description,
         category: data.category,
         amount: data.amount,
@@ -52,8 +52,8 @@ export const financeRepository = {
     });
   },
 
-  async updateExpense(id: string, barbershopId: string, data: { description?: string; category?: string; amount?: number; date?: string }) {
-    const existing = await prisma.expense.findFirst({ where: { id, barbershopId }, select: { id: true } });
+  async updateExpense(id: string, businessId: string, data: { description?: string; category?: string; amount?: number; date?: string }) {
+    const existing = await prisma.expense.findFirst({ where: { id, businessId }, select: { id: true } });
     if (!existing) return null;
     return prisma.expense.update({
       where: { id },
@@ -66,16 +66,16 @@ export const financeRepository = {
     });
   },
 
-  async deleteExpense(id: string, barbershopId: string) {
-    const existing = await prisma.expense.findFirst({ where: { id, barbershopId }, select: { id: true } });
+  async deleteExpense(id: string, businessId: string) {
+    const existing = await prisma.expense.findFirst({ where: { id, businessId }, select: { id: true } });
     if (!existing) return null;
     return prisma.expense.delete({ where: { id } });
   },
 
-  async getExpenses(barbershopId: string, { startDate, endDate }: { startDate?: string; endDate?: string } = {}) {
+  async getExpenses(businessId: string, { startDate, endDate }: { startDate?: string; endDate?: string } = {}) {
     return prisma.expense.findMany({
       where: {
-        barbershopId,
+        businessId,
         ...(startDate && endDate && {
           date: { gte: new Date(startDate), lte: new Date(endDate) },
         }),
@@ -84,11 +84,11 @@ export const financeRepository = {
     });
   },
 
-  async createEarning(_client: unknown, data: { barbershopId: string; appointmentId: string; amount: number; date: Date }) {
+  async createEarning(_client: unknown, data: { businessId: string; appointmentId: string; amount: number; date: Date }) {
     await prisma.earning.upsert({
       where: { appointmentId: data.appointmentId },
       create: {
-        barbershopId: data.barbershopId,
+        businessId: data.businessId,
         appointmentId: data.appointmentId,
         amount: data.amount,
         date: data.date,

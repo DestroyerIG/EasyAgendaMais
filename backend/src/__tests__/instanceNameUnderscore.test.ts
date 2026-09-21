@@ -7,51 +7,51 @@ import {
 describe('buildDeterministicWhatsAppInstanceName — underscore invariant', () => {
   it('always includes a single underscore separator between slug and id suffix', () => {
     const name = buildDeterministicWhatsAppInstanceName({
-      barbershopId: 'eacb8a07-1234-5678-9abc-def012345678',
-      shopName: 'Itallo Barber',
+      businessId: 'eacb8a07-1234-5678-9abc-def012345678',
+      shopName: 'Itallo Professional',
     });
-    // Suffix = last 8 chars of barbershopId stripped of non-alphanumerics.
-    expect(name).toBe('itallo-barber_12345678');
+    // Suffix = last 8 chars of businessId stripped of non-alphanumerics.
+    expect(name).toBe('itallo-professional_12345678');
     expect(name.split('_').length).toBeGreaterThanOrEqual(2);
   });
 
   it('preserves the underscore even with long shop names', () => {
     const name = buildDeterministicWhatsAppInstanceName({
-      barbershopId: 'eacb8a07',
-      shopName: 'Itallo Barber Premium Studio',
+      businessId: 'eacb8a07',
+      shopName: 'Itallo Professional Premium Studio',
     });
     expect(name).toMatch(/_eacb8a07$/);
   });
 
-  it('falls back to easybarber prefix when shop name is empty (still underscored)', () => {
+  it('falls back to easyagenda prefix when shop name is empty (still underscored)', () => {
     const name = buildDeterministicWhatsAppInstanceName({
-      barbershopId: 'eacb8a07',
+      businessId: 'eacb8a07',
       shopName: '',
     });
-    expect(name).toBe('easybarber_eacb8a07');
+    expect(name).toBe('easyagenda_eacb8a07');
   });
 
   it('reproduces the production canonical name shape', () => {
     // Real production data shape that was being corrupted in logs:
-    //   itallobarber_eacb8a07   (correct, kept by normalize)
-    //   itallobarbereacb8a07    (corrupted zombie that must NOT be regenerated)
+    //   italloprofessional_eacb8a07   (correct, kept by normalize)
+    //   italloprofessionaleacb8a07    (corrupted zombie that must NOT be regenerated)
     const name = buildDeterministicWhatsAppInstanceName({
-      barbershopId: 'eacb8a07',
-      shopName: 'itallobarber',
+      businessId: 'eacb8a07',
+      shopName: 'italloprofessional',
     });
-    expect(name).toBe('itallobarber_eacb8a07');
+    expect(name).toBe('italloprofessional_eacb8a07');
     expect(name).toContain('_');
   });
 });
 
 describe('normalizeWhatsAppInstanceName — does not destroy underscore', () => {
   it('keeps a single underscore intact', () => {
-    expect(normalizeWhatsAppInstanceName('itallobarber_eacb8a07')).toBe('itallobarber_eacb8a07');
+    expect(normalizeWhatsAppInstanceName('italloprofessional_eacb8a07')).toBe('italloprofessional_eacb8a07');
   });
 
   it('collapses runs of 2+ separator chars but never strips a single underscore', () => {
-    expect(normalizeWhatsAppInstanceName('itallobarber__eacb8a07')).toBe('itallobarber-eacb8a07');
-    expect(normalizeWhatsAppInstanceName('itallobarber_eacb8a07')).toBe('itallobarber_eacb8a07');
+    expect(normalizeWhatsAppInstanceName('italloprofessional__eacb8a07')).toBe('italloprofessional-eacb8a07');
+    expect(normalizeWhatsAppInstanceName('italloprofessional_eacb8a07')).toBe('italloprofessional_eacb8a07');
   });
 
   it('returns null for non-string input', () => {
@@ -60,11 +60,11 @@ describe('normalizeWhatsAppInstanceName — does not destroy underscore', () => 
   });
 
   it('does NOT spontaneously remove an underscore from a valid name', () => {
-    // Regression: previous logs showed itallobarbereacb8a07 surfacing alongside
-    // itallobarber_eacb8a07. Ensure no normalization step here can produce the
+    // Regression: previous logs showed italloprofessionaleacb8a07 surfacing alongside
+    // italloprofessional_eacb8a07. Ensure no normalization step here can produce the
     // underscore-stripped form from valid input.
-    const valid = 'itallobarber_eacb8a07';
+    const valid = 'italloprofessional_eacb8a07';
     expect(normalizeWhatsAppInstanceName(valid)).toBe(valid);
-    expect(normalizeWhatsAppInstanceName(valid)).not.toBe('itallobarbereacb8a07');
+    expect(normalizeWhatsAppInstanceName(valid)).not.toBe('italloprofessionaleacb8a07');
   });
 });

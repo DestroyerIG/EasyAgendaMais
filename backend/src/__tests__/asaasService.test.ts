@@ -70,10 +70,10 @@ describe('asaasService', () => {
     mockAsaasClient.post.mockResolvedValue({ id: 'cus_1' });
 
     await asaasService.createOrGetCustomer({
-      barbershop: {
+      business: {
         id: 'tenant-asaas-1',
-        name: 'Easy Barber Premium',
-        email: 'tenant-premium@easybarber.local',
+        name: 'EasyAgenda Premium',
+        email: 'tenant-premium@easyagenda.local',
         whatsapp: '(11) 99888-7766',
         cpf_cnpj: '12.345.678/0001-95',
         metadata: {
@@ -88,7 +88,7 @@ describe('asaasService', () => {
     expect(mockAsaasClient.post).toHaveBeenCalledWith(
       '/customers',
       {
-        name: 'Easy Barber Premium',
+        name: 'EasyAgenda Premium',
         cpfCnpj: '12345678000195',
         mobilePhone: '11998887766',
         externalReference: 'tenant-asaas-1',
@@ -108,7 +108,7 @@ describe('asaasService', () => {
     mockAsaasClient.post.mockResolvedValue({ id: 'cus_no_empty_1' });
 
     await asaasService.createOrGetCustomer({
-      barbershop: {
+      business: {
         id: 'tenant-empty-fields-1',
         owner_name: 'Pedro Lima',
         email: '   ',
@@ -132,7 +132,7 @@ describe('asaasService', () => {
     mockAsaasClient.post.mockResolvedValue({ id: 'cus_cpf_1' });
 
     await asaasService.createOrGetCustomer({
-      barbershop: {
+      business: {
         id: 'tenant-asaas-cpf-1',
         owner_name: 'Maria Fernandes',
         email: 'maria@provedor.com.br',
@@ -156,7 +156,7 @@ describe('asaasService', () => {
   it('rejects Pix customer creation when CPF/CNPJ is missing', async () => {
     await expect(
       asaasService.createOrGetCustomer({
-        barbershop: {
+        business: {
           id: 'tenant-asaas-2',
           name: 'Barbearia Sem Documento',
           email: 'cliente@provedor.com.br',
@@ -173,7 +173,7 @@ describe('asaasService', () => {
   it('rejects Pix customer creation when CPF/CNPJ has invalid length', async () => {
     await expect(
       asaasService.createOrGetCustomer({
-        barbershop: {
+        business: {
           id: 'tenant-asaas-invalid-doc',
           name: 'Barbearia Documento Invalido',
           whatsapp: '(11) 99888-7766',
@@ -190,7 +190,7 @@ describe('asaasService', () => {
   it('rejects Pix customer creation when phone is missing', async () => {
     await expect(
       asaasService.createOrGetCustomer({
-        barbershop: {
+        business: {
           id: 'tenant-asaas-missing-phone',
           name: 'Barbearia Sem Telefone',
           cpf_cnpj: '12.345.678/0001-95',
@@ -207,7 +207,7 @@ describe('asaasService', () => {
     const onCustomerResolved = vi.fn();
 
     const result = await asaasService.createOrGetCustomer({
-      barbershop: {
+      business: {
         id: 'tenant-saved-1',
         asaas_customer_id: 'cus_saved_1',
         owner_name: 'Joao da Silva',
@@ -222,7 +222,7 @@ describe('asaasService', () => {
     expect(result).toEqual({ id: 'cus_saved_1' });
     expect(onCustomerResolved).toHaveBeenCalledWith('cus_saved_1', {
       source: 'db',
-      barbershopId: 'tenant-saved-1',
+      businessId: 'tenant-saved-1',
     });
     expect(mockLogger.info).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -244,7 +244,7 @@ describe('asaasService', () => {
     const onCustomerResolved = vi.fn();
 
     const result = await asaasService.createOrGetCustomer({
-      barbershop: {
+      business: {
         id: 'tenant-existing-1',
         owner_name: 'Joao da Silva',
         whatsapp: '(83) 99999-9999',
@@ -265,7 +265,7 @@ describe('asaasService', () => {
     expect(result).toEqual({ id: 'cus_existing_1' });
     expect(onCustomerResolved).toHaveBeenCalledWith('cus_existing_1', {
       source: 'asaas_lookup_before_create',
-      barbershopId: 'tenant-existing-1',
+      businessId: 'tenant-existing-1',
     });
     expect(mockLogger.info).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -292,10 +292,10 @@ describe('asaasService', () => {
       });
 
     const result = await asaasService.createPixSubscription({
-      barbershop: {
+      business: {
         id: 'tenant-asaas-3',
         owner_name: 'Joao da Silva',
-        email: 'tenant-premium@easybarber.local',
+        email: 'tenant-premium@easyagenda.local',
         cpf_cnpj: '12.345.678/0001-95',
         whatsapp: '+55 (83) 99999-9999',
       },
@@ -323,7 +323,7 @@ describe('asaasService', () => {
         billingType: 'PIX',
         value: 99.9,
         dueDate: '2099-06-30',
-        externalReference: 'barbershop:tenant-asaas-3:plan:profissional',
+        externalReference: 'business:tenant-asaas-3:plan:profissional',
       }
     );
 
@@ -358,7 +358,7 @@ describe('asaasService', () => {
     mockAsaasClient.post.mockRejectedValue(providerError);
 
     const result = await asaasService.createOrGetCustomer({
-      barbershop: {
+      business: {
         id: 'tenant-asaas-recovered',
         owner_name: 'Maria Fernandes',
         email: 'maria@provedor.com.br',
@@ -372,7 +372,7 @@ describe('asaasService', () => {
     expect(mockAsaasClient.get).toHaveBeenCalledTimes(2);
     expect(onCustomerResolved).toHaveBeenCalledWith('cus_recovered_1', {
       source: 'asaas_lookup_after_create_error',
-      barbershopId: 'tenant-asaas-recovered',
+      businessId: 'tenant-asaas-recovered',
     });
     expect(mockLogger.info).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -406,7 +406,7 @@ describe('asaasService', () => {
 
     await expect(
       asaasService.createOrGetCustomer({
-        barbershop: {
+        business: {
           id: 'tenant-asaas-4',
           name: 'Barbearia Teste',
           email: 'cliente@provedor.com.br',
@@ -452,7 +452,7 @@ describe('asaasService', () => {
   it('blocks invalid CPF before calling Asaas', async () => {
     await expect(
       asaasService.createOrGetCustomer({
-        barbershop: {
+        business: {
           id: 'tenant-invalid-cpf',
           owner_name: 'Cliente CPF Invalido',
           whatsapp: '(83) 99999-1111',
@@ -472,7 +472,7 @@ describe('asaasService', () => {
   it('blocks invalid phone before calling Asaas', async () => {
     await expect(
       asaasService.createOrGetCustomer({
-        barbershop: {
+        business: {
           id: 'tenant-invalid-phone',
           owner_name: 'Cliente Telefone Invalido',
           whatsapp: '12345',

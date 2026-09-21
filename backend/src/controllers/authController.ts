@@ -69,7 +69,7 @@ export const logout = async (req: Request, res: Response, next: NextFunction): P
 
 export const me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const data = await authService.getMe(req.user as { userId: string; barbershopId: string | null; email: string; plan: string; role: string });
+    const data = await authService.getMe(req.user as { userId: string; businessId: string | null; email: string; plan: string; role: string });
     sendSuccess(res, data);
   } catch (error) {
     next(error);

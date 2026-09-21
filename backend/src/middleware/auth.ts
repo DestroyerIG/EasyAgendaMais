@@ -18,7 +18,7 @@ import logger from '../utils/logger.js';
 import { setRequestContext } from '../modules/core/middleware/requestContext.js';
 import type {
   JwtPayload,
-  BarbershopBillingContext,
+  BusinessBillingContext,
   SubscriptionAccessDecision,
   BillingProvider,
   PaymentMethod,
@@ -37,7 +37,7 @@ const SUBSCRIPTION_EXEMPT_ROUTES: RegExp[] = [
   /^\/api\/v1\/billing\/webhook\/stripe$/i,
   /^\/api\/v1\/subscriptions\/status$/i,
   /^\/api\/v1\/subscriptions\/checkout-session$/i,
-  /^\/api\/v1\/barbershop\/account-profile$/i,
+  /^\/api\/v1\/business\/account-profile$/i,
 ];
 
 const ACTIVE_ACCESS_STATUSES = new Set<SubscriptionStatus>(['active', 'trialing']);
@@ -54,7 +54,7 @@ const isSubscriptionExemptRoute = (req: Request): boolean => {
 };
 
 const hasActivePaymentEvidence = (
-  context: BarbershopBillingContext,
+  context: BusinessBillingContext,
   _provider: BillingProvider | null
 ): boolean => {
   const status = normalizeInternalSubscriptionStatus(
@@ -68,7 +68,7 @@ const hasActivePaymentEvidence = (
 };
 
 const resolveSubscriptionAccess = (
-  context: BarbershopBillingContext | null
+  context: BusinessBillingContext | null
 ): SubscriptionAccessDecision => {
   if (!context) {
     return {
@@ -76,7 +76,7 @@ const resolveSubscriptionAccess = (
       subscriptionStatus: 'incomplete',
       provider: null,
       paymentMethod: null,
-      reason: 'barbershop_not_found',
+      reason: 'business_not_found',
     };
   }
 
@@ -120,26 +120,26 @@ const enforceActiveSubscription = async (req: Request): Promise<void> => {
     return;
   }
 
-  const barbershopId = req.user.barbershopId;
+  const businessId = req.user.businessId;
   const userId = req.user.userId;
 
-  if (!barbershopId) {
+  if (!businessId) {
     logger.warn(
       {
         userId,
-        barbershopId: null,
+        businessId: null,
         subscriptionStatus: null,
         paymentMethod: null,
         provider: null,
         accessGranted: false,
-        reason: 'missing_barbershop_context',
+        reason: 'missing_business_context',
       },
       'Acesso bloqueado por assinatura'
     );
-    throw new SubscriptionRequiredError({ reason: 'missing_barbershop_context' });
+    throw new SubscriptionRequiredError({ reason: 'missing_business_context' });
   }
 
-  const context = await subscriptionRepository.getBarbershopBillingContext(barbershopId) as BarbershopBillingContext | null;
+  const context = await subscriptionRepository.getBusinessBillingContext(businessId) as BusinessBillingContext | null;
   const decision = resolveSubscriptionAccess(context);
 
   req.subscriptionAccess = decision;
@@ -150,7 +150,7 @@ const enforceActiveSubscription = async (req: Request): Promise<void> => {
   logger[decision.granted ? 'info' : 'warn'](
     {
       userId,
-      barbershopId,
+      businessId,
       subscriptionStatus: decision.subscriptionStatus,
       paymentMethod: decision.paymentMethod,
       provider: decision.provider,
@@ -188,7 +188,7 @@ export const authMiddleware = async (
       role: normalizeRole(decoded.role) ?? decoded.role,
       subscriptionStatus: decoded.subscriptionStatus ?? 'incomplete',
     };
-    setRequestContext({ userId: req.user.userId, barbershopId: req.user.barbershopId ?? undefined });
+    setRequestContext({ userId: req.user.userId, businessId: req.user.businessId ?? undefined });
     await enforceActiveSubscription(req);
     next();
   } catch (error) {

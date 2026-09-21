@@ -21,7 +21,7 @@ export const initBotOrchestrator = (_evolutionClient?: EvolutionClient): void =>
 };
 
 interface BotProcessContext {
-  barbershopId: string;
+  businessId: string;
   authorPhone: string;
   text: string;
   messageId: string | null;
@@ -37,7 +37,7 @@ interface BotProcessResult {
 }
 
 export const process = async ({
-  barbershopId,
+  businessId,
   authorPhone,
   text,
   messageId,
@@ -49,7 +49,7 @@ export const process = async ({
 
   logger.info(
     {
-      barbershopId,
+      businessId,
       authorLast4: authorPhone?.slice(-4),
       textPreview: text?.slice(0, 50),
       messageId,
@@ -61,7 +61,7 @@ export const process = async ({
 
   try {
     const result = await handleIncomingMessage(phoneOrPayload, text, {
-      barbershopId,
+      businessId,
       preExtractedPhone: authorPhone,
       preExtractedText: text,
       preExtractedInstanceName: instanceName,
@@ -73,7 +73,7 @@ export const process = async ({
 
     if (!result?.ok) {
       logger.info(
-        { barbershopId, instanceName, reason: result?.reason ?? null, ignored: result?.ignored ?? false },
+        { businessId, instanceName, reason: result?.reason ?? null, ignored: result?.ignored ?? false },
         'botOrchestrator: flow returned not-ok',
       );
       return { ok: true, responseSent: false, reason: result?.reason ?? null };
@@ -82,7 +82,7 @@ export const process = async ({
     return { ok: true, responseSent: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    logger.error({ err: message, barbershopId, instanceName }, 'botOrchestrator: flow threw');
+    logger.error({ err: message, businessId, instanceName }, 'botOrchestrator: flow threw');
     return { ok: false, responseSent: false, reason: 'flow_error' };
   }
 };

@@ -10,7 +10,7 @@ const SUPABASE_PAGE_SIZE = 200;
 const SUPABASE_MAX_PAGES = 20;
 const PASSWORD_HASH_PLACEHOLDER_PREFIX = 'supabase:';
 
-interface SeedBarbershop {
+interface SeedBusiness {
   name: string;
   ownerName: string;
   email: string;
@@ -23,7 +23,7 @@ interface SeedAccount {
   email: string;
   password: string;
   role: string;
-  barbershop: SeedBarbershop;
+  business: SeedBusiness;
 }
 
 interface SupabaseUserResult {
@@ -32,7 +32,7 @@ interface SupabaseUserResult {
   user_metadata?: Record<string, unknown>;
 }
 
-interface BarbershopRecord {
+interface BusinessRecord {
   id: string;
   name: string;
   owner_name?: string;
@@ -50,7 +50,7 @@ interface InternalUserRecord {
   id: string;
   email: string;
   role?: string;
-  barbershop_id?: string;
+  business_id?: string;
   [key: string]: unknown;
 }
 
@@ -60,23 +60,23 @@ const ACCOUNTS: Record<string, SeedAccount> = {
     email: 'contato@easyconnectcg.com.br',
     password: '@Easyconnect08',
     role: 'platform_admin',
-    barbershop: {
-      name: 'EasyBarber Plataforma',
-      ownerName: 'Equipe EasyBarber',
-      email: 'platform-admin@easybarber.local',
+    business: {
+      name: 'EasyAgenda Plataforma',
+      ownerName: 'Equipe EasyAgenda',
+      email: 'platform-admin@easyagenda.local',
       whatsapp: '5599999990000',
       plan: 'premium',
     },
   },
   premiumTenantAdmin: {
     key: 'premium-tenant-admin',
-    email: 'teste@easybarber.com',
+    email: 'teste@easyagenda.com',
     password: '@Easyconnect08',
     role: 'tenant_admin',
-    barbershop: {
-      name: 'EasyBarber Teste Premium',
-      ownerName: 'Equipe EasyBarber',
-      email: 'tenant-premium@easybarber.local',
+    business: {
+      name: 'EasyAgenda Teste Premium',
+      ownerName: 'Equipe EasyAgenda',
+      email: 'tenant-premium@easyagenda.local',
       whatsapp: '5599999999999',
       plan: 'premium',
     },
@@ -173,7 +173,7 @@ const ensureSupabaseIdentity = async (
 ): Promise<{ userId: string; email: string }> => {
   const normalizedEmail = normalizeEmail(email);
   const metadataPatch = {
-    source: 'easybarber',
+    source: 'easyagenda',
     auth_provider: 'supabase',
     role,
     managed_by: 'seedSystemUsers',
@@ -227,12 +227,12 @@ const ensureSupabaseIdentity = async (
   };
 };
 
-const findBarbershopBySeedIdentity = async (
+const findBusinessBySeedIdentity = async (
   { email, name }: { email: string; name: string }
-): Promise<BarbershopRecord | null> => {
-  const result = await prisma.$queryRaw<BarbershopRecord[]>(Prisma.sql`
+): Promise<BusinessRecord | null> => {
+  const result = await prisma.$queryRaw<BusinessRecord[]>(Prisma.sql`
     SELECT id, name, owner_name, email, whatsapp, plan, active
-    FROM barbershops
+    FROM businesses
     WHERE LOWER(email) = LOWER(${email})
        OR LOWER(name) = LOWER(${name})
     ORDER BY CASE WHEN LOWER(email) = LOWER(${email}) THEN 0 ELSE 1 END
@@ -242,29 +242,29 @@ const findBarbershopBySeedIdentity = async (
   return result[0] || null;
 };
 
-const getBarbershopById = async (barbershopId: string): Promise<BarbershopRecord | null> => {
-  const result = await prisma.$queryRaw<BarbershopRecord[]>(Prisma.sql`
+const getBusinessById = async (businessId: string): Promise<BusinessRecord | null> => {
+  const result = await prisma.$queryRaw<BusinessRecord[]>(Prisma.sql`
     SELECT id, name, owner_name, email, whatsapp, plan, subscription_status,
            subscription_current_period_start, subscription_current_period_end,
            subscription_cancel_at_period_end, active
-    FROM barbershops
-    WHERE id = ${barbershopId}::uuid
+    FROM businesses
+    WHERE id = ${businessId}::uuid
     LIMIT 1
   `);
 
   return result[0] || null;
 };
 
-const ensureBarbershop = async (seedBarbershop: SeedBarbershop): Promise<BarbershopRecord | null> => {
-  const existing = await findBarbershopBySeedIdentity(seedBarbershop);
+const ensureBusiness = async (seedBusiness: SeedBusiness): Promise<BusinessRecord | null> => {
+  const existing = await findBusinessBySeedIdentity(seedBusiness);
 
   if (existing) {
     await prisma.$queryRaw(Prisma.sql`
-      UPDATE barbershops
-      SET name = ${seedBarbershop.name},
-          owner_name = ${seedBarbershop.ownerName},
-          email = ${seedBarbershop.email},
-          whatsapp = ${seedBarbershop.whatsapp},
+      UPDATE businesses
+      SET name = ${seedBusiness.name},
+          owner_name = ${seedBusiness.ownerName},
+          email = ${seedBusiness.email},
+          whatsapp = ${seedBusiness.whatsapp},
           active = true,
           suspended_at = NULL,
           suspended_reason = NULL,
@@ -272,28 +272,28 @@ const ensureBarbershop = async (seedBarbershop: SeedBarbershop): Promise<Barbers
       WHERE id = ${existing.id}::uuid
     `);
 
-    console.log(`[db] barbershop sincronizada: ${seedBarbershop.name}`);
-    return getBarbershopById(existing.id);
+    console.log(`[db] business sincronizada: ${seedBusiness.name}`);
+    return getBusinessById(existing.id);
   }
 
-  const created = await authRepository.createBarbershop(null, {
-    name: seedBarbershop.name,
-    ownerName: seedBarbershop.ownerName,
-    email: seedBarbershop.email,
-    whatsapp: seedBarbershop.whatsapp,
+  const created = await authRepository.createBusiness(null, {
+    name: seedBusiness.name,
+    ownerName: seedBusiness.ownerName,
+    email: seedBusiness.email,
+    whatsapp: seedBusiness.whatsapp,
     plan: 'basico',
-    desiredPlan: seedBarbershop.plan,
-  }) as unknown as BarbershopRecord;
+    desiredPlan: seedBusiness.plan,
+  }) as unknown as BusinessRecord;
 
-  console.log(`[db] barbershop criada: ${seedBarbershop.name}`);
-  return getBarbershopById(created.id);
+  console.log(`[db] business criada: ${seedBusiness.name}`);
+  return getBusinessById(created.id);
 };
 
-const ensureBarbershopPremiumPlan = async (barbershopId: string): Promise<void> => {
-  const context = await subscriptionRepository.getBarbershopBillingContext(barbershopId, null);
+const ensureBusinessPremiumPlan = async (businessId: string): Promise<void> => {
+  const context = await subscriptionRepository.getBusinessBillingContext(businessId, null);
 
   if (!context) {
-    throw new Error(`Barbershop nao encontrada para assinatura: ${barbershopId}`);
+    throw new Error(`Business nao encontrada para assinatura: ${businessId}`);
   }
 
   const contextRecord = context as Record<string, unknown>;
@@ -309,7 +309,7 @@ const ensureBarbershopPremiumPlan = async (barbershopId: string): Promise<void> 
   const normalizedCurrentPeriodEnd = currentPeriodEnd > now ? currentPeriodEnd : oneYearAhead;
 
   await subscriptionRepository.updateSubscriptionState(
-    barbershopId,
+    businessId,
     {
       plan: 'premium',
       subscriptionStatus: 'active',
@@ -321,28 +321,28 @@ const ensureBarbershopPremiumPlan = async (barbershopId: string): Promise<void> 
   );
 
   await prisma.$queryRaw(Prisma.sql`
-    UPDATE barbershops
+    UPDATE businesses
     SET active = true,
         suspended_at = NULL,
         suspended_reason = NULL,
         updated_at = CURRENT_TIMESTAMP
-    WHERE id = ${barbershopId}::uuid
+    WHERE id = ${businessId}::uuid
   `);
 };
 
 const ensureInternalUser = async ({
   account,
-  barbershopId,
+  businessId,
   supabaseUserId,
 }: {
   account: SeedAccount;
-  barbershopId: string;
+  businessId: string;
   supabaseUserId: string;
 }): Promise<InternalUserRecord & { passwordHash: string }> => {
   const passwordHash = generateSupabasePasswordHashPlaceholder();
 
   const payload = {
-    barbershopId,
+    businessId,
     email: normalizeEmail(account.email),
     passwordHash,
     supabaseUserId,
@@ -369,13 +369,13 @@ const validateSyncedUser = async ({
   email,
   expectedRole,
   expectedSupabaseUserId,
-  expectedBarbershopId,
+  expectedBusinessId,
   shouldBePremium,
 }: {
   email: string;
   expectedRole: string;
   expectedSupabaseUserId: string;
-  expectedBarbershopId: string;
+  expectedBusinessId: string;
   shouldBePremium: boolean;
 }): Promise<void> => {
   const result = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
@@ -387,12 +387,12 @@ const validateSyncedUser = async ({
            u.auth_provider,
            u.supabase_user_id,
            u.password_hash,
-           b.id as barbershop_id,
+           b.id as business_id,
            b.plan,
            b.subscription_status,
-           b.active as barbershop_active
+           b.active as business_active
     FROM users u
-    JOIN barbershops b ON b.id = u.barbershop_id
+    JOIN businesses b ON b.id = u.business_id
     WHERE LOWER(u.email) = LOWER(${email})
     LIMIT 1
   `);
@@ -425,12 +425,12 @@ const validateSyncedUser = async ({
     );
   }
 
-  if (user.barbershop_id !== expectedBarbershopId) {
-    throw new Error(`Validacao falhou: barbershop_id divergente para ${email}`);
+  if (user.business_id !== expectedBusinessId) {
+    throw new Error(`Validacao falhou: business_id divergente para ${email}`);
   }
 
-  if (!user.barbershop_active) {
-    throw new Error(`Validacao falhou: barbershop inativa para ${email}`);
+  if (!user.business_active) {
+    throw new Error(`Validacao falhou: business inativa para ${email}`);
   }
 
   if (!user.password_hash || String(user.password_hash).trim().length < 60) {
@@ -476,17 +476,17 @@ const run = async (): Promise<void> => {
         role: account.role,
       });
 
-      const barbershop = await ensureBarbershop(account.barbershop);
+      const business = await ensureBusiness(account.business);
 
-      if (!barbershop?.id) {
-        throw new Error(`Falha ao garantir barbershop para ${account.email}`);
+      if (!business?.id) {
+        throw new Error(`Falha ao garantir business para ${account.email}`);
       }
 
-      await ensureBarbershopPremiumPlan(barbershop.id);
+      await ensureBusinessPremiumPlan(business.id);
 
       const internalUser = await ensureInternalUser({
         account,
-        barbershopId: barbershop.id,
+        businessId: business.id,
         supabaseUserId: supabaseIdentity.userId,
       });
 
@@ -494,7 +494,7 @@ const run = async (): Promise<void> => {
         email: account.email,
         expectedRole: account.role,
         expectedSupabaseUserId: supabaseIdentity.userId,
-        expectedBarbershopId: barbershop.id,
+        expectedBusinessId: business.id,
         shouldBePremium: true,
       });
 

@@ -5,7 +5,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 const logger = pino({
   level: process.env.LOG_LEVEL ?? (isProduction ? 'info' : 'debug'),
-  // Auto-inject per-request context (requestId, userId, barbershopId) into every log line.
+  // Auto-inject per-request context (requestId, userId, businessId) into every log line.
   mixin() {
     return getRequestContext();
   },

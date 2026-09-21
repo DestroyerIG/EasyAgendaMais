@@ -60,8 +60,8 @@ vi.mock('../repositories/authRepository.js', () => ({
 
 vi.mock('../repositories/subscriptionRepository.js', () => ({
   subscriptionRepository: {
-    getBarbershopBillingContext: vi.fn().mockResolvedValue({
-      barbershop_id: 'bbshop-uuid',
+    getBusinessBillingContext: vi.fn().mockResolvedValue({
+      business_id: 'bbshop-uuid',
       subscription_status: 'active',
       plan: 'basico',
       payment_method: 'card',
@@ -95,7 +95,7 @@ const request = supertest(app);
 
 const JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
 const authToken = jwt.sign(
-  { userId: 'user-uuid', barbershopId: 'bbshop-uuid', email: 'test@test.com', plan: 'basico', role: 'admin' },
+  { userId: 'user-uuid', businessId: 'bbshop-uuid', email: 'test@test.com', plan: 'basico', role: 'admin' },
   JWT_SECRET,
   { expiresIn: '15m' }
 );

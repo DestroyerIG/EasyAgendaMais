@@ -1,4 +1,4 @@
-import { barbershopSettingsRepository } from '../repositories/barbershopSettingsRepository.js';
+import { businessSettingsRepository } from '../repositories/businessSettingsRepository.js';
 import bcrypt from 'bcryptjs';
 import { authRepository } from '../repositories/authRepository.js';
 import { supabaseAuthService } from './supabaseAuthService.js';
@@ -28,13 +28,13 @@ interface UpdateProfileData {
 }
 
 interface AuthContext {
-  barbershopId: string;
+  businessId: string;
   userId: string;
   role: string;
 }
 
 interface AccountProfileData {
-  barbershopName: string;
+  businessName: string;
   ownerName: string;
   whatsapp: string;
   cpfCnpj: string;
@@ -108,7 +108,7 @@ const maskDigitsForLog = (value: unknown, visibleSuffix = 4): string | null => {
 };
 
 const summarizeAccountPayloadForLog = (payload: Record<string, unknown> | null | undefined): Record<string, unknown> => ({
-  barbershopName: normalizeText(payload?.barbershopName) || null,
+  businessName: normalizeText(payload?.businessName) || null,
   ownerName: normalizeText(payload?.ownerName) || null,
   email: maskEmailForLog(payload?.email),
   whatsapp: maskDigitsForLog(payload?.whatsapp),
@@ -117,7 +117,7 @@ const summarizeAccountPayloadForLog = (payload: Record<string, unknown> | null |
 
 const summarizeUserForLog = (user: Record<string, unknown> | null | undefined): Record<string, unknown> => ({
   userId: user?.userId || null,
-  barbershopId: user?.barbershopId || null,
+  businessId: user?.businessId || null,
   role: user?.role || null,
   email: maskEmailForLog(user?.email),
 });
@@ -125,7 +125,7 @@ const summarizeUserForLog = (user: Record<string, unknown> | null | undefined): 
 const isUniqueViolation = (error: unknown): boolean => (error as Record<string, unknown>)?.code === '23505';
 const EMAIL_UNIQUE_CONSTRAINTS = new Set([
   'users_email_key',
-  'barbershops_email_key',
+  'businesses_email_key',
 ]);
 
 const isEmailUniqueViolation = (error: unknown): boolean => {
@@ -145,16 +145,16 @@ const ensureTenantAdmin = (role: string): void => {
   }
 };
 
-export const barbershopSettingsService = {
-  async getSettings(barbershopId: string): Promise<unknown> {
-    const settings = await barbershopSettingsRepository.findByBarbershopId(barbershopId);
+export const businessSettingsService = {
+  async getSettings(businessId: string): Promise<unknown> {
+    const settings = await businessSettingsRepository.findByBusinessId(businessId);
     if (!settings) {
       throw new NotFoundError('Barbearia');
     }
     return settings;
   },
 
-  async updateSettings(barbershopId: string, data: UpdateSettingsData): Promise<unknown> {
+  async updateSettings(businessId: string, data: UpdateSettingsData): Promise<unknown> {
     if (!ALLOWED_SLOT_INTERVALS.has(data.slotIntervalMinutes)) {
       throw new ValidationError('Intervalo de agenda inválido', ['Use sem intervalo, 15, 20, 30, 45, 60, 90 ou 120 minutos.']);
     }
@@ -183,13 +183,13 @@ export const barbershopSettingsService = {
     let settings: unknown;
 
     try {
-      settings = await barbershopSettingsRepository.upsert(barbershopId, payload);
+      settings = await businessSettingsRepository.upsert(businessId, payload);
     } catch (error) {
       const errRecord = error as Record<string, unknown>;
       const uniqueViolation = errRecord?.code === '23505';
       const conflictingConstraint = String(errRecord?.constraint || '').trim();
 
-      if (uniqueViolation && conflictingConstraint === 'uq_barbershops_whatsapp_instance_name_norm') {
+      if (uniqueViolation && conflictingConstraint === 'uq_businesses_whatsapp_instance_name_norm') {
         throw new ValidationError(
           'Instancia do WhatsApp ja vinculada',
           ['Esta instancia ja esta em uso por outra barbearia. Escolha outro nome de instancia.']
@@ -206,8 +206,8 @@ export const barbershopSettingsService = {
     return settings;
   },
 
-  async getProfile(barbershopId: string): Promise<unknown> {
-    const profile = await barbershopSettingsRepository.findProfileByBarbershopId(barbershopId);
+  async getProfile(businessId: string): Promise<unknown> {
+    const profile = await businessSettingsRepository.findProfileByBusinessId(businessId);
     if (!profile) {
       throw new NotFoundError('Barbearia');
     }
@@ -215,14 +215,14 @@ export const barbershopSettingsService = {
     return profile;
   },
 
-  async updateProfile(barbershopId: string, data: UpdateProfileData): Promise<unknown> {
+  async updateProfile(businessId: string, data: UpdateProfileData): Promise<unknown> {
     const normalizedCpfCnpj = normalizeDocumentDigits(data.cpfCnpj);
 
     if (!isValidCpfCnpj(normalizedCpfCnpj)) {
       throw new ValidationError('CPF/CNPJ inválido', ['Informe um CPF ou CNPJ válido para continuar com o Pix.']);
     }
 
-    const profile = await barbershopSettingsRepository.updateProfile(barbershopId, {
+    const profile = await businessSettingsRepository.updateProfile(businessId, {
       cpfCnpj: normalizedCpfCnpj,
     });
 
@@ -233,10 +233,10 @@ export const barbershopSettingsService = {
     return profile;
   },
 
-  async getAccountProfile({ barbershopId, userId, role }: AuthContext): Promise<unknown> {
+  async getAccountProfile({ businessId, userId, role }: AuthContext): Promise<unknown> {
     ensureTenantAdmin(role);
 
-    const profile = await barbershopSettingsRepository.findAccountProfileByUserId(barbershopId, userId);
+    const profile = await businessSettingsRepository.findAccountProfileByUserId(businessId, userId);
 
     if (!profile) {
       throw new NotFoundError('Conta');
@@ -245,7 +245,7 @@ export const barbershopSettingsService = {
     return profile;
   },
 
-  async updateAccountProfile({ barbershopId, userId, role }: AuthContext, data: AccountProfileData): Promise<{
+  async updateAccountProfile({ businessId, userId, role }: AuthContext, data: AccountProfileData): Promise<{
     profile: unknown;
     sessionUser: unknown;
     emailChanged: boolean;
@@ -256,7 +256,7 @@ export const barbershopSettingsService = {
       value: 'normalize_input',
     };
     const normalizedPayload = {
-      barbershopName: normalizeText(data.barbershopName),
+      businessName: normalizeText(data.businessName),
       ownerName: normalizeText(data.ownerName),
       whatsapp: normalizePhoneDigits(data.whatsapp),
       cpfCnpj: normalizeDocumentDigits(data.cpfCnpj),
@@ -267,13 +267,13 @@ export const barbershopSettingsService = {
       {
         operation: 'updateAccountProfile',
         stage: currentStage.value,
-        authUser: summarizeUserForLog({ barbershopId, userId, role }),
+        authUser: summarizeUserForLog({ businessId, userId, role }),
         payload: summarizeAccountPayloadForLog(normalizedPayload as Record<string, unknown>),
       },
       'Atualizacao de dados cadastrais iniciada'
     );
 
-    if (!normalizedPayload.barbershopName) {
+    if (!normalizedPayload.businessName) {
       throw new ValidationError('Nome da barbearia obrigatório', ['Informe o nome da barbearia.']);
     }
 
@@ -302,14 +302,14 @@ export const barbershopSettingsService = {
     }
 
     currentStage.value = 'load_current_account';
-    const currentUser = await barbershopSettingsRepository.findAccountUserById(barbershopId, userId) as Record<string, unknown> | null;
-    const currentProfile = await barbershopSettingsRepository.findAccountProfileByUserId(barbershopId, userId) as Record<string, unknown> | null;
+    const currentUser = await businessSettingsRepository.findAccountUserById(businessId, userId) as Record<string, unknown> | null;
+    const currentProfile = await businessSettingsRepository.findAccountProfileByUserId(businessId, userId) as Record<string, unknown> | null;
 
     logger.info(
       {
         operation: 'updateAccountProfile',
         stage: currentStage.value,
-        authUser: summarizeUserForLog({ barbershopId, userId, role }),
+        authUser: summarizeUserForLog({ businessId, userId, role }),
         resolvedUser: summarizeUserForLog(currentUser ?? undefined),
         resolvedTenantProfile: summarizeAccountPayloadForLog(currentProfile ?? undefined),
       },
@@ -377,8 +377,8 @@ export const barbershopSettingsService = {
       }
 
       currentStage.value = 'update_local_profile';
-      const updatedProfile = await barbershopSettingsRepository.updateAccountProfile(
-        barbershopId,
+      const updatedProfile = await businessSettingsRepository.updateAccountProfile(
+        businessId,
         userId,
         {
           ...normalizedPayload,
@@ -392,7 +392,7 @@ export const barbershopSettingsService = {
       }
 
       currentStage.value = 'load_session_user';
-      const sessionUser = await barbershopSettingsRepository.findAccountUserById(barbershopId, userId, client);
+      const sessionUser = await businessSettingsRepository.findAccountUserById(businessId, userId, client);
 
       currentStage.value = 'commit_transaction';
       if (client && typeof (client as Record<string, unknown>).query === 'function') {
@@ -403,7 +403,7 @@ export const barbershopSettingsService = {
         {
           operation: 'updateAccountProfile',
           stage: 'completed',
-          authUser: summarizeUserForLog({ barbershopId, userId, role }),
+          authUser: summarizeUserForLog({ businessId, userId, role }),
           updatedProfile: summarizeAccountPayloadForLog(updatedProfile as Record<string, unknown>),
           emailChanged,
           supabaseEmailUpdated,
@@ -427,7 +427,7 @@ export const barbershopSettingsService = {
             err: rollbackError,
             operation: 'updateAccountProfile',
             stage: currentStage.value,
-            authUser: summarizeUserForLog({ barbershopId, userId, role }),
+            authUser: summarizeUserForLog({ businessId, userId, role }),
           },
           'Falha ao executar rollback da atualizacao cadastral'
         );
@@ -442,7 +442,7 @@ export const barbershopSettingsService = {
             {
               operation: 'updateAccountProfile',
               stage: 'compensate_supabase_email',
-              authUser: summarizeUserForLog({ barbershopId, userId, role }),
+              authUser: summarizeUserForLog({ businessId, userId, role }),
               restoredEmail: maskEmailForLog(currentEmailNormalized),
             },
             'E-mail do Supabase restaurado apos falha no banco local'
@@ -453,7 +453,7 @@ export const barbershopSettingsService = {
               err: revertError,
               operation: 'updateAccountProfile',
               stage: 'compensate_supabase_email',
-              authUser: summarizeUserForLog({ barbershopId, userId, role }),
+              authUser: summarizeUserForLog({ businessId, userId, role }),
               attemptedRestoreEmail: maskEmailForLog(currentEmailNormalized),
             },
             'Falha ao restaurar e-mail no Supabase apos erro local'
@@ -471,7 +471,7 @@ export const barbershopSettingsService = {
             err: error,
             operation: 'updateAccountProfile',
             stage: currentStage.value,
-            authUser: summarizeUserForLog({ barbershopId, userId, role }),
+            authUser: summarizeUserForLog({ businessId, userId, role }),
           },
           'Estrutura do banco incompatível com a atualização cadastral'
         );
@@ -481,7 +481,7 @@ export const barbershopSettingsService = {
             err: error,
             operation: 'updateAccountProfile',
             stage: currentStage.value,
-            authUser: summarizeUserForLog({ barbershopId, userId, role }),
+            authUser: summarizeUserForLog({ businessId, userId, role }),
             payload: summarizeAccountPayloadForLog(normalizedPayload as Record<string, unknown>),
           },
           'Falha ao atualizar dados cadastrais'
@@ -496,13 +496,13 @@ export const barbershopSettingsService = {
     }
   },
 
-  async updatePassword({ barbershopId, userId, role }: AuthContext, data: PasswordData): Promise<{
+  async updatePassword({ businessId, userId, role }: AuthContext, data: PasswordData): Promise<{
     message: string;
     sessionUser: unknown;
   }> {
     ensureTenantAdmin(role);
 
-    const user = await barbershopSettingsRepository.findAccountUserById(barbershopId, userId) as Record<string, unknown> | null;
+    const user = await businessSettingsRepository.findAccountUserById(businessId, userId) as Record<string, unknown> | null;
 
     if (!user) {
       throw new NotFoundError('Conta');
@@ -543,8 +543,8 @@ export const barbershopSettingsService = {
         }).updateUserPasswordById(user.supabaseUserId as string, newPassword);
       }
 
-      const updatedPassword = await barbershopSettingsRepository.updateUserPassword(
-        barbershopId,
+      const updatedPassword = await businessSettingsRepository.updateUserPassword(
+        businessId,
         userId,
         passwordHash,
         client
@@ -554,7 +554,7 @@ export const barbershopSettingsService = {
         throw new NotFoundError('Conta');
       }
 
-      const sessionUser = await barbershopSettingsRepository.findAccountUserById(barbershopId, userId, client);
+      const sessionUser = await businessSettingsRepository.findAccountUserById(businessId, userId, client);
 
       if (client && typeof (client as Record<string, unknown>).query === 'function') {
         await (client as { query: (sql: string) => Promise<unknown> }).query('COMMIT');

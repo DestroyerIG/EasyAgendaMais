@@ -9,7 +9,7 @@ const DEFAULT_BASE_URL = 'https://api.asaas.com/v3';
 const DEFAULT_TIMEOUT_MS = 12000;
 const MAX_RETRIES = 2;
 const RETRYABLE_STATUS_CODES = new Set([408, 409, 425, 429, 500, 502, 503, 504]);
-const DEFAULT_USER_AGENT = 'EasyBarber/1.0';
+const DEFAULT_USER_AGENT = 'EasyAgenda/1.0';
 
 // ---------------------------------------------------------------------------
 // Types

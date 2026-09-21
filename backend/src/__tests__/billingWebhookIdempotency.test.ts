@@ -3,7 +3,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 const mockSubscriptionRepository = vi.hoisted(() => ({
   getClient: vi.fn(),
   hasProcessedBillingWebhookEvent: vi.fn(),
-  getBarbershopBillingContext: vi.fn(),
+  getBusinessBillingContext: vi.fn(),
   findByProviderPaymentId: vi.fn(),
   findBillingPaymentByProviderPaymentId: vi.fn(),
   findByProviderSubscriptionId: vi.fn(),
@@ -24,7 +24,7 @@ const mockAsaasService = vi.hoisted(() => ({
 
 const mockAsaasMapper = vi.hoisted(() => ({
   mapAsaasPaymentToPixData: vi.fn(),
-  extractBarbershopIdFromExternalReference: vi.fn(),
+  extractBusinessIdFromExternalReference: vi.fn(),
 }));
 
 vi.mock('../repositories/subscriptionRepository.js', () => ({
@@ -71,11 +71,11 @@ describe('billing webhook idempotency', () => {
   const normalizedEvent = {
     eventId: 'evt_asaas_1',
     eventType: 'PAYMENT_RECEIVED',
-    barbershopId: 'tenant-webhook',
+    businessId: 'tenant-webhook',
     paymentId: 'pay_asaas_1',
     subscriptionId: 'sub_asaas_1',
     customerId: 'cus_asaas_1',
-    externalReference: 'barbershop:tenant-webhook:plan:premium',
+    externalReference: 'business:tenant-webhook:plan:premium',
     internalStatus: 'active',
     payment: {
       id: 'pay_asaas_1',
@@ -85,7 +85,7 @@ describe('billing webhook idempotency', () => {
       value: 199.9,
       subscription: 'sub_asaas_1',
       customer: 'cus_asaas_1',
-      externalReference: 'barbershop:tenant-webhook:plan:premium',
+      externalReference: 'business:tenant-webhook:plan:premium',
     },
   };
 
@@ -106,7 +106,7 @@ describe('billing webhook idempotency', () => {
       confirmedDate: '2026-04-16T12:00:00.000Z',
     });
 
-    mockAsaasMapper.extractBarbershopIdFromExternalReference.mockReturnValue('tenant-webhook');
+    mockAsaasMapper.extractBusinessIdFromExternalReference.mockReturnValue('tenant-webhook');
 
     mockBillingProviderFactory.getProvider.mockReturnValue({
       handleWebhook: vi.fn().mockResolvedValue(normalizedEvent),
@@ -136,7 +136,7 @@ describe('billing webhook idempotency', () => {
   it('processes webhook once and records processed event', async () => {
     mockSubscriptionRepository.hasProcessedBillingWebhookEvent.mockResolvedValue(false);
 
-    mockSubscriptionRepository.getBarbershopBillingContext.mockResolvedValue({
+    mockSubscriptionRepository.getBusinessBillingContext.mockResolvedValue({
       id: 'tenant-webhook',
       plan: 'premium',
       provider_customer_id: 'cus_asaas_1',

@@ -7,8 +7,8 @@ const mockFindOtherUserByEmail = vi.hoisted(() => vi.fn());
 const mockGetClient = vi.hoisted(() => vi.fn());
 const mockUpdateUserEmailById = vi.hoisted(() => vi.fn());
 
-vi.mock('../repositories/barbershopSettingsRepository.js', () => ({
-  barbershopSettingsRepository: {
+vi.mock('../repositories/businessSettingsRepository.js', () => ({
+  businessSettingsRepository: {
     findAccountUserById: mockFindAccountUserById,
     findAccountProfileByUserId: mockFindAccountProfileByUserId,
     updateAccountProfile: mockUpdateAccountProfile,
@@ -37,18 +37,18 @@ vi.mock('../utils/logger.js', () => ({
   },
 }));
 
-const { barbershopSettingsService } = await import('../services/barbershopSettingsService.js');
+const { businessSettingsService } = await import('../services/businessSettingsService.js');
 const { ConflictError } = await import('../utils/errors.js');
 
-describe('barbershopSettingsService.updateAccountProfile', () => {
+describe('businessSettingsService.updateAccountProfile', () => {
   const baseAuthUser = {
-    barbershopId: 'shop-1',
+    businessId: 'shop-1',
     userId: 'user-1',
     role: 'tenant_admin',
   };
 
   const basePayload = {
-    barbershopName: '  Barbearia Central  ',
+    businessName: '  Barbearia Central  ',
     ownerName: '  Joao da Silva  ',
     whatsapp: '(11) 99876-5432',
     cpfCnpj: '705.960.904-04',
@@ -60,7 +60,7 @@ describe('barbershopSettingsService.updateAccountProfile', () => {
 
     mockFindAccountUserById.mockResolvedValue({
       userId: 'user-1',
-      barbershopId: 'shop-1',
+      businessId: 'shop-1',
       role: 'tenant_admin',
       email: 'atual@email.com',
       supabaseUserId: 'sb-user-1',
@@ -68,13 +68,13 @@ describe('barbershopSettingsService.updateAccountProfile', () => {
       authProvider: 'supabase',
       emailVerified: true,
       plan: 'profissional',
-      barbershopName: 'Barbearia Central',
+      businessName: 'Barbearia Central',
       subscriptionStatus: 'active',
       subscriptionCurrentPeriodEnd: null,
     });
 
     mockFindAccountProfileByUserId.mockResolvedValue({
-      barbershopName: 'Barbearia Atual',
+      businessName: 'Barbearia Atual',
       ownerName: 'Responsavel Atual',
       whatsapp: '11911112222',
       cpfCnpj: '70596090404',
@@ -88,7 +88,7 @@ describe('barbershopSettingsService.updateAccountProfile', () => {
     });
 
     mockUpdateAccountProfile.mockResolvedValue({
-      barbershopName: 'Barbearia Central',
+      businessName: 'Barbearia Central',
       ownerName: 'Joao da Silva',
       whatsapp: '11998765432',
       cpfCnpj: '70596090404',
@@ -108,7 +108,7 @@ describe('barbershopSettingsService.updateAccountProfile', () => {
     };
     mockGetClient.mockResolvedValue(dbClient);
 
-    const result = await barbershopSettingsService.updateAccountProfile(baseAuthUser, basePayload);
+    const result = await businessSettingsService.updateAccountProfile(baseAuthUser, basePayload);
 
     expect(mockFindOtherUserByEmail).toHaveBeenCalledWith('novo@email.com', 'user-1');
     expect(mockUpdateUserEmailById).toHaveBeenCalledWith('sb-user-1', 'novo@email.com');
@@ -116,7 +116,7 @@ describe('barbershopSettingsService.updateAccountProfile', () => {
       'shop-1',
       'user-1',
       {
-        barbershopName: 'Barbearia Central',
+        businessName: 'Barbearia Central',
         ownerName: 'Joao da Silva',
         whatsapp: '11998765432',
         cpfCnpj: '70596090404',
@@ -143,14 +143,14 @@ describe('barbershopSettingsService.updateAccountProfile', () => {
 
     mockGetClient.mockResolvedValue(dbClient);
     mockUpdateAccountProfile.mockResolvedValue({
-      barbershopName: 'Barbearia Central',
+      businessName: 'Barbearia Central',
       ownerName: 'Joao da Silva',
       whatsapp: '11999998888',
       cpfCnpj: '70596090404',
       email: 'atual@email.com',
     });
 
-    const result = await barbershopSettingsService.updateAccountProfile(baseAuthUser, {
+    const result = await businessSettingsService.updateAccountProfile(baseAuthUser, {
       ...basePayload,
       whatsapp: '(11) 99999-8888',
       email: '  atual@email.com  ',
@@ -179,7 +179,7 @@ describe('barbershopSettingsService.updateAccountProfile', () => {
 
     mockGetClient.mockResolvedValue(dbClient);
 
-    await barbershopSettingsService.updateAccountProfile(baseAuthUser, {
+    await businessSettingsService.updateAccountProfile(baseAuthUser, {
       ...basePayload,
       email: '  ATUAL@EMAIL.COM ',
     });
@@ -204,7 +204,7 @@ describe('barbershopSettingsService.updateAccountProfile', () => {
     });
 
     await expect(
-      barbershopSettingsService.updateAccountProfile(baseAuthUser, basePayload)
+      businessSettingsService.updateAccountProfile(baseAuthUser, basePayload)
     ).rejects.toBeInstanceOf(ConflictError);
 
     expect(mockUpdateUserEmailById).not.toHaveBeenCalled();
@@ -222,7 +222,7 @@ describe('barbershopSettingsService.updateAccountProfile', () => {
     mockUpdateAccountProfile.mockRejectedValue(dbError);
 
     await expect(
-      barbershopSettingsService.updateAccountProfile(baseAuthUser, basePayload)
+      businessSettingsService.updateAccountProfile(baseAuthUser, basePayload)
     ).rejects.toThrow('violacao inesperada');
 
     expect(dbClient.query).toHaveBeenCalledWith('BEGIN');

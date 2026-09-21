@@ -65,12 +65,12 @@ export interface WebhookResult {
 
 export interface IBillingProvider {
   createCheckout(
-    barbershopId: string,
+    businessId: string,
     plan: PlanId,
     paymentMethod: PaymentMethod,
     couponCode?: string | null
   ): Promise<CheckoutSessionResult>;
-  cancelSubscription(barbershopId: string): Promise<void>;
-  reactivateSubscription(barbershopId: string): Promise<void>;
-  getPixPaymentStatus(barbershopId: string, paymentId: string): Promise<unknown>;
+  cancelSubscription(businessId: string): Promise<void>;
+  reactivateSubscription(businessId: string): Promise<void>;
+  getPixPaymentStatus(businessId: string, paymentId: string): Promise<unknown>;
 }

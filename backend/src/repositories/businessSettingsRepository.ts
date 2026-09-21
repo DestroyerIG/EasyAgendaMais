@@ -17,7 +17,7 @@ const mapRowToProfile = (row: Record<string, unknown>) => ({
 });
 
 const mapRowToAccountProfile = (row: Record<string, unknown>) => ({
-  barbershopName: row.barbershop_name,
+  businessName: row.business_name,
   ownerName: row.owner_name,
   whatsapp: row.whatsapp || '',
   cpfCnpj: row.cpf_cnpj || '',
@@ -26,7 +26,7 @@ const mapRowToAccountProfile = (row: Record<string, unknown>) => ({
 
 const mapRowToAccountUser = (row: Record<string, unknown>) => ({
   userId: row.user_id,
-  barbershopId: row.barbershop_id,
+  businessId: row.business_id,
   role: row.role,
   email: row.email,
   passwordHash: row.password_hash,
@@ -34,7 +34,7 @@ const mapRowToAccountUser = (row: Record<string, unknown>) => ({
   supabaseUserId: row.supabase_user_id || null,
   emailVerified: row.email_verified,
   plan: row.plan,
-  barbershopName: row.barbershop_name,
+  businessName: row.business_name,
   subscriptionStatus: row.subscription_status,
   subscriptionCurrentPeriodEnd: row.subscription_current_period_end,
 });
@@ -49,8 +49,8 @@ const mapRowToOperationalSettings = (row: Record<string, unknown>) => ({
   timezone: row.timezone,
 });
 
-export const barbershopSettingsRepository = {
-  async findByBarbershopId(barbershopId: unknown, _executor: unknown = null) {
+export const businessSettingsRepository = {
+  async findByBusinessId(businessId: unknown, _executor: unknown = null) {
     const result = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
       SELECT
          COALESCE(NULLIF(b.whatsapp_instance_name, ''), '') AS whatsapp_instance_name,
@@ -61,9 +61,9 @@ export const barbershopSettingsRepository = {
          COALESCE(s.allow_walkins, true) AS allow_walkins,
          COALESCE(s.auto_confirm_appointments, false) AS auto_confirm_appointments,
          COALESCE(s.whatsapp_reminders, true) AS whatsapp_reminders
-       FROM barbershops b
-       LEFT JOIN barbershop_settings s ON s.barbershop_id = b.id
-       WHERE b.id = ${barbershopId}::uuid AND b.active = true
+       FROM businesses b
+       LEFT JOIN business_settings s ON s.business_id = b.id
+       WHERE b.id = ${businessId}::uuid AND b.active = true
     `);
 
     if (result.length === 0) {
@@ -73,7 +73,7 @@ export const barbershopSettingsRepository = {
     return mapRowToSettings(result[0]!);
   },
 
-  async findOperationalSettingsByBarbershopId(barbershopId: unknown, _executor: unknown = null) {
+  async findOperationalSettingsByBusinessId(businessId: unknown, _executor: unknown = null) {
     const result = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
       SELECT
          to_char(s.opening_time, 'HH24:MI') AS opening_time,
@@ -83,9 +83,9 @@ export const barbershopSettingsRepository = {
          s.allow_walkins,
          s.auto_confirm_appointments,
          COALESCE(NULLIF(to_jsonb(s) ->> 'timezone', ''), NULLIF(to_jsonb(b) ->> 'timezone', '')) AS timezone
-       FROM barbershops b
-       LEFT JOIN barbershop_settings s ON s.barbershop_id = b.id
-       WHERE b.id = ${barbershopId}::uuid AND b.active = true
+       FROM businesses b
+       LEFT JOIN business_settings s ON s.business_id = b.id
+       WHERE b.id = ${businessId}::uuid AND b.active = true
        LIMIT 1
     `);
 
@@ -96,11 +96,11 @@ export const barbershopSettingsRepository = {
     return mapRowToOperationalSettings(result[0]!);
   },
 
-  async findProfileByBarbershopId(barbershopId: unknown, _executor: unknown = null) {
+  async findProfileByBusinessId(businessId: unknown, _executor: unknown = null) {
     const result = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
       SELECT b.cpf_cnpj
-       FROM barbershops b
-       WHERE b.id = ${barbershopId}::uuid
+       FROM businesses b
+       WHERE b.id = ${businessId}::uuid
          AND b.active = true
     `);
 
@@ -111,18 +111,18 @@ export const barbershopSettingsRepository = {
     return mapRowToProfile(result[0]!);
   },
 
-  async findAccountProfileByUserId(barbershopId: unknown, userId: unknown, _executor: unknown = null) {
+  async findAccountProfileByUserId(businessId: unknown, userId: unknown, _executor: unknown = null) {
     const result = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
       SELECT
-         b.name AS barbershop_name,
+         b.name AS business_name,
          b.owner_name,
          COALESCE(b.whatsapp, '') AS whatsapp,
          COALESCE(b.cpf_cnpj, '') AS cpf_cnpj,
          u.email
        FROM users u
-       JOIN barbershops b ON b.id = u.barbershop_id
+       JOIN businesses b ON b.id = u.business_id
        WHERE u.id = ${userId}::uuid
-         AND u.barbershop_id = ${barbershopId}::uuid
+         AND u.business_id = ${businessId}::uuid
          AND u.blocked = false
          AND b.active = true
        LIMIT 1
@@ -135,12 +135,12 @@ export const barbershopSettingsRepository = {
     return mapRowToAccountProfile(result[0]!);
   },
 
-  async findAccountUserById(barbershopId: unknown, userId: unknown, _executor: unknown = null) {
+  async findAccountUserById(businessId: unknown, userId: unknown, _executor: unknown = null) {
     try {
       const result = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
         SELECT
            u.id AS user_id,
-           u.barbershop_id,
+           u.business_id,
            u.role,
            u.email,
            u.password_hash,
@@ -148,13 +148,13 @@ export const barbershopSettingsRepository = {
            u.supabase_user_id,
            u.auth_provider,
            b.plan,
-           b.name AS barbershop_name,
+           b.name AS business_name,
            b.subscription_status,
            b.subscription_current_period_end
          FROM users u
-         JOIN barbershops b ON b.id = u.barbershop_id
+         JOIN businesses b ON b.id = u.business_id
          WHERE u.id = ${userId}::uuid
-           AND u.barbershop_id = ${barbershopId}::uuid
+           AND u.business_id = ${businessId}::uuid
            AND u.blocked = false
            AND b.active = true
          LIMIT 1
@@ -173,7 +173,7 @@ export const barbershopSettingsRepository = {
       const legacyResult = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
         SELECT
            u.id AS user_id,
-           u.barbershop_id,
+           u.business_id,
            u.role,
            u.email,
            u.password_hash,
@@ -181,13 +181,13 @@ export const barbershopSettingsRepository = {
            NULL::UUID AS supabase_user_id,
            'legacy'::VARCHAR AS auth_provider,
            b.plan,
-           b.name AS barbershop_name,
+           b.name AS business_name,
            b.subscription_status,
            b.subscription_current_period_end
          FROM users u
-         JOIN barbershops b ON b.id = u.barbershop_id
+         JOIN businesses b ON b.id = u.business_id
          WHERE u.id = ${userId}::uuid
-           AND u.barbershop_id = ${barbershopId}::uuid
+           AND u.business_id = ${businessId}::uuid
            AND u.blocked = false
            AND b.active = true
          LIMIT 1
@@ -201,14 +201,14 @@ export const barbershopSettingsRepository = {
     }
   },
 
-  async findWhatsAppInstanceContextByBarbershopId(barbershopId: unknown, _executor: unknown = null) {
+  async findWhatsAppInstanceContextByBusinessId(businessId: unknown, _executor: unknown = null) {
     const result = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
       SELECT id,
               name,
               active,
               whatsapp_instance_name
-         FROM barbershops
-        WHERE id = ${barbershopId}::uuid
+         FROM businesses
+        WHERE id = ${businessId}::uuid
         LIMIT 1
     `);
 
@@ -225,12 +225,12 @@ export const barbershopSettingsRepository = {
     };
   },
 
-  async updateProfile(barbershopId: unknown, payload: { cpfCnpj: unknown }, _executor: unknown = null) {
+  async updateProfile(businessId: unknown, payload: { cpfCnpj: unknown }, _executor: unknown = null) {
     const result = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
-      UPDATE barbershops
+      UPDATE businesses
        SET cpf_cnpj = ${payload.cpfCnpj},
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = ${barbershopId}::uuid
+       WHERE id = ${businessId}::uuid
          AND active = true
        RETURNING cpf_cnpj
     `);
@@ -243,11 +243,11 @@ export const barbershopSettingsRepository = {
   },
 
   async updateAccountProfile(
-    barbershopId: unknown,
+    businessId: unknown,
     userId: unknown,
     payload: {
       emailChanged?: boolean;
-      barbershopName: unknown;
+      businessName: unknown;
       ownerName: unknown;
       whatsapp: unknown;
       cpfCnpj: unknown;
@@ -257,50 +257,50 @@ export const barbershopSettingsRepository = {
   ) {
     const shouldUpdateEmail = payload.emailChanged === true;
 
-    let barbershopResult: Array<Record<string, unknown>>;
+    let businessResult: Array<Record<string, unknown>>;
 
     if (shouldUpdateEmail) {
-      barbershopResult = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
-        UPDATE barbershops
-         SET name = ${payload.barbershopName},
+      businessResult = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
+        UPDATE businesses
+         SET name = ${payload.businessName},
              owner_name = ${payload.ownerName},
              whatsapp = ${payload.whatsapp},
              cpf_cnpj = ${payload.cpfCnpj},
              email = ${payload.email},
              updated_at = CURRENT_TIMESTAMP
-         WHERE id = ${barbershopId}::uuid
+         WHERE id = ${businessId}::uuid
            AND active = true
            AND EXISTS (
              SELECT 1
              FROM users u
              WHERE u.id = ${userId}::uuid
-               AND u.barbershop_id = ${barbershopId}::uuid
+               AND u.business_id = ${businessId}::uuid
                AND u.blocked = false
            )
          RETURNING id
       `);
     } else {
-      barbershopResult = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
-        UPDATE barbershops
-         SET name = ${payload.barbershopName},
+      businessResult = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
+        UPDATE businesses
+         SET name = ${payload.businessName},
              owner_name = ${payload.ownerName},
              whatsapp = ${payload.whatsapp},
              cpf_cnpj = ${payload.cpfCnpj},
              updated_at = CURRENT_TIMESTAMP
-         WHERE id = ${barbershopId}::uuid
+         WHERE id = ${businessId}::uuid
            AND active = true
            AND EXISTS (
              SELECT 1
              FROM users u
              WHERE u.id = ${userId}::uuid
-               AND u.barbershop_id = ${barbershopId}::uuid
+               AND u.business_id = ${businessId}::uuid
                AND u.blocked = false
            )
          RETURNING id
       `);
     }
 
-    if (barbershopResult.length === 0) {
+    if (businessResult.length === 0) {
       return null;
     }
 
@@ -310,21 +310,21 @@ export const barbershopSettingsRepository = {
          SET email = ${payload.email},
              updated_at = CURRENT_TIMESTAMP
          WHERE id = ${userId}::uuid
-           AND barbershop_id = ${barbershopId}::uuid
+           AND business_id = ${businessId}::uuid
            AND blocked = false
       `);
     }
 
-    return barbershopSettingsRepository.findAccountProfileByUserId(barbershopId, userId);
+    return businessSettingsRepository.findAccountProfileByUserId(businessId, userId);
   },
 
-  async updateUserPassword(barbershopId: unknown, userId: unknown, passwordHash: unknown, _executor: unknown = null) {
+  async updateUserPassword(businessId: unknown, userId: unknown, passwordHash: unknown, _executor: unknown = null) {
     const result = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
       UPDATE users
        SET password_hash = ${passwordHash},
            updated_at = CURRENT_TIMESTAMP
        WHERE id = ${userId}::uuid
-         AND barbershop_id = ${barbershopId}::uuid
+         AND business_id = ${businessId}::uuid
          AND blocked = false
        RETURNING id
     `);
@@ -333,7 +333,7 @@ export const barbershopSettingsRepository = {
   },
 
   async upsert(
-    barbershopId: unknown,
+    businessId: unknown,
     payload: {
       whatsappInstanceName: unknown;
       openingTime: unknown;
@@ -346,20 +346,20 @@ export const barbershopSettingsRepository = {
     },
   ) {
     // Transaction support deferred — run as sequential queries
-    const barbershopResult = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
-      UPDATE barbershops
+    const businessResult = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
+      UPDATE businesses
        SET whatsapp_instance_name = NULLIF(lower(btrim(${payload.whatsappInstanceName}::text)), '')
-       WHERE id = ${barbershopId}::uuid AND active = true
+       WHERE id = ${businessId}::uuid AND active = true
        RETURNING id
     `);
 
-    if (barbershopResult.length === 0) {
+    if (businessResult.length === 0) {
       return null;
     }
 
     await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
-      INSERT INTO barbershop_settings (
-         barbershop_id,
+      INSERT INTO business_settings (
+         business_id,
          opening_time,
          closing_time,
          slot_interval_minutes,
@@ -368,7 +368,7 @@ export const barbershopSettingsRepository = {
          auto_confirm_appointments,
          whatsapp_reminders
        ) VALUES (
-         ${barbershopId}::uuid,
+         ${businessId}::uuid,
          ${payload.openingTime}::time,
          ${payload.closingTime}::time,
          ${payload.slotIntervalMinutes},
@@ -377,7 +377,7 @@ export const barbershopSettingsRepository = {
          ${payload.autoConfirmAppointments},
          ${payload.whatsappReminders}
        )
-       ON CONFLICT (barbershop_id) DO UPDATE SET
+       ON CONFLICT (business_id) DO UPDATE SET
          opening_time = EXCLUDED.opening_time,
          closing_time = EXCLUDED.closing_time,
          slot_interval_minutes = EXCLUDED.slot_interval_minutes,
@@ -388,7 +388,7 @@ export const barbershopSettingsRepository = {
          updated_at = CURRENT_TIMESTAMP
     `);
 
-    return barbershopSettingsRepository.findByBarbershopId(barbershopId);
+    return businessSettingsRepository.findByBusinessId(businessId);
   },
 
   async findByWhatsAppInstanceName(instanceName: unknown, _executor: unknown = null) {
@@ -406,7 +406,7 @@ export const barbershopSettingsRepository = {
       SELECT id,
               name,
               whatsapp_instance_name
-         FROM barbershops
+         FROM businesses
         WHERE active = true
           AND NULLIF(btrim(whatsapp_instance_name), '') IS NOT NULL
           AND lower(btrim(whatsapp_instance_name)) = ${normalizedInstanceName}
@@ -426,7 +426,7 @@ export const barbershopSettingsRepository = {
   },
 
   async ensureWhatsAppInstanceName(
-    barbershopId: unknown,
+    businessId: unknown,
     buildInstanceName: (ctx: { id: unknown; name: unknown }) => unknown,
   ) {
     // Transaction support deferred — FOR UPDATE lock omitted; run as sequential queries
@@ -435,8 +435,8 @@ export const barbershopSettingsRepository = {
               name,
               active,
               whatsapp_instance_name
-         FROM barbershops
-        WHERE id = ${barbershopId}::uuid
+         FROM businesses
+        WHERE id = ${businessId}::uuid
     `);
 
     if (!result.length || result[0]!.active !== true) {
@@ -465,10 +465,10 @@ export const barbershopSettingsRepository = {
     });
 
     const updateResult = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
-      UPDATE barbershops
+      UPDATE businesses
           SET whatsapp_instance_name = ${nextInstanceName},
               updated_at = CURRENT_TIMESTAMP
-        WHERE id = ${barbershopId}::uuid
+        WHERE id = ${businessId}::uuid
         RETURNING id, name, active, whatsapp_instance_name
     `);
 
@@ -499,7 +499,7 @@ export const barbershopSettingsRepository = {
               active,
               whatsapp,
               whatsapp_instance_name
-         FROM barbershops
+         FROM businesses
         WHERE NULLIF(btrim(whatsapp_instance_name), '') IS NOT NULL
           AND lower(btrim(whatsapp_instance_name)) = ${normalizedInstanceName}
         ORDER BY active DESC, created_at ASC NULLS LAST, id ASC

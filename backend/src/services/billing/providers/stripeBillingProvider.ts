@@ -14,12 +14,12 @@ const unixToDate = (value: unknown): Date | null => {
 };
 
 const persistStripeSubscriptionState = async ({
-  barbershopId,
+  businessId,
   plan,
   subscription,
   paymentMethod = 'card',
 }: {
-  barbershopId: string;
+  businessId: string;
   plan: string;
   subscription: Stripe.Subscription;
   paymentMethod?: string;
@@ -29,7 +29,7 @@ const persistStripeSubscriptionState = async ({
       ? subscription.customer
       : (subscription?.customer as Stripe.Customer | Stripe.DeletedCustomer | null)?.id ?? null;
 
-  return subscriptionRepository.updateSubscriptionState(barbershopId, {
+  return subscriptionRepository.updateSubscriptionState(businessId, {
     plan,
     stripeSubscriptionId: subscription?.id ?? null,
     stripePriceId: subscription?.items?.data?.[0]?.price?.id ?? null,
@@ -52,7 +52,7 @@ const persistStripeSubscriptionState = async ({
 };
 
 interface CancelReactivateParams {
-  barbershopId: string;
+  businessId: string;
   context: Record<string, unknown>;
 }
 
@@ -76,11 +76,11 @@ export const stripeBillingProvider = {
   },
 
   async createSubscription({
-    barbershopId,
+    businessId,
     plan,
     paymentMethod = 'card',
   }: {
-    barbershopId: string;
+    businessId: string;
     plan: string;
     paymentMethod?: string;
   }): Promise<Record<string, unknown>> {
@@ -92,9 +92,9 @@ export const stripeBillingProvider = {
       );
     }
 
-    const session = await subscriptionService.createCheckoutSession(barbershopId, plan, paymentMethod);
+    const session = await subscriptionService.createCheckoutSession(businessId, plan, paymentMethod);
 
-    await subscriptionRepository.updateSubscriptionState(barbershopId, {
+    await subscriptionRepository.updateSubscriptionState(businessId, {
       paymentMethod: 'card',
       stripePaymentMode: 'subscription',
       provider: 'stripe',
@@ -122,7 +122,7 @@ export const stripeBillingProvider = {
     );
   },
 
-  async cancelSubscription({ barbershopId, context }: CancelReactivateParams): Promise<SubscriptionResult> {
+  async cancelSubscription({ businessId, context }: CancelReactivateParams): Promise<SubscriptionResult> {
     if (!context?.stripe_subscription_id) {
       throw new NotFoundError('Assinatura Stripe');
     }
@@ -133,7 +133,7 @@ export const stripeBillingProvider = {
     });
 
     const updated = await persistStripeSubscriptionState({
-      barbershopId,
+      businessId,
       plan: context.plan as string,
       subscription,
       paymentMethod: 'card',
@@ -152,7 +152,7 @@ export const stripeBillingProvider = {
     };
   },
 
-  async reactivateSubscription({ barbershopId, context }: CancelReactivateParams): Promise<SubscriptionResult> {
+  async reactivateSubscription({ businessId, context }: CancelReactivateParams): Promise<SubscriptionResult> {
     if (!context?.stripe_subscription_id) {
       throw new NotFoundError('Assinatura Stripe');
     }
@@ -163,7 +163,7 @@ export const stripeBillingProvider = {
     });
 
     const updated = await persistStripeSubscriptionState({
-      barbershopId,
+      businessId,
       plan: context.plan as string,
       subscription,
       paymentMethod: 'card',

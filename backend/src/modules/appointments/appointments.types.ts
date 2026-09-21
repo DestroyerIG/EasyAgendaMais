@@ -5,7 +5,7 @@ import type { AppointmentStatus } from '../../types/domain.js';
 
 export const CreateAppointmentSchema = z.object({
   clientId: z.string().uuid(),
-  barberId: z.string().uuid(),
+  professionalId: z.string().uuid(),
   serviceId: z.string().uuid(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   time: z.string().regex(/^\d{2}:\d{2}$/),
@@ -19,7 +19,7 @@ export const UpdateStatusSchema = z.object({
 });
 
 export const GetAvailableSlotsQuerySchema = z.object({
-  barberId: z.string().uuid(),
+  professionalId: z.string().uuid(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   serviceId: z.string().uuid().optional(),
 });
@@ -28,7 +28,7 @@ export const GetAppointmentsQuerySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   status: z.enum(['confirmado', 'concluido', 'cancelado']).optional(),
   view: z.enum(['day', 'week']).default('day'),
-  barberId: z.string().uuid().optional(),
+  professionalId: z.string().uuid().optional(),
 });
 
 // ─── Input types ──────────────────────────────────────────────────────────────
@@ -43,9 +43,9 @@ export type GetAvailableSlotsQuery = z.infer<typeof GetAvailableSlotsQuerySchema
 
 export interface AppointmentWithRelations {
   id: string;
-  barbershopId: string;
+  businessId: string;
   clientId: string;
-  barberId: string;
+  professionalId: string;
   serviceId: string;
   date: Date;
   time: Date;
@@ -54,7 +54,7 @@ export interface AppointmentWithRelations {
   createdAt: Date;
   updatedAt: Date;
   client: { name: string; phone: string };
-  barber: { name: string };
+  professional: { name: string };
   service: { name: string; price: unknown };
 }
 

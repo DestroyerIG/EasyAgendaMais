@@ -1,11 +1,11 @@
 import { vi, describe, it, beforeEach, expect } from 'vitest';
 
-const mockFindWhatsAppInstanceContextByBarbershopId = vi.hoisted(() => vi.fn());
+const mockFindWhatsAppInstanceContextByBusinessId = vi.hoisted(() => vi.fn());
 const mockEnsureWhatsAppInstanceName = vi.hoisted(() => vi.fn());
 
-vi.mock('../repositories/barbershopSettingsRepository.js', () => ({
-  barbershopSettingsRepository: {
-    findWhatsAppInstanceContextByBarbershopId: mockFindWhatsAppInstanceContextByBarbershopId,
+vi.mock('../repositories/businessSettingsRepository.js', () => ({
+  businessSettingsRepository: {
+    findWhatsAppInstanceContextByBusinessId: mockFindWhatsAppInstanceContextByBusinessId,
     ensureWhatsAppInstanceName: mockEnsureWhatsAppInstanceName,
   },
 }));
@@ -13,8 +13,8 @@ vi.mock('../repositories/barbershopSettingsRepository.js', () => ({
 const {
   normalizeWhatsAppInstanceName,
   buildDeterministicWhatsAppInstanceName,
-  getBarbershopWhatsAppInstanceContext,
-  ensureBarbershopWhatsAppInstanceName,
+  getBusinessWhatsAppInstanceContext,
+  ensureBusinessWhatsAppInstanceName,
 } = await import('../services/whatsapp/whatsappInstanceService.js');
 
 describe('whatsappInstanceService', () => {
@@ -26,14 +26,14 @@ describe('whatsappInstanceService', () => {
     expect(normalizeWhatsAppInstanceName(' Barbearia São João #1 ')).toBe('barbearia-sao-joao-1');
   });
 
-  it('builds deterministic unique names per barbershop', () => {
+  it('builds deterministic unique names per business', () => {
     const a = buildDeterministicWhatsAppInstanceName({
-      barbershopId: 'shop-12345678',
+      businessId: 'shop-12345678',
       shopName: 'Studio Corte',
     });
 
     const b = buildDeterministicWhatsAppInstanceName({
-      barbershopId: 'shop-87654321',
+      businessId: 'shop-87654321',
       shopName: 'Studio Corte',
     });
 
@@ -42,26 +42,26 @@ describe('whatsappInstanceService', () => {
     expect(a).not.toBe(b);
   });
 
-  it('returns persisted instance context already linked to the barbershop', async () => {
-    mockFindWhatsAppInstanceContextByBarbershopId.mockResolvedValue({
+  it('returns persisted instance context already linked to the business', async () => {
+    mockFindWhatsAppInstanceContextByBusinessId.mockResolvedValue({
       id: 'tenant-1',
-      name: 'Barber Prime',
+      name: 'Professional Prime',
       active: true,
-      whatsappInstanceName: 'BARBER_PRIME_ABC12345',
+      whatsappInstanceName: 'PROFESSIONAL_PRIME_ABC12345',
     });
 
-    const result = await getBarbershopWhatsAppInstanceContext('tenant-1');
+    const result = await getBusinessWhatsAppInstanceContext('tenant-1');
 
     expect(result).toEqual(
       expect.objectContaining({
         id: 'tenant-1',
-        whatsappInstanceName: 'barber_prime_abc12345',
+        whatsappInstanceName: 'professional_prime_abc12345',
       })
     );
   });
 
-  it('creates and persists a new instance name for a new barbershop', async () => {
-    mockEnsureWhatsAppInstanceName.mockImplementation(async (_barbershopId: string, builder: (ctx: { id: string; name: string }) => string) => ({
+  it('creates and persists a new instance name for a new business', async () => {
+    mockEnsureWhatsAppInstanceName.mockImplementation(async (_businessId: string, builder: (ctx: { id: string; name: string }) => string) => ({
       id: 'tenant-2',
       name: 'Barbearia Elite',
       active: true,
@@ -72,7 +72,7 @@ describe('whatsappInstanceService', () => {
       createdNow: true,
     }));
 
-    const result = await ensureBarbershopWhatsAppInstanceName('tenant-2');
+    const result = await ensureBusinessWhatsAppInstanceName('tenant-2');
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -85,18 +85,18 @@ describe('whatsappInstanceService', () => {
   it('reuses the same persisted instance instead of regenerating it', async () => {
     mockEnsureWhatsAppInstanceName.mockResolvedValue({
       id: 'tenant-3',
-      name: 'Joao Barber',
+      name: 'Joao Professional',
       active: true,
-      whatsappInstanceName: 'joao-barber_tenant3',
+      whatsappInstanceName: 'joao-professional_tenant3',
       createdNow: false,
     });
 
-    const result = await ensureBarbershopWhatsAppInstanceName('tenant-3');
+    const result = await ensureBusinessWhatsAppInstanceName('tenant-3');
 
     expect(result).toEqual(
       expect.objectContaining({
         id: 'tenant-3',
-        whatsappInstanceName: 'joao-barber_tenant3',
+        whatsappInstanceName: 'joao-professional_tenant3',
       })
     );
     expect(mockEnsureWhatsAppInstanceName).toHaveBeenCalledTimes(1);

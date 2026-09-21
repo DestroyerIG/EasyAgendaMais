@@ -1,10 +1,10 @@
 import { vi, describe, it, beforeEach, expect } from 'vitest';
 
-const mockFindOperationalSettingsByBarbershopId = vi.hoisted(() => vi.fn());
+const mockFindOperationalSettingsByBusinessId = vi.hoisted(() => vi.fn());
 
-vi.mock('../repositories/barbershopSettingsRepository.js', () => ({
-  barbershopSettingsRepository: {
-    findOperationalSettingsByBarbershopId: mockFindOperationalSettingsByBarbershopId,
+vi.mock('../repositories/businessSettingsRepository.js', () => ({
+  businessSettingsRepository: {
+    findOperationalSettingsByBusinessId: mockFindOperationalSettingsByBusinessId,
   },
 }));
 
@@ -18,23 +18,23 @@ vi.mock('../utils/logger.js', () => ({
 }));
 
 const {
-  DEFAULT_BUSINESS_SETTINGS,
-  getBarbershopBusinessSettings,
+  DEFAULT_SCHEDULE_SETTINGS,
+  getBusinessScheduleSettings,
   isWithinBusinessHours,
   generateAvailableTimeSlots,
-} = await import('../services/barbershopBusinessSettingsService.js');
+} = await import('../services/scheduleSettingsService.js');
 
-describe('barbershopBusinessSettingsService', () => {
+describe('scheduleSettingsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('aplica fallback seguro quando configuracao nao existe', async () => {
-    mockFindOperationalSettingsByBarbershopId.mockResolvedValue(null);
+    mockFindOperationalSettingsByBusinessId.mockResolvedValue(null);
 
-    const settings = await getBarbershopBusinessSettings('tenant-fallback');
+    const settings = await getBusinessScheduleSettings('tenant-fallback');
 
-    expect(settings).toEqual(DEFAULT_BUSINESS_SETTINGS);
+    expect(settings).toEqual(DEFAULT_SCHEDULE_SETTINGS);
   });
 
   it('valida expediente: 07:30 fora e 10:00 dentro do horario', () => {
@@ -120,7 +120,7 @@ describe('barbershopBusinessSettingsService', () => {
   });
 
   it('carrega configuracao dinamicamente sem cache e aplica mudanca apos salvar', async () => {
-    mockFindOperationalSettingsByBarbershopId
+    mockFindOperationalSettingsByBusinessId
       .mockResolvedValueOnce({
         openingTime: '08:00',
         closingTime: '18:00',
@@ -138,8 +138,8 @@ describe('barbershopBusinessSettingsService', () => {
         timezone: 'America/Sao_Paulo',
       });
 
-    const beforeUpdate = await getBarbershopBusinessSettings('tenant-dynamic');
-    const afterUpdate = await getBarbershopBusinessSettings('tenant-dynamic');
+    const beforeUpdate = await getBusinessScheduleSettings('tenant-dynamic');
+    const afterUpdate = await getBusinessScheduleSettings('tenant-dynamic');
 
     expect(beforeUpdate).toEqual(
       expect.objectContaining({
@@ -159,12 +159,12 @@ describe('barbershopBusinessSettingsService', () => {
       })
     );
 
-    expect(mockFindOperationalSettingsByBarbershopId).toHaveBeenCalledTimes(2);
+    expect(mockFindOperationalSettingsByBusinessId).toHaveBeenCalledTimes(2);
   });
 
   it('mantem isolamento multi-tenant para horarios de atendimento', async () => {
-    mockFindOperationalSettingsByBarbershopId.mockImplementation(async (barbershopId: string) => {
-      if (barbershopId === 'tenant-a') {
+    mockFindOperationalSettingsByBusinessId.mockImplementation(async (businessId: string) => {
+      if (businessId === 'tenant-a') {
         return {
           openingTime: '08:00',
           closingTime: '18:00',
@@ -185,8 +185,8 @@ describe('barbershopBusinessSettingsService', () => {
       };
     });
 
-    const tenantASettings = await getBarbershopBusinessSettings('tenant-a');
-    const tenantBSettings = await getBarbershopBusinessSettings('tenant-b');
+    const tenantASettings = await getBusinessScheduleSettings('tenant-a');
+    const tenantBSettings = await getBusinessScheduleSettings('tenant-b');
 
     expect(tenantASettings).toEqual(
       expect.objectContaining({ openingTime: '08:00', closingTime: '18:00', slotIntervalMinutes: 30 })

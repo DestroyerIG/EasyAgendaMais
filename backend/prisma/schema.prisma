@@ -8,16 +8,16 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ─── Barbershop (tenant + billing state) ────────────────────────────────────
+// ─── Business (tenant + billing state) ────────────────────────────────────
 
-model Barbershop {
+model Business {
   id                           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                         String    @db.VarChar(255)
   ownerName                    String    @map("owner_name") @db.VarChar(255)
   email                        String    @unique @db.VarChar(255)
   whatsapp                     String    @db.VarChar(20)
   whatsappInstanceName         String?   @map("whatsapp_instance_name") @db.VarChar(255)
-  // Meta WhatsApp Cloud API (per-barbershop bot). When phoneNumberId is set,
+  // Meta WhatsApp Cloud API (per-business bot). When phoneNumberId is set,
   // the Meta provider is used instead of Evolution.
   whatsappPhoneNumberId        String?   @map("whatsapp_phone_number_id") @db.VarChar(64)
   whatsappWabaId               String?   @map("whatsapp_waba_id") @db.VarChar(64)
@@ -63,7 +63,7 @@ model Barbershop {
 
   // Relations
   users                User[]
-  barbers              Barber[]
+  professionals              Professional[]
   services             Service[]
   clients              Client[]
   appointments         Appointment[]
@@ -72,22 +72,22 @@ model Barbershop {
   subscriptionEvents   SubscriptionEvent[]
   billingWebhookEvents BillingWebhookEvent[]
   billingPayments      BillingPayment[]
-  auditLogsAsActor     AuditLog[]          @relation("ActorBarbershop")
-  auditLogsAsTarget    AuditLog[]          @relation("TargetBarbershop")
+  auditLogsAsActor     AuditLog[]          @relation("ActorBusiness")
+  auditLogsAsTarget    AuditLog[]          @relation("TargetBusiness")
   whatsappSessions     WhatsappSession[]
   whatsappBotConfig    WhatsappBotConfig?
   whatsappRatings      WhatsappRating[]
-  settings             BarbershopSettings?
+  settings             BusinessSettings?
 
-  @@index([whatsappPhoneNumberId], map: "barbershops_whatsapp_phone_number_id_idx")
-  @@map("barbershops")
+  @@index([whatsappPhoneNumberId], map: "businesses_whatsapp_phone_number_id_idx")
+  @@map("businesses")
 }
 
 // ─── User ─────────────────────────────────────────────────────────────────────
 
 model User {
   id                          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  barbershopId                String    @map("barbershop_id") @db.Uuid
+  businessId                String    @map("business_id") @db.Uuid
   email                       String    @unique @db.VarChar(255)
   passwordHash                String    @map("password_hash") @db.Char(60)
   supabaseUserId              String?   @unique @map("supabase_user_id") @db.Uuid
@@ -105,7 +105,7 @@ model User {
   createdAt                   DateTime  @default(now()) @map("created_at")
   updatedAt                   DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  barbershop        Barbershop     @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  business        Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
   refreshTokens     RefreshToken[]
   auditLogsAsActor  AuditLog[]     @relation("ActorUser")
   auditLogsAsTarget AuditLog[]     @relation("TargetUser")
@@ -128,28 +128,28 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
-// ─── Barber ────────────────────────────────────────────────────────────────────
+// ─── Professional ────────────────────────────────────────────────────────────────────
 
-model Barber {
+model Professional {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  barbershopId String   @map("barbershop_id") @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
   name         String   @db.VarChar(255)
   photo        String?  @db.Text
   active       Boolean  @default(true)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
 
-  barbershop   Barbershop    @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
   appointments Appointment[]
 
-  @@map("barbers")
+  @@map("professionals")
 }
 
 // ─── Service ───────────────────────────────────────────────────────────────────
 
 model Service {
   id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  barbershopId    String   @map("barbershop_id") @db.Uuid
+  businessId    String   @map("business_id") @db.Uuid
   name            String   @db.VarChar(255)
   price           Decimal  @db.Decimal(10, 2)
   durationMinutes Int      @map("duration_minutes")
@@ -157,7 +157,7 @@ model Service {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
 
-  barbershop   Barbershop    @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
   appointments Appointment[]
 
   @@map("services")
@@ -167,7 +167,7 @@ model Service {
 
 model Client {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  barbershopId String   @map("barbershop_id") @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
   name         String    @db.VarChar(255)
   phone        String    @db.VarChar(20)
   email        String?   @db.VarChar(255)
@@ -178,7 +178,7 @@ model Client {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  barbershop   Barbershop    @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
   appointments Appointment[]
 
   @@map("clients")
@@ -188,9 +188,9 @@ model Client {
 
 model Appointment {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  barbershopId String   @map("barbershop_id") @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
   clientId     String   @map("client_id") @db.Uuid
-  barberId     String   @map("barber_id") @db.Uuid
+  professionalId     String   @map("professional_id") @db.Uuid
   serviceId    String   @map("service_id") @db.Uuid
   date         DateTime @db.Date
   time         DateTime @db.Time(6)
@@ -199,9 +199,9 @@ model Appointment {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
 
-  barbershop     Barbershop      @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
   client         Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  barber         Barber          @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  professional         Professional          @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   service        Service         @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   earning        Earning?
   whatsappRating WhatsappRating?
@@ -213,13 +213,13 @@ model Appointment {
 
 model Earning {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  barbershopId  String   @map("barbershop_id") @db.Uuid
+  businessId  String   @map("business_id") @db.Uuid
   appointmentId String?  @unique @map("appointment_id") @db.Uuid
   amount        Decimal  @db.Decimal(10, 2)
   date          DateTime @db.Date
   createdAt     DateTime @default(now()) @map("created_at")
 
-  barbershop  Barbershop   @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  business  Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
   appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
   @@map("earnings")
@@ -229,7 +229,7 @@ model Earning {
 
 model Expense {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  barbershopId String   @map("barbershop_id") @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
   description  String   @db.VarChar(255)
   category     String   @db.VarChar(50)
   amount       Decimal  @db.Decimal(10, 2)
@@ -237,7 +237,7 @@ model Expense {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
 
-  barbershop Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@map("expenses")
 }
@@ -248,11 +248,11 @@ model SubscriptionEvent {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   stripeEventId String    @unique @map("stripe_event_id") @db.VarChar(255)
   eventType     String    @map("event_type") @db.VarChar(255)
-  barbershopId  String?   @map("barbershop_id") @db.Uuid
+  businessId  String?   @map("business_id") @db.Uuid
   payload       Json?
   createdAt     DateTime  @default(now()) @map("created_at")
 
-  barbershop Barbershop? @relation(fields: [barbershopId], references: [id], onDelete: SetNull)
+  business Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
 
   @@map("subscription_events")
 }
@@ -262,13 +262,13 @@ model BillingWebhookEvent {
   provider     String    @db.VarChar(20)
   eventId      String    @map("event_id") @db.VarChar(255)
   eventType    String    @map("event_type") @db.VarChar(255)
-  barbershopId String?   @map("barbershop_id") @db.Uuid
+  businessId String?   @map("business_id") @db.Uuid
   payload      Json?
   processedAt  DateTime? @map("processed_at")
   status       String    @default("processed") @db.VarChar(20)
   createdAt    DateTime  @default(now()) @map("created_at")
 
-  barbershop Barbershop? @relation(fields: [barbershopId], references: [id], onDelete: SetNull)
+  business Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
 
   @@unique([provider, eventId])
   @@map("billing_webhook_events")
@@ -276,7 +276,7 @@ model BillingWebhookEvent {
 
 model BillingPayment {
   id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  barbershopId           String    @map("barbershop_id") @db.Uuid
+  businessId           String    @map("business_id") @db.Uuid
   provider               String    @db.VarChar(20)
   providerPaymentId      String    @map("provider_payment_id") @db.VarChar(255)
   providerSubscriptionId String?   @map("provider_subscription_id") @db.VarChar(255)
@@ -292,7 +292,7 @@ model BillingPayment {
   createdAt              DateTime  @default(now()) @map("created_at")
   updatedAt              DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  barbershop Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerPaymentId])
   @@map("billing_payments")
@@ -322,9 +322,9 @@ model AuditLog {
   id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   actionType         String    @map("action_type") @db.VarChar(50)
   actorUserId        String?   @map("actor_user_id") @db.Uuid
-  actorBarbershopId  String?   @map("actor_barbershop_id") @db.Uuid
+  actorBusinessId  String?   @map("actor_business_id") @db.Uuid
   targetUserId       String?   @map("target_user_id") @db.Uuid
-  targetBarbershopId String?   @map("target_barbershop_id") @db.Uuid
+  targetBusinessId String?   @map("target_business_id") @db.Uuid
   resourceType       String?   @map("resource_type") @db.VarChar(50)
   resourceId         String?   @map("resource_id") @db.Uuid
   details            Json?
@@ -335,9 +335,9 @@ model AuditLog {
   createdAt          DateTime  @default(now()) @map("created_at")
 
   actorUser         User?       @relation("ActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
-  actorBarbershop   Barbershop? @relation("ActorBarbershop", fields: [actorBarbershopId], references: [id], onDelete: SetNull)
+  actorBusiness   Business? @relation("ActorBusiness", fields: [actorBusinessId], references: [id], onDelete: SetNull)
   targetUser        User?       @relation("TargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
-  targetBarbershop  Barbershop? @relation("TargetBarbershop", fields: [targetBarbershopId], references: [id], onDelete: SetNull)
+  targetBusiness  Business? @relation("TargetBusiness", fields: [targetBusinessId], references: [id], onDelete: SetNull)
 
   @@map("audit_logs")
 }
@@ -347,20 +347,20 @@ model AuditLog {
 model WhatsappSession {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   phone        String   @db.VarChar(20)
-  barbershopId String   @map("barbershop_id") @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
   step         String   @db.VarChar(50)
   data         Json?
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
 
-  barbershop Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@map("whatsapp_sessions")
 }
 
 model WhatsappBotConfig {
   id                               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  barbershopId                     String   @unique @map("barbershop_id") @db.Uuid
+  businessId                     String   @unique @map("business_id") @db.Uuid
   welcomeHeader                    String?  @map("welcome_header") @db.Text
   askNameMessage                   String?  @map("ask_name_message") @db.Text
   attendantMessage                 String?  @map("attendant_message") @db.Text
@@ -384,30 +384,30 @@ model WhatsappBotConfig {
   createdAt                        DateTime @default(now()) @map("created_at")
   updatedAt                        DateTime @default(now()) @updatedAt @map("updated_at")
 
-  barbershop Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@map("whatsapp_bot_config")
 }
 
 model WhatsappRating {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  barbershopId  String   @map("barbershop_id") @db.Uuid
+  businessId  String   @map("business_id") @db.Uuid
   appointmentId String   @unique @map("appointment_id") @db.Uuid
   rating        Int
   comment       String?  @db.Text
   createdAt     DateTime @default(now()) @map("created_at")
 
-  barbershop  Barbershop  @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  business  Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 
   @@map("whatsapp_ratings")
 }
 
-// ─── BarbershopSettings ────────────────────────────────────────────────────────
+// ─── BusinessSettings ────────────────────────────────────────────────────────
 
-model BarbershopSettings {
+model BusinessSettings {
   id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  barbershopId             String   @unique @map("barbershop_id") @db.Uuid
+  businessId             String   @unique @map("business_id") @db.Uuid
   contactPhone             String?  @map("contact_phone") @db.VarChar(30)
   address                  String?  @db.VarChar(255)
   openingTime              DateTime @default(dbgenerated("'09:00:00'::time")) @map("opening_time") @db.Time(6)
@@ -423,7 +423,7 @@ model BarbershopSettings {
   createdAt                DateTime @default(now()) @map("created_at")
   updatedAt                DateTime @default(now()) @updatedAt @map("updated_at")
 
-  barbershop Barbershop @relation(fields: [barbershopId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
-  @@map("barbershop_settings")
+  @@map("business_settings")
 }

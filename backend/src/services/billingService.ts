@@ -4,7 +4,7 @@ import { AppError, NotFoundError, UnauthorizedError } from '../utils/errors.js';
 import { prisma } from '../config/prisma.js';
 import { Prisma } from '@prisma/client';
 import { subscriptionRepository } from '../repositories/subscriptionRepository.js';
-import { asaasService, type AsaasPayment, type AsaasBarbershopInput } from '../integrations/asaas/service.js';
+import { asaasService, type AsaasPayment, type AsaasBusinessInput } from '../integrations/asaas/service.js';
 import { asaasMapper, type AsaasWebhookPayment } from '../integrations/asaas/mapper.js';
 import { subscriptionService } from './subscriptionService.js';
 import { couponService } from './couponService.js';
@@ -33,7 +33,7 @@ interface AsaasMetadata {
 }
 
 interface AsaasPaymentSnapshotInput {
-  barbershopId: string;
+  businessId: string;
   payment: AsaasPayment;
   subscriptionId: string | null;
   internalStatus: InternalSubscriptionStatus;
@@ -41,8 +41,8 @@ interface AsaasPaymentSnapshotInput {
   client?: unknown;
 }
 
-interface UpdateBarbershopFromAsaasPaymentInput {
-  barbershop: BarbershopBillingContext;
+interface UpdateBusinessFromAsaasPaymentInput {
+  business: BusinessBillingContext;
   plan: string;
   payment: AsaasPayment | null | undefined;
   subscriptionId: string | null;
@@ -52,7 +52,7 @@ interface UpdateBarbershopFromAsaasPaymentInput {
   client?: unknown;
 }
 
-interface BarbershopBillingContext {
+interface BusinessBillingContext {
   id: string;
   name?: string | null;
   email?: string | null;
@@ -93,7 +93,7 @@ interface NormalizedWebhookPayload {
   subscriptionId: string | null;
   customerId: string | null;
   externalReference: string | null;
-  barbershopId: string | null;
+  businessId: string | null;
   amount: number | null;
   dueDate: string | null;
   confirmedDate: string | null;
@@ -178,9 +178,9 @@ const resolvePlanFromExternalReference = (externalReference: unknown): string | 
   return VALID_PLANS.has(normalized) ? normalized : null;
 };
 
-const resolveCheckoutPlanFromBarbershop = (barbershop: Partial<BarbershopBillingContext>): string => {
-  const desiredPlan = String(barbershop?.desired_plan || '').trim().toLowerCase();
-  const currentPlan = String(barbershop?.plan || '').trim().toLowerCase();
+const resolveCheckoutPlanFromBusiness = (business: Partial<BusinessBillingContext>): string => {
+  const desiredPlan = String(business?.desired_plan || '').trim().toLowerCase();
+  const currentPlan = String(business?.plan || '').trim().toLowerCase();
 
   if (VALID_PLANS.has(desiredPlan)) {
     return desiredPlan;
@@ -245,7 +245,7 @@ const buildAsaasMetadata = (payload: {
 };
 
 const saveAsaasPaymentSnapshot = async ({
-  barbershopId,
+  businessId,
   payment,
   subscriptionId,
   internalStatus,
@@ -258,7 +258,7 @@ const saveAsaasPaymentSnapshot = async ({
 
   return subscriptionRepository.upsertBillingPayment(
     {
-      barbershopId,
+      businessId,
       provider: 'asaas',
       providerPaymentId: payment.id,
       providerSubscriptionId: subscriptionId || payment.subscription || null,
@@ -278,8 +278,8 @@ const saveAsaasPaymentSnapshot = async ({
   );
 };
 
-const updateBarbershopFromAsaasPayment = async ({
-  barbershop,
+const updateBusinessFromAsaasPayment = async ({
+  business,
   plan,
   payment,
   subscriptionId,
@@ -287,7 +287,7 @@ const updateBarbershopFromAsaasPayment = async ({
   internalStatus,
   eventType = null,
   client = null,
-}: UpdateBarbershopFromAsaasPaymentInput): Promise<unknown> => {
+}: UpdateBusinessFromAsaasPaymentInput): Promise<unknown> => {
   const { periodStart, periodEnd } = asaasService.resolveBillingPeriodFromPayment(
     payment as AsaasWebhookPayment | null | undefined
   );
@@ -297,7 +297,7 @@ const updateBarbershopFromAsaasPayment = async ({
   );
 
   return subscriptionRepository.updateSubscriptionState(
-    barbershop.id,
+    business.id,
     {
       plan,
       paymentMethod: 'pix',
@@ -324,15 +324,15 @@ const updateBarbershopFromAsaasPayment = async ({
   );
 };
 
-const resolveAsaasWebhookBarbershop = async (
+const resolveAsaasWebhookBusiness = async (
   normalizedPayload: NormalizedWebhookPayload,
   client: unknown = null
-): Promise<BarbershopBillingContext | null> => {
-  if (normalizedPayload.barbershopId) {
-    return subscriptionRepository.getBarbershopBillingContext(
-      normalizedPayload.barbershopId,
+): Promise<BusinessBillingContext | null> => {
+  if (normalizedPayload.businessId) {
+    return subscriptionRepository.getBusinessBillingContext(
+      normalizedPayload.businessId,
       client
-    ) as Promise<BarbershopBillingContext | null>;
+    ) as Promise<BusinessBillingContext | null>;
   }
 
   if (normalizedPayload.paymentId) {
@@ -343,7 +343,7 @@ const resolveAsaasWebhookBarbershop = async (
     );
 
     if (byProviderPayment) {
-      return byProviderPayment as BarbershopBillingContext;
+      return byProviderPayment as BusinessBillingContext;
     }
 
     const paymentSnapshot = await subscriptionRepository.findBillingPaymentByProviderPaymentId(
@@ -352,12 +352,12 @@ const resolveAsaasWebhookBarbershop = async (
       client
     );
 
-    const snapshot = paymentSnapshot as { barbershop_id?: string } | null;
-    if (snapshot?.barbershop_id) {
-      return subscriptionRepository.getBarbershopBillingContext(
-        snapshot.barbershop_id,
+    const snapshot = paymentSnapshot as { business_id?: string } | null;
+    if (snapshot?.business_id) {
+      return subscriptionRepository.getBusinessBillingContext(
+        snapshot.business_id,
         client
-      ) as Promise<BarbershopBillingContext | null>;
+      ) as Promise<BusinessBillingContext | null>;
     }
   }
 
@@ -369,7 +369,7 @@ const resolveAsaasWebhookBarbershop = async (
     );
 
     if (byProviderSubscription) {
-      return byProviderSubscription as BarbershopBillingContext;
+      return byProviderSubscription as BusinessBillingContext;
     }
   }
 
@@ -378,7 +378,7 @@ const resolveAsaasWebhookBarbershop = async (
       'asaas',
       normalizedPayload.customerId,
       client
-    ) as Promise<BarbershopBillingContext | null>;
+    ) as Promise<BusinessBillingContext | null>;
   }
 
   return null;
@@ -390,7 +390,7 @@ const resolveAsaasWebhookBarbershop = async (
 
 export const billingService = {
   async createCheckoutSession(
-    barbershopId: string,
+    businessId: string,
     plan: string,
     paymentMethod: string,
     couponCode: string | null = null
@@ -398,7 +398,7 @@ export const billingService = {
     logger.info(
       {
         event: 'billing_checkout_start',
-        barbershopId,
+        businessId,
         plan,
         paymentMethod,
       },
@@ -414,15 +414,15 @@ export const billingService = {
         );
       }
 
-      const barbershop = (await subscriptionRepository.getBarbershopBillingContext(
-        barbershopId
-      )) as BarbershopBillingContext | null;
+      const business = (await subscriptionRepository.getBusinessBillingContext(
+        businessId
+      )) as BusinessBillingContext | null;
 
-      if (!barbershop) {
+      if (!business) {
         throw new NotFoundError('Barbearia');
       }
 
-      const fallbackPlan = resolveCheckoutPlanFromBarbershop(barbershop);
+      const fallbackPlan = resolveCheckoutPlanFromBusiness(business);
       const requestedPlan = String(plan || '').trim().toLowerCase();
 
       if (requestedPlan && !VALID_PLANS.has(requestedPlan)) {
@@ -437,13 +437,13 @@ export const billingService = {
       // Mantém o desired_plan sincronizado com a escolha do checkout para que o
       // status de billing e a tela de pagamento reflitam o plano correto.
       if (checkoutPlan !== fallbackPlan) {
-        await subscriptionRepository.setDesiredPlan(barbershopId, checkoutPlan);
+        await subscriptionRepository.setDesiredPlan(businessId, checkoutPlan);
         logger.info(
           {
-            barbershopId,
+            businessId,
             requestedPlan: checkoutPlan,
             previousDesiredPlan: fallbackPlan,
-            subscriptionStatus: barbershop.subscription_status,
+            subscriptionStatus: business.subscription_status,
             reason: 'desired_plan_updated_from_checkout',
           },
           'desired_plan atualizado a partir do plano selecionado no checkout'
@@ -455,17 +455,17 @@ export const billingService = {
 
       if (providerName === 'stripe') {
         const stripeCheckout = await (provider as typeof stripeProvider).createSubscription({
-          barbershopId: barbershopId,
+          businessId: businessId,
           plan: checkoutPlan,
           paymentMethod: paymentMethod as string,
         });
 
         logger.info(
           {
-            email: barbershop.email,
-            barbershopId,
+            email: business.email,
+            businessId,
             desiredPlan: checkoutPlan,
-            subscriptionStatus: barbershop.subscription_status,
+            subscriptionStatus: business.subscription_status,
             paymentRequired: true,
             checkoutCreated: true,
             paymentProvider: 'stripe',
@@ -509,7 +509,7 @@ export const billingService = {
       if (finalAmount === 0) {
         const activationCouponCode = appliedCoupon?.code || couponCode || null;
 
-        await subscriptionRepository.updateSubscriptionState(barbershopId, {
+        await subscriptionRepository.updateSubscriptionState(businessId, {
           plan: checkoutPlan,
           paymentMethod: 'coupon',
           subscriptionStatus: 'active',
@@ -523,9 +523,9 @@ export const billingService = {
         }
 
         await subscriptionRepository.storeSubscriptionEvent({
-          eventId: `coupon_free_activation:${barbershopId}:${crypto.randomUUID()}`,
+          eventId: `coupon_free_activation:${businessId}:${crypto.randomUUID()}`,
           eventType: 'coupon_free_activation',
-          barbershopId,
+          businessId,
           payload: {
             coupon_code: activationCouponCode,
             amount: 0,
@@ -535,8 +535,8 @@ export const billingService = {
 
         logger.info(
           {
-            email: barbershop.email,
-            barbershopId,
+            email: business.email,
+            businessId,
             desiredPlan: checkoutPlan,
             subscriptionStatus: 'active',
             paymentRequired: false,
@@ -554,14 +554,14 @@ export const billingService = {
         };
       }
 
-      const idempotencyKey = `pix-checkout:${barbershopId}:${plan}:${crypto.randomUUID()}`;
+      const idempotencyKey = `pix-checkout:${businessId}:${plan}:${crypto.randomUUID()}`;
       const pixCheckout = await (provider as typeof asaasProvider).createSubscription({
-        barbershop,
+        business,
         plan: checkoutPlan,
         amount: finalAmount,
         idempotencyKey,
         onCustomerResolved: (customer: unknown) =>
-          subscriptionRepository.setAsaasCustomerId(barbershopId, customer as string),
+          subscriptionRepository.setAsaasCustomerId(businessId, customer as string),
       });
 
       // Consumir cupom somente após checkout Asaas bem-sucedido
@@ -583,8 +583,8 @@ export const billingService = {
       const resolvedPlan =
         resolvePlanFromExternalReference(payment?.externalReference) || checkoutPlan;
 
-      await updateBarbershopFromAsaasPayment({
-        barbershop,
+      await updateBusinessFromAsaasPayment({
+        business,
         plan: resolvedPlan,
         payment: payment as AsaasPayment,
         subscriptionId:
@@ -595,7 +595,7 @@ export const billingService = {
       });
 
       await saveAsaasPaymentSnapshot({
-        barbershopId,
+        businessId,
         payment: payment as AsaasPayment,
         subscriptionId:
           pxCheckout.subscription?.id || payment?.subscription || null,
@@ -605,8 +605,8 @@ export const billingService = {
 
       logger.info(
         {
-          email: barbershop.email,
-          barbershopId,
+          email: business.email,
+          businessId,
           desiredPlan: resolvedPlan,
           subscriptionStatus: internalStatus,
           paymentRequired: internalStatus !== 'active',
@@ -654,7 +654,7 @@ export const billingService = {
         {
           event: 'billing_checkout_error',
           traceCode,
-          barbershopId,
+          businessId,
           plan,
           paymentMethod,
           code: err?.code || null,
@@ -690,9 +690,9 @@ export const billingService = {
     }
   },
 
-  async getStatus(barbershopId: string): Promise<Record<string, unknown>> {
+  async getStatus(businessId: string): Promise<Record<string, unknown>> {
     let data = (await subscriptionRepository.getSubscriptionStatus(
-      barbershopId
+      businessId
     )) as Record<string, unknown> | null;
 
     if (!data) {
@@ -708,9 +708,9 @@ export const billingService = {
       subscriptionStatus === 'pending'
     ) {
       try {
-        const synced = await subscriptionService.resyncBarbershopSubscription(barbershopId);
+        const synced = await subscriptionService.resyncBusinessSubscription(businessId);
         data = (await subscriptionRepository.getSubscriptionStatus(
-          barbershopId
+          businessId
         )) as Record<string, unknown>;
         provider = resolveBillingProviderFromContext(data);
         subscriptionStatus = normalizeInternalSubscriptionStatus(data.subscription_status);
@@ -718,7 +718,7 @@ export const billingService = {
         logger.info(
           {
             event: 'stripe_subscription_synced',
-            barbershopId,
+            businessId,
             subscriptionStatus: synced.subscriptionStatus,
             source: 'billing_status_refresh',
           },
@@ -729,7 +729,7 @@ export const billingService = {
         logger.warn(
           {
             event: 'stripe_webhook_error',
-            barbershopId,
+            businessId,
             code: err?.code || null,
             message: err?.message || null,
             source: 'billing_status_refresh',
@@ -743,7 +743,7 @@ export const billingService = {
 
     return {
       plan: data.plan,
-      desiredPlan: resolveCheckoutPlanFromBarbershop(data as Partial<BarbershopBillingContext>),
+      desiredPlan: resolveCheckoutPlanFromBusiness(data as Partial<BusinessBillingContext>),
       provider,
       paymentMethod: data.payment_method || null,
       subscriptionStatus,
@@ -770,10 +770,10 @@ export const billingService = {
     };
   },
 
-  async cancelSubscription(barbershopId: string): Promise<Record<string, unknown>> {
-    const context = (await subscriptionRepository.getBarbershopBillingContext(
-      barbershopId
-    )) as BarbershopBillingContext | null;
+  async cancelSubscription(businessId: string): Promise<Record<string, unknown>> {
+    const context = (await subscriptionRepository.getBusinessBillingContext(
+      businessId
+    )) as BusinessBillingContext | null;
 
     if (!context) {
       throw new NotFoundError('Barbearia');
@@ -794,7 +794,7 @@ export const billingService = {
     const provider = billingProviderFactory.getProvider(providerName);
 
     if (providerName === 'stripe') {
-      return (provider as typeof stripeProvider).cancelSubscription({ barbershopId, context }) as unknown as Promise<Record<string, unknown>>;
+      return (provider as typeof stripeProvider).cancelSubscription({ businessId, context }) as unknown as Promise<Record<string, unknown>>;
     }
 
     if (context.provider_subscription_id) {
@@ -803,7 +803,7 @@ export const billingService = {
       });
     }
 
-    await subscriptionRepository.updateSubscriptionState(barbershopId, {
+    await subscriptionRepository.updateSubscriptionState(businessId, {
       provider: 'asaas',
       paymentMethod: 'pix',
       subscriptionStatus: 'canceled',
@@ -822,10 +822,10 @@ export const billingService = {
     };
   },
 
-  async reactivateSubscription(barbershopId: string): Promise<Record<string, unknown>> {
-    const context = (await subscriptionRepository.getBarbershopBillingContext(
-      barbershopId
-    )) as BarbershopBillingContext | null;
+  async reactivateSubscription(businessId: string): Promise<Record<string, unknown>> {
+    const context = (await subscriptionRepository.getBusinessBillingContext(
+      businessId
+    )) as BusinessBillingContext | null;
 
     if (!context) {
       throw new NotFoundError('Barbearia');
@@ -847,13 +847,13 @@ export const billingService = {
 
     if (providerName === 'stripe') {
       return (provider as typeof stripeProvider).reactivateSubscription({
-        barbershopId,
+        businessId,
         context,
       }) as unknown as Promise<Record<string, unknown>>;
     }
 
     const plan = context.plan || 'basico';
-    const checkout = await this.createCheckoutSession(barbershopId, plan, 'pix');
+    const checkout = await this.createCheckoutSession(businessId, plan, 'pix');
 
     return {
       ...checkout,
@@ -862,15 +862,15 @@ export const billingService = {
   },
 
   async getPixPaymentStatus(
-    barbershopId: string,
+    businessId: string,
     paymentId: string
   ): Promise<Record<string, unknown>> {
     const existingPayment = (await subscriptionRepository.findBillingPaymentByProviderPaymentId(
       'asaas',
       paymentId
-    )) as { barbershop_id?: string } | null;
+    )) as { business_id?: string } | null;
 
-    if (existingPayment && existingPayment.barbershop_id !== barbershopId) {
+    if (existingPayment && existingPayment.business_id !== businessId) {
       throw new UnauthorizedError('Cobrança Pix não pertence à barbearia autenticada');
     }
 
@@ -885,50 +885,50 @@ export const billingService = {
       payment?.status
     ) as InternalSubscriptionStatus;
 
-    const barbershop = (await subscriptionRepository.getBarbershopBillingContext(
-      barbershopId
-    )) as BarbershopBillingContext | null;
+    const business = (await subscriptionRepository.getBusinessBillingContext(
+      businessId
+    )) as BusinessBillingContext | null;
 
-    if (!barbershop) {
+    if (!business) {
       throw new NotFoundError('Barbearia');
     }
 
-    const paymentBarbershopId = asaasMapper.extractBarbershopIdFromExternalReference(
+    const paymentBusinessId = asaasMapper.extractBusinessIdFromExternalReference(
       payment?.externalReference
     );
 
-    if (paymentBarbershopId && paymentBarbershopId !== barbershopId) {
+    if (paymentBusinessId && paymentBusinessId !== businessId) {
       throw new UnauthorizedError('Cobrança Pix não pertence à barbearia autenticada');
     }
 
     if (
       payment?.customer &&
-      barbershop.provider_customer_id &&
-      payment.customer !== barbershop.provider_customer_id
+      business.provider_customer_id &&
+      payment.customer !== business.provider_customer_id
     ) {
       throw new UnauthorizedError('Cobrança Pix não pertence à barbearia autenticada');
     }
 
     const resolvedPlan =
-      resolvePlanFromExternalReference(payment?.externalReference) || barbershop.plan || 'basico';
+      resolvePlanFromExternalReference(payment?.externalReference) || business.plan || 'basico';
 
-    await updateBarbershopFromAsaasPayment({
-      barbershop,
+    await updateBusinessFromAsaasPayment({
+      business,
       plan: resolvedPlan,
       payment,
       subscriptionId:
-        payment?.subscription || barbershop.provider_subscription_id || null,
+        payment?.subscription || business.provider_subscription_id || null,
       customerId:
-        payment?.customer || barbershop.provider_customer_id || null,
+        payment?.customer || business.provider_customer_id || null,
       internalStatus,
       eventType: 'pix.status.refresh',
     });
 
     await saveAsaasPaymentSnapshot({
-      barbershopId,
+      businessId,
       payment,
       subscriptionId:
-        payment?.subscription || barbershop.provider_subscription_id || null,
+        payment?.subscription || business.provider_subscription_id || null,
       internalStatus,
       pixData: paymentResult.pixData,
     });
@@ -1003,28 +1003,28 @@ export const billingService = {
         };
       }
 
-      const barbershop = await resolveAsaasWebhookBarbershop(normalizedPayload, null);
+      const business = await resolveAsaasWebhookBusiness(normalizedPayload, null);
       let processingStatus = 'ignored';
-      let resolvedBarbershopId: string | null = null;
+      let resolvedBusinessId: string | null = null;
 
-      if (barbershop) {
-        resolvedBarbershopId = barbershop.id;
+      if (business) {
+        resolvedBusinessId = business.id;
         const resolvedPlan =
           resolvePlanFromExternalReference(normalizedPayload.externalReference) ||
-          barbershop.plan ||
+          business.plan ||
           'basico';
 
-        await updateBarbershopFromAsaasPayment({
-          barbershop,
+        await updateBusinessFromAsaasPayment({
+          business,
           plan: resolvedPlan,
           payment: normalizedPayload.payment as unknown as AsaasPayment,
           subscriptionId:
             normalizedPayload.subscriptionId ||
-            barbershop.provider_subscription_id ||
+            business.provider_subscription_id ||
             null,
           customerId:
             normalizedPayload.customerId ||
-            barbershop.provider_customer_id ||
+            business.provider_customer_id ||
             null,
           internalStatus: normalizedPayload.internalStatus,
           eventType: normalizedPayload.eventType,
@@ -1032,11 +1032,11 @@ export const billingService = {
         });
 
         await saveAsaasPaymentSnapshot({
-          barbershopId: barbershop.id,
+          businessId: business.id,
           payment: normalizedPayload.payment as unknown as AsaasPayment,
           subscriptionId:
             normalizedPayload.subscriptionId ||
-            barbershop.provider_subscription_id ||
+            business.provider_subscription_id ||
             null,
           internalStatus: normalizedPayload.internalStatus,
           pixData: asaasMapper.mapAsaasPaymentToPixData(normalizedPayload.payment),
@@ -1061,7 +1061,7 @@ export const billingService = {
           provider: 'asaas',
           eventId: normalizedPayload.eventId,
           eventType: normalizedPayload.eventType,
-          barbershopId: resolvedBarbershopId,
+          businessId: resolvedBusinessId,
           payload,
           status: processingStatus,
         },

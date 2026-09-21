@@ -22,8 +22,8 @@ vi.mock('../services/whatsapp/index.js', () => ({
   sendWhatsAppMessage: mockSendWhatsAppMessage,
 }));
 
-vi.mock('../repositories/barbershopSettingsRepository.js', () => ({
-  barbershopSettingsRepository: { findByBarbershopId: mockFindSettings },
+vi.mock('../repositories/businessSettingsRepository.js', () => ({
+  businessSettingsRepository: { findByBusinessId: mockFindSettings },
 }));
 
 vi.mock('../repositories/subscriptionRepository.js', () => ({
@@ -34,11 +34,11 @@ const { runReminderJob } = await import('../services/cronService.js');
 
 const appointment = {
   id: 'appointment-1',
-  barbershopId: 'tenant-1',
+  businessId: 'tenant-1',
   time: new Date('1970-01-01T14:00:00.000Z'),
   client: { phone: '5583999990000', name: 'Mariana' },
   service: { name: 'Manutenção' },
-  barber: { name: 'Paula' },
+  professional: { name: 'Paula' },
 };
 
 describe('runReminderJob', () => {

@@ -49,7 +49,7 @@ import clientRoutes from './modules/clients/clients.routes.js';
 import financeRoutes from './modules/finance/finance.routes.js';
 
 // @ts-ignore
-import barbershopRoutes from './modules/barbershop/barbershop.routes.js';
+import businessRoutes from './modules/business/business.routes.js';
 
 // @ts-ignore
 import whatsappRoutes from './modules/whatsapp/whatsapp.routes.js';
@@ -159,7 +159,7 @@ const allowedOrigins = [
 
 const vercelProjectPrefix =
   process.env.VERCEL_PROJECT_PREFIX ||
-  'barberpro-saas-2-0';
+  'easyagenda-saas-2-0';
 
 const isAllowedVercelPreview = (
   origin: string
@@ -346,13 +346,13 @@ const apiLimiter = rateLimit({
     const user = (
       req as Request & {
         user?: {
-          barbershopId?: string;
+          businessId?: string;
         };
       }
     ).user;
 
-    if (user?.barbershopId) {
-      return `tenant:${user.barbershopId}`;
+    if (user?.businessId) {
+      return `tenant:${user.businessId}`;
     }
 
     return ipKeyGenerator(req.ip || 'unknown');
@@ -424,8 +424,8 @@ app.use(
 );
 
 app.use(
-  `${API_V1}/barbershop`,
-  barbershopRoutes
+  `${API_V1}/business`,
+  businessRoutes
 );
 
 app.use(
@@ -456,7 +456,7 @@ app.get(
   ) => {
     return res.json({
       message:
-        '💈 EasyBarber SaaS API',
+        '💈 EasyAgenda SaaS API',
       version: '1.0.0',
       status: 'online',
       port: PORT,

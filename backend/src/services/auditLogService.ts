@@ -17,9 +17,9 @@ interface LogAdminActionParams {
   req?: RequestLike | null;
   actionType: string;
   actorUserId: string | null;
-  actorBarbershopId?: string | null;
+  actorBusinessId?: string | null;
   targetUserId?: string | null;
-  targetBarbershopId?: string | null;
+  targetBusinessId?: string | null;
   resourceType?: string | null;
   resourceId?: string | null;
   details?: unknown;
@@ -33,9 +33,9 @@ export const auditLogService = {
     req = null,
     actionType,
     actorUserId,
-    actorBarbershopId,
+    actorBusinessId,
     targetUserId = null,
-    targetBarbershopId = null,
+    targetBusinessId = null,
     resourceType = null,
     resourceId = null,
     details = null,
@@ -47,9 +47,9 @@ export const auditLogService = {
     return auditRepository.logAction(client, {
       actionType,
       actorUserId,
-      actorBarbershopId,
+      actorBusinessId,
       targetUserId,
-      targetBarbershopId,
+      targetBusinessId,
       resourceType,
       resourceId,
       details,

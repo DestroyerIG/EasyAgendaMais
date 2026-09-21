@@ -27,12 +27,12 @@ const { handleMessagesUpsert } = await import(
   '../services/whatsapp/handlers/messagesUpsertHandler.js'
 );
 
-const INSTANCE = 'itallobarber_12f46de4';
+const INSTANCE = 'italloprofessional_12f46de4';
 const BOT_NUMBER = '5583996311811';
 const CLIENT_NUMBER = '558396311811';
 
 const mockTenant = (overrides: Record<string, unknown> = {}) => ({
-  barbershop: { id: 'barbershop-1', name: 'Barbearia Teste', instanceName: INSTANCE },
+  business: { id: 'business-1', name: 'Barbearia Teste', instanceName: INSTANCE },
   connectedNumber: BOT_NUMBER,
   subscriptionStatus: 'active',
   ...overrides,
@@ -225,10 +225,10 @@ describe('handleMessagesUpsert', () => {
       expect(r.reason).toBeNull();
       expect(r.authorPhone).toBe(CLIENT_NUMBER);
       expect(r.text).toBe('Boa tarde');
-      expect(r.barbershopId).toBe('barbershop-1');
+      expect(r.businessId).toBe('business-1');
       expect(mockBotProcess).toHaveBeenCalledWith(
         expect.objectContaining({
-          barbershopId: 'barbershop-1',
+          businessId: 'business-1',
           authorPhone: CLIENT_NUMBER,
           text: 'Boa tarde',
           instanceName: INSTANCE,

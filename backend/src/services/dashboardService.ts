@@ -2,9 +2,9 @@ import { dashboardRepository } from '../repositories/dashboardRepository.js';
 import { getLocalDate } from '../utils/date.js';
 
 export const dashboardService = {
-  async getDashboard(barbershopId: string) {
+  async getDashboard(businessId: string) {
     const today = getLocalDate();
-    const data = await dashboardRepository.getDashboardData(barbershopId, today as unknown as Date);
+    const data = await dashboardRepository.getDashboardData(businessId, today as unknown as Date);
 
     return {
       appointmentsToday: data.appointmentsToday,

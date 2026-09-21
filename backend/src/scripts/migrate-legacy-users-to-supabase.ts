@@ -135,7 +135,7 @@ const ensureSupabaseUser = async (supabaseAdminClient: SupabaseClient, localUser
     password: temporaryPassword,
     email_confirm: Boolean(localUser.email_verified),
     user_metadata: {
-      source: 'easybarber',
+      source: 'easyagenda',
       migrated_from: 'legacy',
       local_user_id: localUser.id,
       role: localUser.role,

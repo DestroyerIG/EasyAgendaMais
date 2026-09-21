@@ -14,9 +14,9 @@ export const auditRepository = {
     data: {
       actionType: string;
       actorUserId?: string | null;
-      actorBarbershopId?: string | null;
+      actorBusinessId?: string | null;
       targetUserId?: string | null;
-      targetBarbershopId?: string | null;
+      targetBusinessId?: string | null;
       resourceType?: string | null;
       resourceId?: string | null;
       details?: unknown;
@@ -30,9 +30,9 @@ export const auditRepository = {
       data: {
         actionType: data.actionType,
         actorUserId: data.actorUserId ?? null,
-        actorBarbershopId: data.actorBarbershopId ?? null,
+        actorBusinessId: data.actorBusinessId ?? null,
         targetUserId: data.targetUserId ?? null,
-        targetBarbershopId: data.targetBarbershopId ?? null,
+        targetBusinessId: data.targetBusinessId ?? null,
         resourceType: data.resourceType ?? null,
         resourceId: data.resourceId ?? null,
         details: data.details ? (data.details as Prisma.InputJsonValue) : undefined,
