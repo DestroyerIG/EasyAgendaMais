@@ -473,7 +473,7 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
     const nextErrors: FormErrors<keyof AccountProfileState> = {};
 
     if (!accountProfile.businessName.trim()) {
-      nextErrors.businessName = 'Informe o nome da barbearia.';
+      nextErrors.businessName = 'Informe o nome do negócio.';
     }
 
     if (!accountProfile.ownerName.trim()) {
@@ -643,7 +643,7 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">Configurações</h1>
                 <p className="max-w-2xl text-base leading-7 text-gray-400">
-                  Centralize os dados cadastrais, preferências operacionais e integrações da sua barbearia em um fluxo mais limpo e consistente.
+                  Centralize os dados cadastrais, preferências operacionais e integrações do seu negócio em um fluxo mais limpo e consistente.
                 </p>
               </div>
             </div>
@@ -661,7 +661,7 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
         <SettingsPanel
           eyebrow="Fonte oficial"
           title="Dados cadastrais"
-          description="Edite aqui os dados oficiais da conta. Nome da barbearia, telefone, CPF/CNPJ e e-mail passam a ter uma única fonte de verdade."
+          description="Edite aqui os dados oficiais da conta. Nome do negócio, telefone, CPF/CNPJ e e-mail passam a ter uma única fonte de verdade."
           icon={<UserRound size={22} />}
         >
           {!isTenantAdmin && (
@@ -675,13 +675,13 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
           {isTenantAdmin && !accountLoading && (
             <div className="space-y-5">
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                <Field id="accountBusinessName" label="Nome da barbearia" error={accountErrors.businessName}>
+                <Field id="accountBusinessName" label="Nome do negócio" error={accountErrors.businessName}>
                   <input
                     id="accountBusinessName"
                     className={`${FIELD_CLASS} ${accountErrors.businessName ? ERROR_FIELD_CLASS : ''}`}
                     value={accountProfile.businessName}
                     onChange={(event) => updateAccountField('businessName', event.target.value)}
-                    placeholder="Ex: EasyAgenda Prime"
+                    placeholder="Ex: Studio Prime"
                   />
                 </Field>
 
@@ -723,7 +723,7 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
                   className={`${FIELD_CLASS} ${accountErrors.email ? ERROR_FIELD_CLASS : ''}`}
                   value={accountProfile.email}
                   onChange={(event) => updateAccountField('email', event.target.value)}
-                  placeholder="contato@barbearia.com"
+                  placeholder="contato@seunegocio.com"
                 />
               </Field>
 
@@ -915,7 +915,7 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
         <SettingsPanel
           eyebrow="Comunicação"
           title="Lembretes e notificações"
-          description="Escolha como a barbearia se comunica com os clientes ao longo da agenda."
+          description="Escolha como seu negócio se comunica com os clientes ao longo da agenda."
           icon={<BellRing size={22} />}
         >
           {settingsLoading ? (

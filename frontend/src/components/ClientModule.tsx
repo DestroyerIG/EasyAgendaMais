@@ -165,7 +165,7 @@ export const ClientModule = () => {
               <div>
                 <h3 className="text-xl font-bold text-white">Selecione um cliente</h3>
                 <p className="text-gray-400 max-w-xs mx-auto">
-                  Escolha um cliente da lista ao lado para ver os detalhes, histórico de barbeiros e gastos.
+                  Escolha um cliente da lista ao lado para ver os detalhes, histórico de profissionais e gastos.
                 </p>
               </div>
             </div>

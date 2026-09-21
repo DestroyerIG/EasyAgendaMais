@@ -186,7 +186,7 @@ describe('whatsappFlowService guards', () => {
       session_expired_message: 'Sessao expirada',
       end_session_message: 'Atendimento encerrado',
     });
-    mockGetMenuOptions.mockResolvedValue([{ label: 'Agendar um horario', emoji: '💈' }]);
+    mockGetMenuOptions.mockResolvedValue([{ label: 'Agendar um horario', emoji: '📅' }]);
     mockGetBusinessBusinessSettings.mockResolvedValue({
       openingTime: '08:00',
       closingTime: '18:00',

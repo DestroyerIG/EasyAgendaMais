@@ -91,7 +91,7 @@ describe('whatsappSelfReplyGuard — bot nao deve responder a si proprio', () =>
       confirmation_message: 'Confirmado',
       session_expired_message: 'Expirado',
     });
-    mockGetMenuOptions.mockResolvedValue([{ label: 'Agendar', emoji: '💈' }]);
+    mockGetMenuOptions.mockResolvedValue([{ label: 'Agendar', emoji: '📅' }]);
     mockGetBusinessBusinessSettings.mockResolvedValue({
       openingTime: '08:00',
       closingTime: '18:00',

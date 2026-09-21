@@ -23,7 +23,7 @@ interface ServiceProfessionalModalProps {
   onClose: () => void;
   onSubmitService: (data: ServiceFormData) => Promise<void>;
   onSubmitProfessional: (data: ProfessionalFormData) => Promise<void>;
-  activeTab: 'servicos' | 'barbeiros';
+  activeTab: 'servicos' | 'profissionais';
   editingItem: Service | Professional | null;
 }
 
@@ -144,7 +144,7 @@ export const ServiceProfessionalModal = ({
 
   const title = activeTab === 'servicos'
     ? (editingItem ? 'Editar Serviço' : 'Novo Serviço')
-    : (editingItem ? 'Editar Barbeiro' : 'Novo Barbeiro');
+    : (editingItem ? 'Editar Profissional' : 'Novo Profissional');
 
   const isLoading = submitting || uploading;
 
@@ -210,7 +210,7 @@ export const ServiceProfessionalModal = ({
         ) : (
           <>
             <div className="space-y-2">
-              <label className="field-label">Nome do Barbeiro</label>
+              <label className="field-label">Nome do Profissional</label>
               <input
                 required
                 type="text"

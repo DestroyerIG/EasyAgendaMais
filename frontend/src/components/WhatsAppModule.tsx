@@ -341,7 +341,7 @@ export const WhatsAppModule = () => {
 
     if (!businessId) {
       showToast(
-        'Nao foi possivel identificar a barbearia autenticada para o simulador. Faca login novamente.',
+        'Não foi possível identificar o negócio autenticado para o simulador. Faça login novamente.',
         'error'
       );
       return null;

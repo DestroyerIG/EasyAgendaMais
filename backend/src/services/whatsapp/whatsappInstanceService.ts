@@ -65,7 +65,7 @@ export const getBusinessWhatsAppInstanceContext = async (
   const context = await businessSettingsRepository.findWhatsAppInstanceContextByBusinessId(businessId);
 
   if (!context || context.active !== true) {
-    throw new NotFoundError('Barbearia');
+    throw new NotFoundError('Negócio');
   }
 
   return {
@@ -94,8 +94,8 @@ export const ensureBusinessWhatsAppInstanceName = async (
 
     if (uniqueViolation && constraint === 'uq_businesses_whatsapp_instance_name_norm') {
       throw new ValidationError(
-        'Nao foi possivel reservar a instancia WhatsApp',
-        ['Ja existe outra barbearia usando o identificador gerado. Tente novamente.']
+        'Não foi possível reservar a instância WhatsApp',
+        ['Já existe outro negócio usando o identificador gerado. Tente novamente.']
       );
     }
 
@@ -103,7 +103,7 @@ export const ensureBusinessWhatsAppInstanceName = async (
   }
 
   if (!context || context.active !== true) {
-    throw new NotFoundError('Barbearia');
+    throw new NotFoundError('Negócio');
   }
 
   return {

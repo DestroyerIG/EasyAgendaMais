@@ -571,11 +571,11 @@ const buildMinimalPixPaymentPayload = ({
 const resolveBillingDescription = ({ plan, businessName }: { plan: string; businessName?: string | null }): string => {
   const template =
     process.env.ASAAS_BILLING_DESCRIPTION ||
-    'EasyAgenda - Plano {plan} ({business})';
+    'EasyAgenda+ - Plano {plan} ({business})';
 
   return template
     .replaceAll('{plan}', plan)
-    .replaceAll('{business}', businessName || 'Barbearia')
+    .replaceAll('{business}', businessName || 'Negócio')
     .slice(0, 500);
 };
 
@@ -953,7 +953,7 @@ export const asaasService = {
   }): Promise<AsaasCustomer> {
     if (!business?.id) {
       throw new AppError(
-        'Barbearia inválida para criação de cliente Asaas',
+        'Negócio inválido para criação de cliente Asaas',
         400,
         'INVALID_BUSINESS'
       );

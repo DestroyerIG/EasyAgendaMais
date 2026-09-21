@@ -149,7 +149,7 @@ export const businessSettingsService = {
   async getSettings(businessId: string): Promise<unknown> {
     const settings = await businessSettingsRepository.findByBusinessId(businessId);
     if (!settings) {
-      throw new NotFoundError('Barbearia');
+      throw new NotFoundError('Negócio');
     }
     return settings;
   },
@@ -191,8 +191,8 @@ export const businessSettingsService = {
 
       if (uniqueViolation && conflictingConstraint === 'uq_businesses_whatsapp_instance_name_norm') {
         throw new ValidationError(
-          'Instancia do WhatsApp ja vinculada',
-          ['Esta instancia ja esta em uso por outra barbearia. Escolha outro nome de instancia.']
+          'Instância do WhatsApp já vinculada',
+          ['Esta instância já está em uso por outro negócio. Escolha outro nome de instância.']
         );
       }
 
@@ -200,7 +200,7 @@ export const businessSettingsService = {
     }
 
     if (!settings) {
-      throw new NotFoundError('Barbearia');
+      throw new NotFoundError('Negócio');
     }
 
     return settings;
@@ -209,7 +209,7 @@ export const businessSettingsService = {
   async getProfile(businessId: string): Promise<unknown> {
     const profile = await businessSettingsRepository.findProfileByBusinessId(businessId);
     if (!profile) {
-      throw new NotFoundError('Barbearia');
+      throw new NotFoundError('Negócio');
     }
 
     return profile;
@@ -227,7 +227,7 @@ export const businessSettingsService = {
     });
 
     if (!profile) {
-      throw new NotFoundError('Barbearia');
+      throw new NotFoundError('Negócio');
     }
 
     return profile;
@@ -274,7 +274,7 @@ export const businessSettingsService = {
     );
 
     if (!normalizedPayload.businessName) {
-      throw new ValidationError('Nome da barbearia obrigatório', ['Informe o nome da barbearia.']);
+      throw new ValidationError('Nome do negócio obrigatório', ['Informe o nome do negócio.']);
     }
 
     if (!normalizedPayload.ownerName) {

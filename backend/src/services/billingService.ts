@@ -419,7 +419,7 @@ export const billingService = {
       )) as BusinessBillingContext | null;
 
       if (!business) {
-        throw new NotFoundError('Barbearia');
+        throw new NotFoundError('Negócio');
       }
 
       const fallbackPlan = resolveCheckoutPlanFromBusiness(business);
@@ -696,7 +696,7 @@ export const billingService = {
     )) as Record<string, unknown> | null;
 
     if (!data) {
-      throw new NotFoundError('Barbearia');
+      throw new NotFoundError('Negócio');
     }
 
     let provider = resolveBillingProviderFromContext(data);
@@ -776,7 +776,7 @@ export const billingService = {
     )) as BusinessBillingContext | null;
 
     if (!context) {
-      throw new NotFoundError('Barbearia');
+      throw new NotFoundError('Negócio');
     }
 
     const providerName = resolveBillingProviderFromContext(
@@ -828,7 +828,7 @@ export const billingService = {
     )) as BusinessBillingContext | null;
 
     if (!context) {
-      throw new NotFoundError('Barbearia');
+      throw new NotFoundError('Negócio');
     }
 
     const providerName = resolveBillingProviderFromContext(
@@ -871,7 +871,7 @@ export const billingService = {
     )) as { business_id?: string } | null;
 
     if (existingPayment && existingPayment.business_id !== businessId) {
-      throw new UnauthorizedError('Cobrança Pix não pertence à barbearia autenticada');
+      throw new UnauthorizedError('Cobrança Pix não pertence ao negócio autenticado');
     }
 
     const provider = billingProviderFactory.getProvider('asaas');
@@ -890,7 +890,7 @@ export const billingService = {
     )) as BusinessBillingContext | null;
 
     if (!business) {
-      throw new NotFoundError('Barbearia');
+      throw new NotFoundError('Negócio');
     }
 
     const paymentBusinessId = asaasMapper.extractBusinessIdFromExternalReference(
@@ -898,7 +898,7 @@ export const billingService = {
     );
 
     if (paymentBusinessId && paymentBusinessId !== businessId) {
-      throw new UnauthorizedError('Cobrança Pix não pertence à barbearia autenticada');
+      throw new UnauthorizedError('Cobrança Pix não pertence ao negócio autenticado');
     }
 
     if (
@@ -906,7 +906,7 @@ export const billingService = {
       business.provider_customer_id &&
       payment.customer !== business.provider_customer_id
     ) {
-      throw new UnauthorizedError('Cobrança Pix não pertence à barbearia autenticada');
+      throw new UnauthorizedError('Cobrança Pix não pertence ao negócio autenticado');
     }
 
     const resolvedPlan =
@@ -1052,7 +1052,7 @@ export const billingService = {
             customerId: normalizedPayload.customerId,
             subscriptionId: normalizedPayload.subscriptionId,
           },
-          'Webhook Asaas recebido sem barbearia correspondente'
+          'Webhook Asaas recebido sem negocio correspondente'
         );
       }
 

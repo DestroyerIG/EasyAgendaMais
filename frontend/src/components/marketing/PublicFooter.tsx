@@ -16,11 +16,11 @@ export function PublicFooter() {
         <div className="sm:col-span-2 lg:col-span-2">
           <div className="inline-flex items-center gap-3">
             <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-primary/30 bg-black/40">
-              <Image src={easyAgendaLogo} alt="Logo EasyAgenda" width={40} height={40} className="h-full w-full object-contain" priority />
+              <Image src={easyAgendaLogo} alt="Logo EasyAgenda+" width={40} height={40} className="h-full w-full object-contain" priority />
             </span>
-            <p className="section-eyebrow">EasyAgenda</p>
+            <p className="section-eyebrow">EasyAgenda+</p>
           </div>
-          <p className="mt-3 text-2xl font-black text-white">Sistema para barbearias com foco em performance comercial.</p>
+          <p className="mt-3 text-2xl font-black text-white">Sistema para negócios de beleza com foco em performance comercial.</p>
           <p className="mt-3 max-w-lg text-sm text-gray-400">
             Centralize agendamentos, clientes, financeiro e equipe em uma plataforma confiável,
             moderna e pronta para escalar seu negócio.
@@ -57,7 +57,7 @@ export function PublicFooter() {
 
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-4 text-xs text-gray-500 sm:px-6 lg:flex-row lg:px-8">
-          <p>© {new Date().getFullYear()} EasyAgenda. Todos os direitos reservados.</p>
+          <p>© {new Date().getFullYear()} EasyAgenda+. Todos os direitos reservados.</p>
           <div className="flex items-center gap-4">
             <Link href="/termos" className="hover:text-gray-300">Termos</Link>
             <Link href="/privacidade" className="hover:text-gray-300">Privacidade</Link>

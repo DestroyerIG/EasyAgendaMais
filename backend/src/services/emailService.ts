@@ -111,13 +111,14 @@ const buildVerificationUrl = ({ token, email }: VerificationUrlParams): string =
 
 const buildEmailTemplate = ({ verificationUrl, businessName, ownerName }: EmailTemplateParams): EmailTemplate => {
   const greetingName = ownerName || 'Tudo bem';
-  const shopLabel = businessName ? ` da ${businessName}` : '';
+  // Sem artigo antes do nome: ele pode ser de qualquer gênero ("o Estúdio Y", "a Esmalteria Z").
+  const shopLabel = businessName ? `o cadastro de ${businessName}` : 'seu cadastro';
 
   const html = `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 560px; margin: 0 auto; padding: 24px;">
-      <h2 style="margin: 0 0 16px; color: #111827;">Confirme seu e-mail no EasyAgenda</h2>
+      <h2 style="margin: 0 0 16px; color: #111827;">Confirme seu e-mail no EasyAgenda+</h2>
       <p style="margin: 0 0 12px;">Olá, ${greetingName}.</p>
-      <p style="margin: 0 0 20px;">Recebemos seu cadastro${shopLabel}. Para ativar sua conta, confirme seu e-mail no botão abaixo:</p>
+      <p style="margin: 0 0 20px;">Recebemos ${shopLabel}. Para ativar sua conta, confirme seu e-mail no botão abaixo:</p>
 
       <p style="margin: 0 0 24px;">
         <a href="${verificationUrl}" style="display: inline-block; background: #f97316; color: #111827; font-weight: 700; text-decoration: none; padding: 12px 20px; border-radius: 10px;">
@@ -133,7 +134,7 @@ const buildEmailTemplate = ({ verificationUrl, businessName, ownerName }: EmailT
   `;
 
   const text = [
-    'Confirme seu e-mail no EasyAgenda',
+    'Confirme seu e-mail no EasyAgenda+',
     '',
     `Olá, ${greetingName}.`,
     '',
@@ -190,7 +191,7 @@ export const emailService = {
       await mailTransport.sendMail({
         from: config.from,
         to,
-        subject: 'Confirme seu e-mail no EasyAgenda',
+        subject: 'Confirme seu e-mail no EasyAgenda+',
         html,
         text,
       });

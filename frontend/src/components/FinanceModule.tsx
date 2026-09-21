@@ -165,7 +165,7 @@ export const FinanceModule = ({
 
     doc.setFontSize(20);
     doc.setTextColor(204, 133, 41);
-    doc.text('EasyAgenda - Relatório Financeiro', titleX, 20);
+    doc.text('EasyAgenda+ - Relatório Financeiro', titleX, 20);
     doc.setFontSize(10);
     doc.setTextColor(100);
     doc.text(`Gerado em: ${now}`, titleX, 28);

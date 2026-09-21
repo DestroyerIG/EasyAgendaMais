@@ -48,7 +48,7 @@ describe('businessSettingsService.updateAccountProfile', () => {
   };
 
   const basePayload = {
-    businessName: '  Barbearia Central  ',
+    businessName: '  Negócio Central  ',
     ownerName: '  Joao da Silva  ',
     whatsapp: '(11) 99876-5432',
     cpfCnpj: '705.960.904-04',
@@ -68,13 +68,13 @@ describe('businessSettingsService.updateAccountProfile', () => {
       authProvider: 'supabase',
       emailVerified: true,
       plan: 'profissional',
-      businessName: 'Barbearia Central',
+      businessName: 'Negócio Central',
       subscriptionStatus: 'active',
       subscriptionCurrentPeriodEnd: null,
     });
 
     mockFindAccountProfileByUserId.mockResolvedValue({
-      businessName: 'Barbearia Atual',
+      businessName: 'Negócio Atual',
       ownerName: 'Responsavel Atual',
       whatsapp: '11911112222',
       cpfCnpj: '70596090404',
@@ -88,7 +88,7 @@ describe('businessSettingsService.updateAccountProfile', () => {
     });
 
     mockUpdateAccountProfile.mockResolvedValue({
-      businessName: 'Barbearia Central',
+      businessName: 'Negócio Central',
       ownerName: 'Joao da Silva',
       whatsapp: '11998765432',
       cpfCnpj: '70596090404',
@@ -116,7 +116,7 @@ describe('businessSettingsService.updateAccountProfile', () => {
       'shop-1',
       'user-1',
       {
-        businessName: 'Barbearia Central',
+        businessName: 'Negócio Central',
         ownerName: 'Joao da Silva',
         whatsapp: '11998765432',
         cpfCnpj: '70596090404',
@@ -143,7 +143,7 @@ describe('businessSettingsService.updateAccountProfile', () => {
 
     mockGetClient.mockResolvedValue(dbClient);
     mockUpdateAccountProfile.mockResolvedValue({
-      businessName: 'Barbearia Central',
+      businessName: 'Negócio Central',
       ownerName: 'Joao da Silva',
       whatsapp: '11999998888',
       cpfCnpj: '70596090404',

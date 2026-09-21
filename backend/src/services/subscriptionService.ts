@@ -469,7 +469,7 @@ export const subscriptionService = {
 
     const business = await subscriptionRepository.getBusinessBillingContext(businessId);
     if (!business) {
-      throw new NotFoundError('Barbearia');
+      throw new NotFoundError('Negócio');
     }
 
     const customerId = await ensureCustomer(stripe, business as BusinessBillingContext);
@@ -552,7 +552,7 @@ export const subscriptionService = {
       businessId
     )) as SubscriptionStatusRow | null;
     if (!data) {
-      throw new NotFoundError('Barbearia');
+      throw new NotFoundError('Negócio');
     }
 
     return {
@@ -574,7 +574,7 @@ export const subscriptionService = {
     )) as BusinessBillingContext | null;
 
     if (!business) {
-      throw new NotFoundError('Barbearia');
+      throw new NotFoundError('Negócio');
     }
 
     if (!business.stripe_customer_id) {
@@ -612,7 +612,7 @@ export const subscriptionService = {
     )) as BusinessBillingContext | null;
 
     if (!business) {
-      throw new NotFoundError('Barbearia');
+      throw new NotFoundError('Negócio');
     }
 
     if (business.stripe_payment_mode === 'payment') {
@@ -632,7 +632,7 @@ export const subscriptionService = {
 
     if (!subscription) {
       throw new AppError(
-        'Barbearia sem assinatura Stripe vinculada para sincronização manual.',
+        'Negócio sem assinatura Stripe vinculada para sincronização manual.',
         400,
         'SUBSCRIPTION_NOT_FOUND'
       );
@@ -811,7 +811,7 @@ export const subscriptionService = {
 
         if (!business) {
           throw new AppError(
-            'Barbearia não encontrada para customer Stripe',
+            'Negócio não encontrado para customer Stripe',
             404,
             'BUSINESS_NOT_FOUND'
           );

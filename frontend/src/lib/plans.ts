@@ -17,10 +17,10 @@ export const SAAS_PLANS: SaaSPlan[] = [
     name: 'Básico',
     price: 49.9,
     trialDays: 14,
-    description: 'Para barbearias enxutas que precisam organizar a operação sem complexidade.',
+    description: 'Para negócios enxutos que precisam organizar a operação sem complexidade.',
     ctaLabel: 'Começar no Básico',
     features: [
-      '1 barbeiro ativo',
+      '1 profissional ativo',
       'Agendamentos online ilimitados',
       'Gestão de clientes com histórico',
       'Lembretes automáticos via WhatsApp',
@@ -36,7 +36,7 @@ export const SAAS_PLANS: SaaSPlan[] = [
     recommended: true,
     ctaLabel: 'Assinar Profissional',
     features: [
-      'Até 5 barbeiros ativos',
+      'Até 5 profissionais ativos',
       'Agenda inteligente com encaixes',
       'Comissões e produtividade da equipe',
       'Relatórios gerenciais mensais',
@@ -52,7 +52,7 @@ export const SAAS_PLANS: SaaSPlan[] = [
     description: 'Para operações em expansão que exigem escala, controle e visão estratégica.',
     ctaLabel: 'Escalar com Premium',
     features: [
-      'Barbeiros ilimitados',
+      'Profissionais ilimitados',
       'Relatórios avançados e metas',
       'Automação de lembretes e campanhas',
       'Suporte prioritário',

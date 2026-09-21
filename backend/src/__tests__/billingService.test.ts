@@ -133,7 +133,7 @@ describe('billingService', () => {
 
     mockSubscriptionRepository.getBusinessBillingContext.mockResolvedValue({
       id: 'tenant-2',
-      name: 'Barbearia Teste',
+      name: 'Negócio Teste',
       owner_name: 'Joao',
       email: 'teste@professional.com',
       whatsapp: '11999999999',
@@ -209,7 +209,7 @@ describe('billingService', () => {
 
     mockSubscriptionRepository.getBusinessBillingContext.mockResolvedValue({
       id: 'tenant-active-pix',
-      name: 'Barbearia Teste',
+      name: 'Negócio Teste',
       owner_name: 'Joao',
       email: 'teste@professional.com',
       whatsapp: '11999999999',
@@ -273,7 +273,7 @@ describe('billingService', () => {
 
     mockSubscriptionRepository.getBusinessBillingContext.mockResolvedValue({
       id: 'tenant-asaas-error-1',
-      name: 'Barbearia Teste',
+      name: 'Negócio Teste',
       owner_name: 'Joao',
       email: 'teste@professional.com',
       whatsapp: '11999999999',

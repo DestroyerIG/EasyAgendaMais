@@ -32,7 +32,7 @@ export const updateProfessional = async (req: Request, res: Response, next: Next
 export const deleteProfessional = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     await professionalService.deleteProfessional(req.params['id'] as string, req.user.businessId!);
-    sendSuccess(res, { message: 'Barbeiro excluído com sucesso' });
+    sendSuccess(res, { message: 'Profissional excluído com sucesso' });
   } catch (error) {
     next(error);
   }

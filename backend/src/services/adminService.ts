@@ -442,7 +442,7 @@ export const adminService = {
     }
 
     const context = await subscriptionRepository.getBusinessBillingContext(tenantId);
-    if (!context) throw new NotFoundError('Barbearia');
+    if (!context) throw new NotFoundError('Negócio');
 
     await subscriptionRepository.updateSubscriptionState(tenantId, { plan: body.plan });
     await subscriptionRepository.setDesiredPlan(tenantId, body.plan);
@@ -479,7 +479,7 @@ export const adminService = {
     }
 
     const context = await subscriptionRepository.getBusinessBillingContext(tenantId);
-    if (!context) throw new NotFoundError('Barbearia');
+    if (!context) throw new NotFoundError('Negócio');
 
     await subscriptionRepository.updateSubscriptionState(tenantId, {
       subscriptionStatus: body.status as 'active' | 'trialing' | 'pending' | 'past_due' | 'unpaid' | 'canceled' | 'incomplete',
@@ -512,7 +512,7 @@ export const adminService = {
     ensureConfirmed(body.confirmation);
 
     const context = await subscriptionRepository.getBusinessBillingContext(tenantId);
-    if (!context) throw new NotFoundError('Barbearia');
+    if (!context) throw new NotFoundError('Negócio');
 
     const result = await billingService.cancelSubscription(tenantId);
 

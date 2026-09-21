@@ -111,7 +111,7 @@ interface PricingPlansSectionProps {
 
 export function PricingPlansSection({
   sectionId = 'planos',
-  title = 'Planos para cada fase da sua barbearia',
+  title = 'Planos para cada fase do seu negócio',
   subtitle = 'Teste 14 dias grátis com acesso completo ao plano Profissional — sem cartão, sem compromisso. Assine quando quiser para continuar.',
   currentPlan,
   subscriptionStatus,
@@ -418,7 +418,7 @@ export function PricingPlansSection({
       if (errorCode === 'CPF_CNPJ_REQUIRED') {
         openCpfCnpjModal(pixPreCheckoutPlanId, businessCpfCnpj);
         setIsPixPreCheckoutOpen(false);
-        showToast('Para continuar no Pix, informe o CPF/CNPJ da barbearia.', 'info');
+        showToast('Para continuar no Pix, informe o CPF/CNPJ do negócio.', 'info');
         return;
       }
 
@@ -465,18 +465,18 @@ export function PricingPlansSection({
       }
 
       openCpfCnpjModal(planId, normalizedCpfCnpj);
-      showToast('Antes de pagar com Pix, informe o CPF/CNPJ da barbearia.', 'info');
+      showToast('Antes de pagar com Pix, informe o CPF/CNPJ do negócio.', 'info');
       return false;
     } catch (error: unknown) {
       const errorCode = getApiErrorCode(error);
 
       if (errorCode === 'NOT_FOUND' || errorCode === 'CPF_CNPJ_REQUIRED' || errorCode === 'VALIDATION_ERROR') {
         openCpfCnpjModal(planId);
-        showToast('Antes de pagar com Pix, informe o CPF/CNPJ da barbearia.', 'info');
+        showToast('Antes de pagar com Pix, informe o CPF/CNPJ do negócio.', 'info');
         return false;
       }
 
-      const message = getApiErrorMessage(error, 'Não foi possível validar o CPF/CNPJ da barbearia.');
+      const message = getApiErrorMessage(error, 'Não foi possível validar o CPF/CNPJ do negócio.');
       showToast(message, 'error');
       return false;
     }

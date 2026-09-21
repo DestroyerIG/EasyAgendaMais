@@ -45,7 +45,7 @@ export const updateBusinessProfileSchema = z.object({
 });
 
 export const updateAccountProfileSchema = z.object({
-  businessName: z.string().trim().min(1, 'Nome da barbearia é obrigatório').max(255),
+  businessName: z.string().trim().min(1, 'Nome do negócio é obrigatório').max(255),
   ownerName: z.string().trim().min(1, 'Nome do responsável é obrigatório').max(255),
   whatsapp: z
     .string()

@@ -7,7 +7,7 @@ import { businessSettingsRepository } from '../repositories/businessSettingsRepo
 // @ts-ignore — sendWhatsAppMessage is a legacy JS service not yet typed
 import { sendWhatsAppMessage } from './whatsapp/index.js';
 
-// Agendamentos gravam `time`/`date` no relógio local da barbearia (BR), não UTC.
+// Agendamentos gravam `time`/`date` no relógio local do negócio (BR), não UTC.
 // Render roda em UTC, então o alvo precisa ser calculado no fuso de negócio.
 const REMINDER_TIMEZONE =
   process.env.BUSINESS_TIMEZONE || process.env.APP_TIMEZONE || 'America/Sao_Paulo';
@@ -91,7 +91,7 @@ export const runReminderJob = async (now: Date = new Date()): Promise<void> => {
       });
 
       let template =
-        '⏰ Lembrete!\n\nOlá {nome_cliente}!\n\nSeu horário é daqui a 2 horas:\n📋 {servico}\n👤 Profissional: {barbeiro}\n⏰ {horario}\n\nTe esperamos!';
+        '⏰ Lembrete!\n\nOlá {nome_cliente}!\n\nSeu horário é daqui a 2 horas:\n📋 {servico}\n👤 Profissional: {profissional}\n⏰ {horario}\n\nTe esperamos!';
 
       if (config?.reminderMessage) template = config.reminderMessage;
 
@@ -99,7 +99,7 @@ export const runReminderJob = async (now: Date = new Date()): Promise<void> => {
       const message = template
         .replace(/{nome_cliente}/g, appointment.client.name)
         .replace(/{servico}/g, appointment.service.name)
-        .replace(/{barbeiro}/g, appointment.professional.name)
+        .replace(/{profissional}/g, appointment.professional.name)
         .replace(/{horario}/g, timeStr);
 
       const sent = await sendWhatsAppMessage(appointment.client.phone, message, {

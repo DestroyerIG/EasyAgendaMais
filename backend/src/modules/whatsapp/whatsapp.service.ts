@@ -586,7 +586,7 @@ export const whatsappService = {
   async sendText(businessId: string, number: string, text: string): Promise<unknown> {
     const ctx = await getBusinessWhatsAppInstanceContext(businessId);
     const instanceName = ctx.whatsappInstanceName;
-    if (!instanceName) throw new Error('Instância WhatsApp não configurada para esta barbearia');
+    if (!instanceName) throw new Error('Instância WhatsApp não configurada para este negócio');
     return evolutionApi.sendText(instanceName, number, text);
   },
 

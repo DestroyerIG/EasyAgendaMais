@@ -571,7 +571,7 @@ describe('whatsapp webhook phone extraction', () => {
   it('extracts authorPhone via lid_fallback from Evolution API @lid audio payload', () => {
     const payload = {
       event: 'messages-upsert',
-      instance: 'barbearia-lucas_a0da94f8',
+      instance: 'negocio-lucas_a0da94f8',
       data: {
         key: {
           remoteJid: '241918646694117@lid',

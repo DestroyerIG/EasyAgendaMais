@@ -45,7 +45,7 @@ export const professionalService = {
       name: data.name,
       photo: data.photo,
     });
-    if (!result) throw new NotFoundError('Barbeiro');
+    if (!result) throw new NotFoundError('Profissional');
     return result;
   },
 
@@ -53,6 +53,6 @@ export const professionalService = {
     const result = await (professionalRepository as unknown as {
       softDelete(id: string, businessId: string): Promise<unknown>;
     }).softDelete(id, businessId);
-    if (!result) throw new NotFoundError('Barbeiro');
+    if (!result) throw new NotFoundError('Profissional');
   },
 };

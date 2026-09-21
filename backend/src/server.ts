@@ -456,7 +456,7 @@ app.get(
   ) => {
     return res.json({
       message:
-        '💈 EasyAgenda SaaS API',
+        'EasyAgenda+ SaaS API',
       version: '1.0.0',
       status: 'online',
       port: PORT,

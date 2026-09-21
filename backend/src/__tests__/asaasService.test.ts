@@ -158,7 +158,7 @@ describe('asaasService', () => {
       asaasService.createOrGetCustomer({
         business: {
           id: 'tenant-asaas-2',
-          name: 'Barbearia Sem Documento',
+          name: 'Negócio Sem Documento',
           email: 'cliente@provedor.com.br',
           whatsapp: '(11) 98888-7766',
         },
@@ -175,7 +175,7 @@ describe('asaasService', () => {
       asaasService.createOrGetCustomer({
         business: {
           id: 'tenant-asaas-invalid-doc',
-          name: 'Barbearia Documento Invalido',
+          name: 'Negócio Documento Invalido',
           whatsapp: '(11) 99888-7766',
           cpf_cnpj: '1234567890',
         },
@@ -192,7 +192,7 @@ describe('asaasService', () => {
       asaasService.createOrGetCustomer({
         business: {
           id: 'tenant-asaas-missing-phone',
-          name: 'Barbearia Sem Telefone',
+          name: 'Negócio Sem Telefone',
           cpf_cnpj: '12.345.678/0001-95',
         },
       })
@@ -408,7 +408,7 @@ describe('asaasService', () => {
       asaasService.createOrGetCustomer({
         business: {
           id: 'tenant-asaas-4',
-          name: 'Barbearia Teste',
+          name: 'Negócio Teste',
           email: 'cliente@provedor.com.br',
           whatsapp: '(83) 99999-1111',
           cpf_cnpj: '12.345.678/0001-95',

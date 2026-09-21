@@ -3,8 +3,8 @@ import { PublicNavbar } from '@/components/marketing/PublicNavbar';
 import { PublicFooter } from '@/components/marketing/PublicFooter';
 
 export const metadata = {
-  title: 'Política de Privacidade - EasyAgenda',
-  description: 'Como o EasyAgenda coleta, usa e protege os seus dados pessoais, em conformidade com a LGPD.',
+  title: 'Política de Privacidade - EasyAgenda+',
+  description: 'Como o EasyAgenda+ coleta, usa e protege os seus dados pessoais, em conformidade com a LGPD.',
 };
 
 const LAST_UPDATE = '28 de maio de 2026';
@@ -13,14 +13,14 @@ const sections = [
   {
     title: '1. Introdução',
     paragraphs: [
-      'Esta Política de Privacidade descreve como o EasyAgenda, operado pela EasyConnect, coleta, utiliza, armazena e protege os dados pessoais tratados na plataforma, em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 - LGPD).',
+      'Esta Política de Privacidade descreve como o EasyAgenda+, operado pela EasyConnect, coleta, utiliza, armazena e protege os dados pessoais tratados na plataforma, em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 - LGPD).',
       'Ao utilizar a plataforma, você declara estar ciente das práticas descritas neste documento.',
     ],
   },
   {
     title: '2. Dados que coletamos',
     paragraphs: [
-      'Dados de cadastro: nome, e-mail, telefone/WhatsApp, CPF ou CNPJ e dados da barbearia necessários à prestação do serviço.',
+      'Dados de cadastro: nome, e-mail, telefone/WhatsApp, CPF ou CNPJ e dados do negócio necessários à prestação do serviço.',
       'Dados operacionais: agendamentos, histórico de atendimentos, informações de clientes cadastrados pelo titular da conta, dados financeiros e de equipe inseridos na plataforma.',
       'Dados de uso: informações técnicas como registros de acesso, endereço IP e identificadores de dispositivo, coletados para segurança e melhoria do serviço.',
     ],
@@ -49,7 +49,7 @@ const sections = [
   {
     title: '6. Responsabilidade pelos dados de clientes finais',
     paragraphs: [
-      'A barbearia titular da conta é a controladora dos dados de seus próprios clientes inseridos na plataforma, sendo responsável por obter o consentimento e as bases legais necessárias. O EasyAgenda atua como operador desses dados, tratando-os conforme as instruções do controlador.',
+      'O negócio titular da conta é o controlador dos dados de seus próprios clientes inseridos na plataforma, sendo responsável por obter o consentimento e as bases legais necessárias. O EasyAgenda+ atua como operador desses dados, tratando-os conforme as instruções do controlador.',
     ],
   },
   {

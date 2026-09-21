@@ -301,9 +301,9 @@ function PagamentoContent() {
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg border border-primary/30 bg-black/40">
-            <Image src={easyAgendaLogo} alt="Logo EasyAgenda" width={40} height={40} className="h-full w-full object-contain" />
+            <Image src={easyAgendaLogo} alt="Logo EasyAgenda+" width={40} height={40} className="h-full w-full object-contain" />
           </span>
-          <span className="text-xl font-black text-primary">EasyAgenda</span>
+          <span className="text-xl font-black text-primary">EasyAgenda+</span>
         </div>
 
         <button onClick={logout} className="text-sm font-semibold text-gray-400 transition hover:text-white">

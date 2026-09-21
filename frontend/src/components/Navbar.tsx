@@ -46,9 +46,9 @@ export function Navbar({ activeTab, onTabChange, onLogout }: NavbarProps) {
                     </button>
                     <div className="flex items-center gap-2">
                         <span className="inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-primary/30 bg-black/40">
-                            <Image src={easyAgendaLogo} alt="Logo EasyAgenda" width={36} height={36} className="h-full w-full object-contain" priority />
+                            <Image src={easyAgendaLogo} alt="Logo EasyAgenda+" width={36} height={36} className="h-full w-full object-contain" priority />
                         </span>
-                        <h1 className="text-2xl font-bold text-primary">EasyAgenda</h1>
+                        <h1 className="text-2xl font-bold text-primary">EasyAgenda+</h1>
                     </div>
                 </div>
 

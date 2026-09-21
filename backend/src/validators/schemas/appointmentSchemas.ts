@@ -3,7 +3,7 @@ import { uuid, dateYMD, timeHM } from './common.js';
 
 export const createAppointmentSchema = z.object({
   clientId: uuid('cliente'),
-  professionalId: uuid('barbeiro'),
+  professionalId: uuid('profissional'),
   serviceId: uuid('serviço'),
   date: dateYMD,
   time: timeHM,

@@ -33,16 +33,16 @@ export const appointmentsService = {
   ): Promise<AppointmentWithRelations> {
     const ownership = await appointmentsPrismaRepository.validateOwnership(businessId, data);
     const errors: string[] = [];
-    if (!ownership.clientOk) errors.push('Cliente não pertence a esta barbearia');
-    if (!ownership.professionalOk) errors.push('Barbeiro não pertence a esta barbearia ou está inativo');
-    if (!ownership.serviceOk) errors.push('Serviço não pertence a esta barbearia ou está inativo');
+    if (!ownership.clientOk) errors.push('Cliente não pertence a este negócio');
+    if (!ownership.professionalOk) errors.push('Profissional não pertence a este negócio ou está inativo');
+    if (!ownership.serviceOk) errors.push('Serviço não pertence a este negócio ou está inativo');
     if (errors.length > 0) throw new ForbiddenError(errors.join('. '));
 
     const time = data.time.length === 5 ? `${data.time}:00` : data.time;
     const conflict = await appointmentsPrismaRepository.hasConflict(
       businessId, data.professionalId, data.date, time
     );
-    if (conflict) throw new ConflictError('Horário já ocupado para este barbeiro');
+    if (conflict) throw new ConflictError('Horário já ocupado para este profissional');
 
     const result = await appointmentsPrismaRepository.create({ ...data, businessId });
     logger.info({ appointmentId: result.id, businessId }, 'Agendamento criado');
@@ -109,9 +109,9 @@ export const appointmentsService = {
         serviceId: data.serviceId ?? '',
       });
       const errors: string[] = [];
-      if (data.clientId && !ownership.clientOk) errors.push('Cliente não pertence a esta barbearia');
-      if (data.professionalId && !ownership.professionalOk) errors.push('Barbeiro não pertence a esta barbearia ou está inativo');
-      if (data.serviceId && !ownership.serviceOk) errors.push('Serviço não pertence a esta barbearia ou está inativo');
+      if (data.clientId && !ownership.clientOk) errors.push('Cliente não pertence a este negócio');
+      if (data.professionalId && !ownership.professionalOk) errors.push('Profissional não pertence a este negócio ou está inativo');
+      if (data.serviceId && !ownership.serviceOk) errors.push('Serviço não pertence a este negócio ou está inativo');
       if (errors.length > 0) throw new ForbiddenError(errors.join('. '));
     }
 
@@ -120,7 +120,7 @@ export const appointmentsService = {
       const conflict = await appointmentsPrismaRepository.hasConflict(
         businessId, data.professionalId, data.date, time, id
       );
-      if (conflict) throw new ConflictError('Horário já ocupado para este barbeiro');
+      if (conflict) throw new ConflictError('Horário já ocupado para este profissional');
     }
 
     const result = await appointmentsPrismaRepository.update(id, businessId, data);

@@ -113,7 +113,7 @@ export function ClientDetailPanel({ client, history, loadingHistory, onEdit }: C
               <thead className="bg-dark-light/50 text-gray-400 text-xs uppercase tracking-widest">
                 <tr>
                   <th className="px-6 py-4 font-bold border-b border-gray-800">Data</th>
-                  <th className="px-6 py-4 font-bold border-b border-gray-800">Barbeiro</th>
+                  <th className="px-6 py-4 font-bold border-b border-gray-800">Profissional</th>
                   <th className="px-6 py-4 font-bold border-b border-gray-800">Serviço</th>
                   <th className="px-6 py-4 font-bold border-b border-gray-800 text-right">Valor</th>
                 </tr>

@@ -214,19 +214,19 @@ export function AuthForm({ mode, selectedPlan }: AuthFormProps) {
             <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-primary/30 bg-black/40">
               <Image
                 src={easyAgendaLogo}
-                alt="Logo EasyAgenda"
+                alt="Logo EasyAgenda+"
                 width={40}
                 height={40}
                 className="h-full w-full object-contain"
                 priority
               />
             </span>
-            <p className="text-xs uppercase tracking-[0.24em] text-primary/70">EasyAgenda</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-primary/70">EasyAgenda+</p>
           </div>
           <h1 className="mt-3 text-3xl font-black leading-tight sm:text-4xl lg:text-5xl">
             {isLogin
-              ? 'Acesse sua operação e mantenha o controle da barbearia.'
-              : 'Abra sua conta e transforme sua barbearia em um negócio previsível.'}
+              ? 'Acesse sua operação e mantenha o controle do seu negócio.'
+              : 'Abra sua conta e transforme seu negócio em uma operação previsível.'}
           </h1>
           <p className="mt-4 text-gray-300">
             {isLogin
@@ -265,7 +265,7 @@ export function AuthForm({ mode, selectedPlan }: AuthFormProps) {
                 <input
                   type="text"
                   name="businessName"
-                  placeholder="Nome da barbearia"
+                  placeholder="Nome do negócio"
                   value={formData.businessName}
                   onChange={handleChange}
                   required

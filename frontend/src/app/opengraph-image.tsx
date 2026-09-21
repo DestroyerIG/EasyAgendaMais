@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'EasyAgenda - Gestão para Barbearias';
+export const alt = 'EasyAgenda+ - Gestão para Negócios de Beleza';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -90,7 +90,7 @@ export default function OgImage() {
                 color: 'rgba(255,122,0,0.75)',
               }}
             >
-              Gestão para Barbearias
+              Gestão para Negócios de Beleza
             </span>
             <span
               style={{
@@ -101,7 +101,7 @@ export default function OgImage() {
                 marginTop: '3px',
               }}
             >
-              EasyAgenda
+              EasyAgenda+
             </span>
           </div>
         </div>
@@ -128,7 +128,7 @@ export default function OgImage() {
                 letterSpacing: '-0.02em',
               }}
             >
-              Gerencie sua barbearia com{' '}
+              Gerencie seu negócio com{' '}
               <span style={{ color: '#FF7A00' }}>controle total.</span>
             </h1>
             <p

@@ -34,7 +34,7 @@ export interface MenuOption {
 }
 
 export const DEFAULT_MENU_OPTIONS: MenuOption[] = [
-  { order: 1, label: 'Agendar um horário', emoji: '💈', handler: 'schedule' },
+  { order: 1, label: 'Agendar um horário', emoji: '📅', handler: 'schedule' },
   { order: 2, label: 'Ver nossos serviços', emoji: '📋', handler: 'view_services' },
   { order: 3, label: 'Cancelar agendamento', emoji: '❌', handler: 'cancel' },
   { order: 4, label: 'Reagendamento', emoji: '🔄', handler: 'reschedule' },
@@ -75,26 +75,26 @@ export interface BotConfig {
  * Mensagens padrão do bot (usadas quando não há configuração no banco).
  */
 export const DEFAULT_BOT_CONFIG: BotConfig = {
-  welcome_header: 'Olá 👋 Bem-vindo à {nome_barbearia}!\n\nMe chame de *EasyAgenda Bot* 🤖 e estou aqui para agilizar seu atendimento.\n\nComo posso ajudar hoje?',
+  welcome_header: 'Olá 👋 Bem-vindo!\n\nSou o assistente virtual de {nome_negocio} 🤖 e estou aqui para agilizar seu atendimento.\n\nComo posso ajudar hoje?',
   ask_name_message: 'Vejo que é sua primeira vez aqui! 😊\n\nQual o seu *nome completo*?',
   attendant_message: 'Um atendente entrará em contato em breve! 👨‍💼',
-  confirmation_message: '✅ Seu horário foi agendado com sucesso! 💈\n\n📋 Serviço: {servico}\n👨‍🦱 Barbeiro: {barbeiro}\n📅 Data: {data}\n⏰ Horário: {horario}\n💰 Valor: R$ {valor}\n\nAté lá! 👋',
-  reminder_message: '⏰ Lembrete!\n\nOlá {nome_cliente}!\n\nSeu horário é daqui a 2 horas:\n📋 {servico}\n👤 Profissional: {barbeiro}\n⏰ {horario}\n\nTe esperamos!',
+  confirmation_message: '✅ Seu horário foi agendado com sucesso!\n\n📋 Serviço: {servico}\n👤 Profissional: {profissional}\n📅 Data: {data}\n⏰ Horário: {horario}\n💰 Valor: R$ {valor}\n\nAté lá! 👋',
+  reminder_message: '⏰ Lembrete!\n\nOlá {nome_cliente}!\n\nSeu horário é daqui a 2 horas:\n📋 {servico}\n👤 Profissional: {profissional}\n⏰ {horario}\n\nTe esperamos!',
   invalid_option_message: 'Opção inválida. Por favor, escolha um número da lista.',
   session_expired_message: '⏰ Sua sessão expirou por inatividade.\n\nDigite qualquer coisa para começar novamente.',
   end_session_message: '✅ Atendimento encerrado.\n\nSe precisar novamente, é só mandar uma nova mensagem.',
   name_validation_message: 'Por favor, digite seu nome completo para continuarmos.\n\n0️⃣ Ou digite 0 para voltar ao menu de atendimento',
-  no_slots_message: 'Infelizmente não há horários disponíveis com este barbeiro nesta data. Escolha outra data ou barbeiro.\n\n0️⃣ Voltar ao menu de atendimento',
+  no_slots_message: 'Infelizmente não há horários disponíveis com este profissional nesta data. Escolha outra data ou outro profissional.\n\n0️⃣ Voltar ao menu de atendimento',
   cancel_no_appointments_message: '📋 Você não tem agendamentos próximos para cancelar.\n\nSe deseja agendar, escolha a opção 1️⃣',
   cancel_list_message: '❌ Seus agendamentos próximos:',
   cancel_success_message: '✅ Seu agendamento foi cancelado com sucesso!\n\nSe deseja remarcar ou agende um novo horário.',
   reschedule_no_appointments_message: '📋 Você não tem agendamentos para reagendar.\n\nSe deseja agendar, escolha a opção 1️⃣',
   reschedule_list_message: '🔄 Seus agendamentos disponíveis para reagendamento:',
-  no_previous_appointments_message: '📊 Você não tem atendimentos anteriores para avaliar.\n\nVolte após seu próximo corte! 💇',
+  no_previous_appointments_message: '📊 Você não tem atendimentos anteriores para avaliar.\n\nVolte após seu próximo atendimento! 😊',
   rating_question_message: '⭐ *Como foi seu atendimento?*\n\n1️⃣ Excelente! 😍\n2️⃣ Bom 😊\n3️⃣ Pode melhorar 😐\n4️⃣ Ruim 😞\n\n0️⃣ Voltar ao menu de atendimento\n\nSua opinião nos ajuda a melhorar cada vez mais!',
   rating_confirmation_message: '✅ Obrigado pela sua avaliação: {avaliacao}\n\nSua opinião é muito importante para melhorarmos cada vez mais!\n\n👉 O que mais podemos fazer por você?',
-  promotions_message: '🎉 *Promoções e Ofertas Especiais!*\n\n💈 *Desconto de 10%* em todos os serviços para clientes frequentes!\n\n💝 *Promoção do Mês:* Corte + Barba por apenas R$ 49,90\n(Válido até o final do mês)\n\n🎁 *Indique um amigo* e ganhe 5% em seu próximo atendimento!\n\nPara aproveitar as promoções, agende agora!',
-  instagram_message: '📱 *Nos acompanhe no Instagram!*\n\n🎨 Veja nossos trabalhos, dicas de estilo e tendências!\n\n👉 {instagram_handle}\n\n📸 Siga-nos para:\n✨ Vê os melhores cortes\n💡 Receber dicas de beleza\n🎯 Acompanhar promoções exclusivas\n\n📲 Clique no link para nos seguir!',
+  promotions_message: '🎉 *Promoções e Ofertas Especiais!*\n\n✨ *Desconto de 10%* em todos os serviços para clientes frequentes!\n\n💝 *Promoção do Mês:* combo de serviços com preço especial\n(Válido até o final do mês)\n\n🎁 *Indique um amigo* e ganhe 5% em seu próximo atendimento!\n\nPara aproveitar as promoções, agende agora!',
+  instagram_message: '📱 *Nos acompanhe no Instagram!*\n\n🎨 Veja nossos trabalhos, dicas de estilo e tendências!\n\n👉 {instagram_handle}\n\n📸 Siga-nos para:\n✨ Ver nossos trabalhos mais recentes\n💡 Receber dicas de beleza\n🎯 Acompanhar promoções exclusivas\n\n📲 Clique no link para nos seguir!',
 };
 
 /**

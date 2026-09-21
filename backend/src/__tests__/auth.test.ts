@@ -149,7 +149,7 @@ const localUser = {
   email: 'joao@teste.com',
   email_verified: true,
   business_id: 'business-uuid',
-  business_name: 'Barbearia Teste',
+  business_name: 'Negócio Teste',
   plan: 'premium',
   role: 'tenant_admin',
   auth_provider: 'supabase',
@@ -186,7 +186,7 @@ describe('Auth API — Supabase only', () => {
 
   describe('POST /api/v1/auth/register', () => {
     const validBody = {
-      businessName: 'Barbearia Teste',
+      businessName: 'Negócio Teste',
       ownerName: 'Joao Silva',
       email: 'joao@teste.com',
       whatsapp: '11999999999',
@@ -434,7 +434,7 @@ describe('Auth API — Supabase only', () => {
         role: 'tenant_admin',
         email_verified: true,
         business_id: 'business-uuid',
-        business_name: 'Barbearia Teste',
+        business_name: 'Negócio Teste',
         plan: 'premium',
         subscription_status: 'active',
         subscription_current_period_end: null,
@@ -446,7 +446,7 @@ describe('Auth API — Supabase only', () => {
         role: 'tenant_admin',
         email_verified: true,
         business_id: 'business-uuid',
-        business_name: 'Barbearia Teste',
+        business_name: 'Negócio Teste',
         plan: 'premium',
         subscription_status: 'active',
         subscription_current_period_end: null,

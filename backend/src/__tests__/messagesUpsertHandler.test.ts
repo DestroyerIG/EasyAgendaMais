@@ -32,7 +32,7 @@ const BOT_NUMBER = '5583996311811';
 const CLIENT_NUMBER = '558396311811';
 
 const mockTenant = (overrides: Record<string, unknown> = {}) => ({
-  business: { id: 'business-1', name: 'Barbearia Teste', instanceName: INSTANCE },
+  business: { id: 'business-1', name: 'Negócio Teste', instanceName: INSTANCE },
   connectedNumber: BOT_NUMBER,
   subscriptionStatus: 'active',
   ...overrides,

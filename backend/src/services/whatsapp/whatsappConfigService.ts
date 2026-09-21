@@ -91,7 +91,7 @@ export const getMenuOptions = async (businessId: string): Promise<MenuOptionRow[
 };
 
 /**
- * Seed de opções padrão do menu para uma barbearia.
+ * Seed de opções padrão do menu para um negócio.
  */
 export const seedDefaultMenuOptions = async (businessId: string): Promise<void> => {
   for (const opt of DEFAULT_MENU_OPTIONS as MenuOption[]) {

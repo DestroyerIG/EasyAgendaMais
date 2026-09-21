@@ -63,7 +63,7 @@ interface FieldDef {
 
 const FIELDS: FieldDef[] = [
   // Fluxo Principal
-  { key: 'welcome_header', label: 'Cabeçalho de Boas-vindas', icon: MessageSquare, rows: 4, hint: 'Disponível: {nome_barbearia}. O menu é gerado automaticamente.', category: 'Fluxo Principal' },
+  { key: 'welcome_header', label: 'Cabeçalho de Boas-vindas', icon: MessageSquare, rows: 4, hint: 'Disponível: {nome_negocio}. O menu é gerado automaticamente.', category: 'Fluxo Principal' },
   { key: 'ask_name_message', label: 'Pergunta de Nome (Novo Cliente)', icon: User, rows: 4, category: 'Fluxo Principal' },
   { key: 'name_validation_message', label: 'Nome Inválido', icon: AlertCircle, rows: 3, category: 'Fluxo Principal' },
   { key: 'invalid_option_message', label: 'Opção Inválida', icon: Ban, rows: 3, category: 'Fluxo Principal' },
@@ -72,8 +72,8 @@ const FIELDS: FieldDef[] = [
   { key: 'attendant_message', label: 'Falar com Atendente', icon: User, rows: 4, category: 'Fluxo Principal' },
 
   // Agendamento
-  { key: 'confirmation_message', label: 'Confirmação de Agendamento', icon: CheckCircle, rows: 5, hint: 'Disponível: {servico}, {barbeiro}, {data}, {horario}, {valor}', category: 'Agendamento' },
-  { key: 'reminder_message', label: 'Lembrete (2h antes)', icon: Clock, rows: 5, hint: 'Disponível: {nome_cliente}, {servico}, {barbeiro}, {horario}', category: 'Agendamento' },
+  { key: 'confirmation_message', label: 'Confirmação de Agendamento', icon: CheckCircle, rows: 5, hint: 'Disponível: {servico}, {profissional}, {data}, {horario}, {valor}', category: 'Agendamento' },
+  { key: 'reminder_message', label: 'Lembrete (2h antes)', icon: Clock, rows: 5, hint: 'Disponível: {nome_cliente}, {servico}, {profissional}, {horario}', category: 'Agendamento' },
   { key: 'no_slots_message', label: 'Sem Horários Disponíveis', icon: CalendarX, rows: 3, category: 'Agendamento' },
 
   // Cancelamento
@@ -89,8 +89,8 @@ const FIELDS: FieldDef[] = [
   { key: 'no_previous_appointments_message', label: 'Sem Atendimentos Anteriores', icon: Star, rows: 3, category: 'Avaliação & Extras' },
   { key: 'rating_question_message', label: 'Pergunta de Avaliação', icon: Star, rows: 4, category: 'Avaliação & Extras' },
   { key: 'rating_confirmation_message', label: 'Confirmação de Avaliação', icon: CheckCircle, rows: 3, hint: 'Disponível: {avaliacao}', category: 'Avaliação & Extras' },
-  { key: 'promotions_message', label: 'Promoções', icon: Megaphone, rows: 4, hint: 'Disponível: {nome_barbearia}', category: 'Avaliação & Extras' },
-  { key: 'instagram_message', label: 'Instagram', icon: Instagram, rows: 4, hint: 'Disponível: {nome_barbearia}, {instagram_handle}', category: 'Avaliação & Extras' },
+  { key: 'promotions_message', label: 'Promoções', icon: Megaphone, rows: 4, hint: 'Disponível: {nome_negocio}', category: 'Avaliação & Extras' },
+  { key: 'instagram_message', label: 'Instagram', icon: Instagram, rows: 4, hint: 'Disponível: {nome_negocio}, {instagram_handle}', category: 'Avaliação & Extras' },
 ];
 
 const CATEGORIES = ['Fluxo Principal', 'Agendamento', 'Cancelamento', 'Reagendamento', 'Avaliação & Extras'];

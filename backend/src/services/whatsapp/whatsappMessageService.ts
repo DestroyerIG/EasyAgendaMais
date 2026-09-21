@@ -99,9 +99,9 @@ export const formatMessage = (template: string, data: FormatMessageData = {}): s
 
   let message = template;
   const placeholders: Record<string, string> = {
-    '{nome_barbearia}': data.businessName || '',
+    '{nome_negocio}': data.businessName || '',
     '{servico}': data.serviceName || '',
-    '{barbeiro}': data.professionalName || '',
+    '{profissional}': data.professionalName || '',
     '{data}': data.dateFormatted || '',
     '{horario}': data.time || '',
     '{valor}': data.servicePrice || '',

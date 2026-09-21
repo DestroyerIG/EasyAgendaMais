@@ -23,7 +23,7 @@ describe('whatsappInstanceService', () => {
   });
 
   it('normalizes instance names to lowercase safe tokens', () => {
-    expect(normalizeWhatsAppInstanceName(' Barbearia São João #1 ')).toBe('barbearia-sao-joao-1');
+    expect(normalizeWhatsAppInstanceName(' Negócio São João #1 ')).toBe('negocio-sao-joao-1');
   });
 
   it('builds deterministic unique names per business', () => {
@@ -63,11 +63,11 @@ describe('whatsappInstanceService', () => {
   it('creates and persists a new instance name for a new business', async () => {
     mockEnsureWhatsAppInstanceName.mockImplementation(async (_businessId: string, builder: (ctx: { id: string; name: string }) => string) => ({
       id: 'tenant-2',
-      name: 'Barbearia Elite',
+      name: 'Negócio Elite',
       active: true,
       whatsappInstanceName: builder({
         id: 'tenant-2',
-        name: 'Barbearia Elite',
+        name: 'Negócio Elite',
       }),
       createdNow: true,
     }));
@@ -77,7 +77,7 @@ describe('whatsappInstanceService', () => {
     expect(result).toEqual(
       expect.objectContaining({
         id: 'tenant-2',
-        whatsappInstanceName: 'barbearia-elite_tenant2',
+        whatsappInstanceName: 'negocio-elite_tenant2',
       })
     );
   });

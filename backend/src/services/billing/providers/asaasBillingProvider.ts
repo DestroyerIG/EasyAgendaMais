@@ -36,7 +36,7 @@ export const asaasBillingProvider = {
     onCustomerResolved?: ((customer: unknown) => void) | null;
   }): Promise<unknown> {
     if (!business) {
-      throw new AppError('Barbearia inválida para checkout Pix', 400, 'INVALID_BUSINESS');
+      throw new AppError('Negócio inválido para checkout Pix', 400, 'INVALID_BUSINESS');
     }
 
     return asaasService.createPixSubscription({

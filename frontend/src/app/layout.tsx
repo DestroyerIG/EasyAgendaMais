@@ -22,18 +22,18 @@ const spaceGrotesk = localFont({
 });
 
 export const metadata = {
-  title: 'EasyAgenda - Gestão para Barbearias',
-  description: 'EasyAgenda é a plataforma para agendamentos, clientes, financeiro e crescimento previsível da sua barbearia.',
-  keywords: 'easyagenda, barbearia, agendamento online, gestão financeira, sistema para barbearias',
+  title: 'EasyAgenda+ - Gestão para Negócios de Beleza',
+  description: 'EasyAgenda+ é a plataforma de agendamentos, clientes, financeiro e crescimento previsível para negócios de beleza e bem-estar.',
+  keywords: 'easyagenda, agendamento online, negócios de beleza, bem-estar, gestão financeira, sistema de agendamento',
   openGraph: {
-    title: 'EasyAgenda - Gestão para Barbearias',
-    description: 'Controle total da operação da sua barbearia com agendamentos, equipe, clientes e financeiro em um só lugar.',
+    title: 'EasyAgenda+ - Gestão para Negócios de Beleza',
+    description: 'Controle total da operação do seu negócio com agendamentos, equipe, clientes e financeiro em um só lugar.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'EasyAgenda - Gestão para Barbearias',
-    description: 'Controle total da operação da sua barbearia com agendamentos, equipe, clientes e financeiro em um só lugar.',
+    title: 'EasyAgenda+ - Gestão para Negócios de Beleza',
+    description: 'Controle total da operação do seu negócio com agendamentos, equipe, clientes e financeiro em um só lugar.',
   },
   icons: {
     icon: easyAgendaLogo.src,

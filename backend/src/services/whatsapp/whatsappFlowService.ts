@@ -571,7 +571,7 @@ const resolveBusinessFromInstanceNameInDatabase = async (instanceName: string | 
             whatsappInstanceName: item.whatsappInstanceName,
           })),
         },
-        'Lookup de instanceName no banco nao encontrou barbearia ativa vinculada'
+        'Lookup de instanceName no banco nao encontrou negocio ativo vinculado'
       );
       return null;
     }
@@ -585,7 +585,7 @@ const resolveBusinessFromInstanceNameInDatabase = async (instanceName: string | 
         businessId: bs.id,
         whatsappInstanceName: bs.whatsappInstanceName,
       },
-      'Lookup de instanceName no banco resolveu barbearia'
+      'Lookup de instanceName no banco resolveu negocio'
     );
 
     return {
@@ -928,24 +928,28 @@ const resolveFlowBusinessId = async (options: HandleIncomingMessageOptions = {})
 
 // ==================== CONSTRUÇÃO DO MENU ====================
 
+// Usado quando o nome do negócio não está disponível. Nunca a marca da
+// plataforma: o bot fala em nome do próprio negócio.
+const BUSINESS_NAME_FALLBACK = 'nossa equipe';
+
 const getBusinessName = async (businessId: string): Promise<string> => {
-  if (!businessId) return 'EasyAgenda';
+  if (!businessId) return BUSINESS_NAME_FALLBACK;
   try {
     const business = await prisma.business.findFirst({
       where: { id: businessId },
       select: { name: true },
     });
-    return business?.name || 'EasyAgenda';
+    return business?.name || BUSINESS_NAME_FALLBACK;
   } catch {
-    return 'EasyAgenda';
+    return BUSINESS_NAME_FALLBACK;
   }
 };
 
 const buildFallbackWelcomeMessage = (businessName: string): string => [
-  `Olá 👋 Bem-vindo à *${businessName}*!`, '',
-  'Me chame de *EasyAgenda Bot* 🤖 e estou aqui para agilizar seu atendimento.', '',
+  'Olá 👋 Bem-vindo!', '',
+  `Sou o assistente virtual de *${businessName}* 🤖 e estou aqui para agilizar seu atendimento.`, '',
   'Como posso ajudar hoje?', '',
-  '1️⃣ *Agendar um horário* 💈',
+  '1️⃣ *Agendar um horário* 📅',
   '2️⃣ *Ver nossos serviços* 📋',
   '3️⃣ *Cancelar agendamento* ❌',
   '4️⃣ *Reagendamento* 🔄',
@@ -964,7 +968,7 @@ const buildMenuMessage = async (businessId: string): Promise<string> => {
   ]);
   if (!options?.length) return buildFallbackWelcomeMessage(businessName);
   return buildWelcomeMessage(
-    config?.welcome_header || 'Olá 👋 Bem-vindo à {nome_barbearia}!\n\nComo posso ajudar hoje?',
+    config?.welcome_header || 'Olá 👋 Bem-vindo!\n\nSou o assistente virtual de {nome_negocio}.\n\nComo posso ajudar hoje?',
     (options as MenuOptionRow[]).map((item) => ({ label: item.label, emoji: item.emoji })),
     businessName
   );
@@ -1080,7 +1084,7 @@ const handleMenuStep = async (
           return { ok: true };
         }
 
-        let msg = '💈 *Escolha o serviço:*\n\n';
+        let msg = '📋 *Escolha o serviço:*\n\n';
         services.forEach((s, i) => {
           msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)\n`;
         });
@@ -1115,7 +1119,7 @@ const handleMenuStep = async (
       });
       const msg = services.length
         ? '📋 *Nossos serviços:*\n\n' + services.map((s) =>
-            `💈 *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)`
+            `✨ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)`
           ).join('\n')
         : 'Não há serviços cadastrados no momento.';
       await sendWhatsAppMessage(phone, msg, sendContext);
@@ -1151,7 +1155,7 @@ const handleMenuStep = async (
         where: { id: businessId },
         select: { instagramHandle: true },
       });
-      const handle = business?.instagramHandle || '@suabarbearia';
+      const handle = business?.instagramHandle || '@seunegocio';
       await sendWhatsAppMessage(phone, config.instagram_message.replace('{instagram_handle}', handle), sendContext);
       await deleteSession(phone, businessId);
       return { ok: true };
@@ -1225,7 +1229,7 @@ const handleAskNameStep = async (
     return { ok: true };
   }
 
-  let msg = `✅ Olá, *${name}*! Bem-vindo!\n\n💈 *Escolha o serviço:*\n\n`;
+  let msg = `✅ Olá, *${name}*! Bem-vindo!\n\n📋 *Escolha o serviço:*\n\n`;
   services.forEach((s, i) => {
     msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)\n`;
   });
@@ -1263,7 +1267,7 @@ const handleChooseServiceStep = async (
   const services = (sessionData.services as ServiceRow[]) || [];
 
   if (!choice || choice < 1 || choice > services.length) {
-    let msg = `${config.invalid_option_message}\n\n💈 *Escolha o serviço:*\n\n`;
+    let msg = `${config.invalid_option_message}\n\n📋 *Escolha o serviço:*\n\n`;
     services.forEach((s, i) => {
       msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.duration_minutes} min)\n`;
     });
@@ -1285,7 +1289,7 @@ const handleChooseServiceStep = async (
   });
 
   if (!professionals.length) {
-    await sendWhatsAppMessage(phone, 'Desculpe, não há barbeiros disponíveis no momento.', sendContext);
+    await sendWhatsAppMessage(phone, 'Desculpe, não há profissionais disponíveis no momento.', sendContext);
     await deleteSession(phone, businessId);
     return { ok: true };
   }
@@ -1299,7 +1303,7 @@ const handleChooseServiceStep = async (
     professionals: professionals.map((b) => ({ id: b.id, name: b.name })),
   });
 
-  let msg = `✅ *${sel.name}* selecionado!\n\n👨‍🦱 *Escolha o barbeiro:*\n\n`;
+  let msg = `✅ *${sel.name}* selecionado!\n\n👤 *Escolha o profissional:*\n\n`;
   professionals.forEach((b, i) => { msg += `${i + 1}️⃣ *${b.name}*\n`; });
   msg += '\n0️⃣ Voltar ao menu';
   await sendWhatsAppMessage(phone, msg, sendContext);
@@ -1324,7 +1328,7 @@ const handleChooseProfessionalStep = async (
   const professionals = (sessionData.professionals as ProfessionalRow[]) || [];
 
   if (!choice || choice < 1 || choice > professionals.length) {
-    let msg = `${config.invalid_option_message}\n\n👨‍🦱 *Escolha o barbeiro:*\n\n`;
+    let msg = `${config.invalid_option_message}\n\n👤 *Escolha o profissional:*\n\n`;
     professionals.forEach((b, i) => { msg += `${i + 1}️⃣ *${b.name}*\n`; });
     msg += '\n0️⃣ Voltar ao menu';
     await sendWhatsAppMessage(phone, msg, sendContext);
@@ -1602,7 +1606,7 @@ const handleChooseTimeStep = async (
 
   const confirmationMsg = config.confirmation_message
     .replace('{servico}', (sessionData.serviceName as string) || '')
-    .replace('{barbeiro}', (sessionData.professionalName as string) || '')
+    .replace('{profissional}', (sessionData.professionalName as string) || '')
     .replace('{data}', dateFormatted)
     .replace('{horario}', selectedTime)
     .replace('{valor}', Number(sessionData.servicePrice).toFixed(2));

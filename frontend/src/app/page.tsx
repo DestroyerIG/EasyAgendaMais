@@ -19,7 +19,7 @@ const defaultContactUrl =
 const benefits = [
   {
     title: 'Agendamentos online sem ruído',
-    description: 'Sua agenda roda 24h com menos conflito de horários e mais ocupação dos barbeiros.',
+    description: 'Sua agenda roda 24h com menos conflito de horários e mais ocupação da equipe.',
   },
   {
     title: 'Operação centralizada',
@@ -45,7 +45,7 @@ const features = [
   {
     icon: Scissors,
     title: 'Comissões e equipe',
-    description: 'Acompanhe produtividade e resultados por barbeiro com transparência.',
+    description: 'Acompanhe produtividade e resultados por profissional com transparência.',
   },
   {
     icon: Coins,
@@ -93,13 +93,13 @@ export default function HomePage() {
           className="mx-auto grid max-w-7xl gap-8 px-4 pb-16 pt-10 sm:px-6 sm:pb-20 sm:pt-14 lg:grid-cols-2 lg:items-center lg:gap-10 lg:px-8 lg:pt-16"
         >
           <div className="animate-fade-in">
-            <p className="section-eyebrow">Sistema de gestão para barbearias</p>
+            <p className="section-eyebrow">Sistema de gestão para negócios de beleza</p>
             <h1 className="mt-4 text-3xl font-black leading-tight sm:mt-5 sm:text-4xl lg:text-5xl xl:text-6xl">
-              Gerencie sua barbearia com mais controle, automação e crescimento previsível.
+              Gerencie seu negócio com mais controle, automação e crescimento previsível.
             </h1>
             <p className="mt-4 max-w-xl text-base text-gray-300 sm:mt-6 sm:text-lg">
-              O EasyAgenda organiza agendamentos, clientes, financeiro e equipe em uma plataforma única,
-              profissional e pronta para escalar seu negócio.
+              O EasyAgenda+ organiza agendamentos, clientes, financeiro e equipe em uma plataforma única,
+              profissional e pronta para escalar sua operação.
             </p>
 
             <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row">
@@ -180,7 +180,7 @@ export default function HomePage() {
               Funcionalidades criadas para uma gestão de verdade
             </h2>
             <p className="mt-3 text-sm text-gray-400 sm:mt-4 sm:text-base">
-              Da agenda ao faturamento recorrente, o EasyAgenda foi pensado para reduzir ruído operacional e aumentar conversão.
+              Da agenda ao faturamento recorrente, o EasyAgenda+ foi pensado para reduzir ruído operacional e aumentar conversão.
             </p>
           </div>
 
@@ -213,10 +213,10 @@ export default function HomePage() {
               Contato comercial
             </p>
             <h2 className="mt-3 text-2xl font-black sm:text-3xl lg:text-4xl">
-              Quer acelerar sua barbearia com estrutura profissional?
+              Quer acelerar seu negócio com estrutura profissional?
             </h2>
             <p className="mt-3 max-w-3xl text-sm text-gray-200 sm:mt-4 sm:text-base">
-              Nossa equipe te ajuda a definir o melhor plano, organizar o onboarding e ativar o EasyAgenda com foco em resultado.
+              Nossa equipe te ajuda a definir o melhor plano, organizar o onboarding e ativar o EasyAgenda+ com foco em resultado.
             </p>
 
             <div className="mt-6 flex flex-col gap-3 sm:mt-7 sm:flex-row">

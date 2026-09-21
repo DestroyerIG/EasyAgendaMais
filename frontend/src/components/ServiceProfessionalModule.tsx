@@ -14,7 +14,7 @@ import type { ServiceFormData, ProfessionalFormData } from '@/components/service
 import { getApiErrorMessage } from '@/utils/handleApiError';
 
 export const ServiceProfessionalModule = () => {
-  const [activeTab, setActiveTab] = useState<'servicos' | 'barbeiros'>('servicos');
+  const [activeTab, setActiveTab] = useState<'servicos' | 'profissionais'>('servicos');
   const [services, setServices] = useState<Service[]>([]);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,14 +74,14 @@ export const ServiceProfessionalModule = () => {
     try {
       if (editingItem) {
         await api.put(`/business/professionals/${editingItem.id}`, payload);
-        showToast('Barbeiro atualizado', 'success');
+        showToast('Profissional atualizado', 'success');
       } else {
         await api.post('/business/professionals', payload);
-        showToast('Barbeiro cadastrado', 'success');
+        showToast('Profissional cadastrado', 'success');
       }
       loadData();
     } catch (error: unknown) {
-      showToast(getApiErrorMessage(error, 'Erro ao salvar barbeiro'), 'error');
+      showToast(getApiErrorMessage(error, 'Erro ao salvar profissional'), 'error');
       throw error;
     }
   };
@@ -119,7 +119,7 @@ export const ServiceProfessionalModule = () => {
         description="Gerencie o que você oferece e quem atende seus clientes."
         action={
           <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
-            <Plus size={20} /> {activeTab === 'servicos' ? 'Novo Serviço' : 'Novo Barbeiro'}
+            <Plus size={20} /> {activeTab === 'servicos' ? 'Novo Serviço' : 'Novo Profissional'}
           </button>
         }
       />
@@ -132,8 +132,8 @@ export const ServiceProfessionalModule = () => {
           Serviços
         </button>
         <button
-          onClick={() => setActiveTab('barbeiros')}
-          className={activeTab === 'barbeiros' ? 'tab-active' : 'tab-inactive'}
+          onClick={() => setActiveTab('profissionais')}
+          className={activeTab === 'profissionais' ? 'tab-active' : 'tab-inactive'}
         >
           Equipe
         </button>
@@ -165,7 +165,7 @@ export const ServiceProfessionalModule = () => {
           ))}
           {professionals.length === 0 && (
             <div className="col-span-full py-12 text-center border-2 border-dashed border-gray-800 rounded-2xl text-gray-500">
-              Nenhum barbeiro na equipe.
+              Nenhum profissional na equipe.
             </div>
           )}
         </div>

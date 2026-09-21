@@ -122,9 +122,9 @@ export function CreateAppointmentModal({
         </div>
       </div>
 
-      {/* Barbeiro */}
+      {/* Profissional */}
       <div>
-        <label className="block text-sm font-medium text-gray-400 mb-2">Barbeiro</label>
+        <label className="block text-sm font-medium text-gray-400 mb-2">Profissional</label>
         <div className="grid grid-cols-2 gap-2">
           {professionals.map(professional => (
             <button
@@ -142,7 +142,7 @@ export function CreateAppointmentModal({
           ))}
         </div>
         {professionals.length === 0 && (
-          <p className="text-gray-600 text-xs mt-1">Nenhum barbeiro cadastrado</p>
+          <p className="text-gray-600 text-xs mt-1">Nenhum profissional cadastrado</p>
         )}
       </div>
 
@@ -193,7 +193,7 @@ export function CreateAppointmentModal({
         {!formData.professionalId ? (
           <div className="flex items-center gap-2 p-3 rounded-xl bg-yellow-500/5 border border-yellow-500/10">
             <AlertCircle size={14} className="text-yellow-500" />
-            <p className="text-yellow-500/80 text-xs">Selecione um barbeiro para ver horários</p>
+            <p className="text-yellow-500/80 text-xs">Selecione um profissional para ver horários</p>
           </div>
         ) : slotsLoading ? (
           <div className="flex items-center justify-center py-4">

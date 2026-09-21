@@ -233,7 +233,7 @@ const resolveSimulatorBusinessContext = async ({
       ok: false,
       statusCode: 500,
       code: 'WHATSAPP_SIMULATOR_CONTEXT_VALIDATION_FAILED',
-      message: 'Falha ao validar o contexto da barbearia no simulador',
+      message: 'Falha ao validar o contexto do negócio no simulador',
       reason: 'business_validation_query_failed',
       source: contextSource,
       error,
@@ -1782,7 +1782,7 @@ router.post('/simulator/message', ...waProtected, async (req: Request, res: Resp
         res,
         422,
         'WHATSAPP_SIMULATOR_CONTEXT_UNRESOLVED',
-        'Nao foi possivel resolver o contexto da barbearia no simulador'
+        'Não foi possível resolver o contexto do negócio no simulador'
       );
       return;
     }
@@ -2373,7 +2373,7 @@ router.post('/config/reset', ...waProtected, async (req: Request, res: Response,
 // ==================== OPÇÕES DO MENU DO BOT ====================
 
 const DEFAULT_MENU_OPTIONS: DefaultMenuOption[] = [
-  { order: 1, label: 'Agendar um horário', emoji: '💈', handler: 'schedule' },
+  { order: 1, label: 'Agendar um horário', emoji: '📅', handler: 'schedule' },
   { order: 2, label: 'Ver nossos serviços', emoji: '📋', handler: 'view_services' },
   { order: 3, label: 'Cancelar agendamento', emoji: '❌', handler: 'cancel' },
   { order: 4, label: 'Reagendamento', emoji: '🔄', handler: 'reschedule' },

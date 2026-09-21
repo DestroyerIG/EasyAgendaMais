@@ -35,7 +35,7 @@ export function CpfCnpjModal({
     >
       <div className="space-y-4">
         <p className="text-sm text-gray-300">
-          Para gerar cobrancas Pix via Asaas, precisamos do CPF ou CNPJ da barbearia.
+          Para gerar cobranças Pix via Asaas, precisamos do CPF ou CNPJ do negócio.
         </p>
 
         <div>
