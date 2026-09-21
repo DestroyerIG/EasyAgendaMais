@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
-import easyAgendaLogo from '@/icons/easyagenda.png';
+import easyAgendaLogo from '@/icons/easyagenda-logo.svg';
 
 const navItems = [
   { href: '#inicio', label: 'Início' },

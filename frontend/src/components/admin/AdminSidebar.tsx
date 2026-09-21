@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Activity, Building2, CreditCard, LayoutDashboard, ScrollText, Tags } from 'lucide-react';
-import easyAgendaLogo from '@/icons/easyagenda.png';
+import easyAgendaLogo from '@/icons/easyagenda-logo.svg';
 
 const links = [
   { href: '/admin', label: 'Resumo', icon: LayoutDashboard },

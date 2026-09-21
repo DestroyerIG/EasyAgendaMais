@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import easyAgendaLogo from '@/icons/easyagenda.png';
+import easyAgendaLogo from '@/icons/easyagenda-logo.svg';
 
 const EASYCONNECT_URL = 'https://easyconnectcg.com.br';
 

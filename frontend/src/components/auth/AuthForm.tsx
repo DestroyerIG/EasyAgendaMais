@@ -11,7 +11,7 @@ import api from '@/lib/api';
 import { getApiErrorCode, getApiErrorMessage } from '@/utils/handleApiError';
 import { formatCpfCnpj, isValidCpfCnpj, normalizeCpfCnpjDigits } from '@/utils/cpfCnpj';
 import { resolveAuthConfirmRedirectUrl } from '@/lib/supabase/client';
-import easyAgendaLogo from '@/icons/easyagenda.png';
+import easyAgendaLogo from '@/icons/easyagenda-logo.svg';
 
 type AuthMode = 'login' | 'register';
 

@@ -16,7 +16,7 @@ import {
 import { formatCurrency } from '@/lib/formatters';
 import { isPlanId, PLAN_MAP, type PlanId } from '@/lib/plans';
 import { getApiErrorMessage } from '@/utils/handleApiError';
-import easyAgendaLogo from '@/icons/easyagenda.png';
+import easyAgendaLogo from '@/icons/easyagenda-logo.svg';
 
 const ACTIVE_STATUSES = new Set(['active', 'trialing']);
 

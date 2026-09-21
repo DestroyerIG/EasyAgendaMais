@@ -3,7 +3,7 @@ import { ToastProvider } from '@/components/Toast'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AuthProvider } from '@/contexts/AuthContext'
 import localFont from 'next/font/local'
-import easyAgendaLogo from '@/icons/easyagenda.png'
+import easyAgendaLogo from '@/icons/easyagenda-logo.svg'
 
 const plusJakartaSans = localFont({
   src: '../assets/fonts/plus-jakarta-sans-latin.woff2',

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { LogOut, Menu, X } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui';
 import type { TabId, TabItem } from '@/types';
-import easyAgendaLogo from '@/icons/easyagenda.png';
+import easyAgendaLogo from '@/icons/easyagenda-logo.svg';
 
 const tabs: TabItem[] = [
     { id: 'dashboard', label: 'Dashboard' },
