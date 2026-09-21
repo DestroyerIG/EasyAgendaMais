@@ -46,7 +46,7 @@ export function AppointmentCard({ appointment, actionLoading, onStatusChange }: 
         </div>
         <div className="flex items-center gap-2.5 text-sm">
           <Scissors size={14} className="text-gray-500 flex-shrink-0" />
-          <span className="text-gray-300">{appointment.barber_name}</span>
+          <span className="text-gray-300">{appointment.professional_name}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-400">{appointment.service_name}</span>

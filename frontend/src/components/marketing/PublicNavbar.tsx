@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
-import easyBarberLogo from '@/icons/easybarber.png';
+import easyAgendaLogo from '@/icons/easyagenda.png';
 
 const navItems = [
   { href: '#inicio', label: 'Início' },
@@ -19,13 +19,13 @@ export function PublicNavbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 lg:px-8">
-        <Link href="/" className="flex items-center gap-2" aria-label="EasyBarber página inicial">
+        <Link href="/" className="flex items-center gap-2" aria-label="EasyAgenda página inicial">
           <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-primary/30 bg-black/40">
-            <Image src={easyBarberLogo} alt="Logo EasyBarber" width={40} height={40} className="h-full w-full object-contain" priority />
+            <Image src={easyAgendaLogo} alt="Logo EasyAgenda" width={40} height={40} className="h-full w-full object-contain" priority />
           </span>
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-primary/70">Gestão para Barbearias</p>
-            <p className="text-xl font-black leading-none">EasyBarber</p>
+            <p className="text-xl font-black leading-none">EasyAgenda</p>
           </div>
         </Link>
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Modal, ModalFooter } from '@/components/ui';
 import { Scissors, Camera, Save, X, Loader2 } from 'lucide-react';
-import type { Service, Barber } from '@/types';
+import type { Service, Professional } from '@/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/Toast';
 
@@ -13,32 +13,32 @@ export interface ServiceFormData {
   duration_minutes: string;
 }
 
-export interface BarberFormData {
+export interface ProfessionalFormData {
   name: string;
   photo: string;
 }
 
-interface ServiceBarberModalProps {
+interface ServiceProfessionalModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmitService: (data: ServiceFormData) => Promise<void>;
-  onSubmitBarber: (data: BarberFormData) => Promise<void>;
+  onSubmitProfessional: (data: ProfessionalFormData) => Promise<void>;
   activeTab: 'servicos' | 'barbeiros';
-  editingItem: Service | Barber | null;
+  editingItem: Service | Professional | null;
 }
 
-const BUCKET = 'barber-photos';
+const BUCKET = 'professional-photos';
 
-export const ServiceBarberModal = ({
+export const ServiceProfessionalModal = ({
   isOpen,
   onClose,
   onSubmitService,
-  onSubmitBarber,
+  onSubmitProfessional,
   activeTab,
   editingItem,
-}: ServiceBarberModalProps) => {
+}: ServiceProfessionalModalProps) => {
   const [serviceForm, setServiceForm] = useState<ServiceFormData>({ name: '', price: '', duration_minutes: '' });
-  const [barberForm, setBarberForm] = useState<BarberFormData>({ name: '', photo: '' });
+  const [professionalForm, setProfessionalForm] = useState<ProfessionalFormData>({ name: '', photo: '' });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>('');
   const [uploading, setUploading] = useState(false);
@@ -62,11 +62,11 @@ export const ServiceBarberModal = ({
       }
     } else {
       if (editingItem && 'photo' in editingItem) {
-        const existingPhoto = (editingItem as Barber).photo || '';
-        setBarberForm({ name: editingItem.name, photo: existingPhoto });
+        const existingPhoto = (editingItem as Professional).photo || '';
+        setProfessionalForm({ name: editingItem.name, photo: existingPhoto });
         setPhotoPreview(existingPhoto);
       } else {
-        setBarberForm({ name: '', photo: '' });
+        setProfessionalForm({ name: '', photo: '' });
       }
     }
   }, [isOpen, editingItem, activeTab]);
@@ -89,7 +89,7 @@ export const ServiceBarberModal = ({
   const clearPhoto = () => {
     setPhotoFile(null);
     setPhotoPreview('');
-    setBarberForm(prev => ({ ...prev, photo: '' }));
+    setProfessionalForm(prev => ({ ...prev, photo: '' }));
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -122,7 +122,7 @@ export const ServiceBarberModal = ({
       if (activeTab === 'servicos') {
         await onSubmitService(serviceForm);
       } else {
-        let photoUrl = barberForm.photo;
+        let photoUrl = professionalForm.photo;
 
         if (photoFile) {
           try {
@@ -134,7 +134,7 @@ export const ServiceBarberModal = ({
           }
         }
 
-        await onSubmitBarber({ ...barberForm, photo: photoUrl });
+        await onSubmitProfessional({ ...professionalForm, photo: photoUrl });
       }
       onClose();
     } finally {
@@ -158,7 +158,7 @@ export const ServiceBarberModal = ({
         <ModalFooter
           onCancel={onClose}
           onSubmit={() => {
-            const form = document.getElementById('service-barber-form') as HTMLFormElement;
+            const form = document.getElementById('service-professional-form') as HTMLFormElement;
             form?.requestSubmit();
           }}
           submitLabel={uploading ? 'Enviando foto...' : 'Salvar'}
@@ -167,7 +167,7 @@ export const ServiceBarberModal = ({
         />
       }
     >
-      <form id="service-barber-form" onSubmit={handleSubmit} className="space-y-6">
+      <form id="service-professional-form" onSubmit={handleSubmit} className="space-y-6">
         {activeTab === 'servicos' ? (
           <>
             <div className="space-y-2">
@@ -214,8 +214,8 @@ export const ServiceBarberModal = ({
               <input
                 required
                 type="text"
-                value={barberForm.name}
-                onChange={e => setBarberForm({ ...barberForm, name: e.target.value })}
+                value={professionalForm.name}
+                onChange={e => setProfessionalForm({ ...professionalForm, name: e.target.value })}
                 className="input"
                 placeholder="Ex: Gabriel Souza"
               />

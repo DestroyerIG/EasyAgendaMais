@@ -4,13 +4,13 @@ import Image from 'next/image';
 import { useEffect, useState, useCallback } from 'react';
 import api from '@/lib/api';
 import { useToast } from '@/components/Toast';
-import type { Appointment, Barber } from '@/types';
+import type { Appointment, Professional } from '@/types';
 import {
     Calendar, User, Loader2, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
-interface BarberAgendaProps {
-    barber: Barber;
+interface ProfessionalAgendaProps {
+    professional: Professional;
 }
 
 const formatDate = (dateStr: string) => {
@@ -31,7 +31,7 @@ const addDays = (dateStr: string, days: number) => {
     return date.toISOString().split('T')[0];
 };
 
-export function BarberAgenda({ barber }: BarberAgendaProps) {
+export function ProfessionalAgenda({ professional }: ProfessionalAgendaProps) {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState(getToday());
@@ -43,7 +43,7 @@ export function BarberAgenda({ barber }: BarberAgendaProps) {
             const params = {
                 date: selectedDate,
                 view: 'day',
-                barberId: barber.id
+                professionalId: professional.id
             };
             const response = await api.get('/appointments', { params });
             setAppointments(response.data);
@@ -52,7 +52,7 @@ export function BarberAgenda({ barber }: BarberAgendaProps) {
         } finally {
             setLoading(false);
         }
-    }, [barber.id, selectedDate, showToast]);
+    }, [professional.id, selectedDate, showToast]);
 
     useEffect(() => {
         loadAppointments();
@@ -63,10 +63,10 @@ export function BarberAgenda({ barber }: BarberAgendaProps) {
             <div className="bg-dark-light border border-primary/20 rounded-2xl p-6 mb-6">
                 <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary bg-black/40 flex items-center justify-center">
-                        {barber.photo ? (
+                        {professional.photo ? (
                             <Image
-                                src={barber.photo}
-                                alt={barber.name}
+                                src={professional.photo}
+                                alt={professional.name}
                                 width={64}
                                 height={64}
                                 unoptimized
@@ -78,7 +78,7 @@ export function BarberAgenda({ barber }: BarberAgendaProps) {
                         )}
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-white">Agenda: {barber.name}</h2>
+                        <h2 className="text-2xl font-bold text-white">Agenda: {professional.name}</h2>
                         <p className="text-gray-400 capitalize">{formatDate(selectedDate)}</p>
                     </div>
                 </div>

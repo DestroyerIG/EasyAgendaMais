@@ -3,8 +3,8 @@ import { PublicNavbar } from '@/components/marketing/PublicNavbar';
 import { PublicFooter } from '@/components/marketing/PublicFooter';
 
 export const metadata = {
-  title: 'Termos de Uso - EasyBarber',
-  description: 'Termos e condições de uso da plataforma EasyBarber.',
+  title: 'Termos de Uso - EasyAgenda',
+  description: 'Termos e condições de uso da plataforma EasyAgenda.',
 };
 
 const LAST_UPDATE = '28 de maio de 2026';
@@ -13,14 +13,14 @@ const sections = [
   {
     title: '1. Aceitação dos termos',
     paragraphs: [
-      'Ao criar uma conta, acessar ou utilizar a plataforma EasyBarber ("plataforma", "serviço"), você concorda integralmente com estes Termos de Uso. Caso não concorde com qualquer condição, não utilize o serviço.',
+      'Ao criar uma conta, acessar ou utilizar a plataforma EasyAgenda ("plataforma", "serviço"), você concorda integralmente com estes Termos de Uso. Caso não concorde com qualquer condição, não utilize o serviço.',
       'Estes termos se aplicam a todos os usuários, incluindo proprietários de barbearias, equipe e clientes finais que interajam com os recursos da plataforma.',
     ],
   },
   {
     title: '2. Descrição do serviço',
     paragraphs: [
-      'O EasyBarber é uma plataforma de gestão para barbearias que oferece agendamento online, cadastro de clientes, controle financeiro, gestão de equipe, notificações automáticas e recursos relacionados.',
+      'O EasyAgenda é uma plataforma de gestão para barbearias que oferece agendamento online, cadastro de clientes, controle financeiro, gestão de equipe, notificações automáticas e recursos relacionados.',
       'O serviço é fornecido no modelo de assinatura (SaaS) e pode ser ajustado, ampliado ou descontinuado a qualquer momento, mediante comunicação prévia quando aplicável.',
     ],
   },
@@ -55,13 +55,13 @@ const sections = [
   {
     title: '7. Propriedade intelectual',
     paragraphs: [
-      'Todo o conteúdo, marca, software e elementos da plataforma pertencem ao EasyBarber e à EasyConnect, sendo protegidos pela legislação aplicável. É vedada a reprodução, distribuição ou modificação sem autorização expressa.',
+      'Todo o conteúdo, marca, software e elementos da plataforma pertencem ao EasyAgenda e à EasyConnect, sendo protegidos pela legislação aplicável. É vedada a reprodução, distribuição ou modificação sem autorização expressa.',
     ],
   },
   {
     title: '8. Limitação de responsabilidade',
     paragraphs: [
-      'Na máxima extensão permitida pela lei, o EasyBarber não se responsabiliza por danos indiretos, lucros cessantes ou perdas decorrentes do uso ou da impossibilidade de uso da plataforma.',
+      'Na máxima extensão permitida pela lei, o EasyAgenda não se responsabiliza por danos indiretos, lucros cessantes ou perdas decorrentes do uso ou da impossibilidade de uso da plataforma.',
     ],
   },
   {

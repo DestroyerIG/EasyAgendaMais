@@ -10,7 +10,7 @@ import { DateNavigationBar } from '@/components/appointments/DateNavigationBar';
 import { AppointmentCard } from '@/components/appointments/AppointmentCard';
 import { CreateAppointmentModal } from '@/components/appointments/CreateAppointmentModal';
 import type { AppointmentFormData } from '@/components/appointments/CreateAppointmentModal';
-import type { Appointment, Client, Barber, Service } from '@/types';
+import type { Appointment, Client, Professional, Service } from '@/types';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { Calendar, Clock, CheckCircle, XCircle, Plus, Loader2 } from 'lucide-react';
 
@@ -31,7 +31,7 @@ export function AppointmentModule() {
 
   // Modal data
   const [clients, setClients] = useState<Client[]>([]);
-  const [barbers, setBarbers] = useState<Barber[]>([]);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -62,24 +62,24 @@ export function AppointmentModule() {
     setShowModal(true);
     setAvailableSlots([]);
     try {
-      const [clientsRes, barbersRes, servicesRes] = await Promise.all([
+      const [clientsRes, professionalsRes, servicesRes] = await Promise.all([
         api.get('/clients'),
-        api.get('/barbershop/barbers'),
-        api.get('/barbershop/services'),
+        api.get('/business/professionals'),
+        api.get('/business/services'),
       ]);
       setClients(clientsRes.data);
-      setBarbers(barbersRes.data);
+      setProfessionals(professionalsRes.data);
       setServices(servicesRes.data);
     } catch {
       showToast('Erro ao carregar dados do formulário', 'error');
     }
   };
 
-  const loadAvailableSlots = async (barberId: string, date: string, serviceId: string) => {
-    if (!barberId || !date) return;
+  const loadAvailableSlots = async (professionalId: string, date: string, serviceId: string) => {
+    if (!professionalId || !date) return;
     try {
       setSlotsLoading(true);
-      const params: Record<string, string> = { barberId, date };
+      const params: Record<string, string> = { professionalId, date };
       if (serviceId) params.serviceId = serviceId;
       const response = await api.get('/appointments/available-slots', { params });
       setAvailableSlots(response.data);
@@ -213,7 +213,7 @@ export function AppointmentModule() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         clients={clients}
-        barbers={barbers}
+        professionals={professionals}
         services={services}
         availableSlots={availableSlots}
         slotsLoading={slotsLoading}

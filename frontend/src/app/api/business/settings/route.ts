@@ -1,9 +1,9 @@
 import { proxyRequest } from '@/lib/server/proxy';
 
 export async function GET(request: Request) {
-  return proxyRequest(request, '/barbershop/profile', 'GET');
+  return proxyRequest(request, '/business/settings', 'GET');
 }
 
 export async function PUT(request: Request) {
-  return proxyRequest(request, '/barbershop/profile', 'PUT');
+  return proxyRequest(request, '/business/settings', 'PUT');
 }

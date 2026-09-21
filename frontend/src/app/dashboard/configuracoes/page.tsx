@@ -16,7 +16,7 @@ export default function ConfiguracoesPage() {
       onManageBilling={openBillingPortal}
       title="Administração avançada indisponível"
     >
-      <SettingsModule initialBarbershopName={user?.barbershopName || ''} />
+      <SettingsModule initialBusinessName={user?.businessName || ''} />
     </FeatureGate>
   );
 }

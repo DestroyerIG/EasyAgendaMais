@@ -4,34 +4,34 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { useToast } from './Toast';
 import { Plus, ArrowLeft } from 'lucide-react';
-import type { Service, Barber } from '@/types';
-import { BarberAgenda } from './BarberAgenda';
+import type { Service, Professional } from '@/types';
+import { ProfessionalAgenda } from './ProfessionalAgenda';
 import { PageHeader } from '@/components/ui';
 import { ServiceCard } from '@/components/services/ServiceCard';
-import { BarberCard } from '@/components/services/BarberCard';
-import { ServiceBarberModal } from '@/components/services/ServiceBarberModal';
-import type { ServiceFormData, BarberFormData } from '@/components/services/ServiceBarberModal';
+import { ProfessionalCard } from '@/components/services/ProfessionalCard';
+import { ServiceProfessionalModal } from '@/components/services/ServiceProfessionalModal';
+import type { ServiceFormData, ProfessionalFormData } from '@/components/services/ServiceProfessionalModal';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 
-export const ServiceBarberModule = () => {
+export const ServiceProfessionalModule = () => {
   const [activeTab, setActiveTab] = useState<'servicos' | 'barbeiros'>('servicos');
   const [services, setServices] = useState<Service[]>([]);
-  const [barbers, setBarbers] = useState<Barber[]>([]);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<Service | Barber | null>(null);
-  const [selectedBarberForAgenda, setSelectedBarberForAgenda] = useState<Barber | null>(null);
+  const [editingItem, setEditingItem] = useState<Service | Professional | null>(null);
+  const [selectedProfessionalForAgenda, setSelectedProfessionalForAgenda] = useState<Professional | null>(null);
   const { showToast } = useToast();
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [servicesRes, barbersRes] = await Promise.all([
-        api.get('/barbershop/services'),
-        api.get('/barbershop/barbers'),
+      const [servicesRes, professionalsRes] = await Promise.all([
+        api.get('/business/services'),
+        api.get('/business/professionals'),
       ]);
       setServices(servicesRes.data);
-      setBarbers(barbersRes.data);
+      setProfessionals(professionalsRes.data);
     } catch {
       showToast('Erro ao carregar dados', 'error');
     } finally {
@@ -43,7 +43,7 @@ export const ServiceBarberModule = () => {
     loadData();
   }, [loadData]);
 
-  const handleOpenModal = (item?: Service | Barber) => {
+  const handleOpenModal = (item?: Service | Professional) => {
     setEditingItem(item || null);
     setIsModalOpen(true);
   };
@@ -56,10 +56,10 @@ export const ServiceBarberModule = () => {
     };
     try {
       if (editingItem) {
-        await api.put(`/barbershop/services/${editingItem.id}`, payload);
+        await api.put(`/business/services/${editingItem.id}`, payload);
         showToast('Serviço atualizado', 'success');
       } else {
-        await api.post('/barbershop/services', payload);
+        await api.post('/business/services', payload);
         showToast('Serviço criado', 'success');
       }
       loadData();
@@ -69,14 +69,14 @@ export const ServiceBarberModule = () => {
     }
   };
 
-  const handleBarberSubmit = async (data: BarberFormData) => {
+  const handleProfessionalSubmit = async (data: ProfessionalFormData) => {
     const payload = { name: data.name, photo: data.photo || null };
     try {
       if (editingItem) {
-        await api.put(`/barbershop/barbers/${editingItem.id}`, payload);
+        await api.put(`/business/professionals/${editingItem.id}`, payload);
         showToast('Barbeiro atualizado', 'success');
       } else {
-        await api.post('/barbershop/barbers', payload);
+        await api.post('/business/professionals', payload);
         showToast('Barbeiro cadastrado', 'success');
       }
       loadData();
@@ -89,8 +89,8 @@ export const ServiceBarberModule = () => {
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir?')) return;
     try {
-      const endpoint = activeTab === 'servicos' ? 'services' : 'barbers';
-      await api.delete(`/barbershop/${endpoint}/${id}`);
+      const endpoint = activeTab === 'servicos' ? 'services' : 'professionals';
+      await api.delete(`/business/${endpoint}/${id}`);
       showToast('Excluído com sucesso', 'success');
       loadData();
     } catch (error: unknown) {
@@ -98,16 +98,16 @@ export const ServiceBarberModule = () => {
     }
   };
 
-  if (selectedBarberForAgenda) {
+  if (selectedProfessionalForAgenda) {
     return (
       <div className="space-y-6">
         <button
-          onClick={() => setSelectedBarberForAgenda(null)}
+          onClick={() => setSelectedProfessionalForAgenda(null)}
           className="flex items-center gap-2 text-gray-400 hover:text-white transition-all"
         >
           <ArrowLeft size={20} /> Voltar para Gestão
         </button>
-        <BarberAgenda barber={selectedBarberForAgenda} />
+        <ProfessionalAgenda professional={selectedProfessionalForAgenda} />
       </div>
     );
   }
@@ -154,16 +154,16 @@ export const ServiceBarberModule = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {barbers.map(b => (
-            <BarberCard
+          {professionals.map(b => (
+            <ProfessionalCard
               key={b.id}
-              barber={b}
+              professional={b}
               onEdit={() => handleOpenModal(b)}
               onDelete={() => handleDelete(b.id)}
-              onViewAgenda={() => setSelectedBarberForAgenda(b)}
+              onViewAgenda={() => setSelectedProfessionalForAgenda(b)}
             />
           ))}
-          {barbers.length === 0 && (
+          {professionals.length === 0 && (
             <div className="col-span-full py-12 text-center border-2 border-dashed border-gray-800 rounded-2xl text-gray-500">
               Nenhum barbeiro na equipe.
             </div>
@@ -171,11 +171,11 @@ export const ServiceBarberModule = () => {
         </div>
       )}
 
-      <ServiceBarberModal
+      <ServiceProfessionalModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmitService={handleServiceSubmit}
-        onSubmitBarber={handleBarberSubmit}
+        onSubmitProfessional={handleProfessionalSubmit}
         activeTab={activeTab}
         editingItem={editingItem}
       />

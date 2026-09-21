@@ -1,11 +1,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import easyBarberLogo from '@/icons/easybarber.png';
+import easyAgendaLogo from '@/icons/easyagenda.png';
 
 const EASYCONNECT_URL = 'https://easyconnectcg.com.br';
 
 const defaultContactUrl =
-  'https://wa.me/5583991347023?text=Ol%C3%A1%2C%20quero%20conhecer%20o%20EasyBarber';
+  'https://wa.me/5583991347023?text=Ol%C3%A1%2C%20quero%20conhecer%20o%20EasyAgenda';
 
 export function PublicFooter() {
   const contactUrl = process.env.NEXT_PUBLIC_WHATSAPP_CONTACT_URL || defaultContactUrl;
@@ -16,9 +16,9 @@ export function PublicFooter() {
         <div className="sm:col-span-2 lg:col-span-2">
           <div className="inline-flex items-center gap-3">
             <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-primary/30 bg-black/40">
-              <Image src={easyBarberLogo} alt="Logo EasyBarber" width={40} height={40} className="h-full w-full object-contain" priority />
+              <Image src={easyAgendaLogo} alt="Logo EasyAgenda" width={40} height={40} className="h-full w-full object-contain" priority />
             </span>
-            <p className="section-eyebrow">EasyBarber</p>
+            <p className="section-eyebrow">EasyAgenda</p>
           </div>
           <p className="mt-3 text-2xl font-black text-white">Sistema para barbearias com foco em performance comercial.</p>
           <p className="mt-3 max-w-lg text-sm text-gray-400">
@@ -46,7 +46,7 @@ export function PublicFooter() {
               </a>
             </li>
             <li>
-              <a href="mailto:contato@easybarber.com" className="hover:text-white">
+              <a href="mailto:contato@easyagenda.com" className="hover:text-white">
                 contato@easyconnectcg.com.br
               </a>
             </li>
@@ -57,7 +57,7 @@ export function PublicFooter() {
 
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-4 text-xs text-gray-500 sm:px-6 lg:flex-row lg:px-8">
-          <p>© {new Date().getFullYear()} EasyBarber. Todos os direitos reservados.</p>
+          <p>© {new Date().getFullYear()} EasyAgenda. Todos os direitos reservados.</p>
           <div className="flex items-center gap-4">
             <Link href="/termos" className="hover:text-gray-300">Termos</Link>
             <Link href="/privacidade" className="hover:text-gray-300">Privacidade</Link>

@@ -1,6 +1,7 @@
 const path = require('path');
 
-const PRODUCTION_BACKEND_ORIGIN = 'https://easybarber-backend.onrender.com';
+const PRODUCTION_BACKEND_ORIGIN =
+  process.env.BACKEND_ORIGIN || 'https://easybarber-backend.onrender.com';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

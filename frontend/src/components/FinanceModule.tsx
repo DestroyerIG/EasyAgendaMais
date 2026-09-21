@@ -20,7 +20,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import easyBarberLogo from '@/icons/easybarber.png';
+import easyAgendaLogo from '@/icons/easyagenda.png';
 
 interface FinanceSummary {
   today: { earnings: number; expenses: number; profit: number };
@@ -38,7 +38,7 @@ type AutoTableDoc = jsPDF & { lastAutoTable: { finalY: number } };
 
 const loadLogoDataUrl = async () => {
   try {
-    const response = await fetch(easyBarberLogo.src);
+    const response = await fetch(easyAgendaLogo.src);
     if (!response.ok) return null;
     const blob = await response.blob();
     return await new Promise<string | null>((resolve) => {
@@ -165,7 +165,7 @@ export const FinanceModule = ({
 
     doc.setFontSize(20);
     doc.setTextColor(204, 133, 41);
-    doc.text('EasyBarber - Relatório Financeiro', titleX, 20);
+    doc.text('EasyAgenda - Relatório Financeiro', titleX, 20);
     doc.setFontSize(10);
     doc.setTextColor(100);
     doc.text(`Gerado em: ${now}`, titleX, 28);

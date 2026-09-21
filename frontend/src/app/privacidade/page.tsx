@@ -3,8 +3,8 @@ import { PublicNavbar } from '@/components/marketing/PublicNavbar';
 import { PublicFooter } from '@/components/marketing/PublicFooter';
 
 export const metadata = {
-  title: 'Política de Privacidade - EasyBarber',
-  description: 'Como o EasyBarber coleta, usa e protege os seus dados pessoais, em conformidade com a LGPD.',
+  title: 'Política de Privacidade - EasyAgenda',
+  description: 'Como o EasyAgenda coleta, usa e protege os seus dados pessoais, em conformidade com a LGPD.',
 };
 
 const LAST_UPDATE = '28 de maio de 2026';
@@ -13,7 +13,7 @@ const sections = [
   {
     title: '1. Introdução',
     paragraphs: [
-      'Esta Política de Privacidade descreve como o EasyBarber, operado pela EasyConnect, coleta, utiliza, armazena e protege os dados pessoais tratados na plataforma, em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 - LGPD).',
+      'Esta Política de Privacidade descreve como o EasyAgenda, operado pela EasyConnect, coleta, utiliza, armazena e protege os dados pessoais tratados na plataforma, em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 - LGPD).',
       'Ao utilizar a plataforma, você declara estar ciente das práticas descritas neste documento.',
     ],
   },
@@ -49,7 +49,7 @@ const sections = [
   {
     title: '6. Responsabilidade pelos dados de clientes finais',
     paragraphs: [
-      'A barbearia titular da conta é a controladora dos dados de seus próprios clientes inseridos na plataforma, sendo responsável por obter o consentimento e as bases legais necessárias. O EasyBarber atua como operador desses dados, tratando-os conforme as instruções do controlador.',
+      'A barbearia titular da conta é a controladora dos dados de seus próprios clientes inseridos na plataforma, sendo responsável por obter o consentimento e as bases legais necessárias. O EasyAgenda atua como operador desses dados, tratando-os conforme as instruções do controlador.',
     ],
   },
   {

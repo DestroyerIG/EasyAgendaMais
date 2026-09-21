@@ -11,7 +11,7 @@ import api from '@/lib/api';
 import { getApiErrorCode, getApiErrorMessage } from '@/utils/handleApiError';
 import { formatCpfCnpj, isValidCpfCnpj, normalizeCpfCnpjDigits } from '@/utils/cpfCnpj';
 import { resolveAuthConfirmRedirectUrl } from '@/lib/supabase/client';
-import easyBarberLogo from '@/icons/easybarber.png';
+import easyAgendaLogo from '@/icons/easyagenda.png';
 
 type AuthMode = 'login' | 'register';
 
@@ -40,7 +40,7 @@ export function AuthForm({ mode, selectedPlan }: AuthFormProps) {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    barbershopName: '',
+    businessName: '',
     ownerName: '',
     whatsapp: '',
     cpfCnpj: '',
@@ -108,7 +108,7 @@ export function AuthForm({ mode, selectedPlan }: AuthFormProps) {
         setCpfCnpjValidationError(null);
 
         const result = await register({
-          barbershopName: formData.barbershopName,
+          businessName: formData.businessName,
           ownerName: formData.ownerName,
           email: formData.email,
           whatsapp: formData.whatsapp,
@@ -213,15 +213,15 @@ export function AuthForm({ mode, selectedPlan }: AuthFormProps) {
           <div className="inline-flex items-center gap-3">
             <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-primary/30 bg-black/40">
               <Image
-                src={easyBarberLogo}
-                alt="Logo EasyBarber"
+                src={easyAgendaLogo}
+                alt="Logo EasyAgenda"
                 width={40}
                 height={40}
                 className="h-full w-full object-contain"
                 priority
               />
             </span>
-            <p className="text-xs uppercase tracking-[0.24em] text-primary/70">EasyBarber</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-primary/70">EasyAgenda</p>
           </div>
           <h1 className="mt-3 text-3xl font-black leading-tight sm:text-4xl lg:text-5xl">
             {isLogin
@@ -264,9 +264,9 @@ export function AuthForm({ mode, selectedPlan }: AuthFormProps) {
               <>
                 <input
                   type="text"
-                  name="barbershopName"
+                  name="businessName"
                   placeholder="Nome da barbearia"
-                  value={formData.barbershopName}
+                  value={formData.businessName}
                   onChange={handleChange}
                   required
                   className="input"

@@ -334,12 +334,12 @@ export const WhatsAppModule = () => {
   };
 
   const handleSimulatorMessage = async (text: string): Promise<string | null> => {
-    const barbershopId =
-      typeof user?.barbershopId === 'string' && user.barbershopId.trim()
-        ? user.barbershopId.trim()
+    const businessId =
+      typeof user?.businessId === 'string' && user.businessId.trim()
+        ? user.businessId.trim()
         : null;
 
-    if (!barbershopId) {
+    if (!businessId) {
       showToast(
         'Nao foi possivel identificar a barbearia autenticada para o simulador. Faca login novamente.',
         'error'
@@ -352,7 +352,7 @@ export const WhatsAppModule = () => {
         text,
         phone: '5511999999999',
         pushName: 'Simulador',
-        barbershopId,
+        businessId,
       });
 
       return response.data?.lastBotResponse || null;

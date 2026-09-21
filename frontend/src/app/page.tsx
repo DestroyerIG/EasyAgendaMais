@@ -14,7 +14,7 @@ import { PublicFooter } from '@/components/marketing/PublicFooter';
 import { PricingPlansSection } from '@/components/marketing/PricingPlansSection';
 
 const defaultContactUrl =
-  'https://wa.me/5583991347023?text=Ol%C3%A1%2C%20quero%20conhecer%20o%20EasyBarber';
+  'https://wa.me/5583991347023?text=Ol%C3%A1%2C%20quero%20conhecer%20o%20EasyAgenda';
 
 const benefits = [
   {
@@ -98,7 +98,7 @@ export default function HomePage() {
               Gerencie sua barbearia com mais controle, automação e crescimento previsível.
             </h1>
             <p className="mt-4 max-w-xl text-base text-gray-300 sm:mt-6 sm:text-lg">
-              O EasyBarber organiza agendamentos, clientes, financeiro e equipe em uma plataforma única,
+              O EasyAgenda organiza agendamentos, clientes, financeiro e equipe em uma plataforma única,
               profissional e pronta para escalar seu negócio.
             </p>
 
@@ -180,7 +180,7 @@ export default function HomePage() {
               Funcionalidades criadas para uma gestão de verdade
             </h2>
             <p className="mt-3 text-sm text-gray-400 sm:mt-4 sm:text-base">
-              Da agenda ao faturamento recorrente, o EasyBarber foi pensado para reduzir ruído operacional e aumentar conversão.
+              Da agenda ao faturamento recorrente, o EasyAgenda foi pensado para reduzir ruído operacional e aumentar conversão.
             </p>
           </div>
 
@@ -216,7 +216,7 @@ export default function HomePage() {
               Quer acelerar sua barbearia com estrutura profissional?
             </h2>
             <p className="mt-3 max-w-3xl text-sm text-gray-200 sm:mt-4 sm:text-base">
-              Nossa equipe te ajuda a definir o melhor plano, organizar o onboarding e ativar o EasyBarber com foco em resultado.
+              Nossa equipe te ajuda a definir o melhor plano, organizar o onboarding e ativar o EasyAgenda com foco em resultado.
             </p>
 
             <div className="mt-6 flex flex-col gap-3 sm:mt-7 sm:flex-row">

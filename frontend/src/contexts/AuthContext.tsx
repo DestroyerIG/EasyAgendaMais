@@ -30,7 +30,7 @@ interface AuthRedirectOptions {
 }
 
 interface RegisterData {
-  barbershopName: string;
+  businessName: string;
   ownerName: string;
   email: string;
   whatsapp: string;
@@ -133,7 +133,7 @@ const isUser = (value: unknown): value is User => {
   return (
     typeof candidate.email === 'string' &&
     typeof candidate.role === 'string' &&
-    typeof candidate.barbershopName === 'string' &&
+    typeof candidate.businessName === 'string' &&
     typeof candidate.plan === 'string'
   );
 };

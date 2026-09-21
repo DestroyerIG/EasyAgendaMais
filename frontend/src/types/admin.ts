@@ -77,7 +77,7 @@ export interface AdminTenantDetails {
     totalClients: number;
     totalAppointmentsMonth: number;
     totalServices: number;
-    totalBarbers: number;
+    totalProfessionals: number;
     lastActivityAt: string | null;
   };
 }
@@ -103,11 +103,11 @@ export interface AdminAuditLog {
   action_type: string;
   actor_user_id: string | null;
   actor_user_email: string | null;
-  actor_barbershop_id: string | null;
+  actor_business_id: string | null;
   actor_tenant_name: string | null;
   target_user_id: string | null;
   target_user_email: string | null;
-  target_barbershop_id: string | null;
+  target_business_id: string | null;
   target_tenant_name: string | null;
   resource_type: string | null;
   resource_id: string | null;

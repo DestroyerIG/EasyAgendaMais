@@ -124,7 +124,7 @@ export function ClientDetailPanel({ client, history, loadingHistory, onEdit }: C
                     <td className="px-6 py-4 text-white font-medium">{formatDate(item.date)}</td>
                     <td className="px-6 py-4">
                       <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold border border-primary/20">
-                        {item.barber_name || 'Não informado'}
+                        {item.professional_name || 'Não informado'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-300">{item.service_name || 'Não informado'}</td>

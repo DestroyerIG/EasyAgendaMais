@@ -1,4 +1,4 @@
-const DEFAULT_PRODUCTION_APP_URL = 'https://barberpro-saas-2-0.vercel.app';
+const DEFAULT_PRODUCTION_APP_URL = 'https://professionalpro-saas-2-0.vercel.app';
 
 const normalizeEnvValue = (value: string | undefined) => {
   const normalized = String(value || '').trim();

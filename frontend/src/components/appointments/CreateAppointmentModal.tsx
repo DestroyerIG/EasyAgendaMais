@@ -4,35 +4,35 @@ import { useState } from 'react';
 import { Plus, Search, Scissors, AlertCircle, XCircle, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { Modal, ModalFooter } from '@/components/ui';
-import type { Client, Barber, Service } from '@/types';
+import type { Client, Professional, Service } from '@/types';
 
 interface CreateAppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   clients: Client[];
-  barbers: Barber[];
+  professionals: Professional[];
   services: Service[];
   availableSlots: string[];
   slotsLoading: boolean;
-  onLoadSlots: (barberId: string, date: string, serviceId: string) => void;
+  onLoadSlots: (professionalId: string, date: string, serviceId: string) => void;
   onSubmit: (data: AppointmentFormData) => Promise<void>;
 }
 
 export interface AppointmentFormData {
   clientId: string;
-  barberId: string;
+  professionalId: string;
   serviceId: string;
   date: string;
   time: string;
 }
 
 export function CreateAppointmentModal({
-  isOpen, onClose, clients, barbers, services,
+  isOpen, onClose, clients, professionals, services,
   availableSlots, slotsLoading, onLoadSlots, onSubmit
 }: CreateAppointmentModalProps) {
   const today = new Date().toISOString().split('T')[0];
   const [formData, setFormData] = useState<AppointmentFormData>({
-    clientId: '', barberId: '', serviceId: '', date: today, time: '',
+    clientId: '', professionalId: '', serviceId: '', date: today, time: '',
   });
   const [clientSearch, setClientSearch] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -41,8 +41,8 @@ export function CreateAppointmentModal({
     const newData = { ...formData, [field]: value };
     setFormData(newData);
 
-    if (field === 'barberId' || field === 'date' || field === 'serviceId') {
-      const bId = field === 'barberId' ? value : newData.barberId;
+    if (field === 'professionalId' || field === 'date' || field === 'serviceId') {
+      const bId = field === 'professionalId' ? value : newData.professionalId;
       const d = field === 'date' ? value : newData.date;
       const sId = field === 'serviceId' ? value : newData.serviceId;
       if (bId && d) {
@@ -68,7 +68,7 @@ export function CreateAppointmentModal({
     c.phone.includes(clientSearch)
   );
 
-  const isValid = formData.clientId && formData.barberId && formData.serviceId && formData.time;
+  const isValid = formData.clientId && formData.professionalId && formData.serviceId && formData.time;
 
   return (
     <Modal
@@ -126,22 +126,22 @@ export function CreateAppointmentModal({
       <div>
         <label className="block text-sm font-medium text-gray-400 mb-2">Barbeiro</label>
         <div className="grid grid-cols-2 gap-2">
-          {barbers.map(barber => (
+          {professionals.map(professional => (
             <button
-              key={barber.id}
-              onClick={() => handleChange('barberId', barber.id)}
+              key={professional.id}
+              onClick={() => handleChange('professionalId', professional.id)}
               className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                formData.barberId === barber.id
+                formData.professionalId === professional.id
                   ? 'bg-primary/20 text-primary border border-primary/30'
                   : 'bg-white/5 border border-white/10 text-gray-300 hover:border-white/20'
               }`}
             >
               <Scissors size={14} className="inline mr-2" />
-              {barber.name}
+              {professional.name}
             </button>
           ))}
         </div>
-        {barbers.length === 0 && (
+        {professionals.length === 0 && (
           <p className="text-gray-600 text-xs mt-1">Nenhum barbeiro cadastrado</p>
         )}
       </div>
@@ -190,7 +190,7 @@ export function CreateAppointmentModal({
           Horário
           {slotsLoading && <Loader2 size={12} className="inline ml-2 animate-spin text-primary" />}
         </label>
-        {!formData.barberId ? (
+        {!formData.professionalId ? (
           <div className="flex items-center gap-2 p-3 rounded-xl bg-yellow-500/5 border border-yellow-500/10">
             <AlertCircle size={14} className="text-yellow-500" />
             <p className="text-yellow-500/80 text-xs">Selecione um barbeiro para ver horários</p>

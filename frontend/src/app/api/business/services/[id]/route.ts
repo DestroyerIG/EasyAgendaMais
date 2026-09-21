@@ -5,7 +5,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  return proxyRequest(request, `/barbershop/services/${id}`, 'GET');
+  return proxyRequest(request, `/business/services/${id}`, 'GET');
 }
 
 export async function PUT(
@@ -13,7 +13,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  return proxyRequest(request, `/barbershop/services/${id}`, 'PUT');
+  return proxyRequest(request, `/business/services/${id}`, 'PUT');
 }
 
 export async function DELETE(
@@ -21,5 +21,5 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  return proxyRequest(request, `/barbershop/services/${id}`, 'DELETE');
+  return proxyRequest(request, `/business/services/${id}`, 'DELETE');
 }

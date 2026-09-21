@@ -77,7 +77,7 @@ const shouldRedirectToBilling = (url: string) => {
     url.includes('/billing/status') ||
     url.includes('/billing/checkout/session') ||
     url.includes('/billing/pix/') ||
-    url.includes('/barbershop/account-profile');
+    url.includes('/business/account-profile');
 
   return !isBillingPage && !isBillingRequest;
 };

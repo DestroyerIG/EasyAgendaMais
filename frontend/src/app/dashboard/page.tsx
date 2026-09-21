@@ -14,7 +14,7 @@ import { isPlanId } from '@/lib/plans';
 import { getApiErrorCode } from '@/utils/handleApiError';
 import type { DashboardData } from '@/types';
 
-const PIX_STORAGE_KEY = 'easybarber:pixCheckout';
+const PIX_STORAGE_KEY = 'easyagenda:pixCheckout';
 
 const resolveCheckoutPaymentMethod = (value: string | null): CheckoutPaymentMethod => {
   if (value === 'pix') {

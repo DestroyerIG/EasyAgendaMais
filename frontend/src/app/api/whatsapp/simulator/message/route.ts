@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { proxyRequest } from '@/lib/server/proxy';
 
-const normalizeBarbershopId = (value: unknown): string | null => {
+const normalizeBusinessId = (value: unknown): string | null => {
   if (typeof value !== 'string') {
     return null;
   }
@@ -13,16 +13,16 @@ const normalizeBarbershopId = (value: unknown): string | null => {
 export async function POST(request: Request) {
   try {
     const body = await request.clone().json();
-    const barbershopId = normalizeBarbershopId(body?.barbershopId);
+    const businessId = normalizeBusinessId(body?.businessId);
 
-    if (!barbershopId) {
+    if (!businessId) {
       return NextResponse.json(
         {
           success: false,
-          message: 'Campo barbershopId e obrigatorio para o simulador do WhatsApp.',
+          message: 'Campo businessId e obrigatorio para o simulador do WhatsApp.',
           error: {
-            code: 'WHATSAPP_SIMULATOR_BARBERSHOP_REQUIRED',
-            message: 'Campo barbershopId e obrigatorio para o simulador do WhatsApp.',
+            code: 'WHATSAPP_SIMULATOR_BUSINESS_REQUIRED',
+            message: 'Campo businessId e obrigatorio para o simulador do WhatsApp.',
           },
         },
         { status: 400 }

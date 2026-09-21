@@ -3,7 +3,7 @@ import { ToastProvider } from '@/components/Toast'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AuthProvider } from '@/contexts/AuthContext'
 import localFont from 'next/font/local'
-import easyBarberLogo from '@/icons/easybarber.png'
+import easyAgendaLogo from '@/icons/easyagenda.png'
 
 const plusJakartaSans = localFont({
   src: '../assets/fonts/plus-jakarta-sans-latin.woff2',
@@ -22,23 +22,23 @@ const spaceGrotesk = localFont({
 });
 
 export const metadata = {
-  title: 'EasyBarber - Gestão para Barbearias',
-  description: 'EasyBarber é a plataforma para agendamentos, clientes, financeiro e crescimento previsível da sua barbearia.',
-  keywords: 'easybarber, barbearia, agendamento online, gestão financeira, sistema para barbearias',
+  title: 'EasyAgenda - Gestão para Barbearias',
+  description: 'EasyAgenda é a plataforma para agendamentos, clientes, financeiro e crescimento previsível da sua barbearia.',
+  keywords: 'easyagenda, barbearia, agendamento online, gestão financeira, sistema para barbearias',
   openGraph: {
-    title: 'EasyBarber - Gestão para Barbearias',
+    title: 'EasyAgenda - Gestão para Barbearias',
     description: 'Controle total da operação da sua barbearia com agendamentos, equipe, clientes e financeiro em um só lugar.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'EasyBarber - Gestão para Barbearias',
+    title: 'EasyAgenda - Gestão para Barbearias',
     description: 'Controle total da operação da sua barbearia com agendamentos, equipe, clientes e financeiro em um só lugar.',
   },
   icons: {
-    icon: easyBarberLogo.src,
-    shortcut: easyBarberLogo.src,
-    apple: easyBarberLogo.src,
+    icon: easyAgendaLogo.src,
+    shortcut: easyAgendaLogo.src,
+    apple: easyAgendaLogo.src,
   },
 }
 

@@ -2,24 +2,24 @@
 
 import Image from 'next/image';
 import { Users, Calendar, ChevronRight, Edit2, Trash2 } from 'lucide-react';
-import type { Barber } from '@/types';
+import type { Professional } from '@/types';
 
-interface BarberCardProps {
-  barber: Barber;
+interface ProfessionalCardProps {
+  professional: Professional;
   onEdit: () => void;
   onDelete: () => void;
   onViewAgenda: () => void;
 }
 
-export const BarberCard = ({ barber, onEdit, onDelete, onViewAgenda }: BarberCardProps) => (
+export const ProfessionalCard = ({ professional, onEdit, onDelete, onViewAgenda }: ProfessionalCardProps) => (
   <div className="card rounded-2xl p-6 hover:border-primary/30 transition-all group">
     <div className="flex justify-between items-start mb-6">
       <div className="flex items-center gap-4">
         <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary/20 bg-black/40 flex items-center justify-center">
-          {barber.photo ? (
+          {professional.photo ? (
             <Image
-              src={barber.photo}
-              alt={barber.name}
+              src={professional.photo}
+              alt={professional.name}
               width={64}
               height={64}
               unoptimized
@@ -31,7 +31,7 @@ export const BarberCard = ({ barber, onEdit, onDelete, onViewAgenda }: BarberCar
           )}
         </div>
         <div>
-          <h3 className="text-xl font-bold text-white">{barber.name}</h3>
+          <h3 className="text-xl font-bold text-white">{professional.name}</h3>
           <p className="text-xs text-primary uppercase font-bold tracking-widest">Profissional</p>
         </div>
       </div>

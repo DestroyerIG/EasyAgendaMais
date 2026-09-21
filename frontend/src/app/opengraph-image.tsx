@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'EasyBarber - Gestão para Barbearias';
+export const alt = 'EasyAgenda - Gestão para Barbearias';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -101,7 +101,7 @@ export default function OgImage() {
                 marginTop: '3px',
               }}
             >
-              EasyBarber
+              EasyAgenda
             </span>
           </div>
         </div>
@@ -218,7 +218,7 @@ export default function OgImage() {
               letterSpacing: '0.04em',
             }}
           >
-            easybarber.com.br
+            easyagenda.com.br
           </span>
         </div>
       </div>

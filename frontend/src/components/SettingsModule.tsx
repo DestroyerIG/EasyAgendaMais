@@ -20,7 +20,7 @@ import { formatPhone } from '@/lib/formatters';
 import { getApiErrorCode, getApiErrorMessage } from '@/utils/handleApiError';
 import { formatCpfCnpj, isValidCpfCnpj, normalizeCpfCnpjDigits } from '@/utils/cpfCnpj';
 
-const SETTINGS_STORAGE_KEY = 'easybarber.settings.v1';
+const SETTINGS_STORAGE_KEY = 'easyagenda.settings.v1';
 const PANEL_CLASS =
   'rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(24,24,27,0.96),rgba(10,10,10,0.98))] shadow-[0_24px_80px_rgba(0,0,0,0.35)]';
 const FIELD_CLASS =
@@ -51,7 +51,7 @@ type DiaSemanaId = (typeof DIAS_SEMANA)[number]['id'];
 type DiasAbertosState = Record<DiaSemanaId, boolean>;
 
 interface SettingsModuleProps {
-  initialBarbershopName: string;
+  initialBusinessName: string;
 }
 
 interface SettingsState {
@@ -66,7 +66,7 @@ interface SettingsState {
 }
 
 interface AccountProfileState {
-  barbershopName: string;
+  businessName: string;
   ownerName: string;
   whatsapp: string;
   cpfCnpj: string;
@@ -100,8 +100,8 @@ const buildDefaultSettings = (): SettingsState => ({
   whatsappReminders: true,
 });
 
-const buildDefaultAccountProfile = (barbershopName: string, email: string): AccountProfileState => ({
-  barbershopName: barbershopName || '',
+const buildDefaultAccountProfile = (businessName: string, email: string): AccountProfileState => ({
+  businessName: businessName || '',
   ownerName: '',
   whatsapp: '',
   cpfCnpj: '',
@@ -338,14 +338,14 @@ function LoadingBlock({ lines = 3 }: { lines?: number }) {
   );
 }
 
-export function SettingsModule({ initialBarbershopName }: SettingsModuleProps) {
+export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
   const { user, refreshMe } = useAuth();
   const defaults = useMemo(() => buildDefaultSettings(), []);
   const isTenantAdmin = user?.role === 'tenant_admin';
 
   const [settings, setSettings] = useState<SettingsState>(defaults);
   const [accountProfile, setAccountProfile] = useState<AccountProfileState>(
-    buildDefaultAccountProfile(initialBarbershopName, user?.email || '')
+    buildDefaultAccountProfile(initialBusinessName, user?.email || '')
   );
   const [passwordForm, setPasswordForm] = useState<PasswordState>(buildDefaultPasswordState());
 
@@ -365,17 +365,17 @@ export function SettingsModule({ initialBarbershopName }: SettingsModuleProps) {
   useEffect(() => {
     setAccountProfile((prev) => ({
       ...prev,
-      barbershopName: prev.barbershopName || initialBarbershopName || '',
+      businessName: prev.businessName || initialBusinessName || '',
       email: prev.email || user?.email || '',
     }));
-  }, [initialBarbershopName, user?.email]);
+  }, [initialBusinessName, user?.email]);
 
   useEffect(() => {
     const loadSettings = async () => {
       setSettingsLoading(true);
 
       try {
-        const response = await api.get('/barbershop/settings');
+        const response = await api.get('/business/settings');
         const merged = buildSettingsFromPayload(response.data as Partial<SettingsState>, defaults);
 
         setSettings(merged);
@@ -417,11 +417,11 @@ export function SettingsModule({ initialBarbershopName }: SettingsModuleProps) {
       setAccountLoading(true);
 
       try {
-        const response = await api.get('/barbershop/account-profile');
+        const response = await api.get('/business/account-profile');
         const data = response.data as AccountProfileState;
 
         setAccountProfile({
-          barbershopName: data.barbershopName || initialBarbershopName || '',
+          businessName: data.businessName || initialBusinessName || '',
           ownerName: data.ownerName || '',
           whatsapp: formatPhoneInput(data.whatsapp || ''),
           cpfCnpj: formatCpfCnpj(data.cpfCnpj || ''),
@@ -436,7 +436,7 @@ export function SettingsModule({ initialBarbershopName }: SettingsModuleProps) {
     };
 
     loadAccountProfile();
-  }, [initialBarbershopName, isTenantAdmin, showToast, user?.email]);
+  }, [initialBusinessName, isTenantAdmin, showToast, user?.email]);
 
   const updateSettingsField = <K extends keyof SettingsState>(field: K, value: SettingsState[K]) => {
     setSettings((prev) => ({
@@ -472,8 +472,8 @@ export function SettingsModule({ initialBarbershopName }: SettingsModuleProps) {
   const validateAccountProfile = () => {
     const nextErrors: FormErrors<keyof AccountProfileState> = {};
 
-    if (!accountProfile.barbershopName.trim()) {
-      nextErrors.barbershopName = 'Informe o nome da barbearia.';
+    if (!accountProfile.businessName.trim()) {
+      nextErrors.businessName = 'Informe o nome da barbearia.';
     }
 
     if (!accountProfile.ownerName.trim()) {
@@ -540,7 +540,7 @@ export function SettingsModule({ initialBarbershopName }: SettingsModuleProps) {
     setSettingsSaving(true);
 
     try {
-      const response = await api.put('/barbershop/settings', buildSettingsSavePayload(settings));
+      const response = await api.put('/business/settings', buildSettingsSavePayload(settings));
       const merged = buildSettingsFromPayload(response.data as Partial<SettingsState>, settings);
 
       setSettings(merged);
@@ -575,8 +575,8 @@ export function SettingsModule({ initialBarbershopName }: SettingsModuleProps) {
     setAccountSaving(true);
 
     try {
-      const response = await api.put('/barbershop/account-profile', {
-        barbershopName: accountProfile.barbershopName.trim(),
+      const response = await api.put('/business/account-profile', {
+        businessName: accountProfile.businessName.trim(),
         ownerName: accountProfile.ownerName.trim(),
         whatsapp: normalizePhoneDigits(accountProfile.whatsapp),
         cpfCnpj: normalizeCpfCnpjDigits(accountProfile.cpfCnpj),
@@ -586,7 +586,7 @@ export function SettingsModule({ initialBarbershopName }: SettingsModuleProps) {
       const data = response.data as AccountProfileState;
 
       setAccountProfile({
-        barbershopName: data.barbershopName || accountProfile.barbershopName.trim(),
+        businessName: data.businessName || accountProfile.businessName.trim(),
         ownerName: data.ownerName || accountProfile.ownerName.trim(),
         whatsapp: formatPhoneInput(data.whatsapp || accountProfile.whatsapp),
         cpfCnpj: formatCpfCnpj(data.cpfCnpj || accountProfile.cpfCnpj),
@@ -610,7 +610,7 @@ export function SettingsModule({ initialBarbershopName }: SettingsModuleProps) {
     setPasswordSaving(true);
 
     try {
-      const response = await api.put('/barbershop/account-password', passwordForm);
+      const response = await api.put('/business/account-password', passwordForm);
       const payload = response.data as { message?: string };
 
       setPasswordForm(buildDefaultPasswordState());
@@ -675,13 +675,13 @@ export function SettingsModule({ initialBarbershopName }: SettingsModuleProps) {
           {isTenantAdmin && !accountLoading && (
             <div className="space-y-5">
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                <Field id="accountBarbershopName" label="Nome da barbearia" error={accountErrors.barbershopName}>
+                <Field id="accountBusinessName" label="Nome da barbearia" error={accountErrors.businessName}>
                   <input
-                    id="accountBarbershopName"
-                    className={`${FIELD_CLASS} ${accountErrors.barbershopName ? ERROR_FIELD_CLASS : ''}`}
-                    value={accountProfile.barbershopName}
-                    onChange={(event) => updateAccountField('barbershopName', event.target.value)}
-                    placeholder="Ex: EasyBarber Prime"
+                    id="accountBusinessName"
+                    className={`${FIELD_CLASS} ${accountErrors.businessName ? ERROR_FIELD_CLASS : ''}`}
+                    value={accountProfile.businessName}
+                    onChange={(event) => updateAccountField('businessName', event.target.value)}
+                    placeholder="Ex: EasyAgenda Prime"
                   />
                 </Field>
 

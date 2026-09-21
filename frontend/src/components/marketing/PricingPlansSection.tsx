@@ -14,7 +14,7 @@ import {
   type PixCheckoutSessionResponse,
   type SubscriptionStatus,
 } from '@/lib/billing';
-import { barbershopProfileApi } from '@/lib/barbershopProfile';
+import { businessProfileApi } from '@/lib/businessProfile';
 import { PLAN_MAP, SAAS_PLANS, type PlanId, isPlanId } from '@/lib/plans';
 import { formatCurrency } from '@/lib/formatters';
 import { getApiErrorCode, getApiErrorMessage } from '@/utils/handleApiError';
@@ -24,7 +24,7 @@ import {
   normalizeCpfCnpjDigits,
 } from '@/utils/cpfCnpj';
 
-const PIX_STORAGE_KEY = 'easybarber:pixCheckout';
+const PIX_STORAGE_KEY = 'easyagenda:pixCheckout';
 
 type SupportedPaymentMethod = Extract<CheckoutPaymentMethod, 'card' | 'pix'>;
 
@@ -123,7 +123,7 @@ export function PricingPlansSection({
   const [pixCheckoutPlanId, setPixCheckoutPlanId] = useState<PlanId | null>(null);
   const [isPixModalOpen, setIsPixModalOpen] = useState(false);
   const [pixStatusLoading, setPixStatusLoading] = useState(false);
-  const [barbershopCpfCnpj, setBarbershopCpfCnpj] = useState<string>('');
+  const [businessCpfCnpj, setBusinessCpfCnpj] = useState<string>('');
   const [pendingPixPlanId, setPendingPixPlanId] = useState<PlanId | null>(null);
   const [isCpfCnpjModalOpen, setIsCpfCnpjModalOpen] = useState(false);
   const [cpfCnpjInput, setCpfCnpjInput] = useState('');
@@ -416,7 +416,7 @@ export function PricingPlansSection({
       const errorCode = getApiErrorCode(error);
 
       if (errorCode === 'CPF_CNPJ_REQUIRED') {
-        openCpfCnpjModal(pixPreCheckoutPlanId, barbershopCpfCnpj);
+        openCpfCnpjModal(pixPreCheckoutPlanId, businessCpfCnpj);
         setIsPixPreCheckoutOpen(false);
         showToast('Para continuar no Pix, informe o CPF/CNPJ da barbearia.', 'info');
         return;
@@ -451,16 +451,16 @@ export function PricingPlansSection({
   };
 
   const ensureCpfCnpjForPix = async (planId: PlanId) => {
-    if (isValidCpfCnpj(barbershopCpfCnpj)) {
+    if (isValidCpfCnpj(businessCpfCnpj)) {
       return true;
     }
 
     try {
-      const profile = await barbershopProfileApi.getProfile();
+      const profile = await businessProfileApi.getProfile();
       const normalizedCpfCnpj = normalizeCpfCnpjDigits(profile.cpfCnpj);
 
       if (isValidCpfCnpj(normalizedCpfCnpj)) {
-        setBarbershopCpfCnpj(normalizedCpfCnpj);
+        setBusinessCpfCnpj(normalizedCpfCnpj);
         return true;
       }
 
@@ -505,10 +505,10 @@ export function PricingPlansSection({
     setCpfCnpjSaving(true);
 
     try {
-      const profile = await barbershopProfileApi.updateProfile(normalizedCpfCnpj);
+      const profile = await businessProfileApi.updateProfile(normalizedCpfCnpj);
       const savedCpfCnpj = normalizeCpfCnpjDigits(profile.cpfCnpj) || normalizedCpfCnpj;
 
-      setBarbershopCpfCnpj(savedCpfCnpj);
+      setBusinessCpfCnpj(savedCpfCnpj);
       setCpfCnpjInput(formatCpfCnpj(savedCpfCnpj));
       setIsCpfCnpjModalOpen(false);
       setCpfCnpjError(null);
