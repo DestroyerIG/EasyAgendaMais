@@ -58,7 +58,7 @@ ALTER TABLE IF EXISTS public.pending_registrations RENAME COLUMN barbershop_name
 
 -- ─── 4. Colunas mortas ────────────────────────────────────────────────────────
 -- Credenciais da API oficial da Meta: nunca lidas pelo código; a conexão é por QR code.
-DROP INDEX IF EXISTS public.barbershops_whatsapp_phone_number_id_idx;
+-- O DROP COLUMN já remove o índice que existir sobre whatsapp_phone_number_id.
 ALTER TABLE public.businesses DROP COLUMN IF EXISTS whatsapp_phone_number_id;
 ALTER TABLE public.businesses DROP COLUMN IF EXISTS whatsapp_waba_id;
 ALTER TABLE public.businesses DROP COLUMN IF EXISTS whatsapp_access_token;
@@ -69,45 +69,26 @@ ALTER TABLE public.business_settings DROP COLUMN IF EXISTS custom_webhook_url;
 ALTER TABLE public.business_settings DROP COLUMN IF EXISTS email_reminders;
 
 -- ─── 5. Restrições e índices ──────────────────────────────────────────────────
-
-ALTER TABLE public.businesses            RENAME CONSTRAINT barbershops_pkey         TO businesses_pkey;
-ALTER TABLE public.professionals         RENAME CONSTRAINT barbers_pkey             TO professionals_pkey;
-ALTER TABLE public.business_settings     RENAME CONSTRAINT barbershop_settings_pkey TO business_settings_pkey;
-
-ALTER TABLE public.users                  RENAME CONSTRAINT users_barbershop_id_fkey                  TO users_business_id_fkey;
-ALTER TABLE public.professionals          RENAME CONSTRAINT barbers_barbershop_id_fkey                TO professionals_business_id_fkey;
-ALTER TABLE public.services               RENAME CONSTRAINT services_barbershop_id_fkey               TO services_business_id_fkey;
-ALTER TABLE public.clients                RENAME CONSTRAINT clients_barbershop_id_fkey                TO clients_business_id_fkey;
-ALTER TABLE public.appointments           RENAME CONSTRAINT appointments_barbershop_id_fkey           TO appointments_business_id_fkey;
-ALTER TABLE public.appointments           RENAME CONSTRAINT appointments_barber_id_fkey               TO appointments_professional_id_fkey;
-ALTER TABLE public.earnings               RENAME CONSTRAINT earnings_barbershop_id_fkey               TO earnings_business_id_fkey;
-ALTER TABLE public.expenses               RENAME CONSTRAINT expenses_barbershop_id_fkey               TO expenses_business_id_fkey;
-ALTER TABLE public.subscription_events    RENAME CONSTRAINT subscription_events_barbershop_id_fkey    TO subscription_events_business_id_fkey;
-ALTER TABLE public.billing_webhook_events RENAME CONSTRAINT billing_webhook_events_barbershop_id_fkey TO billing_webhook_events_business_id_fkey;
-ALTER TABLE public.billing_payments       RENAME CONSTRAINT billing_payments_barbershop_id_fkey       TO billing_payments_business_id_fkey;
-ALTER TABLE public.whatsapp_sessions      RENAME CONSTRAINT whatsapp_sessions_barbershop_id_fkey      TO whatsapp_sessions_business_id_fkey;
-ALTER TABLE public.whatsapp_bot_config    RENAME CONSTRAINT whatsapp_bot_config_barbershop_id_fkey    TO whatsapp_bot_config_business_id_fkey;
-ALTER TABLE public.whatsapp_ratings       RENAME CONSTRAINT whatsapp_ratings_barbershop_id_fkey       TO whatsapp_ratings_business_id_fkey;
-ALTER TABLE public.business_settings      RENAME CONSTRAINT barbershop_settings_barbershop_id_fkey    TO business_settings_business_id_fkey;
-ALTER TABLE public.whatsapp_menu_options  RENAME CONSTRAINT whatsapp_menu_options_barbershop_id_fkey  TO whatsapp_menu_options_business_id_fkey;
-ALTER TABLE public.audit_logs             RENAME CONSTRAINT audit_logs_actor_barbershop_id_fkey       TO audit_logs_actor_business_id_fkey;
-ALTER TABLE public.audit_logs             RENAME CONSTRAINT audit_logs_target_barbershop_id_fkey      TO audit_logs_target_business_id_fkey;
-
-ALTER INDEX public.whatsapp_bot_config_barbershop_id_key          RENAME TO whatsapp_bot_config_business_id_key;
-ALTER INDEX public.barbershop_settings_barbershop_id_key          RENAME TO business_settings_business_id_key;
-ALTER INDEX public.whatsapp_menu_options_barbershop_id_option_order_key RENAME TO whatsapp_menu_options_business_id_option_order_key;
+-- Nenhum RENAME por nome literal. Produção NÃO foi construída pelo baseline
+-- 0_init, e sim pelas legacy-migrations (ver
+-- backend/prisma/legacy-migrations/README.md); um RENAME de um nome que lá não
+-- exista aborta a migration inteira. Por isso tudo é resolvido pelo catálogo:
+-- 5b acha a unicidade de businesses por coluna; 5c renomeia todo o resto
+-- (pkeys, fkeys, uniques, checks e índices soltos) a partir do nome que
+-- estiver lá. As duas rodam depois das seções 2 e 3 (tabelas e colunas já
+-- renomeadas), e 5b antes de 5c.
 
 -- ─── 5b. Unicidade de businesses resolvida por coluna, não por nome fixo ──────
--- Produção NÃO foi construída pelo baseline 0_init: foi construída pelas
--- legacy-migrations (ver backend/prisma/legacy-migrations/README.md), então a
--- unicidade de stripe_customer_id/stripe_subscription_id/email pode existir lá
--- como CONSTRAINT com nome de legado (uq_barbershops_stripe_customer,
--- uq_barbershops_stripe_subscription — migration_v5.sql:26,34) em vez do índice
--- com nome padrão do Prisma que este ambiente local tem. Resolve por coluna:
--- acha o objeto de unicidade (índice solto OU índice que sustenta uma
--- constraint) sobre businesses(coluna) e renomeia o que encontrar para o nome
--- padrão do Prisma. Tolerante: sem objeto encontrado, ou nome alvo já em uso,
--- não faz nada.
+-- A unicidade de email/stripe_customer_id/stripe_subscription_id pode existir em
+-- produção como CONSTRAINT com nome de legado (uq_barbershops_stripe_customer,
+-- uq_barbershops_stripe_subscription — migration_v5.sql:26,34), como constraint
+-- com o nome default do Postgres (UNIQUE inline em database.sql), ou como índice
+-- solto com o nome do Prisma (0_init). Resolve por coluna: acha o objeto de
+-- unicidade sobre businesses(coluna) e renomeia para o nome padrão do Prisma.
+-- Se a coluna tiver DOIS objetos de unicidade (database.sql inline + o uq_ da
+-- v5), prefere o de nome default barbershops_<coluna>_key: assim o uq_ vai para
+-- uq_businesses_* em 5c sem colidir com o nome alvo. Tolerante: sem objeto
+-- encontrado, ou nome alvo já em uso, não faz nada.
 DO $$
 DECLARE
   cols     text[] := ARRAY['email', 'stripe_customer_id', 'stripe_subscription_id'];
@@ -142,14 +123,23 @@ BEGIN
       AND ix.indkey[0] = (
         SELECT attnum FROM pg_attribute WHERE attrelid = tc.oid AND attname = v_col
       )
+    ORDER BY (ic.relname = 'barbershops_' || v_col || '_key') DESC, ic.relname
     LIMIT 1;
 
     IF v_indexrelid IS NULL THEN
       CONTINUE; -- nenhum objeto de unicidade sobre essa coluna; nada a renomear
     END IF;
 
+    -- Só a constraint que o índice sustenta na própria tabela (p/u/x). Uma FK de
+    -- outra tabela que referencia essa coluna também tem conindid apontando para
+    -- o índice, e não é ela que deve ser renomeada.
     v_conname := NULL;
-    SELECT conname INTO v_conname FROM pg_constraint WHERE conindid = v_indexrelid LIMIT 1;
+    SELECT conname INTO v_conname
+    FROM pg_constraint
+    WHERE conindid = v_indexrelid
+      AND contype IN ('p', 'u', 'x')
+      AND conrelid = 'public.businesses'::regclass
+    LIMIT 1;
 
     IF v_conname IS NOT NULL THEN
       EXECUTE format('ALTER TABLE public.businesses RENAME CONSTRAINT %I TO %I', v_conname, v_target);
@@ -159,31 +149,38 @@ BEGIN
   END LOOP;
 END $$;
 
--- ─── 5c. Limpeza genérica de nomes legados restantes ──────────────────────────
--- Produção carrega dezenas de índices/constraints nomeados pelas legacy-migrations
--- que este script não lista um a um (ex.: idx_appointments_barbershop_date,
--- idx_barbers_barbershop_active, check_barbershops_provider,
--- chk_barbershops_cpf_cnpj_digits, clients_barbershop_id_phone_key,
--- uq_barbershops_whatsapp_instance_name_norm). Varre o que sobrar com %barb% em
--- public e renomeia por substituição de substring, na ordem mais específica
--- primeiro (senão "barbershop" vira "businesss" ao passar por "barber" antes).
--- Índices que sustentam uma constraint são pulados aqui e resolvidos no laço de
--- constraints (renomear a constraint renomeia o índice de suporte junto).
--- Tolerante: nome alvo já em uso não derruba a migration, só pula esse objeto.
+-- ─── 5c. Varredura de todo nome restante com "barb" (constraints e índices) ───
+-- Cobre os nomes default do Prisma/Postgres (barbershops_pkey, barbers_pkey,
+-- *_barbershop_id_fkey, whatsapp_bot_config_barbershop_id_key, ...) e os nomes
+-- de legado que só existem em produção (idx_appointments_barbershop_date,
+-- check_barbershops_provider, uq_barbershops_whatsapp_instance_name_norm, ... —
+-- a lista completa está em backend/prisma/local/simulate-legacy-shape.sql).
+-- Renomeia por substituição de substring, na ordem mais específica primeiro:
+-- "barbershops" antes de "barbershop" (senão sobra "businesss"), e os dois
+-- antes de "barbers"/"barber", que são prefixo de "barbershop".
+-- Índice que sustenta pkey/unique/exclusion da própria tabela é pulado no laço
+-- de índices: renomear a constraint no laço seguinte renomeia o índice junto.
+-- Tolerante: um nome que não exista simplesmente não aparece na consulta, e um
+-- nome alvo já em uso faz pular aquele objeto em vez de abortar.
 DO $$
 DECLARE
   rec      record;
   new_name text;
-  owner    text;
 BEGIN
   FOR rec IN
     SELECT c.relname AS name
     FROM pg_class c
     JOIN pg_namespace n ON n.oid = c.relnamespace
+    JOIN pg_index ix ON ix.indexrelid = c.oid
     WHERE n.nspname = 'public'
       AND c.relkind = 'i'
       AND c.relname ILIKE '%barb%'
-      AND NOT EXISTS (SELECT 1 FROM pg_constraint pc WHERE pc.conindid = c.oid)
+      AND NOT EXISTS (
+        SELECT 1 FROM pg_constraint pc
+        WHERE pc.conindid = c.oid
+          AND pc.contype IN ('p', 'u', 'x')
+          AND pc.conrelid = ix.indrelid
+      )
   LOOP
     new_name := rec.name;
     new_name := REPLACE(new_name, 'barbershops', 'businesses');
@@ -202,11 +199,14 @@ BEGIN
     EXECUTE format('ALTER INDEX public.%I RENAME TO %I', rec.name, new_name);
   END LOOP;
 
+  -- Cada linha já traz a tabela dona, então duas constraints de mesmo nome em
+  -- tabelas diferentes não se confundem.
   FOR rec IN
-    SELECT conname AS name
-    FROM pg_constraint
-    WHERE connamespace = 'public'::regnamespace
-      AND conname ILIKE '%barb%'
+    SELECT pc.conname AS name, rel.relname AS owner, pc.contype
+    FROM pg_constraint pc
+    JOIN pg_class rel ON rel.oid = pc.conrelid
+    WHERE pc.connamespace = 'public'::regnamespace
+      AND pc.conname ILIKE '%barb%'
   LOOP
     new_name := rec.name;
     new_name := REPLACE(new_name, 'barbershops', 'businesses');
@@ -218,21 +218,15 @@ BEGIN
       CONTINUE;
     END IF;
 
-    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = new_name AND connamespace = 'public'::regnamespace) THEN
+    -- Nome alvo em uso: pula. Constraint com índice de suporte (p/u/x) renomeia
+    -- também o índice, então o nome tampouco pode estar tomado em pg_class.
+    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = new_name AND connamespace = 'public'::regnamespace)
+       OR (rec.contype IN ('p', 'u', 'x')
+           AND EXISTS (SELECT 1 FROM pg_class WHERE relname = new_name AND relnamespace = 'public'::regnamespace)) THEN
       CONTINUE;
     END IF;
 
-    SELECT rel.relname INTO owner
-    FROM pg_constraint pc
-    JOIN pg_class rel ON rel.oid = pc.conrelid
-    WHERE pc.conname = rec.name AND pc.connamespace = 'public'::regnamespace
-    LIMIT 1;
-
-    IF owner IS NULL THEN
-      CONTINUE; -- constraint sem tabela dona (não deveria ocorrer neste schema)
-    END IF;
-
-    EXECUTE format('ALTER TABLE public.%I RENAME CONSTRAINT %I TO %I', owner, rec.name, new_name);
+    EXECUTE format('ALTER TABLE public.%I RENAME CONSTRAINT %I TO %I', rec.owner, rec.name, new_name);
   END LOOP;
 END $$;
 
