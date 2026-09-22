@@ -31,4 +31,9 @@ export const THEMED_PATHS: readonly string[] = [
   'src/lib/navigation.ts',
   'src/components/shell',
   'src/app/dashboard/layout.tsx',
+  'src/app/dashboard/page.tsx',
+  'src/components/DashboardCards.tsx',
+  'src/components/WeeklyChart.tsx',
+  'src/components/ProfitBar.tsx',
+  'src/hooks/useThemeColors.ts',
 ];

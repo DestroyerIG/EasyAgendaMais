@@ -7,7 +7,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DashboardCards } from '@/components/DashboardCards';
 import { ProfitBar } from '@/components/ProfitBar';
 import { WeeklyChart } from '@/components/WeeklyChart';
-import { LoadingSkeleton } from '@/components/LoadingSkeleton';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Card } from '@/components/ui/Card';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/Toast';
 import { billingApi, type CheckoutPaymentMethod } from '@/lib/billing';
 import { isPlanId } from '@/lib/plans';
@@ -125,12 +128,35 @@ export default function DashboardPage() {
   }, [authLoading, showToast, startCheckout, user?.role]);
 
   if (loading || user?.role === 'platform_admin') {
-    return <LoadingSkeleton />;
+    return (
+      <>
+        <PageHeader title="Hoje" />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-6 sm:mb-8">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Card key={index} className="flex flex-col gap-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-9 w-20" />
+            </Card>
+          ))}
+        </div>
+        <Card className="mb-6 sm:mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-9 w-32" />
+          </div>
+          <Skeleton className="h-1 w-full" />
+        </Card>
+        <Card>
+          <Skeleton className="h-7 w-52 mb-6" />
+          <Skeleton className="h-[300px] w-full" />
+        </Card>
+      </>
+    );
   }
 
   return (
     <>
-      <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6 sm:mb-8">Dashboard</h2>
+      <PageHeader title="Hoje" />
 
       {data ? (
         <>
@@ -139,15 +165,12 @@ export default function DashboardPage() {
           <WeeklyChart data={data.weeklyEarnings} />
         </>
       ) : (
-        <div className="bg-dark-light border border-red-500/20 rounded-xl p-8 text-center">
-          <p className="text-gray-400">Não foi possível carregar os dados do dashboard.</p>
-          <button
-            onClick={loadDashboard}
-            className="mt-4 px-6 py-2 bg-primary hover:bg-orange-600 text-black font-bold rounded-lg transition-all"
-          >
+        <Card className="text-center">
+          <p className="text-muted">Não foi possível carregar os dados do dashboard.</p>
+          <Button onClick={loadDashboard} className="mt-4">
             Tentar Novamente
-          </button>
-        </div>
+          </Button>
+        </Card>
       )}
     </>
   );
