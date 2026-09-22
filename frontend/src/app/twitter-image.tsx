@@ -210,16 +210,6 @@ export default function OgImage() {
             ))}
           </div>
 
-          <span
-            style={{
-              fontSize: '14px',
-              color: 'rgba(255,122,0,0.6)',
-              fontWeight: 600,
-              letterSpacing: '0.04em',
-            }}
-          >
-            easyagenda.com.br
-          </span>
         </div>
       </div>
     ),

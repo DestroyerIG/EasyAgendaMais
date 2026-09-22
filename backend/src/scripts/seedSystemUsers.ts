@@ -70,7 +70,7 @@ const ACCOUNTS: Record<string, SeedAccount> = {
   },
   premiumTenantAdmin: {
     key: 'premium-tenant-admin',
-    email: 'teste@easyagenda.com',
+    email: 'teste@easyagenda.local',
     password: '@Easyconnect08',
     role: 'tenant_admin',
     business: {

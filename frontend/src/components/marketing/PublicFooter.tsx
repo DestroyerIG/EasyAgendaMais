@@ -46,7 +46,7 @@ export function PublicFooter() {
               </a>
             </li>
             <li>
-              <a href="mailto:contato@easyagenda.com" className="hover:text-white">
+              <a href="mailto:contato@easyconnectcg.com.br" className="hover:text-white">
                 contato@easyconnectcg.com.br
               </a>
             </li>
