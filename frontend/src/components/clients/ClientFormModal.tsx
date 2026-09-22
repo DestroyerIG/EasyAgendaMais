@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Save, MapPin } from 'lucide-react';
-import { Modal, ModalFooter } from '@/components/ui';
+import { Modal, ModalFooter, Field, Input, Textarea } from '@/components/ui';
 import type { Client } from '@/types';
 
 interface ClientFormModalProps {
@@ -70,70 +70,68 @@ export function ClientFormModal({ isOpen, onClose, onSubmit, editingClient }: Cl
         />
       }
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="field-label">Nome Completo</label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={e => setFormData({ ...formData, name: e.target.value })}
-            className="input"
-            placeholder="Ex: João Silva"
-          />
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Field id="client-name" label="Nome Completo">
+            <Input
+              id="client-name"
+              type="text"
+              value={formData.name}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Ex: João Silva"
+            />
+          </Field>
+          <Field id="client-phone" label="Telefone / WhatsApp">
+            <Input
+              id="client-phone"
+              type="text"
+              value={formData.phone}
+              onChange={e => setFormData({ ...formData, phone: e.target.value })}
+              placeholder="Ex: 11999999999"
+            />
+          </Field>
+          <Field id="client-email" label="E-mail">
+            <Input
+              id="client-email"
+              type="email"
+              value={formData.email}
+              onChange={e => setFormData({ ...formData, email: e.target.value })}
+              placeholder="Ex: joao@email.com"
+            />
+          </Field>
+          <Field id="client-birth-date" label="Data de Nascimento">
+            <Input
+              id="client-birth-date"
+              type="date"
+              value={formData.birthDate}
+              onChange={e => setFormData({ ...formData, birthDate: e.target.value })}
+            />
+          </Field>
         </div>
-        <div className="space-y-2">
-          <label className="field-label">Telefone / WhatsApp</label>
-          <input
-            type="text"
-            value={formData.phone}
-            onChange={e => setFormData({ ...formData, phone: e.target.value })}
-            className="input"
-            placeholder="Ex: 11999999999"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="field-label">E-mail</label>
-          <input
-            type="email"
-            value={formData.email}
-            onChange={e => setFormData({ ...formData, email: e.target.value })}
-            className="input"
-            placeholder="Ex: joao@email.com"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="field-label">Data de Nascimento</label>
-          <input
-            type="date"
-            value={formData.birthDate}
-            onChange={e => setFormData({ ...formData, birthDate: e.target.value })}
-            className="input [color-scheme:dark]"
-          />
-        </div>
-      </div>
 
-      <div className="space-y-2">
-        <label className="field-label">Endereço</label>
-        <div className="relative">
-          <MapPin size={18} className="absolute left-3 top-3 text-gray-600" />
-          <input
-            type="text"
-            value={formData.address}
-            onChange={e => setFormData({ ...formData, address: e.target.value })}
-            className="input pl-10"
-            placeholder="Ex: Rua das Flores, 123 - Centro"
-          />
-        </div>
-      </div>
+        <Field id="client-address" label="Endereço">
+          <div className="relative">
+            <MapPin className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted" aria-hidden="true" />
+            <Input
+              id="client-address"
+              type="text"
+              value={formData.address}
+              onChange={e => setFormData({ ...formData, address: e.target.value })}
+              className="pl-10"
+              placeholder="Ex: Rua das Flores, 123 - Centro"
+            />
+          </div>
+        </Field>
 
-      <div className="space-y-2">
-        <label className="field-label">Notas e Observações</label>
-        <textarea
-          value={formData.notes}
-          onChange={e => setFormData({ ...formData, notes: e.target.value })}
-          className="input min-h-[100px]"
-          placeholder="Ex: Alérgico a certas pomadas, prefere corte baixo..."
-        />
+        <Field id="client-notes" label="Notas e Observações">
+          <Textarea
+            id="client-notes"
+            value={formData.notes}
+            onChange={e => setFormData({ ...formData, notes: e.target.value })}
+            className="min-h-[100px]"
+            placeholder="Ex: Alérgico a certas pomadas, prefere corte baixo..."
+          />
+        </Field>
       </div>
     </Modal>
   );

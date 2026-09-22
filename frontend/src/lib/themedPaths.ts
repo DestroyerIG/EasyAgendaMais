@@ -41,4 +41,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/ProfessionalAgenda.tsx',
   'src/app/dashboard/agendamentos/page.tsx',
   'src/hooks/useNewAppointmentParam.ts',
+  'src/components/ClientModule.tsx',
+  'src/components/clients',
+  'src/app/dashboard/clientes/page.tsx',
 ];

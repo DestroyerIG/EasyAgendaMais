@@ -3,13 +3,34 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { useToast } from './Toast';
-import { PageHeader } from '@/components/ui';
+import {
+  PageHeader,
+  Button,
+  IconButton,
+  Card,
+  EmptyState,
+  Skeleton,
+  Avatar,
+  Input,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableHeaderCell,
+  TableCell,
+  SidePanel,
+} from '@/components/ui';
 import { ClientDetailPanel } from '@/components/clients/ClientDetailPanel';
 import { ClientFormModal } from '@/components/clients/ClientFormModal';
 import type { ClientFormData } from '@/components/clients/ClientFormModal';
 import { getApiErrorMessage } from '@/utils/handleApiError';
-import { UserPlus, Search, ChevronRight, User } from 'lucide-react';
+import { UserPlus, Search, Edit2, Users } from 'lucide-react';
 import type { Client, Appointment } from '@/types';
+
+function formatLastVisit(dateString: string | null) {
+  if (!dateString) return 'Nunca';
+  return new Date(dateString).toLocaleDateString('pt-BR');
+}
 
 export const ClientModule = () => {
   const [clients, setClients] = useState<Client[]>([]);
@@ -47,6 +68,15 @@ export const ClientModule = () => {
     } finally {
       setLoadingHistory(false);
     }
+  };
+
+  const selectClient = (client: Client) => {
+    setSelectedClient(client);
+    loadHistory(client.id);
+  };
+
+  const closeClientDetail = () => {
+    setSelectedClient(null);
   };
 
   const handleOpenModal = (client?: Client) => {
@@ -89,89 +119,131 @@ export const ClientModule = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div>
       <PageHeader
-        title="Gestão de Clientes"
+        title="Clientes"
         action={
-          <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
-            <UserPlus size={20} /> Novo Cliente
-          </button>
+          <Button onClick={() => handleOpenModal()}>
+            <UserPlus className="h-4 w-4" aria-hidden="true" />
+            Novo Cliente
+          </Button>
         }
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Client list */}
-        <div className="md:col-span-1 space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
-            <input
-              type="text"
-              placeholder="Buscar por nome ou telefone..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="input pl-10"
-            />
-          </div>
-
-          <div className="card rounded-xl overflow-hidden max-h-[600px] overflow-y-auto p-0">
-            {loading ? (
-              <div className="p-8 text-center text-gray-400">Carregando clientes...</div>
-            ) : filteredClients.length === 0 ? (
-              <div className="p-8 text-center text-gray-400">Nenhum cliente encontrado.</div>
-            ) : (
-              <div className="divide-y divide-gray-800">
-                {filteredClients.map(client => (
-                  <div
-                    key={client.id}
-                    onClick={() => {
-                      setSelectedClient(client);
-                      loadHistory(client.id);
-                    }}
-                    className={`p-4 cursor-pointer hover:bg-gray-800 transition-all flex items-center justify-between group ${
-                      selectedClient?.id === client.id ? 'bg-gray-800' : ''
-                    }`}
-                  >
-                    <div>
-                      <h4 className="font-semibold text-white group-hover:text-primary transition-colors">{client.name}</h4>
-                      <p className="text-sm text-gray-400">{client.phone}</p>
-                    </div>
-                    <ChevronRight
-                      size={18}
-                      className={`text-gray-600 group-hover:text-primary transition-all ${
-                        selectedClient?.id === client.id ? 'translate-x-1 text-primary' : ''
-                      }`}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Client detail */}
-        <div className="md:col-span-2">
-          {selectedClient ? (
-            <ClientDetailPanel
-              client={selectedClient}
-              history={history}
-              loadingHistory={loadingHistory}
-              onEdit={() => handleOpenModal(selectedClient)}
-            />
-          ) : (
-            <div className="card border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-center space-y-4 min-h-[500px]">
-              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-primary/40">
-                <User size={48} />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">Selecione um cliente</h3>
-                <p className="text-gray-400 max-w-xs mx-auto">
-                  Escolha um cliente da lista ao lado para ver os detalhes, histórico de profissionais e gastos.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+      <div className="relative mb-4 max-w-md">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+        <Input
+          type="text"
+          placeholder="Buscar por nome ou telefone..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
       </div>
+
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </div>
+      ) : filteredClients.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title="Nenhum cliente encontrado"
+          description="Nenhum cliente corresponde à busca atual."
+        />
+      ) : (
+        <>
+          {/* Desktop: tabela */}
+          <div className="hidden lg:block">
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableHeaderCell>Cliente</TableHeaderCell>
+                  <TableHeaderCell>Telefone</TableHeaderCell>
+                  <TableHeaderCell>Último atendimento</TableHeaderCell>
+                  <TableHeaderCell className="text-right">Ações</TableHeaderCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredClients.map(client => (
+                  <TableRow
+                    key={client.id}
+                    onClick={() => selectClient(client)}
+                    className="cursor-pointer hover:bg-surface-2"
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar name={client.name} />
+                        <span className="font-semibold text-ink">{client.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted">{client.phone}</TableCell>
+                    <TableCell className="tabular-nums text-muted">{formatLastVisit(client.last_visit)}</TableCell>
+                    <TableCell className="text-right">
+                      <IconButton
+                        icon={Edit2}
+                        label="Editar cliente"
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleOpenModal(client);
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Celular: cartões */}
+          <div className="space-y-3 lg:hidden">
+            {filteredClients.map(client => (
+              <Card
+                key={client.id}
+                onClick={() => selectClient(client)}
+                className="flex cursor-pointer items-center justify-between gap-3"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar name={client.name} />
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-ink">{client.name}</p>
+                    <p className="truncate text-[13px] text-muted">{client.phone}</p>
+                    <p className="tabular-nums text-[13px] text-muted">{formatLastVisit(client.last_visit)}</p>
+                  </div>
+                </div>
+                <IconButton
+                  icon={Edit2}
+                  label="Editar cliente"
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleOpenModal(client);
+                  }}
+                />
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+
+      <SidePanel
+        open={!!selectedClient}
+        onOpenChange={open => {
+          if (!open) closeClientDetail();
+        }}
+        title={selectedClient?.name ?? ''}
+        side="right"
+      >
+        {selectedClient ? (
+          <ClientDetailPanel
+            client={selectedClient}
+            history={history}
+            loadingHistory={loadingHistory}
+            onEdit={() => handleOpenModal(selectedClient)}
+          />
+        ) : null}
+      </SidePanel>
 
       <ClientFormModal
         isOpen={isModalOpen}
