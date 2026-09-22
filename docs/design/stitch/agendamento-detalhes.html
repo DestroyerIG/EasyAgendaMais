@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "outline-variant": "#e0c0af",
+          "tertiary-container": "#00a8ff",
+          "inverse-surface": "#32302f",
+          "secondary-container": "#eae1da",
+          "success-light": "#16A34A",
+          "surface-container-lowest": "#ffffff",
+          "error-container": "#ffdad6",
+          "inverse-primary": "#ffb68b",
+          "bg-light": "#F6F5F4",
+          "tertiary-fixed-dim": "#95ccff",
+          "surface-2-dark": "#211F1D",
+          "whatsapp-dark": "#25D366",
+          "muted-light": "#66605B",
+          "secondary-fixed": "#eae1da",
+          "on-primary-container": "#5c2800",
+          "brand-text-dark": "#FF9A3D",
+          "success-dark": "#4ADE80",
+          "on-error-container": "#93000a",
+          "secondary-fixed-dim": "#cdc5bf",
+          "surface-container-low": "#f9f2f0",
+          "surface-tint": "#994700",
+          "on-primary-fixed": "#321200",
+          "primary-fixed": "#ffdbc8",
+          "on-primary": "#ffffff",
+          "on-error": "#ffffff",
+          "brand-text-light": "#B34D00",
+          "surface-2-light": "#EFEDEA",
+          "outline": "#8c7263",
+          "on-secondary-fixed": "#1f1b17",
+          "ink-light": "#1A1817",
+          "ink-dark": "#F3F1EF",
+          "surface": "#fff8f6",
+          "on-tertiary-fixed": "#001d32",
+          "warning-dark": "#FBBF24",
+          "line-light": "#E2DFDB",
+          "on-tertiary-fixed-variant": "#004a75",
+          "surface-dim": "#dfd9d7",
+          "surface-container-high": "#ede7e5",
+          "surface-bright": "#fff8f6",
+          "surface-dark": "#181615",
+          "background": "#fff8f6",
+          "on-secondary-fixed-variant": "#4b4641",
+          "warning-light": "#D97706",
+          "on-surface-variant": "#584235",
+          "on-brand": "#1A1817",
+          "status-confirmed": "#2563EB",
+          "on-surface": "#1d1b1a",
+          "on-secondary": "#ffffff",
+          "surface-container": "#f3edea",
+          "primary": "#994700",
+          "secondary": "#635d58",
+          "inverse-on-surface": "#f6efed",
+          "line-dark": "#2E2B28",
+          "surface-variant": "#e7e1df",
+          "on-tertiary-container": "#003a5c",
+          "primary-container": "#ff7a00",
+          "danger-light": "#DC2626",
+          "tertiary": "#006399",
+          "surface-container-highest": "#e7e1df",
+          "whatsapp-light": "#128C4A",
+          "on-primary-fixed-variant": "#753400",
+          "primary-fixed-dim": "#ffb68b",
+          "muted-dark": "#A39D97",
+          "on-background": "#1d1b1a",
+          "on-tertiary": "#ffffff",
+          "bg-dark": "#0E0D0C",
+          "on-secondary-container": "#69635e",
+          "tertiary-fixed": "#cde5ff",
+          "surface-light": "#FFFFFF",
+          "danger-dark": "#F87171",
+          "error": "#ba1a1a"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "gutter": "1rem",
+          "space-xl": "2rem",
+          "space-sm": "0.5rem",
+          "space-xs": "0.25rem",
+          "space-md": "1rem",
+          "space-lg": "1.5rem",
+          "margin": "1rem"
+        },
+        "fontFamily": {
+          "headline-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "title-md": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-lg-mobile": [
+            "Plus Jakarta Sans"
+          ],
+          "label-sm": [
+            "Plus Jakarta Sans"
+          ],
+          "body-sm": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-md": [
+            "Plus Jakarta Sans"
+          ],
+          "title-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "display-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "label-md": [
+            "Plus Jakarta Sans"
+          ],
+          "body-md": [
+            "Plus Jakarta Sans"
+          ]
+        },
+        "fontSize": {
+          "headline-lg": [
+            "32px",
+            {
+              "lineHeight": "40px",
+              "fontWeight": "700"
+            }
+          ],
+          "title-md": [
+            "17px",
+            {
+              "lineHeight": "24px",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-lg-mobile": [
+            "28px",
+            {
+              "lineHeight": "36px",
+              "fontWeight": "700"
+            }
+          ],
+          "label-sm": [
+            "11px",
+            {
+              "lineHeight": "16px",
+              "fontWeight": "600"
+            }
+          ],
+          "body-sm": [
+            "14px",
+            {
+              "lineHeight": "20px",
+              "fontWeight": "400"
+            }
+          ],
+          "headline-md": [
+            "24px",
+            {
+              "lineHeight": "32px",
+              "fontWeight": "700"
+            }
+          ],
+          "title-lg": [
+            "20px",
+            {
+              "lineHeight": "28px",
+              "fontWeight": "700"
+            }
+          ],
+          "display-lg": [
+            "40px",
+            {
+              "lineHeight": "48px",
+              "fontWeight": "800"
+            }
+          ],
+          "label-md": [
+            "13px",
+            {
+              "lineHeight": "18px",
+              "fontWeight": "600"
+            }
+          ],
+          "body-md": [
+            "15px",
+            {
+              "lineHeight": "22.5px",
+              "fontWeight": "400"
+            }
+          ]
+        }
+      },
+    },
+  }</script></head><body class="bg-bg-light font-body-md text-body-md text-ink-light"><aside class="fixed left-0 top-0 h-full w-[248px] bg-surface-light border-r border-line-light z-50 flex flex-col justify-between"><div class="flex flex-col"><div class="h-16 px-space-lg flex items-center gap-2.5 border-b border-line-light"><div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[20px]">event_available</span></div><span class="font-title-lg text-title-lg text-ink-light tracking-tight">EasyAgenda<span class="text-primary-container font-headline-lg text-title-lg">+</span></span></div><nav class="flex flex-col gap-1 px-3 py-space-md" data-active-classes="bg-surface-2-light text-primary font-label-md font-bold"><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="hoje" href="#"><span class="material-symbols-outlined text-[20px]">today</span>Hoje</a><a aria-current="page" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors bg-surface-2-light text-primary font-label-md font-bold" data-path="agenda" href="#"><span class="material-symbols-outlined text-[20px]">calendar_month</span>Agenda</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="clientes" href="#"><span class="material-symbols-outlined text-[20px]">group</span>Clientes</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="caixa" href="#"><span class="material-symbols-outlined text-[20px]">payments</span>Caixa</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="clube-e-pacotes" href="#"><span class="material-symbols-outlined text-[20px]">loyalty</span>Clube e pacotes</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="whatsapp" href="#"><span class="material-symbols-outlined text-[20px]">chat</span>WhatsApp</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="relatorios" href="#"><span class="material-symbols-outlined text-[20px]">bar_chart</span>Relatórios</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="minha-pagina" href="#"><span class="material-symbols-outlined text-[20px]">storefront</span>Minha página</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="ajustes" href="#"><span class="material-symbols-outlined text-[20px]">settings</span>Ajustes</a></nav></div><div class="p-space-md border-t border-line-light"><div class="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-surface-2-light"><span class="material-symbols-outlined text-[18px] text-muted-light">verified</span><div class="flex flex-col min-w-0"><span class="font-label-md text-label-md text-ink-light truncate">Studio Aurora</span><span class="font-label-sm text-label-sm text-muted-light truncate">Plano Pro</span></div></div></div></aside><div class="pl-[248px]"><header class="fixed top-0 left-[248px] right-0 h-16 bg-surface-light border-b border-line-light z-40 flex items-center justify-between px-space-lg"><div class="flex items-center gap-2 text-muted-light font-label-md text-label-md"><span class="hover:text-ink-light cursor-pointer">Studio Aurora</span><span class="material-symbols-outlined text-[16px]">chevron_right</span><span class="text-ink-light font-semibold">Painel de Gestão</span></div><div class="flex items-center gap-space-md"><div class="relative flex items-center"><span class="material-symbols-outlined absolute left-3 text-muted-light text-[18px]">search</span><input class="h-9 pl-9 pr-4 w-64 rounded-lg bg-surface-2-light border border-line-light text-ink-light font-body-sm text-body-sm placeholder:text-muted-light focus:outline-none focus:border-primary-container" placeholder="Buscar agendamento ou cliente..." type="text"/></div><button class="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-2-light text-muted-light hover:text-ink-light transition-colors"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary-container"></span></button><div class="flex items-center gap-3 pl-2 border-l border-line-light"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="relative pt-16 w-full px-space-lg py-space-lg bg-bg-light"><div class="flex flex-col w-full relative">
+<!-- Subtle Header Action Bar on Top of Calendar -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+<div class="flex items-center gap-3">
+<div class="flex items-center bg-surface-light rounded-xl shadow-sm p-1">
+<button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-2-light text-ink-light transition-colors">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<span class="font-title-md text-title-md px-3 text-ink-light select-none">Terça, 17 de Setembro</span>
+<button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-2-light text-ink-light transition-colors">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+<button class="px-3 py-1.5 rounded-xl bg-surface-light text-ink-light font-label-md text-label-md shadow-sm hover:bg-surface-2-light transition-colors">
+        Hoje
+      </button>
+<div class="hidden lg:flex items-center gap-2 text-muted-light font-label-sm text-label-sm ml-2">
+<span class="inline-block w-2 h-2 rounded-full bg-success-light"></span>
+<span>Studio aberto (08:00 - 19:30)</span>
+</div>
+</div>
+<!-- Right Controls: Filter and Quick Stats -->
+<div class="flex items-center gap-3">
+<div class="flex items-center bg-surface-2-light rounded-xl p-1 gap-1">
+<button class="px-3 py-1 rounded-lg bg-surface-light font-label-md text-label-md text-ink-light shadow-sm">Dia</button>
+<button class="px-3 py-1 rounded-lg font-label-md text-label-md text-muted-light hover:text-ink-light transition-colors">Semana</button>
+<button class="px-3 py-1 rounded-lg font-label-md text-label-md text-muted-light hover:text-ink-light transition-colors">Mês</button>
+</div>
+<div class="flex items-center gap-2 bg-surface-light px-3 py-2 rounded-xl shadow-sm">
+<span class="material-symbols-outlined text-[18px] text-muted-light">filter_list</span>
+<span class="font-label-md text-label-md text-ink-light">Todas profissionais (4)</span>
+</div>
+<button class="px-4 py-2 rounded-xl bg-primary-container font-label-md text-label-md text-on-brand hover:brightness-105 font-bold flex items-center gap-2 shadow-sm transition-transform active:scale-95">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>Novo Agendamento</span>
+</button>
+</div>
+</div>
+<!-- Main Timeline Schedule Grid (Backdrop of day) -->
+<div class="w-full bg-surface-light rounded-2xl shadow-sm p-6 overflow-hidden relative">
+<!-- Professionals Header Columns -->
+<div class="grid grid-cols-[80px_repeat(3,1fr)] gap-4 pb-4 border-b-0">
+<div class="text-right pr-4 font-label-sm text-label-sm text-muted-light pt-2">Horário</div>
+<div class="flex items-center gap-3 p-2 rounded-xl bg-surface-2-light">
+<div class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center font-bold text-ink-light overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Portrait photo of a young female nail designer professional with a warm smile in a modern studio environment, soft neutral studio lighting, professional headshot" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPQzCpy_biu10KaU9eW1g3wxen5gKntQzqoy8vDWFHyAvbA5LLDATCJBbZ7sxAam4Bsqu9KJi35tl8xr9H13SohiwePMQKl5dLo8U_CDMowo1btehWn8i4WUj6pHgC8aE-ZkF6AhWRNYwdFMjp0-Z3vfP4Y7mSKGMf9g4KYbxtzh7D1Mey314a8tRRA4xbzHJCY0qb64Xh5yOQatJ_jVrjs6G9uX9gGYhOb5rx7CT2QWoIRghPBAZLwQ"/>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-label-md text-ink-light truncate font-bold">Camila Rocha</span>
+<span class="font-label-sm text-label-sm text-muted-light truncate">Nail Designer · 5 slots</span>
+</div>
+</div>
+<div class="flex items-center gap-3 p-2 rounded-xl bg-surface-2-light">
+<div class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center font-bold text-ink-light overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Portrait photo of a female aesthetician wearing a tailored linen apron in a contemporary beauty atelier, bright soft light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEuZKsumozWvWBgM9GjEnsI02rqAZbM5gohy3b_2csvslbPXXe7Z-e1imE0Nm5je9rAWW2wCGjGa5eqCmA-x4JG12SxONPkbRRSbEi5OqYBj6wvQ4tf3QqR1HYJ-r92Om_nsYaCcUhOHyrorsUlBJC-ydjPI6GpsCGJrw06txJUdcsAHAkSgO93WajbVAeHrU4x3v4cbnE_w1PccqVVFzWXcr6X6HN5MuFxJd2Pro397FMq7bMCqAssg"/>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-label-md text-ink-light truncate font-bold">Beatriz Lima</span>
+<span class="font-label-sm text-label-sm text-muted-light truncate">Lash &amp; Brow · 4 slots</span>
+</div>
+</div>
+<div class="flex items-center gap-3 p-2 rounded-xl bg-surface-2-light">
+<div class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center font-bold text-ink-light overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Portrait photo of an artistic hair stylist smiling with modern warm interior decor behind, gentle daylight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAy1TjYJt7BZlaCRrZJ7_hCfSGC1aqMUbx9VEvOufuRfIdcRy8fMn4F3fMjUOGZwOyTrazGJ8Wps7ZPp4_CcjVVMfz6Mi7K1dKDZV1QBKlBIivVFoPOJlIBDKYQDYNAPmBqFNAn5v0XpKS9uuYHdi7ec4TqxePvHTSyiUhQCti0ONLNTg_zrX3Wz8qMMSh5JRedUUPqZzJTlvUpBp4Ybo6ADmYiMdMriy4LUrYkoDUaUlh8xudL2cZ8xw"/>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-label-md text-ink-light truncate font-bold">Juliana Prado</span>
+<span class="font-label-sm text-label-sm text-muted-light truncate">Hair Care · 3 slots</span>
+</div>
+</div>
+</div>
+<!-- Timeline Body Rows -->
+<div class="space-y-4 pt-4">
+<!-- 08:30 Slot -->
+<div class="grid grid-cols-[80px_repeat(3,1fr)] gap-4 items-start min-h-[72px]">
+<div class="text-right pr-4 pt-1 font-label-md text-label-md text-muted-light font-bold">08:30</div>
+<!-- Camila slot (concluded) -->
+<div class="bg-surface-2-light rounded-xl p-3 flex flex-col justify-between opacity-75">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-ink-light font-bold">Mariana Costa</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-secondary-container text-secondary">Finalizado</span>
+</div>
+<span class="font-body-sm text-body-sm text-muted-light mt-1">Esmaltação em Gel · R$ 90,00</span>
+</div>
+<!-- Beatriz slot (concluded) -->
+<div class="bg-surface-2-light rounded-xl p-3 flex flex-col justify-between opacity-75">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-ink-light font-bold">Carla Silveira</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-secondary-container text-secondary">Finalizado</span>
+</div>
+<span class="font-body-sm text-body-sm text-muted-light mt-1">Design de Sobrancelha · R$ 65,00</span>
+</div>
+<!-- Juliana empty -->
+<div class="h-full rounded-xl bg-surface-container-low flex items-center justify-center text-muted-light text-label-sm font-label-sm">
+          Disponível
+        </div>
+</div>
+<!-- 10:00 Slot - TARGET SELECTED APPOINTMENT -->
+<div class="grid grid-cols-[80px_repeat(3,1fr)] gap-4 items-start min-h-[140px]">
+<div class="text-right pr-4 pt-1 font-label-md text-label-md text-primary font-bold">10:00</div>
+<!-- Rafaela Diniz appointment (active focus card) -->
+<div class="rounded-xl p-4 bg-surface-container relative shadow-md cursor-pointer transform scale-[1.01] transition-transform">
+<div class="absolute left-0 top-3 bottom-3 w-1.5 bg-primary-container rounded-r-full"></div>
+<div class="flex items-start justify-between pl-2">
+<div>
+<div class="flex items-center gap-2">
+<span class="font-title-md text-title-md text-ink-light font-bold">Rafaela Diniz</span>
+<span class="px-2 py-0.5 rounded-full bg-primary-container/15 text-brand-text-light text-label-sm font-label-sm font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span>
+                  Em atendimento
+                </span>
+</div>
+<p class="font-body-sm text-body-sm text-ink-light mt-1 font-medium">Alongamento em gel · R$ 180,00</p>
+<div class="flex items-center gap-2 mt-2">
+<span class="px-2 py-0.5 rounded-md bg-success-light/10 text-success-light text-label-sm font-label-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Sinal R$ 30,00 pago
+                </span>
+<span class="px-2 py-0.5 rounded-md bg-surface-light text-muted-light text-label-sm font-label-sm">Link da Bio</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-muted-light bg-surface-light px-2 py-1 rounded-md">10:00 - 12:30</span>
+</div>
+</div>
+<!-- Beatriz ongoing appointment -->
+<div class="bg-surface-2-light rounded-xl p-3 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-ink-light font-bold">Vanessa Souza</span>
+<span class="px-2 py-0.5 rounded-full bg-status-confirmed/15 text-status-confirmed text-label-sm font-label-sm font-semibold">Confirmado</span>
+</div>
+<span class="font-body-sm text-body-sm text-muted-light mt-1 block">Volume Russo (Manutenção)</span>
+</div>
+<span class="font-label-sm text-label-sm text-muted-light mt-4">10:15 - 11:45 · R$ 140,00</span>
+</div>
+<!-- Juliana appointment -->
+<div class="bg-surface-2-light rounded-xl p-3 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-ink-light font-bold">Fernanda M.</span>
+<span class="px-2 py-0.5 rounded-full bg-warning-light/15 text-warning-light text-label-sm font-label-sm font-semibold">Aguardando</span>
+</div>
+<span class="font-body-sm text-body-sm text-muted-light mt-1 block">Terapia Capilar + Escova</span>
+</div>
+<span class="font-label-sm text-label-sm text-muted-light mt-4">10:30 - 12:00 · R$ 220,00</span>
+</div>
+</div>
+<!-- 13:00 Slot -->
+<div class="grid grid-cols-[80px_repeat(3,1fr)] gap-4 items-start min-h-[72px]">
+<div class="text-right pr-4 pt-1 font-label-md text-label-md text-muted-light font-bold">13:00</div>
+<!-- Camila interval -->
+<div class="h-full rounded-xl bg-surface-container-low flex items-center justify-center text-muted-light text-label-sm font-label-sm">
+          Intervalo Almoço (12:30 - 13:30)
+        </div>
+<!-- Beatriz slot -->
+<div class="bg-surface-2-light rounded-xl p-3 flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-ink-light font-bold">Alice Vianna</span>
+<span class="px-2 py-0.5 rounded-full bg-status-confirmed/15 text-status-confirmed text-label-sm font-label-sm font-semibold">Confirmado</span>
+</div>
+<span class="font-body-sm text-body-sm text-muted-light mt-1">Lash Lifting · R$ 110,00</span>
+</div>
+<!-- Juliana slot -->
+<div class="h-full rounded-xl bg-surface-container-low flex items-center justify-center text-muted-light text-label-sm font-label-sm">
+          Disponível
+        </div>
+</div>
+<!-- 14:30 Slot -->
+<div class="grid grid-cols-[80px_repeat(3,1fr)] gap-4 items-start min-h-[72px]">
+<div class="text-right pr-4 pt-1 font-label-md text-label-md text-muted-light font-bold">14:30</div>
+<!-- Camila afternoon -->
+<div class="bg-surface-2-light rounded-xl p-3 flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-ink-light font-bold">Patricia Novaes</span>
+<span class="px-2 py-0.5 rounded-full bg-status-confirmed/15 text-status-confirmed text-label-sm font-label-sm font-semibold">Confirmado</span>
+</div>
+<span class="font-body-sm text-body-sm text-muted-light mt-1">Banho de Gel + Cutilagem</span>
+</div>
+<div class="h-full rounded-xl bg-surface-container-low flex items-center justify-center text-muted-light text-label-sm font-label-sm">
+          Disponível
+        </div>
+<div class="bg-surface-2-light rounded-xl p-3 flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-ink-light font-bold">Renata Ramos</span>
+<span class="px-2 py-0.5 rounded-full bg-status-confirmed/15 text-status-confirmed text-label-sm font-label-sm font-semibold">Confirmado</span>
+</div>
+<span class="font-body-sm text-body-sm text-muted-light mt-1">Corte + Tratamento Redken</span>
+</div>
+</div>
+</div>
+</div>
+<!-- MODAL / DRAWER BACKDROP & SLIDING DRAWER -->
+<!-- Translucent Backdrop -->
+<div class="fixed inset-0 bg-ink-light/25 z-40 backdrop-blur-[2px] transition-opacity" id="drawer-backdrop"></div>
+<!-- Slide-in Drawer Container (440px width, elevated shadow, crisp 1px separation) -->
+<aside class="fixed top-0 right-0 h-full w-[440px] max-w-full bg-surface-light shadow-2xl z-50 flex flex-col justify-between overflow-y-auto transform transition-transform duration-300 ease-out" id="appointment-drawer">
+<div class="flex flex-col">
+<!-- Drawer Header -->
+<div class="sticky top-0 bg-surface-light/95 backdrop-blur-md z-10 px-6 py-4 flex items-center justify-between border-b-0">
+<div class="flex items-center gap-3">
+<button class="w-9 h-9 flex items-center justify-center rounded-xl bg-surface-2-light hover:bg-surface-container text-ink-light transition-colors" id="close-drawer-btn" title="Fechar painel">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-muted-light uppercase tracking-wider font-semibold">Agendamento #4892</span>
+<span class="font-title-md text-title-md text-ink-light font-bold">Detalhes da Sessão</span>
+</div>
+</div>
+<!-- Status Chip: Em Atendimento -->
+<span class="px-3 py-1.5 rounded-full text-label-sm font-label-sm font-bold flex items-center gap-1.5 bg-primary-container/15 text-brand-text-light">
+<span class="w-2 h-2 rounded-full bg-primary-container animate-ping"></span>
+          Em atendimento
+        </span>
+</div>
+<div class="px-6 py-4 flex flex-col gap-5">
+<!-- Client Profile Card -->
+<div class="bg-surface-container rounded-2xl p-4 flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<!-- Avatar 56px -->
+<div class="w-14 h-14 rounded-2xl overflow-hidden shadow-sm flex-shrink-0 bg-surface-2-light">
+<img class="w-full h-full object-cover" data-alt="Close-up portrait of Rafaela Diniz, a cheerful client with modern styling, natural daylight, soft warm studio aesthetic, high quality portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7R4im0DV2lpttMgX0xuEtwU1wlCb9Y_tFNQKRDe9ogC2kOSkKg2VVLBw34aq3ESaLw_PGB6cfz6KRz350x8VC0Ui7mWCe0t-gTxBHPHgvXakz-rqBlQuTRyiaRIelGC7eNOOd13ApsbC-4_3pMHtOd8KFp8pgbC2TMUpOp3_drZYMyKZvUr-ZqAFyJ0-sJRukjnklvBrOr8QQS9Jq0VoPacH31-qdbYs46iAvhTU4XvQ60GUCjDrKAQ"/>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<h3 class="font-title-lg text-title-lg text-ink-light font-bold truncate">Rafaela Diniz</h3>
+</div>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="font-body-sm text-body-sm text-muted-light font-medium">(83) 99654-2210</span>
+<a class="w-7 h-7 rounded-lg bg-whatsapp-light text-on-primary flex items-center justify-center hover:opacity-90 transition-opacity" href="https://wa.me/5583996542210" target="_blank" title="Abrir no WhatsApp">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Client Stage Tag -->
+<div class="flex flex-col items-end">
+<span class="px-2.5 py-1 rounded-full bg-surface-light text-ink-light font-label-sm text-label-sm font-bold flex items-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-[14px] text-primary">repeat</span>
+                Cliente Recorrente
+              </span>
+</div>
+</div>
+<!-- Client Metrics Grid (2 Columns) -->
+<div class="grid grid-cols-2 gap-2 pt-2">
+<div class="bg-surface-light rounded-xl p-3 flex flex-col justify-between">
+<span class="font-label-sm text-label-sm text-muted-light">Ciclo médio</span>
+<div class="flex items-baseline gap-1.5 mt-1">
+<span class="font-headline-md text-headline-md font-bold text-ink-light">21</span>
+<span class="font-body-sm text-body-sm text-muted-light">dias</span>
+</div>
+<span class="font-label-sm text-label-sm text-success-light font-semibold mt-1 flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">verified</span> Ideal para o serviço
+              </span>
+</div>
+<div class="bg-surface-light rounded-xl p-3 flex flex-col justify-between">
+<span class="font-label-sm text-label-sm text-muted-light">Total de visitas</span>
+<div class="flex items-baseline gap-1.5 mt-1">
+<span class="font-headline-md text-headline-md font-bold text-ink-light">8</span>
+<span class="font-body-sm text-body-sm text-muted-light">em 2024</span>
+</div>
+<span class="font-label-sm text-label-sm text-muted-light mt-1 truncate">
+                Última: há 19 dias (Camila)
+              </span>
+</div>
+</div>
+</div>
+<!-- Appointment Details Section Card -->
+<div class="bg-surface-2-light rounded-2xl p-4 flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-muted-light font-bold uppercase tracking-wide">Serviço &amp; Horário</span>
+<!-- Source Chip -->
+<span class="px-2.5 py-1 rounded-full bg-surface-light font-label-sm text-label-sm text-brand-text-light font-bold flex items-center gap-1 shadow-sm">
+<span class="material-symbols-outlined text-[14px]">link</span>
+              Página Pública (Link da Bio)
+            </span>
+</div>
+<!-- Time & Professional -->
+<div class="flex flex-col gap-2.5">
+<div class="flex items-center gap-3 bg-surface-light rounded-xl p-3">
+<div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">schedule</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-ink-light font-bold">Terça, 17 de Setembro</span>
+<span class="font-body-sm text-body-sm text-muted-light">10:00 às 12:30 (Duração estimada: 2h30)</span>
+</div>
+</div>
+<div class="flex items-center justify-between bg-surface-light rounded-xl p-3">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="Square portrait of Camila Rocha, friendly nail designer specialist in uniform, smiling warmly" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEdhIYYpNBhiSM-_rrLMGITZmwZqgrLseUuCJlMClMvUrUvg1XoeZqNMoenmwJkXRvk1UXD7n1h5dRA12Yw45SmwChCBmaPEmgkd9mW02ogqj5wxINs9I3HPpA_t_or__aRelrPvf1enOoe1FTRdlHMlVA1X-FT2gQhyiY8yiIbHOAZqYYRrJrGoKZmpCrdZTM7oJUy0TbOYFkRt8UPaQplraXTxTaMbwoJe5lE_oVTsA-440EgRvQDw"/>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-ink-light font-bold">Camila Rocha</span>
+<span class="font-body-sm text-body-sm text-muted-light">Profissional responsável (Nail Designer)</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-muted-light text-[20px]">badge</span>
+</div>
+</div>
+<!-- Financial Breakdown Card -->
+<div class="bg-surface-light rounded-xl p-4 flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<span class="font-title-md text-title-md text-ink-light font-bold">Alongamento em gel</span>
+<span class="font-title-md text-title-md text-ink-light font-bold">R$ 180,00</span>
+</div>
+<!-- Signal Paid Highlight Pill -->
+<div class="flex items-center justify-between p-2.5 rounded-xl bg-success-light/10 text-success-light">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">payments</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-bold">Sinal pago R$ 30,00 via Pix</span>
+<span class="font-label-sm text-label-sm opacity-85">Comp. #PIX-99824-A1 · Confirmado</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[20px]">check_circle</span>
+</div>
+<!-- Balance to Pay at the Studio -->
+<div class="flex items-center justify-between pt-1">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-muted-light">Valor a pagar no estúdio</span>
+<span class="font-label-sm text-label-sm text-muted-light">Cartão, Dinheiro ou Pix final</span>
+</div>
+<span class="font-headline-md text-headline-md text-primary font-extrabold">R$ 150,00</span>
+</div>
+</div>
+<!-- Client Notes & Observations -->
+<div class="bg-surface-light rounded-xl p-3.5 flex flex-col gap-1.5">
+<div class="flex items-center gap-2 text-muted-light">
+<span class="material-symbols-outlined text-[16px]">notes</span>
+<span class="font-label-sm text-label-sm font-bold uppercase tracking-wider">Observações da Cliente</span>
+</div>
+<p class="font-body-sm text-body-sm text-ink-light italic pl-6">
+              “Tem preferência por formato amendoado natural. Chegou com 5 min de antecedência.”
+            </p>
+</div>
+<!-- Channel Origin Metadata -->
+<div class="flex items-center justify-between text-muted-light font-label-sm text-label-sm px-1">
+<span>Agendado em 14/09 às 21:14</span>
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-success-light"></span>
+<span>Lembrete WhatsApp enviado</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Operational Sticky Action Footer -->
+<div class="sticky bottom-0 bg-surface-light p-6 shadow-lg flex flex-col gap-3">
+<!-- Primary Main CTA: Concluir Atendimento (Em andamento) -->
+<button class="w-full h-12 rounded-xl bg-primary-container text-on-brand font-title-md text-title-md font-bold flex items-center justify-center gap-2 hover:brightness-105 transition-transform active:scale-[0.99] shadow-sm">
+<span class="material-symbols-outlined text-[22px]">task_alt</span>
+<span>Concluir atendimento &amp; Receber</span>
+</button>
+<!-- Secondary Action Grid (Strict Brand Tokens) -->
+<div class="grid grid-cols-2 gap-2">
+<!-- Confirmar Agendamento -->
+<button class="h-10 rounded-xl bg-status-confirmed/10 text-status-confirmed font-label-md text-label-md font-bold flex items-center justify-center gap-1.5 hover:bg-status-confirmed/20 transition-colors">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+<span>Confirmar</span>
+</button>
+<!-- Remarcar Horário -->
+<button class="h-10 rounded-xl bg-surface-2-light text-ink-light font-label-md text-label-md font-bold flex items-center justify-center gap-1.5 hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit_calendar</span>
+<span>Remarcar</span>
+</button>
+</div>
+<!-- Tertiary Operational Actions -->
+<div class="grid grid-cols-2 gap-2 pt-1">
+<!-- Cliente Faltou -->
+<button class="h-9 rounded-xl bg-danger-light/10 text-danger-light font-label-md text-label-md font-semibold flex items-center justify-center gap-1 hover:bg-danger-light/20 transition-colors">
+<span class="material-symbols-outlined text-[16px]">person_off</span>
+<span>Cliente faltou</span>
+</button>
+<!-- Cancelar Agendamento -->
+<button class="h-9 rounded-xl text-muted-light hover:text-danger-light font-label-md text-label-md font-semibold flex items-center justify-center gap-1 transition-colors">
+<span class="material-symbols-outlined text-[16px]">cancel</span>
+<span>Cancelar</span>
+</button>
+</div>
+</div>
+</aside>
+<!-- Interactive JavaScript to simulate Drawer Open/Close toggle -->
+<script>
+    (function() {
+      const backdrop = document.getElementById('drawer-backdrop');
+      const drawer = document.getElementById('appointment-drawer');
+      const closeBtn = document.getElementById('close-drawer-btn');
+
+      function closeDrawer() {
+        if (!drawer || !backdrop) return;
+        drawer.style.transform = 'translateX(100%)';
+        backdrop.style.opacity = '0';
+        backdrop.style.pointerEvents = 'none';
+      }
+
+      function openDrawer() {
+        if (!drawer || !backdrop) return;
+        drawer.style.transform = 'translateX(0)';
+        backdrop.style.opacity = '1';
+        backdrop.style.pointerEvents = 'auto';
+      }
+
+      if (closeBtn) {
+        closeBtn.addEventListener('click', closeDrawer);
+      }
+      if (backdrop) {
+        backdrop.addEventListener('click', closeDrawer);
+      }
+
+      // Allow reopening when clicking on the Rafaela appointment card on the timeline
+      const targetCard = document.querySelector('.cursor-pointer');
+      if (targetCard) {
+        targetCard.addEventListener('click', openDrawer);
+      }
+    })();
+  </script>
+</div></main></div></body></html>

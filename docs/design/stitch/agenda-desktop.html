@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "outline-variant": "#e0c0af",
+          "tertiary-container": "#00a8ff",
+          "inverse-surface": "#32302f",
+          "secondary-container": "#eae1da",
+          "success-light": "#16A34A",
+          "surface-container-lowest": "#ffffff",
+          "error-container": "#ffdad6",
+          "inverse-primary": "#ffb68b",
+          "bg-light": "#F6F5F4",
+          "tertiary-fixed-dim": "#95ccff",
+          "surface-2-dark": "#211F1D",
+          "whatsapp-dark": "#25D366",
+          "muted-light": "#66605B",
+          "secondary-fixed": "#eae1da",
+          "on-primary-container": "#5c2800",
+          "brand-text-dark": "#FF9A3D",
+          "success-dark": "#4ADE80",
+          "on-error-container": "#93000a",
+          "secondary-fixed-dim": "#cdc5bf",
+          "surface-container-low": "#f9f2f0",
+          "surface-tint": "#994700",
+          "on-primary-fixed": "#321200",
+          "primary-fixed": "#ffdbc8",
+          "on-primary": "#ffffff",
+          "on-error": "#ffffff",
+          "brand-text-light": "#B34D00",
+          "surface-2-light": "#EFEDEA",
+          "outline": "#8c7263",
+          "on-secondary-fixed": "#1f1b17",
+          "ink-light": "#1A1817",
+          "ink-dark": "#F3F1EF",
+          "surface": "#fff8f6",
+          "on-tertiary-fixed": "#001d32",
+          "warning-dark": "#FBBF24",
+          "line-light": "#E2DFDB",
+          "on-tertiary-fixed-variant": "#004a75",
+          "surface-dim": "#dfd9d7",
+          "surface-container-high": "#ede7e5",
+          "surface-bright": "#fff8f6",
+          "surface-dark": "#181615",
+          "background": "#fff8f6",
+          "on-secondary-fixed-variant": "#4b4641",
+          "warning-light": "#D97706",
+          "on-surface-variant": "#584235",
+          "on-brand": "#1A1817",
+          "status-confirmed": "#2563EB",
+          "on-surface": "#1d1b1a",
+          "on-secondary": "#ffffff",
+          "surface-container": "#f3edea",
+          "primary": "#994700",
+          "secondary": "#635d58",
+          "inverse-on-surface": "#f6efed",
+          "line-dark": "#2E2B28",
+          "surface-variant": "#e7e1df",
+          "on-tertiary-container": "#003a5c",
+          "primary-container": "#ff7a00",
+          "danger-light": "#DC2626",
+          "tertiary": "#006399",
+          "surface-container-highest": "#e7e1df",
+          "whatsapp-light": "#128C4A",
+          "on-primary-fixed-variant": "#753400",
+          "primary-fixed-dim": "#ffb68b",
+          "muted-dark": "#A39D97",
+          "on-background": "#1d1b1a",
+          "on-tertiary": "#ffffff",
+          "bg-dark": "#0E0D0C",
+          "on-secondary-container": "#69635e",
+          "tertiary-fixed": "#cde5ff",
+          "surface-light": "#FFFFFF",
+          "danger-dark": "#F87171",
+          "error": "#ba1a1a"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "gutter": "1rem",
+          "space-xl": "2rem",
+          "space-sm": "0.5rem",
+          "space-xs": "0.25rem",
+          "space-md": "1rem",
+          "space-lg": "1.5rem",
+          "margin": "1rem"
+        },
+        "fontFamily": {
+          "headline-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "title-md": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-lg-mobile": [
+            "Plus Jakarta Sans"
+          ],
+          "label-sm": [
+            "Plus Jakarta Sans"
+          ],
+          "body-sm": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-md": [
+            "Plus Jakarta Sans"
+          ],
+          "title-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "display-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "label-md": [
+            "Plus Jakarta Sans"
+          ],
+          "body-md": [
+            "Plus Jakarta Sans"
+          ]
+        },
+        "fontSize": {
+          "headline-lg": [
+            "32px",
+            {
+              "lineHeight": "40px",
+              "fontWeight": "700"
+            }
+          ],
+          "title-md": [
+            "17px",
+            {
+              "lineHeight": "24px",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-lg-mobile": [
+            "28px",
+            {
+              "lineHeight": "36px",
+              "fontWeight": "700"
+            }
+          ],
+          "label-sm": [
+            "11px",
+            {
+              "lineHeight": "16px",
+              "fontWeight": "600"
+            }
+          ],
+          "body-sm": [
+            "14px",
+            {
+              "lineHeight": "20px",
+              "fontWeight": "400"
+            }
+          ],
+          "headline-md": [
+            "24px",
+            {
+              "lineHeight": "32px",
+              "fontWeight": "700"
+            }
+          ],
+          "title-lg": [
+            "20px",
+            {
+              "lineHeight": "28px",
+              "fontWeight": "700"
+            }
+          ],
+          "display-lg": [
+            "40px",
+            {
+              "lineHeight": "48px",
+              "fontWeight": "800"
+            }
+          ],
+          "label-md": [
+            "13px",
+            {
+              "lineHeight": "18px",
+              "fontWeight": "600"
+            }
+          ],
+          "body-md": [
+            "15px",
+            {
+              "lineHeight": "22.5px",
+              "fontWeight": "400"
+            }
+          ]
+        }
+      },
+    },
+  }</script></head><body class="bg-bg-light font-body-md text-body-md text-ink-light"><aside class="fixed left-0 top-0 h-full w-[248px] bg-surface-light border-r border-line-light z-50 flex flex-col justify-between"><div class="flex flex-col"><div class="h-16 px-space-lg flex items-center gap-2.5 border-b border-line-light"><div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[20px]">event_available</span></div><span class="font-title-lg text-title-lg text-ink-light tracking-tight">EasyAgenda<span class="text-primary-container font-headline-lg text-title-lg">+</span></span></div><nav class="flex flex-col gap-1 px-3 py-space-md" data-active-classes="bg-surface-2-light text-primary font-label-md font-bold"><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="hoje" href="#"><span class="material-symbols-outlined text-[20px]">today</span>Hoje</a><a aria-current="page" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors bg-surface-2-light text-primary font-label-md font-bold" data-path="agenda" href="#"><span class="material-symbols-outlined text-[20px]">calendar_month</span>Agenda</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="clientes" href="#"><span class="material-symbols-outlined text-[20px]">group</span>Clientes</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="caixa" href="#"><span class="material-symbols-outlined text-[20px]">payments</span>Caixa</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="clube-e-pacotes" href="#"><span class="material-symbols-outlined text-[20px]">loyalty</span>Clube e pacotes</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="whatsapp" href="#"><span class="material-symbols-outlined text-[20px]">chat</span>WhatsApp</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="relatorios" href="#"><span class="material-symbols-outlined text-[20px]">bar_chart</span>Relatórios</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="minha-pagina" href="#"><span class="material-symbols-outlined text-[20px]">storefront</span>Minha página</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="ajustes" href="#"><span class="material-symbols-outlined text-[20px]">settings</span>Ajustes</a></nav></div><div class="p-space-md border-t border-line-light"><div class="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-surface-2-light"><span class="material-symbols-outlined text-[18px] text-muted-light">verified</span><div class="flex flex-col min-w-0"><span class="font-label-md text-label-md text-ink-light truncate">Studio Aurora</span><span class="font-label-sm text-label-sm text-muted-light truncate">Plano Pro</span></div></div></div></aside><div class="pl-[248px]"><header class="fixed top-0 left-[248px] right-0 h-16 bg-surface-light border-b border-line-light z-40 flex items-center justify-between px-space-lg"><div class="flex items-center gap-2 text-muted-light font-label-md text-label-md"><span class="hover:text-ink-light cursor-pointer">Studio Aurora</span><span class="material-symbols-outlined text-[16px]">chevron_right</span><span class="text-ink-light font-semibold">Painel de Gestão</span></div><div class="flex items-center gap-space-md"><div class="relative flex items-center"><span class="material-symbols-outlined absolute left-3 text-muted-light text-[18px]">search</span><input class="h-9 pl-9 pr-4 w-64 rounded-lg bg-surface-2-light border border-line-light text-ink-light font-body-sm text-body-sm placeholder:text-muted-light focus:outline-none focus:border-primary-container" placeholder="Buscar agendamento ou cliente..." type="text"/></div><button class="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-2-light text-muted-light hover:text-ink-light transition-colors"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary-container"></span></button><div class="flex items-center gap-3 pl-2 border-l border-line-light"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="relative pt-16 w-full px-space-lg py-space-lg bg-bg-light"><div class="flex flex-col w-full gap-5">
+<!-- Top Bar: Date, Views, Professionals & Action -->
+<div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-surface-light p-4 rounded-xl shadow-sm">
+<div class="flex flex-wrap items-center gap-4">
+<!-- Date Navigation -->
+<div class="flex items-center gap-1.5 bg-surface-2-light p-1 rounded-lg">
+<button class="w-8 h-8 flex items-center justify-center rounded text-ink-light hover:bg-surface-light transition-colors" title="Dia anterior">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<button class="px-2.5 py-1 text-label-md font-label-md text-ink-light hover:bg-surface-light rounded font-bold transition-colors">
+          Hoje
+        </button>
+<button class="w-8 h-8 flex items-center justify-center rounded text-ink-light hover:bg-surface-light transition-colors" title="Próximo dia">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+<div class="h-4 w-px bg-line-light mx-1"></div>
+<div class="flex items-center gap-2 px-2 py-1 text-ink-light font-title-md text-title-md">
+<span class="material-symbols-outlined text-primary-container text-[20px]">calendar_today</span>
+<span>Terça, 17 de Setembro</span>
+</div>
+</div>
+<!-- Segmented View Selector -->
+<div class="flex items-center bg-surface-2-light p-1 rounded-lg text-label-md font-label-md">
+<button class="px-3.5 py-1.5 rounded-md bg-surface-light text-ink-light font-bold shadow-sm transition-all">Dia</button>
+<button class="px-3.5 py-1.5 rounded-md text-muted-light hover:text-ink-light transition-all">Semana</button>
+</div>
+<!-- Staff Filter Chips -->
+<div class="hidden md:flex items-center gap-1.5 border-l border-line-light pl-4">
+<button class="px-3 py-1.5 rounded-full bg-ink-light text-surface-light font-label-md text-label-md font-bold transition-transform active:scale-95">
+          Todas
+        </button>
+<button class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2-light hover:bg-surface-container text-ink-light font-label-md text-label-md transition-all">
+<span class="w-5 h-5 rounded-full bg-brand-text-light/20 text-brand-text-light flex items-center justify-center text-[10px] font-bold">C</span>
+          Camila <span class="text-muted-light text-label-sm font-label-sm">(unhas)</span>
+</button>
+<button class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2-light hover:bg-surface-container text-ink-light font-label-md text-label-md transition-all">
+<span class="w-5 h-5 rounded-full bg-tertiary-container/30 text-tertiary flex items-center justify-center text-[10px] font-bold">B</span>
+          Bruna <span class="text-muted-light text-label-sm font-label-sm">(cílios)</span>
+</button>
+<button class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2-light hover:bg-surface-container text-ink-light font-label-md text-label-md transition-all">
+<span class="w-5 h-5 rounded-full bg-success-light/20 text-success-light flex items-center justify-center text-[10px] font-bold">P</span>
+          Paula <span class="text-muted-light text-label-sm font-label-sm">(cabelo)</span>
+</button>
+</div>
+</div>
+<!-- Quick Booking CTA -->
+<div class="flex items-center gap-2">
+<button class="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-container text-on-brand font-label-md text-label-md font-bold shadow-sm hover:brightness-105 active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined text-[18px]">add</span>
+        Novo agendamento
+      </button>
+</div>
+</div>
+<!-- Operational Sub-Header: Daily KPIs & Compact Legend -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-surface-light px-4 py-3 rounded-xl shadow-sm text-body-sm font-body-sm">
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-1.5 font-bold text-ink-light">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span>16 agendamentos</span>
+</div>
+<span class="text-muted-light">·</span>
+<div class="flex items-center gap-1 text-ink-light font-bold">
+<span class="text-muted-light font-normal">Faturamento:</span>
+<span class="text-success-light">R$ 1.460</span>
+</div>
+<span class="text-muted-light">·</span>
+<div class="flex items-center gap-1 text-muted-light">
+<span class="text-tertiary font-bold">3</span> horários livres
+      </div>
+</div>
+<!-- Compact Status Legend -->
+<div class="flex flex-wrap items-center gap-3 text-label-sm font-label-sm text-muted-light">
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-status-confirmed"></span>
+<span>Confirmado</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-warning-light"></span>
+<span>Aguardando confirmação</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-primary-container"></span>
+<span>Em atendimento</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-success-light"></span>
+<span>Concluído</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-danger-light"></span>
+<span>Faltou</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-secondary line-through opacity-70"></span>
+<span class="line-through">Cancelado</span>
+</div>
+</div>
+</div>
+<!-- Timeline Interactive Canvas (80px per hour standard, 08:00 to 20:00 = 12h = 960px) -->
+<div class="bg-surface-light rounded-xl shadow-sm overflow-hidden flex flex-col">
+<!-- Fixed Column Headers -->
+<div class="grid grid-cols-[68px_1fr_1fr_1fr] bg-surface-2-light/60 border-b border-line-light sticky top-0 z-20">
+<div class="p-3 text-center text-label-sm font-label-sm text-muted-light flex items-center justify-center font-bold">
+        GMT-3
+      </div>
+<!-- Professional 1 -->
+<div class="px-4 py-3 border-l border-line-light flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-full bg-brand-text-light/15 text-brand-text-light font-bold text-label-md flex items-center justify-center ring-2 ring-primary-container/20">
+            CR
+          </div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md text-ink-light leading-tight">Camila Rocha</span>
+<span class="font-label-sm text-label-sm text-muted-light">Nail Designer</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-surface-light font-label-sm text-label-sm text-muted-light font-bold shadow-xs">
+          6 atendimentos
+        </span>
+</div>
+<!-- Professional 2 -->
+<div class="px-4 py-3 border-l border-line-light flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-full bg-tertiary/15 text-tertiary font-bold text-label-md flex items-center justify-center ring-2 ring-tertiary-container/30">
+            BL
+          </div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md text-ink-light leading-tight">Bruna Lima</span>
+<span class="font-label-sm text-label-sm text-muted-light">Cílios &amp; Sobrancelhas</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-surface-light font-label-sm text-label-sm text-muted-light font-bold shadow-xs">
+          5 atendimentos
+        </span>
+</div>
+<!-- Professional 3 -->
+<div class="px-4 py-3 border-l border-line-light flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-full bg-success-light/15 text-success-light font-bold text-label-md flex items-center justify-center ring-2 ring-success-light/20">
+            PM
+          </div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md text-ink-light leading-tight">Paula Mendes</span>
+<span class="font-label-sm text-label-sm text-muted-light">Hair Stylist</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-surface-light font-label-sm text-label-sm text-muted-light font-bold shadow-xs">
+          5 atendimentos
+        </span>
+</div>
+</div>
+<!-- Timeline Body (Height = 12 hours * 80px = 960px) -->
+<div class="relative grid grid-cols-[68px_1fr_1fr_1fr] h-[960px] select-none bg-surface-light">
+<!-- Background Time Grid Lines -->
+<div class="col-span-4 absolute inset-0 pointer-events-none flex flex-col">
+<!-- 12 Hours Repeating Grid Lines -->
+<div class="h-[80px] border-b border-line-light/50 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line-light/30"></div></div>
+<div class="h-[80px] border-b border-line-light/50 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line-light/30"></div></div>
+<div class="h-[80px] border-b border-line-light/50 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line-light/30"></div></div>
+<div class="h-[80px] border-b border-line-light/50 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line-light/30"></div></div>
+<div class="h-[80px] border-b border-line-light/50 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line-light/30"></div></div>
+<div class="h-[80px] border-b border-line-light/50 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line-light/30"></div></div>
+<div class="h-[80px] border-b border-line-light/50 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line-light/30"></div></div>
+<div class="h-[80px] border-b border-line-light/50 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line-light/30"></div></div>
+<div class="h-[80px] border-b border-line-light/50 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line-light/30"></div></div>
+<div class="h-[80px] border-b border-line-light/50 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line-light/30"></div></div>
+<div class="h-[80px] border-b border-line-light/50 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line-light/30"></div></div>
+<div class="h-[80px] relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line-light/30"></div></div>
+</div>
+<!-- Current Time Indicator Line (11:15 = 3h15m from 08:00 = 3.25 * 80px = 260px) -->
+<div class="absolute left-0 right-0 top-[260px] z-30 pointer-events-none flex items-center">
+<span class="bg-primary-container text-on-brand font-label-sm text-label-sm font-bold px-2 py-0.5 rounded-r shadow-sm">
+          11:15 Agora
+        </span>
+<div class="h-0.5 flex-1 bg-primary-container"></div>
+</div>
+<!-- Left Hours Scale Column -->
+<div class="relative border-r border-line-light/70 flex flex-col justify-between text-muted-light font-label-md text-label-md py-1 pr-2 text-right">
+<div class="h-[80px] -mt-2">08:00</div>
+<div class="h-[80px] -mt-2">09:00</div>
+<div class="h-[80px] -mt-2">10:00</div>
+<div class="h-[80px] -mt-2">11:00</div>
+<div class="h-[80px] -mt-2">12:00</div>
+<div class="h-[80px] -mt-2">13:00</div>
+<div class="h-[80px] -mt-2">14:00</div>
+<div class="h-[80px] -mt-2">15:00</div>
+<div class="h-[80px] -mt-2">16:00</div>
+<div class="h-[80px] -mt-2">17:00</div>
+<div class="h-[80px] -mt-2">18:00</div>
+<div class="h-[80px] -mt-2">19:00</div>
+<div class="-mt-2">20:00</div>
+</div>
+<!-- COLUMN 1: CAMILA ROCHA -->
+<div class="relative border-r border-line-light/70 p-1">
+<!-- 08:30 - 10:00 (Top: 40px, Height: 120px) Concluído #16A34A -->
+<div class="absolute left-1 right-1 top-[40px] h-[120px] bg-surface-light rounded-lg border border-line-light shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer group">
+<div class="w-1 bg-success-light"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0">
+<div>
+<div class="flex items-center justify-between gap-1">
+<span class="font-label-sm text-label-sm text-muted-light">08:30 – 10:00</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-success-light/10 text-success-light flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[11px]">check_circle</span> Sinal pago
+                </span>
+</div>
+<h4 class="font-title-md text-title-md text-ink-light truncate mt-0.5">Mariana Souza</h4>
+<p class="font-body-sm text-body-sm text-muted-light truncate">Manutenção Fibra</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-bold text-ink-light">R$ 110</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold bg-success-light/10 text-success-light">Concluído</span>
+</div>
+</div>
+</div>
+<!-- 10:00 - 12:30 (Top: 160px, Height: 200px) Em Atendimento #FF7A00 -->
+<div class="absolute left-1 right-1 top-[160px] h-[200px] bg-surface-light rounded-lg border border-primary-container/40 shadow-xs flex overflow-hidden ring-1 ring-primary-container/30 hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1.5 bg-primary-container animate-pulse"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0 bg-primary-container/5">
+<div>
+<div class="flex items-center justify-between gap-1">
+<span class="font-label-sm text-label-sm text-primary-container font-bold">10:00 – 12:30</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary-container/15 text-primary-container flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[11px]">payments</span> Sinal pago
+                </span>
+</div>
+<h4 class="font-title-md text-title-md text-ink-light truncate mt-1">Rafaela Diniz</h4>
+<p class="font-body-sm text-body-sm text-ink-light/80 truncate">Alongamento em Gel</p>
+<div class="mt-2 flex items-center gap-1.5 text-label-sm font-label-sm text-primary-container font-bold">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+                Em procedimento
+              </div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-line-light">
+<span class="font-title-md text-title-md font-bold text-ink-light">R$ 180</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold bg-primary-container text-on-brand">Em atendimento</span>
+</div>
+</div>
+</div>
+<!-- 12:30 - 13:30 (Top: 360px, Height: 80px) Almoço -->
+<div class="absolute left-1 right-1 top-[360px] h-[80px] rounded-lg border border-line-light flex items-center justify-center text-muted-light overflow-hidden" style="background: repeating-linear-gradient(45deg, #F6F5F4, #F6F5F4 8px, #EFEDEA 8px, #EFEDEA 16px);">
+<div class="flex items-center gap-1.5 bg-surface-light/90 px-3 py-1 rounded-md text-label-sm font-label-sm font-semibold text-muted-light shadow-xs">
+<span class="material-symbols-outlined text-[16px]">restaurant</span>
+            Almoço da equipe
+          </div>
+</div>
+<!-- 13:30 - 15:00 (Top: 440px, Height: 120px) Confirmado #2563EB -->
+<div class="absolute left-1 right-1 top-[440px] h-[120px] bg-surface-light rounded-lg border border-line-light shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1 bg-status-confirmed"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-muted-light">13:30 – 15:00</span>
+<span class="material-symbols-outlined text-status-confirmed text-[16px]">verified</span>
+</div>
+<h4 class="font-title-md text-title-md text-ink-light truncate mt-0.5">Juliana Costa</h4>
+<p class="font-body-sm text-body-sm text-muted-light truncate">Esmaltação em Gel</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-bold text-ink-light">R$ 70</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold bg-status-confirmed/10 text-status-confirmed">Confirmado</span>
+</div>
+</div>
+</div>
+<!-- 15:00 - 15:30 (Vago 30m, Top: 560px, Height: 40px) -->
+<div class="absolute left-1.5 right-1.5 top-[562px] h-[36px] rounded-md border border-dashed border-line-light flex items-center justify-center text-muted-light hover:bg-surface-2-light hover:text-ink-light transition-all cursor-pointer group">
+<span class="font-label-sm text-label-sm font-bold flex items-center gap-1 group-hover:text-primary-container">
+<span class="material-symbols-outlined text-[16px]">add</span> Livre 30m
+          </span>
+</div>
+<!-- 15:30 - 17:00 (Top: 600px, Height: 120px) Aguardando Sinal #D97706 -->
+<div class="absolute left-1 right-1 top-[600px] h-[120px] bg-surface-light rounded-lg border border-line-light shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1 bg-warning-light"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-muted-light">15:30 – 17:00</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-warning-light/15 text-warning-light">Pendência</span>
+</div>
+<h4 class="font-title-md text-title-md text-ink-light truncate mt-0.5">Vanessa Alves</h4>
+<p class="font-body-sm text-body-sm text-muted-light truncate">Manutenção Alongamento</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-bold text-ink-light">R$ 110</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold bg-warning-light/15 text-warning-light">Aguardando sinal</span>
+</div>
+</div>
+</div>
+<!-- 17:30 - 18:30 (Top: 760px, Height: 80px) Cancelado -->
+<div class="absolute left-1 right-1 top-[760px] h-[80px] bg-surface-2-light/40 rounded-lg border border-line-light/50 flex overflow-hidden opacity-60">
+<div class="w-1 bg-muted-light"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-muted-light line-through">17:30 – 18:30</span>
+<span class="text-label-sm font-label-sm text-muted-light line-through">Cancelado</span>
+</div>
+<h4 class="font-title-md text-title-md text-muted-light truncate line-through">Camila Dias</h4>
+<p class="font-label-sm text-label-sm text-muted-light truncate line-through">Blindagem Diamond</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-muted-light line-through">R$ 90</span>
+</div>
+</div>
+</div>
+</div>
+<!-- COLUMN 2: BRUNA LIMA -->
+<div class="relative border-r border-line-light/70 p-1">
+<!-- 09:00 - 10:15 (Top: 80px, Height: 100px) Concluído #16A34A -->
+<div class="absolute left-1 right-1 top-[80px] h-[100px] bg-surface-light rounded-lg border border-line-light shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1 bg-success-light"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-muted-light">09:00 – 10:15</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-success-light/10 text-success-light flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[11px]">check_circle</span> Sinal pago
+                </span>
+</div>
+<h4 class="font-title-md text-title-md text-ink-light truncate mt-0.5">Letícia Albuquerque</h4>
+<p class="font-body-sm text-body-sm text-muted-light truncate">Extensão Volume Russo</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-bold text-ink-light">R$ 210</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold bg-success-light/10 text-success-light">Concluído</span>
+</div>
+</div>
+</div>
+<!-- 10:30 - 11:30 (Top: 200px, Height: 80px) Em Atendimento #FF7A00 -->
+<div class="absolute left-1 right-1 top-[200px] h-[80px] bg-surface-light rounded-lg border border-primary-container/40 shadow-xs flex overflow-hidden ring-1 ring-primary-container/30 hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1.5 bg-primary-container animate-pulse"></div>
+<div class="p-2 flex flex-col justify-between w-full min-w-0 bg-primary-container/5">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-primary-container font-bold">10:30 – 11:30</span>
+<span class="w-2 h-2 rounded-full bg-primary-container animate-ping"></span>
+</div>
+<h4 class="font-title-md text-title-md text-ink-light truncate">Fernanda Torres</h4>
+<p class="font-body-sm text-body-sm text-ink-light/80 truncate">Design de Sobrancelha</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-bold text-ink-light">R$ 60</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary-container text-on-brand">Em atendimento</span>
+</div>
+</div>
+</div>
+<!-- 12:00 - 13:00 (Top: 320px, Height: 80px) Almoço -->
+<div class="absolute left-1 right-1 top-[320px] h-[80px] rounded-lg border border-line-light flex items-center justify-center text-muted-light overflow-hidden" style="background: repeating-linear-gradient(45deg, #F6F5F4, #F6F5F4 8px, #EFEDEA 8px, #EFEDEA 16px);">
+<div class="flex items-center gap-1.5 bg-surface-light/90 px-3 py-1 rounded-md text-label-sm font-label-sm font-semibold text-muted-light shadow-xs">
+<span class="material-symbols-outlined text-[16px]">restaurant</span>
+            Almoço
+          </div>
+</div>
+<!-- 13:00 - 14:15 (Top: 400px, Height: 100px) Confirmado #2563EB -->
+<div class="absolute left-1 right-1 top-[400px] h-[100px] bg-surface-light rounded-lg border border-line-light shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1 bg-status-confirmed"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-muted-light">13:00 – 14:15</span>
+<span class="material-symbols-outlined text-status-confirmed text-[16px]">verified</span>
+</div>
+<h4 class="font-title-md text-title-md text-ink-light truncate mt-0.5">Beatriz Martins</h4>
+<p class="font-body-sm text-body-sm text-muted-light truncate">Lash Lifting</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-bold text-ink-light">R$ 130</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold bg-status-confirmed/10 text-status-confirmed">Confirmado</span>
+</div>
+</div>
+</div>
+<!-- 14:30 Horário vago com Encaixe Rápido (Top: 520px, Height: 50px) -->
+<div class="absolute left-1.5 right-1.5 top-[520px] h-[50px] rounded-md border-2 border-dashed border-line-light hover:border-primary-container/60 bg-surface-2-light/30 flex items-center justify-center transition-colors cursor-pointer group">
+<span class="font-label-md text-label-md font-bold text-muted-light group-hover:text-primary-container flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">add_circle</span> + Encaixe rápido (14:30)
+          </span>
+</div>
+<!-- 16:45 Horário vago com Encaixe Rápido (Top: 700px, Height: 50px) -->
+<div class="absolute left-1.5 right-1.5 top-[700px] h-[50px] rounded-md border-2 border-dashed border-line-light hover:border-primary-container/60 bg-surface-2-light/30 flex items-center justify-center transition-colors cursor-pointer group">
+<span class="font-label-md text-label-md font-bold text-muted-light group-hover:text-primary-container flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">add_circle</span> + Encaixe rápido (16:45)
+          </span>
+</div>
+<!-- 17:30 - 18:30 (Top: 760px, Height: 80px) Faltou #DC2626 -->
+<div class="absolute left-1 right-1 top-[760px] h-[80px] bg-danger-light/5 rounded-lg border border-danger-light/30 shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1 bg-danger-light"></div>
+<div class="p-2 flex flex-col justify-between w-full min-w-0">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-danger-light font-bold">17:30 – 18:30</span>
+<span class="material-symbols-outlined text-danger-light text-[16px]">person_off</span>
+</div>
+<h4 class="font-title-md text-title-md text-ink-light truncate">Carla Peixoto</h4>
+<p class="font-body-sm text-body-sm text-muted-light truncate">Manutenção Cílios</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-bold text-ink-light">R$ 120</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold bg-danger-light/15 text-danger-light">Faltou</span>
+</div>
+</div>
+</div>
+</div>
+<!-- COLUMN 3: PAULA MENDES -->
+<div class="relative p-1">
+<!-- 09:00 - 10:00 (Top: 80px, Height: 80px) Concluído #16A34A -->
+<div class="absolute left-1 right-1 top-[80px] h-[80px] bg-surface-light rounded-lg border border-line-light shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1 bg-success-light"></div>
+<div class="p-2 flex flex-col justify-between w-full min-w-0">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-muted-light">09:00 – 10:00</span>
+<span class="material-symbols-outlined text-success-light text-[16px]">check_circle</span>
+</div>
+<h4 class="font-title-md text-title-md text-ink-light truncate">Juliana Paes</h4>
+<p class="font-body-sm text-body-sm text-muted-light truncate">Escova Modelada</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-bold text-ink-light">R$ 90</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold bg-success-light/10 text-success-light">Concluído</span>
+</div>
+</div>
+</div>
+<!-- 10:15 - 12:15 (Top: 180px, Height: 160px) Coloração com Encaixe Inteligente -->
+<div class="absolute left-1 right-1 top-[180px] h-[160px] bg-surface-light rounded-lg border border-primary-container/40 shadow-xs flex overflow-hidden ring-1 ring-primary-container/30">
+<div class="w-1.5 bg-primary-container animate-pulse"></div>
+<div class="p-2 flex flex-col justify-between w-full min-w-0 relative">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-primary-container font-bold">10:15 – 12:15</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary-container text-on-brand">Em atendimento</span>
+</div>
+<h4 class="font-title-md text-title-md text-ink-light truncate mt-0.5">Coloração Iluminada</h4>
+<p class="font-label-sm text-label-sm text-muted-light">Procedimento Químico · R$ 280</p>
+</div>
+<!-- Faixa Especial de Ação Química (10:45 às 11:20: ~35 min, Top: 40px relative, Height: 50px) -->
+<div class="my-1 rounded border border-tertiary/40 bg-tertiary/5 p-1.5 relative overflow-hidden" style="background: repeating-linear-gradient(45deg, rgba(0,99,153,0.04), rgba(0,99,153,0.04) 6px, transparent 6px, transparent 12px);">
+<div class="flex items-center justify-between mb-1">
+<span class="font-label-sm text-label-sm font-bold text-tertiary flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">timer</span> Pausa 35 min – Ação Química
+                </span>
+<span class="px-1 py-0.2 rounded text-[9px] font-bold bg-tertiary-container/30 text-tertiary">Encaixe ativo</span>
+</div>
+<!-- Encaixe Inteligente dentro da pausa -->
+<div class="bg-surface-light rounded p-1.5 border border-line-light shadow-xs flex items-center justify-between">
+<div class="min-w-0">
+<span class="font-label-sm text-label-sm font-bold text-ink-light block truncate">Corte Curto Express · Aline Maia</span>
+<span class="font-label-sm text-label-sm text-success-light font-semibold">R$ 80 faturados no intervalo</span>
+</div>
+<span class="material-symbols-outlined text-primary-container text-[16px]">bolt</span>
+</div>
+</div>
+<div class="flex items-center justify-between text-label-sm font-label-sm text-muted-light">
+<span>Finalização: Escova &amp; Lavatório</span>
+<span class="font-bold text-ink-light">Total bloco: R$ 360</span>
+</div>
+</div>
+</div>
+<!-- 12:30 - 13:30 (Top: 360px, Height: 80px) Almoço -->
+<div class="absolute left-1 right-1 top-[360px] h-[80px] rounded-lg border border-line-light flex items-center justify-center text-muted-light overflow-hidden" style="background: repeating-linear-gradient(45deg, #F6F5F4, #F6F5F4 8px, #EFEDEA 8px, #EFEDEA 16px);">
+<div class="flex items-center gap-1.5 bg-surface-light/90 px-3 py-1 rounded-md text-label-sm font-label-sm font-semibold text-muted-light shadow-xs">
+<span class="material-symbols-outlined text-[16px]">restaurant</span>
+            Almoço
+          </div>
+</div>
+<!-- 14:00 - 15:30 (Top: 480px, Height: 120px) Confirmado #2563EB -->
+<div class="absolute left-1 right-1 top-[480px] h-[120px] bg-surface-light rounded-lg border border-line-light shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1 bg-status-confirmed"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-muted-light">14:00 – 15:30</span>
+<span class="material-symbols-outlined text-status-confirmed text-[16px]">verified</span>
+</div>
+<h4 class="font-title-md text-title-md text-ink-light truncate mt-0.5">Renata Prado</h4>
+<p class="font-body-sm text-body-sm text-muted-light truncate">Mechas e Tonalização</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-bold text-ink-light">R$ 320</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold bg-status-confirmed/10 text-status-confirmed">Confirmado</span>
+</div>
+</div>
+</div>
+<!-- 16:00 - 17:00 (Top: 640px, Height: 80px) Aguardando confirmação #D97706 -->
+<div class="absolute left-1 right-1 top-[640px] h-[80px] bg-surface-light rounded-lg border border-line-light shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1 bg-warning-light"></div>
+<div class="p-2 flex flex-col justify-between w-full min-w-0">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-muted-light">16:00 – 17:00</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-warning-light/15 text-warning-light">Aguardando</span>
+</div>
+<h4 class="font-title-md text-title-md text-ink-light truncate">Sophia Lima</h4>
+<p class="font-body-sm text-body-sm text-muted-light truncate">Corte &amp; Hidratação</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-bold text-ink-light">R$ 160</span>
+<span class="px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold bg-warning-light/15 text-warning-light">Pendente</span>
+</div>
+</div>
+</div>
+<!-- 17:30 - 19:00 Horário Livre Noturno -->
+<div class="absolute left-1.5 right-1.5 top-[760px] h-[120px] rounded-md border border-dashed border-line-light flex flex-col items-center justify-center text-muted-light hover:bg-surface-2-light hover:text-ink-light transition-all cursor-pointer group">
+<span class="material-symbols-outlined text-[20px] text-muted-light group-hover:text-primary-container">event_available</span>
+<span class="font-label-md text-label-md font-bold mt-1 group-hover:text-primary-container">1h30 livre</span>
+<span class="font-label-sm text-label-sm text-muted-light">Clique para agendar</span>
+</div>
+</div>
+</div>
+</div>
+</div></main></div></body></html>
