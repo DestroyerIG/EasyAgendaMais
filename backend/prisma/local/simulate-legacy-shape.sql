@@ -35,6 +35,11 @@
 --      - stripe_subscription_id só com uq_barbershops_stripe_subscription
 --        (migration_v5.sql:34) — banco montado aos poucos, em que a coluna veio
 --        do ADD COLUMN da v5, sem UNIQUE inline.
+--   4. Os DEFAULTs de legado das 21 colunas de mensagem de whatsapp_bot_config
+--      (database.sql:238-279 e migration_v3.sql:7-84), com {nome_barbearia},
+--      {barbeiro} e "EasyBarber Bot", incluindo a sobra welcome_message (ver
+--      seção 5). Servem para testar a migration
+--      20260917160000_drop_legacy_bot_config_defaults.
 --
 -- Como rodar (Git Bash / Linux / macOS, na raiz do repositório, com o container
 -- easyagenda-db de pé). O Prisma não tem "deploy até a migration X", então as
@@ -152,7 +157,130 @@ CREATE INDEX idx_services_barbershop_active          ON public.services (barbers
 CREATE INDEX idx_menu_options_barbershop             ON public.whatsapp_menu_options (barbershop_id);            -- migration_v3.sql:102
 CREATE INDEX idx_whatsapp_sessions_phone_barbershop  ON public.whatsapp_sessions (phone, barbershop_id);         -- migration_v4.sql:28
 
--- ─── 5. Conferência: os 34 nomes colhidos das legacy-migrations existem ───────
+-- ─── 5. DEFAULTs de legado nas colunas de mensagem do bot ─────────────────────
+-- database.sql:238-279 e migration_v3.sql:7-84 deram DEFAULT às colunas de
+-- mensagem de whatsapp_bot_config com os textos antigos ({nome_barbearia},
+-- {barbeiro}, "Barbeiro:", 💈 e "EasyBarber Bot"). O 0_init não tem esses
+-- DEFAULTs. Aqui eles entram com o texto exato do legado, para testar a
+-- migration 20260917160000_drop_legacy_bot_config_defaults (um INSERT só com
+-- business_id não pode mais trazer esses textos).
+-- NOT NULL: o legado não marcou nenhuma dessas colunas como NOT NULL (todas são
+-- "TEXT DEFAULT ..."), então a simulação também não marca.
+-- welcome_message: o database.sql criou welcome_message e a v3 criou
+-- welcome_header; a migration 20260512190000 renomeia welcome_message para
+-- welcome_header e falha onde as duas já existem. Se produção contornou isso
+-- com migrate resolve --applied, welcome_message ficou lá, fora do
+-- schema.prisma e com o DEFAULT antigo. A simulação cria essa sobra para
+-- provar que a migration de DEFAULTs também a cobre.
+ALTER TABLE public.whatsapp_bot_config ADD COLUMN welcome_message TEXT DEFAULT 'Olá 👋 Bem-vindo à {nome_barbearia}!
+
+Me chame de *EasyBarber Bot* 🤖 e estou aqui para agilizar seu atendimento.
+
+Como posso ajudar hoje?
+
+1️⃣ *Agendar um horário*
+2️⃣ Ver nossos serviços
+3️⃣ Cancelar agendamento via bot
+4️⃣ Reagendamento via bot
+5️⃣ Avaliação pós-atendimento
+6️⃣ Promoções automáticas
+7️⃣ Integração com Instagram
+8️⃣ Falar com um humano 👨‍💼
+9️⃣ Encerrar atendimento'; -- database.sql:238
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN ask_name_message SET DEFAULT 'Vejo que é sua primeira vez aqui! 😊
+
+Qual o seu *nome completo*?'; -- database.sql:253
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN attendant_message SET DEFAULT 'Um atendente entrará em contato em breve! 👨‍💼'; -- database.sql:256
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN confirmation_message SET DEFAULT '✅ Seu horário foi agendado com sucesso! 💈
+
+📋 Serviço: {servico}
+👨‍🦱 Barbeiro: {barbeiro}
+📅 Data: {data}
+⏰ Horário: {horario}
+💰 Valor: R$ {valor}
+
+Até lá! 👋'; -- database.sql:257
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN reminder_message SET DEFAULT '⏰ Lembrete!
+
+Olá {nome_cliente}!
+
+Seu horário é daqui a 2 horas:
+📋 {servico}
+👨‍🦱 Barbeiro: {barbeiro}
+⏰ {horario}
+
+Te esperamos! 💈'; -- database.sql:266
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN invalid_option_message SET DEFAULT 'Opção inválida. Por favor, escolha um número da lista.'; -- database.sql:276
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN session_expired_message SET DEFAULT '⏰ Sua sessão expirou por inatividade.
+
+Digite qualquer coisa para começar novamente.'; -- database.sql:277
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN welcome_header SET DEFAULT 'Olá 👋 Bem-vindo à {nome_barbearia}!
+
+Me chame de *EasyBarber Bot* 🤖 e estou aqui para agilizar seu atendimento.
+
+Como posso ajudar hoje?'; -- migration_v3.sql:7
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN end_session_message SET DEFAULT '✅ Atendimento encerrado.
+
+Se precisar novamente, é só mandar uma nova mensagem.'; -- migration_v3.sql:13
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN name_validation_message SET DEFAULT 'Por favor, digite seu nome completo para continuarmos.
+
+0️⃣ Ou digite 0 para voltar ao menu de atendimento'; -- migration_v3.sql:17
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN no_slots_message SET DEFAULT 'Infelizmente não há horários disponíveis com este barbeiro nesta data. Escolha outra data ou barbeiro.
+
+0️⃣ Voltar ao menu de atendimento'; -- migration_v3.sql:21
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN cancel_no_appointments_message SET DEFAULT '📋 Você não tem agendamentos próximos para cancelar.
+
+Se deseja agendar, escolha a opção 1️⃣'; -- migration_v3.sql:25
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN cancel_list_message SET DEFAULT '❌ Seus agendamentos próximos:'; -- migration_v3.sql:29
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN cancel_success_message SET DEFAULT '✅ Seu agendamento foi cancelado com sucesso!
+
+Se deseja remarcar ou agende um novo horário.'; -- migration_v3.sql:31
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN reschedule_no_appointments_message SET DEFAULT '📋 Você não tem agendamentos para reagendar.
+
+Se deseja agendar, escolha a opção 1️⃣'; -- migration_v3.sql:35
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN reschedule_list_message SET DEFAULT '🔄 Seus agendamentos disponíveis para reagendamento:'; -- migration_v3.sql:39
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN no_previous_appointments_message SET DEFAULT '📊 Você não tem atendimentos anteriores para avaliar.
+
+Volte após seu próximo corte! 💇'; -- migration_v3.sql:41
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN rating_question_message SET DEFAULT '⭐ *Como foi seu atendimento?*
+
+1️⃣ Excelente! 😍
+2️⃣ Bom 😊
+3️⃣ Pode melhorar 😐
+4️⃣ Ruim 😞
+
+0️⃣ Voltar ao menu de atendimento
+
+Sua opinião nos ajuda a melhorar cada vez mais!'; -- migration_v3.sql:45
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN rating_confirmation_message SET DEFAULT '✅ Obrigado pela sua avaliação: {avaliacao}
+
+Sua opinião é muito importante para melhorarmos cada vez mais!
+
+👉 O que mais podemos fazer por você?'; -- migration_v3.sql:56
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN promotions_message SET DEFAULT '🎉 *Promoções e Ofertas Especiais!*
+
+💈 *Desconto de 10%* em todos os serviços para clientes frequentes!
+
+💝 *Promoção do Mês:* Corte + Barba por apenas R$ 49,90
+(Válido até o final do mês)
+
+🎁 *Indique um amigo* e ganhe 5% em seu próximo atendimento!
+
+Para aproveitar as promoções, agende agora!'; -- migration_v3.sql:62
+ALTER TABLE public.whatsapp_bot_config ALTER COLUMN instagram_message SET DEFAULT '📱 *Nos acompanhe no Instagram!*
+
+🎨 Veja nossos trabalhos, dicas de estilo e tendências!
+
+👉 {instagram_handle}
+
+📸 Siga-nos para:
+✨ Vê os melhores cortes
+💡 Receber dicas de beleza
+🎯 Acompanhar promoções exclusivas
+
+📲 Clique no link para nos seguir!'; -- migration_v3.sql:73
+
+-- ─── 6. Conferência: os 34 nomes colhidos e os 21 DEFAULTs de legado existem ──
 DO $$
 DECLARE
   harvested text[] := ARRAY[
@@ -172,7 +300,8 @@ DECLARE
     'idx_whatsapp_ratings_barbershop', 'idx_whatsapp_sessions_phone_barbershop',
     'uq_barbershops_whatsapp_instance_name_norm'
   ];
-  missing text;
+  missing         text;
+  legacy_defaults int;
 BEGIN
   IF array_length(harvested, 1) <> 34 THEN
     RAISE EXCEPTION 'lista de nomes colhidos tem % itens, esperado 34', array_length(harvested, 1);
@@ -187,7 +316,18 @@ BEGIN
     RAISE EXCEPTION 'nomes de legado ausentes após a simulação: %', missing;
   END IF;
 
-  RAISE NOTICE 'simulação de legado aplicada: os 34 nomes colhidos existem';
+  SELECT count(*) INTO legacy_defaults
+  FROM pg_attribute a
+  JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
+  WHERE a.attrelid = 'public.whatsapp_bot_config'::regclass
+    AND a.atttypid = 'text'::regtype
+    AND NOT a.attisdropped;
+
+  IF legacy_defaults <> 21 THEN
+    RAISE EXCEPTION 'whatsapp_bot_config tem % colunas de texto com DEFAULT, esperado 21', legacy_defaults;
+  END IF;
+
+  RAISE NOTICE 'simulação de legado aplicada: os 34 nomes colhidos e os 21 DEFAULTs do bot existem';
 END $$;
 
 COMMIT;
