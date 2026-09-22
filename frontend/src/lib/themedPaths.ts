@@ -13,4 +13,11 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/ui/Banner.tsx',
   'src/components/ui/EmptyState.tsx',
   'src/components/ui/PageHeader.tsx',
+  'src/components/ui/Field.tsx',
+  'src/components/ui/Input.tsx',
+  'src/components/ui/Select.tsx',
+  'src/components/ui/Textarea.tsx',
+  'src/components/ui/Switch.tsx',
+  'src/components/ui/PasswordInput.tsx',
+  'src/components/ui/Table.tsx',
 ];
