@@ -26,4 +26,6 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/ui/DropdownMenu.tsx',
   'src/components/ui/ThemeSelect.tsx',
   'src/components/Toast.tsx',
+  'src/components/dev',
+  'src/app/dev',
 ];
