@@ -60,10 +60,6 @@ export function AppointmentModule() {
     loadAppointments();
   }, [loadAppointments]);
 
-  useEffect(() => {
-    if (newAppointment.open) setShowModal(true);
-  }, [newAppointment.open]);
-
   const openModal = async () => {
     setShowModal(true);
     setAvailableSlots([]);
@@ -80,6 +76,11 @@ export function AppointmentModule() {
       showToast('Erro ao carregar dados do formulário', 'error');
     }
   };
+
+  useEffect(() => {
+    if (newAppointment.open) openModal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newAppointment.open]);
 
   const loadAvailableSlots = async (professionalId: string, date: string, serviceId: string) => {
     if (!professionalId || !date) return;
