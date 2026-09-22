@@ -47,4 +47,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/FinanceModule.tsx',
   'src/components/finance',
   'src/app/dashboard/financeiro/page.tsx',
+  'src/components/WhatsAppModule.tsx',
+  'src/components/whatsapp',
+  'src/app/dashboard/whatsapp/page.tsx',
 ];

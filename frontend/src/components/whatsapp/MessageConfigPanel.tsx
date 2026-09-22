@@ -1,24 +1,7 @@
 'use client';
 
-import {
-  MessageSquare,
-  User,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  LogOut,
-  Loader2,
-  Save,
-  RotateCcw,
-  XCircle,
-  CalendarX,
-  RefreshCw,
-  Star,
-  Megaphone,
-  Instagram,
-  Ban,
-  ListChecks,
-} from 'lucide-react';
+import { Save, RotateCcw } from 'lucide-react';
+import { Card, Button, IconButton, Field, Textarea, Skeleton } from '@/components/ui';
 
 export interface BotConfig {
   welcome_header: string;
@@ -55,7 +38,6 @@ interface MessageConfigPanelProps {
 interface FieldDef {
   key: keyof BotConfig;
   label: string;
-  icon: typeof MessageSquare;
   rows: number;
   hint?: string;
   category: string;
@@ -63,34 +45,34 @@ interface FieldDef {
 
 const FIELDS: FieldDef[] = [
   // Fluxo Principal
-  { key: 'welcome_header', label: 'Cabeçalho de Boas-vindas', icon: MessageSquare, rows: 4, hint: 'Disponível: {nome_negocio}. O menu é gerado automaticamente.', category: 'Fluxo Principal' },
-  { key: 'ask_name_message', label: 'Pergunta de Nome (Novo Cliente)', icon: User, rows: 4, category: 'Fluxo Principal' },
-  { key: 'name_validation_message', label: 'Nome Inválido', icon: AlertCircle, rows: 3, category: 'Fluxo Principal' },
-  { key: 'invalid_option_message', label: 'Opção Inválida', icon: Ban, rows: 3, category: 'Fluxo Principal' },
-  { key: 'session_expired_message', label: 'Sessão Expirada', icon: LogOut, rows: 3, category: 'Fluxo Principal' },
-  { key: 'end_session_message', label: 'Encerrar Atendimento', icon: XCircle, rows: 3, category: 'Fluxo Principal' },
-  { key: 'attendant_message', label: 'Falar com Atendente', icon: User, rows: 4, category: 'Fluxo Principal' },
+  { key: 'welcome_header', label: 'Cabeçalho de Boas-vindas', rows: 4, hint: 'Disponível: {nome_negocio}. O menu é gerado automaticamente.', category: 'Fluxo Principal' },
+  { key: 'ask_name_message', label: 'Pergunta de Nome (Novo Cliente)', rows: 4, category: 'Fluxo Principal' },
+  { key: 'name_validation_message', label: 'Nome Inválido', rows: 3, category: 'Fluxo Principal' },
+  { key: 'invalid_option_message', label: 'Opção Inválida', rows: 3, category: 'Fluxo Principal' },
+  { key: 'session_expired_message', label: 'Sessão Expirada', rows: 3, category: 'Fluxo Principal' },
+  { key: 'end_session_message', label: 'Encerrar Atendimento', rows: 3, category: 'Fluxo Principal' },
+  { key: 'attendant_message', label: 'Falar com Atendente', rows: 4, category: 'Fluxo Principal' },
 
   // Agendamento
-  { key: 'confirmation_message', label: 'Confirmação de Agendamento', icon: CheckCircle, rows: 5, hint: 'Disponível: {servico}, {profissional}, {data}, {horario}, {valor}', category: 'Agendamento' },
-  { key: 'reminder_message', label: 'Lembrete (2h antes)', icon: Clock, rows: 5, hint: 'Disponível: {nome_cliente}, {servico}, {profissional}, {horario}', category: 'Agendamento' },
-  { key: 'no_slots_message', label: 'Sem Horários Disponíveis', icon: CalendarX, rows: 3, category: 'Agendamento' },
+  { key: 'confirmation_message', label: 'Confirmação de Agendamento', rows: 5, hint: 'Disponível: {servico}, {profissional}, {data}, {horario}, {valor}', category: 'Agendamento' },
+  { key: 'reminder_message', label: 'Lembrete (2h antes)', rows: 5, hint: 'Disponível: {nome_cliente}, {servico}, {profissional}, {horario}', category: 'Agendamento' },
+  { key: 'no_slots_message', label: 'Sem Horários Disponíveis', rows: 3, category: 'Agendamento' },
 
   // Cancelamento
-  { key: 'cancel_no_appointments_message', label: 'Sem Agendamentos para Cancelar', icon: XCircle, rows: 3, category: 'Cancelamento' },
-  { key: 'cancel_list_message', label: 'Lista de Agendamentos (Cancelar)', icon: ListChecks, rows: 4, hint: 'Disponível: {lista_agendamentos}', category: 'Cancelamento' },
-  { key: 'cancel_success_message', label: 'Cancelamento Confirmado', icon: CheckCircle, rows: 3, category: 'Cancelamento' },
+  { key: 'cancel_no_appointments_message', label: 'Sem Agendamentos para Cancelar', rows: 3, category: 'Cancelamento' },
+  { key: 'cancel_list_message', label: 'Lista de Agendamentos (Cancelar)', rows: 4, hint: 'Disponível: {lista_agendamentos}', category: 'Cancelamento' },
+  { key: 'cancel_success_message', label: 'Cancelamento Confirmado', rows: 3, category: 'Cancelamento' },
 
   // Reagendamento
-  { key: 'reschedule_no_appointments_message', label: 'Sem Agendamentos para Reagendar', icon: RefreshCw, rows: 3, category: 'Reagendamento' },
-  { key: 'reschedule_list_message', label: 'Lista de Agendamentos (Reagendar)', icon: ListChecks, rows: 4, hint: 'Disponível: {lista_agendamentos}', category: 'Reagendamento' },
+  { key: 'reschedule_no_appointments_message', label: 'Sem Agendamentos para Reagendar', rows: 3, category: 'Reagendamento' },
+  { key: 'reschedule_list_message', label: 'Lista de Agendamentos (Reagendar)', rows: 4, hint: 'Disponível: {lista_agendamentos}', category: 'Reagendamento' },
 
   // Avaliação & Extras
-  { key: 'no_previous_appointments_message', label: 'Sem Atendimentos Anteriores', icon: Star, rows: 3, category: 'Avaliação & Extras' },
-  { key: 'rating_question_message', label: 'Pergunta de Avaliação', icon: Star, rows: 4, category: 'Avaliação & Extras' },
-  { key: 'rating_confirmation_message', label: 'Confirmação de Avaliação', icon: CheckCircle, rows: 3, hint: 'Disponível: {avaliacao}', category: 'Avaliação & Extras' },
-  { key: 'promotions_message', label: 'Promoções', icon: Megaphone, rows: 4, hint: 'Disponível: {nome_negocio}', category: 'Avaliação & Extras' },
-  { key: 'instagram_message', label: 'Instagram', icon: Instagram, rows: 4, hint: 'Disponível: {nome_negocio}, {instagram_handle}', category: 'Avaliação & Extras' },
+  { key: 'no_previous_appointments_message', label: 'Sem Atendimentos Anteriores', rows: 3, category: 'Avaliação & Extras' },
+  { key: 'rating_question_message', label: 'Pergunta de Avaliação', rows: 4, category: 'Avaliação & Extras' },
+  { key: 'rating_confirmation_message', label: 'Confirmação de Avaliação', rows: 3, hint: 'Disponível: {avaliacao}', category: 'Avaliação & Extras' },
+  { key: 'promotions_message', label: 'Promoções', rows: 4, hint: 'Disponível: {nome_negocio}', category: 'Avaliação & Extras' },
+  { key: 'instagram_message', label: 'Instagram', rows: 4, hint: 'Disponível: {nome_negocio}, {instagram_handle}', category: 'Avaliação & Extras' },
 ];
 
 const CATEGORIES = ['Fluxo Principal', 'Agendamento', 'Cancelamento', 'Reagendamento', 'Avaliação & Extras'];
@@ -103,61 +85,52 @@ export const MessageConfigPanel = ({
   onSave,
   onReset,
 }: MessageConfigPanelProps) => (
-  <div className="card rounded-2xl overflow-hidden">
-    <div className="p-8 border-b border-gray-800 bg-black/20 flex justify-between items-center">
+  <Card className="overflow-hidden">
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h3 className="text-xl font-bold text-white mb-2">Personalizar Mensagens</h3>
-        <p className="text-gray-400 text-sm">Defina como o bot deve falar com seus clientes.</p>
+        <h3 className="mb-2 text-xl font-bold text-ink">Personalizar Mensagens</h3>
+        <p className="text-[15px] text-muted">Defina como o bot deve falar com seus clientes.</p>
       </div>
       <div className="flex gap-2">
-        <button
+        <IconButton
+          icon={RotateCcw}
+          label="Resetar para o padrão"
+          variant="secondary"
           onClick={onReset}
           disabled={actionLoading || configLoading}
-          className="p-3 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-xl transition-all disabled:opacity-50"
-          title="Resetar para o padrão"
-        >
-          <RotateCcw size={20} />
-        </button>
-        <button
-          onClick={onSave}
-          disabled={actionLoading || configLoading}
-          className="btn-primary flex items-center gap-2 disabled:opacity-50"
-        >
-          {actionLoading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+        />
+        <Button onClick={onSave} loading={actionLoading} disabled={configLoading}>
+          {!actionLoading && <Save className="h-4 w-4" aria-hidden="true" />}
           Salvar Alterações
-        </button>
+        </Button>
       </div>
     </div>
 
     {configLoading ? (
-      <div className="p-20 flex flex-col items-center justify-center space-y-4">
-        <Loader2 size={48} className="text-primary animate-spin" />
-        <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Carregando configurações...</p>
+      <div className="space-y-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-24 w-full" />
+        ))}
       </div>
     ) : (
-      <div className="p-8 space-y-8 max-h-[700px] overflow-y-auto">
+      <div className="max-h-[700px] space-y-8 overflow-y-auto pr-1">
         {CATEGORIES.map(category => {
           const categoryFields = FIELDS.filter(f => f.category === category);
           return (
             <div key={category}>
-              <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-4 border-b border-gray-800 pb-2">
+              <h4 className="mb-4 border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wide text-brand-text">
                 {category}
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {categoryFields.map(({ key, label, icon: Icon, rows, hint }) => (
-                  <div key={key} className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                      <Icon size={14} className="text-primary" />
-                      {label}
-                    </label>
-                    <textarea
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                {categoryFields.map(({ key, label, rows, hint }) => (
+                  <Field key={key} id={`bot-config-${key}`} label={label} hint={hint}>
+                    <Textarea
+                      id={`bot-config-${key}`}
                       value={botConfig[key] || ''}
                       onChange={e => onChange({ ...botConfig, [key]: e.target.value })}
                       rows={rows}
-                      className="w-full bg-black/40 border border-gray-800 p-4 rounded-xl text-sm text-gray-300 focus:outline-none focus:border-primary transition-all resize-none"
                     />
-                    {hint && <p className="text-[10px] text-gray-600 italic">{hint}</p>}
-                  </div>
+                  </Field>
                 ))}
               </div>
             </div>
@@ -165,5 +138,5 @@ export const MessageConfigPanel = ({
         })}
       </div>
     )}
-  </div>
+  </Card>
 );
