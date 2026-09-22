@@ -1,7 +1,7 @@
 {
   "name": "easyagenda-backend",
   "version": "1.0.0",
-  "description": "Backend do EasyAgenda SaaS para barbearias",
+  "description": "Backend do EasyAgenda+, SaaS de agendamento para negócios de beleza e bem-estar",
   "main": "dist/server.js",
   "type": "module",
   "prisma": {

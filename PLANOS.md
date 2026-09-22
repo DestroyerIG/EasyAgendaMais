@@ -10,7 +10,7 @@ Documento técnico sobre regras de plano, assinatura e feature gate implementada
 
 ## Features por Plano
 
-Fonte: `backend/src/config/planPermissions.js`.
+Fonte: `backend/src/config/planPermissions.ts`.
 
 | Feature | Plano mínimo |
 | --- | --- |
@@ -45,7 +45,7 @@ Regras:
 
 ## Limites de Profissionais
 
-Fonte: `backend/src/services/professionalService.js`.
+Fonte: `backend/src/services/professionalService.ts`.
 
 - `basico`: 1 profissional ativo.
 - `profissional`: 5 profissionais ativos.
@@ -84,11 +84,11 @@ Variáveis:
 
 ## Trial
 
-O fluxo Stripe suporta trial de 7 dias apenas na primeira assinatura recorrente do negócio. Pix via Asaas inicia como `pending` e só libera acesso após confirmação do pagamento pelo webhook.
+O fluxo Stripe suporta trial de 14 dias (constante `TRIAL_DAYS` em `backend/src/config/trial.ts`) apenas na primeira assinatura recorrente do negócio. Pix via Asaas inicia como `pending` e só libera acesso após confirmação do pagamento pelo webhook.
 
 ## Onde o Gate é Aplicado
 
-- Backend: `backend/src/middleware/subscriptionGuard.js`.
+- Backend: `backend/src/middleware/subscriptionGuard.ts`.
 - Frontend: hooks e componentes em `frontend/src/hooks/useSubscriptionAccess.ts` e `frontend/src/components/billing/FeatureGate.tsx`.
 
 O frontend melhora a experiência, mas a regra final de autorização é sempre do backend.

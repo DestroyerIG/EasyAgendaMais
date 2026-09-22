@@ -38,7 +38,7 @@ async function checkLegacyBankExists(): Promise<boolean> {
     SELECT EXISTS (
       SELECT FROM information_schema.tables
       WHERE table_schema = 'public'
-      AND table_name = 'businesses'
+      AND table_name = 'barbershops'
     ) AS exists
   `;
   return result[0]?.exists ?? false;
@@ -73,7 +73,7 @@ async function main(): Promise<void> {
   const legacyBankExists = await checkLegacyBankExists();
 
   if (legacyBankExists) {
-    console.log('⚠  Banco legado detectado (tabela businesses existe, sem _prisma_migrations).');
+    console.log('⚠  Banco legado detectado (tabela barbershops existe, sem _prisma_migrations).');
     console.log('   Aplicando baseline sem executar SQL...\n');
     runCommand(`npx prisma migrate resolve --applied "${BASELINE_MIGRATION}"`, 'Registrar baseline');
     console.log('\n✓ Baseline registrado. Banco legado sincronizado com Prisma.');

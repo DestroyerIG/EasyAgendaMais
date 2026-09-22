@@ -152,9 +152,9 @@ const PLAN_VALUES = Object.freeze({
 
 const GENERIC_CUSTOMER_NAMES = new Set([
   'equipe easyagenda',
-  'equipe easyagenda',
+  'equipe easy agenda',
   'easyagenda',
-  'easyagenda',
+  'easy agenda',
 ]);
 
 // ---------------------------------------------------------------------------

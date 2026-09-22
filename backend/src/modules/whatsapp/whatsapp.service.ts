@@ -595,8 +595,8 @@ export const whatsappService = {
    *
    * Use case: legacy code paths or aborted onboardings can leave Evolution
    * holding "zombie" instances whose names differ from the canonical
-   * deterministic name (e.g. `italloprofessionaleacb8a07` without the underscore
-   * versus the real `italloprofessional_eacb8a07`). These zombies keep firing
+   * deterministic name (e.g. `itallobarbereacb8a07` without the underscore
+   * versus the real `itallobarber_eacb8a07`). These zombies keep firing
    * connection-update events, race with the real instance, and prevent the
    * real one from ever reaching the `qrcode` state.
    *
@@ -688,7 +688,7 @@ export const whatsappService = {
    *
    * IMPORTANT: previously this iterated `fetchInstances()` and called
    * setWebhook on whatever Evolution returned, which meant zombies (e.g.
-   * the underscore-less `italloprofessionaleacb8a07`) also received setWebhook
+   * the underscore-less `itallobarbereacb8a07`) also received setWebhook
    * calls — producing the double "setWebhook" log lines the operator saw.
    * The DB is now the source of truth: only names present in
    * businesses.whatsapp_instance_name get reconfigured. Anything else in
