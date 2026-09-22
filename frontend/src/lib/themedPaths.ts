@@ -20,4 +20,10 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/ui/Switch.tsx',
   'src/components/ui/PasswordInput.tsx',
   'src/components/ui/Table.tsx',
+  'src/components/ui/Modal.tsx',
+  'src/components/ui/SidePanel.tsx',
+  'src/components/ui/Tabs.tsx',
+  'src/components/ui/DropdownMenu.tsx',
+  'src/components/ui/ThemeSelect.tsx',
+  'src/components/Toast.tsx',
 ];

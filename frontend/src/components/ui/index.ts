@@ -18,3 +18,14 @@ export { Select } from './Select';
 export { Textarea } from './Textarea';
 export { Switch } from './Switch';
 export { Table, TableHead, TableBody, TableRow, TableHeaderCell, TableCell } from './Table';
+export { SidePanel } from './SidePanel';
+export { Tabs, TabsList, TabsTrigger, TabsContent } from './Tabs';
+export {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from './DropdownMenu';
+export { ThemeSelect } from './ThemeSelect';
