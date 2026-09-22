@@ -37,17 +37,22 @@ export function Switch({ checked, onCheckedChange, label, description, disabled,
         aria-describedby={descriptionId}
         disabled={disabled}
         onClick={() => onCheckedChange(!checked)}
-        className={cn(
-          'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50',
-          checked ? 'bg-brand' : 'bg-line',
-        )}
+        className="relative inline-flex h-11 w-14 shrink-0 items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span
+          aria-hidden="true"
           className={cn(
-            'inline-block h-5 w-5 rounded-full bg-surface shadow transition-transform',
-            checked ? 'translate-x-6' : 'translate-x-1',
+            'relative inline-flex h-7 w-12 items-center rounded-full transition-colors',
+            checked ? 'bg-brand' : 'bg-line',
           )}
-        />
+        >
+          <span
+            className={cn(
+              'inline-block h-5 w-5 rounded-full bg-surface shadow transition-transform',
+              checked ? 'translate-x-6' : 'translate-x-1',
+            )}
+          />
+        </span>
       </button>
     </div>
   );

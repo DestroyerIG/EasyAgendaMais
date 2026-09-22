@@ -50,6 +50,7 @@ describe('Switch', () => {
     render(<Controlled />);
     const toggle = screen.getByRole('switch', { name: 'Lembretes por WhatsApp' });
     expect(toggle).toHaveAttribute('aria-checked', 'false');
+    expect(toggle).toHaveClass('h-11');
     await userEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-checked', 'true');
   });
