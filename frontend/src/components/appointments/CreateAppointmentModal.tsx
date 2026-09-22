@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Search, Scissors, AlertCircle, XCircle, Loader2 } from 'lucide-react';
+import { Plus, Search, AlertCircle, XCircle, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
-import { Modal, ModalFooter } from '@/components/ui';
+import { cn } from '@/lib/cn';
+import { Modal, ModalFooter, Field, Select, Input } from '@/components/ui';
 import type { Client, Professional, Service } from '@/types';
 
 interface CreateAppointmentModalProps {
@@ -87,140 +88,130 @@ export function CreateAppointmentModal({
         />
       }
     >
-      {/* Cliente */}
-      <div>
-        <label className="block text-sm font-medium text-gray-400 mb-2">Cliente</label>
-        <div className="relative mb-2">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input
-            type="text"
-            value={clientSearch}
-            onChange={e => setClientSearch(e.target.value)}
-            placeholder="Buscar cliente..."
-            className="input pl-9 py-2.5 text-sm"
-          />
-        </div>
-        <div className="max-h-32 overflow-y-auto space-y-1">
-          {filteredClients.length === 0 ? (
-            <p className="text-gray-600 text-xs p-2">Nenhum cliente encontrado</p>
-          ) : (
-            filteredClients.map(client => (
-              <button
-                key={client.id}
-                onClick={() => handleChange('clientId', client.id)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
-                  formData.clientId === client.id
-                    ? 'bg-primary/20 text-primary border border-primary/30'
-                    : 'text-gray-300 hover:bg-white/5'
-                }`}
-              >
-                <span className="font-medium">{client.name}</span>
-                <span className="text-gray-500 ml-2 text-xs">{client.phone}</span>
-              </button>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Profissional */}
-      <div>
-        <label className="block text-sm font-medium text-gray-400 mb-2">Profissional</label>
-        <div className="grid grid-cols-2 gap-2">
-          {professionals.map(professional => (
-            <button
-              key={professional.id}
-              onClick={() => handleChange('professionalId', professional.id)}
-              className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                formData.professionalId === professional.id
-                  ? 'bg-primary/20 text-primary border border-primary/30'
-                  : 'bg-white/5 border border-white/10 text-gray-300 hover:border-white/20'
-              }`}
-            >
-              <Scissors size={14} className="inline mr-2" />
-              {professional.name}
-            </button>
-          ))}
-        </div>
-        {professionals.length === 0 && (
-          <p className="text-gray-600 text-xs mt-1">Nenhum profissional cadastrado</p>
-        )}
-      </div>
-
-      {/* Serviço */}
-      <div>
-        <label className="block text-sm font-medium text-gray-400 mb-2">Serviço</label>
-        <div className="space-y-2">
-          {services.map(service => (
-            <button
-              key={service.id}
-              onClick={() => handleChange('serviceId', service.id)}
-              className={`w-full text-left px-4 py-3 rounded-xl text-sm transition-all flex items-center justify-between ${
-                formData.serviceId === service.id
-                  ? 'bg-primary/20 text-primary border border-primary/30'
-                  : 'bg-white/5 border border-white/10 text-gray-300 hover:border-white/20'
-              }`}
-            >
-              <div>
-                <span className="font-medium">{service.name}</span>
-                <span className="text-gray-500 text-xs ml-2">{service.duration_minutes}min</span>
-              </div>
-              <span className="font-bold text-primary">{formatCurrency(Number(service.price))}</span>
-            </button>
-          ))}
-        </div>
-        {services.length === 0 && (
-          <p className="text-gray-600 text-xs mt-1">Nenhum serviço cadastrado</p>
-        )}
-      </div>
-
-      {/* Data */}
-      <div>
-        <label className="block text-sm font-medium text-gray-400 mb-2">Data</label>
-        <input
-          type="date"
-          value={formData.date}
-          onChange={e => handleChange('date', e.target.value)}
-          className="input py-2.5 text-sm [color-scheme:dark]"
-        />
-      </div>
-
-      {/* Horários Disponíveis */}
-      <div>
-        <label className="block text-sm font-medium text-gray-400 mb-2">
-          Horário
-          {slotsLoading && <Loader2 size={12} className="inline ml-2 animate-spin text-primary" />}
-        </label>
-        {!formData.professionalId ? (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-yellow-500/5 border border-yellow-500/10">
-            <AlertCircle size={14} className="text-yellow-500" />
-            <p className="text-yellow-500/80 text-xs">Selecione um profissional para ver horários</p>
+      <div className="flex flex-col gap-5">
+        {/* Cliente */}
+        <Field id="client-search" label="Cliente">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+            <Input
+              id="client-search"
+              type="text"
+              value={clientSearch}
+              onChange={e => setClientSearch(e.target.value)}
+              placeholder="Buscar cliente..."
+              className="pl-9"
+            />
           </div>
-        ) : slotsLoading ? (
-          <div className="flex items-center justify-center py-4">
-            <Loader2 className="text-primary animate-spin" size={24} />
+          <div className="mt-2 max-h-32 space-y-1 overflow-y-auto">
+            {filteredClients.length === 0 ? (
+              <p className="p-2 text-[13px] text-muted">Nenhum cliente encontrado</p>
+            ) : (
+              filteredClients.map(client => (
+                <button
+                  key={client.id}
+                  type="button"
+                  onClick={() => handleChange('clientId', client.id)}
+                  className={cn(
+                    'w-full rounded-control px-3 py-2 text-left text-[15px] transition-colors',
+                    formData.clientId === client.id
+                      ? 'border border-brand bg-brand/10 text-ink'
+                      : 'border border-transparent text-ink hover:bg-surface-2'
+                  )}
+                >
+                  <span className="font-semibold">{client.name}</span>
+                  <span className="ml-2 text-[13px] text-muted">{client.phone}</span>
+                </button>
+              ))
+            )}
           </div>
-        ) : availableSlots.length === 0 ? (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/5 border border-red-500/10">
-            <XCircle size={14} className="text-red-400" />
-            <p className="text-red-400/80 text-xs">Nenhum horário disponível nesta data</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-4 gap-2">
-            {availableSlots.map(slot => (
-              <button
-                key={slot}
-                onClick={() => handleChange('time', slot)}
-                className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  formData.time === slot
-                    ? 'bg-primary text-black shadow-lg shadow-primary/20'
-                    : 'bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10'
-                }`}
-              >
-                {slot}
-              </button>
+        </Field>
+
+        {/* Profissional */}
+        <Field
+          id="professionalId"
+          label="Profissional"
+          hint={professionals.length === 0 ? 'Nenhum profissional cadastrado' : undefined}
+        >
+          <Select
+            id="professionalId"
+            value={formData.professionalId}
+            onChange={e => handleChange('professionalId', e.target.value)}
+          >
+            <option value="">Selecione um profissional</option>
+            {professionals.map(professional => (
+              <option key={professional.id} value={professional.id}>
+                {professional.name}
+              </option>
             ))}
-          </div>
-        )}
+          </Select>
+        </Field>
+
+        {/* Serviço */}
+        <Field
+          id="serviceId"
+          label="Serviço"
+          hint={services.length === 0 ? 'Nenhum serviço cadastrado' : undefined}
+        >
+          <Select
+            id="serviceId"
+            value={formData.serviceId}
+            onChange={e => handleChange('serviceId', e.target.value)}
+          >
+            <option value="">Selecione um serviço</option>
+            {services.map(service => (
+              <option key={service.id} value={service.id}>
+                {service.name} ({service.duration_minutes}min) — {formatCurrency(Number(service.price))}
+              </option>
+            ))}
+          </Select>
+        </Field>
+
+        {/* Data */}
+        <Field id="date" label="Data">
+          <Input
+            id="date"
+            type="date"
+            value={formData.date}
+            onChange={e => handleChange('date', e.target.value)}
+          />
+        </Field>
+
+        {/* Horários Disponíveis */}
+        <Field id="time-slots" label="Horário">
+          {!formData.professionalId ? (
+            <div className="flex items-center gap-2 rounded-control border border-line bg-warning/12 p-3">
+              <AlertCircle className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+              <p className="text-[13px] text-warning">Selecione um profissional para ver horários</p>
+            </div>
+          ) : slotsLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-brand-text" aria-hidden="true" />
+            </div>
+          ) : availableSlots.length === 0 ? (
+            <div className="flex items-center gap-2 rounded-control border border-line bg-danger/12 p-3">
+              <XCircle className="h-4 w-4 shrink-0 text-danger" aria-hidden="true" />
+              <p className="text-[13px] text-danger">Nenhum horário disponível nesta data</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-2">
+              {availableSlots.map(slot => (
+                <button
+                  key={slot}
+                  type="button"
+                  onClick={() => handleChange('time', slot)}
+                  className={cn(
+                    'rounded-control px-3 py-2.5 text-[15px] font-semibold transition-colors',
+                    formData.time === slot
+                      ? 'bg-brand text-on-brand'
+                      : 'border border-line bg-surface text-ink hover:border-brand/40'
+                  )}
+                >
+                  {slot}
+                </button>
+              ))}
+            </div>
+          )}
+        </Field>
       </div>
     </Modal>
   );

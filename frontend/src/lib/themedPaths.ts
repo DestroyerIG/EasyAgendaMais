@@ -36,4 +36,9 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/WeeklyChart.tsx',
   'src/components/ProfitBar.tsx',
   'src/hooks/useThemeColors.ts',
+  'src/components/AppointmentModule.tsx',
+  'src/components/appointments',
+  'src/components/ProfessionalAgenda.tsx',
+  'src/app/dashboard/agendamentos/page.tsx',
+  'src/hooks/useNewAppointmentParam.ts',
 ];

@@ -1,8 +1,8 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDate, formatDateShort, getToday, addDays } from '@/lib/dateUtils';
-import { STATUS_CONFIG } from '@/lib/constants';
+import { Card, Button, IconButton, Tabs, TabsList, TabsTrigger, STATUS_LABEL } from '@/components/ui';
 
 type ViewMode = 'day' | 'week';
 type StatusFilter = 'todos' | 'confirmado' | 'concluido' | 'cancelado';
@@ -23,72 +23,52 @@ export function DateNavigationBar({
   const step = viewMode === 'day' ? 1 : 7;
 
   return (
-    <div className="card p-4 mb-6">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <Card className="mb-6">
+      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div className="flex items-center gap-3">
-          <button
+          <IconButton
+            icon={ChevronLeft}
+            label="Período anterior"
+            variant="secondary"
             onClick={() => onDateChange(addDays(selectedDate, -step))}
-            className="btn-secondary p-2"
-            aria-label="Período anterior"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <div className="text-center min-w-[200px]">
-            <p className="text-white font-semibold capitalize">
+          />
+          <div className="min-w-[200px] text-center">
+            <p className="font-semibold capitalize tabular-nums text-ink">
               {viewMode === 'day'
                 ? formatDate(selectedDate)
                 : `${formatDateShort(selectedDate)} — ${formatDateShort(addDays(selectedDate, 6))}`
               }
             </p>
           </div>
-          <button
+          <IconButton
+            icon={ChevronRight}
+            label="Próximo período"
+            variant="secondary"
             onClick={() => onDateChange(addDays(selectedDate, step))}
-            className="btn-secondary p-2"
-            aria-label="Próximo período"
-          >
-            <ChevronRight size={20} />
-          </button>
-          <button
-            onClick={() => onDateChange(getToday())}
-            className="px-3 py-1.5 text-xs rounded-lg border border-primary/30 text-primary hover:bg-primary/10 transition-all"
-          >
+          />
+          <Button variant="secondary" size="sm" onClick={() => onDateChange(getToday())}>
             Hoje
-          </button>
+          </Button>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex rounded-lg overflow-hidden border border-white/10">
-            {(['day', 'week'] as ViewMode[]).map(mode => (
-              <button
-                key={mode}
-                onClick={() => onViewModeChange(mode)}
-                className={`px-4 py-2 text-xs font-medium transition-all ${
-                  viewMode === mode ? 'tab-active' : 'tab-inactive'
-                }`}
-              >
-                {mode === 'day' ? 'Dia' : 'Semana'}
-              </button>
-            ))}
-          </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Tabs value={viewMode} onValueChange={(value) => onViewModeChange(value as ViewMode)}>
+            <TabsList>
+              <TabsTrigger value="day">Dia</TabsTrigger>
+              <TabsTrigger value="week">Semana</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-          <div className="flex items-center gap-1.5">
-            <Filter size={14} className="text-gray-500" />
-            {(['todos', 'confirmado', 'concluido', 'cancelado'] as StatusFilter[]).map(status => (
-              <button
-                key={status}
-                onClick={() => onStatusFilterChange(status)}
-                className={`px-3 py-1.5 text-xs rounded-lg transition-all ${
-                  statusFilter === status
-                    ? 'bg-primary/20 text-primary border border-primary/30'
-                    : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
-                }`}
-              >
-                {status === 'todos' ? 'Todos' : STATUS_CONFIG[status].label}
-              </button>
-            ))}
-          </div>
+          <Tabs value={statusFilter} onValueChange={(value) => onStatusFilterChange(value as StatusFilter)}>
+            <TabsList>
+              <TabsTrigger value="todos">Todos</TabsTrigger>
+              <TabsTrigger value="confirmado">{STATUS_LABEL.confirmado}</TabsTrigger>
+              <TabsTrigger value="concluido">{STATUS_LABEL.concluido}</TabsTrigger>
+              <TabsTrigger value="cancelado">{STATUS_LABEL.cancelado}</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

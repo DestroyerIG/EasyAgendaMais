@@ -5,14 +5,15 @@ import api from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import { getToday } from '@/lib/dateUtils';
 import { formatDate } from '@/lib/dateUtils';
-import { PageHeader, StatsCard, EmptyState } from '@/components/ui';
+import { PageHeader, MetricCard, EmptyState, Button, Skeleton } from '@/components/ui';
 import { DateNavigationBar } from '@/components/appointments/DateNavigationBar';
 import { AppointmentCard } from '@/components/appointments/AppointmentCard';
 import { CreateAppointmentModal } from '@/components/appointments/CreateAppointmentModal';
 import type { AppointmentFormData } from '@/components/appointments/CreateAppointmentModal';
+import { useNewAppointmentParam } from '@/hooks/useNewAppointmentParam';
 import type { Appointment, Client, Professional, Service } from '@/types';
 import { getApiErrorMessage } from '@/utils/handleApiError';
-import { Calendar, Clock, CheckCircle, XCircle, Plus, Loader2 } from 'lucide-react';
+import { Calendar, Plus } from 'lucide-react';
 
 type ViewMode = 'day' | 'week';
 type StatusFilter = 'todos' | 'confirmado' | 'concluido' | 'cancelado';
@@ -28,6 +29,7 @@ export function AppointmentModule() {
   const [showModal, setShowModal] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const { showToast } = useToast();
+  const newAppointment = useNewAppointmentParam();
 
   // Modal data
   const [clients, setClients] = useState<Client[]>([]);
@@ -57,6 +59,10 @@ export function AppointmentModule() {
   useEffect(() => {
     loadAppointments();
   }, [loadAppointments]);
+
+  useEffect(() => {
+    if (newAppointment.open) setShowModal(true);
+  }, [newAppointment.open]);
 
   const openModal = async () => {
     setShowModal(true);
@@ -114,6 +120,11 @@ export function AppointmentModule() {
     }
   };
 
+  const closeModal = () => {
+    setShowModal(false);
+    newAppointment.clear();
+  };
+
   const filteredAppointments = appointments.filter(
     a => statusFilter === 'todos' || a.status === statusFilter
   );
@@ -135,21 +146,21 @@ export function AppointmentModule() {
   return (
     <div>
       <PageHeader
-        title="Agendamentos"
+        title="Agenda"
         action={
-          <button onClick={openModal} className="btn-primary flex items-center gap-2">
-            <Plus size={20} />
+          <Button onClick={openModal}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
             Novo Agendamento
-          </button>
+          </Button>
         }
       />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <StatsCard label="Total" value={stats.total} icon={Calendar} color="text-primary" />
-        <StatsCard label="Confirmados" value={stats.confirmados} icon={Clock} color="text-blue-400" />
-        <StatsCard label="Concluídos" value={stats.concluidos} icon={CheckCircle} color="text-green-400" />
-        <StatsCard label="Cancelados" value={stats.cancelados} icon={XCircle} color="text-red-400" />
+      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <MetricCard label="Total" value={stats.total} />
+        <MetricCard label="Confirmados" value={stats.confirmados} />
+        <MetricCard label="Concluídos" value={stats.concluidos} />
+        <MetricCard label="Cancelados" value={stats.cancelados} />
       </div>
 
       {selectedDate && (
@@ -165,9 +176,10 @@ export function AppointmentModule() {
 
       {/* Appointments List */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="text-primary animate-spin mb-4" size={40} />
-          <p className="text-gray-500">Carregando agendamentos...</p>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full" />
+          ))}
         </div>
       ) : filteredAppointments.length === 0 ? (
         <EmptyState
@@ -187,12 +199,12 @@ export function AppointmentModule() {
             .map(([date, dayAppointments]) => (
               <div key={date}>
                 {viewMode === 'week' && (
-                  <h3 className="text-sm font-medium text-gray-500 mb-3 capitalize flex items-center gap-2">
+                  <h3 className="mb-3 flex items-center gap-2 text-[13px] font-semibold capitalize text-muted">
                     <Calendar size={14} />
                     {formatDate(date)}
                   </h3>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {dayAppointments
                     .sort((a, b) => a.time.localeCompare(b.time))
                     .map(appointment => (
@@ -211,7 +223,7 @@ export function AppointmentModule() {
 
       <CreateAppointmentModal
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        onClose={closeModal}
         clients={clients}
         professionals={professionals}
         services={services}

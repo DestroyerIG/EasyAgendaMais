@@ -1,13 +1,12 @@
 'use client';
 
-import Image from 'next/image';
 import { useEffect, useState, useCallback } from 'react';
 import api from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import type { Appointment, Professional } from '@/types';
-import {
-    Calendar, User, Loader2, ChevronLeft, ChevronRight
-} from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Card, Avatar, IconButton, Button, StatusChip, STATUS_STRIPE_CLASS, EmptyState, Skeleton } from '@/components/ui';
+import { cn } from '@/lib/cn';
 
 interface ProfessionalAgendaProps {
     professional: Professional;
@@ -59,91 +58,67 @@ export function ProfessionalAgenda({ professional }: ProfessionalAgendaProps) {
     }, [loadAppointments]);
 
     return (
-        <div className="animate-fade-in">
-            <div className="bg-dark-light border border-primary/20 rounded-2xl p-6 mb-6">
-                <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary bg-black/40 flex items-center justify-center">
-                        {professional.photo ? (
-                            <Image
-                                src={professional.photo}
-                                alt={professional.name}
-                                width={64}
-                                height={64}
-                                unoptimized
-                                loader={({ src }) => src}
-                                className="w-full h-full object-cover"
-                            />
-                        ) : (
-                            <User className="text-primary/40" size={32} />
-                        )}
-                    </div>
-                    <div>
-                        <h2 className="text-2xl font-bold text-white">Agenda: {professional.name}</h2>
-                        <p className="text-gray-400 capitalize">{formatDate(selectedDate)}</p>
-                    </div>
+        <div>
+            <Card className="mb-6 flex items-center gap-4">
+                <Avatar name={professional.name} src={professional.photo} size={64} />
+                <div>
+                    <h2 className="text-2xl font-bold text-ink">Agenda: {professional.name}</h2>
+                    <p className="capitalize text-muted">{formatDate(selectedDate)}</p>
                 </div>
-            </div>
+            </Card>
 
-            <div className="flex items-center justify-between mb-8">
+            <div className="mb-8 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <button
+                    <IconButton
+                        icon={ChevronLeft}
+                        label="Dia anterior"
+                        variant="secondary"
                         onClick={() => setSelectedDate(addDays(selectedDate, -1))}
-                        className="p-2 rounded-xl bg-dark-light border border-gray-800 text-gray-400 hover:text-white transition-all"
-                    >
-                        <ChevronLeft size={24} />
-                    </button>
-                    <button
-                        onClick={() => setSelectedDate(getToday())}
-                        className="px-6 py-2 rounded-xl bg-dark-light border border-gray-800 text-sm font-bold text-gray-400 hover:text-primary transition-all"
-                    >
+                    />
+                    <Button variant="secondary" size="sm" onClick={() => setSelectedDate(getToday())}>
                         Hoje
-                    </button>
-                    <button
+                    </Button>
+                    <IconButton
+                        icon={ChevronRight}
+                        label="Próximo dia"
+                        variant="secondary"
                         onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-                        className="p-2 rounded-xl bg-dark-light border border-gray-800 text-gray-400 hover:text-white transition-all"
-                    >
-                        <ChevronRight size={24} />
-                    </button>
+                    />
                 </div>
 
-                <div className="bg-dark-light px-4 py-2 rounded-xl border border-primary/10 text-xs font-bold text-primary uppercase tracking-widest">
+                <div className="rounded-control border border-line bg-surface-2 px-4 py-2 text-[13px] font-semibold text-brand-text">
                     {appointments.length} Atendimento(s)
                 </div>
             </div>
 
             {loading ? (
-                <div className="flex flex-col items-center justify-center py-20">
-                    <Loader2 className="text-primary animate-spin mb-4" size={40} />
-                    <p className="text-gray-500 font-medium">Buscando horários...</p>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    {Array.from({ length: 2 }).map((_, i) => (
+                        <Skeleton key={i} className="h-20 w-full" />
+                    ))}
                 </div>
             ) : appointments.length === 0 ? (
-                <div className="bg-dark-light border border-dashed border-gray-800 rounded-2xl p-20 text-center">
-                    <Calendar className="text-gray-600 mx-auto mb-4" size={48} />
-                    <h3 className="text-xl font-bold text-gray-400">Nenhum agendamento para hoje</h3>
-                    <p className="text-gray-500 mt-1">Este profissional está livre no momento.</p>
-                </div>
+                <EmptyState
+                    icon={Calendar}
+                    title="Nenhum agendamento para hoje"
+                    description="Este profissional está livre no momento."
+                />
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     {appointments.map(appointment => (
-                        <div key={appointment.id} className="bg-dark-light border border-gray-800 p-5 rounded-2xl flex items-center justify-between group hover:border-primary/20 transition-all">
-                            <div className="flex items-center gap-5">
-                                <div className="text-center">
-                                    <p className="text-2xl font-black text-white leading-tight">{appointment.time.substring(0, 5)}</p>
-                                    <p className="text-[10px] font-bold text-primary uppercase tracking-tighter">Horário</p>
-                                </div>
-                                <div className="w-px h-10 bg-gray-800" />
-                                <div>
-                                    <h4 className="font-bold text-white uppercase text-sm tracking-tight">{appointment.client_name}</h4>
-                                    <p className="text-xs text-gray-500 font-medium">{appointment.service_name}</p>
-                                </div>
+                        <Card key={appointment.id} className="flex items-center gap-3">
+                            <div className="min-w-[56px] text-center">
+                                <p className="text-lg font-bold leading-tight tabular-nums text-ink">
+                                    {appointment.time.substring(0, 5)}
+                                </p>
                             </div>
-                            <div className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${appointment.status === 'concluido' ? 'border-green-500/30 bg-green-500/10 text-green-500' :
-                                    appointment.status === 'cancelado' ? 'border-red-500/30 bg-red-500/10 text-red-500' :
-                                        'border-primary/30 bg-primary/10 text-primary'
-                                }`}>
-                                {appointment.status}
+                            <div className={cn('w-1 shrink-0 self-stretch rounded-full', STATUS_STRIPE_CLASS[appointment.status])} />
+                            <div className="min-w-0 flex-1">
+                                <h4 className="truncate font-semibold text-ink">{appointment.client_name}</h4>
+                                <p className="truncate text-[13px] text-muted">{appointment.service_name}</p>
                             </div>
-                        </div>
+                            <StatusChip status={appointment.status} />
+                        </Card>
                     ))}
                 </div>
             )}

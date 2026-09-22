@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { AppointmentModule } from '@/components/AppointmentModule';
 import { FeatureGate } from '@/components/billing/FeatureGate';
 import { useDashboardBilling } from '@/hooks/useDashboardBilling';
@@ -14,7 +15,9 @@ export default function AgendamentosPage() {
       onManageBilling={openBillingPortal}
       title="Agendamentos indisponíveis"
     >
-      <AppointmentModule />
+      <Suspense fallback={null}>
+        <AppointmentModule />
+      </Suspense>
     </FeatureGate>
   );
 }
