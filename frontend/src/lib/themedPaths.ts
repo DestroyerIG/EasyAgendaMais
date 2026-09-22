@@ -44,4 +44,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/ClientModule.tsx',
   'src/components/clients',
   'src/app/dashboard/clientes/page.tsx',
+  'src/components/FinanceModule.tsx',
+  'src/components/finance',
+  'src/app/dashboard/financeiro/page.tsx',
 ];

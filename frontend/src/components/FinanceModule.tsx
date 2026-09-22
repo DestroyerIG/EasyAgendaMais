@@ -4,7 +4,17 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { useToast } from './Toast';
 import { formatCurrency } from '@/lib/formatters';
-import { PageHeader } from '@/components/ui';
+import {
+  PageHeader,
+  MetricCard,
+  Card,
+  Button,
+  Skeleton,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from '@/components/ui';
 import { FinanceChart } from '@/components/finance/FinanceChart';
 import { ExpensesTable } from '@/components/finance/ExpensesTable';
 import { ExpenseModal } from '@/components/finance/ExpenseModal';
@@ -12,10 +22,7 @@ import { FeatureGate } from '@/components/billing/FeatureGate';
 import type { FeatureAccessDecision } from '@/lib/subscriptionAccess';
 import type { Expense, MonthlyReportDay } from '@/types';
 import { getApiErrorMessage } from '@/utils/handleApiError';
-import {
-  TrendingUp, TrendingDown, DollarSign, Plus, FileText,
-  Calendar, ArrowUpRight, ArrowDownRight, Activity
-} from 'lucide-react';
+import { Plus, FileText, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -182,140 +189,128 @@ export const FinanceModule = ({
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 animate-pulse">
-        <Activity className="text-primary animate-spin mb-4" size={48} />
-        <p className="text-gray-500 font-bold uppercase tracking-widest">Processando dados financeiros...</p>
+      <div className="space-y-8 pb-10">
+        <PageHeader title="Caixa" description="Controle total de ganhos, gastos e saúde do seu negócio." />
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Card key={index} className="flex flex-col gap-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-9 w-32" />
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <Skeleton className="mb-6 h-7 w-52" />
+          <Skeleton className="h-[350px] w-full" />
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 animate-fade-in pb-10">
+    <div className="space-y-8 pb-10">
       <PageHeader
-        title="Módulo Financeiro"
+        title="Caixa"
         description="Controle total de ganhos, gastos e saúde do seu negócio."
         action={
           <div className="flex flex-wrap gap-2">
             {exportAccess.allowed && (
-              <button onClick={exportToPDF} className="btn-secondary flex items-center gap-2 py-2.5 px-4 sm:px-6">
-                <FileText size={20} className="text-primary" />
+              <Button variant="secondary" onClick={exportToPDF}>
+                <FileText className="h-4 w-4" aria-hidden="true" />
                 PDF
-              </button>
+              </Button>
             )}
-            <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
-              <Plus size={20} /> Novo Gasto
-            </button>
+            <Button onClick={() => handleOpenModal()}>
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Novo Gasto
+            </Button>
           </div>
         }
       />
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="card p-4 sm:p-6 rounded-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-all">
-            <TrendingUp size={80} />
-          </div>
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Ganhos do Mês</p>
-          <h3 className="text-2xl sm:text-3xl font-black text-white">{formatCurrency(summary?.month.earnings || 0)}</h3>
-          <div className="mt-4 flex items-center gap-2 text-green-500 text-sm font-bold">
-            <ArrowUpRight size={16} />
-            <span>Receita de atendimentos</span>
-          </div>
-        </div>
-        <div className="card p-4 sm:p-6 rounded-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-all">
-            <TrendingDown size={80} />
-          </div>
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Gastos do Mês</p>
-          <h3 className="text-2xl sm:text-3xl font-black text-white">{formatCurrency(summary?.month.expenses || 0)}</h3>
-          <div className="mt-4 flex items-center gap-2 text-red-500 text-sm font-bold">
-            <ArrowDownRight size={16} />
-            <span>Registro manual de despesas</span>
-          </div>
-        </div>
-        <div className="bg-primary/5 border border-primary/20 p-4 sm:p-6 rounded-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-all">
-            <DollarSign size={80} className="text-primary" />
-          </div>
-          <p className="text-xs font-bold text-primary/60 uppercase tracking-widest mb-1">Lucro Líquido</p>
-          <h3 className="text-2xl sm:text-3xl font-black text-primary">{formatCurrency(summary?.month.profit || 0)}</h3>
-          <div className="mt-4 flex items-center gap-2 text-primary text-sm font-bold">
-            <Activity size={16} />
-            <span>Saldo real disponível</span>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <MetricCard
+          label="Ganhos do Mês"
+          value={formatCurrency(summary?.month.earnings || 0)}
+          delta={{ value: 'Receita de atendimentos', trend: 'up' }}
+        />
+        <MetricCard
+          label="Gastos do Mês"
+          value={formatCurrency(summary?.month.expenses || 0)}
+          delta={{ value: 'Registro manual de despesas', trend: 'down' }}
+        />
+        <MetricCard
+          label="Lucro Líquido"
+          value={formatCurrency(summary?.month.profit || 0)}
+          delta={{ value: 'Saldo real disponível', trend: 'flat' }}
+        />
       </div>
 
-      {/* Tab Nav */}
-      <div className="flex w-full p-1 sm:w-fit bg-dark-light border border-gray-800 rounded-xl">
-        {(['dashboard', 'gastos'] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 sm:flex-none px-3 sm:px-6 py-2 rounded-lg font-bold text-sm transition-all ${
-              activeTab === tab ? 'tab-active' : 'tab-inactive'
-            }`}
-          >
-            {tab === 'dashboard' ? 'Visão Geral' : 'Gastos'}
-          </button>
-        ))}
-      </div>
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'dashboard' | 'gastos')}>
+        <TabsList>
+          <TabsTrigger value="dashboard">Visão Geral</TabsTrigger>
+          <TabsTrigger value="gastos">Gastos</TabsTrigger>
+        </TabsList>
 
-      {activeTab === 'dashboard' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <FeatureGate
-              access={reportAccess}
-              onUpgrade={onUpgrade}
-              onManageBilling={onManageBilling}
-              title="Relatórios mensais indisponíveis"
-            >
-              <FinanceChart data={reportData} />
-            </FeatureGate>
-          </div>
-          <div className="space-y-6">
-            <div className="card p-4 sm:p-6 rounded-2xl">
-              <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-4 sm:mb-6 flex items-center gap-2">
-                <Calendar size={18} className="text-primary" />
-                Resumo de Hoje
-              </h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-4 bg-black/40 rounded-xl border border-gray-800">
-                  <span className="text-sm text-gray-400 font-medium">Ganhos</span>
-                  <span className="text-lg font-bold text-green-500">{formatCurrency(summary?.today.earnings || 0)}</span>
-                </div>
-                <div className="flex justify-between items-center p-4 bg-black/40 rounded-xl border border-gray-800">
-                  <span className="text-sm text-gray-400 font-medium">Gastos</span>
-                  <span className="text-lg font-bold text-red-500">{formatCurrency(summary?.today.expenses || 0)}</span>
-                </div>
-                <div className="pt-2 border-t border-gray-800 flex justify-between items-center px-2">
-                  <span className="text-xs font-black text-gray-500 uppercase tracking-tighter">Balanço do Dia</span>
-                  <span className={`text-xl font-black ${(summary?.today.profit || 0) >= 0 ? 'text-primary' : 'text-red-500'}`}>
-                    {formatCurrency(summary?.today.profit || 0)}
-                  </span>
-                </div>
-              </div>
+        <TabsContent value="dashboard">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <FeatureGate
+                access={reportAccess}
+                onUpgrade={onUpgrade}
+                onManageBilling={onManageBilling}
+                title="Relatórios mensais indisponíveis"
+              >
+                <FinanceChart data={reportData} />
+              </FeatureGate>
             </div>
-            <FeatureGate
-              access={exportAccess}
-              onUpgrade={onUpgrade}
-              onManageBilling={onManageBilling}
-              title="Exportações indisponíveis"
-            >
-              <div className="bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 p-6 rounded-2xl">
-                <h3 className="text-sm font-bold text-white mb-2">Exportação Rápida</h3>
-                <p className="text-xs text-gray-400 mb-4">Gere um documento PDF com todos os dados financeiros deste mês.</p>
-                <button onClick={exportToPDF} className="w-full btn-primary flex items-center justify-center gap-2">
-                  <FileText size={18} />
-                  GERAR RELATÓRIO
-                </button>
-              </div>
-            </FeatureGate>
+            <div className="space-y-6">
+              <Card>
+                <h3 className="mb-4 flex items-center gap-2 text-sm font-bold text-ink sm:mb-6">
+                  <Calendar className="h-[18px] w-[18px] text-brand-text" aria-hidden="true" />
+                  Resumo de Hoje
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between rounded-control border border-line bg-surface-2 p-4">
+                    <span className="text-sm font-medium text-muted">Ganhos</span>
+                    <span className="text-lg font-bold text-success">{formatCurrency(summary?.today.earnings || 0)}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-control border border-line bg-surface-2 p-4">
+                    <span className="text-sm font-medium text-muted">Gastos</span>
+                    <span className="text-lg font-bold text-danger">{formatCurrency(summary?.today.expenses || 0)}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-line px-2 pt-2">
+                    <span className="text-xs font-black text-muted">Balanço do Dia</span>
+                    <span className={`text-xl font-black ${(summary?.today.profit || 0) >= 0 ? 'text-brand-text' : 'text-danger'}`}>
+                      {formatCurrency(summary?.today.profit || 0)}
+                    </span>
+                  </div>
+                </div>
+              </Card>
+              <FeatureGate
+                access={exportAccess}
+                onUpgrade={onUpgrade}
+                onManageBilling={onManageBilling}
+                title="Exportações indisponíveis"
+              >
+                <Card className="bg-gradient-to-br from-brand/10 to-transparent border-brand/20">
+                  <h3 className="mb-2 text-sm font-bold text-ink">Exportação Rápida</h3>
+                  <p className="mb-4 text-xs text-muted">Gere um documento PDF com todos os dados financeiros deste mês.</p>
+                  <Button variant="secondary" onClick={exportToPDF} fullWidth>
+                    <FileText className="h-[18px] w-[18px]" aria-hidden="true" />
+                    GERAR RELATÓRIO
+                  </Button>
+                </Card>
+              </FeatureGate>
+            </div>
           </div>
-        </div>
-      ) : (
-        <ExpensesTable expenses={expenses} onEdit={handleOpenModal} onDelete={handleDeleteExpense} />
-      )}
+        </TabsContent>
+
+        <TabsContent value="gastos">
+          <ExpensesTable expenses={expenses} onEdit={handleOpenModal} onDelete={handleDeleteExpense} />
+        </TabsContent>
+      </Tabs>
 
       <ExpenseModal
         isOpen={isModalOpen}
