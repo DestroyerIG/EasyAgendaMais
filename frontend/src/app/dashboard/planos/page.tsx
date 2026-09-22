@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PricingPlansSection } from '@/components/marketing/PricingPlansSection';
 import { isPlanId, PLAN_MAP } from '@/lib/plans';
 import { useDashboardBilling } from '@/hooks/useDashboardBilling';
+import { SettingsTabs } from '@/components/shell/SettingsTabs';
 
 export default function PlanosPage() {
   const { user } = useAuth();
@@ -21,6 +22,7 @@ export default function PlanosPage() {
 
   return (
     <div>
+      <SettingsTabs />
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold text-white">Planos e Assinatura</h2>

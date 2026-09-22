@@ -28,4 +28,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/Toast.tsx',
   'src/components/dev',
   'src/app/dev',
+  'src/lib/navigation.ts',
+  'src/components/shell',
+  'src/app/dashboard/layout.tsx',
 ];
