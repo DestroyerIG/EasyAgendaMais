@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { LoadingSkeleton } from '@/components/LoadingSkeleton';
 import { AdminLayoutShell } from '@/components/admin/AdminLayoutShell';
+import { ForcedDark } from '@/components/theme/ForcedDark';
 import { useRequireRole } from '@/hooks/useRequireRole';
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -13,7 +14,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   });
 
   if (isChecking || !isAuthorized) {
-    return <LoadingSkeleton />;
+    return (
+      <ForcedDark className="min-h-screen">
+        <LoadingSkeleton />
+      </ForcedDark>
+    );
   }
 
   return <AdminLayoutShell>{children}</AdminLayoutShell>;

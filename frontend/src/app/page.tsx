@@ -12,6 +12,7 @@ import {
 import { PublicNavbar } from '@/components/marketing/PublicNavbar';
 import { PublicFooter } from '@/components/marketing/PublicFooter';
 import { PricingPlansSection } from '@/components/marketing/PricingPlansSection';
+import { ForcedDark } from '@/components/theme/ForcedDark';
 
 const defaultContactUrl =
   'https://wa.me/5583991347023?text=Ol%C3%A1%2C%20quero%20conhecer%20o%20EasyAgenda';
@@ -78,7 +79,7 @@ export default function HomePage() {
   const contactUrl = process.env.NEXT_PUBLIC_WHATSAPP_CONTACT_URL || defaultContactUrl;
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <ForcedDark className="min-h-screen">
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className="absolute left-[-220px] top-[-120px] h-[420px] w-[420px] rounded-full bg-primary/20 blur-[120px]" />
         <div className="absolute bottom-[-140px] right-[-180px] h-[360px] w-[360px] rounded-full bg-emerald-500/20 blur-[120px]" />
@@ -240,6 +241,6 @@ export default function HomePage() {
       </main>
 
       <PublicFooter />
-    </div>
+    </ForcedDark>
   );
 }

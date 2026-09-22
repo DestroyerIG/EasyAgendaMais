@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { PublicNavbar } from '@/components/marketing/PublicNavbar';
 import { PublicFooter } from '@/components/marketing/PublicFooter';
+import { ForcedDark } from '@/components/theme/ForcedDark';
 
 export const metadata = {
   title: 'Política de Privacidade - EasyAgenda+',
@@ -81,7 +82,7 @@ const sections = [
 
 export default function PrivacidadePage() {
   return (
-    <div className="min-h-screen bg-black text-white">
+    <ForcedDark className="min-h-screen">
       <PublicNavbar />
 
       <main id="main-content" className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
@@ -109,6 +110,6 @@ export default function PrivacidadePage() {
       </main>
 
       <PublicFooter />
-    </div>
+    </ForcedDark>
   );
 }

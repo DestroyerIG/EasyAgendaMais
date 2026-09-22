@@ -2,6 +2,7 @@ import '../styles/globals.css'
 import { ToastProvider } from '@/components/Toast'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { ThemeProvider } from '@/components/theme/ThemeProvider'
 import localFont from 'next/font/local'
 import easyAgendaLogo from '@/icons/easyagenda-logo.svg'
 
@@ -48,19 +49,21 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head />
-      <body className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} bg-dark text-white`}>
-        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:bg-primary focus:text-black focus:px-4 focus:py-2 focus:rounded-lg focus:font-bold">
+      <body className={`${plusJakartaSans.variable} ${spaceGrotesk.variable}`}>
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:bg-brand focus:text-on-brand focus:px-4 focus:py-2 focus:rounded-lg focus:font-bold">
           Pular para o conteúdo
         </a>
-        <ErrorBoundary>
-          <ToastProvider>
-            <AuthProvider>
-              {children}
-            </AuthProvider>
-          </ToastProvider>
-        </ErrorBoundary>
+        <ThemeProvider>
+          <ErrorBoundary>
+            <ToastProvider>
+              <AuthProvider>
+                {children}
+              </AuthProvider>
+            </ToastProvider>
+          </ErrorBoundary>
+        </ThemeProvider>
       </body>
     </html>
   )
