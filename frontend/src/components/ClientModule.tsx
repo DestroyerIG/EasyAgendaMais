@@ -160,6 +160,7 @@ export const ClientModule = () => {
             icon={Users}
             title="Nenhum cliente cadastrado ainda"
             action={{ label: 'Novo Cliente', icon: UserPlus, onClick: () => handleOpenModal() }}
+            actionVariant="secondary"
           />
         )
       ) : (

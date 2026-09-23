@@ -398,9 +398,9 @@ function PagamentoContent() {
           ) : (
             <div className="mt-6 flex items-center justify-between rounded-control border border-success/30 bg-success/12 px-3 py-2.5">
               <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />
+                <Check className="h-4 w-4 shrink-0 text-success-text" aria-hidden="true" />
                 <div>
-                  <p className="text-[15px] font-medium text-success">{couponCode}</p>
+                  <p className="text-[15px] font-medium text-success-text">{couponCode}</p>
                   <p className="text-[13px] text-muted">
                     {couponData?.finalAmount === 0
                       ? 'Ativação gratuita aplicada'

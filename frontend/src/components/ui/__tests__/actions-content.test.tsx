@@ -59,6 +59,16 @@ describe('MetricCard', () => {
     render(<MetricCard label="Despesas" value="R$ 90" delta={{ value: '-8%', trend: 'down', tone: 'positive' }} />);
     expect(screen.getByText('-8%').closest('[data-tone]')).toHaveClass('text-success');
   });
+
+  it('legenda é uma frase, sem seta nem cor de variação', () => {
+    const { container } = render(
+      <MetricCard label="Gastos do Mês" value="R$ 380,00" caption="Registro manual de despesas" />,
+    );
+    const caption = screen.getByText('Registro manual de despesas');
+    expect(caption).toHaveClass('text-[13px]', 'text-muted');
+    expect(caption.closest('[data-tone]')).toBeNull();
+    expect(container.querySelector('svg')).toBeNull();
+  });
 });
 
 describe('StatusChip', () => {

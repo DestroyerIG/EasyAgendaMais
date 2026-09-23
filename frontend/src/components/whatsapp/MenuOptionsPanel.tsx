@@ -211,6 +211,7 @@ export const MenuOptionsPanel = ({
               icon={List}
               title="Nenhuma opção configurada"
               action={{ label: 'Nova Opção', icon: Plus, onClick: openCreateModal }}
+              actionVariant="secondary"
             />
           )}
         </div>

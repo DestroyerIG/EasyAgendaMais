@@ -151,6 +151,7 @@ export const ServiceProfessionalModule = () => {
               icon={Scissors}
               title="Nenhum serviço cadastrado"
               action={{ label: 'Novo Serviço', icon: Plus, onClick: () => handleOpenModal() }}
+              actionVariant="secondary"
             />
           ) : (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -169,6 +170,7 @@ export const ServiceProfessionalModule = () => {
               icon={Users}
               title="Nenhum profissional na equipe"
               action={{ label: 'Novo Profissional', icon: Plus, onClick: () => handleOpenModal() }}
+              actionVariant="secondary"
             />
           ) : (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
