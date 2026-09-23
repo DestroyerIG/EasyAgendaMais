@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
-import { PasswordInput } from '@/components/ui';
+import { Banner, Button, Card, Field, Input, PasswordInput } from '@/components/ui';
 import api from '@/lib/api';
 import { getApiErrorCode, getApiErrorMessage } from '@/utils/handleApiError';
 import { formatCpfCnpj, isValidCpfCnpj, normalizeCpfCnpjDigits } from '@/utils/cpfCnpj';
@@ -29,7 +29,7 @@ const isTimeoutError = (error: unknown): boolean => {
   return false;
 };
 
-export function AuthForm({ mode, selectedPlan }: AuthFormProps) {
+export function AuthForm({ mode }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
   const [showConfirmedNotice, setShowConfirmedNotice] = useState(false);
@@ -207,11 +207,11 @@ export function AuthForm({ mode, selectedPlan }: AuthFormProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,122,0,0.25),_rgba(0,0,0,0.9)_45%)] px-4 py-10">
+    <div className="app-theme min-h-screen px-4 py-10">
       <div className="mx-auto flex max-w-5xl flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
         <section className="max-w-xl">
           <div className="inline-flex items-center gap-3">
-            <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-primary/30 bg-black/40">
+            <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-control border border-line bg-surface-2">
               <Image
                 src={easyAgendaLogo}
                 alt="Logo EasyAgenda+"
@@ -221,38 +221,49 @@ export function AuthForm({ mode, selectedPlan }: AuthFormProps) {
                 priority
               />
             </span>
-            <p className="text-xs uppercase tracking-[0.24em] text-primary/70">EasyAgenda+</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-brand-text">EasyAgenda+</p>
           </div>
-          <h1 className="mt-3 text-3xl font-black leading-tight sm:text-4xl lg:text-5xl">
+          <h1 className="mt-3 text-3xl font-black leading-tight text-ink sm:text-4xl lg:text-5xl">
             {isLogin
               ? 'Acesse sua operação e mantenha o controle do seu negócio.'
               : 'Abra sua conta e transforme seu negócio em uma operação previsível.'}
           </h1>
-          <p className="mt-4 text-gray-300">
+          <p className="mt-4 text-muted">
             {isLogin
               ? 'Dashboard completo de agendamentos, clientes, financeiro e performance da equipe.'
               : 'Estrutura SaaS pronta para vender mais, reduzir no-show e operar com eficiência.'}
           </p>
 
           {!isLogin && (
-            <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
+            <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-line bg-surface-2 px-4 py-2 text-sm text-brand-text">
               14 dias grátis · acesso completo ao Profissional
             </div>
           )}
         </section>
 
-        <section className="w-full max-w-md rounded-2xl border border-white/10 bg-black/70 p-6 sm:p-8 shadow-2xl shadow-black/40 backdrop-blur">
-          <div className="mb-6">
-            <h2 className="text-2xl font-black">{isLogin ? 'Login' : 'Criar conta'}</h2>
-            <p className="mt-1 text-sm text-gray-400">
-              {isLogin ? 'Entre para continuar.' : 'Leva menos de 2 minutos.'}
-            </p>
+        <Card className="mx-auto w-full max-w-md">
+          <div className="mb-6 flex items-center gap-3">
+            <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-control border border-line bg-surface-2">
+              <Image
+                src={easyAgendaLogo}
+                alt="Logo EasyAgenda+"
+                width={40}
+                height={40}
+                className="h-full w-full object-contain"
+              />
+            </span>
+            <div>
+              <h2 className="text-2xl font-bold text-ink">{isLogin ? 'Login' : 'Criar conta'}</h2>
+              <p className="text-sm text-muted">
+                {isLogin ? 'Entre para continuar.' : 'Leva menos de 2 minutos.'}
+              </p>
+            </div>
           </div>
 
           {isLogin && showConfirmedNotice && (
-            <div className="mb-5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-300">
+            <Banner tone="success" className="mb-5 rounded-control">
               E-mail confirmado com sucesso. Agora você já pode entrar.
-            </div>
+            </Banner>
           )}
 
           <form
@@ -262,42 +273,39 @@ export function AuthForm({ mode, selectedPlan }: AuthFormProps) {
           >
             {!isLogin && (
               <>
-                <input
-                  type="text"
-                  name="businessName"
-                  placeholder="Nome do negócio"
-                  value={formData.businessName}
-                  onChange={handleChange}
-                  required
-                  className="input"
-                />
-                <input
-                  type="text"
-                  name="ownerName"
-                  placeholder="Nome do responsável"
-                  value={formData.ownerName}
-                  onChange={handleChange}
-                  required
-                  className="input"
-                />
-                <input
-                  type="tel"
-                  name="whatsapp"
-                  placeholder="WhatsApp"
-                  value={formData.whatsapp}
-                  onChange={handleChange}
-                  required
-                  className="input"
-                />
+                <Field id="register-business-name" label="Nome do negócio">
+                  <Input
+                    id="register-business-name"
+                    type="text"
+                    name="businessName"
+                    value={formData.businessName}
+                    onChange={handleChange}
+                    required
+                  />
+                </Field>
+                <Field id="register-owner-name" label="Nome do responsável">
+                  <Input
+                    id="register-owner-name"
+                    type="text"
+                    name="ownerName"
+                    value={formData.ownerName}
+                    onChange={handleChange}
+                    required
+                  />
+                </Field>
+                <Field id="register-whatsapp" label="WhatsApp">
+                  <Input
+                    id="register-whatsapp"
+                    type="tel"
+                    name="whatsapp"
+                    value={formData.whatsapp}
+                    onChange={handleChange}
+                    required
+                  />
+                </Field>
 
-                <div>
-                  <label
-                    htmlFor="register-cpf-cnpj"
-                    className="mb-2 block text-xs font-semibold uppercase tracking-[0.2em] text-gray-400"
-                  >
-                    CPF/CNPJ
-                  </label>
-                  <input
+                <Field id="register-cpf-cnpj" label="CPF/CNPJ" error={cpfCnpjValidationError ?? undefined}>
+                  <Input
                     id="register-cpf-cnpj"
                     type="text"
                     name="cpfCnpj"
@@ -306,67 +314,59 @@ export function AuthForm({ mode, selectedPlan }: AuthFormProps) {
                     onChange={handleChange}
                     required
                     maxLength={18}
-                    className="input"
+                    invalid={Boolean(cpfCnpjValidationError)}
                   />
-                  {cpfCnpjValidationError && (
-                    <p className="mt-2 text-sm text-rose-300">{cpfCnpjValidationError}</p>
-                  )}
-                </div>
-
+                </Field>
               </>
             )}
 
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="input"
-            />
+            <Field id="auth-email" label="Email">
+              <Input
+                id="auth-email"
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </Field>
 
-            <PasswordInput
-              name="password"
-              placeholder={
-                isLogin ? 'Senha' : 'Senha (mín. 8 caracteres, maiúscula e número)'
-              }
-              value={formData.password}
-              onChange={handleChange}
-              required
-              minLength={isLogin ? 1 : 8}
-              className="input"
-              autoComplete={isLogin ? 'current-password' : 'new-password'}
-              toggleLabel="senha"
-            />
+            <Field
+              id="auth-password"
+              label={isLogin ? 'Senha' : 'Senha (mín. 8 caracteres, maiúscula e número)'}
+            >
+              <PasswordInput
+                id="auth-password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                minLength={isLogin ? 1 : 8}
+                autoComplete={isLogin ? 'current-password' : 'new-password'}
+                toggleLabel="senha"
+              />
+            </Field>
 
             {isLogin && (
               <div className="-mt-2 text-right">
-                <Link
-                  href="/esqueci-senha"
-                  className="text-xs font-semibold text-primary transition hover:text-orange-400"
-                >
+                <Link href="/esqueci-senha" className="text-xs font-semibold text-brand-text">
                   Esqueceu sua senha?
                 </Link>
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full text-base disabled:cursor-not-allowed disabled:opacity-70"
-            >
+            <Button type="submit" fullWidth loading={loading} size="lg">
               {loading ? 'Processando...' : isLogin ? 'Entrar' : 'Criar conta'}
-            </button>
+            </Button>
 
             {!isLogin && (
-              <p className="text-center text-xs leading-relaxed text-gray-400">
+              <p className="text-center text-xs leading-relaxed text-muted">
                 Ao criar conta, você concorda com os{' '}
-                <Link href="/termos" target="_blank" className="text-primary hover:underline">
+                <Link href="/termos" target="_blank" className="text-brand-text hover:underline">
                   Termos de Uso
                 </Link>{' '}
                 e a{' '}
-                <Link href="/privacidade" target="_blank" className="text-primary hover:underline">
+                <Link href="/privacidade" target="_blank" className="text-brand-text hover:underline">
                   Política de Privacidade
                 </Link>
                 .
@@ -375,46 +375,45 @@ export function AuthForm({ mode, selectedPlan }: AuthFormProps) {
 
             {/* Aviso de verificação — aparece só em casos de erro/timeout/conflito */}
             {verificationNotice && (
-              <div className="rounded-xl border border-primary/30 bg-primary/10 p-4 text-sm text-primary">
+              <Banner tone="danger" className="flex-col rounded-control p-4 text-left">
                 <p>{verificationNotice}</p>
                 {verificationEmail && (
-                  <p className="mt-2 text-xs text-gray-300">
+                  <p className="mt-2 text-xs text-muted">
                     E-mail: <strong>{verificationEmail}</strong>
                   </p>
                 )}
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
+                  loading={resendingVerification}
                   onClick={handleResendVerification}
-                  disabled={resendingVerification}
-                  className="mt-3 rounded-lg border border-primary/40 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-primary transition hover:border-primary disabled:cursor-not-allowed disabled:opacity-70"
+                  className="mt-3"
                 >
                   {resendingVerification ? 'Reenviando...' : 'Reenviar e-mail de verificação'}
-                </button>
+                </Button>
                 {verificationSent && (
-                  <p className="mt-2 text-xs text-gray-300">
+                  <p className="mt-2 text-xs text-muted">
                     Se não encontrar na caixa de entrada, confira a pasta de spam.
                   </p>
                 )}
-              </div>
+              </Banner>
             )}
 
             {!isLogin && (
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-muted">
                 Após verificar o e-mail você terá 14 dias de acesso gratuito ao plano Profissional. Assine quando quiser para continuar.
               </p>
             )}
           </form>
 
-          <p className="mt-5 text-center text-sm text-gray-400">
+          <p className="mt-5 text-center text-sm text-muted">
             {isLogin ? 'Ainda não tem conta?' : 'Já tem conta?'}{' '}
-            <Link
-              href={isLogin ? '/cadastro' : '/login'}
-              className="font-semibold text-primary hover:text-orange-400"
-            >
+            <Link href={isLogin ? '/cadastro' : '/login'} className="font-semibold text-brand-text">
               {isLogin ? 'Cadastrar-se' : 'Fazer login'}
             </Link>
           </p>
-        </section>
+        </Card>
       </div>
     </div>
   );

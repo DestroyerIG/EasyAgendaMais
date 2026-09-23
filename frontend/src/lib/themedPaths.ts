@@ -56,4 +56,5 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/ServiceProfessionalModule.tsx',
   'src/components/services',
   'src/app/dashboard/servicos/page.tsx',
+  'src/components/auth/AuthForm.tsx',
 ];
