@@ -6,12 +6,10 @@ export { StatusChip, STATUS_LABEL, STATUS_STRIPE_CLASS, type AppointmentStatus }
 export { Avatar, getInitials } from './Avatar';
 export { Skeleton } from './Skeleton';
 export { Banner } from './Banner';
-export { StatsCard } from './StatsCard';
 export { Modal, ModalFooter } from './Modal';
 export { EmptyState } from './EmptyState';
 export { PageHeader } from './PageHeader';
 export { PasswordInput } from './PasswordInput';
-export { ThemeToggle } from './ThemeToggle';
 export { Field, fieldDescribedBy } from './Field';
 export { Input, controlClass } from './Input';
 export { Select } from './Select';

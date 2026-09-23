@@ -203,10 +203,3 @@ export interface WhatsAppStatus {
     error: string | null;
     provider?: string;
 }
-
-export type TabId = 'dashboard' | 'agendamentos' | 'financeiro' | 'clientes' | 'servicos' | 'planos' | 'configuracoes' | 'whatsapp';
-
-export interface TabItem {
-    id: TabId;
-    label: string;
-}
