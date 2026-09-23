@@ -36,6 +36,11 @@ module.exports = {
         danger: token('danger'),
         'status-confirmed': token('status-confirmed'),
         scrim: token('scrim'),
+        // Família Material 3 dos exports Stitch (ver globals.css).
+        'surface-m3': token('surface-m3'),
+        'brand-text-m3': token('brand-text-m3'),
+        tertiary: token('tertiary'),
+        'tertiary-container': token('tertiary-container'),
       },
       opacity: {
         12: '0.12',

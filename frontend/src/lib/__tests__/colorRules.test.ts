@@ -35,6 +35,10 @@ describe('findColorViolations', () => {
     'text-status-confirmed',
     'bg-scrim/50',
     'rounded-card',
+    'bg-surface-m3',
+    'text-brand-text-m3',
+    'text-tertiary',
+    'bg-tertiary-container/30',
   ])('aceita %s', (className) => {
     expect(findColorViolations(`<div className="${className}" />`)).toEqual([]);
   });

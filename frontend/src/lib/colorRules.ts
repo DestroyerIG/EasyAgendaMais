@@ -1,4 +1,8 @@
 // Regras que impedem cores fixas nos arquivos já migrados para os tokens do DESIGN.md.
+// Lista de bloqueio: qualquer nome de token (inclusive os da família Material 3 —
+// surface-m3, brand-text-m3, tertiary, tertiary-container) passa por padrão, pois
+// nenhuma regra abaixo o reconhece; só cor Tailwind padrão, hexadecimal solto e
+// classes legadas (primary, dark, dark-light, dark-lighter) são reprovados.
 const COLOR_WORDS =
   'gray|zinc|neutral|slate|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose';
 const PREFIX =

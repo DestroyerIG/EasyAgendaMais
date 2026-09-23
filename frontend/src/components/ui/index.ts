@@ -27,3 +27,4 @@ export {
   DropdownMenuSeparator,
 } from './DropdownMenu';
 export { ThemeSelect } from './ThemeSelect';
+export { Icon, type IconProps } from './Icon';

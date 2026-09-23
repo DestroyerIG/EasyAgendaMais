@@ -2,6 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('~material-symbols/material-symbols-outlined.woff2') format('woff2');
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+.material-symbols-outlined.fill {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
 /* ─── Base ───────────────────────────────────────────────────────────────────── */
 
 @layer base {
@@ -30,6 +58,12 @@
     --color-danger: 220 38 38;
     --color-status-confirmed: 37 99 235;
     --color-scrim: 14 13 12;
+
+    /* Família Material 3 dos exports Stitch: tokens sem equivalente exato no conjunto acima. */
+    --color-surface-m3: 255 248 246;
+    --color-brand-text-m3: 153 71 0;
+    --color-tertiary: 0 99 153;
+    --color-tertiary-container: 0 168 255;
   }
 
   .dark {
@@ -50,6 +84,13 @@
     --color-danger: 248 113 113;
     --color-status-confirmed: 37 99 235;
     --color-scrim: 0 0 0;
+
+    /* Os 8 exports Material 3 não declaram um par escuro para estes 4 tokens;
+       reaproveita-se o token existente de papel mais próximo (ver relatório da Tarefa 1). */
+    --color-surface-m3: 24 22 21;
+    --color-brand-text-m3: 255 154 61;
+    --color-tertiary: 37 99 235;
+    --color-tertiary-container: 37 99 235;
   }
 
   /* Contêiner das telas que seguem o design system: fundo, texto e tipografia do DESIGN.md. */
