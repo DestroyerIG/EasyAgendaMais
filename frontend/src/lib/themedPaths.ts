@@ -57,4 +57,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/services',
   'src/app/dashboard/servicos/page.tsx',
   'src/components/auth',
+  'src/app/pagamento/page.tsx',
+  'src/components/billing',
+  'src/components/ErrorBoundary.tsx',
 ];

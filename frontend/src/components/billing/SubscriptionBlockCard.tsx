@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertTriangle, CreditCard, Lock, TrendingUp } from 'lucide-react';
+import { Button, Card } from '@/components/ui';
 import { PLAN_MAP } from '@/lib/plans';
 import type { FeatureAccessDecision } from '@/lib/subscriptionAccess';
 
@@ -22,53 +23,45 @@ export const SubscriptionBlockCard = ({
   const requiredPlanName = access.requiredPlan ? PLAN_MAP[access.requiredPlan].name : null;
 
   return (
-    <div className={`rounded-2xl border border-amber-400/30 bg-amber-500/5 p-6 ${className || ''}`.trim()}>
+    <Card className={className}>
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 rounded-full bg-amber-500/20 p-2 text-amber-300">
-          <Lock size={16} />
+        <div className="mt-0.5 rounded-full bg-surface-2 p-2 text-muted">
+          <Lock size={16} aria-hidden="true" />
         </div>
         <div className="flex-1">
-          <h3 className="text-lg font-bold text-white">{title || 'Funcionalidade bloqueada'}</h3>
-          <p className="mt-2 text-sm text-amber-100/90">{access.message}</p>
+          <h3 className="text-lg font-bold text-ink">{title || 'Funcionalidade bloqueada'}</h3>
+          <p className="mt-2 text-[15px] text-muted">{access.message}</p>
 
           {requiredPlanName && access.upgradeRequired && (
-            <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-amber-200/90">
+            <p className="mt-3 text-[13px] font-semibold text-muted">
               Plano necessário: {requiredPlanName}
             </p>
           )}
 
           <div className="mt-5 flex flex-wrap gap-3">
             {access.billingActionRequired && onManageBilling && (
-              <button
-                type="button"
-                onClick={onManageBilling}
-                className="inline-flex items-center gap-2 rounded-lg bg-amber-400 px-4 py-2 text-sm font-bold text-black transition-colors hover:bg-amber-300"
-              >
-                <CreditCard size={16} />
+              <Button type="button" onClick={onManageBilling}>
+                <CreditCard size={16} aria-hidden="true" />
                 Regularizar assinatura
-              </button>
+              </Button>
             )}
 
             {access.upgradeRequired && onUpgrade && (
-              <button
-                type="button"
-                onClick={onUpgrade}
-                className="inline-flex items-center gap-2 rounded-lg border border-amber-300/50 px-4 py-2 text-sm font-bold text-amber-100 transition-colors hover:bg-amber-300/10"
-              >
-                <TrendingUp size={16} />
+              <Button type="button" variant="secondary" onClick={onUpgrade}>
+                <TrendingUp size={16} aria-hidden="true" />
                 Ver planos
-              </button>
+              </Button>
             )}
 
             {!access.upgradeRequired && !access.billingActionRequired && (
-              <span className="inline-flex items-center gap-2 rounded-lg border border-amber-300/30 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-amber-100/90">
-                <AlertTriangle size={14} />
+              <span className="inline-flex items-center gap-2 rounded-control border border-line px-3 py-2 text-[13px] font-semibold text-muted">
+                <AlertTriangle size={14} aria-hidden="true" />
                 Acesso indisponível no momento
               </span>
             )}
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 };

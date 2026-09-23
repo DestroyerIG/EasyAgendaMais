@@ -2,10 +2,11 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
-import { CreditCard, Loader2, QrCode, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Check, Copy, CreditCard, Loader2, QrCode, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
+import { Button, Card, Field, Input } from '@/components/ui';
 import {
   billingApi,
   type CheckoutPaymentMethod,
@@ -287,9 +288,9 @@ function PagamentoContent() {
 
   if (loading || authLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-black px-4">
-        <div className="flex items-center gap-3 text-gray-300">
-          <Loader2 className="animate-spin text-primary" size={20} />
+      <main className="app-theme flex min-h-screen items-center justify-center px-4">
+        <div className="flex items-center gap-3 text-muted">
+          <Loader2 className="animate-spin text-brand-text" size={20} aria-hidden="true" />
           Carregando pagamento...
         </div>
       </main>
@@ -297,47 +298,47 @@ function PagamentoContent() {
   }
 
   return (
-    <main id="main-content" className="min-h-screen bg-black px-4 py-8">
+    <main id="main-content" className="app-theme min-h-screen px-4 py-8">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg border border-primary/30 bg-black/40">
+          <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-control border border-line bg-surface-2">
             <Image src={easyAgendaLogo} alt="Logo EasyAgenda+" width={40} height={40} className="h-full w-full object-contain" />
           </span>
-          <span className="text-xl font-black text-primary">EasyAgenda+</span>
+          <span className="text-xl font-black text-brand-text">EasyAgenda+</span>
         </div>
 
-        <button onClick={logout} className="text-sm font-semibold text-gray-400 transition hover:text-white">
+        <Button type="button" variant="ghost" onClick={logout}>
           Sair
-        </button>
+        </Button>
       </div>
 
       <section className="mx-auto mt-6 sm:mt-10 grid w-full max-w-5xl gap-6 sm:gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="rounded-2xl border border-white/10 bg-dark-light p-5 sm:p-7">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300/80">E-mail confirmado</p>
-          <h1 className="mt-3 text-3xl font-black text-white">
+        <Card>
+          <p className="text-[13px] font-semibold text-success">E-mail confirmado</p>
+          <h1 className="mt-3 text-2xl font-bold text-ink sm:text-3xl">
             Finalize o pagamento para ativar sua conta
           </h1>
-          <p className="mt-4 text-gray-300">
+          <p className="mt-4 text-muted">
             Seu cadastro foi confirmado. O dashboard será liberado automaticamente após Pix confirmado ou assinatura com cartão ativa.
           </p>
 
-          <div className="mt-6 rounded-xl border border-primary/30 bg-primary/10 p-4">
-            <p className="text-sm text-gray-300">Plano selecionado</p>
+          <div className="mt-6 rounded-control border border-brand/30 bg-brand/10 p-4">
+            <p className="text-[13px] text-muted">Plano selecionado</p>
             <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h2 className="text-2xl font-black text-white">{plan.name}</h2>
-                <p className="text-sm text-gray-400">{plan.description}</p>
+                <h2 className="text-xl font-bold text-ink">{plan.name}</h2>
+                <p className="text-[13px] text-muted">{plan.description}</p>
               </div>
               <div className="text-right">
                 {hasDiscount && (
-                  <p className="text-xs text-gray-500 line-through">{formatCurrency(originalAmount)}</p>
+                  <p className="text-[13px] text-muted line-through">{formatCurrency(originalAmount)}</p>
                 )}
-                <p className="text-2xl font-black text-primary">
+                <p className="text-xl font-bold text-brand-text">
                   {formatCurrency(finalAmount)}
-                  <span className="text-sm text-gray-400">/mês</span>
+                  <span className="text-[13px] font-normal text-muted">/mês</span>
                 </p>
                 {hasDiscount && (
-                  <p className="text-xs font-semibold text-emerald-300">Desconto de {formatCurrency(appliedDiscount)}</p>
+                  <p className="text-[13px] font-semibold text-success">Desconto de {formatCurrency(appliedDiscount)}</p>
                 )}
               </div>
             </div>
@@ -345,34 +346,30 @@ function PagamentoContent() {
 
           <ul className="mt-6 space-y-3">
             {plan.features.slice(0, 5).map((feature) => (
-              <li key={feature} className="flex items-start gap-3 text-sm text-gray-300">
-                <ShieldCheck className="mt-0.5 shrink-0 text-emerald-300" size={16} />
+              <li key={feature} className="flex items-start gap-3 text-[15px] text-muted">
+                <ShieldCheck className="mt-0.5 shrink-0 text-success" size={16} aria-hidden="true" />
                 {feature}
               </li>
             ))}
           </ul>
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-white/10 bg-dark-light p-5 sm:p-7">
-          <h2 className="text-xl font-black text-white">Escolha a forma de pagamento</h2>
-          <p className="mt-2 text-sm text-gray-400">
-            Status atual: <span className="font-semibold text-amber-200">{billingStatus?.subscriptionStatus || 'incomplete'}</span>
+        <Card>
+          <h2 className="text-xl font-bold text-ink">Escolha a forma de pagamento</h2>
+          <p className="mt-2 text-[13px] text-muted">
+            Status atual: <span className="font-semibold text-warning">{billingStatus?.subscriptionStatus || 'incomplete'}</span>
           </p>
 
-          <div className="mt-6">
-            <p className="text-xs font-medium text-zinc-400 uppercase tracking-widest mb-2">
-              Cupom de desconto
-            </p>
-
+          <Field
+            id="coupon-code"
+            label="Cupom de desconto"
+            className="mt-6"
+            error={couponState === 'invalid' ? 'Cupom inválido ou expirado.' : undefined}
+          >
             {couponState !== 'valid' ? (
-              <div
-                className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition-all duration-200
-      ${couponState === 'invalid'
-        ? 'border-red-500/40 bg-red-500/5'
-        : 'border-zinc-700 bg-zinc-800/60 focus-within:border-zinc-500'
-      }`}
-              >
-                <input
+              <div className="flex items-center gap-2">
+                <Input
+                  id="coupon-code"
                   type="text"
                   value={couponCode}
                   onChange={(event) => {
@@ -382,28 +379,26 @@ function PagamentoContent() {
                   }}
                   onKeyDown={(event) => event.key === 'Enter' && handleApplyCoupon()}
                   placeholder="EX: PROMO100"
-                  className="flex-1 bg-transparent text-sm text-white placeholder:text-zinc-600 outline-none"
+                  invalid={couponState === 'invalid'}
+                  className="flex-1"
                 />
-                <button
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={handleApplyCoupon}
                   disabled={couponState === 'loading' || !couponCode.trim()}
-                  className="text-xs font-semibold text-amber-400 hover:text-amber-300 disabled:opacity-40 
-                   transition-colors px-1 py-0.5 whitespace-nowrap"
                 >
                   {couponState === 'loading' ? 'Verificando...' : 'Aplicar'}
-                </button>
+                </Button>
               </div>
             ) : (
-              <div className="flex items-center justify-between rounded-xl border border-emerald-500/30 
-                    bg-emerald-500/10 px-3 py-2.5">
+              <div className="flex items-center justify-between rounded-control border border-success/30 bg-success/12 px-3 py-2.5">
                 <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" 
-                       strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
-                  </svg>
+                  <Check className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />
                   <div>
-                    <p className="text-sm font-medium text-emerald-400">{couponCode}</p>
-                    <p className="text-xs text-zinc-400">
+                    <p className="text-[15px] font-medium text-success">{couponCode}</p>
+                    <p className="text-[13px] text-muted">
                       {couponData?.finalAmount === 0
                         ? 'Ativação gratuita aplicada'
                         : `Desconto de R$ ${couponData?.discount.toFixed(2).replace('.', ',')}`
@@ -411,83 +406,83 @@ function PagamentoContent() {
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={handleClearCoupon}
-                  className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors ml-2"
-                >
+                <Button type="button" variant="ghost" size="sm" onClick={handleClearCoupon}>
                   Remover
-                </button>
+                </Button>
               </div>
             )}
-
-            {couponState === 'invalid' && (
-              <p className="text-xs text-red-400 mt-1.5 ml-1">Cupom inválido ou expirado.</p>
-            )}
-          </div>
+          </Field>
 
           <div className="mt-6 grid gap-3">
-            <button
+            <Button
               type="button"
               onClick={() => startCheckout('pix')}
               disabled={Boolean(processingMethod)}
-              className="btn-primary flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
+              loading={processingMethod === 'pix'}
+              fullWidth
             >
-              {processingMethod === 'pix' ? <Loader2 className="animate-spin" size={18} /> : <QrCode size={18} />}
+              {processingMethod !== 'pix' && <QrCode className="h-[18px] w-[18px]" aria-hidden="true" />}
               {isFreeActivation ? 'Ativar gratuitamente' : 'Pagar com Pix'}
-            </button>
+            </Button>
 
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={() => startCheckout('card')}
               disabled={Boolean(processingMethod)}
-              className="btn-secondary flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
+              loading={processingMethod === 'card'}
+              fullWidth
             >
-              {processingMethod === 'card' ? <Loader2 className="animate-spin" size={18} /> : <CreditCard size={18} />}
+              {processingMethod !== 'card' && <CreditCard className="h-[18px] w-[18px]" aria-hidden="true" />}
               Assinar com Cartão
-            </button>
+            </Button>
           </div>
 
           {pixCheckout && (
-            <div className="mt-6 rounded-xl border border-cyan-300/30 bg-cyan-500/5 p-4">
-              <p className="text-sm font-semibold text-cyan-100">Aguardando confirmação do pagamento</p>
+            <div className="mt-6 rounded-control border border-line bg-surface-2 p-4">
+              <p className="text-[15px] font-semibold text-brand-text">Aguardando confirmação do pagamento</p>
 
               {appliedCouponCode && hasDiscount && (
-                <p className="mt-2 text-xs text-cyan-100">
-                  Cupom aplicado: <span className="font-semibold">{appliedCouponCode}</span> - desconto de {formatCurrency(appliedDiscount)}
+                <p className="mt-2 text-[13px] text-muted">
+                  Cupom aplicado: <span className="font-semibold text-ink">{appliedCouponCode}</span> - desconto de {formatCurrency(appliedDiscount)}
                 </p>
               )}
 
               {pixQrCodeSource && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={pixQrCodeSource}
-                  alt="QR Code Pix"
-                  className="mx-auto mt-4 h-48 w-48 rounded-lg bg-white p-2"
-                />
+                <Card className="mx-auto mt-4 w-fit border-line bg-surface p-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={pixQrCodeSource}
+                    alt="QR Code Pix"
+                    className="h-48 w-48 rounded-control"
+                  />
+                </Card>
               )}
 
               {pixCheckout.pixCopyPaste && (
-                <button
-                  type="button"
-                  onClick={copyPixPayload}
-                  className="mt-4 w-full rounded-lg border border-cyan-300/40 px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/10"
-                >
-                  Copiar código Pix
-                </button>
+                <div className="mt-4 space-y-2">
+                  <Input readOnly value={pixCheckout.pixCopyPaste} aria-label="Código Pix copia e cola" />
+                  <Button type="button" variant="secondary" fullWidth onClick={copyPixPayload}>
+                    <Copy className="h-4 w-4" aria-hidden="true" />
+                    Copiar código Pix
+                  </Button>
+                </div>
               )}
             </div>
           )}
 
-          <button
+          <Button
             type="button"
+            variant="secondary"
             onClick={checkPayment}
-            disabled={checkingPayment}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-gray-200 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-70"
+            loading={checkingPayment}
+            fullWidth
+            className="mt-4"
           >
-            {checkingPayment ? <Loader2 className="animate-spin" size={16} /> : <RefreshCw size={16} />}
+            {!checkingPayment && <RefreshCw className="h-4 w-4" aria-hidden="true" />}
             Já paguei, verificar pagamento
-          </button>
-        </div>
+          </Button>
+        </Card>
       </section>
     </main>
   );
