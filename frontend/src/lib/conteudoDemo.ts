@@ -436,7 +436,7 @@ export const conteudoDemo = {
     exemplos: [
       {
         nome: 'Mariana Souza',
-        telefone: '(11) 98741-7039',
+        telefone: '(11) 98741-2039',
         etiqueta: 'Clube VIP',
         fase: 'Fiel',
         ultimaVisita: '12 de setembro (há 5 dias)',
