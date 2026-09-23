@@ -5,6 +5,7 @@ import { SettingsModule } from '@/components/SettingsModule';
 import { FeatureGate } from '@/components/billing/FeatureGate';
 import { useDashboardBilling } from '@/hooks/useDashboardBilling';
 import { SettingsTabs } from '@/components/shell/SettingsTabs';
+import { PageHeader } from '@/components/ui';
 
 export default function ConfiguracoesPage() {
   const { user } = useAuth();
@@ -13,6 +14,7 @@ export default function ConfiguracoesPage() {
   return (
     <>
       <SettingsTabs />
+      <PageHeader title="Ajustes" />
       <FeatureGate
         access={access.evaluate('advanced_admin')}
         onUpgrade={goToPlans}

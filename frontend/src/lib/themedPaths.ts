@@ -50,4 +50,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/WhatsAppModule.tsx',
   'src/components/whatsapp',
   'src/app/dashboard/whatsapp/page.tsx',
+  'src/components/SettingsModule.tsx',
+  'src/components/settings',
+  'src/app/dashboard/configuracoes/page.tsx',
 ];
