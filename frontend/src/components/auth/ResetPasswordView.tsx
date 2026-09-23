@@ -207,14 +207,14 @@ export function ResetPasswordView() {
         )}
 
         {status === 'success' && (
-          <Banner tone="success" className="mt-6 rounded-control p-3 text-left">
+          <Banner tone="success" variant="inline" className="mt-6">
             Senha atualizada com sucesso.
           </Banner>
         )}
 
         {status === 'error' && (
           <div className="mt-6 space-y-4">
-            <Banner tone="warning" className="rounded-control p-3 text-left">
+            <Banner tone="warning" variant="inline">
               Não foi possível concluir a redefinição com este link.
             </Banner>
 

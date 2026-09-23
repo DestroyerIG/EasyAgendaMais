@@ -15,7 +15,7 @@ export function WeeklyChart({ data }: WeeklyChartProps) {
 
     return (
         <Card>
-            <h3 className="text-2xl font-bold text-ink mb-6">Faturamento Semanal</h3>
+            <h3 className="text-lg font-bold text-ink mb-6">Faturamento Semanal</h3>
             {colors ? (
                 <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={data}>

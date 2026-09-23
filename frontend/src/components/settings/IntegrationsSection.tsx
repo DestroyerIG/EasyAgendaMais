@@ -1,6 +1,7 @@
 'use client';
 
 import { Card, Field, Input, Skeleton } from '@/components/ui';
+import { cn } from '@/lib/cn';
 import type { SettingsState } from './types';
 
 export interface IntegrationsSectionProps {
@@ -17,7 +18,7 @@ export function IntegrationsSection({
   className,
 }: IntegrationsSectionProps) {
   return (
-    <Card className={className ? `space-y-6 ${className}` : 'space-y-6'}>
+    <Card className={cn('space-y-6', className)}>
       <div>
         <h2 className="text-lg font-bold text-ink">Integrações</h2>
         <p className="mt-1 text-[15px] text-muted">
@@ -40,6 +41,7 @@ export function IntegrationsSection({
               onChange={(event) => onFieldChange('whatsappInstanceName', event.target.value)}
               placeholder="Gerado automaticamente ao conectar"
               readOnly
+              className="opacity-60"
             />
           </Field>
         </div>

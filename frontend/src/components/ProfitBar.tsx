@@ -21,7 +21,7 @@ export function ProfitBar({ data }: ProfitBarProps) {
             {colors ? (
                 <>
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-2xl font-bold text-ink">Lucro do Dia</h3>
+                        <h3 className="text-lg font-bold text-ink">Lucro do Dia</h3>
                         <span
                             className="text-3xl font-bold"
                             style={{ color: isPositive ? colors.success : colors.danger }}

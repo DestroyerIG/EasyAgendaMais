@@ -122,4 +122,20 @@ describe('ThemeSelect', () => {
     );
     expect(await screen.findByRole('radio', { name: 'Sistema' })).toHaveAttribute('aria-checked', 'true');
   });
+
+  it('as setas andam pelas opções', async () => {
+    render(
+      <ThemeProvider>
+        <ThemeSelect />
+      </ThemeProvider>,
+    );
+    const sistema = await screen.findByRole('radio', { name: 'Sistema' });
+    expect(sistema).toHaveAttribute('tabindex', '0');
+    sistema.focus();
+    await userEvent.keyboard('{ArrowRight}');
+    const claro = screen.getByRole('radio', { name: 'Claro' });
+    expect(claro).toHaveAttribute('aria-checked', 'true');
+    expect(claro).toHaveFocus();
+    expect(sistema).toHaveAttribute('tabindex', '-1');
+  });
 });

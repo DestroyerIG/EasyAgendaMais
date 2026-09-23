@@ -146,7 +146,7 @@ export function ForgotPasswordView({ appUrl }: ForgotPasswordViewProps) {
           </Field>
 
           {message ? (
-            <Banner tone={status === 'success' ? 'success' : 'danger'} className="rounded-control p-3 text-left">
+            <Banner tone={status === 'success' ? 'success' : 'danger'} variant="inline">
               {message}
             </Banner>
           ) : null}

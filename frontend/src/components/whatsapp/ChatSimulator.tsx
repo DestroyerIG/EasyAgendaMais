@@ -59,8 +59,8 @@ export const ChatSimulator = ({ onSendMessage }: ChatSimulatorProps) => {
             <MessageSquare className="h-5 w-5" aria-hidden="true" />
           </div>
           <div>
-            <h3 className="text-[15px] font-bold text-ink">Teste o Bot</h3>
-            <p className="text-[13px] font-bold uppercase tracking-tight text-success-text">Assistente virtual online</p>
+            <h3 className="text-lg font-bold text-ink">Teste o Bot</h3>
+            <p className="text-[13px] font-bold text-success-text">Assistente virtual online</p>
           </div>
         </div>
         <Button variant="ghost" size="sm" onClick={() => setMessages([])}>

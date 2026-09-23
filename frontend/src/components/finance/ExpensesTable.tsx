@@ -39,7 +39,6 @@ export function ExpensesTable({ expenses, onEdit, onDelete }: ExpensesTableProps
       <EmptyState
         icon={Receipt}
         title="Nenhum gasto registrado"
-        description="Nenhum gasto registrado."
       />
     );
   }

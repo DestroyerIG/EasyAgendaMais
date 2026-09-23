@@ -83,7 +83,7 @@ export function AccountSection({
           </Field>
 
           <div className="flex flex-col gap-3 border-t border-line pt-5">
-            <Button onClick={onSave} loading={passwordSaving}>
+            <Button variant="secondary" onClick={onSave} loading={passwordSaving}>
               {!passwordSaving && <Save className="h-[18px] w-[18px]" aria-hidden="true" />}
               {passwordSaving ? 'Atualizando...' : 'Atualizar senha'}
             </Button>

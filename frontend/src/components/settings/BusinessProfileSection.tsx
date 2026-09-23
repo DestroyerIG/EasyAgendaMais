@@ -107,7 +107,7 @@ export function BusinessProfileSection({
             <p className="text-[13px] text-muted">
               As alterações ficam no formulário mesmo se houver erro, para você ajustar e reenviar.
             </p>
-            <Button onClick={onSave} loading={accountSaving}>
+            <Button variant="secondary" onClick={onSave} loading={accountSaving}>
               {!accountSaving && <Save className="h-[18px] w-[18px]" aria-hidden="true" />}
               {accountSaving ? 'Salvando...' : 'Salvar dados cadastrais'}
             </Button>

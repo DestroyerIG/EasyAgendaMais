@@ -24,6 +24,7 @@ import { ClientDetailPanel } from '@/components/clients/ClientDetailPanel';
 import { ClientFormModal } from '@/components/clients/ClientFormModal';
 import type { ClientFormData } from '@/components/clients/ClientFormModal';
 import { getApiErrorMessage } from '@/utils/handleApiError';
+import { cn } from '@/lib/cn';
 import { UserPlus, Search, Edit2, Users } from 'lucide-react';
 import type { Client, Appointment } from '@/types';
 
@@ -148,11 +149,19 @@ export const ClientModule = () => {
           ))}
         </div>
       ) : filteredClients.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title="Nenhum cliente encontrado"
-          description="Nenhum cliente corresponde à busca atual."
-        />
+        searchTerm ? (
+          <EmptyState
+            icon={Users}
+            title="Nenhum cliente encontrado"
+            description="Nenhum cliente corresponde à busca atual."
+          />
+        ) : (
+          <EmptyState
+            icon={Users}
+            title="Nenhum cliente cadastrado ainda"
+            action={{ label: 'Novo Cliente', icon: UserPlus, onClick: () => handleOpenModal() }}
+          />
+        )
       ) : (
         <>
           {/* Desktop: tabela */}
@@ -171,7 +180,10 @@ export const ClientModule = () => {
                   <TableRow
                     key={client.id}
                     onClick={() => selectClient(client)}
-                    className="cursor-pointer hover:bg-surface-2"
+                    className={cn(
+                      'cursor-pointer hover:bg-surface-2',
+                      selectedClient?.id === client.id && 'bg-surface-2',
+                    )}
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -203,7 +215,10 @@ export const ClientModule = () => {
               <Card
                 key={client.id}
                 onClick={() => selectClient(client)}
-                className="flex cursor-pointer items-center justify-between gap-3"
+                className={cn(
+                  'flex cursor-pointer items-center justify-between gap-3',
+                  selectedClient?.id === client.id && 'bg-surface-2',
+                )}
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <Avatar name={client.name} />

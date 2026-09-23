@@ -88,7 +88,7 @@ export const MessageConfigPanel = ({
   <Card className="overflow-hidden">
     <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h3 className="mb-2 text-xl font-bold text-ink">Personalizar Mensagens</h3>
+        <h3 className="mb-2 text-lg font-bold text-ink">Personalizar Mensagens</h3>
         <p className="text-[15px] text-muted">Defina como o bot deve falar com seus clientes.</p>
       </div>
       <div className="flex gap-2">
@@ -118,7 +118,7 @@ export const MessageConfigPanel = ({
           const categoryFields = FIELDS.filter(f => f.category === category);
           return (
             <div key={category}>
-              <h4 className="mb-4 border-b border-line pb-2 text-[13px] font-semibold uppercase tracking-wide text-brand-text">
+              <h4 className="mb-4 border-b border-line pb-2 text-[13px] font-semibold text-brand-text">
                 {category}
               </h4>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

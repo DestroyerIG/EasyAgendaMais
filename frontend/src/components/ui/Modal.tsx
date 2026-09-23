@@ -66,13 +66,22 @@ interface ModalFooterProps {
   submitIcon?: LucideIcon;
   submitting?: boolean;
   disabled?: boolean;
+  cancelLabel?: string;
 }
 
-export function ModalFooter({ onCancel, onSubmit, submitLabel, submitIcon: SubmitIcon, submitting, disabled }: ModalFooterProps) {
+export function ModalFooter({
+  onCancel,
+  onSubmit,
+  submitLabel,
+  submitIcon: SubmitIcon,
+  submitting,
+  disabled,
+  cancelLabel = 'Cancelar',
+}: ModalFooterProps) {
   return (
     <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
       <Button variant="secondary" onClick={onCancel} disabled={submitting}>
-        Cancelar
+        {cancelLabel}
       </Button>
       <Button onClick={onSubmit} loading={submitting} disabled={disabled}>
         {SubmitIcon && !submitting ? <SubmitIcon className="h-4 w-4" aria-hidden="true" /> : null}

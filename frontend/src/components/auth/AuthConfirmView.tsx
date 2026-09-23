@@ -458,13 +458,13 @@ export function AuthConfirmView() {
         <p className="mt-4 text-sm text-muted">{message}</p>
 
         {status === 'loading' && (
-          <Banner tone="info" className="mt-6 rounded-control p-3 text-left">
+          <Banner tone="info" variant="inline" className="mt-6">
             Confirmando seu e-mail...
           </Banner>
         )}
 
         {status === 'success' && (
-          <Banner tone="success" className="mt-6 flex-col items-start rounded-control p-3 text-left">
+          <Banner tone="success" variant="inline" className="mt-6 flex-col items-start">
             <p className="font-semibold">E-mail confirmado com sucesso.</p>
             <p className="mt-1">Agora você já pode fazer login.</p>
           </Banner>
@@ -472,7 +472,7 @@ export function AuthConfirmView() {
 
         {status === 'error' && (
           <form onSubmit={handleResendVerification} className="mt-6 space-y-3">
-            <Banner tone="warning" className="rounded-control p-3 text-left">
+            <Banner tone="warning" variant="inline">
               Se o link expirou, informe seu e-mail para reenviar a verificação.
             </Banner>
 

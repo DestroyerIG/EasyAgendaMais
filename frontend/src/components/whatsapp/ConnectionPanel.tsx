@@ -76,7 +76,7 @@ function StateBlock({ icon: Icon, tone, title, description, action }: StateBlock
         <Icon className="h-10 w-10" aria-hidden="true" />
       </div>
       <div className="max-w-sm space-y-2">
-        <h4 className="text-xl font-bold text-ink">{title}</h4>
+        <h4 className="text-lg font-bold text-ink">{title}</h4>
         {description ? <p className="text-[15px] text-muted">{description}</p> : null}
       </div>
       {action ? (
@@ -96,7 +96,7 @@ export const ConnectionPanel = ({ waStatus, statusLoading, actionLoading, onConn
     <Card className="space-y-6 overflow-hidden">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="mb-2 text-xl font-bold text-ink">Conexão WhatsApp</h3>
+          <h3 className="mb-2 text-lg font-bold text-ink">Conexão WhatsApp</h3>
           <p className="text-[15px] text-muted">Conecte sua instância via Evolution API e acompanhe o estado real da sessão.</p>
         </div>
         {!statusLoading && (
@@ -129,7 +129,7 @@ export const ConnectionPanel = ({ waStatus, statusLoading, actionLoading, onConn
           <div className="max-w-sm space-y-2 text-center">
             <div className="flex items-center justify-center gap-2 text-warning">
               <Smartphone className="h-[18px] w-[18px]" aria-hidden="true" />
-              <p className="text-[13px] font-bold uppercase tracking-wider">Escaneie o QR Code</p>
+              <p className="text-[13px] font-bold">Escaneie o QR Code</p>
             </div>
             <ol className="list-inside list-decimal space-y-1 text-left text-[13px] text-muted">
               <li>Abra o <strong className="text-ink">WhatsApp</strong> no celular</li>
@@ -161,7 +161,7 @@ export const ConnectionPanel = ({ waStatus, statusLoading, actionLoading, onConn
             <CheckCircle className="h-10 w-10" aria-hidden="true" />
           </div>
           <div className="max-w-sm space-y-2">
-            <h4 className="text-2xl font-bold text-ink">WhatsApp Conectado!</h4>
+            <h4 className="text-lg font-bold text-ink">WhatsApp Conectado!</h4>
             <p className="text-[15px] text-muted">Sessao ativa na Evolution API e bot pronto para receber mensagens.</p>
             {waStatus.connectedNumber && (
               <div className="mt-4 inline-flex items-center gap-2 rounded-control border border-success/20 bg-success/12 px-4 py-2">

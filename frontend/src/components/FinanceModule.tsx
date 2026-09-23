@@ -267,7 +267,7 @@ export const FinanceModule = ({
             </div>
             <div className="space-y-6">
               <Card>
-                <h3 className="mb-4 flex items-center gap-2 text-sm font-bold text-ink sm:mb-6">
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-ink sm:mb-6">
                   <Calendar className="h-[18px] w-[18px] text-brand-text" aria-hidden="true" />
                   Resumo de Hoje
                 </h3>
@@ -295,7 +295,7 @@ export const FinanceModule = ({
                 title="Exportações indisponíveis"
               >
                 <Card className="bg-gradient-to-br from-brand/10 to-transparent border-brand/20">
-                  <h3 className="mb-2 text-sm font-bold text-ink">Exportação Rápida</h3>
+                  <h3 className="mb-2 text-lg font-bold text-ink">Exportação Rápida</h3>
                   <p className="mb-4 text-xs text-muted">Gere um documento PDF com todos os dados financeiros deste mês.</p>
                   <Button variant="secondary" onClick={exportToPDF} fullWidth>
                     <FileText className="h-[18px] w-[18px]" aria-hidden="true" />

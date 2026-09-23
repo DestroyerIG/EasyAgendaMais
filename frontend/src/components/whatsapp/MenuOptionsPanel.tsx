@@ -118,7 +118,7 @@ export const MenuOptionsPanel = ({
     <Card className="overflow-hidden">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h3 className="mb-2 text-xl font-bold text-ink">Opções do Menu</h3>
+          <h3 className="mb-2 text-lg font-bold text-ink">Opções do Menu</h3>
           <p className="text-[15px] text-muted">Configure as opções do menu principal do bot.</p>
         </div>
         <div className="flex gap-2">
@@ -210,7 +210,7 @@ export const MenuOptionsPanel = ({
             <EmptyState
               icon={List}
               title="Nenhuma opção configurada"
-              description='Clique em "Nova Opção" ou resete para o padrão.'
+              action={{ label: 'Nova Opção', icon: Plus, onClick: openCreateModal }}
             />
           )}
         </div>

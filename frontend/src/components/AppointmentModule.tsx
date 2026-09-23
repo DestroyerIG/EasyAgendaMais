@@ -192,6 +192,7 @@ export function AppointmentModule() {
               : 'Não há agendamentos para este período. Crie um novo agendamento para começar!'
           }
           action={{ label: 'Criar Agendamento', icon: Plus, onClick: openModal }}
+          actionVariant="secondary"
         />
       ) : (
         <div className="space-y-6">

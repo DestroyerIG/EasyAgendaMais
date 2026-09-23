@@ -62,7 +62,7 @@ export function ProfessionalAgenda({ professional }: ProfessionalAgendaProps) {
             <Card className="mb-6 flex items-center gap-4">
                 <Avatar name={professional.name} src={professional.photo} size={64} />
                 <div>
-                    <h2 className="text-2xl font-bold text-ink">Agenda: {professional.name}</h2>
+                    <h2 className="text-lg font-bold text-ink">Agenda: {professional.name}</h2>
                     <p className="capitalize text-muted">{formatDate(selectedDate)}</p>
                 </div>
             </Card>

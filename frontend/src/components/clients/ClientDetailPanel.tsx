@@ -61,7 +61,7 @@ export function ClientDetailPanel({ client, history, loadingHistory, onEdit }: C
       <div className="space-y-3">
         <div className="flex items-center gap-2 border-b border-line pb-2">
           <FileText className="h-5 w-5 text-brand-text" aria-hidden="true" />
-          <h4 className="text-[13px] font-semibold text-ink">Informações de Cadastro</h4>
+          <h4 className="text-lg font-bold text-ink">Informações de Cadastro</h4>
         </div>
         <div className="grid grid-cols-1 gap-4 text-[15px] sm:grid-cols-2">
           <div className="space-y-3">
@@ -93,7 +93,7 @@ export function ClientDetailPanel({ client, history, loadingHistory, onEdit }: C
       <div className="space-y-3">
         <div className="flex items-center gap-2 border-b border-line pb-2">
           <Clock className="h-5 w-5 text-brand-text" aria-hidden="true" />
-          <h4 className="text-[13px] font-semibold text-ink">Histórico de Atendimento</h4>
+          <h4 className="text-lg font-bold text-ink">Histórico de Atendimento</h4>
         </div>
         {loadingHistory ? (
           <p className="p-6 text-center text-[15px] text-muted">Buscando histórico...</p>

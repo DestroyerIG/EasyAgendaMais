@@ -492,7 +492,7 @@ function PagamentoContent() {
 
 export default function PagamentoPage() {
   return (
-    <Suspense fallback={<div>Carregando pagamento...</div>}>
+    <Suspense fallback={<div className="app-theme min-h-screen px-4 py-8">Carregando pagamento...</div>}>
       <PagamentoContent />
     </Suspense>
   );

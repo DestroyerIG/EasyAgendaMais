@@ -1,7 +1,7 @@
 'use client';
 
 import { FileText } from 'lucide-react';
-import { Button, Field, Input, Modal } from '@/components/ui';
+import { Field, Input, Modal, ModalFooter } from '@/components/ui';
 
 interface CpfCnpjModalProps {
   isOpen: boolean;
@@ -33,14 +33,13 @@ export function CpfCnpjModal({
       title="Informe CPF/CNPJ para Pix"
       icon={FileText}
       footer={
-        <>
-          <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
-            Agora nao
-          </Button>
-          <Button type="button" onClick={onSubmit} loading={submitting}>
-            {submitting ? 'Salvando...' : 'Salvar e continuar'}
-          </Button>
-        </>
+        <ModalFooter
+          onCancel={onClose}
+          onSubmit={onSubmit}
+          submitLabel={submitting ? 'Salvando...' : 'Salvar e continuar'}
+          submitting={submitting}
+          cancelLabel="Agora nao"
+        />
       }
     >
       <div className="space-y-4">

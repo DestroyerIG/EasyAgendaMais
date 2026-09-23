@@ -119,13 +119,13 @@ export function EmailVerificationView({ initialToken, initialEmail }: EmailVerif
         <p className="mt-4 text-sm text-muted">{message}</p>
 
         {status === 'loading' && (
-          <Banner tone="info" className="mt-6 rounded-control p-3 text-left">
+          <Banner tone="info" variant="inline" className="mt-6">
             Aguarde enquanto validamos seu link...
           </Banner>
         )}
 
         {status === 'success' && (
-          <Banner tone="success" className="mt-6 rounded-control p-3 text-left">
+          <Banner tone="success" variant="inline" className="mt-6">
             Conta liberada. Você já pode entrar no painel.
           </Banner>
         )}

@@ -17,7 +17,6 @@ type AuthMode = 'login' | 'register';
 
 interface AuthFormProps {
   mode: AuthMode;
-  selectedPlan?: string | null;
 }
 
 const isTimeoutError = (error: unknown): boolean => {
@@ -261,7 +260,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           </div>
 
           {isLogin && showConfirmedNotice && (
-            <Banner tone="success" className="mb-5 rounded-control">
+            <Banner tone="success" variant="inline" className="mb-5">
               E-mail confirmado com sucesso. Agora você já pode entrar.
             </Banner>
           )}
@@ -375,7 +374,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
             {/* Aviso de verificação — aparece só em casos de erro/timeout/conflito */}
             {verificationNotice && (
-              <Banner tone="danger" className="flex-col rounded-control p-4 text-left">
+              <Banner tone="danger" variant="inline" className="flex-col p-4">
                 <p>{verificationNotice}</p>
                 {verificationEmail && (
                   <p className="mt-2 text-xs text-muted">

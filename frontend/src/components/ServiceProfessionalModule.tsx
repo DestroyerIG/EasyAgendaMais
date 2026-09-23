@@ -149,8 +149,8 @@ export const ServiceProfessionalModule = () => {
           ) : services.length === 0 ? (
             <EmptyState
               icon={Scissors}
-              title="Nenhum serviço cadastrado."
-              description="Assim que forem cadastrados, eles aparecem aqui."
+              title="Nenhum serviço cadastrado"
+              action={{ label: 'Novo Serviço', icon: Plus, onClick: () => handleOpenModal() }}
             />
           ) : (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -167,8 +167,8 @@ export const ServiceProfessionalModule = () => {
           ) : professionals.length === 0 ? (
             <EmptyState
               icon={Users}
-              title="Nenhum profissional na equipe."
-              description="Assim que forem cadastrados, eles aparecem aqui."
+              title="Nenhum profissional na equipe"
+              action={{ label: 'Novo Profissional', icon: Plus, onClick: () => handleOpenModal() }}
             />
           ) : (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">

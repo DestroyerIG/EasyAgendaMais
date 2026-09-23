@@ -476,7 +476,7 @@ export const WhatsAppModule = () => {
           <div className="space-y-6">
             <Card className="relative overflow-hidden">
               <div className={cn('absolute right-0 top-0 h-full w-1 opacity-40', TONE_STRIPE_CLASS[statusConfig.tone])} />
-              <h3 className="mb-4 flex items-center gap-2 text-[13px] font-semibold text-muted">
+              <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-ink">
                 <Zap className="h-[14px] w-[14px] text-brand-text" aria-hidden="true" /> Status da Conexão
               </h3>
               <div className="flex items-center gap-3">
@@ -516,7 +516,7 @@ export const WhatsAppModule = () => {
             </Card>
 
             <Card>
-              <h3 className="mb-4 text-[13px] font-semibold text-muted">Recursos Ativos</h3>
+              <h3 className="mb-4 text-lg font-bold text-ink">Recursos Ativos</h3>
               <ul className="space-y-4">
                 {[
                   { icon: ShieldCheck, text: 'Agendamento Automático (24/7)' },

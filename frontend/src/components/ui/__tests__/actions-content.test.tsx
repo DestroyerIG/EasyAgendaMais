@@ -10,6 +10,8 @@ import { Avatar, getInitials } from '../Avatar';
 import { EmptyState } from '../EmptyState';
 import { PageHeader } from '../PageHeader';
 import { Banner } from '../Banner';
+import { Card } from '../Card';
+import { Skeleton } from '../Skeleton';
 
 describe('Button', () => {
   it('é do tipo button por padrão e usa o botão principal da marca', () => {
@@ -122,5 +124,32 @@ describe('Banner', () => {
   it('aviso comum espera a vez', () => {
     render(<Banner tone="warning">Assinatura vence amanhã</Banner>);
     expect(screen.getByRole('status')).toHaveTextContent('Assinatura vence amanhã');
+  });
+});
+
+describe('Card', () => {
+  it('usa a superfície, a borda e o raio de cartão do design system', () => {
+    const { container } = render(<Card>Resumo do dia</Card>);
+    expect(container.firstElementChild).toHaveClass('rounded-card', 'border', 'border-line', 'bg-surface');
+  });
+
+  it('aceita classes da tela sem perder a base', () => {
+    const { container } = render(<Card className="mb-6">Resumo</Card>);
+    expect(container.firstElementChild).toHaveClass('mb-6', 'bg-surface');
+  });
+});
+
+describe('Skeleton', () => {
+  it('sem rótulo é decoração e some do leitor de tela', () => {
+    const { container } = render(<Skeleton className="h-4 w-24" />);
+    expect(container.firstElementChild).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('com rótulo anuncia o carregamento', () => {
+    render(<Skeleton className="h-4 w-24" label="Carregando clientes..." />);
+    const live = screen.getByRole('status');
+    expect(live).toHaveAttribute('aria-busy', 'true');
+    expect(live).toHaveTextContent('Carregando clientes...');
   });
 });
