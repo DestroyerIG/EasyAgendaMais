@@ -1,6 +1,6 @@
 'use client';
 
-import { Users, Calendar, ChevronRight, Edit2, Trash2 } from 'lucide-react';
+import { Calendar, ChevronRight, Edit2, Trash2 } from 'lucide-react';
 import { Card, Avatar, IconButton, Button } from '@/components/ui';
 import type { Professional } from '@/types';
 
@@ -15,13 +15,7 @@ export const ProfessionalCard = ({ professional, onEdit, onDelete, onViewAgenda 
   <Card className="flex flex-col gap-4">
     <div className="flex items-start justify-between gap-2">
       <div className="flex items-center gap-4">
-        {professional.photo ? (
-          <Avatar name={professional.name} src={professional.photo} size={56} />
-        ) : (
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-surface-2 text-muted">
-            <Users className="h-7 w-7" aria-hidden="true" />
-          </div>
-        )}
+        <Avatar name={professional.name} src={professional.photo} size={56} />
         <div>
           <h3 className="text-lg font-bold text-ink">{professional.name}</h3>
           <p className="text-[13px] font-semibold text-brand-text">Profissional</p>
