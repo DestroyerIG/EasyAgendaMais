@@ -24,7 +24,9 @@
     --color-brand-text: 179 77 0;
     --color-whatsapp: 18 140 74;
     --color-success: 22 163 74;
+    --color-success-text: 21 128 61;
     --color-warning: 217 119 6;
+    --color-warning-text: 146 64 14;
     --color-danger: 220 38 38;
     --color-status-confirmed: 37 99 235;
     --color-scrim: 14 13 12;
@@ -42,7 +44,9 @@
     --color-brand-text: 255 154 61;
     --color-whatsapp: 37 211 102;
     --color-success: 74 222 128;
+    --color-success-text: 74 222 128;
     --color-warning: 251 191 36;
+    --color-warning-text: 251 191 36;
     --color-danger: 248 113 113;
     --color-status-confirmed: 37 99 235;
     --color-scrim: 0 0 0;
@@ -70,9 +74,9 @@
   }
 
   ::-webkit-scrollbar              { width: 8px; }
-  ::-webkit-scrollbar-track        { @apply bg-dark-light; }
-  ::-webkit-scrollbar-thumb        { @apply bg-primary rounded; }
-  ::-webkit-scrollbar-thumb:hover  { @apply bg-orange-400; }
+  ::-webkit-scrollbar-track        { @apply bg-surface-2; }
+  ::-webkit-scrollbar-thumb        { @apply bg-line rounded; }
+  ::-webkit-scrollbar-thumb:hover  { @apply bg-muted; }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -82,6 +86,12 @@
       scroll-behavior: auto !important;
     }
   }
+}
+
+/* Quiet zone do QR Code: o leitor exige escuro sobre claro, então este fundo fica
+   branco nos dois temas e por isso não usa token. */
+.qr-surface {
+  background-color: #ffffff;
 }
 
 /* ─── Components ─────────────────────────────────────────────────────────────── */

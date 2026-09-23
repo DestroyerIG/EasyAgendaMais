@@ -28,7 +28,7 @@ export function IntegrationsSection({
       {settingsLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-11 w-full" />
+            <Skeleton key={index} className="h-11 w-full" label={index === 0 ? 'Carregando…' : undefined} />
           ))}
         </div>
       ) : (

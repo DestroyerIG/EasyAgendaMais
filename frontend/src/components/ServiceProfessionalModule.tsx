@@ -117,7 +117,7 @@ export const ServiceProfessionalModule = () => {
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 3 }).map((_, i) => (
         <Card key={i} className="flex flex-col gap-4">
-          <Skeleton className="h-12 w-12 rounded-control" />
+          <Skeleton className="h-12 w-12 rounded-control" label={i === 0 ? 'Carregando...' : undefined} />
           <Skeleton className="h-5 w-32" />
           <Skeleton className="h-4 w-40" />
         </Card>

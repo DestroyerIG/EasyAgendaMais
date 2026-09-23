@@ -10,6 +10,8 @@ export interface MetricCardProps {
   label: string;
   value: ReactNode;
   delta?: { value: string; trend: Trend; tone?: Tone };
+  // Frase descritiva sob a métrica. Ocupa a mesma linha da variação, sem seta nem cor semântica.
+  caption?: string;
   className?: string;
 }
 
@@ -21,7 +23,7 @@ const TONE_CLASS: Record<Tone, string> = {
 const DEFAULT_TONE: Record<Trend, Tone> = { up: 'positive', down: 'negative', flat: 'neutral' };
 const TREND_ICON = { up: ArrowUpRight, down: ArrowDownRight, flat: Minus };
 
-export function MetricCard({ label, value, delta, className }: MetricCardProps) {
+export function MetricCard({ label, value, delta, caption, className }: MetricCardProps) {
   const tone = delta ? delta.tone ?? DEFAULT_TONE[delta.trend] : null;
   const Icon = delta ? TREND_ICON[delta.trend] : null;
 
@@ -34,6 +36,8 @@ export function MetricCard({ label, value, delta, className }: MetricCardProps) 
           <Icon className="h-4 w-4" aria-hidden="true" />
           {delta.value}
         </p>
+      ) : caption ? (
+        <p className="text-[13px] text-muted">{caption}</p>
       ) : null}
     </Card>
   );

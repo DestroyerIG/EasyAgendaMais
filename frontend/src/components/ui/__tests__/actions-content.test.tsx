@@ -9,6 +9,7 @@ import { StatusChip, STATUS_LABEL, type AppointmentStatus } from '../StatusChip'
 import { Avatar, getInitials } from '../Avatar';
 import { EmptyState } from '../EmptyState';
 import { PageHeader } from '../PageHeader';
+import { Banner } from '../Banner';
 
 describe('Button', () => {
   it('é do tipo button por padrão e usa o botão principal da marca', () => {
@@ -61,9 +62,9 @@ describe('MetricCard', () => {
 describe('StatusChip', () => {
   const expected: Record<AppointmentStatus, string> = {
     confirmado: 'text-status-confirmed',
-    aguardando: 'text-warning',
+    aguardando: 'text-warning-text',
     em_atendimento: 'text-brand-text',
-    concluido: 'text-success',
+    concluido: 'text-success-text',
     faltou: 'text-danger',
     cancelado: 'text-muted',
   };
@@ -109,5 +110,17 @@ describe('EmptyState e PageHeader', () => {
   it('cabeçalho de página usa um título de nível 1', () => {
     render(<PageHeader title="Agenda" description="Seus horários" action={<Button>Novo</Button>} />);
     expect(screen.getByRole('heading', { level: 1, name: 'Agenda' })).toBeInTheDocument();
+  });
+});
+
+describe('Banner', () => {
+  it('erro interrompe o leitor de tela', () => {
+    render(<Banner tone="danger">Não foi possível salvar</Banner>);
+    expect(screen.getByRole('alert')).toHaveTextContent('Não foi possível salvar');
+  });
+
+  it('aviso comum espera a vez', () => {
+    render(<Banner tone="warning">Assinatura vence amanhã</Banner>);
+    expect(screen.getByRole('status')).toHaveTextContent('Assinatura vence amanhã');
   });
 });

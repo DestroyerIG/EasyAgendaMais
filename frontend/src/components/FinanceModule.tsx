@@ -194,7 +194,7 @@ export const FinanceModule = ({
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {Array.from({ length: 3 }).map((_, index) => (
             <Card key={index} className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-24" label={index === 0 ? 'Carregando…' : undefined} />
               <Skeleton className="h-9 w-32" />
             </Card>
           ))}
@@ -233,17 +233,17 @@ export const FinanceModule = ({
         <MetricCard
           label="Ganhos do Mês"
           value={formatCurrency(summary?.month.earnings || 0)}
-          delta={{ value: 'Receita de atendimentos', trend: 'up' }}
+          caption="Receita de atendimentos"
         />
         <MetricCard
           label="Gastos do Mês"
           value={formatCurrency(summary?.month.expenses || 0)}
-          delta={{ value: 'Registro manual de despesas', trend: 'down' }}
+          caption="Registro manual de despesas"
         />
         <MetricCard
           label="Lucro Líquido"
           value={formatCurrency(summary?.month.profit || 0)}
-          delta={{ value: 'Saldo real disponível', trend: 'flat' }}
+          caption="Saldo real disponível"
         />
       </div>
 
@@ -274,7 +274,7 @@ export const FinanceModule = ({
                 <div className="space-y-4">
                   <div className="flex items-center justify-between rounded-control border border-line bg-surface-2 p-4">
                     <span className="text-sm font-medium text-muted">Ganhos</span>
-                    <span className="text-lg font-bold text-success">{formatCurrency(summary?.today.earnings || 0)}</span>
+                    <span className="text-lg font-bold text-success-text">{formatCurrency(summary?.today.earnings || 0)}</span>
                   </div>
                   <div className="flex items-center justify-between rounded-control border border-line bg-surface-2 p-4">
                     <span className="text-sm font-medium text-muted">Gastos</span>

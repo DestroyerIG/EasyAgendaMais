@@ -17,6 +17,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/app/dashboard/whatsapp/page.tsx',
   'src/app/dashboard/configuracoes/page.tsx',
   'src/app/dashboard/servicos/page.tsx',
+  'src/app/dashboard/planos/page.tsx',
   'src/components/DashboardCards.tsx',
   'src/components/WeeklyChart.tsx',
   'src/components/ProfitBar.tsx',

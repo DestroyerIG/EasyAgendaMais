@@ -109,7 +109,7 @@ export const MessageConfigPanel = ({
     {configLoading ? (
       <div className="space-y-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 w-full" />
+          <Skeleton key={i} className="h-24 w-full" label={i === 0 ? 'Carregando configurações...' : undefined} />
         ))}
       </div>
     ) : (

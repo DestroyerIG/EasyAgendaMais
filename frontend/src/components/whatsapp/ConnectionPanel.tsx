@@ -115,7 +115,7 @@ export const ConnectionPanel = ({ waStatus, statusLoading, actionLoading, onConn
 
       {!statusLoading && waStatus.status === 'pairing' && waStatus.qrCode && (
         <div className="flex flex-col items-center space-y-6">
-          <Card className="border-line bg-surface p-6">
+          <Card className="qr-surface border-line p-6">
             <Image
               src={waStatus.qrCode}
               alt="QR Code WhatsApp"

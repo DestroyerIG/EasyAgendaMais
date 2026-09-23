@@ -314,7 +314,7 @@ function PagamentoContent() {
 
       <section className="mx-auto mt-6 sm:mt-10 grid w-full max-w-5xl gap-6 sm:gap-8 lg:grid-cols-[1.05fr_0.95fr]">
         <Card>
-          <p className="text-[13px] font-semibold text-success">E-mail confirmado</p>
+          <p className="text-[13px] font-semibold text-success-text">E-mail confirmado</p>
           <h1 className="mt-3 text-2xl font-bold text-ink sm:text-3xl">
             Finalize o pagamento para ativar sua conta
           </h1>
@@ -360,13 +360,14 @@ function PagamentoContent() {
             Status atual: <span className="font-semibold text-warning">{billingStatus?.subscriptionStatus || 'incomplete'}</span>
           </p>
 
-          <Field
-            id="coupon-code"
-            label="Cupom de desconto"
-            className="mt-6"
-            error={couponState === 'invalid' ? 'Cupom inválido ou expirado.' : undefined}
-          >
-            {couponState !== 'valid' ? (
+          {/* O rótulo só existe enquanto o campo existe: com cupom válido não há controle para apontar. */}
+          {couponState !== 'valid' ? (
+            <Field
+              id="coupon-code"
+              label="Cupom de desconto"
+              className="mt-6"
+              error={couponState === 'invalid' ? 'Cupom inválido ou expirado.' : undefined}
+            >
               <div className="flex items-center gap-2">
                 <Input
                   id="coupon-code"
@@ -380,6 +381,7 @@ function PagamentoContent() {
                   onKeyDown={(event) => event.key === 'Enter' && handleApplyCoupon()}
                   placeholder="EX: PROMO100"
                   invalid={couponState === 'invalid'}
+                  aria-describedby={couponState === 'invalid' ? 'coupon-code-error' : undefined}
                   className="flex-1"
                 />
                 <Button
@@ -392,26 +394,26 @@ function PagamentoContent() {
                   {couponState === 'loading' ? 'Verificando...' : 'Aplicar'}
                 </Button>
               </div>
-            ) : (
-              <div className="flex items-center justify-between rounded-control border border-success/30 bg-success/12 px-3 py-2.5">
-                <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />
-                  <div>
-                    <p className="text-[15px] font-medium text-success">{couponCode}</p>
-                    <p className="text-[13px] text-muted">
-                      {couponData?.finalAmount === 0
-                        ? 'Ativação gratuita aplicada'
-                        : `Desconto de R$ ${couponData?.discount.toFixed(2).replace('.', ',')}`
-                      }
-                    </p>
-                  </div>
+            </Field>
+          ) : (
+            <div className="mt-6 flex items-center justify-between rounded-control border border-success/30 bg-success/12 px-3 py-2.5">
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />
+                <div>
+                  <p className="text-[15px] font-medium text-success">{couponCode}</p>
+                  <p className="text-[13px] text-muted">
+                    {couponData?.finalAmount === 0
+                      ? 'Ativação gratuita aplicada'
+                      : `Desconto de R$ ${couponData?.discount.toFixed(2).replace('.', ',')}`
+                    }
+                  </p>
                 </div>
-                <Button type="button" variant="ghost" size="sm" onClick={handleClearCoupon}>
-                  Remover
-                </Button>
               </div>
-            )}
-          </Field>
+              <Button type="button" variant="ghost" size="sm" onClick={handleClearCoupon}>
+                Remover
+              </Button>
+            </div>
+          )}
 
           <div className="mt-6 grid gap-3">
             <Button
@@ -449,12 +451,12 @@ function PagamentoContent() {
               )}
 
               {pixQrCodeSource && (
-                <Card className="mx-auto mt-4 w-fit border-line bg-surface p-4">
+                <Card className="qr-surface mx-auto mt-4 w-fit border-line p-4">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={pixQrCodeSource}
                     alt="QR Code Pix"
-                    className="h-48 w-48 rounded-control"
+                    className="h-48 w-48"
                   />
                 </Card>
               )}

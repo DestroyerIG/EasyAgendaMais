@@ -37,13 +37,21 @@ export function ScheduleSection({
       {settingsLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-11 w-full" />
+            <Skeleton key={index} className="h-11 w-full" label={index === 0 ? 'Carregando…' : undefined} />
           ))}
         </div>
       ) : (
         <div className="space-y-5">
-          <Field id="diasAbertos" label="Dias de funcionamento">
-            <div className="flex flex-wrap gap-2 rounded-control border border-line bg-surface-2 p-4">
+          {/* Grupo de alternadores, não um campo: o rótulo descreve o conjunto, não um controle. */}
+          <div className="flex flex-col gap-1.5">
+            <span id="diasAbertos-label" className="text-[13px] font-semibold text-ink">
+              Dias de funcionamento
+            </span>
+            <div
+              role="group"
+              aria-labelledby="diasAbertos-label"
+              className="flex flex-wrap gap-2 rounded-control border border-line bg-surface-2 p-4"
+            >
               {DIAS_SEMANA.map((dia) => {
                 const active = diasAbertos[dia.id];
                 return (
@@ -67,7 +75,7 @@ export function ScheduleSection({
                 );
               })}
             </div>
-          </Field>
+          </div>
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field id="openingTime" label="Abre às">

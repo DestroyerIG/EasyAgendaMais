@@ -23,9 +23,13 @@ Nunca fixar termos de um segmento. Usar variáveis: {profissional} (Barbeiro, Na
 | brand-text       | #B34D00 | #FF9A3D | laranja usado como texto              |
 | whatsapp         | #128C4A | #25D366 | somente ações de WhatsApp             |
 | success          | #16A34A | #4ADE80 | concluído, pago                       |
+| success-text     | #15803D | #4ADE80 | verde usado como texto                |
 | warning          | #D97706 | #FBBF24 | aguardando confirmação ou sinal       |
+| warning-text     | #92400E | #FBBF24 | âmbar usado como texto                |
 | danger           | #DC2626 | #F87171 | faltou, atraso, erro                  |
 | status-confirmed | #2563EB | #2563EB | status confirmado                     |
+
+success-text e warning-text existem porque success e warning não são legíveis como texto sobre superfície clara (2,8:1); no escuro repetem o valor do token de origem.
 
 Fundo da página sempre bg (#F6F5F4), nunca rosado. Botão principal sempre brand (#FF7A00) com texto on-brand (#1A1817); nunca laranja-marrom com texto branco. Status de agendamento: confirmado = status-confirmed; aguardando confirmação ou sinal = warning; em atendimento = brand; concluído = success; faltou = danger; cancelado = muted com texto riscado. Ações de pagamento (Pix, cartão, assinar) usam o botão principal; verde só para WhatsApp.
 

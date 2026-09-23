@@ -134,7 +134,7 @@ export default function DashboardPage() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-6 sm:mb-8">
           {Array.from({ length: 4 }).map((_, index) => (
             <Card key={index} className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-24" label={index === 0 ? 'Carregando…' : undefined} />
               <Skeleton className="h-9 w-20" />
             </Card>
           ))}

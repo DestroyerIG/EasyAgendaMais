@@ -12,14 +12,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } fro
 describe('Field', () => {
   it('liga rótulo, dica e erro ao controle', () => {
     render(
-      <Field id="nome" label="Nome do negócio" hint="Aparece para as clientes" error="Obrigatório">
-        <Input id="nome" invalid aria-describedby={fieldDescribedBy('nome', { hint: 'x', error: 'y' })} />
+      <Field id="nome" label="Nome do negócio" hint="Aparece para as clientes" error="Obrigatório" required>
+        <Input id="nome" invalid />
       </Field>,
     );
-    const input = screen.getByLabelText('Nome do negócio');
+    const input = screen.getByLabelText(/Nome do negócio/);
     expect(input).toHaveAttribute('aria-invalid', 'true');
     expect(input).toHaveAttribute('aria-describedby', 'nome-hint nome-error');
+    expect(input).toHaveAttribute('aria-required', 'true');
     expect(screen.getByRole('alert')).toHaveTextContent('Obrigatório');
+  });
+
+  it('não sobrescreve o aria-describedby que a tela já definiu', () => {
+    render(
+      <Field id="nome" label="Nome do negócio" hint="Aparece para as clientes">
+        <Input id="nome" aria-describedby="outro-texto" />
+      </Field>,
+    );
+    expect(screen.getByLabelText('Nome do negócio')).toHaveAttribute('aria-describedby', 'outro-texto');
   });
 
   it('sem dica nem erro não descreve nada', () => {

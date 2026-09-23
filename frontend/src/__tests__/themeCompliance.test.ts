@@ -16,6 +16,27 @@ const collectFiles = (target: string): string[] => {
   });
 };
 
+// Pastas varridas pela cobertura: tudo que compõe o painel migrado.
+const COVERAGE_ROOTS: readonly string[] = ['src/app/dashboard', 'src/components'];
+
+// Arquivos isentos da cobertura, com o motivo de cada um.
+const COVERAGE_EXEMPT: readonly string[] = [
+  'src/components/marketing', // landing e tabela de planos: fora do escopo, tema próprio
+  'src/components/admin', // SuperAdmin: fora do escopo do design system
+  'src/components/LoadingSkeleton.tsx', // esqueleto legado das telas fora do escopo
+  'src/app/page.tsx', // landing: fora do escopo
+  'src/app/termos', // página institucional: fora do escopo
+  'src/app/privacidade', // página institucional: fora do escopo
+  'src/app/admin', // SuperAdmin: fora do escopo
+  'src/components/dev', // vitrine interna dos componentes
+  'src/components/theme/ForcedDark.tsx', // só alterna a classe de tema, não pinta nada
+];
+
+const toPosix = (file: string) => path.relative(process.cwd(), file).split(path.sep).join('/');
+
+const isListed = (relative: string, list: readonly string[]) =>
+  list.some((entry) => relative === entry || relative.startsWith(`${entry}/`));
+
 describe('conformidade com os tokens', () => {
   it('nenhum arquivo migrado usa cor fixa', () => {
     const report = THEMED_PATHS.flatMap(collectFiles).flatMap((file) =>
@@ -24,5 +45,14 @@ describe('conformidade com os tokens', () => {
       ),
     );
     expect(report).toEqual([]);
+  });
+
+  // Sem esta checagem uma tela nova passa despercebida só por não estar em THEMED_PATHS.
+  it('toda tela do painel está em THEMED_PATHS ou isenta', () => {
+    const uncovered = COVERAGE_ROOTS.flatMap(collectFiles)
+      .map(toPosix)
+      .filter((relative) => relative.endsWith('.tsx'))
+      .filter((relative) => !isListed(relative, THEMED_PATHS) && !isListed(relative, COVERAGE_EXEMPT));
+    expect(uncovered).toEqual([]);
   });
 });

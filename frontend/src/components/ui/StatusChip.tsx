@@ -13,9 +13,9 @@ export const STATUS_LABEL: Record<AppointmentStatus, string> = {
 
 const STATUS_CLASS: Record<AppointmentStatus, string> = {
   confirmado: 'bg-status-confirmed/12 text-status-confirmed',
-  aguardando: 'bg-warning/12 text-warning',
+  aguardando: 'bg-warning/12 text-warning-text',
   em_atendimento: 'bg-brand/12 text-brand-text',
-  concluido: 'bg-success/12 text-success',
+  concluido: 'bg-success/12 text-success-text',
   faltou: 'bg-danger/12 text-danger',
   cancelado: 'bg-muted/12 text-muted line-through',
 };
