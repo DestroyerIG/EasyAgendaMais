@@ -53,4 +53,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/SettingsModule.tsx',
   'src/components/settings',
   'src/app/dashboard/configuracoes/page.tsx',
+  'src/components/ServiceProfessionalModule.tsx',
+  'src/components/services',
+  'src/app/dashboard/servicos/page.tsx',
 ];

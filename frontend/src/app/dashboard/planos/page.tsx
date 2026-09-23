@@ -6,6 +6,7 @@ import { PricingPlansSection } from '@/components/marketing/PricingPlansSection'
 import { isPlanId, PLAN_MAP } from '@/lib/plans';
 import { useDashboardBilling } from '@/hooks/useDashboardBilling';
 import { SettingsTabs } from '@/components/shell/SettingsTabs';
+import { ForcedDark } from '@/components/theme/ForcedDark';
 
 export default function PlanosPage() {
   const { user } = useAuth();
@@ -51,11 +52,13 @@ export default function PlanosPage() {
         </button>
       </div>
 
-      <PricingPlansSection
-        showHeader={false}
-        currentPlan={user?.plan || 'basico'}
-        subscriptionStatus={subscriptionStatus}
-      />
+      <ForcedDark className="rounded-card p-4 sm:p-6">
+        <PricingPlansSection
+          showHeader={false}
+          currentPlan={user?.plan || 'basico'}
+          subscriptionStatus={subscriptionStatus}
+        />
+      </ForcedDark>
     </div>
   );
 }

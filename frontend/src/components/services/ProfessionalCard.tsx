@@ -1,7 +1,7 @@
 'use client';
 
-import Image from 'next/image';
 import { Users, Calendar, ChevronRight, Edit2, Trash2 } from 'lucide-react';
+import { Card, Avatar, IconButton, Button } from '@/components/ui';
 import type { Professional } from '@/types';
 
 interface ProfessionalCardProps {
@@ -12,46 +12,31 @@ interface ProfessionalCardProps {
 }
 
 export const ProfessionalCard = ({ professional, onEdit, onDelete, onViewAgenda }: ProfessionalCardProps) => (
-  <div className="card rounded-2xl p-6 hover:border-primary/30 transition-all group">
-    <div className="flex justify-between items-start mb-6">
+  <Card className="flex flex-col gap-4">
+    <div className="flex items-start justify-between gap-2">
       <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary/20 bg-black/40 flex items-center justify-center">
-          {professional.photo ? (
-            <Image
-              src={professional.photo}
-              alt={professional.name}
-              width={64}
-              height={64}
-              unoptimized
-              loader={({ src }) => src}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <Users className="text-primary/40" size={32} />
-          )}
-        </div>
+        {professional.photo ? (
+          <Avatar name={professional.name} src={professional.photo} size={56} />
+        ) : (
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-surface-2 text-muted">
+            <Users className="h-7 w-7" aria-hidden="true" />
+          </div>
+        )}
         <div>
-          <h3 className="text-xl font-bold text-white">{professional.name}</h3>
-          <p className="text-xs text-primary uppercase font-bold tracking-widest">Profissional</p>
+          <h3 className="text-lg font-bold text-ink">{professional.name}</h3>
+          <p className="text-[13px] font-semibold text-brand-text">Profissional</p>
         </div>
       </div>
-      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-        <button onClick={onEdit} className="p-1.5 text-gray-400 hover:text-primary transition-colors">
-          <Edit2 size={16} />
-        </button>
-        <button onClick={onDelete} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
-          <Trash2 size={16} />
-        </button>
+      <div className="flex gap-1">
+        <IconButton icon={Edit2} label="Editar profissional" onClick={onEdit} />
+        <IconButton icon={Trash2} label="Excluir profissional" onClick={onDelete} />
       </div>
     </div>
-    <button
-      onClick={onViewAgenda}
-      className="w-full flex items-center justify-between p-3 bg-black/40 hover:bg-black/60 rounded-xl text-sm font-bold text-gray-300 transition-all"
-    >
+    <Button variant="secondary" fullWidth onClick={onViewAgenda} className="justify-between">
       <span className="flex items-center gap-2">
-        <Calendar size={18} className="text-primary" /> Ver Agenda Individual
+        <Calendar className="h-[18px] w-[18px] text-brand-text" aria-hidden="true" /> Ver Agenda Individual
       </span>
-      <ChevronRight size={16} />
-    </button>
-  </div>
+      <ChevronRight className="h-4 w-4" aria-hidden="true" />
+    </Button>
+  </Card>
 );

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Modal, ModalFooter } from '@/components/ui';
+import { Modal, ModalFooter, Field, Input, Button } from '@/components/ui';
 import { Scissors, Camera, Save, X, Loader2 } from 'lucide-react';
 import type { Service, Professional } from '@/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -170,62 +170,57 @@ export const ServiceProfessionalModal = ({
       <form id="service-professional-form" onSubmit={handleSubmit} className="space-y-6">
         {activeTab === 'servicos' ? (
           <>
-            <div className="space-y-2">
-              <label className="field-label">Nome do Serviço</label>
-              <input
+            <Field id="service-name" label="Nome do Serviço">
+              <Input
+                id="service-name"
                 required
                 type="text"
                 value={serviceForm.name}
                 onChange={e => setServiceForm({ ...serviceForm, name: e.target.value })}
-                className="input"
                 placeholder="Ex: Corte Degradê"
               />
-            </div>
+            </Field>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="field-label">Preço (R$)</label>
-                <input
+              <Field id="service-price" label="Preço (R$)">
+                <Input
+                  id="service-price"
                   required
                   type="number"
                   step="0.01"
                   value={serviceForm.price}
                   onChange={e => setServiceForm({ ...serviceForm, price: e.target.value })}
-                  className="input"
                   placeholder="50.00"
                 />
-              </div>
-              <div className="space-y-2">
-                <label className="field-label">Duração (Min)</label>
-                <input
+              </Field>
+              <Field id="service-duration" label="Duração (Min)">
+                <Input
+                  id="service-duration"
                   required
                   type="number"
                   value={serviceForm.duration_minutes}
                   onChange={e => setServiceForm({ ...serviceForm, duration_minutes: e.target.value })}
-                  className="input"
                   placeholder="30"
                 />
-              </div>
+              </Field>
             </div>
           </>
         ) : (
           <>
-            <div className="space-y-2">
-              <label className="field-label">Nome do Profissional</label>
-              <input
+            <Field id="professional-name" label="Nome do Profissional">
+              <Input
+                id="professional-name"
                 required
                 type="text"
                 value={professionalForm.name}
                 onChange={e => setProfessionalForm({ ...professionalForm, name: e.target.value })}
-                className="input"
                 placeholder="Ex: Gabriel Souza"
               />
-            </div>
+            </Field>
 
-            <div className="space-y-2">
-              <label className="field-label">Foto (Opcional)</label>
-
+            <Field id="professional-photo" label="Foto (Opcional)">
               <input
                 ref={fileInputRef}
+                id="professional-photo"
                 type="file"
                 accept="image/*"
                 className="hidden"
@@ -234,7 +229,7 @@ export const ServiceProfessionalModal = ({
 
               {photoPreview ? (
                 <div className="relative flex items-center gap-4">
-                  <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full border-2 border-primary/30 bg-black/40">
+                  <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full border border-line bg-surface-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={photoPreview}
@@ -243,34 +238,37 @@ export const ServiceProfessionalModal = ({
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <button
+                    <Button
                       type="button"
+                      variant="secondary"
+                      size="sm"
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-gray-300 transition hover:border-white/30 hover:text-white"
                     >
-                      <Camera size={14} /> Trocar foto
-                    </button>
-                    <button
+                      <Camera className="h-3.5 w-3.5" aria-hidden="true" /> Trocar foto
+                    </Button>
+                    <Button
                       type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="text-danger"
                       onClick={clearPhoto}
-                      className="flex items-center gap-2 rounded-lg border border-red-500/20 px-3 py-2 text-xs font-semibold text-red-400 transition hover:border-red-500/40 hover:text-red-300"
                     >
-                      <X size={14} /> Remover foto
-                    </button>
+                      <X className="h-3.5 w-3.5" aria-hidden="true" /> Remover foto
+                    </Button>
                   </div>
                 </div>
               ) : (
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-white/15 py-8 text-gray-500 transition hover:border-primary/40 hover:text-primary/70"
+                  className="flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-control border border-dashed border-line py-8 text-muted transition hover:border-brand/40 hover:text-brand-text"
                 >
-                  <Camera size={28} />
-                  <span className="text-sm">Clique para selecionar uma foto</span>
-                  <span className="text-xs text-gray-600">JPG, PNG ou WEBP · máx. 5 MB</span>
+                  <Camera className="h-7 w-7" aria-hidden="true" />
+                  <span className="text-[15px]">Clique para selecionar uma foto</span>
+                  <span className="text-[13px] text-muted">JPG, PNG ou WEBP · máx. 5 MB</span>
                 </button>
               )}
-            </div>
+            </Field>
           </>
         )}
       </form>

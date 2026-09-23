@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { useToast } from './Toast';
-import { Plus, ArrowLeft } from 'lucide-react';
+import { Plus, ArrowLeft, Scissors, Users } from 'lucide-react';
 import type { Service, Professional } from '@/types';
 import { ProfessionalAgenda } from './ProfessionalAgenda';
-import { PageHeader } from '@/components/ui';
+import { PageHeader, Button, Card, Skeleton, EmptyState, Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui';
 import { ServiceCard } from '@/components/services/ServiceCard';
 import { ProfessionalCard } from '@/components/services/ProfessionalCard';
 import { ServiceProfessionalModal } from '@/components/services/ServiceProfessionalModal';
@@ -101,75 +101,90 @@ export const ServiceProfessionalModule = () => {
   if (selectedProfessionalForAgenda) {
     return (
       <div className="space-y-6">
-        <button
+        <Button
+          variant="ghost"
+          className="w-fit px-0 hover:bg-transparent"
           onClick={() => setSelectedProfessionalForAgenda(null)}
-          className="flex items-center gap-2 text-gray-400 hover:text-white transition-all"
         >
-          <ArrowLeft size={20} /> Voltar para Gestão
-        </button>
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" /> Voltar para Gestão
+        </Button>
         <ProfessionalAgenda professional={selectedProfessionalForAgenda} />
       </div>
     );
   }
 
+  const renderSkeletonGrid = () => (
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <Card key={i} className="flex flex-col gap-4">
+          <Skeleton className="h-12 w-12 rounded-control" />
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-4 w-40" />
+        </Card>
+      ))}
+    </div>
+  );
+
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Serviços e Equipe"
+        title="Serviços e equipe"
         description="Gerencie o que você oferece e quem atende seus clientes."
         action={
-          <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
-            <Plus size={20} /> {activeTab === 'servicos' ? 'Novo Serviço' : 'Novo Profissional'}
-          </button>
+          <Button onClick={() => handleOpenModal()}>
+            <Plus className="h-4 w-4" aria-hidden="true" /> {activeTab === 'servicos' ? 'Novo Serviço' : 'Novo Profissional'}
+          </Button>
         }
       />
 
-      <div className="flex p-1 bg-dark-light border border-gray-800 rounded-xl w-fit">
-        <button
-          onClick={() => setActiveTab('servicos')}
-          className={activeTab === 'servicos' ? 'tab-active' : 'tab-inactive'}
-        >
-          Serviços
-        </button>
-        <button
-          onClick={() => setActiveTab('profissionais')}
-          className={activeTab === 'profissionais' ? 'tab-active' : 'tab-inactive'}
-        >
-          Equipe
-        </button>
-      </div>
+      <Tabs value={activeTab} onValueChange={value => setActiveTab(value as 'servicos' | 'profissionais')}>
+        <TabsList>
+          <TabsTrigger value="servicos">Serviços</TabsTrigger>
+          <TabsTrigger value="profissionais">Equipe</TabsTrigger>
+        </TabsList>
 
-      {loading ? (
-        <div className="py-20 text-center text-gray-500">Carregando...</div>
-      ) : activeTab === 'servicos' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {services.map(s => (
-            <ServiceCard key={s.id} service={s} onEdit={() => handleOpenModal(s)} onDelete={() => handleDelete(s.id)} />
-          ))}
-          {services.length === 0 && (
-            <div className="col-span-full py-12 text-center border-2 border-dashed border-gray-800 rounded-2xl text-gray-500">
-              Nenhum serviço cadastrado.
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {professionals.map(b => (
-            <ProfessionalCard
-              key={b.id}
-              professional={b}
-              onEdit={() => handleOpenModal(b)}
-              onDelete={() => handleDelete(b.id)}
-              onViewAgenda={() => setSelectedProfessionalForAgenda(b)}
+        <TabsContent value="servicos">
+          {loading ? (
+            renderSkeletonGrid()
+          ) : services.length === 0 ? (
+            <EmptyState
+              icon={Scissors}
+              title="Nenhum serviço cadastrado."
+              description="Assim que forem cadastrados, eles aparecem aqui."
             />
-          ))}
-          {professionals.length === 0 && (
-            <div className="col-span-full py-12 text-center border-2 border-dashed border-gray-800 rounded-2xl text-gray-500">
-              Nenhum profissional na equipe.
+          ) : (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {services.map(s => (
+                <ServiceCard key={s.id} service={s} onEdit={() => handleOpenModal(s)} onDelete={() => handleDelete(s.id)} />
+              ))}
             </div>
           )}
-        </div>
-      )}
+        </TabsContent>
+
+        <TabsContent value="profissionais">
+          {loading ? (
+            renderSkeletonGrid()
+          ) : professionals.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="Nenhum profissional na equipe."
+              description="Assim que forem cadastrados, eles aparecem aqui."
+            />
+          ) : (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {professionals.map(b => (
+                <ProfessionalCard
+                  key={b.id}
+                  professional={b}
+                  onEdit={() => handleOpenModal(b)}
+                  onDelete={() => handleDelete(b.id)}
+                  onViewAgenda={() => setSelectedProfessionalForAgenda(b)}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       <ServiceProfessionalModal
         isOpen={isModalOpen}
