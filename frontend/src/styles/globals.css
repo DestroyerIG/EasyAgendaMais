@@ -7,6 +7,7 @@
   font-style: normal;
   font-weight: 100 700;
   font-display: block;
+  /* O til resolve o pacote pelo bundler (não é um caminho de disco); não remover. */
   src: url('~material-symbols/material-symbols-outlined.woff2') format('woff2');
 }
 
