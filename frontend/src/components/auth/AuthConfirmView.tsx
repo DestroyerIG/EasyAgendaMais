@@ -12,6 +12,7 @@ import {
   isSupabaseClientConfigured,
   resolveAuthConfirmRedirectUrl,
 } from '@/lib/supabase/client';
+import { Banner, Button, Card, Field, Input } from '@/components/ui';
 
 type ConfirmationStatus = 'loading' | 'success' | 'error';
 
@@ -449,81 +450,69 @@ export function AuthConfirmView() {
     : 'Continuar';
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,122,0,0.2),_rgba(0,0,0,0.92)_45%)] px-4 py-10">
-      <div className="mx-auto w-full max-w-xl rounded-2xl border border-white/10 bg-black/70 p-6 sm:p-8 shadow-2xl shadow-black/40 backdrop-blur">
-        <p className="section-eyebrow">EasyAgenda+</p>
-        <h1 className="mt-3 text-3xl font-black">Confirmação de e-mail</h1>
+    <div className="app-theme min-h-screen px-4 py-10">
+      <Card className="mx-auto w-full max-w-xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-text">EasyAgenda+</p>
+        <h1 className="mt-3 text-2xl font-bold text-ink">Confirmação de e-mail</h1>
 
-        <p className="mt-4 text-sm text-gray-300">{message}</p>
+        <p className="mt-4 text-sm text-muted">{message}</p>
 
         {status === 'loading' && (
-          <div className="mt-6 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-300">
+          <Banner tone="info" className="mt-6 rounded-control p-3 text-left">
             Confirmando seu e-mail...
-          </div>
+          </Banner>
         )}
 
         {status === 'success' && (
-          <div className="mt-6 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+          <Banner tone="success" className="mt-6 flex-col items-start rounded-control p-3 text-left">
             <p className="font-semibold">E-mail confirmado com sucesso.</p>
-            <p className="mt-1 text-emerald-200">
-              Agora você já pode fazer login.
-            </p>
-          </div>
+            <p className="mt-1">Agora você já pode fazer login.</p>
+          </Banner>
         )}
 
         {status === 'error' && (
           <form onSubmit={handleResendVerification} className="mt-6 space-y-3">
-            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            <Banner tone="warning" className="rounded-control p-3 text-left">
               Se o link expirou, informe seu e-mail para reenviar a verificação.
-            </div>
+            </Banner>
 
-            <label
-              htmlFor="confirm-resend-email"
-              className="block text-xs font-semibold uppercase tracking-[0.2em] text-gray-400"
-            >
-              E-mail da conta
-            </label>
+            <Field id="confirm-resend-email" label="E-mail da conta">
+              <Input
+                id="confirm-resend-email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="Digite seu e-mail"
+                required
+              />
+            </Field>
 
-            <input
-              id="confirm-resend-email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="Digite seu e-mail"
-              className="input"
-              required
-            />
-
-            <button
-              type="submit"
-              disabled={resending}
-              className="btn-primary w-full text-sm disabled:cursor-not-allowed disabled:opacity-70"
-            >
+            <Button type="submit" fullWidth loading={resending}>
               {resending ? 'Reenviando...' : 'Reenviar e-mail de confirmação'}
-            </button>
+            </Button>
           </form>
         )}
 
         <div className="mt-7 flex flex-wrap items-center gap-3 text-sm">
           <Link
             href={status === 'success' ? successRedirectUrl : SUCCESS_REDIRECT_URL}
-            className="rounded-lg border border-primary/40 px-4 py-2 font-semibold text-primary hover:border-primary"
+            className="rounded-control border border-line px-4 py-2 font-semibold text-brand-text"
           >
             {status === 'success' ? successActionLabel : 'Ir para login'}
           </Link>
           {status === 'success' && (
             <Link
               href={SUCCESS_REDIRECT_URL}
-              className="rounded-lg border border-white/20 px-4 py-2 font-semibold text-gray-200 hover:border-white/40 hover:text-white"
+              className="rounded-control border border-line px-4 py-2 font-semibold text-muted hover:text-ink"
             >
               Ir para login
             </Link>
           )}
-          <Link href="/cadastro" className="text-gray-300 hover:text-white">
+          <Link href="/cadastro" className="text-muted hover:text-ink">
             Criar nova conta
           </Link>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

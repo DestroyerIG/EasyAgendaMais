@@ -8,6 +8,7 @@ import {
   getMissingSupabasePublicEnvVars,
   isSupabaseClientConfigured,
 } from '@/lib/supabase/client';
+import { Banner, Button, Card, Field, PasswordInput } from '@/components/ui';
 
 type Status = 'loading' | 'ready' | 'success' | 'error';
 const MIN_PASSWORD_LENGTH = 6;
@@ -166,78 +167,60 @@ export function ResetPasswordView() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,122,0,0.2),_rgba(0,0,0,0.92)_45%)] px-4 py-10">
-      <div className="mx-auto w-full max-w-xl rounded-2xl border border-white/10 bg-black/70 p-6 sm:p-8 shadow-2xl shadow-black/40 backdrop-blur">
-        <p className="section-eyebrow">EasyAgenda+</p>
-        <h1 className="mt-3 text-3xl font-black text-white">Redefinir senha</h1>
+    <div className="app-theme min-h-screen px-4 py-10">
+      <Card className="mx-auto w-full max-w-xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-text">EasyAgenda+</p>
+        <h1 className="mt-3 text-2xl font-bold text-ink">Redefinir senha</h1>
 
-        <p className="mt-4 text-sm text-gray-300">{message}</p>
+        <p className="mt-4 text-sm text-muted">{message}</p>
 
         {status === 'ready' && (
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            <div>
-              <label
-                htmlFor="new-password"
-                className="block text-xs font-semibold uppercase tracking-[0.2em] text-gray-400"
-              >
-                Nova senha
-              </label>
-              <input
+            <Field id="new-password" label="Nova senha">
+              <PasswordInput
                 id="new-password"
-                type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="input mt-2"
                 placeholder="Digite a nova senha"
                 minLength={MIN_PASSWORD_LENGTH}
                 required
+                toggleLabel="senha"
               />
-            </div>
+            </Field>
 
-            <div>
-              <label
-                htmlFor="confirm-password"
-                className="block text-xs font-semibold uppercase tracking-[0.2em] text-gray-400"
-              >
-                Confirmar nova senha
-              </label>
-              <input
+            <Field id="confirm-password" label="Confirmar nova senha">
+              <PasswordInput
                 id="confirm-password"
-                type="password"
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                className="input mt-2"
                 placeholder="Repita a nova senha"
                 minLength={MIN_PASSWORD_LENGTH}
                 required
+                toggleLabel="senha"
               />
-            </div>
+            </Field>
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="btn-primary w-full text-sm disabled:cursor-not-allowed disabled:opacity-70"
-            >
+            <Button type="submit" fullWidth loading={submitting}>
               {submitting ? 'Salvando...' : 'Salvar nova senha'}
-            </button>
+            </Button>
           </form>
         )}
 
         {status === 'success' && (
-          <div className="mt-6 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+          <Banner tone="success" className="mt-6 rounded-control p-3 text-left">
             Senha atualizada com sucesso.
-          </div>
+          </Banner>
         )}
 
         {status === 'error' && (
           <div className="mt-6 space-y-4">
-            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            <Banner tone="warning" className="rounded-control p-3 text-left">
               Não foi possível concluir a redefinição com este link.
-            </div>
+            </Banner>
 
             <Link
               href="/esqueci-senha"
-              className="inline-flex rounded-lg border border-primary/40 px-4 py-2 font-semibold text-primary hover:border-primary"
+              className="inline-flex rounded-control border border-line px-4 py-2 font-semibold text-brand-text"
             >
               Solicitar novo link
             </Link>
@@ -245,11 +228,11 @@ export function ResetPasswordView() {
         )}
 
         <div className="mt-7 text-sm">
-          <Link href="/login" className="text-gray-300 hover:text-white">
+          <Link href="/login" className="text-muted hover:text-ink">
             Voltar para o login
           </Link>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

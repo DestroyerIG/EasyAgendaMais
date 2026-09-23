@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { resolveAuthConfirmRedirectUrl } from '@/lib/supabase/client';
+import { Banner, Button, Card, Field, Input } from '@/components/ui';
 
 type VerificationStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -110,58 +111,55 @@ export function EmailVerificationView({ initialToken, initialEmail }: EmailVerif
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,122,0,0.2),_rgba(0,0,0,0.92)_45%)] px-4 py-10">
-      <div className="mx-auto w-full max-w-xl rounded-2xl border border-white/10 bg-black/70 p-6 sm:p-8 shadow-2xl shadow-black/40 backdrop-blur">
-        <p className="section-eyebrow">EasyAgenda+</p>
-        <h1 className="mt-3 text-3xl font-black">Verificação de e-mail</h1>
+    <div className="app-theme min-h-screen px-4 py-10">
+      <Card className="mx-auto w-full max-w-xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-text">EasyAgenda+</p>
+        <h1 className="mt-3 text-2xl font-bold text-ink">Verificação de e-mail</h1>
 
-        <p className="mt-4 text-sm text-gray-300">{message}</p>
+        <p className="mt-4 text-sm text-muted">{message}</p>
 
         {status === 'loading' && (
-          <div className="mt-6 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-300">
+          <Banner tone="info" className="mt-6 rounded-control p-3 text-left">
             Aguarde enquanto validamos seu link...
-          </div>
+          </Banner>
         )}
 
         {status === 'success' && (
-          <div className="mt-6 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+          <Banner tone="success" className="mt-6 rounded-control p-3 text-left">
             Conta liberada. Você já pode entrar no painel.
-          </div>
+          </Banner>
         )}
 
         {status === 'error' && (
           <form onSubmit={handleResend} className="mt-6 space-y-3">
-            <label htmlFor="resend-email" className="block text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
-              Reenviar e-mail de verificação
-            </label>
-            <input
-              id="resend-email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="Digite seu e-mail"
-              className="input"
-              required
-            />
-            <button
-              type="submit"
-              disabled={resending}
-              className="btn-primary w-full text-sm disabled:cursor-not-allowed disabled:opacity-70"
-            >
+            <Field id="resend-email" label="Reenviar e-mail de verificação">
+              <Input
+                id="resend-email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="Digite seu e-mail"
+                required
+              />
+            </Field>
+            <Button type="submit" fullWidth loading={resending}>
               {resending ? 'Reenviando...' : 'Reenviar link de verificação'}
-            </button>
+            </Button>
           </form>
         )}
 
         <div className="mt-7 flex flex-wrap items-center gap-3 text-sm">
-          <Link href="/login" className="rounded-lg border border-primary/40 px-4 py-2 font-semibold text-primary hover:border-primary">
+          <Link
+            href="/login"
+            className="rounded-control border border-line px-4 py-2 font-semibold text-brand-text"
+          >
             Ir para login
           </Link>
-          <Link href="/cadastro" className="text-gray-300 hover:text-white">
+          <Link href="/cadastro" className="text-muted hover:text-ink">
             Criar nova conta
           </Link>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
