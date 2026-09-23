@@ -171,10 +171,10 @@ export const MenuOptionsPanel = ({
                 <p className="text-[15px] font-medium text-ink">
                   {opt.emoji} {opt.label}
                 </p>
-                <p className="text-[13px] uppercase tracking-wider text-muted">
+                <p className="text-[13px] text-muted">
                   {opt.type === 'system' ? `Sistema • ${opt.handler}` : 'Personalizada'}
                   {opt.response_message && opt.type === 'custom' && (
-                    <span className="ml-2 normal-case tracking-normal text-muted">
+                    <span className="ml-2 text-muted">
                       — {opt.response_message.substring(0, 50)}{opt.response_message.length > 50 ? '...' : ''}
                     </span>
                   )}

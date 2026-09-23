@@ -260,7 +260,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           </div>
 
           {isLogin && showConfirmedNotice && (
-            <Banner tone="success" variant="inline" className="mb-5">
+            <Banner tone="success" variant="inline" className="mb-5 justify-center text-center">
               E-mail confirmado com sucesso. Agora você já pode entrar.
             </Banner>
           )}
