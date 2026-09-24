@@ -28,8 +28,11 @@ export interface SaudacaoDiaProps {
 
 // Saudação da tela Hoje: substitui o PageHeader genérico pelo cabeçalho da referência.
 // Nome e data são sempre reais. A pílula de status (só no celular, hoje-mobile.html)
-// mistura o nome real do negócio com a contagem de profissionais ativas de
-// conteudoDemo — o sistema ainda não calcula "profissionais ativas agora".
+// traz a contagem de profissionais ativas de conteudoDemo — o sistema ainda não
+// calcula "profissionais ativas agora". A referência escreve "Studio Aurora · 3
+// ativas" porque lá a saudação usa o nome da pessoa; aqui a saudação já usa o nome
+// do negócio (a sessão não guarda o nome do dono), então repetir o nome na pílula
+// pareceria defeito e a palavra "profissionais" fica no lugar dele.
 export function SaudacaoDia({ businessName }: SaudacaoDiaProps) {
   const agora = new Date();
   const { profissionaisAtivasHoje } = conteudoDemo.hoje;
@@ -44,9 +47,7 @@ export function SaudacaoDia({ businessName }: SaudacaoDiaProps) {
       </div>
       <div className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-[11px] font-semibold text-ink lg:hidden">
         <span className="h-2 w-2 rounded-full bg-success" />
-        <span>
-          {businessName} · {profissionaisAtivasHoje} ativas
-        </span>
+        <span>{profissionaisAtivasHoje} profissionais ativas</span>
       </div>
     </div>
   );
