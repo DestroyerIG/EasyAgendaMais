@@ -23,7 +23,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/app/dashboard/minha-pagina',
   'src/components/DashboardCards.tsx',
   'src/components/WeeklyChart.tsx',
-  'src/components/ProfitBar.tsx',
+  'src/components/dashboard',
   'src/hooks/useThemeColors.ts',
   'src/components/AppointmentModule.tsx',
   'src/components/appointments',

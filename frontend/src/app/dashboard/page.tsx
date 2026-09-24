@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardCards } from '@/components/DashboardCards';
-import { ProfitBar } from '@/components/ProfitBar';
 import { WeeklyChart } from '@/components/WeeklyChart';
-import { PageHeader } from '@/components/ui/PageHeader';
+import { SaudacaoDia } from '@/components/dashboard/SaudacaoDia';
+import { PainelPendencias } from '@/components/dashboard/PainelPendencias';
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Button } from '@/components/ui/Button';
@@ -15,6 +15,7 @@ import { useToast } from '@/components/Toast';
 import { billingApi, type CheckoutPaymentMethod } from '@/lib/billing';
 import { isPlanId } from '@/lib/plans';
 import { getApiErrorCode } from '@/utils/handleApiError';
+import { conteudoDemo } from '@/lib/conteudoDemo';
 import type { DashboardData } from '@/types';
 
 const PIX_STORAGE_KEY = 'easyagenda:pixCheckout';
@@ -129,41 +130,42 @@ export default function DashboardPage() {
 
   if (loading || user?.role === 'platform_admin') {
     return (
-      <>
-        <PageHeader title="Hoje" />
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-6 sm:mb-8">
+      <div className="flex flex-col gap-6 sm:gap-8">
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-7 w-56" label="Carregando…" />
+          <Skeleton className="h-4 w-40" />
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
           {Array.from({ length: 4 }).map((_, index) => (
             <Card key={index} className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-24" label={index === 0 ? 'Carregando…' : undefined} />
+              <Skeleton className="h-4 w-24" />
               <Skeleton className="h-9 w-20" />
             </Card>
           ))}
         </div>
-        <Card className="mb-6 sm:mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <Skeleton className="h-7 w-40" />
-            <Skeleton className="h-9 w-32" />
-          </div>
-          <Skeleton className="h-1 w-full" />
+        <Card className="flex flex-col gap-3">
+          <Skeleton className="h-6 w-40" />
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} className="h-14 w-full" />
+          ))}
         </Card>
         <Card>
           <Skeleton className="h-7 w-52 mb-6" />
-          <Skeleton className="h-[300px] w-full" />
+          <Skeleton className="h-[220px] w-full" />
         </Card>
-      </>
+      </div>
     );
   }
 
   return (
     <>
-      <PageHeader title="Hoje" />
-
       {data ? (
-        <>
+        <div className="flex flex-col gap-6 sm:gap-8">
+          <SaudacaoDia businessName={user?.businessName || 'Seu negócio'} />
           <DashboardCards data={data} />
-          <ProfitBar data={data} />
+          <PainelPendencias pendencias={conteudoDemo.hoje.pendencias} />
           <WeeklyChart data={data.weeklyEarnings} />
-        </>
+        </div>
       ) : (
         <Card className="text-center">
           <p className="text-muted">Não foi possível carregar os dados do dashboard.</p>

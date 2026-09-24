@@ -24,6 +24,9 @@ export interface HojeContent {
     valorMeta: number;
     percentualAtingido: number;
   };
+  // Legenda do cartão "Agendamentos hoje" (hoje-desktop.html / hoje-mobile.html);
+  // não há campo equivalente no sistema real ainda.
+  agendamentosLegenda: string;
   taxaOcupacao: {
     percentual: number;
     variacao: string;
@@ -346,6 +349,7 @@ export const conteudoDemo = {
       valorMeta: 1800,
       percentualAtingido: 81,
     },
+    agendamentosLegenda: '2 horários livres à tarde',
     taxaOcupacao: {
       percentual: 84,
       variacao: '+6%',
