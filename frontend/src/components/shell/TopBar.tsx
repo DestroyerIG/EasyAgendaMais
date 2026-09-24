@@ -104,10 +104,10 @@ export function TopBar({ activeId, pageTitle, businessName, roleLabel, onLogout 
         <div className="flex min-w-0 items-center gap-2">
           <Avatar name={businessName} size={36} className="rounded-lg bg-surface-2 font-bold text-ink" />
           <div className="flex min-w-0 flex-col">
-            <span className="text-[11px] font-semibold leading-none text-muted">Espaço ativo</span>
-            <span className="flex items-center gap-1 truncate text-[15px] font-bold leading-tight text-ink">
+            <span className="text-[11px] font-semibold leading-none text-muted">Espaço Ativo</span>
+            <span className="flex items-center gap-1 truncate text-[17px] font-bold leading-tight text-ink">
               {businessName}
-              <Icon name="unfold_more" size={16} className="shrink-0 text-muted" />
+              <Icon name="unfold_more" size={18} className="shrink-0 text-muted" />
             </span>
           </div>
         </div>

@@ -73,8 +73,8 @@ describe('AppShell', () => {
     mockPathname.value = '/servicos';
     renderShell();
     const sidebar = screen.getByRole('navigation', { name: 'Navegação principal' });
-    expect(within(sidebar).getByRole('link', { name: /Ajustes/ })).toHaveAttribute('aria-current', 'page');
-    expect(within(sidebar).getByRole('link', { name: /Hoje/ })).not.toHaveAttribute('aria-current');
+    expect(within(sidebar).getByRole('link', { name: 'Ajustes' })).toHaveAttribute('aria-current', 'page');
+    expect(within(sidebar).getByRole('link', { name: 'Hoje' })).not.toHaveAttribute('aria-current');
   });
 
   it('barra inferior com Hoje, Agenda, +, Clientes e Mais', () => {
