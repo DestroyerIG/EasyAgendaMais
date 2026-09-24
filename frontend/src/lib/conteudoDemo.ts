@@ -85,6 +85,12 @@ export interface AgendaDetalhes {
 }
 
 export interface AgendaContent {
+  // A duração de cada atendimento decide a altura do bloco na linha do tempo e o
+  // "45 min" embaixo da hora no cartão do celular (agenda-desktop.html,
+  // agenda-mobile.html). O DTO de /appointments não devolve a duração do serviço,
+  // então toda a tela cai neste valor único. Quando o DTO passar a trazer
+  // service_duration_minutes, use-o e apague esta chave.
+  duracaoPadraoMinutos: number;
   atendimentosPorProfissional: AgendaProfissionalContagem[];
   pausaTecnica: AgendaPausaTecnica;
   ocupacaoHoje: AgendaOcupacaoHoje;
@@ -388,6 +394,7 @@ export const conteudoDemo = {
     ],
   },
   agenda: {
+    duracaoPadraoMinutos: 60,
     atendimentosPorProfissional: [
       { nome: 'Camila', atendimentos: 6 },
       { nome: 'Bruna', atendimentos: 5 },

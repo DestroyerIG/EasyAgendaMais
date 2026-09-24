@@ -5,8 +5,9 @@ import api from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import type { Appointment, Professional } from '@/types';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Card, Avatar, IconButton, Button, StatusChip, STATUS_STRIPE_CLASS, EmptyState, Skeleton } from '@/components/ui';
-import { cn } from '@/lib/cn';
+import { Card, Avatar, IconButton, Button, EmptyState, Skeleton } from '@/components/ui';
+import { CorpoCartaoAgendamento } from '@/components/appointments/AppointmentCard';
+import { conteudoDemo } from '@/lib/conteudoDemo';
 
 interface ProfessionalAgendaProps {
     professional: Professional;
@@ -86,8 +87,8 @@ export function ProfessionalAgenda({ professional }: ProfessionalAgendaProps) {
                     />
                 </div>
 
-                <div className="rounded-control border border-line bg-surface-2 px-4 py-2 text-[13px] font-semibold text-brand-text">
-                    {appointments.length} Atendimento(s)
+                <div className="rounded-full border border-line bg-surface-2 px-4 py-2 text-[13px] font-semibold tabular-nums text-brand-text">
+                    {appointments.length} atendimento{appointments.length === 1 ? '' : 's'}
                 </div>
             </div>
 
@@ -106,18 +107,11 @@ export function ProfessionalAgenda({ professional }: ProfessionalAgendaProps) {
             ) : (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     {appointments.map(appointment => (
-                        <Card key={appointment.id} className="flex items-center gap-3">
-                            <div className="min-w-[56px] text-center">
-                                <p className="text-lg font-bold leading-tight tabular-nums text-ink">
-                                    {appointment.time.substring(0, 5)}
-                                </p>
-                            </div>
-                            <div className={cn('w-1 shrink-0 self-stretch rounded-full', STATUS_STRIPE_CLASS[appointment.status])} />
-                            <div className="min-w-0 flex-1">
-                                <h4 className="truncate font-semibold text-ink">{appointment.client_name}</h4>
-                                <p className="truncate text-[13px] text-muted">{appointment.service_name}</p>
-                            </div>
-                            <StatusChip status={appointment.status} />
+                        <Card key={appointment.id} className="flex items-stretch gap-3 p-3.5 sm:p-3.5">
+                            <CorpoCartaoAgendamento
+                                appointment={appointment}
+                                duracaoMinutos={conteudoDemo.agenda.duracaoPadraoMinutos}
+                            />
                         </Card>
                     ))}
                 </div>

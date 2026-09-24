@@ -90,8 +90,17 @@
        reaproveita-se o token existente de papel mais próximo (ver relatório da Tarefa 1). */
     --color-surface-m3: 24 22 21;
     --color-brand-text-m3: 255 154 61;
-    --color-tertiary: 37 99 235;
-    --color-tertiary-container: 37 99 235;
+    /* tertiary e tertiary-container são o azul do export que não é o status-confirmed
+       (agenda-desktop.html: avatar e faixa da segunda profissional). No escuro guardam
+       o matiz do claro e sobem de luminosidade, que é o que os torna legíveis sobre o
+       fundo escuro — ficam só mais claros, nunca de outra cor:
+         tertiary           #006399 → #70CDFF (matiz 201°, luminosidade 30% → 72%)
+         tertiary-container #00a8ff → #3DBDFF (matiz 200°, luminosidade 50% → 62%)
+       A ordem entre os dois inverte de propósito: no claro o tertiary é o tom escuro
+       (texto) e o container o claro (fundo); no escuro os papéis trocam, como manda o
+       esquema escuro do próprio Material 3. */
+    --color-tertiary: 112 205 255;
+    --color-tertiary-container: 61 189 255;
   }
 
   /* Contêiner das telas que seguem o design system: fundo, texto e tipografia do DESIGN.md. */

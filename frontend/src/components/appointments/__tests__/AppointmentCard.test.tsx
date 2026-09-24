@@ -1,0 +1,129 @@
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import {
+  ABERTURA_ARRASTE,
+  AppointmentCard,
+  LIMITE_ARRASTE,
+  encaixarArraste,
+} from '../AppointmentCard';
+import type { Appointment } from '@/types';
+
+const agendamento = (partes: Partial<Appointment> = {}): Appointment => ({
+  id: 'a1',
+  business_id: 'b1',
+  client_id: 'c1',
+  professional_id: 'p1',
+  service_id: 's1',
+  date: '2026-09-17T00:00:00',
+  time: '10:00:00',
+  status: 'confirmado',
+  reminder_sent: false,
+  created_at: '2026-09-14T00:00:00',
+  client_name: 'Mariana Souza',
+  professional_name: 'Camila Rocha',
+  service_name: 'Alongamento em Gel',
+  service_price: 180,
+  ...partes,
+});
+
+const props = { actionLoading: null, duracaoMinutos: 60, onStatusChange: vi.fn() };
+
+describe('encaixarArraste', () => {
+  it('passando da virada, prende aberto no lado do gesto', () => {
+    expect(encaixarArraste(90)).toBe(ABERTURA_ARRASTE);
+    expect(encaixarArraste(-90)).toBe(-ABERTURA_ARRASTE);
+  });
+
+  it('antes da virada, volta ao lugar', () => {
+    expect(encaixarArraste(40)).toBe(0);
+    expect(encaixarArraste(-40)).toBe(0);
+    expect(encaixarArraste(0)).toBe(0);
+  });
+});
+
+describe('AppointmentCard', () => {
+  it('mostra horário, duração, cliente, valor, serviço, profissional e status', () => {
+    render(<AppointmentCard {...props} appointment={agendamento()} />);
+
+    expect(screen.getByText('10:00')).toBeInTheDocument();
+    expect(screen.getByText('1h')).toBeInTheDocument();
+    expect(screen.getByText('Mariana Souza')).toBeInTheDocument();
+    expect(screen.getByText('R$ 180')).toBeInTheDocument();
+    expect(screen.getByText('Alongamento em Gel')).toBeInTheDocument();
+    expect(screen.getByText('Camila Rocha')).toBeInTheDocument();
+    expect(screen.getByText('Confirmado')).toBeInTheDocument();
+  });
+
+  it('as duas ações do gesto são botões de verdade e chamam o handler existente', async () => {
+    const onStatusChange = vi.fn();
+    render(<AppointmentCard {...props} onStatusChange={onStatusChange} appointment={agendamento()} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Concluir atendimento de Mariana Souza' }));
+    expect(onStatusChange).toHaveBeenCalledWith('a1', 'concluido');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar agendamento de Mariana Souza' }));
+    expect(onStatusChange).toHaveBeenCalledWith('a1', 'cancelado');
+  });
+
+  it('foco no teclado abre o cartão do lado da ação em foco', async () => {
+    render(<AppointmentCard {...props} appointment={agendamento()} />);
+    const frente = screen.getByText('Mariana Souza').closest('div[style]') as HTMLElement;
+    expect(frente.style.transform).toBe('translateX(0px)');
+
+    await userEvent.tab();
+    expect(screen.getByRole('button', { name: /Concluir atendimento/ })).toHaveFocus();
+    expect(frente.style.transform).toBe(`translateX(${ABERTURA_ARRASTE}px)`);
+
+    await userEvent.tab();
+    expect(screen.getByRole('button', { name: /Cancelar agendamento/ })).toHaveFocus();
+    expect(frente.style.transform).toBe(`translateX(${-ABERTURA_ARRASTE}px)`);
+  });
+
+  it('arrastar move o cartão e soltar depois da virada o deixa aberto', () => {
+    render(<AppointmentCard {...props} appointment={agendamento()} />);
+    const frente = screen.getByText('Mariana Souza').closest('div[style]') as HTMLElement;
+
+    fireEvent.pointerDown(frente, { clientX: 0, pointerId: 1 });
+    fireEvent.pointerMove(frente, { clientX: 70, pointerId: 1 });
+    expect(frente.style.transform).toBe('translateX(70px)');
+
+    fireEvent.pointerUp(frente, { clientX: 70, pointerId: 1 });
+    expect(frente.style.transform).toBe(`translateX(${ABERTURA_ARRASTE}px)`);
+  });
+
+  it('o arrasto não passa do limite do arquivo de referência', () => {
+    render(<AppointmentCard {...props} appointment={agendamento()} />);
+    const frente = screen.getByText('Mariana Souza').closest('div[style]') as HTMLElement;
+
+    fireEvent.pointerDown(frente, { clientX: 0, pointerId: 1 });
+    fireEvent.pointerMove(frente, { clientX: 400, pointerId: 1 });
+    expect(frente.style.transform).toBe(`translateX(${LIMITE_ARRASTE}px)`);
+  });
+
+  it('soltar antes da virada volta o cartão ao lugar', () => {
+    render(<AppointmentCard {...props} appointment={agendamento()} />);
+    const frente = screen.getByText('Mariana Souza').closest('div[style]') as HTMLElement;
+
+    fireEvent.pointerDown(frente, { clientX: 0, pointerId: 1 });
+    fireEvent.pointerMove(frente, { clientX: 30, pointerId: 1 });
+    fireEvent.pointerUp(frente, { clientX: 30, pointerId: 1 });
+    expect(frente.style.transform).toBe('translateX(0px)');
+  });
+
+  it('agendamento sem transição de status não tem gesto nem ações', () => {
+    render(<AppointmentCard {...props} appointment={agendamento({ status: 'concluido' })} />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+
+    const frente = screen.getByText('Mariana Souza').closest('div[style]') as HTMLElement;
+    fireEvent.pointerDown(frente, { clientX: 0, pointerId: 1 });
+    fireEvent.pointerMove(frente, { clientX: 90, pointerId: 1 });
+    expect(frente.style.transform).toBe('translateX(0px)');
+  });
+
+  it('desabilita as ações enquanto a mudança de status está em voo', () => {
+    render(<AppointmentCard {...props} actionLoading="a1" appointment={agendamento()} />);
+    expect(screen.getByRole('button', { name: /Concluir atendimento/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Cancelar agendamento/ })).toBeDisabled();
+  });
+});
