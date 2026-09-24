@@ -576,6 +576,11 @@ export const conteudoDemo = {
           descricao: '5 estrelas · recebida via link de satisfação pós-atendimento',
         },
         {
+          data: '22 de agosto',
+          tipo: 'financeiro',
+          descricao: 'Atendimento rápido concluído com Camila · R$ 70,00 pago em cartão de débito',
+        },
+        {
           data: '15 de julho',
           tipo: 'falta',
           descricao:
@@ -592,7 +597,7 @@ export const conteudoDemo = {
         comentario: 'Atendimento excelente, resultado dura o mês todo.',
       },
       postoAtendimento: 'Estação 2',
-      referenciaCaixa: 'Caixa diário #219',
+      referenciaCaixa: 'Caixa Diário #219',
     },
   },
   caixa: {
@@ -809,7 +814,7 @@ export const conteudoDemo = {
         referencia: 'Mensalidade EasyAgenda+ Equipe',
         periodo: '15/jul a 14/ago de 2026',
         valor: 99.9,
-        formaPagamento: 'Pix automático',
+        formaPagamento: 'Pix Automático',
         status: 'Pago',
       },
       {
@@ -817,7 +822,7 @@ export const conteudoDemo = {
         referencia: 'Mensalidade EasyAgenda+ Equipe',
         periodo: '15/jun a 14/jul de 2026',
         valor: 99.9,
-        formaPagamento: 'Pix automático',
+        formaPagamento: 'Pix Automático',
         status: 'Pago',
       },
     ],
