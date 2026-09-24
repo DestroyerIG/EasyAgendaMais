@@ -1,5 +1,7 @@
 'use client';
 
+import { conteudoDemo } from '@/lib/conteudoDemo';
+
 const DIAS_DA_SEMANA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 
 // Bom dia / Boa tarde / Boa noite conforme a hora do relógio local (hoje-desktop.html,
@@ -25,16 +27,27 @@ export interface SaudacaoDiaProps {
 }
 
 // Saudação da tela Hoje: substitui o PageHeader genérico pelo cabeçalho da referência.
-// Nome e data são sempre reais — nenhum dado de exemplo entra aqui (ver brief da Tarefa 4).
+// Nome e data são sempre reais. A pílula de status (só no celular, hoje-mobile.html)
+// mistura o nome real do negócio com a contagem de profissionais ativas de
+// conteudoDemo — o sistema ainda não calcula "profissionais ativas agora".
 export function SaudacaoDia({ businessName }: SaudacaoDiaProps) {
   const agora = new Date();
+  const { profissionaisAtivasHoje } = conteudoDemo.hoje;
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold tracking-tight text-ink">
-        {saudacaoPorHora(agora.getHours())}, {businessName}
-      </h1>
-      <p className="mt-0.5 text-[14px] font-medium text-muted">{formatarDataPorExtenso(agora)}</p>
+    <div className="flex items-center justify-between gap-3">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-ink">
+          {saudacaoPorHora(agora.getHours())}, {businessName}
+        </h1>
+        <p className="mt-0.5 text-[14px] font-medium text-muted">{formatarDataPorExtenso(agora)}</p>
+      </div>
+      <div className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-[11px] font-semibold text-ink lg:hidden">
+        <span className="h-2 w-2 rounded-full bg-success" />
+        <span>
+          {businessName} · {profissionaisAtivasHoje} ativas
+        </span>
+      </div>
     </div>
   );
 }

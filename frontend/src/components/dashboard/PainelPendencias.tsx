@@ -21,8 +21,9 @@ const LINHA_ESTILO: readonly {
 
 // Aviso padrão para ações ainda sem efeito real — mesma linguagem das telas "em
 // breve" do produto (EmBreve.tsx), só que como toast em vez de página inteira,
-// já que o botão continua clicável dentro da tela Hoje.
-const AVISO_RECURSO_A_CAMINHO = 'Esta ação ainda não está disponível — chega em breve.';
+// já que o botão continua clicável dentro da tela Hoje. Exportado porque
+// BotaoCobrarPix.tsx reaproveita o mesmo aviso para o botão flutuante do celular.
+export const AVISO_RECURSO_A_CAMINHO = 'Esta ação ainda não está disponível — chega em breve.';
 
 export interface PainelPendenciasProps {
   pendencias: readonly HojePendencia[];
@@ -42,7 +43,12 @@ export function PainelPendencias({ pendencias, className }: PainelPendenciasProp
             {pendencias.length} pendências
           </span>
         </div>
-        <span className="text-[12px] font-medium text-muted">Ações de um clique</span>
+        <span className="text-[12px] font-medium text-muted">
+          {/* hoje-mobile.html diz "Ações rápidas"; hoje-desktop.html diz "Ações de um
+              clique" — cada arquivo com a própria palavra, como no resto da tela. */}
+          <span className="lg:hidden">Ações rápidas</span>
+          <span className="hidden lg:inline">Ações de um clique</span>
+        </span>
       </div>
       <div className="flex flex-col gap-3">
         {pendencias.map((pendencia, index) => {
