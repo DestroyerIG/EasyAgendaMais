@@ -2,6 +2,7 @@
 
 import { Icon } from '@/components/ui';
 import { conteudoDemo } from '@/lib/conteudoDemo';
+import { formatCurrency } from '@/lib/formatters';
 import type { DashboardData } from '@/types';
 
 interface DashboardCardsProps {
@@ -46,11 +47,11 @@ export function DashboardCards({ data }: DashboardCardsProps) {
                 titulo="Faturamento hoje"
                 icone="payments"
                 iconeTom="text-brand"
-                valor={`R$ ${data.earningsToday.toFixed(2)}`}
+                valor={formatCurrency(data.earningsToday, { cents: false })}
             >
                 <div className="flex flex-col gap-1.5">
                     <div className="flex items-center justify-between text-[12px] text-muted">
-                        <span>Meta R$ {metaFaturamentoDiaria.valorMeta.toFixed(2)}</span>
+                        <span>Meta {formatCurrency(metaFaturamentoDiaria.valorMeta, { cents: false })}</span>
                         <span className="font-bold text-ink">{metaFaturamentoDiaria.percentualAtingido}%</span>
                     </div>
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
@@ -91,7 +92,7 @@ export function DashboardCards({ data }: DashboardCardsProps) {
                 titulo="Receita recuperada no mês"
                 icone="mark_chat_read"
                 iconeTom="text-whatsapp"
-                valor={`R$ ${receitaRecuperada.valor.toFixed(2)}`}
+                valor={formatCurrency(receitaRecuperada.valor, { cents: false })}
             >
                 <div className="flex items-center gap-1.5 text-[12px] text-muted">
                     <span className="h-2 w-2 rounded-full bg-whatsapp" />

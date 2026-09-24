@@ -1,7 +1,13 @@
-export const formatCurrency = (value: number): string => {
+// `cents: false` (padrão true, igual ao comportamento anterior desta função em todo
+// o resto do app) omite os centavos — usado na tela Hoje, cujas referências do
+// Stitch nunca mostram centavos em nenhum valor monetário.
+export const formatCurrency = (value: number, options?: { cents?: boolean }): string => {
+  const cents = options?.cents ?? true;
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
+    minimumFractionDigits: cents ? 2 : 0,
+    maximumFractionDigits: cents ? 2 : 0,
   }).format(value);
 };
 

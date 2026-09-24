@@ -4,10 +4,13 @@ import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveCo
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useThemeColors } from '@/hooks/useThemeColors';
+import { formatCurrency } from '@/lib/formatters';
+import { cn } from '@/lib/cn';
 import type { WeeklyEarning } from '@/types';
 
 interface WeeklyChartProps {
     data: WeeklyEarning[];
+    className?: string;
 }
 
 const DIAS_ABREVIADOS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -18,12 +21,12 @@ const isHoje = (dateStr: string) => new Date(dateStr).toDateString() === new Dat
 // abreviado, e "Hoje" para a barra do dia atual em vez do nome do dia.
 const rotuloDia = (dateStr: string) => (isHoje(dateStr) ? 'Hoje' : DIAS_ABREVIADOS[new Date(dateStr).getDay()]);
 
-export function WeeklyChart({ data }: WeeklyChartProps) {
+export function WeeklyChart({ data, className }: WeeklyChartProps) {
     const colors = useThemeColors();
     const totalPeriodo = data.reduce((soma, dia) => soma + dia.total, 0);
 
     return (
-        <Card>
+        <Card className={cn(className)}>
             <div className="mb-4 flex items-center justify-between gap-3 border-b border-line pb-3">
                 <div>
                     <h3 className="text-[16px] font-bold text-ink">Faturamento últimos 7 dias</h3>
@@ -31,7 +34,9 @@ export function WeeklyChart({ data }: WeeklyChartProps) {
                 </div>
                 <div className="text-right">
                     <span className="text-[11px] font-semibold text-muted">Total período</span>
-                    <div className="text-[18px] font-bold tabular-nums text-ink">R$ {totalPeriodo.toFixed(2)}</div>
+                    <div className="text-[18px] font-bold tabular-nums text-ink">
+                        {formatCurrency(totalPeriodo, { cents: false })}
+                    </div>
                 </div>
             </div>
             {colors ? (
@@ -55,7 +60,7 @@ export function WeeklyChart({ data }: WeeklyChartProps) {
                                 color: colors.ink,
                             }}
                             labelFormatter={(date: string) => new Date(date).toLocaleDateString('pt-BR')}
-                            formatter={(value: number) => [`R$ ${value}`, 'Faturamento']}
+                            formatter={(value: number) => [formatCurrency(value, { cents: false }), 'Faturamento']}
                         />
                         <Bar dataKey="total" radius={[8, 8, 0, 0]}>
                             {data.map((dia) => (

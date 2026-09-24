@@ -2,6 +2,7 @@
 
 import { Card, Icon, Button } from '@/components/ui';
 import { useToast } from '@/components/Toast';
+import { cn } from '@/lib/cn';
 import type { HojePendencia } from '@/lib/conteudoDemo';
 
 // Estilo de cada linha (hoje-desktop.html): a ordem das 4 pendências é fixa em
@@ -25,14 +26,15 @@ const AVISO_RECURSO_A_CAMINHO = 'Esta ação ainda não está disponível — ch
 
 export interface PainelPendenciasProps {
   pendencias: readonly HojePendencia[];
+  className?: string;
 }
 
-export function PainelPendencias({ pendencias }: PainelPendenciasProps) {
+export function PainelPendencias({ pendencias, className }: PainelPendenciasProps) {
   const { showToast } = useToast();
   const handleAcao = () => showToast(AVISO_RECURSO_A_CAMINHO, 'info');
 
   return (
-    <Card className="flex flex-col gap-4">
+    <Card className={cn('flex flex-col gap-4', className)}>
       <div className="flex items-center justify-between gap-3 border-b border-line pb-3">
         <div className="flex items-center gap-2">
           <h2 className="text-[16px] font-bold text-ink">Precisa de você</h2>

@@ -8,6 +8,7 @@ import { DashboardCards } from '@/components/DashboardCards';
 import { WeeklyChart } from '@/components/WeeklyChart';
 import { SaudacaoDia } from '@/components/dashboard/SaudacaoDia';
 import { PainelPendencias } from '@/components/dashboard/PainelPendencias';
+import { ProximasDuasHoras } from '@/components/dashboard/ProximasDuasHoras';
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Button } from '@/components/ui/Button';
@@ -143,16 +144,24 @@ export default function DashboardPage() {
             </Card>
           ))}
         </div>
-        <Card className="flex flex-col gap-3">
-          <Skeleton className="h-6 w-40" />
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-14 w-full" />
-          ))}
-        </Card>
-        <Card>
-          <Skeleton className="h-7 w-52 mb-6" />
-          <Skeleton className="h-[220px] w-full" />
-        </Card>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
+          <Card className="flex flex-col gap-3 lg:col-span-7">
+            <Skeleton className="h-6 w-40" />
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton key={index} className="h-14 w-full" />
+            ))}
+          </Card>
+          <Card className="flex flex-col gap-3 lg:col-span-5">
+            <Skeleton className="h-6 w-32" />
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Skeleton key={index} className="h-14 w-full" />
+            ))}
+          </Card>
+          <Card className="lg:col-span-7">
+            <Skeleton className="h-7 w-52 mb-6" />
+            <Skeleton className="h-[220px] w-full" />
+          </Card>
+        </div>
       </div>
     );
   }
@@ -163,8 +172,18 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-6 sm:gap-8">
           <SaudacaoDia businessName={user?.businessName || 'Seu negócio'} />
           <DashboardCards data={data} />
-          <PainelPendencias pendencias={conteudoDemo.hoje.pendencias} />
-          <WeeklyChart data={data.weeklyEarnings} />
+          {/* Ordem mobile (hoje-mobile.html): Pendências, Próximas 2 horas, Gráfico —
+              obtida com order-1/2/3 abaixo. No desktop (hoje-desktop.html), os mesmos
+              order-* com lg:col-span-7/5/7 recriam as 2 colunas (Pendências+Gráfico à
+              esquerda, Próximas 2 horas à direita) sem duplicar nenhum bloco. */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
+            <PainelPendencias
+              pendencias={conteudoDemo.hoje.pendencias}
+              className="order-1 lg:col-span-7"
+            />
+            <ProximasDuasHoras className="order-2 lg:col-span-5" />
+            <WeeklyChart data={data.weeklyEarnings} className="order-3 lg:col-span-7" />
+          </div>
         </div>
       ) : (
         <Card className="text-center">
