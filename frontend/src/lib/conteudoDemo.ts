@@ -42,35 +42,6 @@ export interface HojeContent {
 
 // ─── Agenda (agenda-desktop.html, agenda-mobile.html, agendamento-detalhes.html) ─
 
-export interface AgendaProfissionalContagem {
-  nome: string;
-  atendimentos: number;
-}
-
-export interface AgendaPausaTecnica {
-  rotulo: string;
-  duracaoMinutos: number;
-  selo: string;
-  encaixe: {
-    nomeCliente: string;
-    servico: string;
-    valor: number;
-  };
-  totalFaturadoBloco: number;
-}
-
-export interface AgendaOcupacaoHoje {
-  percentual: number;
-  vagasLivres: number;
-  horarioFuncionamento: string;
-}
-
-export interface AgendaTotalPrevisto {
-  confirmados: number;
-  emEspera: number;
-  valorTotal: number;
-}
-
 export interface AgendaDetalhes {
   numero: string;
   cicloMedioDias: number;
@@ -86,16 +57,12 @@ export interface AgendaDetalhes {
 
 export interface AgendaContent {
   // A duração de cada atendimento decide a altura do bloco na linha do tempo e o
-  // "45 min" embaixo da hora no cartão do celular (agenda-desktop.html,
-  // agenda-mobile.html). O DTO de /appointments não devolve a duração do serviço,
-  // então toda a tela cai neste valor único. Quando o DTO passar a trazer
-  // service_duration_minutes, use-o e apague esta chave.
+  // "60 min" embaixo da hora no cartão do celular (agenda-desktop.html,
+  // agenda-mobile.html, que escrevem uma duração diferente por cartão). O DTO de
+  // /appointments não devolve a duração do serviço, então toda a tela cai neste
+  // valor único. Quando o DTO passar a trazer service_duration_minutes, use-o e
+  // apague esta chave.
   duracaoPadraoMinutos: number;
-  atendimentosPorProfissional: AgendaProfissionalContagem[];
-  pausaTecnica: AgendaPausaTecnica;
-  ocupacaoHoje: AgendaOcupacaoHoje;
-  totalPrevisto: AgendaTotalPrevisto;
-  previsaoChegadaExemplo: string;
   detalhes: AgendaDetalhes;
 }
 
@@ -395,33 +362,6 @@ export const conteudoDemo = {
   },
   agenda: {
     duracaoPadraoMinutos: 60,
-    atendimentosPorProfissional: [
-      { nome: 'Camila', atendimentos: 6 },
-      { nome: 'Bruna', atendimentos: 5 },
-      { nome: 'Paula', atendimentos: 5 },
-    ],
-    pausaTecnica: {
-      rotulo: 'Pausa técnica (35 min)',
-      duracaoMinutos: 35,
-      selo: 'Encaixe ativo',
-      encaixe: {
-        nomeCliente: 'Aline Maia',
-        servico: 'Atendimento expresso',
-        valor: 80,
-      },
-      totalFaturadoBloco: 360,
-    },
-    ocupacaoHoje: {
-      percentual: 84,
-      vagasLivres: 2,
-      horarioFuncionamento: '8h às 19h',
-    },
-    totalPrevisto: {
-      confirmados: 14,
-      emEspera: 2,
-      valorTotal: 2380,
-    },
-    previsaoChegadaExemplo: '14:55',
     detalhes: {
       numero: '4892',
       cicloMedioDias: 21,

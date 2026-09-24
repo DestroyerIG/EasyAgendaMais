@@ -9,6 +9,8 @@ import {
   calcularVagasLivres,
   faixaHorariaTexto,
   formatarDuracao,
+  formatarHorarioFuncionamento,
+  formatarMinutos,
   fusoTexto,
   paraHoraTexto,
   paraMinutos,
@@ -39,11 +41,22 @@ describe('conversões de horário', () => {
     expect(paraHoraTexto(480)).toBe('08:00');
   });
 
-  it('escreve a duração como o arquivo de referência', () => {
+  it('escreve a duração do bloco de horário livre como o arquivo ("Livre 30m", "1h30 livre")', () => {
     expect(formatarDuracao(30)).toBe('30m');
     expect(formatarDuracao(60)).toBe('1h');
     expect(formatarDuracao(90)).toBe('1h30');
     expect(formatarDuracao(150)).toBe('2h30');
+  });
+
+  it('escreve a duração do cartão em minutos, como todo cartão do arquivo do celular', () => {
+    expect(formatarMinutos(45)).toBe('45 min');
+    expect(formatarMinutos(60)).toBe('60 min');
+    expect(formatarMinutos(75)).toBe('75 min');
+  });
+
+  it('escreve o horário de funcionamento como agenda-mobile.html', () => {
+    expect(formatarHorarioFuncionamento(8 * 60, 19 * 60)).toBe('8h - 19h');
+    expect(formatarHorarioFuncionamento(8 * 60 + 30, 19 * 60)).toBe('8h30 - 19h');
   });
 
   it('escreve a faixa do bloco com travessão', () => {
@@ -84,6 +97,21 @@ describe('calcularFaixaHoras', () => {
     );
     expect([faixa.horaInicio, faixa.horaFim]).toEqual([7, 22]);
   });
+
+  it('parte do horário de funcionamento configurado quando ele existe', () => {
+    const faixa = calcularFaixaHoras([agendamento({ id: '1', time: '10:00:00' })], 60, {
+      aberturaMinutos: 9 * 60,
+      fechamentoMinutos: 19 * 60 + 30,
+    });
+    expect([faixa.horaInicio, faixa.horaFim]).toEqual([9, 20]);
+    expect(faixa.inicioMinutos).toBe(540);
+  });
+
+  it('não passa das 24h: atendimento às 23:30 não vira régua até "25:00"', () => {
+    const faixa = calcularFaixaHoras([agendamento({ id: '1', time: '23:30:00' })], 60);
+    expect(faixa.horaFim).toBe(24);
+    expect(faixa.horas[faixa.horas.length - 1]).toBe(24);
+  });
 });
 
 describe('calcularVagasLivres', () => {
@@ -106,6 +134,16 @@ describe('calcularVagasLivres', () => {
       60,
     );
     expect(vagas.map((v) => v.inicioMinutos)).not.toContain(540);
+  });
+
+  it('só entre atendimentos, deixa as pontas de fora (lista do celular)', () => {
+    const vagas = calcularVagasLivres(
+      [agendamento({ id: '1', time: '09:00:00' }), agendamento({ id: '2', time: '11:00:00' })],
+      faixa,
+      60,
+      { apenasEntreAtendimentos: true },
+    );
+    expect(vagas).toEqual([{ inicioMinutos: 600, duracaoMinutos: 60 }]);
   });
 
   it('trata horário de cancelado como livre', () => {

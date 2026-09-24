@@ -47,7 +47,7 @@ describe('AppointmentCard', () => {
     render(<AppointmentCard {...props} appointment={agendamento()} />);
 
     expect(screen.getByText('10:00')).toBeInTheDocument();
-    expect(screen.getByText('1h')).toBeInTheDocument();
+    expect(screen.getByText('60 min')).toBeInTheDocument();
     expect(screen.getByText('Mariana Souza')).toBeInTheDocument();
     expect(screen.getByText('R$ 180')).toBeInTheDocument();
     expect(screen.getByText('Alongamento em Gel')).toBeInTheDocument();

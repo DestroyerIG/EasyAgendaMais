@@ -4,9 +4,12 @@
  * Tela Agenda (agenda-desktop.html, agenda-mobile.html).
  *
  * Dado real: todos os agendamentos do período, com cliente, serviço, profissional,
- * valor e status, vindos de GET /appointments; as contagens, o faturamento, a ocupação
- * e as vagas livres são calculados desses mesmos agendamentos; os filtros de dia,
- * semana e status e a criação de agendamento seguem exatamente como eram.
+ * valor e status, vindos de GET /appointments; o horário de funcionamento do negócio,
+ * de GET /business/settings; as contagens, o faturamento, a ocupação e as vagas livres
+ * são calculados desses mesmos agendamentos, sempre sobre o conjunto que a lista
+ * mostra; os filtros de dia, semana e status e a criação de agendamento seguem
+ * exatamente como eram, e o filtro por profissional é peneira local na lista já
+ * carregada (nenhuma chamada nova, nenhum handler novo).
  * Dado de exemplo: só a duração de cada atendimento
  * (conteudoDemo.agenda.duracaoPadraoMinutos), porque o DTO de /appointments não
  * devolve a duração do serviço.
@@ -23,15 +26,28 @@ import { formatDate } from '@/lib/dateUtils';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
 import { conteudoDemo } from '@/lib/conteudoDemo';
-import { Avatar, EmptyState, Icon, Skeleton, STATUS_LABEL, STATUS_STRIPE_CLASS } from '@/components/ui';
-import { DateNavigationBar } from '@/components/appointments/DateNavigationBar';
+import { EmptyState, Icon, Skeleton, STATUS_STRIPE_CLASS, type AppointmentStatus } from '@/components/ui';
+import {
+  ChipsProfissional,
+  DateNavigationBar,
+  primeiroNome,
+  type ProfissionalChip,
+} from '@/components/appointments/DateNavigationBar';
 import { AppointmentCard } from '@/components/appointments/AppointmentCard';
 import {
   LinhaDoTempo,
   agruparPorProfissional,
   calcularFaixaHoras,
   calcularVagasLivres,
+  chaveProfissional,
+  formatarDuracao,
+  formatarHorarioFuncionamento,
+  paraHoraTexto,
+  paraMinutos,
   tomDoProfissional,
+  type FaixaHoras,
+  type HorarioFuncionamento,
+  type VagaLivre,
 } from '@/components/appointments/LinhaDoTempo';
 import { CreateAppointmentModal } from '@/components/appointments/CreateAppointmentModal';
 import type { AppointmentFormData } from '@/components/appointments/CreateAppointmentModal';
@@ -43,14 +59,66 @@ import { Calendar, Plus } from 'lucide-react';
 type ViewMode = 'day' | 'week';
 type StatusFilter = 'todos' | 'confirmado' | 'concluido' | 'cancelado';
 
-/** Legenda de status do arquivo de referência, reduzida aos status que existem. */
-const STATUS_DA_LEGENDA: readonly ('confirmado' | 'concluido' | 'cancelado')[] = [
-  'confirmado',
-  'concluido',
-  'cancelado',
+/** Legenda de status, com os seis itens e as palavras de agenda-desktop.html. */
+const STATUS_DA_LEGENDA: readonly { status: AppointmentStatus; rotulo: string }[] = [
+  { status: 'confirmado', rotulo: 'Confirmado' },
+  { status: 'aguardando', rotulo: 'Aguardando confirmação' },
+  { status: 'em_atendimento', rotulo: 'Em atendimento' },
+  { status: 'concluido', rotulo: 'Concluído' },
+  { status: 'faltou', rotulo: 'Faltou' },
+  { status: 'cancelado', rotulo: 'Cancelado' },
 ];
 
-const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] || nome;
+/** Horário de funcionamento (GET /business/settings) em minutos desde a meia-noite. */
+const lerHorarioFuncionamento = (dados: unknown): HorarioFuncionamento | null => {
+  const payload = (dados ?? {}) as { openingTime?: unknown; closingTime?: unknown };
+  if (typeof payload.openingTime !== 'string' || typeof payload.closingTime !== 'string') return null;
+  const aberturaMinutos = paraMinutos(payload.openingTime);
+  const fechamentoMinutos = paraMinutos(payload.closingTime);
+  if (fechamentoMinutos <= aberturaMinutos) return null;
+  return { aberturaMinutos, fechamentoMinutos };
+};
+
+type ItemDoDia =
+  | { tipo: 'agendamento'; chave: string; inicioMinutos: number; agendamento: Appointment }
+  | { tipo: 'vaga'; chave: string; inicioMinutos: number; vaga: VagaLivre; profissional: string };
+
+/**
+ * Lista do celular: os atendimentos do dia e, entre eles, as linhas de horário livre
+ * (agenda-mobile.html). A vaga é sempre de uma profissional — um buraco existe na
+ * agenda de alguém, não na do salão —, então ela é calculada por coluna e traz o nome.
+ */
+export function montarItensDoDia(
+  agendamentos: Appointment[],
+  faixa: FaixaHoras,
+  duracaoMinutos: number,
+  comVagas: boolean,
+): ItemDoDia[] {
+  const itens: ItemDoDia[] = agendamentos.map((agendamento) => ({
+    tipo: 'agendamento',
+    chave: agendamento.id,
+    inicioMinutos: paraMinutos(agendamento.time),
+    agendamento,
+  }));
+
+  if (comVagas) {
+    agruparPorProfissional(agendamentos).forEach((coluna) => {
+      calcularVagasLivres(coluna.agendamentos, faixa, duracaoMinutos, {
+        apenasEntreAtendimentos: true,
+      }).forEach((vaga) => {
+        itens.push({
+          tipo: 'vaga',
+          chave: `vaga-${coluna.id}-${vaga.inicioMinutos}`,
+          inicioMinutos: vaga.inicioMinutos,
+          vaga,
+          profissional: coluna.nome,
+        });
+      });
+    });
+  }
+
+  return itens.sort((a, b) => a.inicioMinutos - b.inicioMinutos || a.chave.localeCompare(b.chave));
+}
 
 export function AppointmentModule() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -71,6 +139,11 @@ export function AppointmentModule() {
   const [services, setServices] = useState<Service[]>([]);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
+
+  // Peneira local da lista já carregada (chips de profissional) e horário de
+  // funcionamento configurado do negócio, que define a faixa de horas desenhada.
+  const [profissionalFiltro, setProfissionalFiltro] = useState<string | null>(null);
+  const [horarioFuncionamento, setHorarioFuncionamento] = useState<HorarioFuncionamento | null>(null);
 
   const loadAppointments = useCallback(async () => {
     if (!selectedDate) return;
@@ -93,6 +166,24 @@ export function AppointmentModule() {
   useEffect(() => {
     loadAppointments();
   }, [loadAppointments]);
+
+  // Horário de funcionamento do negócio: uma leitura, no mount. Se a conta não tiver
+  // acesso a /business/settings ou a resposta vier vazia, a régua cai na janela padrão
+  // de desenho e a barra não afirma horário nenhum.
+  useEffect(() => {
+    let cancelado = false;
+    api
+      .get('/business/settings')
+      .then((response) => {
+        if (!cancelado) setHorarioFuncionamento(lerHorarioFuncionamento(response.data));
+      })
+      .catch(() => {
+        if (!cancelado) setHorarioFuncionamento(null);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, []);
 
   const openModal = async () => {
     setShowModal(true);
@@ -160,8 +251,28 @@ export function AppointmentModule() {
     newAppointment.clear();
   };
 
-  const filteredAppointments = appointments.filter(
+  // Peneira de status (a de sempre) e, em cima dela, a de profissional dos chips.
+  const porStatus = appointments.filter(
     a => statusFilter === 'todos' || a.status === statusFilter
+  );
+
+  // Chips: a lista de profissionais e as contagens vêm do conjunto antes da peneira de
+  // profissional, senão escolher uma pessoa apagaria as outras e não daria para voltar.
+  const chipsProfissional: ProfissionalChip[] = agruparPorProfissional(porStatus).map((coluna, indice) => ({
+    id: coluna.id,
+    nome: coluna.nome,
+    total: coluna.agendamentos.length,
+    tom: tomDoProfissional(indice),
+  }));
+
+  // Uma profissional escolhida que não atende no dia seguinte deixaria a tela vazia sem
+  // explicação ao virar o dia; nesse caso a peneira simplesmente não vale.
+  const filtroProfissional = chipsProfissional.some(chip => chip.id === profissionalFiltro)
+    ? profissionalFiltro
+    : null;
+
+  const filteredAppointments = porStatus.filter(
+    a => filtroProfissional === null || chaveProfissional(a) === filtroProfissional
   );
 
   const groupedByDate = filteredAppointments.reduce<Record<string, Appointment[]>>((acc, appointment) => {
@@ -171,28 +282,25 @@ export function AppointmentModule() {
     return acc;
   }, {});
 
-  const stats = {
-    total: appointments.length,
-    confirmados: appointments.filter(a => a.status === 'confirmado').length,
-    concluidos: appointments.filter(a => a.status === 'concluido').length,
-    cancelados: appointments.filter(a => a.status === 'cancelado').length,
-  };
-
-  // ── Números do sub-cabeçalho, todos derivados dos agendamentos carregados ──────
+  // ── Números do cabeçalho: sempre do mesmo conjunto que a lista abaixo desenha ──
   const duracaoMinutos = conteudoDemo.agenda.duracaoPadraoMinutos;
   const ehDia = viewMode === 'day';
-  const naoCancelados = appointments.filter(a => a.status !== 'cancelado');
-  const faturamento = appointments
-    .filter(a => a.status === 'concluido')
-    .reduce((soma, a) => soma + Number(a.service_price || 0), 0);
-  const totalPrevisto = naoCancelados.reduce((soma, a) => soma + Number(a.service_price || 0), 0);
-  const colunas = agruparPorProfissional(appointments);
-  const faixa = calcularFaixaHoras(appointments, duracaoMinutos);
-  const vagasLivres = colunas.flatMap(coluna =>
-    calcularVagasLivres(coluna.agendamentos, faixa, duracaoMinutos)
-  );
+  const naoCancelados = filteredAppointments.filter(a => a.status !== 'cancelado');
+  const confirmados = filteredAppointments.filter(a => a.status === 'confirmado').length;
+  const concluidos = filteredAppointments.filter(a => a.status === 'concluido').length;
+  // "Faturamento" do dia é o total previsto (a referência mostra o total do dia, não só
+  // o que já foi concluído); cancelado não entra.
+  const faturamento = naoCancelados.reduce((soma, a) => soma + Number(a.service_price || 0), 0);
+  const faixa = calcularFaixaHoras(filteredAppointments, duracaoMinutos, horarioFuncionamento);
+  const colunas = agruparPorProfissional(filteredAppointments);
+  const vagasLivres = ehDia
+    ? colunas.flatMap(coluna => calcularVagasLivres(coluna.agendamentos, faixa, duracaoMinutos))
+    : [];
   const minutosDisponiveis = Math.max(colunas.length, 1) * (faixa.fimMinutos - faixa.inicioMinutos);
-  const ocupacao = Math.round((naoCancelados.length * duracaoMinutos * 100) / minutosDisponiveis);
+  const ocupacao = Math.min(
+    100,
+    Math.round((naoCancelados.length * duracaoMinutos * 100) / minutosDisponiveis),
+  );
   const grupos = Object.entries(groupedByDate)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, dayAppointments]) => [
@@ -210,44 +318,29 @@ export function AppointmentModule() {
           selectedDate={selectedDate}
           viewMode={viewMode}
           statusFilter={statusFilter}
+          profissionais={chipsProfissional}
+          totalAgendamentos={porStatus.length}
+          profissionalFiltro={filtroProfissional}
           onDateChange={setSelectedDate}
           onViewModeChange={setViewMode}
           onStatusFilterChange={setStatusFilter}
+          onProfissionalFiltroChange={setProfissionalFiltro}
           onNovoAgendamento={openModal}
         />
       )}
 
-      {/* Pílulas de profissional (agenda-mobile.html): contagem real por profissional.
-          Sem foto porque o DTO de /appointments só traz o nome, então o Avatar cai nas
-          iniciais. Não filtram nada: filtrar por profissional seria função nova. */}
-      {colunas.length > 0 && (
-        <ul className="-mx-4 flex items-center gap-1 overflow-x-auto px-4 lg:hidden">
-          <li className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-brand pl-2 pr-3.5 text-[13px] font-bold text-on-brand">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-on-brand/15">
-              <Icon name="group" size={18} />
-            </span>
-            <span className="tabular-nums">Todas ({stats.total})</span>
-          </li>
-          {colunas.map((coluna, indice) => {
-            const tom = tomDoProfissional(indice);
-            return (
-              <li
-                key={coluna.id}
-                className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-surface-2 pl-1.5 pr-3 text-[13px] text-ink"
-              >
-                <Avatar
-                  name={coluna.nome}
-                  size={32}
-                  className={cn('text-[11px] font-bold', tom.fundo, tom.texto)}
-                />
-                <span className="tabular-nums">
-                  {primeiroNome(coluna.nome)} ({coluna.agendamentos.length})
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      {/* Fileira deslizante de chips do celular (agenda-mobile.html); no computador os
+          mesmos chips ficam dentro da barra acima. A contagem é do dia, então no modo
+          Semana ela sai. Sem foto: o DTO de /appointments só traz o nome, e o Avatar
+          cai nas iniciais. */}
+      <ChipsProfissional
+        profissionais={chipsProfissional}
+        totalGeral={porStatus.length}
+        ativo={filtroProfissional}
+        onChange={setProfissionalFiltro}
+        mostrarContagem={ehDia}
+        className="-mx-4 px-4 lg:hidden"
+      />
 
       {/* Sub-cabeçalho operacional: KPIs do dia + legenda (agenda-desktop.html) e a
           linha de ocupação do celular (agenda-mobile.html). */}
@@ -256,7 +349,7 @@ export function AppointmentModule() {
           <div className="flex items-center gap-1.5 font-bold text-ink">
             <span className="h-2 w-2 rounded-full bg-brand" />
             <span className="tabular-nums">
-              {stats.total} agendamento{stats.total === 1 ? '' : 's'}
+              {filteredAppointments.length} agendamento{filteredAppointments.length === 1 ? '' : 's'}
             </span>
           </div>
           <span className="text-muted">·</span>
@@ -270,7 +363,8 @@ export function AppointmentModule() {
             <>
               <span className="text-muted">·</span>
               <div className="flex items-center gap-1 text-muted">
-                <span className="font-bold tabular-nums text-tertiary">{vagasLivres.length}</span> horários livres
+                <span className="font-bold tabular-nums text-tertiary">{vagasLivres.length}</span>
+                {vagasLivres.length === 1 ? ' horário livre' : ' horários livres'}
               </div>
             </>
           )}
@@ -284,34 +378,39 @@ export function AppointmentModule() {
                 <span className="text-[13px] font-semibold tabular-nums text-ink">{ocupacao}% de ocupação</span>
                 <span className="text-[14px] text-muted">·</span>
                 <span className="text-[14px] tabular-nums text-muted">
-                  {vagasLivres.length} vagas livres
+                  {vagasLivres.length} {vagasLivres.length === 1 ? 'vaga livre' : 'vagas livres'}
                 </span>
               </>
             ) : (
               <>
                 <span className="h-2 w-2 rounded-full bg-brand" />
                 <span className="text-[13px] font-semibold tabular-nums text-ink">
-                  {stats.total} agendamento{stats.total === 1 ? '' : 's'} na semana
+                  {filteredAppointments.length} agendamento{filteredAppointments.length === 1 ? '' : 's'} na semana
                 </span>
               </>
             )}
           </div>
-          <span className="shrink-0 text-[11px] font-bold tabular-nums text-brand-text">
-            {faixa.horaInicio}h às {faixa.horaFim}h
-          </span>
+          {horarioFuncionamento && (
+            <span className="shrink-0 text-[11px] font-bold tabular-nums text-brand-text">
+              {formatarHorarioFuncionamento(
+                horarioFuncionamento.aberturaMinutos,
+                horarioFuncionamento.fechamentoMinutos,
+              )}
+            </span>
+          )}
         </div>
 
         <div className="hidden flex-wrap items-center gap-3 text-[11px] font-semibold text-muted lg:flex">
-          {STATUS_DA_LEGENDA.map(status => (
-            <div key={status} className="flex items-center gap-1.5">
+          {STATUS_DA_LEGENDA.map(item => (
+            <div key={item.status} className="flex items-center gap-1.5">
               <span
                 className={cn(
                   'h-2.5 w-2.5 rounded-sm',
-                  STATUS_STRIPE_CLASS[status],
-                  status === 'cancelado' && 'opacity-70',
+                  STATUS_STRIPE_CLASS[item.status],
+                  item.status === 'cancelado' && 'opacity-70',
                 )}
               />
-              <span className={status === 'cancelado' ? 'line-through' : undefined}>{STATUS_LABEL[status]}</span>
+              <span className={item.status === 'cancelado' ? 'line-through' : undefined}>{item.rotulo}</span>
             </div>
           ))}
         </div>
@@ -356,15 +455,45 @@ export function AppointmentModule() {
                     {formatDate(date)}
                   </h3>
                 )}
-                {dayAppointments.map(appointment => (
-                  <AppointmentCard
-                    key={appointment.id}
-                    appointment={appointment}
-                    actionLoading={actionLoading}
-                    duracaoMinutos={duracaoMinutos}
-                    onStatusChange={handleStatusChange}
-                  />
-                ))}
+                {montarItensDoDia(dayAppointments, faixa, duracaoMinutos, ehDia).map(item =>
+                  item.tipo === 'agendamento' ? (
+                    <AppointmentCard
+                      key={item.chave}
+                      appointment={item.agendamento}
+                      actionLoading={actionLoading}
+                      duracaoMinutos={duracaoMinutos}
+                      onStatusChange={handleStatusChange}
+                    />
+                  ) : (
+                    <button
+                      key={item.chave}
+                      type="button"
+                      onClick={openModal}
+                      aria-label={`Agendar no horário livre das ${paraHoraTexto(item.inicioMinutos)} com ${primeiroNome(item.profissional)} (${formatarDuracao(item.vaga.duracaoMinutos)} livre)`}
+                      className="flex w-full items-center justify-between gap-3 rounded-card bg-surface-2 p-4 text-left transition-transform active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                    >
+                      <span className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-surface text-brand-text shadow-sm">
+                          <Icon name="add" size={20} />
+                        </span>
+                        <span className="flex min-w-0 flex-col">
+                          <span className="flex items-center gap-2">
+                            <span className="text-[24px] font-bold leading-none tracking-tight tabular-nums text-ink">
+                              {paraHoraTexto(item.inicioMinutos)}
+                            </span>
+                            <span className="rounded-full bg-success/12 px-2 py-0.5 text-[11px] font-bold text-success-text">
+                              Horário livre
+                            </span>
+                          </span>
+                          <span className="mt-0.5 truncate text-[14px] text-muted">
+                            {formatarDuracao(item.vaga.duracaoMinutos)} livre com {primeiroNome(item.profissional)}
+                          </span>
+                        </span>
+                      </span>
+                      <Icon name="bolt" size={20} className="shrink-0 text-muted" />
+                    </button>
+                  ),
+                )}
               </div>
             ))}
             {ehDia && (
@@ -376,12 +505,12 @@ export function AppointmentModule() {
                   <div className="flex min-w-0 flex-col">
                     <span className="text-[17px] font-semibold leading-tight text-ink">Total previsto hoje</span>
                     <span className="text-[14px] tabular-nums text-muted">
-                      {stats.confirmados} confirmados · {stats.concluidos} concluídos
+                      {confirmados} confirmados · {concluidos} concluídos
                     </span>
                   </div>
                 </div>
                 <span className="shrink-0 text-[24px] font-bold tabular-nums text-ink">
-                  {formatCurrency(totalPrevisto, { cents: false })}
+                  {formatCurrency(faturamento, { cents: false })}
                 </span>
               </div>
             )}
@@ -400,6 +529,7 @@ export function AppointmentModule() {
                 <LinhaDoTempo
                   agendamentos={dayAppointments}
                   duracaoPadraoMinutos={duracaoMinutos}
+                  horarioFuncionamento={horarioFuncionamento}
                   actionLoading={actionLoading}
                   mostrarAgora={date === getToday()}
                   onStatusChange={handleStatusChange}

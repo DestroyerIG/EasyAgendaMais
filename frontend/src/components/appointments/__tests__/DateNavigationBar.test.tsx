@@ -1,15 +1,29 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { DateNavigationBar, formatarDataAgenda, formatarDataAgendaCurta } from '../DateNavigationBar';
+import {
+  ChipsProfissional,
+  DateNavigationBar,
+  formatarDataAgenda,
+  formatarDataAgendaCurta,
+} from '../DateNavigationBar';
+
+const profissionais = [
+  { id: 'p1', nome: 'Camila Rocha', total: 6, tom: { fundo: 'bg-brand-text/15', texto: 'text-brand-text' } },
+  { id: 'p2', nome: 'Bruna Lima', total: 5, tom: { fundo: 'bg-tertiary/15', texto: 'text-tertiary' } },
+];
 
 const props = {
   selectedDate: '2026-09-17',
   viewMode: 'day' as const,
   statusFilter: 'todos' as const,
+  profissionais,
+  totalAgendamentos: 11,
+  profissionalFiltro: null,
   onDateChange: vi.fn(),
   onViewModeChange: vi.fn(),
   onStatusFilterChange: vi.fn(),
+  onProfissionalFiltroChange: vi.fn(),
   onNovoAgendamento: vi.fn(),
 };
 
@@ -83,5 +97,72 @@ describe('DateNavigationBar', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Novo agendamento' }));
     expect(onNovoAgendamento).toHaveBeenCalled();
+  });
+});
+
+describe('ChipsProfissional', () => {
+  const chipProps = {
+    profissionais,
+    totalGeral: 11,
+    ativo: null,
+    onChange: vi.fn(),
+  };
+
+  it('no celular mostra "Todas" e cada profissional com a contagem do dia', () => {
+    render(<ChipsProfissional {...chipProps} />);
+    expect(screen.getByRole('button', { name: 'Todas (11)' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /Camila \(6\)/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Bruna \(5\)/ })).toBeInTheDocument();
+  });
+
+  it('no computador os chips são compactos e sem contagem', () => {
+    render(<ChipsProfissional {...chipProps} compacto />);
+    expect(screen.getByRole('button', { name: 'Todas' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Camila' })).toBeInTheDocument();
+  });
+
+  it('esconde a contagem quando ela não é do dia (modo Semana)', () => {
+    render(<ChipsProfissional {...chipProps} mostrarContagem={false} />);
+    expect(screen.getByRole('button', { name: 'Todas' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /\(6\)/ })).not.toBeInTheDocument();
+  });
+
+  it('escolher uma profissional avisa quem escolheu; clicar de novo limpa', async () => {
+    const onChange = vi.fn();
+    const { unmount } = render(<ChipsProfissional {...chipProps} onChange={onChange} />);
+    await userEvent.click(screen.getByRole('button', { name: /Camila/ }));
+    expect(onChange).toHaveBeenCalledWith('p1');
+    unmount();
+
+    render(<ChipsProfissional {...chipProps} ativo="p1" onChange={onChange} />);
+    expect(screen.getByRole('button', { name: /Camila/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /Todas/ })).toHaveAttribute('aria-pressed', 'false');
+    await userEvent.click(screen.getByRole('button', { name: /Camila/ }));
+    expect(onChange).toHaveBeenCalledWith(null);
+  });
+
+  it('sem profissional no período, não desenha nada', () => {
+    const { container } = render(<ChipsProfissional {...chipProps} profissionais={[]} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe('DateNavigationBar com os chips do computador', () => {
+  it('traz os chips de profissional dentro da barra, escondidos no celular', () => {
+    render(<DateNavigationBar {...props} />);
+    const grupo = screen.getByRole('group', { name: 'Filtrar por profissional' });
+    expect(grupo).toHaveClass('hidden', 'lg:flex');
+    expect(grupo).toHaveTextContent('Camila');
+  });
+
+  it('a linha de data se rearruma por largura sem duplicar os botões', () => {
+    render(<DateNavigationBar {...props} />);
+    // Uma seta só de cada lado: a ordem muda por classe, não por segundo botão.
+    expect(screen.getAllByRole('button', { name: 'Período anterior' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Próximo período' })).toHaveLength(1);
+    // No celular a data fica no meio (order-2) e no computador no fim da pílula (order-5).
+    const data = screen.getByText('Quinta, 17 de set.').parentElement as HTMLElement;
+    expect(data).toHaveClass('order-2', 'lg:order-5');
+    expect(screen.getByRole('button', { name: 'Hoje' })).toHaveClass('order-3', 'lg:order-2');
   });
 });

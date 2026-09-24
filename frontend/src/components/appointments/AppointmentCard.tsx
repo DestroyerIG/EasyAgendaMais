@@ -21,7 +21,7 @@ import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
 import { Icon, StatusChip, STATUS_STRIPE_CLASS } from '@/components/ui';
-import { formatarDuracao, paraMinutos, paraHoraTexto } from './LinhaDoTempo';
+import { formatarMinutos, paraMinutos, paraHoraTexto } from './LinhaDoTempo';
 import type { Appointment } from '@/types';
 
 /** Arrasto máximo e ponto de virada do gesto, em pixels (agenda-mobile.html). */
@@ -52,7 +52,7 @@ export function CorpoCartaoAgendamento({ appointment, duracaoMinutos }: CorpoCar
         <span className="text-[24px] font-bold leading-none tracking-tight tabular-nums text-ink">
           {paraHoraTexto(inicioMinutos)}
         </span>
-        <span className="mt-1 text-[11px] font-semibold text-muted">{formatarDuracao(duracaoMinutos)}</span>
+        <span className="mt-1 text-[11px] font-semibold tabular-nums text-muted">{formatarMinutos(duracaoMinutos)}</span>
       </div>
       <div className={cn('w-1 shrink-0 self-stretch rounded-full', STATUS_STRIPE_CLASS[appointment.status])} />
       <div className="flex min-w-0 flex-1 flex-col justify-center">
@@ -74,7 +74,7 @@ export function CorpoCartaoAgendamento({ appointment, duracaoMinutos }: CorpoCar
           )}
         </div>
         <div className="mt-2 flex items-center gap-1.5">
-          <StatusChip status={appointment.status} className="text-[11px]" />
+          <StatusChip status={appointment.status} comPonto className="text-[11px]" />
         </div>
       </div>
     </>

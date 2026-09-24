@@ -4,8 +4,9 @@
  * Linha do tempo da Agenda no computador (agenda-desktop.html).
  *
  * Dado real: colunas de profissional, horário, cliente, serviço, valor e status de
- * cada agendamento vêm de GET /appointments; as vagas livres e a faixa de horas são
- * calculadas a partir desses agendamentos.
+ * cada agendamento vêm de GET /appointments; a faixa de horas começa no horário de
+ * funcionamento configurado (GET /business/settings) e as vagas livres saem do
+ * cruzamento dos dois.
  * Dado de exemplo: a duração de cada atendimento (conteudoDemo.agenda.duracaoPadraoMinutos),
  * porque o DTO de /appointments ainda não devolve a duração do serviço — é ela que
  * define a altura do bloco.
@@ -64,7 +65,23 @@ export const paraHoraTexto = (minutos: number): string => {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
-/** 30 → "30m"; 60 → "1h"; 90 → "1h30" (formato do arquivo de referência). */
+/** 60 → "60 min": a duração embaixo da hora no cartão do celular (agenda-mobile.html). */
+export const formatarMinutos = (minutos: number): string => `${minutos} min`;
+
+/**
+ * "8h - 19h": o horário de funcionamento do negócio, do jeito que agenda-mobile.html
+ * escreve. Com os minutos quando a abertura ou o fechamento não cai na hora cheia.
+ */
+export const formatarHorarioFuncionamento = (aberturaMinutos: number, fechamentoMinutos: number): string => {
+  const hora = (minutos: number) => {
+    const h = Math.floor(minutos / 60);
+    const m = minutos % 60;
+    return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`;
+  };
+  return `${hora(aberturaMinutos)} - ${hora(fechamentoMinutos)}`;
+};
+
+/** 30 → "30m"; 60 → "1h"; 90 → "1h30" (formato do bloco de horário livre). */
 export const formatarDuracao = (minutos: number): string => {
   const h = Math.floor(minutos / 60);
   const m = minutos % 60;
@@ -85,20 +102,39 @@ export interface FaixaHoras {
   horas: number[];
 }
 
+/** Horário de funcionamento do negócio, em minutos desde a meia-noite. */
+export interface HorarioFuncionamento {
+  aberturaMinutos: number;
+  fechamentoMinutos: number;
+}
+
 /**
- * Faixa de horas desenhada: a janela 08:00–20:00 do arquivo, esticada quando há
- * agendamento fora dela. O horário de funcionamento configurado seria a fonte certa
- * do limite, mas nenhuma rota do painel o entrega ao frontend hoje.
+ * Faixa de horas desenhada: começa no horário de funcionamento configurado do negócio
+ * (GET /business/settings) e se estica quando existe agendamento fora dele. Sem o
+ * horário configurado, cai na janela 08:00–20:00 do arquivo de referência, que é o
+ * padrão de desenho — nunca uma afirmação sobre o negócio.
  */
-export function calcularFaixaHoras(agendamentos: Appointment[], duracaoPadraoMinutos: number): FaixaHoras {
-  let horaInicio = HORA_INICIO_PADRAO;
-  let horaFim = HORA_FIM_PADRAO;
+export function calcularFaixaHoras(
+  agendamentos: Appointment[],
+  duracaoPadraoMinutos: number,
+  horarioFuncionamento?: HorarioFuncionamento | null,
+): FaixaHoras {
+  let horaInicio = horarioFuncionamento
+    ? Math.floor(horarioFuncionamento.aberturaMinutos / 60)
+    : HORA_INICIO_PADRAO;
+  let horaFim = horarioFuncionamento
+    ? Math.ceil(horarioFuncionamento.fechamentoMinutos / 60)
+    : HORA_FIM_PADRAO;
 
   agendamentos.forEach((agendamento) => {
     const inicio = paraMinutos(agendamento.time);
     horaInicio = Math.min(horaInicio, Math.floor(inicio / 60));
     horaFim = Math.max(horaFim, Math.ceil((inicio + duracaoPadraoMinutos) / 60));
   });
+
+  // O dia acaba às 24:00: um atendimento às 23:30 não pode esticar a régua até "25:00".
+  horaInicio = Math.max(0, horaInicio);
+  horaFim = Math.min(24, Math.max(horaFim, horaInicio + 1));
 
   const horas: number[] = [];
   for (let hora = horaInicio; hora <= horaFim; hora += 1) horas.push(hora);
@@ -126,12 +162,18 @@ export interface VagaLivre {
 /**
  * Buracos de pelo menos 30 minutos entre os atendimentos de um profissional, dentro
  * da faixa desenhada. Cancelado não ocupa horário, então o intervalo dele conta como livre.
+ *
+ * `apenasEntreAtendimentos` deixa de fora o buraco antes do primeiro e depois do último
+ * atendimento: é o que a lista do celular mostra (agenda-mobile.html tem uma linha de
+ * horário livre no meio da lista, nenhuma nas pontas).
  */
 export function calcularVagasLivres(
   agendamentos: Appointment[],
   faixa: FaixaHoras,
   duracaoPadraoMinutos: number,
+  opcoes?: { apenasEntreAtendimentos?: boolean },
 ): VagaLivre[] {
+  const apenasEntre = opcoes?.apenasEntreAtendimentos ?? false;
   const ocupados = agendamentos
     .filter((agendamento) => agendamento.status !== 'cancelado')
     .map((agendamento) => {
@@ -143,14 +185,15 @@ export function calcularVagasLivres(
   const vagas: VagaLivre[] = [];
   let cursor = faixa.inicioMinutos;
 
-  ocupados.forEach(({ inicio, fim }) => {
-    if (inicio - cursor >= VAGA_MINIMA_MINUTOS) {
+  ocupados.forEach(({ inicio, fim }, indice) => {
+    const naPonta = apenasEntre && indice === 0;
+    if (!naPonta && inicio - cursor >= VAGA_MINIMA_MINUTOS) {
       vagas.push({ inicioMinutos: cursor, duracaoMinutos: inicio - cursor });
     }
     cursor = Math.max(cursor, fim);
   });
 
-  if (faixa.fimMinutos - cursor >= VAGA_MINIMA_MINUTOS) {
+  if (!apenasEntre && faixa.fimMinutos - cursor >= VAGA_MINIMA_MINUTOS) {
     vagas.push({ inicioMinutos: cursor, duracaoMinutos: faixa.fimMinutos - cursor });
   }
 
@@ -163,13 +206,17 @@ export interface ColunaProfissional {
   agendamentos: Appointment[];
 }
 
+/** Chave da coluna/chip de um agendamento — a mesma na grade e na peneira dos chips. */
+export const chaveProfissional = (agendamento: Appointment): string =>
+  agendamento.professional_id || agendamento.professional_name || 'sem-profissional';
+
 /** Uma coluna por profissional que tem agendamento no período, em ordem alfabética. */
 export function agruparPorProfissional(agendamentos: Appointment[]): ColunaProfissional[] {
   const colunas = new Map<string, ColunaProfissional>();
 
   agendamentos.forEach((agendamento) => {
     const nome = agendamento.professional_name || 'Sem profissional';
-    const id = agendamento.professional_id || nome;
+    const id = chaveProfissional(agendamento);
     const coluna = colunas.get(id) || { id, nome, agendamentos: [] };
     coluna.agendamentos.push(agendamento);
     colunas.set(id, coluna);
@@ -330,6 +377,8 @@ function BlocoVagaLivre({ vaga, faixaInicioMinutos, onNovoAgendamento }: BlocoVa
 export interface LinhaDoTempoProps {
   agendamentos: Appointment[];
   duracaoPadraoMinutos: number;
+  /** Horário de funcionamento configurado; sem ele a régua cai na janela do arquivo. */
+  horarioFuncionamento?: HorarioFuncionamento | null;
   actionLoading: string | null;
   /** Só o dia de hoje mostra a linha "Agora". */
   mostrarAgora?: boolean;
@@ -341,6 +390,7 @@ export interface LinhaDoTempoProps {
 export function LinhaDoTempo({
   agendamentos,
   duracaoPadraoMinutos,
+  horarioFuncionamento,
   actionLoading,
   mostrarAgora = false,
   onStatusChange,
@@ -362,7 +412,7 @@ export function LinhaDoTempo({
   const colunas = agruparPorProfissional(agendamentos);
   if (colunas.length === 0) return null;
 
-  const faixa = calcularFaixaHoras(agendamentos, duracaoPadraoMinutos);
+  const faixa = calcularFaixaHoras(agendamentos, duracaoPadraoMinutos, horarioFuncionamento);
   const alturaTotal = (faixa.horaFim - faixa.horaInicio) * ALTURA_HORA;
   const gridTemplateColumns = `68px repeat(${colunas.length}, minmax(0, 1fr))`;
   const agoraVisivel =
@@ -380,11 +430,14 @@ export function LinhaDoTempo({
           return (
             <div key={coluna.id} className="flex items-center justify-between gap-2 border-l border-line px-4 py-3">
               <div className="flex min-w-0 items-center gap-2.5">
-                <Avatar
-                  name={coluna.nome}
-                  size={36}
-                  className={cn('text-[13px] font-bold ring-2', tom.fundo, tom.texto, tom.anel)}
-                />
+                {/* Decorativo: o nome vem escrito ao lado. */}
+                <span aria-hidden="true" className="flex shrink-0">
+                  <Avatar
+                    name={coluna.nome}
+                    size={36}
+                    className={cn('text-[13px] font-bold ring-2', tom.fundo, tom.texto, tom.anel)}
+                  />
+                </span>
                 <span className="truncate text-[17px] font-semibold leading-tight text-ink">{coluna.nome}</span>
               </div>
               <span className="shrink-0 rounded-full bg-surface px-2 py-0.5 text-[11px] font-bold tabular-nums text-muted">
