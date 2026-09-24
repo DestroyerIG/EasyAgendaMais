@@ -1,10 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { LogOut } from 'lucide-react';
 import { MORE_MENU_IDS, getNavItem, type NavItemId } from '@/lib/navigation';
 import { cn } from '@/lib/cn';
-import { Button, SidePanel, ThemeSelect } from '@/components/ui';
+import { Button, Icon, SidePanel, ThemeSelect } from '@/components/ui';
 
 export interface MoreSheetProps {
   open: boolean;
@@ -18,7 +17,7 @@ export function MoreSheet({ open, onOpenChange, activeId, onLogout }: MoreSheetP
     <SidePanel open={open} onOpenChange={onOpenChange} title="Mais" side="bottom">
       <ul className="flex flex-col gap-1">
         {MORE_MENU_IDS.map((id) => {
-          const { label, href, icon: Icon } = getNavItem(id);
+          const { label, href, icon } = getNavItem(id);
           const active = id === activeId;
           return (
             <li key={id}>
@@ -31,7 +30,7 @@ export function MoreSheet({ open, onOpenChange, activeId, onLogout }: MoreSheetP
                   active ? 'bg-brand/12 text-brand-text' : 'text-ink hover:bg-surface-2',
                 )}
               >
-                <Icon className="h-5 w-5" aria-hidden="true" />
+                <Icon name={icon} size={20} filled={active} />
                 {label}
               </Link>
             </li>
@@ -43,7 +42,7 @@ export function MoreSheet({ open, onOpenChange, activeId, onLogout }: MoreSheetP
         <ThemeSelect className="w-full justify-between" />
       </div>
       <Button variant="ghost" fullWidth className="mt-4 justify-start" onClick={() => { onOpenChange(false); onLogout(); }}>
-        <LogOut className="h-5 w-5" aria-hidden="true" />
+        <Icon name="logout" size={20} />
         Sair
       </Button>
     </SidePanel>

@@ -1,29 +1,40 @@
-import { CalendarDays, Home, MessageCircle, Settings, Users, Wallet, type LucideIcon } from 'lucide-react';
-
-export type NavItemId = 'hoje' | 'agenda' | 'clientes' | 'caixa' | 'whatsapp' | 'ajustes';
+export type NavItemId =
+  | 'hoje'
+  | 'agenda'
+  | 'clientes'
+  | 'caixa'
+  | 'clube'
+  | 'whatsapp'
+  | 'relatorios'
+  | 'minha-pagina'
+  | 'ajustes';
 
 export interface NavItem {
   id: NavItemId;
   label: string;
   href: string;
-  icon: LucideIcon;
+  // Nome do ícone Material Symbol (renderizado via <Icon name={icon} />, Tarefa 1).
+  icon: string;
   matches: readonly string[];
 }
 
-// Itens da barra lateral, na ordem do DESIGN.md, só os que já existem.
-// Clube e pacotes, Relatórios e Minha página entram quando os sub-projetos entregarem as telas.
+// Itens da barra lateral, na ordem do DESIGN.md — os nove, sem "Funil CRM"
+// (fora de escopo; ver seção 0.3 do INVENTARIO.md).
 export const NAV_ITEMS: readonly NavItem[] = [
-  { id: 'hoje', label: 'Hoje', href: '/dashboard', icon: Home, matches: ['/dashboard'] },
-  { id: 'agenda', label: 'Agenda', href: '/agendamentos', icon: CalendarDays, matches: ['/agendamentos'] },
-  { id: 'clientes', label: 'Clientes', href: '/clientes', icon: Users, matches: ['/clientes'] },
-  { id: 'caixa', label: 'Caixa', href: '/financeiro', icon: Wallet, matches: ['/financeiro'] },
-  { id: 'whatsapp', label: 'WhatsApp', href: '/whatsapp', icon: MessageCircle, matches: ['/whatsapp'] },
-  { id: 'ajustes', label: 'Ajustes', href: '/configuracoes', icon: Settings, matches: ['/configuracoes', '/servicos', '/planos'] },
+  { id: 'hoje', label: 'Hoje', href: '/dashboard', icon: 'today', matches: ['/dashboard'] },
+  { id: 'agenda', label: 'Agenda', href: '/agendamentos', icon: 'calendar_month', matches: ['/agendamentos'] },
+  { id: 'clientes', label: 'Clientes', href: '/clientes', icon: 'group', matches: ['/clientes'] },
+  { id: 'caixa', label: 'Caixa', href: '/financeiro', icon: 'point_of_sale', matches: ['/financeiro'] },
+  { id: 'clube', label: 'Clube e pacotes', href: '/clube', icon: 'loyalty', matches: ['/clube'] },
+  { id: 'whatsapp', label: 'WhatsApp', href: '/whatsapp', icon: 'chat', matches: ['/whatsapp'] },
+  { id: 'relatorios', label: 'Relatórios', href: '/relatorios', icon: 'bar_chart', matches: ['/relatorios'] },
+  { id: 'minha-pagina', label: 'Minha página', href: '/minha-pagina', icon: 'storefront', matches: ['/minha-pagina'] },
+  { id: 'ajustes', label: 'Ajustes', href: '/configuracoes', icon: 'settings', matches: ['/configuracoes', '/servicos', '/planos'] },
 ];
 
-// Barra inferior do celular: Hoje, Agenda, [+], Clientes, [Mais].
+// Barra inferior do celular: Hoje, Agenda, [+], Clientes, [Mais] — hoje-mobile.html.
 export const BOTTOM_NAV_IDS: readonly NavItemId[] = ['hoje', 'agenda', 'clientes'];
-export const MORE_MENU_IDS: readonly NavItemId[] = ['caixa', 'whatsapp', 'ajustes'];
+export const MORE_MENU_IDS: readonly NavItemId[] = ['caixa', 'clube', 'whatsapp', 'relatorios', 'minha-pagina', 'ajustes'];
 export const NEW_APPOINTMENT_HREF = '/agendamentos?novo=1';
 
 export const SETTINGS_TABS: readonly { label: string; href: string }[] = [

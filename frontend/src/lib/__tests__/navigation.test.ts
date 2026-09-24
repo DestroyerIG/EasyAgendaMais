@@ -11,7 +11,17 @@ import {
 
 describe('navegação', () => {
   it('barra lateral tem exatamente estes itens, nesta ordem', () => {
-    expect(NAV_ITEMS.map((item) => item.label)).toEqual(['Hoje', 'Agenda', 'Clientes', 'Caixa', 'WhatsApp', 'Ajustes']);
+    expect(NAV_ITEMS.map((item) => item.label)).toEqual([
+      'Hoje',
+      'Agenda',
+      'Clientes',
+      'Caixa',
+      'Clube e pacotes',
+      'WhatsApp',
+      'Relatórios',
+      'Minha página',
+      'Ajustes',
+    ]);
   });
 
   it('endereços atuais não mudam', () => {
@@ -20,14 +30,31 @@ describe('navegação', () => {
       '/agendamentos',
       '/clientes',
       '/financeiro',
+      '/clube',
       '/whatsapp',
+      '/relatorios',
+      '/minha-pagina',
       '/configuracoes',
+    ]);
+  });
+
+  it('ícone de cada item vem do Material Symbols', () => {
+    expect(NAV_ITEMS.map((item) => item.icon)).toEqual([
+      'today',
+      'calendar_month',
+      'group',
+      'point_of_sale',
+      'loyalty',
+      'chat',
+      'bar_chart',
+      'storefront',
+      'settings',
     ]);
   });
 
   it('barra inferior e menu Mais', () => {
     expect(BOTTOM_NAV_IDS).toEqual(['hoje', 'agenda', 'clientes']);
-    expect(MORE_MENU_IDS).toEqual(['caixa', 'whatsapp', 'ajustes']);
+    expect(MORE_MENU_IDS).toEqual(['caixa', 'clube', 'whatsapp', 'relatorios', 'minha-pagina', 'ajustes']);
     expect(NEW_APPOINTMENT_HREF).toBe('/agendamentos?novo=1');
   });
 
@@ -46,7 +73,10 @@ describe('navegação', () => {
     ['/dashboard/agendamentos', 'agenda'],
     ['/clientes', 'clientes'],
     ['/financeiro', 'caixa'],
+    ['/clube', 'clube'],
     ['/whatsapp', 'whatsapp'],
+    ['/relatorios', 'relatorios'],
+    ['/minha-pagina', 'minha-pagina'],
     ['/configuracoes', 'ajustes'],
     ['/servicos', 'ajustes'],
     ['/planos', 'ajustes'],

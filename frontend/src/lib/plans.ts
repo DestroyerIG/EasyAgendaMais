@@ -70,3 +70,16 @@ export const PLAN_MAP: Record<PlanId, SaaSPlan> = SAAS_PLANS.reduce((acc, plan) 
 export const isPlanId = (value: string): value is PlanId => {
   return value === 'basico' || value === 'profissional' || value === 'premium';
 };
+
+// Nome curto do plano para a casca do painel (rodapé da barra lateral): Solo, Equipe
+// ou Salão — nunca o nome comercial ("Básico"/"Profissional"/"Premium") usado nas
+// páginas de preço, e nunca "Pro".
+export const PLAN_SHELL_LABEL: Record<PlanId, string> = {
+  basico: 'Solo',
+  profissional: 'Equipe',
+  premium: 'Salão',
+};
+
+export const getPlanShellLabel = (plan: string): string => {
+  return isPlanId(plan) ? PLAN_SHELL_LABEL[plan] : PLAN_SHELL_LABEL.basico;
+};

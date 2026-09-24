@@ -26,6 +26,7 @@ import type { ClientFormData } from '@/components/clients/ClientFormModal';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { cn } from '@/lib/cn';
 import { UserPlus, Search, Edit2, Users } from 'lucide-react';
+import { useRegisterTopBarSearch } from '@/components/shell/TopBarSearchContext';
 import type { Client, Appointment } from '@/types';
 
 function formatLastVisit(dateString: string | null) {
@@ -43,6 +44,10 @@ export const ClientModule = () => {
   const [history, setHistory] = useState<Appointment[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const { showToast } = useToast();
+
+  // Publica o filtro de busca já existente nesta tela para a barra superior do
+  // painel controlar (Tarefa 3 da casca) — mesmo estado, sem chamada nova.
+  useRegisterTopBarSearch({ value: searchTerm, onChange: setSearchTerm });
 
   const loadClients = useCallback(async () => {
     try {
