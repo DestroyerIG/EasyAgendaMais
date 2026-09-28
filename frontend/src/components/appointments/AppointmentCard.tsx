@@ -12,6 +12,14 @@
  * Fora da tela: o "encaixe rápido" e a ação de cobrar sinal por Pix do arquivo de
  * referência, que dependem de funções que não existem.
  *
+ * `CorpoCartaoAgendamento` é compartilhado com a agenda de um profissional só
+ * (ProfessionalAgenda.tsx), que não tem arquivo de referência. Na base (aed10f1) essa
+ * tela mostrava só hora, faixa de status, cliente, serviço e selo de status — sem
+ * duração, preço ou nome do profissional. `mostrarDuracaoEPreco` e
+ * `mostrarNomeProfissional` (default `true`, ligados só na Agenda) existem para
+ * ProfessionalAgenda.tsx poder desligar os três e voltar exatamente a esse estado, sem
+ * mudar as telas que estão dentro do escopo desta migração (correção I9).
+ *
  * O arquivo de referência escreve "Marcar Falta" na ação vermelha. O sistema só tem
  * os status confirmado, concluído e cancelado — não existe falta — então a ação leva
  * o nome da transição que ela realmente faz, "Cancelar", para o cartão não prometer
@@ -64,6 +72,15 @@ interface CorpoCartaoProps {
   duracaoEmMinutos?: boolean;
   /** Bolinha na cor do status antes do rótulo, também só de agenda-mobile.html. */
   comPontoDeStatus?: boolean;
+  /**
+   * Duração (embaixo do horário) e preço (ao lado do nome do cliente) do arquivo de
+   * referência. Default `true` para a Agenda, que está dentro do escopo desta migração;
+   * `false` restaura o comportamento da base (aed10f1) na agenda de um profissional só,
+   * que não tem arquivo de referência (correção I9 da revisão final).
+   */
+  mostrarDuracaoEPreco?: boolean;
+  /** Nome do profissional ao lado do serviço, também só do arquivo de referência. */
+  mostrarNomeProfissional?: boolean;
 }
 
 /** Miolo do cartão, compartilhado com a agenda de um profissional só. */
@@ -72,6 +89,8 @@ export function CorpoCartaoAgendamento({
   duracaoMinutos,
   duracaoEmMinutos = false,
   comPontoDeStatus = false,
+  mostrarDuracaoEPreco = true,
+  mostrarNomeProfissional = true,
 }: CorpoCartaoProps) {
   const inicioMinutos = paraMinutos(appointment.time);
   const cancelado = appointment.status === 'cancelado';
@@ -82,9 +101,11 @@ export function CorpoCartaoAgendamento({
         <span className="text-[24px] font-bold leading-none tracking-tight tabular-nums text-ink">
           {paraHoraTexto(inicioMinutos)}
         </span>
-        <span className="mt-1 text-[11px] font-semibold tabular-nums text-muted">
-          {duracaoEmMinutos ? formatarMinutos(duracaoMinutos) : formatarDuracao(duracaoMinutos)}
-        </span>
+        {mostrarDuracaoEPreco && (
+          <span className="mt-1 text-[11px] font-semibold tabular-nums text-muted">
+            {duracaoEmMinutos ? formatarMinutos(duracaoMinutos) : formatarDuracao(duracaoMinutos)}
+          </span>
+        )}
       </div>
       <div className={cn('w-1 shrink-0 self-stretch rounded-full', STATUS_STRIPE_CLASS[appointment.status])} />
       <div className="flex min-w-0 flex-1 flex-col justify-center">
@@ -92,13 +113,15 @@ export function CorpoCartaoAgendamento({
           <h3 className={cn('truncate text-[17px] font-semibold text-ink', cancelado && 'line-through')}>
             {appointment.client_name}
           </h3>
-          <span className="shrink-0 text-[17px] font-bold tabular-nums text-ink">
-            {formatCurrency(Number(appointment.service_price || 0), { cents: false })}
-          </span>
+          {mostrarDuracaoEPreco && (
+            <span className="shrink-0 text-[17px] font-bold tabular-nums text-ink">
+              {formatCurrency(Number(appointment.service_price || 0), { cents: false })}
+            </span>
+          )}
         </div>
         <div className="mt-0.5 flex items-center gap-1.5">
           <span className="truncate text-[14px] text-ink">{appointment.service_name}</span>
-          {appointment.professional_name && (
+          {mostrarNomeProfissional && appointment.professional_name && (
             <>
               <span className="text-muted">·</span>
               <span className="truncate text-[13px] font-semibold text-muted">{appointment.professional_name}</span>

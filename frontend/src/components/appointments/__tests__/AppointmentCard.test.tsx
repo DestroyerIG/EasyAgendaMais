@@ -225,4 +225,24 @@ describe('CorpoCartaoAgendamento fora da Agenda', () => {
     expect(screen.queryByText('1h')).not.toBeInTheDocument();
     expect(screen.getByText('Confirmado').querySelector('span')).not.toBeNull();
   });
+
+  it('mostrarDuracaoEPreco={false} e mostrarNomeProfissional={false} restauram a base (aed10f1): sem duração, preço ou profissional (I9)', () => {
+    render(
+      <CorpoCartaoAgendamento
+        appointment={agendamento()}
+        duracaoMinutos={60}
+        mostrarDuracaoEPreco={false}
+        mostrarNomeProfissional={false}
+      />,
+    );
+
+    expect(screen.queryByText('1h')).not.toBeInTheDocument();
+    expect(screen.queryByText('60 min')).not.toBeInTheDocument();
+    expect(screen.queryByText('R$ 180')).not.toBeInTheDocument();
+    expect(screen.queryByText('Camila Rocha')).not.toBeInTheDocument();
+    expect(screen.getByText('10:00')).toBeInTheDocument();
+    expect(screen.getByText('Mariana Souza')).toBeInTheDocument();
+    expect(screen.getByText('Alongamento em Gel')).toBeInTheDocument();
+    expect(screen.getByText('Confirmado')).toBeInTheDocument();
+  });
 });

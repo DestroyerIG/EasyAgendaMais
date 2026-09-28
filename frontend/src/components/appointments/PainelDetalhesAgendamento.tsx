@@ -11,9 +11,11 @@
  * cancelar chamam o mesmo handler de status que a Agenda já usava.
  * Dado de exemplo (conteudoDemo.agenda): a duração do atendimento
  * (duracaoPadraoMinutos, porque o DTO não devolve a duração do serviço) e, em
- * conteudoDemo.agenda.detalhes, o ciclo médio e o selo dele, o total de visitas com o
- * ano, o resumo da última visita, o sinal por Pix com o comprovante, a origem do
- * agendamento, o texto das observações e o selo de cliente recorrente.
+ * conteudoDemo.agenda.detalhes, o sinal por Pix com o comprovante, a origem do
+ * agendamento, o texto das observações e o selo neutro de cliente recorrente (sem
+ * números — o DTO do agendamento não traz `client_id`, então nenhum número de ciclo
+ * médio ou total de visitas teria como ficar consistente com a lista e a ficha da
+ * cliente; correção I1 da revisão final).
  * Sobre o sinal: o sistema não recebe sinal por Pix, então o valor de exemplo é limitado
  * ao preço real do serviço e o "valor a pagar no estúdio" é a diferença — as duas linhas
  * sempre somam o total verdadeiro do atendimento, nunca mais do que ele. Sem preço de
@@ -32,6 +34,7 @@ import { useToast } from '@/components/Toast';
 import { AVISO_RECURSO_A_CAMINHO, Avatar, Icon, SidePanel, StatusChip } from '@/components/ui';
 import { formatarDataAgenda } from './DateNavigationBar';
 import { formatarDuracao, paraHoraTexto, paraMinutos } from './LinhaDoTempo';
+import { linkWhatsapp } from '@/lib/whatsapp';
 import type { Appointment } from '@/types';
 
 /** Largura do painel no computador (agendamento-detalhes.html). */
@@ -75,12 +78,8 @@ export function agendadoEmTexto(criadoEm: string): string | null {
   return `Agendado em ${dia}/${mes} às ${hora}:${minuto}`;
 }
 
-/** Link do WhatsApp só quando o telefone tem os dígitos de um número brasileiro. */
-export function linkWhatsapp(telefone: string | undefined): string | null {
-  const digitos = (telefone || '').replace(/\D/g, '');
-  if (digitos.length !== 10 && digitos.length !== 11) return null;
-  return `https://wa.me/55${digitos}`;
-}
+// Reexportado para quem já importava `linkWhatsapp` daqui (M3 da revisão final).
+export { linkWhatsapp };
 
 /** Vale a largura de computador? Lido só depois da montagem, nunca no servidor. */
 function useLarguraDeComputador(): boolean {
@@ -159,31 +158,6 @@ export function ConteudoDetalhesAgendamento({ agendamento, duracaoMinutos }: Con
               Cliente Recorrente
             </span>
           )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex flex-col rounded-control bg-surface p-3">
-            <span className="text-[11px] text-muted">Ciclo médio</span>
-            <span className="mt-1 flex items-baseline gap-1.5">
-              <span className="text-[24px] font-bold leading-none tabular-nums text-ink">
-                {detalhes.cicloMedioDias}
-              </span>
-              <span className="text-[14px] text-muted">dias</span>
-            </span>
-            <span className="mt-1 flex items-center gap-0.5 text-[11px] font-semibold text-success-text">
-              <Icon name="verified" size={14} /> {detalhes.cicloMedioSelo}
-            </span>
-          </div>
-          <div className="flex flex-col rounded-control bg-surface p-3">
-            <span className="text-[11px] text-muted">Total de visitas</span>
-            <span className="mt-1 flex items-baseline gap-1.5">
-              <span className="text-[24px] font-bold leading-none tabular-nums text-ink">
-                {detalhes.totalVisitas}
-              </span>
-              <span className="text-[14px] text-muted">em {detalhes.totalVisitasAno}</span>
-            </span>
-            <span className="mt-1 truncate text-[11px] text-muted">Última: {detalhes.ultimaVisitaResumo}</span>
-          </div>
         </div>
       </div>
 

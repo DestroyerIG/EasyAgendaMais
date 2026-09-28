@@ -108,9 +108,14 @@ export function ProfessionalAgenda({ professional }: ProfessionalAgendaProps) {
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     {appointments.map(appointment => (
                         <Card key={appointment.id} className="flex items-stretch gap-3 p-3.5 sm:p-3.5">
+                            {/* Tela sem referência no Stitch (ruling da Tarefa 5): fica como
+                                estava em aed10f1 — só hora, faixa de status, cliente, serviço
+                                e selo de status, sem duração/preço/profissional (correção I9). */}
                             <CorpoCartaoAgendamento
                                 appointment={appointment}
                                 duracaoMinutos={conteudoDemo.agenda.duracaoPadraoMinutos}
+                                mostrarDuracaoEPreco={false}
+                                mostrarNomeProfissional={false}
                             />
                         </Card>
                     ))}

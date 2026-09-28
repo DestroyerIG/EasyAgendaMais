@@ -159,10 +159,15 @@ describe('PainelDetalhesAgendamento', () => {
     abrir();
     const detalhes = conteudoDemo.agenda.detalhes;
 
-    expect(screen.getByText(`em ${detalhes.totalVisitasAno}`)).toBeInTheDocument();
     expect(screen.getByText(detalhes.origem)).toBeInTheDocument();
     expect(screen.getByText(`“${detalhes.observacoes}”`)).toBeInTheDocument();
-    expect(screen.getByText(`Última: ${detalhes.ultimaVisitaResumo}`)).toBeInTheDocument();
+  });
+
+  it('o selo de cliente recorrente é neutro, sem número de ciclo médio ou total de visitas (I1)', () => {
+    abrir();
+    expect(screen.getByText('Cliente Recorrente')).toBeInTheDocument();
+    expect(screen.queryByText('Ciclo médio')).not.toBeInTheDocument();
+    expect(screen.queryByText('Total de visitas')).not.toBeInTheDocument();
   });
 
   it('concluir e cancelar chamam o handler existente com o status certo', async () => {
