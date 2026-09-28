@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import { AVISO_RECURSO_A_CAMINHO } from '@/components/ui';
@@ -228,15 +228,36 @@ describe('ClientDetailPanel', () => {
     expect(screen.getByText('Cliente desde março de 2026')).toBeInTheDocument();
   });
 
-  it('a ficha técnica é genérica, vinda de conteudoDemo, sem nada de nicho', () => {
-    abrir();
+  it('a ficha técnica é genérica, vinda de conteudoDemo, sem nada de nicho e sem alerta de saúde inventado', () => {
+    abrir({ client: client({ notes: undefined }) });
     const fichaTecnica = conteudoDemo.clientes.perfilDestaque.fichaTecnica;
 
     expect(screen.getByText(fichaTecnica.titulo)).toBeInTheDocument();
-    expect(screen.getByText(fichaTecnica.alerta.titulo)).toBeInTheDocument();
-    expect(screen.getByText(fichaTecnica.alerta.descricao)).toBeInTheDocument();
-    expect(screen.getByText(fichaTecnica.observacoes)).toBeInTheDocument();
     expect(screen.queryByText(/unha|curvatura|ápice/i)).not.toBeInTheDocument();
+    // C1 da revisão final: não existe campo de alergia no cadastro, então a ficha não
+    // pode mais inventar uma condição de saúde para qualquer cliente real.
+    expect(screen.queryByText('Alergia e restrição')).not.toBeInTheDocument();
+    expect(screen.queryByText(/sensível a um dos produtos/i)).not.toBeInTheDocument();
+  });
+
+  it('"Observações da profissional" mostra client.notes real, com fallback quando vazio', () => {
+    abrir({ client: client({ notes: 'Prefere atendimento silencioso.' }) });
+    expect(screen.getByText('Prefere atendimento silencioso.')).toBeInTheDocument();
+
+    cleanup();
+    abrir({ client: client({ notes: undefined }) });
+    expect(screen.getByText('Nenhuma observação registrada')).toBeInTheDocument();
+  });
+
+  it('o bloco de Contato mostra e-mail e endereço reais, com os fallbacks de antes da migração', () => {
+    abrir({ client: client({ email: undefined, address: undefined }) });
+    expect(screen.getByText('Não informado')).toBeInTheDocument();
+    expect(screen.getByText('Não cadastrado')).toBeInTheDocument();
+
+    cleanup();
+    abrir({ client: client({ email: 'fernanda@example.com', address: 'Rua das Flores, 123' }) });
+    expect(screen.getByText('fernanda@example.com')).toBeInTheDocument();
+    expect(screen.getByText('Rua das Flores, 123')).toBeInTheDocument();
   });
 
   it('a galeria mostra os 4 itens de exemplo, sem nenhuma imagem carregada de fora', () => {
@@ -316,12 +337,19 @@ describe('ClientDetailPanel', () => {
     expect(screen.getByText('Cancelado')).toBeInTheDocument();
   });
 
-  it('os eventos de exemplo (whatsapp, avaliação, falta, cadastro) sempre aparecem', () => {
+  it('os eventos de exemplo (whatsapp, avaliação) e o cadastro real sempre aparecem', () => {
     abrir();
     expect(screen.getByText('Mensagem de WhatsApp')).toBeInTheDocument();
     expect(screen.getByText('Avaliação recebida')).toBeInTheDocument();
-    expect(screen.getByText('Falta registrada')).toBeInTheDocument();
     expect(screen.getByText('Cadastro inicial')).toBeInTheDocument();
+    // I2 da revisão final: o evento de exemplo "Falta registrada" contradizia a métrica
+    // real "Faltas / Cancelamentos: 0" da mesma ficha — saiu da linha do tempo.
+    expect(screen.queryByText('Falta registrada')).not.toBeInTheDocument();
+  });
+
+  it('o cadastro inicial da linha do tempo usa o created_at real, não um texto fixo', () => {
+    abrir({ client: client({ created_at: '2026-03-12T00:00:00' }) });
+    expect(screen.getByText('12 de março de 2026')).toBeInTheDocument();
   });
 
   it('o filtro "Financeiro" esconde os outros tipos de evento (filtro real, em memória)', async () => {

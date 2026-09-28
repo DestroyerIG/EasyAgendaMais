@@ -22,14 +22,17 @@
  * histórico, nunca do texto fixo do arquivo.
  *
  * Dado de exemplo (`conteudoDemo.clientes.perfilDestaque`, que a Tarefa 2 preparou para
- * esta tela): o bloco de consentimento LGPD, a "Ficha técnica" (genérica — preferências de
- * atendimento, alergia/restrição, observações, nunca o formato/curvatura de unha do
- * arquivo, que é de um segmento só), a galeria de procedimentos (a foto vira um bloco
- * neutro com ícone — nenhuma chamada para fora, nenhum retrato inventado de uma cliente
- * real) e os 4 eventos da linha do tempo que o histórico real não cobre (mensagem de
- * WhatsApp, avaliação, falta "justificada" e cadastro inicial) — sempre os mesmos textos,
- * para qualquer cliente aberta, porque a ficha técnica e o CRM de relacionamento ainda não
- * existem por cliente no sistema.
+ * esta tela): o bloco de consentimento LGPD (menos a data de autorização, que usa o
+ * created_at real), a "Ficha técnica" (genérica — preferências de atendimento, nunca o
+ * formato/curvatura de unha do arquivo, que é de um segmento só; sem alerta de
+ * saúde/alergia, que o cadastro não tem campo para sustentar), a galeria de procedimentos
+ * (a foto vira um bloco neutro com ícone — nenhuma chamada para fora, nenhum retrato
+ * inventado de uma cliente real) e os 2 eventos da linha do tempo que o histórico real não
+ * cobre (mensagem de WhatsApp, avaliação) — sempre os mesmos textos, para qualquer cliente
+ * aberta, porque o CRM de relacionamento ainda não existe por cliente no sistema. O evento
+ * de cadastro inicial da linha do tempo é real, calculado a partir de `client.created_at`.
+ * E-mail e endereço reais aparecem num bloco de Contato, com fallback "Não informado"/"Não
+ * cadastrado" quando o cliente não os tem cadastrados.
  *
  * "Fase" (Fiel/Recorrente/...), a etiqueta (Clube VIP) e "Prefere <profissional>" no
  * cabeçalho seguem a mesma ideia de `conteudoDemo.clientes.exemplos` que a lista de
@@ -51,25 +54,12 @@ import { conteudoDemo } from '@/lib/conteudoDemo';
 import { formatCurrency, formatPhone } from '@/lib/formatters';
 import { useToast } from '@/components/Toast';
 import { AVISO_RECURSO_A_CAMINHO, Avatar, Icon, StatusChip } from '@/components/ui';
-import { descreverUltimaVisita, exemploParaIndice } from '@/components/ClientModule';
+import { FASE_PADRAO, FASE_TOKENS, descreverUltimaVisita, exemploParaIndice } from '@/components/ClientModule';
+import { linkWhatsapp } from '@/lib/whatsapp';
 import type { Appointment, Client } from '@/types';
 
-// Cores da fase, mesmo mapeamento de tokens que ClientModule.tsx usa na lista (Tarefa 7).
-const FASE_TOKENS: Record<string, { fundo: string; texto: string; ponto: string }> = {
-  Novo: { fundo: 'bg-status-confirmed/12', texto: 'text-status-confirmed', ponto: 'bg-status-confirmed' },
-  Recorrente: { fundo: 'bg-success/12', texto: 'text-success-text', ponto: 'bg-success' },
-  Fiel: { fundo: 'bg-warning/12', texto: 'text-warning-text', ponto: 'bg-warning' },
-  'Em risco': { fundo: 'bg-brand-text/12', texto: 'text-brand-text', ponto: 'bg-brand-text' },
-  Perdido: { fundo: 'bg-danger/12', texto: 'text-danger', ponto: 'bg-danger' },
-};
-const FASE_PADRAO = FASE_TOKENS.Novo;
-
-/** Link do WhatsApp só quando o telefone tem os dígitos de um número brasileiro. */
-export function linkWhatsapp(telefone: string | undefined): string | null {
-  const digitos = (telefone || '').replace(/\D/g, '');
-  if (digitos.length !== 10 && digitos.length !== 11) return null;
-  return `https://wa.me/55${digitos}`;
-}
+// Reexportado para quem já importava `linkWhatsapp` daqui (M3 da revisão final).
+export { linkWhatsapp };
 
 /**
  * Escolhe um exemplo de `conteudoDemo.clientes.exemplos` por um hash estável do id do
@@ -203,26 +193,71 @@ function eventoDoAgendamento(agendamento: Appointment, agora: Date): EventoTimel
   };
 }
 
-const ROTULO_DEMO: Record<'whatsapp' | 'avaliacao' | 'falta' | 'cadastro', string> = {
+const ROTULO_DEMO: Record<'whatsapp' | 'avaliacao' | 'cadastro', string> = {
   whatsapp: 'Mensagem de WhatsApp',
   avaliacao: 'Avaliação recebida',
-  falta: 'Falta registrada',
   cadastro: 'Cadastro inicial',
 };
 
-/** Os quatro tipos que o histórico real não cobre, sempre os mesmos (conteudoDemo). */
-function eventosDeExemplo(): EventoTimeline[] {
+/**
+ * Os dois tipos que o histórico real não cobre (whatsapp, avaliação), sempre os mesmos
+ * textos (conteudoDemo) — mas nunca uma data gravada: o rótulo relativo da mensagem de
+ * WhatsApp ("ontem") é recalculado a cada render a partir de `agora`, com a mesma lógica
+ * de `descreverUltimaVisita` que os eventos reais já usam. "Falta registrada" saiu daqui
+ * porque contradizia a métrica real "Faltas / Cancelamentos: 0" desta mesma ficha; o
+ * cadastro real vira `eventoDeCadastro`, a partir do `created_at` do cliente.
+ */
+function eventosDeExemplo(agora: Date): EventoTimeline[] {
   return conteudoDemo.clientes.perfilDestaque.linhaDoTempo
-    .filter((item): item is typeof item & { tipo: 'whatsapp' | 'avaliacao' | 'falta' | 'cadastro' } =>
-      item.tipo === 'whatsapp' || item.tipo === 'avaliacao' || item.tipo === 'falta' || item.tipo === 'cadastro',
+    .filter((item): item is typeof item & { tipo: 'whatsapp' | 'avaliacao' } =>
+      item.tipo === 'whatsapp' || item.tipo === 'avaliacao',
     )
-    .map((item, indice) => ({
-      chave: `exemplo-${item.tipo}-${indice}`,
-      tipo: item.tipo,
-      dataLabel: item.data,
-      titulo: ROTULO_DEMO[item.tipo],
-      detalhe: item.descricao,
-    }));
+    .map((item, indice) => {
+      if (item.tipo === 'whatsapp') {
+        const ontem = new Date(agora);
+        ontem.setDate(agora.getDate() - 1);
+        const visita = descreverUltimaVisita(ontem.toISOString(), agora);
+        return {
+          chave: `exemplo-whatsapp-${indice}`,
+          tipo: 'whatsapp' as const,
+          dataLabel: `${visita.texto}${visita.relativo ? ` ${visita.relativo}` : ''}`,
+          titulo: ROTULO_DEMO.whatsapp,
+          detalhe: item.descricao,
+        };
+      }
+      return {
+        chave: `exemplo-avaliacao-${indice}`,
+        tipo: 'avaliacao' as const,
+        dataLabel: item.data ?? '',
+        titulo: ROTULO_DEMO.avaliacao,
+        detalhe: item.descricao,
+      };
+    });
+}
+
+/** "Cadastro inicial" real: a data vem de `client.created_at`, nunca de um texto fixo. */
+function eventoDeCadastro(createdAt: string): EventoTimeline {
+  const cadastroDemo = conteudoDemo.clientes.perfilDestaque.linhaDoTempo.find(item => item.tipo === 'cadastro');
+  const data = new Date(createdAt);
+  const dataLabel = Number.isNaN(data.getTime())
+    ? 'Data de cadastro não informada'
+    : data.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+  return {
+    chave: 'cadastro-real',
+    tipo: 'cadastro',
+    dataLabel,
+    titulo: ROTULO_DEMO.cadastro,
+    detalhe: cadastroDemo?.descricao,
+  };
+}
+
+/** "12/03/2026" a partir de created_at real, para a linha de autorização do LGPD. */
+function criadoEmCurto(createdAt: string): string | null {
+  const data = new Date(createdAt);
+  if (Number.isNaN(data.getTime())) return null;
+  const dia = String(data.getDate()).padStart(2, '0');
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  return `${dia}/${mes}/${data.getFullYear()}`;
 }
 
 function CartaoEvento({ evento }: { evento: EventoTimeline }) {
@@ -303,8 +338,8 @@ export function ClientDetailPanel({
   const eventos = useMemo(() => {
     const agora = new Date();
     const reais = history.map(item => eventoDoAgendamento(item, agora));
-    return [...reais, ...eventosDeExemplo()];
-  }, [history]);
+    return [...reais, ...eventosDeExemplo(agora), eventoDeCadastro(client.created_at)];
+  }, [history, client.created_at]);
 
   const filtroAtivo = FILTROS_TIMELINE.find(item => item.id === filtro) ?? FILTROS_TIMELINE[0];
   const eventosFiltrados = filtroAtivo.tipos ? eventos.filter(evento => filtroAtivo.tipos!.includes(evento.tipo)) : eventos;
@@ -401,7 +436,9 @@ export function ClientDetailPanel({
           </button>
         </div>
 
-        {/* LGPD: exemplo (conteudoDemo), sem consentimento real registrado no sistema */}
+        {/* LGPD: exemplo (conteudoDemo), sem consentimento real registrado no sistema —
+            só a data de autorização usa o created_at real, para não contradizer "Cliente
+            desde" mais abaixo. */}
         <div className="flex flex-col gap-1 rounded-control bg-surface px-3.5 py-2.5 text-[13px]">
           <span className="flex items-start gap-2 text-ink">
             <Icon name="verified_user" size={16} className="mt-0.5 shrink-0 text-success-text" />
@@ -410,12 +447,13 @@ export function ClientDetailPanel({
             </span>
           </span>
           <span className="pl-6 text-[11px] text-muted">
-            Autorizado em {perfil.consentimentoLgpd.autorizadoEm} via {perfil.consentimentoLgpd.canal}
+            Autorizado em {criadoEmCurto(client.created_at) ?? 'data não informada'} via {perfil.consentimentoLgpd.canal}
           </span>
         </div>
       </div>
 
-      {/* 4 métricas: ticket médio, frequência e faltas/cancelamentos reais; ciclo médio de exemplo */}
+      {/* 4 métricas: ticket médio, frequência e faltas/cancelamentos reais; ciclo médio do
+          mesmo exemplo indexado por posição que a lista usa (Tarefa 7 / correção I1) */}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col justify-between rounded-card bg-surface-2 p-3.5">
           <div className="flex items-center justify-between">
@@ -423,11 +461,11 @@ export function ClientDetailPanel({
             <Icon name="sync" size={16} className="text-muted" />
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="text-[26px] font-bold tabular-nums text-ink">{perfil.metricas.cicloMedioDias}</span>
-            <span className="text-[13px] text-muted">dias</span>
+            <span className="text-[26px] font-bold tabular-nums text-ink">{exemplo.cicloMedioDias ?? '—'}</span>
+            {exemplo.cicloMedioDias !== null && <span className="text-[13px] text-muted">dias</span>}
           </div>
           <span className="mt-1 text-[11px] font-semibold text-success-text">
-            Pontualidade {perfil.metricas.pontualidadePercentual}%
+            {exemplo.cicloMedioLegenda}
           </span>
         </div>
 
@@ -486,14 +524,6 @@ export function ClientDetailPanel({
           </button>
         </div>
 
-        <div className="mb-3 flex items-start gap-2.5 rounded-control bg-danger/10 p-3">
-          <Icon name="warning" size={18} className="mt-0.5 shrink-0 text-danger" />
-          <div>
-            <span className="text-[13px] font-bold text-danger">{perfil.fichaTecnica.alerta.titulo}</span>
-            <p className="mt-0.5 text-[13px] text-ink">{perfil.fichaTecnica.alerta.descricao}</p>
-          </div>
-        </div>
-
         <div className="flex flex-col gap-2">
           {perfil.fichaTecnica.preferencias.map(pref => (
             <div key={pref.rotulo} className="rounded-control bg-surface p-3">
@@ -503,7 +533,9 @@ export function ClientDetailPanel({
           ))}
           <div className="rounded-control bg-surface p-3">
             <span className="block text-[11px] text-muted">Observações da profissional</span>
-            <p className="mt-0.5 text-[13px] leading-relaxed text-ink">{perfil.fichaTecnica.observacoes}</p>
+            <p className="mt-0.5 text-[13px] leading-relaxed text-ink">
+              {client.notes || 'Nenhuma observação registrada'}
+            </p>
           </div>
         </div>
 
@@ -515,6 +547,27 @@ export function ClientDetailPanel({
           <Icon name="tune" size={16} />
           Atualizar ficha técnica
         </button>
+      </div>
+
+      {/* Contato — real (client), com os mesmos fallbacks de antes da migração para
+          Stitch: "Não informado" e "Não cadastrado" em vez de escondido. */}
+      <div className="rounded-card bg-surface-2 p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-control bg-brand/15 text-brand-text">
+            <Icon name="contact_page" size={18} />
+          </span>
+          <h3 className="text-[15px] font-bold text-ink">Contato</h3>
+        </div>
+        <div className="flex flex-col gap-2">
+          <div className="rounded-control bg-surface p-3">
+            <span className="block text-[11px] text-muted">E-mail</span>
+            <span className="font-semibold text-ink">{client.email || 'Não informado'}</span>
+          </div>
+          <div className="rounded-control bg-surface p-3">
+            <span className="block text-[11px] text-muted">Endereço</span>
+            <span className="font-semibold text-ink">{client.address || 'Não cadastrado'}</span>
+          </div>
+        </div>
       </div>
 
       {/* Galeria — bloco neutro com ícone no lugar da foto (nenhuma chamada para fora, nenhum retrato inventado) */}
@@ -557,7 +610,7 @@ export function ClientDetailPanel({
         </button>
       </div>
 
-      {/* Linha do tempo: atendimentos reais + 4 eventos de exemplo (mensagem, avaliação, falta, cadastro) */}
+      {/* Linha do tempo: atendimentos reais + cadastro real + 2 eventos de exemplo (mensagem, avaliação) */}
       <div className="rounded-card bg-surface-2 p-4">
         <div className="mb-3 flex flex-col gap-2">
           <div>
