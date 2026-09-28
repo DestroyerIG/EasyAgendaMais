@@ -356,7 +356,7 @@ export const FinanceModule = ({
 
             <Card className="flex flex-col justify-between gap-3">
               <div className="flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-muted">Comandas</span>
+                <span className="text-[13px] font-semibold text-muted">Comandas (exemplo)</span>
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-2 text-ink">
                   <Icon name="receipt_long" size={16} />
                 </span>
@@ -374,12 +374,14 @@ export const FinanceModule = ({
             </Card>
           </div>
 
-          {/* Entradas por forma de pagamento — exemplo (não existe cobrança por forma no sistema) */}
+          {/* Entradas por forma de pagamento — exemplo (não existe cobrança por forma no sistema).
+              O rótulo do subtotal deixa claro que é o total só deste detalhamento de exemplo,
+              não uma segunda leitura do total real de "Entradas" acima (correção I4). */}
           <Card>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-[15px] font-bold text-ink">Entradas por forma de pagamento</h2>
+              <h2 className="text-[15px] font-bold text-ink">Entradas por forma de pagamento (exemplo)</h2>
               <span className="text-[12px] text-muted">
-                Total faturado: <strong className="font-semibold tabular-nums text-ink">{formatCurrency(totalFaturadoFormas)}</strong>
+                Total do detalhamento (exemplo): <strong className="font-semibold tabular-nums text-ink">{formatCurrency(totalFaturadoFormas)}</strong>
               </span>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -409,8 +411,8 @@ export const FinanceModule = ({
             <Card className="lg:col-span-8">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h2 className="text-[16px] font-bold text-ink">Comandas do dia</h2>
-                  <p className="text-[12px] text-muted">Visão consolidada dos atendimentos realizados no dia</p>
+                  <h2 className="text-[16px] font-bold text-ink">Comandas do dia (exemplo)</h2>
+                  <p className="text-[12px] text-muted">Visão consolidada dos atendimentos realizados no dia — contagem de comandas de exemplo, não movimento financeiro</p>
                 </div>
                 <span className="text-[12px] font-semibold text-muted">
                   {caixa.comandas.length} de {caixa.metricas.comandasTotal} atendimentos
@@ -551,7 +553,9 @@ export const FinanceModule = ({
                 <div className="flex flex-col gap-2.5 text-[13px]">
                   <div className="flex items-center justify-between border-b border-line/60 py-1">
                     <span className="text-muted">Fundo inicial de troco</span>
-                    <span className="font-semibold tabular-nums text-ink">{formatCurrency(caixa.conferenciaDinheiro.fundoInicial)}</span>
+                    {/* Mesmo saldo inicial do cabeçalho (caixa.abertura.saldoInicial) — não
+                        um segundo campo fixo duplicando o mesmo número (correção I11). */}
+                    <span className="font-semibold tabular-nums text-ink">{formatCurrency(caixa.abertura.saldoInicial)}</span>
                   </div>
                   <div className="flex items-center justify-between border-b border-line/60 py-1">
                     <span className="text-muted">(+) Entradas em dinheiro</span>
@@ -567,8 +571,14 @@ export const FinanceModule = ({
                   </div>
                   <div className="flex items-center justify-between pt-2">
                     <span className="font-bold text-ink">Total esperado na gaveta</span>
+                    {/* Calculado (fundo + entradas − saídas), nunca um número gravado
+                        separado que pudesse deixar de bater com as três linhas acima. */}
                     <span className="text-[18px] font-extrabold tabular-nums text-ink">
-                      {formatCurrency(caixa.conferenciaDinheiro.totalEsperado)}
+                      {formatCurrency(
+                        caixa.abertura.saldoInicial +
+                          caixa.conferenciaDinheiro.entradasDinheiro -
+                          caixa.conferenciaDinheiro.saidasDinheiro,
+                      )}
                     </span>
                   </div>
                 </div>
