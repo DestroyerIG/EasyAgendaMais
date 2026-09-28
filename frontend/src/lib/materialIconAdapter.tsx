@@ -23,10 +23,23 @@ function sizeFromClassName(className?: string): number | undefined {
   return undefined;
 }
 
+// Cache dos componentes já criados: chamadores em módulo (ex.: `materialIcon('group')`
+// no topo de um arquivo) já pedem o mesmo nome uma vez só, mas um chamador dentro do
+// corpo de um componente (ex.: dentro do JSX de cada render) recriaria a função a cada
+// render sem isto — o mesmo nome/preenchimento sempre devolve o componente já criado.
+const cache = new Map<string, LucideIcon>();
+
 export function materialIcon(name: string, filled = false): LucideIcon {
+  const chave = `${name}:${filled}`;
+  const existente = cache.get(chave);
+  if (existente) return existente;
+
   function Adapted({ className }: { className?: string }) {
     return <Icon name={name} filled={filled} size={sizeFromClassName(className)} className={className} />;
   }
   Adapted.displayName = `MaterialIcon(${name})`;
-  return Adapted as unknown as LucideIcon;
+
+  const componente = Adapted as unknown as LucideIcon;
+  cache.set(chave, componente);
+  return componente;
 }
