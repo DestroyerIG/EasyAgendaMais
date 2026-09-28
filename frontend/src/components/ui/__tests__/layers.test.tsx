@@ -63,6 +63,16 @@ describe('SidePanel', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Fechar' }));
     expect(screen.queryByRole('dialog', { name: 'Ficha da cliente' })).not.toBeInTheDocument();
   });
+
+  it('sem widthClass, a largura fica na padrão sm:max-w-[480px] — é o que a Ficha da Cliente usa', () => {
+    render(
+      <SidePanel open onOpenChange={() => {}} title="Ficha da cliente">
+        conteúdo
+      </SidePanel>,
+    );
+    const dialogo = screen.getByRole('dialog', { name: 'Ficha da cliente' });
+    expect(dialogo).toHaveClass('sm:max-w-[480px]');
+  });
 });
 
 describe('Tabs', () => {

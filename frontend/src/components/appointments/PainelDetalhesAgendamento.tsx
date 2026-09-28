@@ -16,7 +16,9 @@
  * agendamento, o texto das observações e o selo de cliente recorrente.
  * Sobre o sinal: o sistema não recebe sinal por Pix, então o valor de exemplo é limitado
  * ao preço real do serviço e o "valor a pagar no estúdio" é a diferença — as duas linhas
- * sempre somam o total verdadeiro do atendimento, nunca mais do que ele.
+ * sempre somam o total verdadeiro do atendimento, nunca mais do que ele. Sem preço de
+ * serviço (ou com ele zerado), o sinal cai para 0 e as duas linhas somem: não existe
+ * sinal pago a mostrar, então a tela não afirma um.
  * Fora da tela: as fotos de cliente e profissional do arquivo de referência (o DTO só
  * traz nomes, então entram as iniciais do Avatar) e a especialidade entre parênteses do
  * "Profissional responsável", que é de um segmento só.
@@ -234,30 +236,34 @@ export function ConteudoDetalhesAgendamento({ agendamento, duracaoMinutos }: Con
             </span>
           </div>
 
-          <div className="flex items-center justify-between gap-2 rounded-control bg-success/12 p-2.5 text-success-text">
-            <div className="flex min-w-0 items-center gap-2">
-              <Icon name="payments" size={18} className="shrink-0" />
-              <div className="flex min-w-0 flex-col">
-                <span className="text-[13px] font-bold tabular-nums">
-                  Sinal pago {formatCurrency(sinal)} via Pix
-                </span>
-                <span className="truncate text-[11px] opacity-90">
-                  Comp. {detalhes.comprovantePix} · Confirmado
+          {sinal > 0 && (
+            <>
+              <div className="flex items-center justify-between gap-2 rounded-control bg-success/12 p-2.5 text-success-text">
+                <div className="flex min-w-0 items-center gap-2">
+                  <Icon name="payments" size={18} className="shrink-0" />
+                  <div className="flex min-w-0 flex-col">
+                    <span className="text-[13px] font-bold tabular-nums">
+                      Sinal pago {formatCurrency(sinal)} via Pix
+                    </span>
+                    <span className="truncate text-[11px] opacity-90">
+                      Comp. {detalhes.comprovantePix} · Confirmado
+                    </span>
+                  </div>
+                </div>
+                <Icon name="check_circle" size={20} className="shrink-0" />
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <div className="flex flex-col">
+                  <span className="text-[11px] text-muted">Valor a pagar no estúdio</span>
+                  <span className="text-[11px] text-muted">Cartão, Dinheiro ou Pix final</span>
+                </div>
+                <span className="shrink-0 text-[24px] font-black tabular-nums text-brand-text">
+                  {formatCurrency(aPagar)}
                 </span>
               </div>
-            </div>
-            <Icon name="check_circle" size={20} className="shrink-0" />
-          </div>
-
-          <div className="flex items-center justify-between gap-3 pt-1">
-            <div className="flex flex-col">
-              <span className="text-[11px] text-muted">Valor a pagar no estúdio</span>
-              <span className="text-[11px] text-muted">Cartão, Dinheiro ou Pix final</span>
-            </div>
-            <span className="shrink-0 text-[24px] font-black tabular-nums text-brand-text">
-              {formatCurrency(aPagar)}
-            </span>
-          </div>
+            </>
+          )}
         </div>
 
         {/* Observações */}

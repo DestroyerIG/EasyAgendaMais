@@ -5,6 +5,7 @@ import { ToastProvider } from '@/components/Toast';
 import { AVISO_RECURSO_A_CAMINHO } from '@/components/ui';
 import { conteudoDemo } from '@/lib/conteudoDemo';
 import {
+  MEDIA_COMPUTADOR,
   PainelDetalhesAgendamento,
   agendadoEmTexto,
   faixaDoAtendimento,
@@ -74,6 +75,10 @@ describe('repartirValor', () => {
     for (const preco of [0, 20, 30, 180, 999]) {
       const { sinal, aPagar } = repartirValor(preco, 30);
       expect(sinal + aPagar).toBe(preco);
+      // Sem estas duas, repartirValor(20, 30) devolveria {sinal: 30, aPagar: -10}: a
+      // soma ainda fecharia em 20, mas aPagar negativo e sinal maior que o preço são as
+      // duas formas de essa conta mentir sem quebrar a soma sozinha.
+      expect(aPagar).toBeGreaterThanOrEqual(0);
       expect(sinal).toBeLessThanOrEqual(preco);
     }
   });
@@ -120,6 +125,21 @@ describe('PainelDetalhesAgendamento', () => {
     expect(screen.getByText('Sinal pago R$ 20,00 via Pix')).toBeInTheDocument();
     expect(screen.getByText('R$ 0,00')).toBeInTheDocument();
     expect(screen.queryByText('Sinal pago R$ 30,00 via Pix')).not.toBeInTheDocument();
+  });
+
+  it('sem preço de serviço não há sinal pago para afirmar, então o bloco do Pix some', () => {
+    abrir({ service_price: undefined });
+
+    expect(screen.queryByText(/Sinal pago/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Comp\./)).not.toBeInTheDocument();
+    expect(screen.queryByText('Valor a pagar no estúdio')).not.toBeInTheDocument();
+  });
+
+  it('preço de serviço zerado tem o mesmo resultado: nenhum sinal a mostrar', () => {
+    abrir({ service_price: 0 });
+
+    expect(screen.queryByText(/Sinal pago/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Comp\./)).not.toBeInTheDocument();
   });
 
   it('lembrete não enviado aparece na negativa, no mesmo lugar', () => {
@@ -188,5 +208,60 @@ describe('PainelDetalhesAgendamento', () => {
     );
 
     expect(screen.queryByText('Detalhes da Sessão')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * `vitest.setup.ts` devolve `matches: false` para toda consulta de mídia — é o que os
+ * outros testes deste arquivo herdam sem saber, e por isso eles só provam o ramo de
+ * celular. Aqui sobrescrevemos `window.matchMedia` dentro do teste (e restauramos depois)
+ * para os dois ramos de fato existirem em algum teste.
+ */
+describe('largura do painel por tamanho de tela', () => {
+  const definirMatchMedia = (bateComputador: boolean) => {
+    const original = window.matchMedia;
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: query === MEDIA_COMPUTADOR ? bateComputador : false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+    return () => {
+      Object.defineProperty(window, 'matchMedia', { writable: true, value: original });
+    };
+  };
+
+  it('no computador, abre à direita com os 440px de agendamento-detalhes.html', () => {
+    const restaurar = definirMatchMedia(true);
+    try {
+      abrir();
+      const dialogo = screen.getByRole('dialog', { name: 'Detalhes da Sessão' });
+      expect(dialogo).toHaveClass('sm:max-w-[440px]');
+      expect(dialogo).toHaveClass('right-0');
+      expect(dialogo).not.toHaveClass('bottom-0');
+      expect(dialogo).not.toHaveClass('sm:max-w-[480px]');
+    } finally {
+      restaurar();
+    }
+  });
+
+  it('no celular, abre como folha de baixo, sem a classe de 440px', () => {
+    const restaurar = definirMatchMedia(false);
+    try {
+      abrir();
+      const dialogo = screen.getByRole('dialog', { name: 'Detalhes da Sessão' });
+      expect(dialogo).toHaveClass('bottom-0');
+      expect(dialogo).not.toHaveClass('right-0');
+      expect(dialogo).not.toHaveClass('sm:max-w-[440px]');
+    } finally {
+      restaurar();
+    }
   });
 });
