@@ -28,8 +28,8 @@ export function FinanceChart({ data }: FinanceChartProps) {
 
   return (
     <Card>
-      <div className="mb-8 flex items-center justify-between">
-        <h3 className="text-lg font-bold text-ink">Gráfico de Crescimento</h3>
+      <div className="mb-6 flex items-center justify-between">
+        <h3 className="text-[15px] font-bold text-ink">Gráfico de crescimento</h3>
         <div className="flex gap-4">
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full bg-success" />
