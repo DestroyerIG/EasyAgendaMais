@@ -28,6 +28,10 @@ Nunca fixar termos de um segmento. Usar variáveis: {profissional} (Barbeiro, Na
 | warning-text     | #92400E | #FBBF24 | âmbar usado como texto                |
 | danger           | #DC2626 | #F87171 | faltou, atraso, erro                  |
 | status-confirmed | #2563EB | #2563EB | status confirmado                     |
+| surface-m3        | #FFF8F6 | #181615 | superfície Material 3 (telas reconstruídas a partir da referência Stitch) |
+| brand-text-m3      | #994700 | #FF9A3D | laranja usado como texto em componentes Material 3 |
+| tertiary          | #006399 | #70CDFF | cor terciária Material 3, azul da linha do tempo da Agenda, distinta de status-confirmed |
+| tertiary-container | #00A8FF | #3DBDFF | contêiner da cor terciária Material 3 (anel/fundo do bloco tertiary) |
 
 success-text e warning-text existem porque success e warning não são legíveis como texto sobre superfície clara (2,8:1); no escuro repetem o valor do token de origem.
 
@@ -39,7 +43,7 @@ Cada negócio escolhe uma cor de destaque e envia o logo. Na página pública de
 ## Tipografia
 - Plus Jakarta Sans em tudo. Corpo 15px/1.5; rótulos 13px peso 600; título de tela 24px peso 700; títulos de landing peso 800.
 - Números (horários, valores, métricas) com dígitos tabulares; métricas grandes de 32 a 40px peso 700.
-- Não usar caixa alta com espaçamento largo em rótulos comuns.
+- Rótulos podem usar caixa alta com espaçamento onde a tela de referência do Stitch usa (decisão de 2026-09-23).
 
 ## Forma e espaço
 - Grade de 4px. Espaçamentos: 4, 8, 12, 16, 24, 32, 48.
@@ -49,6 +53,7 @@ Cada negócio escolhe uma cor de destaque e envia o logo. Na página pública de
 - Nada pode ficar cortado ou sobreposto: cartões crescem com o conteúdo, tabelas largas rolam dentro do próprio contêiner, painéis laterais e modais ocupam a altura toda e rolam por dentro, textos de botão cabem em uma linha.
 
 ## Componentes
+- Ícones: Material Symbols Outlined (decisão de 2026-09-23, alinhada às telas de referência do Stitch). `IconButton`, `EmptyState` e `ModalFooter` (`frontend/src/components/ui/`) ainda tipam `icon` como `LucideIcon` e usam o adaptador `materialIcon()` (`frontend/src/lib/materialIconAdapter.tsx`) para aceitar um nome de Material Symbol; ver SEGUIMENTO.md.
 - Botão primário: fundo brand (ou cor do negócio na página pública), texto on-brand, peso 700. No máximo um por tela.
 - Botão secundário: surface-2 com borda line. Botão fantasma: só texto.
 - Chip de status: fundo com 12% da cor do status e texto na cor do status.
