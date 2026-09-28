@@ -388,7 +388,9 @@ export const FinanceModule = ({
                   <div className="mb-1 flex items-center justify-between gap-2">
                     <span className="text-[12px] font-medium text-muted">{forma.rotulo}</span>
                     <span className="rounded border border-line bg-surface px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-muted">
-                      {forma.percentual.toFixed(1).replace('.', ',')}%
+                      {(totalFaturadoFormas > 0 ? (forma.valor / totalFaturadoFormas) * 100 : 0)
+                        .toFixed(1)
+                        .replace('.', ',')}%
                     </span>
                   </div>
                   <div>

@@ -184,7 +184,6 @@ export interface CaixaMetricas {
 
 export interface CaixaFormaPagamento {
   rotulo: string;
-  percentual: number;
   valor: number;
   quantidade: number;
 }
@@ -586,12 +585,12 @@ export const conteudoDemo = {
       comandasFalta: 1,
     },
     formasPagamento: [
-      { rotulo: 'Pix', percentual: 45.5, valor: 840, quantidade: 6 },
-      { rotulo: 'Sinais Pix', percentual: 13.0, valor: 240, quantidade: 8 },
-      { rotulo: 'Débito', percentual: 20.9, valor: 385, quantidade: 3 },
-      { rotulo: 'Crédito', percentual: 14.1, valor: 260, quantidade: 2 },
-      { rotulo: 'Dinheiro', percentual: 6.5, valor: 120, quantidade: 1 },
-      { rotulo: 'Clube e pacotes', percentual: 6.0, valor: 110, quantidade: 1 },
+      { rotulo: 'Pix', valor: 840, quantidade: 6 },
+      { rotulo: 'Sinais Pix', valor: 240, quantidade: 8 },
+      { rotulo: 'Débito', valor: 385, quantidade: 3 },
+      { rotulo: 'Crédito', valor: 260, quantidade: 2 },
+      { rotulo: 'Dinheiro', valor: 120, quantidade: 1 },
+      { rotulo: 'Clube e pacotes', valor: 110, quantidade: 1 },
     ],
     comandas: [
       {
