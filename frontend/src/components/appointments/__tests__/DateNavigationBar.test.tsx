@@ -148,21 +148,25 @@ describe('ChipsProfissional', () => {
 });
 
 describe('DateNavigationBar com os chips do computador', () => {
-  it('traz os chips de profissional dentro da barra, escondidos no celular', () => {
-    render(<DateNavigationBar {...props} />);
+  it('os chips dentro da barra peneiram pelo mesmo handler da fileira do celular', async () => {
+    const onProfissionalFiltroChange = vi.fn();
+    render(<DateNavigationBar {...props} onProfissionalFiltroChange={onProfissionalFiltroChange} />);
+
     const grupo = screen.getByRole('group', { name: 'Filtrar por profissional' });
-    expect(grupo).toHaveClass('hidden', 'lg:flex');
     expect(grupo).toHaveTextContent('Camila');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Camila' }));
+    expect(onProfissionalFiltroChange).toHaveBeenCalledWith('p1');
   });
 
   it('a linha de data se rearruma por largura sem duplicar os botões', () => {
     render(<DateNavigationBar {...props} />);
-    // Uma seta só de cada lado: a ordem muda por classe, não por segundo botão.
+    // Uma seta só de cada lado, um "Hoje" só e uma data só de cada escrita: a arrumação
+    // muda por classe, nunca por um segundo botão que responderia a mesma coisa duas vezes.
     expect(screen.getAllByRole('button', { name: 'Período anterior' })).toHaveLength(1);
     expect(screen.getAllByRole('button', { name: 'Próximo período' })).toHaveLength(1);
-    // No celular a data fica no meio (order-2) e no computador no fim da pílula (order-5).
-    const data = screen.getByText('Quinta, 17 de set.').parentElement as HTMLElement;
-    expect(data).toHaveClass('order-2', 'lg:order-5');
-    expect(screen.getByRole('button', { name: 'Hoje' })).toHaveClass('order-3', 'lg:order-2');
+    expect(screen.getAllByRole('button', { name: 'Hoje' })).toHaveLength(1);
+    expect(screen.getAllByText('Quinta, 17 de set.')).toHaveLength(1);
+    expect(screen.getAllByText('Quinta, 17 de setembro de 2026')).toHaveLength(1);
   });
 });

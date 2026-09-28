@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import {
   ABERTURA_ARRASTE,
   AppointmentCard,
+  CorpoCartaoAgendamento,
   LIMITE_ARRASTE,
   encaixarArraste,
 } from '../AppointmentCard';
@@ -121,9 +122,38 @@ describe('AppointmentCard', () => {
     expect(frente.style.transform).toBe('translateX(0px)');
   });
 
+  it('o chip de status traz o ponto na cor do status (agenda-mobile.html)', () => {
+    render(<AppointmentCard {...props} appointment={agendamento()} />);
+    const chip = screen.getByText('Confirmado');
+    // O ponto é decorativo: só existe como elemento dentro do chip, sem texto próprio.
+    const ponto = chip.querySelector('span');
+    expect(ponto).not.toBeNull();
+    expect(ponto).toHaveClass('bg-status-confirmed');
+  });
+
   it('desabilita as ações enquanto a mudança de status está em voo', () => {
     render(<AppointmentCard {...props} actionLoading="a1" appointment={agendamento()} />);
     expect(screen.getByRole('button', { name: /Concluir atendimento/ })).toBeDisabled();
     expect(screen.getByRole('button', { name: /Cancelar agendamento/ })).toBeDisabled();
+  });
+});
+
+describe('CorpoCartaoAgendamento fora da Agenda', () => {
+  it('sem as opções da Agenda fica como a tela sem referência já era: "1h" e chip liso', () => {
+    render(<CorpoCartaoAgendamento appointment={agendamento()} duracaoMinutos={60} />);
+
+    expect(screen.getByText('1h')).toBeInTheDocument();
+    expect(screen.queryByText('60 min')).not.toBeInTheDocument();
+    expect(screen.getByText('Confirmado').querySelector('span')).toBeNull();
+  });
+
+  it('com as opções da Agenda escreve a duração em minutos e põe o ponto', () => {
+    render(
+      <CorpoCartaoAgendamento appointment={agendamento()} duracaoMinutos={60} duracaoEmMinutos comPontoDeStatus />,
+    );
+
+    expect(screen.getByText('60 min')).toBeInTheDocument();
+    expect(screen.queryByText('1h')).not.toBeInTheDocument();
+    expect(screen.getByText('Confirmado').querySelector('span')).not.toBeNull();
   });
 });

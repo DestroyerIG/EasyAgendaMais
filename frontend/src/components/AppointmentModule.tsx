@@ -6,8 +6,9 @@
  * Dado real: todos os agendamentos do período, com cliente, serviço, profissional,
  * valor e status, vindos de GET /appointments; o horário de funcionamento do negócio,
  * de GET /business/settings; as contagens, o faturamento, a ocupação e as vagas livres
- * são calculados desses mesmos agendamentos, sempre sobre o conjunto que a lista
- * mostra; os filtros de dia, semana e status e a criação de agendamento seguem
+ * são calculados desses mesmos agendamentos — as contagens e o faturamento sobre o
+ * conjunto que a lista mostra, a ocupação e as vagas sobre o dia do salão, que o filtro
+ * de status não muda; os filtros de dia, semana e status e a criação de agendamento seguem
  * exatamente como eram, e o filtro por profissional é peneira local na lista já
  * carregada (nenhuma chamada nova, nenhum handler novo).
  * Dado de exemplo: só a duração de cada atendimento
@@ -256,17 +257,21 @@ export function AppointmentModule() {
     a => statusFilter === 'todos' || a.status === statusFilter
   );
 
-  // Chips: a lista de profissionais e as contagens vêm do conjunto antes da peneira de
-  // profissional, senão escolher uma pessoa apagaria as outras e não daria para voltar.
-  const chipsProfissional: ProfissionalChip[] = agruparPorProfissional(porStatus).map((coluna, indice) => ({
+  // Chips: quem existe sai do conjunto do dia inteiro — nem a peneira de profissional
+  // (senão escolher uma pessoa apagaria as outras e não daria para voltar) nem a de
+  // status podem apagar uma pessoa da fileira. Só a contagem de cada chip segue o filtro
+  // de status, porque ela descreve o que o clique vai mostrar; um chip pode ler "(0)".
+  const chipsProfissional: ProfissionalChip[] = agruparPorProfissional(appointments).map((coluna, indice) => ({
     id: coluna.id,
     nome: coluna.nome,
-    total: coluna.agendamentos.length,
+    total: porStatus.filter(a => chaveProfissional(a) === coluna.id).length,
     tom: tomDoProfissional(indice),
   }));
 
   // Uma profissional escolhida que não atende no dia seguinte deixaria a tela vazia sem
-  // explicação ao virar o dia; nesse caso a peneira simplesmente não vale.
+  // explicação ao virar o dia; nesse caso a peneira simplesmente não vale. A lista de
+  // chips é do dia inteiro, então isso dispara só quando ela realmente não atende no
+  // período novo — nunca por mudança de filtro de status.
   const filtroProfissional = chipsProfissional.some(chip => chip.id === profissionalFiltro)
     ? profissionalFiltro
     : null;
@@ -282,7 +287,11 @@ export function AppointmentModule() {
     return acc;
   }, {});
 
-  // ── Números do cabeçalho: sempre do mesmo conjunto que a lista abaixo desenha ──
+  // ── Números do cabeçalho ──
+  // Contagem e Faturamento descrevem a lista na tela, então seguem o conjunto filtrado
+  // inteiro. Ocupação e vagas livres são afirmações sobre o dia do salão: seguem o filtro
+  // de profissional ("o dia da Camila está 84% ocupado" é verdade e é útil) e não o de
+  // status, que é só controle de visualização — clicar em "Concluído" não desocupa o dia.
   const duracaoMinutos = conteudoDemo.agenda.duracaoPadraoMinutos;
   const ehDia = viewMode === 'day';
   const naoCancelados = filteredAppointments.filter(a => a.status !== 'cancelado');
@@ -291,15 +300,28 @@ export function AppointmentModule() {
   // "Faturamento" do dia é o total previsto (a referência mostra o total do dia, não só
   // o que já foi concluído); cancelado não entra.
   const faturamento = naoCancelados.reduce((soma, a) => soma + Number(a.service_price || 0), 0);
-  const faixa = calcularFaixaHoras(filteredAppointments, duracaoMinutos, horarioFuncionamento);
-  const colunas = agruparPorProfissional(filteredAppointments);
+  const doDia = appointments.filter(
+    a => filtroProfissional === null || chaveProfissional(a) === filtroProfissional,
+  );
+  const faixa = calcularFaixaHoras(doDia, duracaoMinutos, horarioFuncionamento);
+  const colunas = agruparPorProfissional(doDia);
+  // Duas larguras, dois números legítimos: a linha do tempo do computador desenha os
+  // buracos das pontas, então o KPI dele conta o conjunto completo; a lista do celular
+  // não desenha as pontas, então a linha dela conta pela mesma chamada que a lista faz.
   const vagasLivres = ehDia
     ? colunas.flatMap(coluna => calcularVagasLivres(coluna.agendamentos, faixa, duracaoMinutos))
+    : [];
+  const vagasDaLista = ehDia
+    ? colunas.flatMap(coluna =>
+        calcularVagasLivres(coluna.agendamentos, faixa, duracaoMinutos, {
+          apenasEntreAtendimentos: true,
+        }),
+      )
     : [];
   const minutosDisponiveis = Math.max(colunas.length, 1) * (faixa.fimMinutos - faixa.inicioMinutos);
   const ocupacao = Math.min(
     100,
-    Math.round((naoCancelados.length * duracaoMinutos * 100) / minutosDisponiveis),
+    Math.round((doDia.filter(a => a.status !== 'cancelado').length * duracaoMinutos * 100) / minutosDisponiveis),
   );
   const grupos = Object.entries(groupedByDate)
     .sort(([a], [b]) => a.localeCompare(b))
@@ -378,7 +400,7 @@ export function AppointmentModule() {
                 <span className="text-[13px] font-semibold tabular-nums text-ink">{ocupacao}% de ocupação</span>
                 <span className="text-[14px] text-muted">·</span>
                 <span className="text-[14px] tabular-nums text-muted">
-                  {vagasLivres.length} {vagasLivres.length === 1 ? 'vaga livre' : 'vagas livres'}
+                  {vagasDaLista.length} {vagasDaLista.length === 1 ? 'vaga livre' : 'vagas livres'}
                 </span>
               </>
             ) : (
@@ -469,7 +491,7 @@ export function AppointmentModule() {
                       key={item.chave}
                       type="button"
                       onClick={openModal}
-                      aria-label={`Agendar no horário livre das ${paraHoraTexto(item.inicioMinutos)} com ${primeiroNome(item.profissional)} (${formatarDuracao(item.vaga.duracaoMinutos)} livre)`}
+                      aria-label={`Novo agendamento: ${paraHoraTexto(item.inicioMinutos)} com ${primeiroNome(item.profissional)}, ${formatarDuracao(item.vaga.duracaoMinutos)} livre`}
                       className="flex w-full items-center justify-between gap-3 rounded-card bg-surface-2 p-4 text-left transition-transform active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                     >
                       <span className="flex min-w-0 items-center gap-3">

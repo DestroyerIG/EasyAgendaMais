@@ -222,7 +222,7 @@ describe('LinhaDoTempo', () => {
     expect(screen.queryByRole('button', { name: /Concluir atendimento/ })).not.toBeInTheDocument();
   });
 
-  it('mostra o horário livre como botão que abre o cadastro', async () => {
+  it('o rótulo do horário livre começa pelo que o clique faz, não pelo horário prometido', async () => {
     const onNovoAgendamento = vi.fn();
     render(
       <LinhaDoTempo
@@ -232,7 +232,9 @@ describe('LinhaDoTempo', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /Agendar no horário livre das 09:00/ }));
+    // O formulário abre vazio, então o rótulo não pode prometer "agendar às 09:00".
+    expect(screen.queryByRole('button', { name: /Agendar no horário livre/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Novo agendamento: 09:00, 11h livre' }));
     expect(onNovoAgendamento).toHaveBeenCalled();
     expect(screen.getByText('Clique para agendar')).toBeInTheDocument();
   });

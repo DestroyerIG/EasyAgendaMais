@@ -21,7 +21,7 @@ import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
 import { Icon, StatusChip, STATUS_STRIPE_CLASS } from '@/components/ui';
-import { formatarMinutos, paraMinutos, paraHoraTexto } from './LinhaDoTempo';
+import { formatarDuracao, formatarMinutos, paraMinutos, paraHoraTexto } from './LinhaDoTempo';
 import type { Appointment } from '@/types';
 
 /** Arrasto máximo e ponto de virada do gesto, em pixels (agenda-mobile.html). */
@@ -39,10 +39,23 @@ export function encaixarArraste(deslocamento: number): number {
 interface CorpoCartaoProps {
   appointment: Appointment;
   duracaoMinutos: number;
+  /**
+   * "60 min" embaixo do horário, como agenda-mobile.html escreve. Sem ela fica o "1h"
+   * de antes, porque a agenda de um profissional só não tem arquivo de referência e a
+   * especificação manda deixar tela sem referência exatamente como está.
+   */
+  duracaoEmMinutos?: boolean;
+  /** Bolinha na cor do status antes do rótulo, também só de agenda-mobile.html. */
+  comPontoDeStatus?: boolean;
 }
 
 /** Miolo do cartão, compartilhado com a agenda de um profissional só. */
-export function CorpoCartaoAgendamento({ appointment, duracaoMinutos }: CorpoCartaoProps) {
+export function CorpoCartaoAgendamento({
+  appointment,
+  duracaoMinutos,
+  duracaoEmMinutos = false,
+  comPontoDeStatus = false,
+}: CorpoCartaoProps) {
   const inicioMinutos = paraMinutos(appointment.time);
   const cancelado = appointment.status === 'cancelado';
 
@@ -52,7 +65,9 @@ export function CorpoCartaoAgendamento({ appointment, duracaoMinutos }: CorpoCar
         <span className="text-[24px] font-bold leading-none tracking-tight tabular-nums text-ink">
           {paraHoraTexto(inicioMinutos)}
         </span>
-        <span className="mt-1 text-[11px] font-semibold tabular-nums text-muted">{formatarMinutos(duracaoMinutos)}</span>
+        <span className="mt-1 text-[11px] font-semibold tabular-nums text-muted">
+          {duracaoEmMinutos ? formatarMinutos(duracaoMinutos) : formatarDuracao(duracaoMinutos)}
+        </span>
       </div>
       <div className={cn('w-1 shrink-0 self-stretch rounded-full', STATUS_STRIPE_CLASS[appointment.status])} />
       <div className="flex min-w-0 flex-1 flex-col justify-center">
@@ -74,7 +89,7 @@ export function CorpoCartaoAgendamento({ appointment, duracaoMinutos }: CorpoCar
           )}
         </div>
         <div className="mt-2 flex items-center gap-1.5">
-          <StatusChip status={appointment.status} comPonto className="text-[11px]" />
+          <StatusChip status={appointment.status} comPonto={comPontoDeStatus} className="text-[11px]" />
         </div>
       </div>
     </>
@@ -173,7 +188,12 @@ export function AppointmentCard({
         )}
         style={{ transform: `translateX(${deslocamento}px)` }}
       >
-        <CorpoCartaoAgendamento appointment={appointment} duracaoMinutos={duracaoMinutos} />
+        <CorpoCartaoAgendamento
+          appointment={appointment}
+          duracaoMinutos={duracaoMinutos}
+          duracaoEmMinutos
+          comPontoDeStatus
+        />
       </div>
     </div>
   );

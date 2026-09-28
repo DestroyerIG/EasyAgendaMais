@@ -351,11 +351,13 @@ function BlocoVagaLivre({ vaga, faixaInicioMinutos, onNovoAgendamento }: BlocoVa
   const compacto = vaga.duracaoMinutos < 60;
   const duracao = formatarDuracao(vaga.duracaoMinutos);
 
+  // O clique abre o formulário vazio, então o rótulo começa pelo que acontece de fato e
+  // deixa o horário como contexto, em vez de prometer um horário já preenchido.
   return (
     <button
       type="button"
       onClick={onNovoAgendamento}
-      aria-label={`Agendar no horário livre das ${paraHoraTexto(vaga.inicioMinutos)} (${duracao} livre)`}
+      aria-label={`Novo agendamento: ${paraHoraTexto(vaga.inicioMinutos)}, ${duracao} livre`}
       className="group/vaga absolute left-1.5 right-1.5 flex flex-col items-center justify-center gap-0.5 rounded-control border border-dashed border-line text-muted transition-colors hover:bg-surface-2 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       style={{ top: top + 2, height: Math.max(altura - 4, 28) }}
     >
