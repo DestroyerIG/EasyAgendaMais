@@ -56,9 +56,15 @@ import { PainelDetalhesAgendamento } from '@/components/appointments/PainelDetal
 import { CreateAppointmentModal } from '@/components/appointments/CreateAppointmentModal';
 import type { AppointmentFormData } from '@/components/appointments/CreateAppointmentModal';
 import { useNewAppointmentParam } from '@/hooks/useNewAppointmentParam';
+import { calcularOcupacaoPercentual } from '@/lib/agendaMetrics';
+import { materialIcon } from '@/lib/materialIconAdapter';
 import type { Appointment, Client, Professional, Service } from '@/types';
 import { getApiErrorMessage } from '@/utils/handleApiError';
-import { Calendar, Plus } from 'lucide-react';
+
+// M1 da revisão final: Material Symbols no lugar dos dois ícones lucide restantes deste
+// arquivo (o resto da tela já usa o mesmo conjunto via o adaptador).
+const ICONE_CALENDARIO = materialIcon('calendar_month');
+const ICONE_ADICIONAR = materialIcon('add');
 
 type ViewMode = 'day' | 'week';
 type StatusFilter = 'todos' | 'confirmado' | 'concluido' | 'cancelado';
@@ -350,11 +356,7 @@ export function AppointmentModule() {
         }),
       )
     : [];
-  const minutosDisponiveis = Math.max(colunas.length, 1) * (faixa.fimMinutos - faixa.inicioMinutos);
-  const ocupacao = Math.min(
-    100,
-    Math.round((doDia.filter(a => a.status !== 'cancelado').length * duracaoMinutos * 100) / minutosDisponiveis),
-  );
+  const ocupacao = calcularOcupacaoPercentual(doDia, faixa, duracaoMinutos, colunas.length);
   const grupos = Object.entries(groupedByDate)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, dayAppointments]) => [
@@ -481,14 +483,14 @@ export function AppointmentModule() {
         </>
       ) : filteredAppointments.length === 0 ? (
         <EmptyState
-          icon={Calendar}
+          icon={ICONE_CALENDARIO}
           title="Nenhum agendamento"
           description={
             statusFilter !== 'todos'
               ? `Nenhum agendamento com este status neste período.`
               : 'Não há agendamentos para este período. Crie um novo agendamento para começar!'
           }
-          action={{ label: 'Criar Agendamento', icon: Plus, onClick: openModal }}
+          action={{ label: 'Criar Agendamento', icon: ICONE_ADICIONAR, onClick: openModal }}
           actionVariant="secondary"
         />
       ) : (

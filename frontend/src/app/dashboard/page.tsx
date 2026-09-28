@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,8 +17,14 @@ import { useToast } from '@/components/Toast';
 import { billingApi, type CheckoutPaymentMethod } from '@/lib/billing';
 import { isPlanId } from '@/lib/plans';
 import { getApiErrorCode } from '@/utils/handleApiError';
+import { getToday } from '@/lib/dateUtils';
 import { conteudoDemo } from '@/lib/conteudoDemo';
-import type { DashboardData } from '@/types';
+import { calcularMetricasAgendaDoDia } from '@/lib/agendaMetrics';
+import { paraHoraTexto } from '@/components/appointments/LinhaDoTempo';
+import type { Appointment, DashboardData } from '@/types';
+
+/** Vagas livres a partir do meio-dia — mesmo recorte que DashboardCards usa na legenda. */
+const INICIO_TARDE_MINUTOS = 12 * 60;
 
 const PIX_STORAGE_KEY = 'easyagenda:pixCheckout';
 
@@ -33,10 +39,68 @@ const resolveCheckoutPaymentMethod = (value: string | null): CheckoutPaymentMeth
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  // Agendamentos de hoje (GET /appointments), buscados uma vez aqui e compartilhados por
+  // ProximasDuasHoras e DashboardCards — para "X% de ocupação" do Hoje nunca divergir do
+  // que a Agenda calcularia para o mesmo dia (correção I3 da revisão final).
+  const [agendamentosHoje, setAgendamentosHoje] = useState<Appointment[] | null>(null);
   const checkoutTriggeredRef = useRef(false);
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { showToast } = useToast();
+
+  useEffect(() => {
+    let cancelado = false;
+    api
+      .get('/appointments', { params: { date: getToday(), view: 'day' } })
+      .then((response) => {
+        if (!cancelado) setAgendamentosHoje(response.data);
+      })
+      .catch(() => {
+        if (!cancelado) {
+          setAgendamentosHoje([]);
+          showToast('Erro ao carregar os agendamentos de hoje', 'error');
+        }
+      });
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sem /business/settings aqui (o Hoje não tem motivo para repetir essa busca) — cai na
+  // mesma janela padrão (08:00–20:00) que a Agenda usa quando o horário não está
+  // configurado, então os dois só divergem se a Agenda tiver o horário real e o Hoje não.
+  const metricasAgenda = useMemo(
+    () =>
+      agendamentosHoje === null
+        ? null
+        : calcularMetricasAgendaDoDia(agendamentosHoje, conteudoDemo.agenda.duracaoPadraoMinutos),
+    [agendamentosHoje],
+  );
+
+  // Pendência "N horários vagos à tarde" (item 6 da revisão final): usa os mesmos
+  // horários que o cálculo real de vagas livres produz, ou sai da lista quando não há
+  // vaga real à tarde — nunca "14:30 e 16:45" fixos.
+  const pendenciaVagasTarde = useMemo(() => {
+    if (!metricasAgenda) return null;
+    const vagasTarde = metricasAgenda.vagasLivres.filter((vaga) => vaga.inicioMinutos >= INICIO_TARDE_MINUTOS);
+    if (vagasTarde.length === 0) return null;
+    const profissionais = Array.from(new Set(vagasTarde.map((vaga) => vaga.profissional)));
+    const horarios = vagasTarde.map((vaga) => paraHoraTexto(vaga.inicioMinutos)).join(' e ');
+    return {
+      icone: 'event_busy',
+      titulo: `${vagasTarde.length} horário${vagasTarde.length === 1 ? '' : 's'} vago${vagasTarde.length === 1 ? '' : 's'} à tarde`,
+      descricao: `${profissionais.join(', ')} · ${horarios}`,
+      rotuloBotao: 'Oferecer à lista de espera',
+    };
+  }, [metricasAgenda]);
+
+  // As outras pendências (lembretes de manutenção, sinal Pix, avaliação) continuam de
+  // exemplo — a fixa de "vagas à tarde" saiu de conteudoDemo.ts (item 10): só existe
+  // quando o cálculo real produz vaga de verdade, nunca como registro morto no módulo.
+  const pendencias = pendenciaVagasTarde
+    ? [pendenciaVagasTarde, ...conteudoDemo.hoje.pendencias]
+    : conteudoDemo.hoje.pendencias;
 
   const loadDashboard = useCallback(async () => {
     try {
@@ -174,7 +238,7 @@ export default function DashboardPage() {
       {data ? (
         <div className="flex flex-col gap-6 sm:gap-8">
           <SaudacaoDia businessName={user?.businessName || 'Seu negócio'} />
-          <DashboardCards data={data} />
+          <DashboardCards data={data} metricasAgenda={metricasAgenda} />
           {/* Ordem mobile (hoje-mobile.html, 1 coluna): Pendências, Próximas 2 horas,
               Gráfico — pelos order-1/2/3 abaixo, que no mobile valem para os 3 itens
               diretamente (o wrapper da esquerda vira "contents", ou seja, invisível
@@ -186,10 +250,10 @@ export default function DashboardPage() {
               esquerda, sem sobrar buraco nem precisar de row-span. */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
             <div className="contents lg:col-span-7 lg:flex lg:flex-col lg:gap-6">
-              <PainelPendencias pendencias={conteudoDemo.hoje.pendencias} className="order-1" />
+              <PainelPendencias pendencias={pendencias} className="order-1" />
               <WeeklyChart data={data.weeklyEarnings} className="order-3" />
             </div>
-            <ProximasDuasHoras className="order-2 lg:col-span-5" />
+            <ProximasDuasHoras agendamentos={agendamentosHoje} className="order-2 lg:col-span-5" />
           </div>
           <BotaoCobrarPix />
         </div>

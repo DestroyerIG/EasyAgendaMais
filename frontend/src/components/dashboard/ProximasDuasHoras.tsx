@@ -1,16 +1,20 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import api from '@/lib/api';
-import { useToast } from '@/components/Toast';
-import { getToday } from '@/lib/dateUtils';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
 import { Card, Icon, Skeleton, StatusChip, STATUS_STRIPE_CLASS } from '@/components/ui';
 import type { Appointment } from '@/types';
 
 export interface ProximasDuasHorasProps {
+  /**
+   * Agendamentos de hoje (`GET /appointments`), buscados uma vez pela página do Hoje
+   * (DashboardPage) e compartilhados com `DashboardCards` — a mesma lista alimenta a
+   * ocupação/vagas livres reais (correção I3 da revisão final). `null` enquanto a busca
+   * ainda não respondeu.
+   */
+  agendamentos: Appointment[] | null;
   className?: string;
 }
 
@@ -35,29 +39,8 @@ function filtrarProximos(agendamentos: Appointment[], agora: Date): Appointment[
     });
 }
 
-export function ProximasDuasHoras({ className }: ProximasDuasHorasProps) {
-  const [agendamentos, setAgendamentos] = useState<Appointment[] | null>(null);
+export function ProximasDuasHoras({ agendamentos, className }: ProximasDuasHorasProps) {
   const [profissionalAtivo, setProfissionalAtivo] = useState<string | null>(null);
-  const { showToast } = useToast();
-
-  useEffect(() => {
-    let cancelado = false;
-    api
-      .get('/appointments', { params: { date: getToday(), view: 'day' } })
-      .then((response) => {
-        if (!cancelado) setAgendamentos(response.data);
-      })
-      .catch(() => {
-        if (!cancelado) {
-          setAgendamentos([]);
-          showToast('Erro ao carregar os próximos atendimentos', 'error');
-        }
-      });
-    return () => {
-      cancelado = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const proximos = useMemo(
     () => (agendamentos ? filtrarProximos(agendamentos, new Date()) : []),
@@ -161,7 +144,7 @@ export function ProximasDuasHoras({ className }: ProximasDuasHorasProps) {
       )}
 
       <Link
-        href="/dashboard/agendamentos"
+        href="/agendamentos"
         className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-[13px] font-bold text-ink transition-colors hover:bg-line/40"
       >
         <span className="lg:hidden">Ver agenda</span>

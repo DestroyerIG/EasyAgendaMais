@@ -5,8 +5,10 @@ import { useToast } from '@/components/Toast';
 import { cn } from '@/lib/cn';
 import type { HojePendencia } from '@/lib/conteudoDemo';
 
-// Estilo de cada linha (hoje-desktop.html): a ordem das 4 pendências é fixa em
-// conteudoDemo.hoje.pendencias, então o tom e o botão são amarrados à posição.
+// Estilo de cada linha (hoje-desktop.html): a posição na lista que a página monta
+// (DashboardPage, que antepõe a pendência real de vagas à tarde às 3 de exemplo de
+// conteudoDemo.hoje.pendencias quando ela existe) é o que amarra o tom e o botão —
+// não o conteúdo da pendência.
 const LINHA_ESTILO: readonly {
   tonIcone: string;
   variant: 'secondary' | 'whatsapp';
