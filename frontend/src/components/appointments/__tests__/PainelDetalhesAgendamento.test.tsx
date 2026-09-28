@@ -163,9 +163,9 @@ describe('PainelDetalhesAgendamento', () => {
     expect(screen.getByText(`“${detalhes.observacoes}”`)).toBeInTheDocument();
   });
 
-  it('o selo de cliente recorrente é neutro, sem número de ciclo médio ou total de visitas (I1)', () => {
+  it('não mostra selo de cliente recorrente nem números de ciclo médio/total de visitas (N1: era um booleano fixo, sempre true)', () => {
     abrir();
-    expect(screen.getByText('Cliente Recorrente')).toBeInTheDocument();
+    expect(screen.queryByText('Cliente Recorrente')).not.toBeInTheDocument();
     expect(screen.queryByText('Ciclo médio')).not.toBeInTheDocument();
     expect(screen.queryByText('Total de visitas')).not.toBeInTheDocument();
   });

@@ -22,6 +22,10 @@ export interface HojePendencia {
   titulo: string;
   descricao: string;
   rotuloBotao: string;
+  // Tom do card e do botão — preso ao conteúdo da pendência, não à posição dela na lista
+  // (a lista muda de tamanho quando a vaga real da tarde existe ou não; achado N2 da
+  // re-revisão da rodada de correção final).
+  tom: 'brand' | 'whatsapp' | 'warning' | 'danger';
 }
 
 export interface HojeContent {
@@ -56,10 +60,6 @@ export interface AgendaDetalhes {
   comprovantePix: string;
   origem: string;
   observacoes: string;
-  // Selo neutro "Cliente Recorrente", sem número — o DTO do agendamento não traz
-  // client_id, então nenhum ciclo médio ou total de visitas teria como ficar
-  // consistente com a lista e a ficha da cliente (correção I1 da revisão final).
-  clienteRecorrente: boolean;
 }
 
 export interface AgendaContent {
@@ -276,18 +276,21 @@ export const conteudoDemo = {
         titulo: '9 clientes com manutenção vencendo',
         descricao: 'Serviços no prazo ideal de retorno',
         rotuloBotao: 'Disparar lembrete',
+        tom: 'whatsapp',
       },
       {
         icone: 'qr_code_2',
         titulo: '3 sinais Pix aguardando pagamento',
         descricao: 'Expira em 30 minutos (R$ 110 pendentes)',
         rotuloBotao: 'Ver pendências',
+        tom: 'warning',
       },
       {
         icone: 'star_half',
         titulo: '1 avaliação desfavorável registrada',
         descricao: 'Cliente Camila Dias · Ontem às 18:30',
         rotuloBotao: 'Ver e responder',
+        tom: 'danger',
       },
     ],
   },
@@ -299,7 +302,6 @@ export const conteudoDemo = {
       origem: 'Página Pública (Link da Bio)',
       observacoes:
         'Prefere agendar sempre com a mesma profissional. Chegou com 5 min de antecedência.',
-      clienteRecorrente: true,
     },
   },
   clientes: {

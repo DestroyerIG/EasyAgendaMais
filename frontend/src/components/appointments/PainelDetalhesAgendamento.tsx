@@ -12,10 +12,10 @@
  * Dado de exemplo (conteudoDemo.agenda): a duração do atendimento
  * (duracaoPadraoMinutos, porque o DTO não devolve a duração do serviço) e, em
  * conteudoDemo.agenda.detalhes, o sinal por Pix com o comprovante, a origem do
- * agendamento, o texto das observações e o selo neutro de cliente recorrente (sem
- * números — o DTO do agendamento não traz `client_id`, então nenhum número de ciclo
- * médio ou total de visitas teria como ficar consistente com a lista e a ficha da
- * cliente; correção I1 da revisão final).
+ * agendamento e o texto das observações. O selo "Cliente Recorrente" foi removido
+ * (era um booleano fixo em conteudoDemo, sempre `true` para qualquer agendamento —
+ * contradizia a lista e a ficha ao abrir o painel de uma cliente nova; achado N1 da
+ * re-revisão da rodada de correção final, que sucede a correção I1 original).
  * Sobre o sinal: o sistema não recebe sinal por Pix, então o valor de exemplo é limitado
  * ao preço real do serviço e o "valor a pagar no estúdio" é a diferença — as duas linhas
  * sempre somam o total verdadeiro do atendimento, nunca mais do que ele. Sem preço de
@@ -152,12 +152,6 @@ export function ConteudoDetalhesAgendamento({ agendamento, duracaoMinutos }: Con
               )}
             </div>
           </div>
-          {detalhes.clienteRecorrente && (
-            <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 text-[11px] font-bold text-ink shadow-sm">
-              <Icon name="repeat" size={14} className="text-brand-text" />
-              Cliente Recorrente
-            </span>
-          )}
         </div>
       </div>
 

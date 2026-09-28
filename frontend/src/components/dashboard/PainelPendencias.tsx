@@ -5,21 +5,18 @@ import { useToast } from '@/components/Toast';
 import { cn } from '@/lib/cn';
 import type { HojePendencia } from '@/lib/conteudoDemo';
 
-// Estilo de cada linha (hoje-desktop.html): a posição na lista que a página monta
-// (DashboardPage, que antepõe a pendência real de vagas à tarde às 3 de exemplo de
-// conteudoDemo.hoje.pendencias quando ela existe) é o que amarra o tom e o botão —
-// não o conteúdo da pendência.
-const LINHA_ESTILO: readonly {
-  tonIcone: string;
-  variant: 'secondary' | 'whatsapp';
-  className?: string;
-  icone?: string;
-}[] = [
-  { tonIcone: 'text-brand', variant: 'secondary' },
-  { tonIcone: 'text-whatsapp', variant: 'whatsapp', icone: 'send' },
-  { tonIcone: 'text-warning', variant: 'secondary', className: 'text-warning-text hover:border-warning/50' },
-  { tonIcone: 'text-danger', variant: 'secondary', className: 'text-danger hover:border-danger/40' },
-];
+// Estilo de cada linha (hoje-desktop.html), preso ao `tom` da própria pendência — não à
+// posição dela na lista, que muda de tamanho quando a vaga real de tarde existe ou não
+// (DashboardPage antepõe essa pendência real às de exemplo só quando há vaga de verdade).
+const ESTILO_POR_TOM: Record<
+  HojePendencia['tom'],
+  { tonIcone: string; variant: 'secondary' | 'whatsapp'; className?: string; icone?: string }
+> = {
+  brand: { tonIcone: 'text-brand', variant: 'secondary' },
+  whatsapp: { tonIcone: 'text-whatsapp', variant: 'whatsapp', icone: 'send' },
+  warning: { tonIcone: 'text-warning', variant: 'secondary', className: 'text-warning-text hover:border-warning/50' },
+  danger: { tonIcone: 'text-danger', variant: 'secondary', className: 'text-danger hover:border-danger/40' },
+};
 
 export interface PainelPendenciasProps {
   pendencias: readonly HojePendencia[];
@@ -47,8 +44,8 @@ export function PainelPendencias({ pendencias, className }: PainelPendenciasProp
         </span>
       </div>
       <div className="flex flex-col gap-3">
-        {pendencias.map((pendencia, index) => {
-          const estilo = LINHA_ESTILO[index % LINHA_ESTILO.length];
+        {pendencias.map((pendencia) => {
+          const estilo = ESTILO_POR_TOM[pendencia.tom];
           return (
             <div
               key={pendencia.titulo}

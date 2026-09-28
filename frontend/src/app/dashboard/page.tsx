@@ -92,6 +92,7 @@ export default function DashboardPage() {
       titulo: `${vagasTarde.length} horário${vagasTarde.length === 1 ? '' : 's'} vago${vagasTarde.length === 1 ? '' : 's'} à tarde`,
       descricao: `${profissionais.join(', ')} · ${horarios}`,
       rotuloBotao: 'Oferecer à lista de espera',
+      tom: 'brand' as const,
     };
   }, [metricasAgenda]);
 
