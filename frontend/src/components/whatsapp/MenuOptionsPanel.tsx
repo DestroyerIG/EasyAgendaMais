@@ -1,40 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, Button, Icon, Modal, Field, Input, Textarea, Skeleton } from '@/components/ui';
+import { Card, Button, Icon, Modal, ModalFooter, EmptyState, IconButton, Field, Input, Textarea, Skeleton } from '@/components/ui';
+import { materialIcon } from '@/lib/materialIconAdapter';
 import { cn } from '@/lib/cn';
-
-/** Botão de ícone local (Material Symbols) — mesma marcação do IconButton compartilhado,
- * que ainda espera um componente de ícone em SVG e por isso não é usado aqui. */
-function MenuIconButton({
-  icon,
-  label,
-  onClick,
-  disabled,
-  className,
-}: {
-  icon: string;
-  label: string;
-  onClick?: () => void;
-  disabled?: boolean;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-ink transition-colors hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50 lg:h-9 lg:w-9',
-        className,
-      )}
-    >
-      <Icon name={icon} size={18} />
-    </button>
-  );
-}
 
 export interface MenuOption {
   id: string;
@@ -141,12 +110,12 @@ export const MenuOptionsPanel = ({
           <p className="text-[15px] text-muted">Configure as opções do menu principal do bot.</p>
         </div>
         <div className="flex gap-2">
-          <MenuIconButton
-            icon="restart_alt"
+          <IconButton
+            icon={materialIcon('restart_alt')}
             label="Resetar menu para padrão"
             onClick={onReset}
             disabled={actionLoading || loading}
-            className="border border-line bg-surface-2 hover:bg-line/60"
+            variant="secondary"
           />
           <Button onClick={openCreateModal} disabled={actionLoading || loading || options.length >= 15}>
             <Icon name="add" size={16} />
@@ -169,16 +138,16 @@ export const MenuOptionsPanel = ({
               className={cn('flex items-center gap-3 p-4', !opt.active && 'opacity-60')}
             >
               <div className="flex flex-col items-center gap-0.5 text-muted">
-                <MenuIconButton
-                  icon="keyboard_arrow_up"
+                <IconButton
+                  icon={materialIcon('keyboard_arrow_up')}
                   label="Mover para cima"
                   onClick={() => handleMoveUp(index)}
                   disabled={index === 0 || actionLoading}
                   className="h-7 w-7"
                 />
                 <Icon name="drag_indicator" size={14} className="text-muted" />
-                <MenuIconButton
-                  icon="keyboard_arrow_down"
+                <IconButton
+                  icon={materialIcon('keyboard_arrow_down')}
                   label="Mover para baixo"
                   onClick={() => handleMoveDown(index)}
                   disabled={index === options.length - 1 || actionLoading}
@@ -201,21 +170,21 @@ export const MenuOptionsPanel = ({
               </div>
 
               <div className="flex items-center gap-1">
-                <MenuIconButton
-                  icon={opt.active ? 'toggle_on' : 'toggle_off'}
+                <IconButton
+                  icon={materialIcon(opt.active ? 'toggle_on' : 'toggle_off')}
                   label={opt.active ? 'Desativar opção' : 'Ativar opção'}
                   onClick={() => onToggle(opt.id, !opt.active)}
                   disabled={actionLoading}
                 />
-                <MenuIconButton
-                  icon="edit"
+                <IconButton
+                  icon={materialIcon('edit')}
                   label="Editar opção"
                   onClick={() => openEditModal(opt)}
                   disabled={actionLoading}
                 />
                 {opt.type === 'custom' && (
-                  <MenuIconButton
-                    icon="delete"
+                  <IconButton
+                    icon={materialIcon('delete')}
                     label="Excluir opção"
                     onClick={() => { if (confirm('Excluir esta opção?')) onDelete(opt.id); }}
                     disabled={actionLoading}
@@ -226,14 +195,12 @@ export const MenuOptionsPanel = ({
           ))}
 
           {options.length === 0 && (
-            <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
-              <Icon name="list" size={40} className="text-muted" />
-              <p className="text-[15px] font-semibold text-ink">Nenhuma opção configurada</p>
-              <Button variant="secondary" onClick={openCreateModal}>
-                <Icon name="add" size={16} />
-                Nova Opção
-              </Button>
-            </div>
+            <EmptyState
+              icon={materialIcon('list')}
+              title="Nenhuma opção configurada"
+              action={{ label: 'Nova Opção', icon: materialIcon('add'), onClick: openCreateModal }}
+              actionVariant="secondary"
+            />
           )}
         </div>
       )}
@@ -243,15 +210,14 @@ export const MenuOptionsPanel = ({
         onClose={closeModal}
         title={isEditing ? 'Editar Opção' : 'Nova Opção Personalizada'}
         footer={
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button variant="secondary" onClick={closeModal} disabled={actionLoading}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSubmit} loading={actionLoading} disabled={isCreateInvalid}>
-              {!actionLoading && <Icon name="save" size={16} />}
-              {isEditing ? 'Salvar' : 'Criar'}
-            </Button>
-          </div>
+          <ModalFooter
+            onCancel={closeModal}
+            onSubmit={handleSubmit}
+            submitLabel={isEditing ? 'Salvar' : 'Criar'}
+            submitIcon={materialIcon('save')}
+            submitting={actionLoading}
+            disabled={isCreateInvalid}
+          />
         }
       >
         <div className="flex flex-col gap-4">

@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Card, Button, Icon, Input } from '@/components/ui';
+import { Card, Button, Icon, Input, IconButton, EmptyState } from '@/components/ui';
+import { materialIcon } from '@/lib/materialIconAdapter';
 import { cn } from '@/lib/cn';
 
 interface BotMessage {
@@ -69,11 +70,11 @@ export const ChatSimulator = ({ onSendMessage }: ChatSimulatorProps) => {
 
       <div className="flex-1 space-y-4 overflow-y-auto p-6">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
-            <Icon name="terminal" size={40} className="text-muted" />
-            <p className="text-[15px] font-semibold text-ink">Simulador de WhatsApp</p>
-            <p className="max-w-sm text-[15px] text-muted">Mande um &quot;Oi&quot; para começar o agendamento.</p>
-          </div>
+          <EmptyState
+            icon={materialIcon('terminal')}
+            title="Simulador de WhatsApp"
+            description='Mande um "Oi" para começar o agendamento.'
+          />
         )}
         {messages.map(msg => (
           <div key={msg.id} className={cn('flex', msg.sender === 'user' ? 'justify-end' : 'justify-start')}>
@@ -115,14 +116,12 @@ export const ChatSimulator = ({ onSendMessage }: ChatSimulatorProps) => {
             placeholder="Envie uma mensagem..."
             className="flex-1"
           />
-          <button
+          <IconButton
             type="submit"
-            aria-label="Enviar mensagem"
-            title="Enviar mensagem"
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control border border-line bg-surface-2 text-ink transition-colors hover:bg-line/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50 lg:h-9 lg:w-9"
-          >
-            <Icon name="send" size={18} />
-          </button>
+            icon={materialIcon('send')}
+            label="Enviar mensagem"
+            variant="secondary"
+          />
         </div>
       </form>
     </Card>
