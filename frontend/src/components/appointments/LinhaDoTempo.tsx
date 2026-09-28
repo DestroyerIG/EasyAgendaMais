@@ -10,7 +10,8 @@
  * a régua e os buracos são do dia — o filtro de status não desocupa horário.
  * Dado de exemplo: a duração de cada atendimento (conteudoDemo.agenda.duracaoPadraoMinutos),
  * porque o DTO de /appointments ainda não devolve a duração do serviço — é ela que
- * define a altura do bloco.
+ * define a altura do bloco. Clicar no bloco abre o painel de detalhes
+ * (agendamento-detalhes.html); os botões rápidos do bloco continuam como eram.
  * Fora da tela: "encaixe inteligente"/"encaixe rápido", bloco de almoço e faixa de
  * "ação química" do arquivo de referência, que dependem de dados e funções que não existem.
  *
@@ -246,6 +247,8 @@ interface BlocoAgendamentoProps {
   faixaInicioMinutos: number;
   actionLoading: string | null;
   onStatusChange: (id: string, status: 'concluido' | 'cancelado') => void;
+  /** Abre o painel de detalhes (agendamento-detalhes.html). Sem ela o bloco só informa. */
+  onAbrirDetalhes?: (agendamento: Appointment) => void;
 }
 
 function BlocoAgendamento({
@@ -254,6 +257,7 @@ function BlocoAgendamento({
   faixaInicioMinutos,
   actionLoading,
   onStatusChange,
+  onAbrirDetalhes,
 }: BlocoAgendamentoProps) {
   const inicioMinutos = paraMinutos(agendamento.time);
   const { top, altura } = posicaoDoBloco(inicioMinutos, duracaoMinutos, faixaInicioMinutos);
@@ -272,7 +276,18 @@ function BlocoAgendamento({
     >
       <div className={cn('w-1 shrink-0', STATUS_STRIPE_CLASS[agendamento.status])} />
       <div className="relative flex w-full min-w-0 flex-col justify-between p-2.5">
-        <div className="min-w-0">
+        {/* Alvo de clique do bloco inteiro: cobre o texto (que não é interativo) e fica
+            por baixo das ações rápidas, que são absolutas com z-10. Sem ele o bloco
+            precisaria virar um botão com botões dentro. */}
+        {onAbrirDetalhes && (
+          <button
+            type="button"
+            aria-label={`Ver detalhes do agendamento de ${cliente}`}
+            onClick={() => onAbrirDetalhes(agendamento)}
+            className="absolute inset-0 cursor-pointer rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
+          />
+        )}
+        <div className="pointer-events-none min-w-0">
           <div className="flex items-center justify-between gap-1">
             <span className={cn('text-[11px] font-semibold tabular-nums text-muted', cancelado && 'line-through')}>
               {faixaHorariaTexto(inicioMinutos, duracaoMinutos)}
@@ -300,7 +315,7 @@ function BlocoAgendamento({
           </p>
         </div>
 
-        <div className="flex items-center justify-between gap-1">
+        <div className="pointer-events-none flex items-center justify-between gap-1">
           <span
             className={cn(
               'text-[13px] font-bold tabular-nums',
@@ -315,7 +330,7 @@ function BlocoAgendamento({
         {/* As mesmas ações do cartão do celular: aparecem no ponteiro e ao receber foco
             pelo teclado, e ficam sem alvo de clique enquanto invisíveis. */}
         {podeAgir && (
-          <div className="pointer-events-none absolute right-1.5 top-1.5 flex gap-1 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+          <div className="pointer-events-none absolute right-1.5 top-1.5 z-10 flex gap-1 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
             <button
               type="button"
               aria-label={`Concluir atendimento de ${cliente}`}
@@ -403,6 +418,8 @@ export interface LinhaDoTempoProps {
   mostrarAgora?: boolean;
   onStatusChange: (id: string, status: 'concluido' | 'cancelado') => void;
   onNovoAgendamento: () => void;
+  /** Clique no bloco abre o painel de detalhes (agendamento-detalhes.html). */
+  onAbrirDetalhes?: (agendamento: Appointment) => void;
   className?: string;
 }
 
@@ -416,6 +433,7 @@ export function LinhaDoTempo({
   mostrarAgora = false,
   onStatusChange,
   onNovoAgendamento,
+  onAbrirDetalhes,
   className,
 }: LinhaDoTempoProps) {
   // O relógio do aparelho só é lido depois da montagem: no servidor ele daria outra
@@ -538,6 +556,7 @@ export function LinhaDoTempo({
                 faixaInicioMinutos={faixa.inicioMinutos}
                 actionLoading={actionLoading}
                 onStatusChange={onStatusChange}
+                onAbrirDetalhes={onAbrirDetalhes}
               />
             ))}
           </div>

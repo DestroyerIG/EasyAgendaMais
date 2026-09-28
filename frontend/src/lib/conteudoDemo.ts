@@ -42,16 +42,25 @@ export interface HojeContent {
 
 // ─── Agenda (agenda-desktop.html, agenda-mobile.html, agendamento-detalhes.html) ─
 
+// O painel de detalhes (agendamento-detalhes.html) tira do banco tudo o que o DTO de
+// /appointments já traz — cliente, telefone, data, hora, profissional, serviço, valor,
+// status, created_at e reminder_sent — e o número do agendamento sai do id real. O que
+// sobra aqui é só o que nenhuma tabela responde ainda.
 export interface AgendaDetalhes {
-  numero: string;
   cicloMedioDias: number;
   cicloMedioSelo: string;
   totalVisitas: number;
+  // O ano das visitas anda junto com a contagem: as duas vêm da mesma conta que o
+  // sistema ainda não faz, então nenhuma das duas pode ser escrita solta na tela.
+  totalVisitasAno: number;
   ultimaVisitaResumo: string;
+  // Sinal por Pix: o sistema não recebe sinal, mas a tela mostra o bloco. Na tela o
+  // sinal é limitado ao preço real do serviço e o valor a pagar é a diferença, para as
+  // duas linhas sempre fecharem com o total verdadeiro do atendimento.
+  sinalPago: number;
   comprovantePix: string;
   origem: string;
-  criadoEm: string;
-  lembreteWhatsappEnviado: boolean;
+  observacoes: string;
   clienteRecorrente: boolean;
 }
 
@@ -363,15 +372,16 @@ export const conteudoDemo = {
   agenda: {
     duracaoPadraoMinutos: 60,
     detalhes: {
-      numero: '4892',
       cicloMedioDias: 21,
       cicloMedioSelo: 'Ideal para o serviço',
       totalVisitas: 8,
+      totalVisitasAno: 2026,
       ultimaVisitaResumo: 'há 19 dias (Camila)',
+      sinalPago: 30,
       comprovantePix: '#PIX-99824-A1',
       origem: 'Página Pública (Link da Bio)',
-      criadoEm: '14/09 às 21:14',
-      lembreteWhatsappEnviado: true,
+      observacoes:
+        'Prefere agendar sempre com a mesma profissional. Chegou com 5 min de antecedência.',
       clienteRecorrente: true,
     },
   },

@@ -557,3 +557,41 @@ describe('AppointmentModule: a grade do computador também é do dia', () => {
     expect(screen.getByText('1 atendimento')).toBeInTheDocument();
   });
 });
+
+describe('AppointmentModule: painel de detalhes do agendamento', () => {
+  beforeEach(() => {
+    mockSearch.value = '';
+    mockApiGet.mockReset();
+  });
+
+  // Duas larguras, dois caminhos de abertura: o bloco da linha do tempo (computador) e o
+  // corpo do cartão (celular). Os dois existem no DOM, então os dois são checados aqui.
+  it('abre pelo bloco da linha do tempo e pelo cartão, com o número que sai do id real', async () => {
+    responder([agendamento({ id: 'ab12cd', time: '10:00:00' })]);
+    render(<AppointmentModule />);
+
+    await screen.findAllByText('Mariana Souza');
+    const alvos = screen.getAllByRole('button', { name: 'Ver detalhes do agendamento de Mariana Souza' });
+    expect(alvos).toHaveLength(2);
+
+    for (const alvo of alvos) {
+      await userEvent.click(alvo);
+      expect(await screen.findByText('Agendamento #12CD')).toBeInTheDocument();
+      expect(screen.getByText('Detalhes da Sessão')).toBeInTheDocument();
+      expect(screen.getByText('10:00 às 11:00 (Duração estimada: 1h)')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', { name: 'Fechar' }));
+      await waitFor(() => {
+        expect(screen.queryByText('Agendamento #12CD')).not.toBeInTheDocument();
+      });
+    }
+  });
+
+  it('o painel só existe depois do clique', async () => {
+    responder([agendamento({ id: 'ab12cd', time: '10:00:00' })]);
+    render(<AppointmentModule />);
+
+    await screen.findAllByText('Mariana Souza');
+    expect(screen.queryByText('Detalhes da Sessão')).not.toBeInTheDocument();
+  });
+});

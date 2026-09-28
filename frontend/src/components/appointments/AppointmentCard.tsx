@@ -5,7 +5,8 @@
  *
  * Dado real: horário, cliente, valor, serviço, profissional e status vêm de
  * GET /appointments; as duas ações do gesto chamam o mesmo handler de mudança de
- * status que a tela já usava.
+ * status que a tela já usava. Um toque parado no corpo do cartão abre o painel de
+ * detalhes (agendamento-detalhes.html) — arrastar não abre.
  * Dado de exemplo: a duração embaixo do horário (conteudoDemo.agenda.duracaoPadraoMinutos),
  * porque o DTO de /appointments não devolve a duração do serviço.
  * Fora da tela: o "encaixe rápido" e a ação de cobrar sinal por Pix do arquivo de
@@ -17,7 +18,12 @@
  * um estado que o registro nunca vai ter.
  */
 
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
 import { Icon, StatusChip, STATUS_STRIPE_CLASS } from '@/components/ui';
@@ -28,6 +34,17 @@ import type { Appointment } from '@/types';
 export const LIMITE_ARRASTE = 120;
 export const VIRADA_ARRASTE = 60;
 export const ABERTURA_ARRASTE = 80;
+
+/**
+ * Até quantos pixels o ponteiro pode andar e o toque ainda valer como clique. O gesto de
+ * arrastar já existia no cartão: sem esse limite, todo arrasto também abriria o painel
+ * de detalhes.
+ */
+export const LIMITE_CLIQUE = 6;
+
+/** O ponteiro praticamente não andou entre o toque e o solte? */
+export const ehClique = (dx: number, dy: number): boolean =>
+  Math.abs(dx) <= LIMITE_CLIQUE && Math.abs(dy) <= LIMITE_CLIQUE;
 
 /** Onde o cartão para quando o dedo sai: aberto num dos lados ou de volta ao lugar. */
 export function encaixarArraste(deslocamento: number): number {
@@ -101,6 +118,11 @@ interface AppointmentCardProps {
   actionLoading: string | null;
   duracaoMinutos: number;
   onStatusChange: (id: string, status: 'concluido' | 'cancelado') => void;
+  /**
+   * Abre o painel de detalhes (agendamento-detalhes.html). Só dispara quando o ponteiro
+   * praticamente não andou: o corpo do cartão também é a área do gesto de arrastar.
+   */
+  onAbrirDetalhes?: (appointment: Appointment) => void;
 }
 
 export function AppointmentCard({
@@ -108,6 +130,7 @@ export function AppointmentCard({
   actionLoading,
   duracaoMinutos,
   onStatusChange,
+  onAbrirDetalhes,
 }: AppointmentCardProps) {
   const isLoading = actionLoading === appointment.id;
   // Só o agendamento confirmado tem transição de status; nos outros não há o que revelar.
@@ -117,8 +140,14 @@ export function AppointmentCard({
   const [deslocamento, setDeslocamento] = useState(0);
   const [arrastando, setArrastando] = useState(false);
   const origemRef = useRef<number | null>(null);
+  // Onde o toque começou, guardado mesmo no cartão sem ações (concluído, cancelado), que
+  // não arrasta mas continua abrindo o painel.
+  const toqueRef = useRef<{ x: number; y: number } | null>(null);
+
+  const abrirDetalhes = () => onAbrirDetalhes?.(appointment);
 
   const iniciarArraste = (evento: ReactPointerEvent<HTMLDivElement>) => {
+    toqueRef.current = { x: evento.clientX, y: evento.clientY };
     if (!podeAgir) return;
     origemRef.current = evento.clientX - deslocamento;
     setArrastando(true);
@@ -131,11 +160,18 @@ export function AppointmentCard({
     setDeslocamento(Math.max(-LIMITE_ARRASTE, Math.min(LIMITE_ARRASTE, x)));
   };
 
-  const soltarArraste = () => {
-    if (origemRef.current === null) return;
-    origemRef.current = null;
-    setArrastando(false);
-    setDeslocamento((atual) => encaixarArraste(atual));
+  const soltarArraste = (evento: ReactPointerEvent<HTMLDivElement>) => {
+    const toque = toqueRef.current;
+    toqueRef.current = null;
+    if (origemRef.current !== null) {
+      origemRef.current = null;
+      setArrastando(false);
+      setDeslocamento((atual) => encaixarArraste(atual));
+    }
+    // Clique parado no corpo do cartão abre os detalhes; arrasto, não.
+    if (onAbrirDetalhes && toque && evento.type === 'pointerup') {
+      if (ehClique(evento.clientX - toque.x, evento.clientY - toque.y)) abrirDetalhes();
+    }
   };
 
   const agir = (status: 'concluido' | 'cancelado') => {
@@ -182,8 +218,23 @@ export function AppointmentCard({
         onPointerMove={moverArraste}
         onPointerUp={soltarArraste}
         onPointerCancel={soltarArraste}
+        {...(onAbrirDetalhes
+          ? {
+              role: 'button',
+              tabIndex: 0,
+              'aria-label': `Ver detalhes do agendamento de ${cliente}`,
+              onKeyDown: (evento: ReactKeyboardEvent<HTMLDivElement>) => {
+                if (evento.key === 'Enter' || evento.key === ' ') {
+                  evento.preventDefault();
+                  abrirDetalhes();
+                }
+              },
+            }
+          : {})}
         className={cn(
           'relative flex touch-pan-y items-stretch gap-3 bg-surface p-3.5',
+          onAbrirDetalhes &&
+            'cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand',
           !arrastando && 'transition-transform duration-200',
         )}
         style={{ transform: `translateX(${deslocamento}px)` }}

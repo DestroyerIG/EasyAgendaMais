@@ -14,6 +14,8 @@
  * Dado de exemplo: só a duração de cada atendimento
  * (conteudoDemo.agenda.duracaoPadraoMinutos), porque o DTO de /appointments não
  * devolve a duração do serviço.
+ * O painel de detalhes abre sobre a agenda ao clicar no bloco da linha do tempo ou no
+ * corpo do cartão, e as ações dele chamam o mesmo handleStatusChange desta tela.
  * Fora da tela: "encaixe inteligente"/"encaixe rápido", bloco de almoço, faixa de
  * "ação química", cobrança de sinal por Pix e aviso de chegada prevista, todos do
  * arquivo de referência e todos sem função que os sustente.
@@ -50,6 +52,7 @@ import {
   type HorarioFuncionamento,
   type VagaLivre,
 } from '@/components/appointments/LinhaDoTempo';
+import { PainelDetalhesAgendamento } from '@/components/appointments/PainelDetalhesAgendamento';
 import { CreateAppointmentModal } from '@/components/appointments/CreateAppointmentModal';
 import type { AppointmentFormData } from '@/components/appointments/CreateAppointmentModal';
 import { useNewAppointmentParam } from '@/hooks/useNewAppointmentParam';
@@ -137,6 +140,10 @@ export function AppointmentModule() {
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
   const [showModal, setShowModal] = useState(false);
+  // Painel de detalhes (agendamento-detalhes.html): guarda só o id. O agendamento
+  // mostrado é sempre relido da lista carregada, então uma mudança de status aparece no
+  // painel na mesma hora e o painel nunca fica afirmando um status que a lista já mudou.
+  const [detalhesId, setDetalhesId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const { showToast } = useToast();
   const newAppointment = useNewAppointmentParam();
@@ -253,6 +260,10 @@ export function AppointmentModule() {
       setActionLoading(null);
     }
   };
+
+  const agendamentoDetalhado = detalhesId
+    ? appointments.find(a => a.id === detalhesId) ?? null
+    : null;
 
   const closeModal = () => {
     setShowModal(false);
@@ -512,6 +523,7 @@ export function AppointmentModule() {
                       actionLoading={actionLoading}
                       duracaoMinutos={duracaoMinutos}
                       onStatusChange={handleStatusChange}
+                      onAbrirDetalhes={a => setDetalhesId(a.id)}
                     />
                   ) : (
                     <button
@@ -585,12 +597,21 @@ export function AppointmentModule() {
                   mostrarAgora={date === getToday()}
                   onStatusChange={handleStatusChange}
                   onNovoAgendamento={openModal}
+                  onAbrirDetalhes={a => setDetalhesId(a.id)}
                 />
               </div>
             ))}
           </div>
         </>
       )}
+
+      <PainelDetalhesAgendamento
+        agendamento={agendamentoDetalhado}
+        duracaoMinutos={duracaoMinutos}
+        actionLoading={actionLoading}
+        onFechar={() => setDetalhesId(null)}
+        onStatusChange={handleStatusChange}
+      />
 
       <CreateAppointmentModal
         isOpen={showModal}

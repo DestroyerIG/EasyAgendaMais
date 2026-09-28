@@ -6,6 +6,8 @@ import {
   AppointmentCard,
   CorpoCartaoAgendamento,
   LIMITE_ARRASTE,
+  LIMITE_CLIQUE,
+  ehClique,
   encaixarArraste,
 } from '../AppointmentCard';
 import type { Appointment } from '@/types';
@@ -135,6 +137,73 @@ describe('AppointmentCard', () => {
     render(<AppointmentCard {...props} actionLoading="a1" appointment={agendamento()} />);
     expect(screen.getByRole('button', { name: /Concluir atendimento/ })).toBeDisabled();
     expect(screen.getByRole('button', { name: /Cancelar agendamento/ })).toBeDisabled();
+  });
+});
+
+describe('AppointmentCard: abrir o painel de detalhes', () => {
+  const frenteDo = () => screen.getByText('Mariana Souza').closest('div[style]') as HTMLElement;
+
+  it('ehClique aceita só o toque parado', () => {
+    expect(ehClique(0, 0)).toBe(true);
+    expect(ehClique(LIMITE_CLIQUE, -LIMITE_CLIQUE)).toBe(true);
+    expect(ehClique(LIMITE_CLIQUE + 1, 0)).toBe(false);
+    expect(ehClique(0, -(LIMITE_CLIQUE + 1))).toBe(false);
+  });
+
+  it('toque parado no corpo do cartão abre o painel', () => {
+    const onAbrirDetalhes = vi.fn();
+    render(<AppointmentCard {...props} appointment={agendamento()} onAbrirDetalhes={onAbrirDetalhes} />);
+    const frente = frenteDo();
+
+    fireEvent.pointerDown(frente, { clientX: 10, clientY: 10, pointerId: 1 });
+    fireEvent.pointerUp(frente, { clientX: 12, clientY: 11, pointerId: 1 });
+
+    expect(onAbrirDetalhes).toHaveBeenCalledTimes(1);
+    expect(onAbrirDetalhes).toHaveBeenCalledWith(expect.objectContaining({ id: 'a1' }));
+  });
+
+  it('arrastar o cartão não abre o painel', () => {
+    const onAbrirDetalhes = vi.fn();
+    render(<AppointmentCard {...props} appointment={agendamento()} onAbrirDetalhes={onAbrirDetalhes} />);
+    const frente = frenteDo();
+
+    fireEvent.pointerDown(frente, { clientX: 10, clientY: 10, pointerId: 1 });
+    fireEvent.pointerMove(frente, { clientX: 90, clientY: 12, pointerId: 1 });
+    fireEvent.pointerUp(frente, { clientX: 90, clientY: 12, pointerId: 1 });
+
+    expect(onAbrirDetalhes).not.toHaveBeenCalled();
+    // E o gesto continua funcionando: o cartão ficou aberto no lado do arrasto.
+    expect(frente.style.transform).toBe(`translateX(${ABERTURA_ARRASTE}px)`);
+  });
+
+  it('o cartão sem transição de status também abre o painel', () => {
+    const onAbrirDetalhes = vi.fn();
+    render(
+      <AppointmentCard
+        {...props}
+        appointment={agendamento({ status: 'concluido' })}
+        onAbrirDetalhes={onAbrirDetalhes}
+      />,
+    );
+    const frente = frenteDo();
+
+    fireEvent.pointerDown(frente, { clientX: 10, clientY: 10, pointerId: 1 });
+    fireEvent.pointerUp(frente, { clientX: 10, clientY: 10, pointerId: 1 });
+
+    expect(onAbrirDetalhes).toHaveBeenCalledTimes(1);
+  });
+
+  it('o corpo do cartão vira alvo de teclado só quando há painel para abrir', async () => {
+    const onAbrirDetalhes = vi.fn();
+    const { unmount } = render(<AppointmentCard {...props} appointment={agendamento()} />);
+    expect(screen.queryByRole('button', { name: /Ver detalhes/ })).not.toBeInTheDocument();
+    unmount();
+
+    render(<AppointmentCard {...props} appointment={agendamento()} onAbrirDetalhes={onAbrirDetalhes} />);
+    const alvo = screen.getByRole('button', { name: 'Ver detalhes do agendamento de Mariana Souza' });
+    alvo.focus();
+    await userEvent.keyboard('{Enter}');
+    expect(onAbrirDetalhes).toHaveBeenCalledTimes(1);
   });
 });
 

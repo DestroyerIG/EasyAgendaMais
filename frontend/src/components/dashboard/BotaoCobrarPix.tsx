@@ -1,8 +1,7 @@
 'use client';
 
-import { Icon } from '@/components/ui';
+import { AVISO_RECURSO_A_CAMINHO, Icon } from '@/components/ui';
 import { useToast } from '@/components/Toast';
-import { AVISO_RECURSO_A_CAMINHO } from './PainelPendencias';
 
 // Botão flutuante "Cobrar Pix" (hoje-mobile.html): só existe no celular — o
 // desktop não tem esse botão. Posição/tamanho do arquivo (bottom-20 right-4,

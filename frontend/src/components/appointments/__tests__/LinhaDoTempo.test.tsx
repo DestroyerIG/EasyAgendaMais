@@ -194,6 +194,34 @@ describe('LinhaDoTempo', () => {
     expect(screen.getByText('R$ 110')).toBeInTheDocument();
   });
 
+  it('clicar no bloco abre o painel de detalhes, e as ações rápidas continuam as suas', async () => {
+    const onAbrirDetalhes = vi.fn();
+    const onStatusChange = vi.fn();
+    render(
+      <LinhaDoTempo
+        {...props}
+        onStatusChange={onStatusChange}
+        onAbrirDetalhes={onAbrirDetalhes}
+        agendamentos={[agendamento({ id: 'a1', time: '09:00:00' })]}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Ver detalhes do agendamento de Mariana Souza' }),
+    );
+    expect(onAbrirDetalhes).toHaveBeenCalledWith(expect.objectContaining({ id: 'a1' }));
+    expect(onStatusChange).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Concluir atendimento de Mariana Souza' }));
+    expect(onStatusChange).toHaveBeenCalledWith('a1', 'concluido');
+    expect(onAbrirDetalhes).toHaveBeenCalledTimes(1);
+  });
+
+  it('sem a prop de detalhes o bloco não ganha alvo de clique', () => {
+    render(<LinhaDoTempo {...props} agendamentos={[agendamento({ id: 'a1', time: '09:00:00' })]} />);
+    expect(screen.queryByRole('button', { name: /Ver detalhes/ })).not.toBeInTheDocument();
+  });
+
   it('posiciona o bloco pelo cálculo, não por pixel fixo do arquivo', () => {
     render(<LinhaDoTempo {...props} agendamentos={[agendamento({ id: '1', time: '10:00:00' })]} />);
 

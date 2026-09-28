@@ -18,11 +18,18 @@ export interface SidePanelProps {
   title: string;
   description?: string;
   side?: keyof typeof SIDE_CLASS;
+  /**
+   * Largura do painel, quando a tela pede uma diferente da padrão. Entra por último no
+   * `cn`, então a classe passada aqui vence a do `SIDE_CLASS` no tailwind-merge — é
+   * assim que o painel de detalhes do agendamento chega aos 440px de
+   * agendamento-detalhes.html sem mexer no padrão, que a Ficha da Cliente usa.
+   */
+  widthClass?: string;
   children: ReactNode;
   footer?: ReactNode;
 }
 
-export function SidePanel({ open, onOpenChange, title, description, side = 'right', children, footer }: SidePanelProps) {
+export function SidePanel({ open, onOpenChange, title, description, side = 'right', widthClass, children, footer }: SidePanelProps) {
   const themeClass = useForcedDarkClass();
 
   return (
@@ -32,7 +39,11 @@ export function SidePanel({ open, onOpenChange, title, description, side = 'righ
           <Dialog.Overlay className="fixed inset-0 z-50 bg-scrim/50" />
           <Dialog.Content
             {...(description ? {} : { 'aria-describedby': undefined })}
-            className={cn('fixed z-50 flex flex-col border-line bg-surface text-ink shadow-xl focus:outline-none', SIDE_CLASS[side])}
+            className={cn(
+              'fixed z-50 flex flex-col border-line bg-surface text-ink shadow-xl focus:outline-none',
+              SIDE_CLASS[side],
+              widthClass,
+            )}
           >
             <header className="flex items-center gap-3 border-b border-line px-5 py-4">
               <Dialog.Title className="flex-1 text-lg font-bold">{title}</Dialog.Title>

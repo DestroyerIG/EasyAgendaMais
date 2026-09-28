@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, Icon, Button } from '@/components/ui';
+import { AVISO_RECURSO_A_CAMINHO, Card, Icon, Button } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { cn } from '@/lib/cn';
 import type { HojePendencia } from '@/lib/conteudoDemo';
@@ -18,12 +18,6 @@ const LINHA_ESTILO: readonly {
   { tonIcone: 'text-warning', variant: 'secondary', className: 'text-warning-text hover:border-warning/50' },
   { tonIcone: 'text-danger', variant: 'secondary', className: 'text-danger hover:border-danger/40' },
 ];
-
-// Aviso padrão para ações ainda sem efeito real — mesma linguagem das telas "em
-// breve" do produto (EmBreve.tsx), só que como toast em vez de página inteira,
-// já que o botão continua clicável dentro da tela Hoje. Exportado porque
-// BotaoCobrarPix.tsx reaproveita o mesmo aviso para o botão flutuante do celular.
-export const AVISO_RECURSO_A_CAMINHO = 'Esta ação ainda não está disponível — chega em breve.';
 
 export interface PainelPendenciasProps {
   pendencias: readonly HojePendencia[];

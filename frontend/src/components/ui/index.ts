@@ -28,3 +28,4 @@ export {
 } from './DropdownMenu';
 export { ThemeSelect } from './ThemeSelect';
 export { Icon, type IconProps } from './Icon';
+export { AVISO_RECURSO_A_CAMINHO } from './avisos';
