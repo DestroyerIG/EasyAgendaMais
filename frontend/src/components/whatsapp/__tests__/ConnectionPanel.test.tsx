@@ -16,6 +16,7 @@ describe('ConnectionPanel', () => {
         waStatus={{ ...baseStatus, status: 'connected' }}
         statusLoading={false}
         actionLoading={false}
+        lastSyncedAt={null}
         onConnect={vi.fn()}
       />,
     );
@@ -30,6 +31,7 @@ describe('ConnectionPanel', () => {
         waStatus={{ ...baseStatus, status: 'disconnected' }}
         statusLoading={false}
         actionLoading={false}
+        lastSyncedAt={null}
         onConnect={vi.fn()}
       />,
     );
@@ -44,6 +46,7 @@ describe('ConnectionPanel', () => {
         waStatus={{ ...baseStatus, status: 'pairing', qrCode: 'data:image/png;base64,abc' }}
         statusLoading={false}
         actionLoading={false}
+        lastSyncedAt={null}
         onConnect={vi.fn()}
       />,
     );

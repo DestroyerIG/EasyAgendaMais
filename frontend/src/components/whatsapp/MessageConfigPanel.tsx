@@ -1,7 +1,6 @@
 'use client';
 
-import { Save, RotateCcw } from 'lucide-react';
-import { Card, Button, IconButton, Field, Textarea, Skeleton } from '@/components/ui';
+import { Card, Button, Icon, Field, Textarea, Skeleton } from '@/components/ui';
 
 export interface BotConfig {
   welcome_header: string;
@@ -92,15 +91,18 @@ export const MessageConfigPanel = ({
         <p className="text-[15px] text-muted">Defina como o bot deve falar com seus clientes.</p>
       </div>
       <div className="flex gap-2">
-        <IconButton
-          icon={RotateCcw}
-          label="Resetar para o padrão"
-          variant="secondary"
+        <button
+          type="button"
+          aria-label="Resetar para o padrão"
+          title="Resetar para o padrão"
           onClick={onReset}
           disabled={actionLoading || configLoading}
-        />
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control border border-line bg-surface-2 text-ink transition-colors hover:bg-line/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50 lg:h-9 lg:w-9"
+        >
+          <Icon name="restart_alt" size={18} />
+        </button>
         <Button onClick={onSave} loading={actionLoading} disabled={configLoading}>
-          {!actionLoading && <Save className="h-4 w-4" aria-hidden="true" />}
+          {!actionLoading && <Icon name="save" size={16} />}
           Salvar Alterações
         </Button>
       </div>

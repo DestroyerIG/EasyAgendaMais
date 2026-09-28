@@ -1,21 +1,40 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  GripVertical,
-  List,
-  Plus,
-  Trash2,
-  ChevronUp,
-  ChevronDown,
-  Edit2,
-  RotateCcw,
-  ToggleLeft,
-  ToggleRight,
-  Save,
-} from 'lucide-react';
-import { Card, Button, IconButton, Modal, ModalFooter, Field, Input, Textarea, Skeleton, EmptyState } from '@/components/ui';
+import { Card, Button, Icon, Modal, Field, Input, Textarea, Skeleton } from '@/components/ui';
 import { cn } from '@/lib/cn';
+
+/** Botão de ícone local (Material Symbols) — mesma marcação do IconButton compartilhado,
+ * que ainda espera um componente de ícone em SVG e por isso não é usado aqui. */
+function MenuIconButton({
+  icon,
+  label,
+  onClick,
+  disabled,
+  className,
+}: {
+  icon: string;
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-ink transition-colors hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50 lg:h-9 lg:w-9',
+        className,
+      )}
+    >
+      <Icon name={icon} size={18} />
+    </button>
+  );
+}
 
 export interface MenuOption {
   id: string;
@@ -122,15 +141,15 @@ export const MenuOptionsPanel = ({
           <p className="text-[15px] text-muted">Configure as opções do menu principal do bot.</p>
         </div>
         <div className="flex gap-2">
-          <IconButton
-            icon={RotateCcw}
+          <MenuIconButton
+            icon="restart_alt"
             label="Resetar menu para padrão"
-            variant="secondary"
             onClick={onReset}
             disabled={actionLoading || loading}
+            className="border border-line bg-surface-2 hover:bg-line/60"
           />
           <Button onClick={openCreateModal} disabled={actionLoading || loading || options.length >= 15}>
-            <Plus className="h-4 w-4" aria-hidden="true" />
+            <Icon name="add" size={16} />
             Nova Opção
           </Button>
         </div>
@@ -150,16 +169,16 @@ export const MenuOptionsPanel = ({
               className={cn('flex items-center gap-3 p-4', !opt.active && 'opacity-60')}
             >
               <div className="flex flex-col items-center gap-0.5 text-muted">
-                <IconButton
-                  icon={ChevronUp}
+                <MenuIconButton
+                  icon="keyboard_arrow_up"
                   label="Mover para cima"
                   onClick={() => handleMoveUp(index)}
                   disabled={index === 0 || actionLoading}
                   className="h-7 w-7"
                 />
-                <GripVertical className="h-3.5 w-3.5 text-muted" aria-hidden="true" />
-                <IconButton
-                  icon={ChevronDown}
+                <Icon name="drag_indicator" size={14} className="text-muted" />
+                <MenuIconButton
+                  icon="keyboard_arrow_down"
                   label="Mover para baixo"
                   onClick={() => handleMoveDown(index)}
                   disabled={index === options.length - 1 || actionLoading}
@@ -182,21 +201,21 @@ export const MenuOptionsPanel = ({
               </div>
 
               <div className="flex items-center gap-1">
-                <IconButton
-                  icon={opt.active ? ToggleRight : ToggleLeft}
+                <MenuIconButton
+                  icon={opt.active ? 'toggle_on' : 'toggle_off'}
                   label={opt.active ? 'Desativar opção' : 'Ativar opção'}
                   onClick={() => onToggle(opt.id, !opt.active)}
                   disabled={actionLoading}
                 />
-                <IconButton
-                  icon={Edit2}
+                <MenuIconButton
+                  icon="edit"
                   label="Editar opção"
                   onClick={() => openEditModal(opt)}
                   disabled={actionLoading}
                 />
                 {opt.type === 'custom' && (
-                  <IconButton
-                    icon={Trash2}
+                  <MenuIconButton
+                    icon="delete"
                     label="Excluir opção"
                     onClick={() => { if (confirm('Excluir esta opção?')) onDelete(opt.id); }}
                     disabled={actionLoading}
@@ -207,12 +226,14 @@ export const MenuOptionsPanel = ({
           ))}
 
           {options.length === 0 && (
-            <EmptyState
-              icon={List}
-              title="Nenhuma opção configurada"
-              action={{ label: 'Nova Opção', icon: Plus, onClick: openCreateModal }}
-              actionVariant="secondary"
-            />
+            <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
+              <Icon name="list" size={40} className="text-muted" />
+              <p className="text-[15px] font-semibold text-ink">Nenhuma opção configurada</p>
+              <Button variant="secondary" onClick={openCreateModal}>
+                <Icon name="add" size={16} />
+                Nova Opção
+              </Button>
+            </div>
           )}
         </div>
       )}
@@ -222,14 +243,15 @@ export const MenuOptionsPanel = ({
         onClose={closeModal}
         title={isEditing ? 'Editar Opção' : 'Nova Opção Personalizada'}
         footer={
-          <ModalFooter
-            onCancel={closeModal}
-            onSubmit={handleSubmit}
-            submitLabel={isEditing ? 'Salvar' : 'Criar'}
-            submitIcon={Save}
-            submitting={actionLoading}
-            disabled={isCreateInvalid}
-          />
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={closeModal} disabled={actionLoading}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSubmit} loading={actionLoading} disabled={isCreateInvalid}>
+              {!actionLoading && <Icon name="save" size={16} />}
+              {isEditing ? 'Salvar' : 'Criar'}
+            </Button>
+          </div>
         }
       >
         <div className="flex flex-col gap-4">

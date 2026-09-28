@@ -4,32 +4,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '@/lib/api';
 import { useToast } from './Toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { PageHeader, Button, Card, Tabs, TabsList, TabsTrigger, TabsContent, buttonVariants } from '@/components/ui';
+import { PageHeader, Button, Card, Icon, Tabs, TabsList, TabsTrigger, TabsContent, buttonVariants } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { ConnectionPanel } from '@/components/whatsapp/ConnectionPanel';
 import { MessageConfigPanel, BotConfig } from '@/components/whatsapp/MessageConfigPanel';
 import { MenuOptionsPanel, MenuOption } from '@/components/whatsapp/MenuOptionsPanel';
 import { ChatSimulator } from '@/components/whatsapp/ChatSimulator';
-import {
-  Smartphone,
-  Settings2,
-  Bot,
-  Zap,
-  ShieldCheck,
-  Clock,
-  User,
-  Wifi,
-  Loader2,
-  CheckCircle,
-  QrCode,
-  WifiOff,
-  AlertTriangle,
-  LogOut,
-  RefreshCw,
-  List,
-  Lock,
-  ArrowUpCircle,
-} from 'lucide-react';
 
 interface WhatsAppStatus {
   status:
@@ -153,6 +133,8 @@ export const WhatsAppModule = () => {
   const [statusLoading, setStatusLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [featureBlocked, setFeatureBlocked] = useState(false);
+  // Hora do último status recebido com sucesso — só o front sabe disso, não é fabricado.
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const { showToast } = useToast();
   const { user } = useAuth();
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -183,6 +165,7 @@ export const WhatsAppModule = () => {
 
       waStatusRef.current = mergedStatus;
       setWaStatus(mergedStatus);
+      setLastSyncedAt(new Date());
     } catch (err: unknown) {
       // Ignorar erros de requisições canceladas (AbortController)
       if (err && typeof err === 'object' && 'name' in err && (err as { name: string }).name === 'CanceledError') return;
@@ -402,13 +385,13 @@ export const WhatsAppModule = () => {
 
   const getStatusConfig = () => {
     switch (waStatus.status) {
-      case 'connected': return { tone: 'success' as const, icon: <CheckCircle className="h-5 w-5" aria-hidden="true" />, label: 'Conectado', sublabel: waStatus.connectedName || waStatus.connectedNumber || '', pulse: true };
-      case 'pairing': return { tone: 'warning' as const, icon: <QrCode className="h-5 w-5" aria-hidden="true" />, label: 'Aguardando pareamento', sublabel: 'Escaneie o QR Code no WhatsApp', pulse: false };
-      case 'instance_not_found': return { tone: 'danger' as const, icon: <AlertTriangle className="h-5 w-5" aria-hidden="true" />, label: 'Instancia inexistente', sublabel: waStatus.error || 'A instancia configurada nao existe na Evolution', pulse: false };
+      case 'connected': return { tone: 'success' as const, icon: 'check_circle', label: 'Conectado', sublabel: waStatus.connectedName || waStatus.connectedNumber || '', pulse: true };
+      case 'pairing': return { tone: 'warning' as const, icon: 'qr_code_scanner', label: 'Aguardando pareamento', sublabel: 'Escaneie o QR Code no WhatsApp', pulse: false };
+      case 'instance_not_found': return { tone: 'danger' as const, icon: 'warning', label: 'Instancia inexistente', sublabel: waStatus.error || 'A instancia configurada nao existe na Evolution', pulse: false };
       case 'provider_unavailable':
-      case 'unavailable': return { tone: 'danger' as const, icon: <WifiOff className="h-5 w-5" aria-hidden="true" />, label: 'API indisponivel', sublabel: waStatus.error || 'Evolution API fora do ar', pulse: false };
-      case 'error': return { tone: 'danger' as const, icon: <AlertTriangle className="h-5 w-5" aria-hidden="true" />, label: 'Erro', sublabel: waStatus.error || 'Falha inesperada no provider', pulse: false };
-      default: return { tone: 'danger' as const, icon: <WifiOff className="h-5 w-5" aria-hidden="true" />, label: 'Desconectado', sublabel: waStatus.error || 'Clique em conectar para iniciar', pulse: false };
+      case 'unavailable': return { tone: 'danger' as const, icon: 'wifi_off', label: 'API indisponivel', sublabel: waStatus.error || 'Evolution API fora do ar', pulse: false };
+      case 'error': return { tone: 'danger' as const, icon: 'warning', label: 'Erro', sublabel: waStatus.error || 'Falha inesperada no provider', pulse: false };
+      default: return { tone: 'danger' as const, icon: 'wifi_off', label: 'Desconectado', sublabel: waStatus.error || 'Clique em conectar para iniciar', pulse: false };
     }
   };
 
@@ -420,10 +403,10 @@ export const WhatsAppModule = () => {
       : 'Conectar';
 
   const tabs = [
-    { id: 'config' as const, label: 'Conexão', icon: Smartphone },
-    { id: 'menu' as const, label: 'Menu', icon: List },
-    { id: 'mensagens' as const, label: 'Mensagens', icon: Settings2 },
-    { id: 'simulador' as const, label: 'Simulador', icon: Bot },
+    { id: 'config' as const, label: 'Conexão', icon: 'smartphone' },
+    { id: 'menu' as const, label: 'Menu', icon: 'list' },
+    { id: 'mensagens' as const, label: 'Mensagens', icon: 'tune' },
+    { id: 'simulador' as const, label: 'Simulador', icon: 'smart_toy' },
   ];
 
   if (featureBlocked) {
@@ -435,7 +418,7 @@ export const WhatsAppModule = () => {
         />
         <Card className="flex flex-col items-center gap-6 py-16 text-center">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-warning/12">
-            <Lock className="h-9 w-9 text-warning" aria-hidden="true" />
+            <Icon name="lock" size={36} className="text-warning" />
           </div>
           <div className="space-y-2">
             <h2 className="text-2xl font-bold text-ink">Recurso não disponível no seu plano</h2>
@@ -446,7 +429,7 @@ export const WhatsAppModule = () => {
             </p>
           </div>
           <a href="/planos" className={cn(buttonVariants({ variant: 'primary' }), 'gap-2')}>
-            <ArrowUpCircle className="h-[18px] w-[18px]" aria-hidden="true" />
+            <Icon name="arrow_circle_up" size={18} />
             Ver planos disponíveis
           </a>
         </Card>
@@ -465,7 +448,7 @@ export const WhatsAppModule = () => {
         <TabsList>
           {tabs.map(t => (
             <TabsTrigger key={t.id} value={t.id} className="gap-2">
-              <t.icon className="h-4 w-4" aria-hidden="true" />
+              <Icon name={t.icon} size={16} />
               {t.label}
             </TabsTrigger>
           ))}
@@ -477,11 +460,11 @@ export const WhatsAppModule = () => {
             <Card className="relative overflow-hidden">
               <div className={cn('absolute right-0 top-0 h-full w-1 opacity-40', TONE_STRIPE_CLASS[statusConfig.tone])} />
               <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-ink">
-                <Zap className="h-[14px] w-[14px] text-brand-text" aria-hidden="true" /> Status da Conexão
+                <Icon name="bolt" size={14} className="text-brand-text" /> Status da Conexão
               </h3>
               <div className="flex items-center gap-3">
                 <div className={cn('flex h-10 w-10 items-center justify-center rounded-full', TONE_ICON_WRAP_CLASS[statusConfig.tone], statusConfig.pulse && 'animate-pulse')}>
-                  {statusLoading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : statusConfig.icon}
+                  {statusLoading ? <Icon name="progress_activity" size={20} className="animate-spin" /> : <Icon name={statusConfig.icon} size={20} />}
                 </div>
                 <div>
                   <p className={cn('text-[13px] font-bold', TONE_TEXT_CLASS[statusConfig.tone])}>
@@ -495,7 +478,7 @@ export const WhatsAppModule = () => {
               <div className="mt-4 flex gap-2">
                 {waStatus.status === 'connected' && (
                   <Button variant="danger" size="sm" onClick={handleDisconnect} loading={actionLoading}>
-                    {!actionLoading && <LogOut className="h-3.5 w-3.5" aria-hidden="true" />}
+                    {!actionLoading && <Icon name="logout" size={14} />}
                     Desconectar
                   </Button>
                 )}
@@ -508,7 +491,7 @@ export const WhatsAppModule = () => {
                   waStatus.status === 'unavailable'
                 ) && (
                   <Button variant="whatsapp" size="sm" onClick={handleConnect} loading={actionLoading}>
-                    {!actionLoading && <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />}
+                    {!actionLoading && <Icon name="refresh" size={14} />}
                     {connectButtonLabel}
                   </Button>
                 )}
@@ -519,14 +502,14 @@ export const WhatsAppModule = () => {
               <h3 className="mb-4 text-lg font-bold text-ink">Recursos Ativos</h3>
               <ul className="space-y-4">
                 {[
-                  { icon: ShieldCheck, text: 'Agendamento Automático (24/7)' },
-                  { icon: Clock, text: 'Lembretes Automáticos (2h antes)' },
-                  { icon: User, text: 'Captura de novos clientes' },
-                  { icon: Wifi, text: 'Conexao via Evolution API externa' },
-                ].map(({ icon: Icon, text }) => (
-                  <li key={text} className="flex items-start gap-3">
-                    <Icon className="mt-1 h-4 w-4 text-brand-text" aria-hidden="true" />
-                    <p className="text-[13px] leading-relaxed text-muted">{text}</p>
+                  { icon: 'verified_user', text: 'Agendamento Automático (24/7)' },
+                  { icon: 'schedule', text: 'Lembretes Automáticos (2h antes)' },
+                  { icon: 'person', text: 'Captura de novos clientes' },
+                  { icon: 'wifi', text: 'Conexao via Evolution API externa' },
+                ].map(recurso => (
+                  <li key={recurso.text} className="flex items-start gap-3">
+                    <Icon name={recurso.icon} size={16} className="mt-1 text-brand-text" />
+                    <p className="text-[13px] leading-relaxed text-muted">{recurso.text}</p>
                   </li>
                 ))}
               </ul>
@@ -540,6 +523,7 @@ export const WhatsAppModule = () => {
                 waStatus={waStatus}
                 statusLoading={statusLoading}
                 actionLoading={actionLoading}
+                lastSyncedAt={lastSyncedAt}
                 onConnect={handleConnect}
               />
             </TabsContent>
