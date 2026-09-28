@@ -33,12 +33,11 @@
  *
  * "Fase" (Fiel/Recorrente/...), a etiqueta (Clube VIP) e "Prefere <profissional>" no
  * cabeçalho seguem a mesma ideia de `conteudoDemo.clientes.exemplos` que a lista de
- * clientes usa (Tarefa 7) — mas, como este painel só recebe `client` (sem a posição dele na
- * lista carregada, que ClientModule.tsx não repassa e esta tarefa não altera esse arquivo),
- * o exemplo é escolhido por um hash estável do id do cliente, não pela posição. Duas telas
- * abertas para a mesma cliente sempre mostram o mesmo exemplo (é estável), mas ele pode não
- * bater com a fase mostrada na linha da lista para essa cliente — limitação conhecida,
- * registrada aqui em vez de escondida.
+ * clientes usa (Tarefa 7): ClientModule.tsx repassa `exemploIndice`, o mesmo índice
+ * (posição na lista carregada) que decide o exemplo mostrado na linha da lista, então a
+ * ficha mostra sempre a mesma fase que a lista mostrou para essa cliente. Sem a prop
+ * (componente usado isolado, ex. teste/storybook), cai num hash estável do id do cliente —
+ * só para não quebrar fora do fluxo normal, nunca o caminho a partir da lista.
  *
  * Botões sem suporte real (Novo agendamento, Mais opções, Editar/Atualizar ficha técnica,
  * Ver todas/Anexar foto da galeria, Carregar histórico anterior) avisam com o toast padrão
@@ -52,7 +51,7 @@ import { conteudoDemo } from '@/lib/conteudoDemo';
 import { formatCurrency, formatPhone } from '@/lib/formatters';
 import { useToast } from '@/components/Toast';
 import { AVISO_RECURSO_A_CAMINHO, Avatar, Icon, StatusChip } from '@/components/ui';
-import { descreverUltimaVisita } from '@/components/ClientModule';
+import { descreverUltimaVisita, exemploParaIndice } from '@/components/ClientModule';
 import type { Appointment, Client } from '@/types';
 
 // Cores da fase, mesmo mapeamento de tokens que ClientModule.tsx usa na lista (Tarefa 7).
@@ -165,7 +164,7 @@ function eventoDoAgendamento(agendamento: Appointment, agora: Date): EventoTimel
   const horaCurta = (agendamento.time || '').slice(0, 5);
   const hoje = visita.relativo === '(hoje)';
   const dataBase = `${visita.texto}${visita.relativo ? ` ${visita.relativo}` : ''}`;
-  const dataLabel = hoje ? `${dataBase} · Em andamento` : `${dataBase}${horaCurta ? ` às ${horaCurta}` : ''}`;
+  const dataLabelComHora = `${dataBase}${horaCurta ? ` às ${horaCurta}` : ''}`;
   const profissional = agendamento.professional_name;
   const servico = agendamento.service_name;
 
@@ -173,7 +172,7 @@ function eventoDoAgendamento(agendamento: Appointment, agora: Date): EventoTimel
     return {
       chave: agendamento.id,
       tipo,
-      dataLabel,
+      dataLabel: dataLabelComHora,
       titulo: `Atendimento concluído${profissional ? ` com ${profissional}` : ''}`,
       detalhe: servico || undefined,
       valor: formatCurrency(agendamento.service_price ?? 0),
@@ -184,17 +183,19 @@ function eventoDoAgendamento(agendamento: Appointment, agora: Date): EventoTimel
     return {
       chave: agendamento.id,
       tipo,
-      dataLabel,
+      dataLabel: dataLabelComHora,
       titulo: `Agendamento cancelado${servico ? `: ${servico}` : ''}`,
       detalhe: profissional ? `Profissional: ${profissional}` : undefined,
       chip: <StatusChip status="cancelado" />,
     };
   }
 
+  // Só o agendamento confirmado/futuro de hoje é "Em andamento" — concluído ou cancelado
+  // hoje não está em andamento, mesmo que a visita tenha sido hoje.
   return {
     chave: agendamento.id,
     tipo,
-    dataLabel,
+    dataLabel: hoje ? `${dataBase} · Em andamento` : dataLabelComHora,
     titulo: `${servico || 'Agendamento'}${profissional ? ` com ${profissional}` : ''}`,
     detalhe: horaCurta ? `Horário previsto: ${horaCurta}` : undefined,
     chip: <StatusChip status="confirmado" />,
@@ -266,15 +267,29 @@ export interface ClientDetailPanelProps {
   history: Appointment[];
   loadingHistory: boolean;
   onEdit: () => void;
+  /**
+   * Índice do cliente na lista carregada (ClientModule.tsx), para o exemplo de CRM bater
+   * com o mostrado na linha da lista. Sem a prop (teste isolado, storybook), cai no hash
+   * estável do id como antes — nunca o caminho normal a partir da lista.
+   */
+  exemploIndice?: number;
 }
 
-export function ClientDetailPanel({ client, history, loadingHistory, onEdit }: ClientDetailPanelProps) {
+export function ClientDetailPanel({
+  client,
+  history,
+  loadingHistory,
+  onEdit,
+  exemploIndice,
+}: ClientDetailPanelProps) {
   const { showToast } = useToast();
   const aCaminho = () => showToast(AVISO_RECURSO_A_CAMINHO, 'info');
   const [filtro, setFiltro] = useState('tudo');
 
   const exemplos = conteudoDemo.clientes.exemplos;
-  const exemplo = exemplos[indiceEstavelParaCliente(client.id, exemplos.length)];
+  const exemplo = exemploParaIndice(
+    exemploIndice ?? indiceEstavelParaCliente(client.id, exemplos.length),
+  );
   const faseTokens = FASE_TOKENS[exemplo.fase] ?? FASE_PADRAO;
   const perfil = conteudoDemo.clientes.perfilDestaque;
 

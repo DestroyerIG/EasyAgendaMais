@@ -601,6 +601,7 @@ export const ClientModule = () => {
             history={history}
             loadingHistory={loadingHistory}
             onEdit={() => handleOpenModal(selectedClient)}
+            exemploIndice={indicePorId.get(selectedClient.id) ?? 0}
           />
         ) : null}
       </SidePanel>

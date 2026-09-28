@@ -161,6 +161,20 @@ describe('ClientDetailPanel', () => {
     expect(screen.getByText(`Prefere ${exemplo.profissional}`)).toBeInTheDocument();
   });
 
+  it('com exemploIndice, o exemplo vem da posição na lista, não do hash do id', () => {
+    const idComHashDiferente = 'zzz-outro-hash';
+    const indiceDaLista = 2;
+    abrir({ client: client({ id: idComHashDiferente }), exemploIndice: indiceDaLista });
+
+    const exemploDaLista = exemploParaId(idComHashDiferente); // hash do id, para comparar
+    const exemploDaPosicao = conteudoDemo.clientes.exemplos[indiceDaLista % conteudoDemo.clientes.exemplos.length];
+
+    expect(screen.getByText(`Prefere ${exemploDaPosicao.profissional}`)).toBeInTheDocument();
+    if (exemploDaLista.profissional !== exemploDaPosicao.profissional) {
+      expect(screen.queryByText(`Prefere ${exemploDaLista.profissional}`)).not.toBeInTheDocument();
+    }
+  });
+
   it('sem telefone válido, não mostra o botão do WhatsApp', () => {
     abrir({ client: client({ phone: '123' }) });
     expect(screen.queryByText('Conversar no WhatsApp')).not.toBeInTheDocument();
@@ -241,6 +255,39 @@ describe('ClientDetailPanel', () => {
     expect(screen.getByText('Atendimento concluído com Camila')).toBeInTheDocument();
     expect(screen.getByText('Corte e finalização')).toBeInTheDocument();
     expect(screen.getAllByText('R$ 90,00').length).toBeGreaterThan(0);
+  });
+
+  it('um atendimento concluído hoje não mostra "Em andamento" (já concluído, não em andamento)', () => {
+    const hoje = new Date();
+    const dataHoje = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}T00:00:00`;
+    abrir({
+      history: [agendamento({ status: 'concluido', date: dataHoje, service_name: 'Corte', professional_name: 'Camila' })],
+    });
+
+    expect(screen.getByText('Atendimento concluído com Camila')).toBeInTheDocument();
+    expect(screen.queryByText(/Em andamento/)).not.toBeInTheDocument();
+  });
+
+  it('um agendamento cancelado hoje não mostra "Em andamento" (cancelado, não em andamento)', () => {
+    const hoje = new Date();
+    const dataHoje = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}T00:00:00`;
+    abrir({
+      history: [agendamento({ status: 'cancelado', date: dataHoje, service_name: 'Manicure', professional_name: 'Paula' })],
+    });
+
+    expect(screen.getByText('Agendamento cancelado: Manicure')).toBeInTheDocument();
+    expect(screen.queryByText(/Em andamento/)).not.toBeInTheDocument();
+  });
+
+  it('um agendamento confirmado hoje mostra "Em andamento" (esse é o caminho real que ainda deve mostrar)', () => {
+    const hoje = new Date();
+    const dataHoje = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}T00:00:00`;
+    abrir({
+      history: [agendamento({ status: 'confirmado', date: dataHoje, service_name: 'Coloração', professional_name: 'Bruna' })],
+    });
+
+    expect(screen.getByText('Coloração com Bruna')).toBeInTheDocument();
+    expect(screen.getByText(/Em andamento/)).toBeInTheDocument();
   });
 
   it('um agendamento confirmado no futuro vira evento de agendamento com o chip de status', () => {

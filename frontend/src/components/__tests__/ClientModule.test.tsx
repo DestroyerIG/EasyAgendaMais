@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import type { Client } from '@/types';
 
 const mockApiGet = vi.hoisted(() => vi.fn());
@@ -242,6 +242,29 @@ describe('ClientModule', () => {
 
     await waitFor(() => expect(textoRodape()).toContain('Mostrando 11–12 de 12 clientes'));
     expect(screen.getAllByText('Cliente 10').length).toBeGreaterThan(0);
+  });
+
+  it('a fase mostrada na ficha bate com a mostrada na linha da lista, para o mesmo cliente', async () => {
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === '/clients') return Promise.resolve({ data: criarClientes(3) });
+      if (url.endsWith('/history')) return Promise.resolve({ data: [] });
+      return Promise.resolve({ data: [] });
+    });
+    render(<ClientModule />);
+    await screen.findAllByText('Cliente 2');
+
+    // Fase mostrada na linha da lista para o terceiro cliente (posição 2, não hash do id).
+    const linha = screen.getByRole('row', { name: 'Ver ficha de Cliente 2' });
+    const faseEsperada = exemploParaIndice(2).fase;
+    expect(within(linha).getByText(faseEsperada)).toBeInTheDocument();
+
+    fireEvent.click(linha);
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
+
+    // A ficha aberta para esse mesmo cliente mostra a mesma fase, não outra vinda de um
+    // hash do id que ignore a posição na lista.
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getAllByText(faseEsperada).length).toBeGreaterThan(0);
   });
 
   it('atalho "/" foca a busca quando o foco não está em campo de texto', async () => {
