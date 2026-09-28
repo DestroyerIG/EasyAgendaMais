@@ -357,3 +357,99 @@ describe('AppointmentModule: os chips não somem com o filtro de status', () => 
     expect(screen.queryByText('Mariana Souza')).not.toBeInTheDocument();
   });
 });
+
+describe('AppointmentModule: o horário livre é fato sobre o dia', () => {
+  beforeEach(() => {
+    mockSearch.value = '';
+    mockApiGet.mockReset();
+  });
+
+  /** 09:00 confirmado, 11:00 concluído e 13:00 confirmado, com buracos às 10:00 e 12:00. */
+  const diaComBuracos = () =>
+    responder(
+      [
+        agendamento({ id: '1', time: '09:00:00' }),
+        agendamento({ id: '2', time: '11:00:00', status: 'concluido', client_name: 'Letícia Albuquerque' }),
+        agendamento({ id: '3', time: '13:00:00' }),
+      ],
+      { openingTime: '08:00', closingTime: '18:00' },
+    );
+
+  /** Rótulos das linhas de horário livre do celular, em ordem. */
+  const linhasDeHorarioLivre = () =>
+    screen
+      .queryAllByRole('button', { name: /^Novo agendamento: .+ com / })
+      .map(botao => botao.getAttribute('aria-label'));
+
+  it('filtro de status que esconde um atendimento não abre horário livre em cima dele', async () => {
+    diaComBuracos();
+    render(<AppointmentModule />);
+
+    await screen.findByText('3 agendamentos');
+    expect(linhasDeHorarioLivre()).toEqual([
+      'Novo agendamento: 10:00 com Camila, 1h livre',
+      'Novo agendamento: 12:00 com Camila, 1h livre',
+    ]);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmado' }));
+
+    // O atendimento das 11:00 saiu da lista, mas continua existindo: nenhuma linha pode
+    // dizer que das 10:00 às 13:00 está livre.
+    expect(screen.queryByText('Letícia Albuquerque')).not.toBeInTheDocument();
+    expect(linhasDeHorarioLivre()).toEqual([
+      'Novo agendamento: 10:00 com Camila, 1h livre',
+      'Novo agendamento: 12:00 com Camila, 1h livre',
+    ]);
+  });
+
+  it('com filtro ligado, a contagem de vagas continua igual ao número de linhas desenhadas', async () => {
+    diaComBuracos();
+    render(<AppointmentModule />);
+
+    await screen.findByText('3 agendamentos');
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmado' }));
+
+    expect(screen.getByText('2 agendamentos')).toBeInTheDocument();
+    expect(linhasDeHorarioLivre()).toHaveLength(2);
+    expect(screen.getByText(/^2 vagas livres$/)).toBeInTheDocument();
+  });
+});
+
+describe('AppointmentModule: uma pessoa, uma cor', () => {
+  beforeEach(() => {
+    mockSearch.value = '';
+    mockApiGet.mockReset();
+  });
+
+  it('a profissional mantém o tom com e sem filtro de status', async () => {
+    responder([
+      agendamento({ id: '1', time: '09:00:00', status: 'concluido' }),
+      agendamento({
+        id: '2',
+        time: '10:00:00',
+        professional_id: 'p2',
+        professional_name: 'Bruna Lima',
+        client_name: 'Letícia Albuquerque',
+      }),
+    ]);
+    const { container } = render(<AppointmentModule />);
+
+    // Bruna vem antes de Camila em ordem alfabética, então Camila é a segunda da fileira
+    // e leva o segundo tom — no chip e na coluna da linha do tempo.
+    const tonsDaCamila = () =>
+      Array.from(container.querySelectorAll('[aria-label="Camila Rocha"]')).map(elemento =>
+        elemento.className.includes('bg-tertiary/15'),
+      );
+
+    await screen.findByText('2 agendamentos');
+    expect(tonsDaCamila().length).toBeGreaterThan(1);
+    expect(tonsDaCamila().every(Boolean)).toBe(true);
+
+    // Só Camila tem atendimento concluído: a coluna dela vira a primeira da grade, e o
+    // tom não pode mudar por isso.
+    await userEvent.click(screen.getByRole('button', { name: 'Concluído' }));
+    expect(screen.queryByText('Letícia Albuquerque')).not.toBeInTheDocument();
+    expect(tonsDaCamila().length).toBeGreaterThan(1);
+    expect(tonsDaCamila().every(Boolean)).toBe(true);
+  });
+});

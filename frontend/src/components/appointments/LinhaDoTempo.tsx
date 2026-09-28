@@ -378,6 +378,13 @@ function BlocoVagaLivre({ vaga, faixaInicioMinutos, onNovoAgendamento }: BlocoVa
 
 export interface LinhaDoTempoProps {
   agendamentos: Appointment[];
+  /**
+   * Ids das profissionais do período, em ordem alfabética do conjunto inteiro. O tom de
+   * cada uma sai da posição dela aqui, e não do índice da coluna, senão a mesma pessoa
+   * pintaria de uma cor no chip e de outra na coluna quando um filtro tira alguém do
+   * meio. Sem a prop, vale o índice local da coluna, como era.
+   */
+  ordemProfissionais?: string[];
   duracaoPadraoMinutos: number;
   /** Horário de funcionamento configurado; sem ele a régua cai na janela do arquivo. */
   horarioFuncionamento?: HorarioFuncionamento | null;
@@ -391,6 +398,7 @@ export interface LinhaDoTempoProps {
 
 export function LinhaDoTempo({
   agendamentos,
+  ordemProfissionais,
   duracaoPadraoMinutos,
   horarioFuncionamento,
   actionLoading,
@@ -414,6 +422,12 @@ export function LinhaDoTempo({
   const colunas = agruparPorProfissional(agendamentos);
   if (colunas.length === 0) return null;
 
+  /** O tom é da pessoa, não da posição da coluna nesta lista já peneirada. */
+  const tomDaColuna = (id: string, indiceLocal: number) => {
+    const posicao = ordemProfissionais?.indexOf(id) ?? -1;
+    return tomDoProfissional(posicao >= 0 ? posicao : indiceLocal);
+  };
+
   const faixa = calcularFaixaHoras(agendamentos, duracaoPadraoMinutos, horarioFuncionamento);
   const alturaTotal = (faixa.horaFim - faixa.horaInicio) * ALTURA_HORA;
   const gridTemplateColumns = `68px repeat(${colunas.length}, minmax(0, 1fr))`;
@@ -427,7 +441,7 @@ export function LinhaDoTempo({
           {relogio?.fuso}
         </div>
         {colunas.map((coluna, indice) => {
-          const tom = tomDoProfissional(indice);
+          const tom = tomDaColuna(coluna.id, indice);
           const total = coluna.agendamentos.length;
           return (
             <div key={coluna.id} className="flex items-center justify-between gap-2 border-l border-line px-4 py-3">

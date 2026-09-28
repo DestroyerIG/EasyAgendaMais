@@ -239,6 +239,28 @@ describe('LinhaDoTempo', () => {
     expect(screen.getByText('Clique para agendar')).toBeInTheDocument();
   });
 
+  it('o tom da coluna sai da ordem do período inteiro, não do índice desta grade', () => {
+    // Camila é a segunda da ordem, então leva o segundo tom mesmo sendo a única coluna
+    // desenhada — é isso que faz o chip e a coluna pintarem a pessoa da mesma cor.
+    const { container } = render(
+      <LinhaDoTempo
+        {...props}
+        ordemProfissionais={['p2', 'p1']}
+        agendamentos={[agendamento({ id: '1', time: '09:00:00' })]}
+      />,
+    );
+
+    expect(container.querySelector('[aria-label="Camila Rocha"]')).toHaveClass('bg-tertiary/15');
+  });
+
+  it('sem a ordem do período, o tom cai no índice da coluna, como era', () => {
+    const { container } = render(
+      <LinhaDoTempo {...props} agendamentos={[agendamento({ id: '1', time: '09:00:00' })]} />,
+    );
+
+    expect(container.querySelector('[aria-label="Camila Rocha"]')).toHaveClass('bg-brand-text/15');
+  });
+
   it('risca o agendamento cancelado e não mostra chip de status', () => {
     render(
       <LinhaDoTempo {...props} agendamentos={[agendamento({ id: '1', time: '09:00:00', status: 'cancelado' })]} />,

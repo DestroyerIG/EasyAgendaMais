@@ -88,9 +88,16 @@ type ItemDoDia =
  * Lista do celular: os atendimentos do dia e, entre eles, as linhas de horário livre
  * (agenda-mobile.html). A vaga é sempre de uma profissional — um buraco existe na
  * agenda de alguém, não na do salão —, então ela é calculada por coluna e traz o nome.
+ *
+ * São duas coleções: `agendamentos` é o que a lista mostra (conjunto filtrado) e
+ * `doDia` é o dia de onde os buracos saem — filtro de profissional aplicado, filtro de
+ * status não. Um horário livre é fato sobre o dia: se saísse do conjunto filtrado, um
+ * filtro de status escreveria "Horário livre" em cima de um atendimento que existe e
+ * está só escondido, que é afirmação falsa sobre o dia do salão.
  */
 export function montarItensDoDia(
   agendamentos: Appointment[],
+  doDia: Appointment[],
   faixa: FaixaHoras,
   duracaoMinutos: number,
   comVagas: boolean,
@@ -103,7 +110,7 @@ export function montarItensDoDia(
   }));
 
   if (comVagas) {
-    agruparPorProfissional(agendamentos).forEach((coluna) => {
+    agruparPorProfissional(doDia).forEach((coluna) => {
       calcularVagasLivres(coluna.agendamentos, faixa, duracaoMinutos, {
         apenasEntreAtendimentos: true,
       }).forEach((vaga) => {
@@ -268,6 +275,11 @@ export function AppointmentModule() {
     tom: tomDoProfissional(indice),
   }));
 
+  // A ordem de quem existe no período, que dá o tom de cada pessoa. Sai do dia inteiro
+  // para que o chip e a coluna da linha do tempo pintem a mesma pessoa da mesma cor,
+  // qualquer que seja o filtro ligado.
+  const ordemProfissionais = chipsProfissional.map(chip => chip.id);
+
   // Uma profissional escolhida que não atende no dia seguinte deixaria a tela vazia sem
   // explicação ao virar o dia; nesse caso a peneira simplesmente não vale. A lista de
   // chips é do dia inteiro, então isso dispara só quando ela realmente não atende no
@@ -307,7 +319,8 @@ export function AppointmentModule() {
   const colunas = agruparPorProfissional(doDia);
   // Duas larguras, dois números legítimos: a linha do tempo do computador desenha os
   // buracos das pontas, então o KPI dele conta o conjunto completo; a lista do celular
-  // não desenha as pontas, então a linha dela conta pela mesma chamada que a lista faz.
+  // não desenha as pontas, então a linha dela conta pela mesma chamada, sobre o mesmo
+  // conjunto, que a lista faz — os dois números são iguais por construção.
   const vagasLivres = ehDia
     ? colunas.flatMap(coluna => calcularVagasLivres(coluna.agendamentos, faixa, duracaoMinutos))
     : [];
@@ -477,7 +490,7 @@ export function AppointmentModule() {
                     {formatDate(date)}
                   </h3>
                 )}
-                {montarItensDoDia(dayAppointments, faixa, duracaoMinutos, ehDia).map(item =>
+                {montarItensDoDia(dayAppointments, doDia, faixa, duracaoMinutos, ehDia).map(item =>
                   item.tipo === 'agendamento' ? (
                     <AppointmentCard
                       key={item.chave}
@@ -550,6 +563,7 @@ export function AppointmentModule() {
                 )}
                 <LinhaDoTempo
                   agendamentos={dayAppointments}
+                  ordemProfissionais={ordemProfissionais}
                   duracaoPadraoMinutos={duracaoMinutos}
                   horarioFuncionamento={horarioFuncionamento}
                   actionLoading={actionLoading}
