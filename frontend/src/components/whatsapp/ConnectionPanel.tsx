@@ -9,15 +9,16 @@
  * webhook configurável aqui, e por isso nenhum desses blocos do arquivo de referência
  * entra nesta tela.
  *
- * Dado de exemplo (`conteudoDemo.whatsapp`): consumo diário de envios, taxa de entrega,
- * denúncias/spam, detalhamento por tipo de disparo e o histórico recente de mensagens —
- * nada disso existe no sistema hoje. "Solicitar aumento de limite" não tem função real
- * e mostra o aviso padrão em vez de fingir que funcionou.
+ * Dado de exemplo (`conteudoDemo.whatsapp`): a taxa de entrega, denúncias/spam, o
+ * detalhamento por tipo de disparo (contagem pura, sem moldura de limite) e o histórico
+ * recente de mensagens — nada disso existe no sistema hoje. Não existe limite de
+ * disparos: esse conceito é da Cloud API oficial da Meta, e o sistema conecta por QR
+ * code (Evolution API), não por ela — por isso não há barra de consumo diário nem botão
+ * de "solicitar aumento de limite" nesta tela (Tarefa 10 / correção I5).
  */
 
 import Image from 'next/image';
-import { Button, Card, Icon, Skeleton, AVISO_RECURSO_A_CAMINHO } from '@/components/ui';
-import { useToast } from '@/components/Toast';
+import { Button, Card, Icon, Skeleton } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { conteudoDemo } from '@/lib/conteudoDemo';
 
@@ -110,8 +111,6 @@ function StateBlock({ icon, tone, title, description, action }: StateBlockProps)
 export const ConnectionPanel = ({ waStatus, statusLoading, actionLoading, lastSyncedAt, onConnect }: ConnectionPanelProps) => {
   const chip = getChip(waStatus.status);
   const sincronizacao = descreverSincronizacao(lastSyncedAt);
-  const { showToast } = useToast();
-  const aCaminho = () => showToast(AVISO_RECURSO_A_CAMINHO, 'info');
   const whatsapp = conteudoDemo.whatsapp;
   const totalDisparosBreakdown = whatsapp.breakdownEnvios.reduce((total, item) => total + item.quantidade, 0);
 
@@ -253,31 +252,11 @@ export const ConnectionPanel = ({ waStatus, statusLoading, actionLoading, lastSy
           <div className="mb-4 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Icon name="health_metrics" size={22} className="text-whatsapp" />
-              <h3 className="text-[15px] font-bold text-ink">Saúde e Limite de Envios de Hoje</h3>
+              <h3 className="text-[15px] font-bold text-ink">Saúde de Envios de Hoje</h3>
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 rounded-xl bg-surface-2 p-4">
-            <div className="flex items-baseline justify-between">
-              <span className="text-[13px] font-semibold text-ink">Consumo diário</span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-[22px] font-bold tabular-nums text-ink">{whatsapp.consumoDiario.enviadas}</span>
-                <span className="text-[13px] text-muted">/ {whatsapp.consumoDiario.limiteDiario} disparos</span>
-              </div>
-            </div>
-            <div className="relative h-3 w-full overflow-hidden rounded-full bg-surface">
-              <div
-                className="h-full rounded-full bg-whatsapp transition-all duration-700"
-                style={{ width: `${whatsapp.consumoDiario.percentualUtilizado}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between text-[12px] font-semibold text-muted">
-              <span>{whatsapp.consumoDiario.percentualUtilizado}% utilizado</span>
-              <span className="text-whatsapp">{whatsapp.consumoDiario.disponivelHoje} mensagens disponíveis hoje</span>
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl bg-surface-2 p-3.5">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Taxa de Entrega</span>
               <p className="mt-1 text-[20px] font-bold tabular-nums text-ink">
@@ -304,17 +283,6 @@ export const ConnectionPanel = ({ waStatus, statusLoading, actionLoading, lastSy
             </div>
             <p className="mt-2 text-right text-[11px] text-muted">{totalDisparosBreakdown} disparos no total</p>
           </div>
-
-          {whatsapp.solicitacaoAumentoLimite.disponivel && (
-            <button
-              type="button"
-              onClick={aCaminho}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-control border border-line bg-surface-2 px-3 py-2.5 text-[13px] font-bold text-ink transition-colors hover:bg-line/60"
-            >
-              <Icon name="trending_up" size={16} />
-              Solicitar aumento para {whatsapp.solicitacaoAumentoLimite.limiteSugerido} disparos/dia
-            </button>
-          )}
         </Card>
 
         <Card className="lg:col-span-6">
