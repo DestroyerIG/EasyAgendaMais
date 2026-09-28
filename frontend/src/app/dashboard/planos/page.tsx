@@ -13,15 +13,21 @@
  * rola até a seção de planos disponíveis (PricingPlansSection), real e com checkout de
  * verdade — não duplicamos aquele componente aqui.
  *
- * Dado de exemplo (`conteudoDemo.plano`): cartão de crédito salvo, débito automático e
- * Pix automático como formas de cobrança, o histórico de faturas com download de PDF e
+ * Dado de exemplo (`conteudoDemo.plano`): cartão de crédito salvo e débito automático como
+ * forma de cobrança (só quando o provedor real não é Pix/Asaas — com Asaas a tela não
+ * pode afirmar um cartão que não existe), o histórico de faturas com download de PDF e
  * NFS-e, e a data de próxima cobrança quando o backend não a informa — nada disso o
  * sistema expõe hoje nesta tela. Para o histórico de faturas não repetir um nome e um
  * valor de plano diferentes dos mostrados no cartão "Plano Atual" da mesma tela, a
- * referência e o valor de cada lançamento usam o plano e o preço reais; só a data, o
- * período, a forma de pagamento e o status de cada lançamento são do exemplo. Pelo mesmo
- * motivo, o acesso após cancelamento é sempre a véspera da próxima cobrança real, nunca
- * uma data solta.
+ * referência e o valor de cada lançamento usam o plano e o preço reais; só a data, a forma
+ * de pagamento e o status de cada lançamento são do exemplo — o período da fatura mais
+ * recente é recalculado a partir da próxima cobrança real, para nunca terminar depois
+ * dela. Pelo mesmo motivo, o acesso após cancelamento é sempre a véspera da próxima
+ * cobrança real, nunca uma data solta. "Recursos inclusos no seu plano" vem de
+ * `PLAN_MAP[planId].features` (o mesmo dado real que `PricingPlansSection` desenha no
+ * rodapé desta página), não de conteudoDemo — e o histórico de faturas de exemplo só
+ * aparece quando a assinatura real está ativa e paga (trial e inadimplência mostram um
+ * estado vazio real, nunca "Pago" para uma cobrança que não existiu).
  *
  * Botões sem suporte real ("Relatório de Gastos", "Dúvidas Financeiras", "Trocar para
  * anual", "Atualizar método de pagamento", "Fatura"/"NFS-e", "Filtrar por ano",
@@ -39,6 +45,8 @@ import { SettingsTabs } from '@/components/shell/SettingsTabs';
 import { isPlanId, PLAN_MAP, getPlanShellLabel, type PlanId } from '@/lib/plans';
 import { conteudoDemo } from '@/lib/conteudoDemo';
 import { formatCurrency } from '@/lib/formatters';
+import { format, subDays, subMonths } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import {
   AVISO_RECURSO_A_CAMINHO,
   Button,
@@ -64,16 +72,32 @@ const STATUS_ROTULO: Record<string, string> = {
   incomplete: 'Cadastro incompleto',
 };
 
-// "Até 5 profissionais na grade" etc.: o único item de "recursos inclusos" que varia por
-// plano (os outros três — bot, clube, sinal Pix — valem para qualquer plano).
+// "Até 5 profissionais na grade" etc.: o primeiro item de "recursos inclusos" (posição
+// que PLAN_MAP[planId].features também reserva para a contagem de profissionais), com a
+// vaga real da grade em vez do texto genérico do plano.
 const PROFISSIONAIS_POR_PLANO: Record<PlanId, string> = {
   basico: '1 profissional incluído no plano',
   profissional: 'Até 5 profissionais na grade',
   premium: 'Profissionais ilimitados, em várias unidades',
 };
 
+// Selo por status da fatura (I7 da revisão final): antes era sempre bg-success fixo. Hoje
+// só existe o status 'Pago' no tipo de conteudoDemo, mas o selo lê o valor de fato em vez
+// de uma cor gravada, para não afirmar "Pago" se um status diferente aparecer no futuro.
+const STATUS_FATURA_TOKENS: Record<string, string> = {
+  Pago: 'bg-success/12 text-success-text',
+};
+const STATUS_FATURA_PADRAO = 'bg-surface-2 text-ink';
+
+// Um recurso de "lembretes/bot WhatsApp" só é afirmado para quem o subscriptionAccess
+// realmente libera (WhatsAppModule.tsx trava o Solo dizendo o contrário) — mesma fonte
+// (PLAN_MAP[planId].features) que decide o resto da lista, só filtrando por palavra-chave.
+const ehRecursoWhatsapp = (feature: string): boolean => feature.toLowerCase().includes('whatsapp');
+
 const formatarDataLonga = (date: Date): string =>
   new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+
+const formatarDataCurta = (date: Date): string => format(date, 'd/MMM', { locale: ptBR }).replace('.', '');
 
 export default function PlanosPage() {
   const { user } = useAuth();
@@ -115,16 +139,45 @@ export default function PlanosPage() {
     return demo.cancelamento.acessoAte;
   }, [user?.subscriptionCurrentPeriodEnd, demo.cancelamento.acessoAte]);
 
+  // Recursos inclusos: o mesmo dado real que PricingPlansSection já desenha no rodapé
+  // desta página (PLAN_MAP[planId].features), nunca conteudoDemo — tira automaticamente
+  // "Clube de assinaturas e pacotes" (contradiz /dashboard/clube, "chegam em breve") e
+  // "Sinal Pix no agendamento" (não existe), que só existiam no array de exemplo.
   const recursos = [
     { icone: 'badge', titulo: PROFISSIONAIS_POR_PLANO[planId], descricao: 'Vagas ativas na sua grade de horários.' },
-    ...demo.atual.recursosInclusos.slice(1),
+    ...plan.features
+      .slice(1)
+      .filter((feature) => planId !== 'basico' || !ehRecursoWhatsapp(feature))
+      .map((feature) => ({ icone: 'check_circle', titulo: feature })),
   ];
 
-  const faturas = demo.faturas.map((fatura) => ({
+  // Período da fatura mais recente: recalculado a partir da próxima cobrança real, para
+  // nunca terminar depois dela (I7 da revisão final) — as demais faturas (mais antigas)
+  // seguem o período de exemplo, que não concorre com a próxima cobrança.
+  const periodoUltimaFaturaTexto = useMemo(() => {
+    const fimReal = user?.subscriptionCurrentPeriodEnd ? new Date(user.subscriptionCurrentPeriodEnd) : null;
+    if (!fimReal || Number.isNaN(fimReal.getTime())) return demo.faturas[0]?.periodo ?? '';
+    const inicioPeriodoAtual = subMonths(fimReal, 1);
+    const fimUltimaFatura = subDays(inicioPeriodoAtual, 1);
+    const inicioUltimaFatura = subMonths(inicioPeriodoAtual, 1);
+    return `${formatarDataCurta(inicioUltimaFatura)} a ${formatarDataCurta(fimUltimaFatura)} de ${fimUltimaFatura.getFullYear()}`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.subscriptionCurrentPeriodEnd]);
+
+  // Faturas de exemplo só quando a assinatura real está ativa e paga: em teste ou com
+  // pagamento atrasado, nenhuma cobrança paga existiu ainda, então a tabela não pode
+  // afirmar "Pago" para as quatro faturas de exemplo.
+  const mostrarFaturasDemo = subscriptionStatus === 'active';
+  const faturas = demo.faturas.map((fatura, indice) => ({
     ...fatura,
     referencia: `Mensalidade EasyAgenda+ ${nomeExibicao}`,
     valor: plan.price,
+    periodo: indice === 0 ? periodoUltimaFaturaTexto || fatura.periodo : fatura.periodo,
   }));
+
+  // Cartão salvo (débito automático) é exemplo aceito só quando a cobrança real não é
+  // Pix/Asaas — quem paga por Pix não pode ver um cartão que nunca cadastrou.
+  const cobrancaPorPix = billingProvider === 'asaas' || billingProvider === 'coupon';
 
   return (
     <div>
@@ -204,7 +257,9 @@ export default function PlanosPage() {
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[14px] font-semibold text-ink">{recurso.titulo}</span>
-                    <span className="text-[13px] text-muted">{recurso.descricao}</span>
+                    {'descricao' in recurso && recurso.descricao && (
+                      <span className="text-[13px] text-muted">{recurso.descricao}</span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -232,52 +287,57 @@ export default function PlanosPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Icon name="credit_card" size={22} className="text-brand-text" />
+                <Icon name={cobrancaPorPix ? 'payments' : 'credit_card'} size={22} className="text-brand-text" />
                 <h3 className="text-lg font-bold text-ink">Forma de pagamento</h3>
               </div>
               <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[13px] text-muted">Padrão</span>
             </div>
 
-            <div className="space-y-4 rounded-xl border border-line/70 bg-surface-2 p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-[14px] font-semibold text-ink">{demo.formaPagamento.bandeira}</span>
-                <span className="font-mono text-[13px] text-muted">Débito automático</span>
-              </div>
-              <div className="space-y-1">
-                <div className="font-mono text-[17px] tracking-wider text-ink">•••• •••• •••• {demo.formaPagamento.final}</div>
-                <div className="flex items-center justify-between text-muted">
-                  <span className="text-[13px] uppercase">{demo.formaPagamento.titular}</span>
-                  <span className="text-[13px]">Exp: {demo.formaPagamento.validade}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg border border-line/70 bg-surface-2 p-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface shadow-sm">
-                  <Icon name="payments" size={18} className="text-success-text" />
+            {cobrancaPorPix ? (
+              // Provedor real é Pix/Asaas: não existe cartão salvo nem débito automático
+              // para afirmar, então a tela mostra a forma de cobrança real (I7).
+              <div className="flex items-center gap-3 rounded-xl border border-line/70 bg-surface-2 p-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface shadow-sm text-success-text">
+                  <Icon name="qr_code_2" size={20} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[14px] font-semibold text-ink">Pix automático</span>
-                  <span className="text-[13px] text-muted">Chave ativa para cobrança recorrente</span>
+                  <span className="text-[14px] font-semibold text-ink">Cobrança via Pix</span>
+                  <span className="text-[13px] text-muted">Gere uma nova cobrança a cada vencimento pelo botão acima.</span>
                 </div>
               </div>
-              <Icon name="check_circle" size={20} className="text-success-text" />
-            </div>
+            ) : (
+              <>
+                <div className="space-y-4 rounded-xl border border-line/70 bg-surface-2 p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[14px] font-semibold text-ink">{demo.formaPagamento.bandeira}</span>
+                    <span className="font-mono text-[13px] text-muted">Débito automático</span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="font-mono text-[17px] tracking-wider text-ink">•••• •••• •••• {demo.formaPagamento.final}</div>
+                    <div className="flex items-center justify-between text-muted">
+                      <span className="text-[13px] uppercase">{demo.formaPagamento.titular}</span>
+                      <span className="text-[13px]">Exp: {demo.formaPagamento.validade}</span>
+                    </div>
+                  </div>
+                </div>
 
-            <div className="flex items-start gap-2.5 rounded-lg bg-success/12 p-3 text-ink">
-              <Icon name="verified_user" size={18} className="mt-0.5 shrink-0 text-success-text" />
-              <p className="text-[13px] leading-relaxed">
-                <strong className="font-semibold text-success-text">Débito automático ativo.</strong> A cobrança de{' '}
-                {formatCurrency(plan.price)} será processada automaticamente no vencimento, sem interrupção dos serviços.
-              </p>
-            </div>
+                <div className="flex items-start gap-2.5 rounded-lg bg-success/12 p-3 text-ink">
+                  <Icon name="verified_user" size={18} className="mt-0.5 shrink-0 text-success-text" />
+                  <p className="text-[13px] leading-relaxed">
+                    <strong className="font-semibold text-success-text">Débito automático ativo.</strong> A cobrança de{' '}
+                    {formatCurrency(plan.price)} será processada automaticamente no vencimento, sem interrupção dos serviços.
+                  </p>
+                </div>
+              </>
+            )}
           </div>
 
-          <Button variant="secondary" fullWidth onClick={aCaminho}>
-            <Icon name="edit" size={18} />
-            Atualizar método de pagamento
-          </Button>
+          {!cobrancaPorPix && (
+            <Button variant="secondary" fullWidth onClick={aCaminho}>
+              <Icon name="edit" size={18} />
+              Atualizar método de pagamento
+            </Button>
+          )}
         </Card>
       </div>
 
@@ -308,66 +368,80 @@ export default function PlanosPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {faturas.map((fatura) => (
-                <TableRow key={fatura.data}>
-                  <TableCell className="whitespace-nowrap font-mono font-medium">{fatura.data}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-ink">{fatura.referencia}</span>
-                      <span className="text-[13px] text-muted">Período: {fatura.periodo}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-right font-mono font-semibold">{formatCurrency(fatura.valor)}</TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <div className="inline-flex items-center gap-2">
-                      <Icon
-                        name={fatura.formaPagamento.startsWith('Pix') ? 'payments' : 'credit_card'}
-                        size={18}
-                        className="text-muted"
-                      />
-                      <span className="font-mono text-[13px]">{fatura.formaPagamento}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-success/12 px-2.5 py-0.5 text-[13px] font-semibold text-success-text">
-                      <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" />
-                      {fatura.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={aCaminho}
-                        title="Baixar PDF da fatura"
-                        className="inline-flex items-center gap-1 whitespace-nowrap rounded bg-surface-2 border border-line px-2.5 py-1 text-[13px] transition-colors hover:bg-line/60"
+              {mostrarFaturasDemo ? (
+                faturas.map((fatura) => (
+                  <TableRow key={fatura.data}>
+                    <TableCell className="whitespace-nowrap font-mono font-medium">{fatura.data}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-ink">{fatura.referencia}</span>
+                        <span className="text-[13px] text-muted">Período: {fatura.periodo}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap text-right font-mono font-semibold">{formatCurrency(fatura.valor)}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <div className="inline-flex items-center gap-2">
+                        <Icon
+                          name={fatura.formaPagamento.startsWith('Pix') ? 'payments' : 'credit_card'}
+                          size={18}
+                          className="text-muted"
+                        />
+                        <span className="font-mono text-[13px]">{fatura.formaPagamento}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[13px] font-semibold ${
+                          STATUS_FATURA_TOKENS[fatura.status] ?? STATUS_FATURA_PADRAO
+                        }`}
                       >
-                        <Icon name="picture_as_pdf" size={16} className="text-danger" />
-                        Fatura
-                      </button>
-                      <button
-                        type="button"
-                        onClick={aCaminho}
-                        title="Baixar nota fiscal NFS-e"
-                        className="inline-flex items-center gap-1 whitespace-nowrap rounded bg-surface-2 border border-line px-2.5 py-1 text-[13px] transition-colors hover:bg-line/60"
-                      >
-                        <Icon name="description" size={16} className="text-brand-text" />
-                        NFS-e
-                      </button>
-                    </div>
+                        <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+                        {fatura.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={aCaminho}
+                          title="Baixar PDF da fatura"
+                          className="inline-flex items-center gap-1 whitespace-nowrap rounded bg-surface-2 border border-line px-2.5 py-1 text-[13px] transition-colors hover:bg-line/60"
+                        >
+                          <Icon name="picture_as_pdf" size={16} className="text-danger" />
+                          Fatura
+                        </button>
+                        <button
+                          type="button"
+                          onClick={aCaminho}
+                          title="Baixar nota fiscal NFS-e"
+                          className="inline-flex items-center gap-1 whitespace-nowrap rounded bg-surface-2 border border-line px-2.5 py-1 text-[13px] transition-colors hover:bg-line/60"
+                        >
+                          <Icon name="description" size={16} className="text-brand-text" />
+                          NFS-e
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-10 text-center text-muted">
+                    Nenhuma fatura emitida ainda
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </table>
         </div>
 
-        <div className="flex items-center justify-between bg-surface-2 p-4 text-[13px] text-muted">
-          <span>Exibindo os últimos {faturas.length} lançamentos</span>
-          <button type="button" onClick={aCaminho} className="font-semibold text-brand-text hover:underline">
-            Carregar histórico completo (2026)
-          </button>
-        </div>
+        {mostrarFaturasDemo && (
+          <div className="flex items-center justify-between bg-surface-2 p-4 text-[13px] text-muted">
+            <span>Exibindo os últimos {faturas.length} lançamentos</span>
+            <button type="button" onClick={aCaminho} className="font-semibold text-brand-text hover:underline">
+              Carregar histórico completo (2026)
+            </button>
+          </div>
+        )}
       </div>
 
       <Card className="mt-6 space-y-4">
