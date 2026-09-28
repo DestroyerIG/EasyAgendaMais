@@ -8,6 +8,11 @@
  * Quando a função correspondente existir, troque o uso deste módulo pelo dado real
  * e apague a chave. Antes de publicar para clientes, decida bloco a bloco: ou o dado
  * é real, ou o bloco sai da tela.
+ *
+ * Regra desta rodada de limpeza (correção I11 da revisão final): campo sem consumidor
+ * fora deste módulo e dos testes foi apagado; valor que é função de outro campo
+ * (percentual, total, saldo) não fica gravado como número fixo — vira cálculo no
+ * componente que o usa.
  */
 
 // ─── Hoje (hoje-desktop.html, hoje-mobile.html) ────────────────────────────────
@@ -22,13 +27,10 @@ export interface HojePendencia {
 export interface HojeContent {
   metaFaturamentoDiaria: {
     valorMeta: number;
-    percentualAtingido: number;
   };
-  // Legenda do cartão "Agendamentos hoje" (hoje-desktop.html / hoje-mobile.html);
-  // não há campo equivalente no sistema real ainda.
-  agendamentosLegenda: string;
   taxaOcupacao: {
-    percentual: number;
+    // Só a comparação com a média fica de exemplo; o percentual em si é calculado no
+    // componente a partir do mesmo cálculo real que a Agenda faz (correção I3).
     variacao: string;
     comparacaoLabel: string;
   };
@@ -47,13 +49,6 @@ export interface HojeContent {
 // status, created_at e reminder_sent — e o número do agendamento sai do id real. O que
 // sobra aqui é só o que nenhuma tabela responde ainda.
 export interface AgendaDetalhes {
-  cicloMedioDias: number;
-  cicloMedioSelo: string;
-  totalVisitas: number;
-  // O ano das visitas anda junto com a contagem: as duas vêm da mesma conta que o
-  // sistema ainda não faz, então nenhuma das duas pode ser escrita solta na tela.
-  totalVisitasAno: number;
-  ultimaVisitaResumo: string;
   // Sinal por Pix: o sistema não recebe sinal, mas a tela mostra o bloco. Na tela o
   // sinal é limitado ao preço real do serviço e o valor a pagar é a diferença, para as
   // duas linhas sempre fecharem com o total verdadeiro do atendimento.
@@ -61,6 +56,9 @@ export interface AgendaDetalhes {
   comprovantePix: string;
   origem: string;
   observacoes: string;
+  // Selo neutro "Cliente Recorrente", sem número — o DTO do agendamento não traz
+  // client_id, então nenhum ciclo médio ou total de visitas teria como ficar
+  // consistente com a lista e a ficha da cliente (correção I1 da revisão final).
   clienteRecorrente: boolean;
 }
 
@@ -77,24 +75,25 @@ export interface AgendaContent {
 
 // ─── Clientes (clientes-lista.html, cliente-ficha.html) ────────────────────────
 
-export interface ClienteFaseResumo {
-  fase: string;
-  quantidade: number;
-}
+/**
+ * "Retorno previsto" de exemplo: nunca um texto gravado com data e "em N dias"/"há N
+ * dias" fixos (correção I2) — só a data-base (dia do mês) e a direção ficam fixas; o
+ * texto e o estado vencido são calculados no componente a partir de `new Date()`.
+ * `{ tipo: 'texto' }` é para os dois casos sem data específica (cliente nova, cliente
+ * inativa) — aí não há o que recalcular.
+ */
+export type ClienteRetornoPrevisto =
+  | { tipo: 'data'; diaBase: number; direcao: 'futuro' | 'vencido' }
+  | { tipo: 'texto'; texto: string };
 
 export interface ClienteExemplo {
-  nome: string;
-  telefone: string;
   etiqueta: string;
   fase: string;
-  ultimaVisita: string;
   servico: string;
   profissional: string;
   cicloMedioDias: number | null;
   cicloMedioLegenda: string;
-  retornoPrevisto: string;
-  ltvAcumulado: number;
-  totalAtendimentos: number;
+  retornoPrevisto: ClienteRetornoPrevisto;
 }
 
 export interface ClientePreferenciaAtendimento {
@@ -104,12 +103,7 @@ export interface ClientePreferenciaAtendimento {
 
 export interface ClienteFichaTecnica {
   titulo: string;
-  alerta: {
-    titulo: string;
-    descricao: string;
-  };
   preferencias: ClientePreferenciaAtendimento[];
-  observacoes: string;
 }
 
 export interface ClienteGaleriaItem {
@@ -119,45 +113,26 @@ export interface ClienteGaleriaItem {
 }
 
 export interface ClienteLinhaDoTempoItem {
-  data: string;
-  tipo: 'agendamento' | 'whatsapp' | 'financeiro' | 'avaliacao' | 'falta' | 'cadastro';
+  // Ausente no item "cadastro": a data desse evento é sempre client.created_at real
+  // (correção C1/I2), então não há data de exemplo a guardar para ele.
+  data?: string;
+  tipo: 'whatsapp' | 'avaliacao' | 'cadastro';
   descricao: string;
 }
 
 export interface ClientePerfilDestaque {
-  nome: string;
-  telefone: string;
-  whatsappVerificado: boolean;
-  tagPreferenciaProfissional: string;
-  aniversario: string;
   consentimentoLgpd: {
     texto: string;
-    autorizadoEm: string;
+    // Sem "autorizadoEm" fixo: a data de autorização usa client.created_at real
+    // (correção C1 da revisão final), então não há campo de exemplo a manter aqui.
     canal: string;
-  };
-  metricas: {
-    cicloMedioDias: number;
-    pontualidadePercentual: number;
-    ticketMedio: number;
-    gastoAcumulado: number;
-    frequenciaVisitas: number;
-    clienteDesde: string;
-    faltas: number;
-    faltaObservacao: string;
   };
   fichaTecnica: ClienteFichaTecnica;
   galeria: ClienteGaleriaItem[];
   linhaDoTempo: ClienteLinhaDoTempoItem[];
-  avaliacao: {
-    nota: number;
-    comentario: string;
-  };
-  postoAtendimento: string;
-  referenciaCaixa: string;
 }
 
 export interface ClientesContent {
-  fasesResumo: ClienteFaseResumo[];
   exemplos: ClienteExemplo[];
   perfilDestaque: ClientePerfilDestaque;
 }
@@ -171,11 +146,6 @@ export interface CaixaAbertura {
 }
 
 export interface CaixaMetricas {
-  entradas: number;
-  entradasQuantidade: number;
-  saidas: number;
-  saidasQuantidade: number;
-  saldo: number;
   comandasTotal: number;
   comandasFechadas: number;
   comandasAbertas: number;
@@ -198,20 +168,9 @@ export interface CaixaComanda {
   status: 'Fechada' | 'Aberta' | 'Falta';
 }
 
-export interface CaixaDespesa {
-  nome: string;
-  valor: number;
-  descricao: string;
-  horario: string;
-  lancadoPor: string;
-  formaPagamento: string;
-}
-
 export interface CaixaConferenciaDinheiro {
-  fundoInicial: number;
   entradasDinheiro: number;
   saidasDinheiro: number;
-  totalEsperado: number;
   bateCaixa: boolean;
 }
 
@@ -220,18 +179,10 @@ export interface CaixaContent {
   metricas: CaixaMetricas;
   formasPagamento: CaixaFormaPagamento[];
   comandas: CaixaComanda[];
-  despesas: CaixaDespesa[];
   conferenciaDinheiro: CaixaConferenciaDinheiro;
 }
 
 // ─── WhatsApp (whatsapp-conexao.html) ──────────────────────────────────────────
-
-export interface WhatsappConsumoDiario {
-  enviadas: number;
-  limiteDiario: number;
-  percentualUtilizado: number;
-  disponivelHoje: number;
-}
 
 export interface WhatsappSaude {
   taxaEntregaPercentual: number;
@@ -247,41 +198,25 @@ export interface WhatsappBreakdownItem {
 export interface WhatsappHistoricoItem {
   horario: string;
   destinatario: string;
-  telefoneMascarado: string;
   tipo: string;
   status: string;
 }
 
 export interface WhatsappContent {
-  consumoDiario: WhatsappConsumoDiario;
   saude: WhatsappSaude;
   breakdownEnvios: WhatsappBreakdownItem[];
   historicoRecente: WhatsappHistoricoItem[];
-  solicitacaoAumentoLimite: {
-    disponivel: boolean;
-    limiteSugerido: number;
-  };
 }
 
 // ─── Plano (ajustes-plano.html) ────────────────────────────────────────────────
 
-export type PlanoNome = 'Solo' | 'Equipe' | 'Salão';
-
-export interface PlanoRecursoIncluso {
-  icone: string;
-  titulo: string;
-  descricao: string;
+export interface PlanoProximaCobranca {
+  data: string;
+  diasRestantes: number;
 }
 
 export interface PlanoAtual {
-  nome: PlanoNome;
-  ciclo: string;
-  preco: number;
-  proximaCobranca: {
-    data: string;
-    diasRestantes: number;
-  };
-  recursosInclusos: PlanoRecursoIncluso[];
+  proximaCobranca: PlanoProximaCobranca;
 }
 
 export interface PlanoFormaPagamento {
@@ -289,15 +224,11 @@ export interface PlanoFormaPagamento {
   final: string;
   titular: string;
   validade: string;
-  debitoAutomaticoAtivo: boolean;
-  pixAutomaticoAtivo: boolean;
 }
 
 export interface PlanoFatura {
   data: string;
-  referencia: string;
   periodo: string;
-  valor: number;
   formaPagamento: string;
   status: 'Pago';
 }
@@ -329,11 +260,8 @@ export const conteudoDemo = {
   hoje: {
     metaFaturamentoDiaria: {
       valorMeta: 1800,
-      percentualAtingido: 81,
     },
-    agendamentosLegenda: '2 horários livres à tarde',
     taxaOcupacao: {
-      percentual: 84,
       variacao: '+6%',
       comparacaoLabel: 'vs média de terça',
     },
@@ -343,12 +271,6 @@ export const conteudoDemo = {
     },
     profissionaisAtivasHoje: 3,
     pendencias: [
-      {
-        icone: 'event_busy',
-        titulo: '2 horários vagos à tarde com Bruna',
-        descricao: '14:30 e 16:45 sem agendamento',
-        rotuloBotao: 'Oferecer à lista de espera',
-      },
       {
         icone: 'schedule_send',
         titulo: '9 clientes com manutenção vencendo',
@@ -372,11 +294,6 @@ export const conteudoDemo = {
   agenda: {
     duracaoPadraoMinutos: 60,
     detalhes: {
-      cicloMedioDias: 21,
-      cicloMedioSelo: 'Ideal para o serviço',
-      totalVisitas: 8,
-      totalVisitasAno: 2026,
-      ultimaVisitaResumo: 'há 19 dias (Camila)',
       sinalPago: 30,
       comprovantePix: '#PIX-99824-A1',
       origem: 'Página Pública (Link da Bio)',
@@ -386,134 +303,73 @@ export const conteudoDemo = {
     },
   },
   clientes: {
-    fasesResumo: [
-      { fase: 'Todas', quantidade: 248 },
-      { fase: 'Novo', quantidade: 24 },
-      { fase: 'Recorrente', quantidade: 88 },
-      { fase: 'Fiel', quantidade: 65 },
-      { fase: 'Em risco', quantidade: 42 },
-      { fase: 'Perdido', quantidade: 29 },
-    ],
     exemplos: [
       {
-        nome: 'Mariana Souza',
-        telefone: '(11) 98741-2039',
         etiqueta: 'Clube VIP',
         fase: 'Fiel',
-        ultimaVisita: '12 de setembro (há 5 dias)',
         servico: 'Corte e finalização',
         profissional: 'Camila',
         cicloMedioDias: 21,
         cicloMedioLegenda: 'Muito pontual',
-        retornoPrevisto: '3 de outubro (em 16 dias)',
-        ltvAcumulado: 1820,
-        totalAtendimentos: 14,
+        retornoPrevisto: { tipo: 'data', diaBase: 3, direcao: 'futuro' },
       },
       {
-        nome: 'Rafaela Diniz',
-        telefone: '(11) 97120-4491',
         etiqueta: 'Fidelidade',
         fase: 'Recorrente',
-        ultimaVisita: '17 de setembro (hoje)',
         servico: 'Coloração',
         profissional: 'Camila',
         cicloMedioDias: 20,
         cicloMedioLegenda: 'Padrão regular',
-        retornoPrevisto: '7 de outubro (em 20 dias)',
-        ltvAcumulado: 1120,
-        totalAtendimentos: 9,
+        retornoPrevisto: { tipo: 'data', diaBase: 7, direcao: 'futuro' },
       },
       {
-        nome: 'Beatriz Costa',
-        telefone: '(11) 96328-1190',
         etiqueta: 'Resgatável',
         fase: 'Em risco',
-        ultimaVisita: '5 de agosto (há 43 dias)',
         servico: 'Massagem relaxante',
         profissional: 'Camila',
         cicloMedioDias: 21,
         cicloMedioLegenda: 'Ciclo estourado',
-        retornoPrevisto: 'Venceu há 22 dias',
-        ltvAcumulado: 890,
-        totalAtendimentos: 7,
+        retornoPrevisto: { tipo: 'data', diaBase: 5, direcao: 'vencido' },
       },
       {
-        nome: 'Letícia Albuquerque',
-        telefone: '(11) 99812-7801',
         etiqueta: 'Preferencial',
         fase: 'Fiel',
-        ultimaVisita: '17 de setembro (hoje)',
         servico: 'Limpeza de pele',
         profissional: 'Bruna',
         cicloMedioDias: 28,
         cicloMedioLegenda: 'Ciclo exato',
-        retornoPrevisto: '15 de outubro (em 28 dias)',
-        ltvAcumulado: 2340,
-        totalAtendimentos: 12,
+        retornoPrevisto: { tipo: 'data', diaBase: 15, direcao: 'futuro' },
       },
       {
-        nome: 'Carla Silveira',
-        telefone: '(11) 95530-9921',
         etiqueta: 'Não retornou',
         fase: 'Perdido',
-        ultimaVisita: '14 de maio (há 126 dias)',
         servico: 'Hidratação capilar',
         profissional: 'Paula',
         cicloMedioDias: 30,
         cicloMedioLegenda: 'Inativo há 4 ciclos',
-        retornoPrevisto: 'Inativa · campanha de resgate',
-        ltvAcumulado: 420,
-        totalAtendimentos: 3,
+        retornoPrevisto: { tipo: 'texto', texto: 'Inativa · campanha de resgate' },
       },
       {
-        nome: 'Juliana Paes',
-        telefone: '(11) 94451-8819',
         etiqueta: 'Primeira vez',
         fase: 'Novo',
-        ultimaVisita: '17 de setembro (hoje)',
         servico: 'Design de sobrancelhas',
         profissional: 'Paula',
         cicloMedioDias: null,
         cicloMedioLegenda: 'Histórico em formação',
-        retornoPrevisto: 'Sugerir retorno em ~45 dias',
-        ltvAcumulado: 160,
-        totalAtendimentos: 1,
+        retornoPrevisto: { tipo: 'texto', texto: 'Sugerir retorno em ~45 dias' },
       },
     ],
     perfilDestaque: {
-      nome: 'Mariana Souza',
-      telefone: '(83) 99876-5432',
-      whatsappVerificado: true,
-      tagPreferenciaProfissional: 'Prefere Camila',
-      aniversario: 'Aniversário em 3 dias (20 de setembro)',
       consentimentoLgpd: {
         texto: 'Consentimento ativo para WhatsApp e lembretes automáticos de agendamento.',
-        autorizadoEm: '12/03/2026',
         canal: 'Link da bio do Instagram',
-      },
-      metricas: {
-        cicloMedioDias: 21,
-        pontualidadePercentual: 92,
-        ticketMedio: 130,
-        gastoAcumulado: 1820,
-        frequenciaVisitas: 14,
-        clienteDesde: 'janeiro de 2026',
-        faltas: 1,
-        faltaObservacao: 'Avisou com antecedência · 0 no-show',
       },
       fichaTecnica: {
         titulo: 'Preferências de atendimento',
-        alerta: {
-          titulo: 'Alergia e restrição',
-          descricao:
-            'Sensível a um dos produtos de preparo padrão. Usar apenas a alternativa hipoalergênica indicada no cadastro.',
-        },
         preferencias: [
           { rotulo: 'Preferência principal', valor: 'Acabamento discreto, tom neutro' },
           { rotulo: 'Duração habitual', valor: 'Sessões de 2 horas' },
         ],
-        observacoes:
-          'Cliente sensível ao toque prolongado; preferir ritmo mais lento no início do atendimento.',
       },
       galeria: [
         { data: '12 de setembro', legenda: 'Sessão de manutenção', responsavel: 'Camila' },
@@ -523,19 +379,9 @@ export const conteudoDemo = {
       ],
       linhaDoTempo: [
         {
-          data: '17 de setembro (hoje)',
-          tipo: 'agendamento',
-          descricao: 'Sinal Pix de R$ 30,00 confirmado · restante de R$ 100,00 no local',
-        },
-        {
           data: '16 de setembro (ontem)',
           tipo: 'whatsapp',
           descricao: 'Lembrete automático enviado · cliente respondeu "Confirmadíssimo!"',
-        },
-        {
-          data: '12 de setembro',
-          tipo: 'financeiro',
-          descricao: 'Atendimento concluído · R$ 135,00 pago integralmente via Pix',
         },
         {
           data: '12 de setembro',
@@ -543,28 +389,10 @@ export const conteudoDemo = {
           descricao: '5 estrelas · recebida via link de satisfação pós-atendimento',
         },
         {
-          data: '22 de agosto',
-          tipo: 'financeiro',
-          descricao: 'Atendimento rápido concluído com Camila · R$ 70,00 pago em cartão de débito',
-        },
-        {
-          data: '15 de julho',
-          tipo: 'falta',
-          descricao:
-            'Falta justificada com 24h de antecedência · sinal remanejado para a sessão seguinte',
-        },
-        {
-          data: '12 de março de 2026',
           tipo: 'cadastro',
           descricao: 'Primeira visita e cadastro inicial pela página pública',
         },
       ],
-      avaliacao: {
-        nota: 5,
-        comentario: 'Atendimento excelente, resultado dura o mês todo.',
-      },
-      postoAtendimento: 'Estação 2',
-      referenciaCaixa: 'Caixa Diário #219',
     },
   },
   caixa: {
@@ -574,11 +402,6 @@ export const conteudoDemo = {
       saldoInicial: 150,
     },
     metricas: {
-      entradas: 1845,
-      entradasQuantidade: 14,
-      saidas: 120,
-      saidasQuantidade: 2,
-      saldo: 1875,
       comandasTotal: 16,
       comandasFechadas: 13,
       comandasAbertas: 2,
@@ -648,39 +471,13 @@ export const conteudoDemo = {
         status: 'Fechada',
       },
     ],
-    despesas: [
-      {
-        nome: 'Fornecedor de insumos',
-        valor: 80,
-        descricao: 'Materiais de uso diário para os atendimentos',
-        horario: '09:10',
-        lancadoPor: 'Carla',
-        formaPagamento: 'Débito do estúdio',
-      },
-      {
-        nome: 'Café e água',
-        valor: 40,
-        descricao: 'Café expresso em grãos e galão de água',
-        horario: '10:45',
-        lancadoPor: 'Carla',
-        formaPagamento: 'Pix do estúdio',
-      },
-    ],
     conferenciaDinheiro: {
-      fundoInicial: 150,
       entradasDinheiro: 120,
       saidasDinheiro: 0,
-      totalEsperado: 270,
       bateCaixa: true,
     },
   },
   whatsapp: {
-    consumoDiario: {
-      enviadas: 68,
-      limiteDiario: 250,
-      percentualUtilizado: 27,
-      disponivelHoje: 182,
-    },
     saude: {
       taxaEntregaPercentual: 99.4,
       variacaoTaxaEntrega: '+0,2% comparado a ontem',
@@ -695,100 +492,58 @@ export const conteudoDemo = {
       {
         horario: 'Hoje, 11:42',
         destinatario: 'Juliana Mendes',
-        telefoneMascarado: '+55 83 99611-****',
         tipo: 'Lembrete de atendimento (2h antes)',
         status: 'Entregue e lido',
       },
       {
         horario: 'Hoje, 11:38',
         destinatario: 'Camila Rocha',
-        telefoneMascarado: '+55 83 98842-****',
         tipo: 'Comprovante de sinal Pix',
         status: 'Entregue e lido',
       },
       {
         horario: 'Hoje, 11:15',
         destinatario: 'Beatriz Silveira',
-        telefoneMascarado: '+55 83 99105-****',
         tipo: 'Confirmação de agendamento',
         status: 'Entregue e lido',
       },
     ],
-    solicitacaoAumentoLimite: {
-      disponivel: true,
-      limiteSugerido: 500,
-    },
   },
   plano: {
     atual: {
-      nome: 'Equipe',
-      ciclo: 'Mensal',
-      preco: 99.9,
       proximaCobranca: {
         data: '15 de outubro de 2026',
         diasRestantes: 28,
       },
-      recursosInclusos: [
-        {
-          icone: 'group',
-          titulo: 'Até 5 profissionais na grade',
-          descricao: 'Carla Silva, Bruno Santos e 3 vagas livres',
-        },
-        {
-          icone: 'smart_toy',
-          titulo: 'Lembretes automáticos ilimitados',
-          descricao: 'Lembretes e confirmações ativas por WhatsApp',
-        },
-        {
-          icone: 'loyalty',
-          titulo: 'Clube de assinaturas e pacotes',
-          descricao: 'Recorrência automática de clientes no balcão',
-        },
-        {
-          icone: 'qr_code_2',
-          titulo: 'Sinal Pix no agendamento',
-          descricao: 'Prevenção contra faltas e no-shows',
-        },
-      ],
     },
     formaPagamento: {
       bandeira: 'Mastercard',
       final: '8821',
       titular: 'CARLA R. SILVA',
       validade: '08/28',
-      debitoAutomaticoAtivo: true,
-      pixAutomaticoAtivo: true,
     },
     faturas: [
       {
         data: '15/09/2026',
-        referencia: 'Mensalidade EasyAgenda+ Equipe',
         periodo: '15/set a 14/out de 2026',
-        valor: 99.9,
         formaPagamento: 'Mastercard •••• 8821',
         status: 'Pago',
       },
       {
         data: '15/08/2026',
-        referencia: 'Mensalidade EasyAgenda+ Equipe',
         periodo: '15/ago a 14/set de 2026',
-        valor: 99.9,
         formaPagamento: 'Mastercard •••• 8821',
         status: 'Pago',
       },
       {
         data: '15/07/2026',
-        referencia: 'Mensalidade EasyAgenda+ Equipe',
         periodo: '15/jul a 14/ago de 2026',
-        valor: 99.9,
         formaPagamento: 'Pix Automático',
         status: 'Pago',
       },
       {
         data: '15/06/2026',
-        referencia: 'Mensalidade EasyAgenda+ Equipe',
         periodo: '15/jun a 14/jul de 2026',
-        valor: 99.9,
         formaPagamento: 'Pix Automático',
         status: 'Pago',
       },
