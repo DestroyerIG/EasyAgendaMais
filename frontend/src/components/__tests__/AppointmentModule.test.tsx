@@ -453,3 +453,107 @@ describe('AppointmentModule: uma pessoa, uma cor', () => {
     expect(tonsDaCamila().every(Boolean)).toBe(true);
   });
 });
+
+describe('AppointmentModule: a grade do computador também é do dia', () => {
+  beforeEach(() => {
+    mockSearch.value = '';
+    mockApiGet.mockReset();
+  });
+
+  /** Rótulos dos blocos de horário livre da linha do tempo (sem o "com <nome>" do celular). */
+  const blocosDeHorarioLivre = () =>
+    screen
+      .queryAllByRole('button', { name: /^Novo agendamento: \d\d:\d\d, / })
+      .map(botao => botao.getAttribute('aria-label'));
+
+  it('filtro de status não abre um bloco só atravessando o atendimento escondido', async () => {
+    responder(
+      [
+        agendamento({ id: '1', time: '09:00:00' }),
+        agendamento({ id: '2', time: '11:00:00', status: 'concluido', client_name: 'Letícia Albuquerque' }),
+        agendamento({ id: '3', time: '13:00:00' }),
+      ],
+      { openingTime: '08:00', closingTime: '18:00' },
+    );
+    render(<AppointmentModule />);
+
+    await screen.findByText('3 agendamentos');
+    const esperados = [
+      'Novo agendamento: 08:00, 1h livre',
+      'Novo agendamento: 10:00, 1h livre',
+      'Novo agendamento: 12:00, 1h livre',
+      'Novo agendamento: 14:00, 4h livre',
+    ];
+    expect(blocosDeHorarioLivre()).toEqual(esperados);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmado' }));
+
+    // Sem a correção sairiam três blocos, com um "3h livre" das 10:00 às 13:00 passando
+    // por cima do atendimento concluído das 11:00.
+    expect(screen.queryByText('Letícia Albuquerque')).not.toBeInTheDocument();
+    expect(blocosDeHorarioLivre()).toEqual(esperados);
+    expect(blocosDeHorarioLivre()).not.toContain('Novo agendamento: 10:00, 3h livre');
+  });
+
+  it('com filtro ligado, o KPI do computador conta os blocos que a grade desenha', async () => {
+    responder(
+      [
+        agendamento({ id: '1', time: '09:00:00' }),
+        agendamento({ id: '2', time: '11:00:00', status: 'concluido' }),
+        agendamento({ id: '3', time: '13:00:00' }),
+      ],
+      { openingTime: '08:00', closingTime: '18:00' },
+    );
+    render(<AppointmentModule />);
+
+    await screen.findByText('3 agendamentos');
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmado' }));
+
+    expect(blocosDeHorarioLivre()).toHaveLength(4);
+    // O rótulo do KPI vem em dois nós ("4" em negrito + " horários livres").
+    expect(screen.getByText('horários livres')).toHaveTextContent('4 horários livres');
+  });
+
+  it('a régua não encolhe quando o filtro esconde o atendimento mais cedo', async () => {
+    responder(
+      [
+        agendamento({ id: '1', time: '08:00:00', status: 'concluido' }),
+        agendamento({ id: '2', time: '12:00:00' }),
+      ],
+      { openingTime: '09:00', closingTime: '18:00' },
+    );
+    render(<AppointmentModule />);
+
+    // A régua começa às 08:00 porque existe atendimento às 08:00 no dia, antes da
+    // abertura configurada (o cartão do celular também escreve "08:00", daí o getAll).
+    await screen.findByText('2 agendamentos');
+    expect(screen.getAllByText('08:00').length).toBeGreaterThan(0);
+
+    // Escondido o atendimento das 08:00, só a régua ainda diz 08:00 — e ela continua lá.
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmado' }));
+    expect(screen.getByText('08:00')).toBeInTheDocument();
+  });
+
+  it('a coluna da profissional continua na grade quando o filtro esconde tudo que é dela', async () => {
+    responder([
+      agendamento({ id: '1', time: '09:00:00', status: 'concluido' }),
+      agendamento({
+        id: '2',
+        time: '10:00:00',
+        professional_id: 'p2',
+        professional_name: 'Bruna Lima',
+        client_name: 'Letícia Albuquerque',
+      }),
+    ]);
+    render(<AppointmentModule />);
+
+    await screen.findByText('2 agendamentos');
+    await userEvent.click(screen.getByRole('button', { name: 'Concluído' }));
+
+    // O dia de Bruna continua existindo, com os buracos dele: a coluna fica, lendo "0".
+    expect(screen.queryByText('Letícia Albuquerque')).not.toBeInTheDocument();
+    expect(screen.getByText('Bruna Lima')).toBeInTheDocument();
+    expect(screen.getByText('0 atendimentos')).toBeInTheDocument();
+    expect(screen.getByText('1 atendimento')).toBeInTheDocument();
+  });
+});

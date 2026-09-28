@@ -315,6 +315,14 @@ export function AppointmentModule() {
   const doDia = appointments.filter(
     a => filtroProfissional === null || chaveProfissional(a) === filtroProfissional,
   );
+  // O mesmo conjunto quebrado por data, porque no modo Semana cada dia desenha a sua
+  // grade e não pode herdar as colunas nem a régua da semana inteira.
+  const doDiaPorData = doDia.reduce<Record<string, Appointment[]>>((acc, agendamento) => {
+    const data = agendamento.date.split('T')[0];
+    if (!acc[data]) acc[data] = [];
+    acc[data].push(agendamento);
+    return acc;
+  }, {});
   const faixa = calcularFaixaHoras(doDia, duracaoMinutos, horarioFuncionamento);
   const colunas = agruparPorProfissional(doDia);
   // Duas larguras, dois números legítimos: a linha do tempo do computador desenha os
@@ -490,7 +498,13 @@ export function AppointmentModule() {
                     {formatDate(date)}
                   </h3>
                 )}
-                {montarItensDoDia(dayAppointments, doDia, faixa, duracaoMinutos, ehDia).map(item =>
+                {montarItensDoDia(
+                  dayAppointments,
+                  doDiaPorData[date] ?? dayAppointments,
+                  faixa,
+                  duracaoMinutos,
+                  ehDia,
+                ).map(item =>
                   item.tipo === 'agendamento' ? (
                     <AppointmentCard
                       key={item.chave}
@@ -563,6 +577,7 @@ export function AppointmentModule() {
                 )}
                 <LinhaDoTempo
                   agendamentos={dayAppointments}
+                  agendamentosDoDia={doDiaPorData[date] ?? dayAppointments}
                   ordemProfissionais={ordemProfissionais}
                   duracaoPadraoMinutos={duracaoMinutos}
                   horarioFuncionamento={horarioFuncionamento}

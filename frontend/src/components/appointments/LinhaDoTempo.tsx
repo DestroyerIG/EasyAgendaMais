@@ -6,7 +6,8 @@
  * Dado real: colunas de profissional, horário, cliente, serviço, valor e status de
  * cada agendamento vêm de GET /appointments; a faixa de horas começa no horário de
  * funcionamento configurado (GET /business/settings) e as vagas livres saem do
- * cruzamento dos dois.
+ * cruzamento dos dois. Os blocos são do conjunto que o filtro deixou passar; as colunas,
+ * a régua e os buracos são do dia — o filtro de status não desocupa horário.
  * Dado de exemplo: a duração de cada atendimento (conteudoDemo.agenda.duracaoPadraoMinutos),
  * porque o DTO de /appointments ainda não devolve a duração do serviço — é ela que
  * define a altura do bloco.
@@ -377,7 +378,16 @@ function BlocoVagaLivre({ vaga, faixaInicioMinutos, onNovoAgendamento }: BlocoVa
 }
 
 export interface LinhaDoTempoProps {
+  /** O que a grade desenha em bloco: o conjunto filtrado, como a lista do celular. */
   agendamentos: Appointment[];
+  /**
+   * O dia de onde sai a geometria da grade — colunas, régua de horas e buracos —, com o
+   * filtro de profissional aplicado e o de status não. Buraco e horário de funcionamento
+   * são fatos sobre o dia: tirados do conjunto filtrado, um filtro de status desenharia
+   * "livre" em cima de um atendimento que existe e está só escondido, e encolheria a
+   * régua. Sem a prop, vale o próprio `agendamentos`, como era.
+   */
+  agendamentosDoDia?: Appointment[];
   /**
    * Ids das profissionais do período, em ordem alfabética do conjunto inteiro. O tom de
    * cada uma sai da posição dela aqui, e não do índice da coluna, senão a mesma pessoa
@@ -398,6 +408,7 @@ export interface LinhaDoTempoProps {
 
 export function LinhaDoTempo({
   agendamentos,
+  agendamentosDoDia,
   ordemProfissionais,
   duracaoPadraoMinutos,
   horarioFuncionamento,
@@ -419,8 +430,17 @@ export function LinhaDoTempo({
     });
   }, []);
 
-  const colunas = agruparPorProfissional(agendamentos);
+  // A grade é do dia; os blocos são do conjunto filtrado. Uma coluna existe porque a
+  // pessoa tem dia, não porque sobrou atendimento dela depois do filtro: a agenda dela
+  // continua com os mesmos buracos, e apagar a coluna esconderia esses buracos.
+  const doDia = agendamentosDoDia ?? agendamentos;
+  const colunas = agruparPorProfissional(doDia);
   if (colunas.length === 0) return null;
+
+  /** Os blocos de cada coluna: só os atendimentos que passaram pelo filtro. */
+  const listadosPorColuna = new Map(
+    agruparPorProfissional(agendamentos).map((coluna) => [coluna.id, coluna.agendamentos]),
+  );
 
   /** O tom é da pessoa, não da posição da coluna nesta lista já peneirada. */
   const tomDaColuna = (id: string, indiceLocal: number) => {
@@ -428,7 +448,7 @@ export function LinhaDoTempo({
     return tomDoProfissional(posicao >= 0 ? posicao : indiceLocal);
   };
 
-  const faixa = calcularFaixaHoras(agendamentos, duracaoPadraoMinutos, horarioFuncionamento);
+  const faixa = calcularFaixaHoras(doDia, duracaoPadraoMinutos, horarioFuncionamento);
   const alturaTotal = (faixa.horaFim - faixa.horaInicio) * ALTURA_HORA;
   const gridTemplateColumns = `68px repeat(${colunas.length}, minmax(0, 1fr))`;
   const agoraVisivel =
@@ -442,7 +462,9 @@ export function LinhaDoTempo({
         </div>
         {colunas.map((coluna, indice) => {
           const tom = tomDaColuna(coluna.id, indice);
-          const total = coluna.agendamentos.length;
+          // A pílula conta o que a coluna desenha, como "N agendamentos" do cabeçalho:
+          // com um filtro ligado ela pode ler "0 atendimentos" sobre o dia da pessoa.
+          const total = listadosPorColuna.get(coluna.id)?.length ?? 0;
           return (
             <div key={coluna.id} className="flex items-center justify-between gap-2 border-l border-line px-4 py-3">
               <div className="flex min-w-0 items-center gap-2.5">
@@ -508,7 +530,7 @@ export function LinhaDoTempo({
                 onNovoAgendamento={onNovoAgendamento}
               />
             ))}
-            {coluna.agendamentos.map((agendamento) => (
+            {(listadosPorColuna.get(coluna.id) ?? []).map((agendamento) => (
               <BlocoAgendamento
                 key={agendamento.id}
                 agendamento={agendamento}
