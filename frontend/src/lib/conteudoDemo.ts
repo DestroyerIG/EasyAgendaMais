@@ -88,6 +88,7 @@ export interface ClienteExemplo {
   etiqueta: string;
   fase: string;
   ultimaVisita: string;
+  servico: string;
   profissional: string;
   cicloMedioDias: number | null;
   cicloMedioLegenda: string;
@@ -401,6 +402,7 @@ export const conteudoDemo = {
         etiqueta: 'Clube VIP',
         fase: 'Fiel',
         ultimaVisita: '12 de setembro (há 5 dias)',
+        servico: 'Corte e finalização',
         profissional: 'Camila',
         cicloMedioDias: 21,
         cicloMedioLegenda: 'Muito pontual',
@@ -414,6 +416,7 @@ export const conteudoDemo = {
         etiqueta: 'Fidelidade',
         fase: 'Recorrente',
         ultimaVisita: '17 de setembro (hoje)',
+        servico: 'Coloração',
         profissional: 'Camila',
         cicloMedioDias: 20,
         cicloMedioLegenda: 'Padrão regular',
@@ -427,6 +430,7 @@ export const conteudoDemo = {
         etiqueta: 'Resgatável',
         fase: 'Em risco',
         ultimaVisita: '5 de agosto (há 43 dias)',
+        servico: 'Massagem relaxante',
         profissional: 'Camila',
         cicloMedioDias: 21,
         cicloMedioLegenda: 'Ciclo estourado',
@@ -440,6 +444,7 @@ export const conteudoDemo = {
         etiqueta: 'Preferencial',
         fase: 'Fiel',
         ultimaVisita: '17 de setembro (hoje)',
+        servico: 'Limpeza de pele',
         profissional: 'Bruna',
         cicloMedioDias: 28,
         cicloMedioLegenda: 'Ciclo exato',
@@ -453,6 +458,7 @@ export const conteudoDemo = {
         etiqueta: 'Não retornou',
         fase: 'Perdido',
         ultimaVisita: '14 de maio (há 126 dias)',
+        servico: 'Hidratação capilar',
         profissional: 'Paula',
         cicloMedioDias: 30,
         cicloMedioLegenda: 'Inativo há 4 ciclos',
@@ -466,6 +472,7 @@ export const conteudoDemo = {
         etiqueta: 'Primeira vez',
         fase: 'Novo',
         ultimaVisita: '17 de setembro (hoje)',
+        servico: 'Design de sobrancelhas',
         profissional: 'Paula',
         cicloMedioDias: null,
         cicloMedioLegenda: 'Histórico em formação',

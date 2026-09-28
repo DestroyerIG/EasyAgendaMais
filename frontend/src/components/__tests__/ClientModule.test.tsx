@@ -199,6 +199,17 @@ describe('ClientModule', () => {
     expect(screen.getAllByText('R$ 1.820,00').length).toBeGreaterThan(0);
   });
 
+  it('mostra "Serviço · Profissional" abaixo da Última Visita, na tabela e no cartão', async () => {
+    render(<ClientModule />);
+
+    const ocorrencias = await screen.findAllByText('Corte e finalização · Camila');
+    expect(ocorrencias).toHaveLength(2);
+    // Uma ocorrência vive na linha da tabela (computador)...
+    expect(ocorrencias.some(elemento => elemento.closest('tr') !== null)).toBe(true);
+    // ...e a outra fora de qualquer linha, no cartão (celular).
+    expect(ocorrencias.some(elemento => elemento.closest('tr') === null)).toBe(true);
+  });
+
   it('mostra o link do WhatsApp só quando o telefone é válido', async () => {
     const semTelefoneValido: Client = { ...client, phone: '123' };
     mockApiGet.mockImplementation((url: string) => {

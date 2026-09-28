@@ -12,8 +12,9 @@
  * carregada, nunca chamada nova.
  *
  * Dado de exemplo (conteudoDemo.clientes.exemplos): a "Fase CRM" e a etiqueta abaixo do
- * nome, "Ciclo Médio", "Retorno Previsto" e o total de atendimentos por cliente — nenhum
- * clube de fidelidade ou funil de CRM existe no sistema hoje. Cada cliente real recebe
+ * nome, "Ciclo Médio", "Retorno Previsto", o total de atendimentos e a linha "Serviço ·
+ * Profissional" sob a Última Visita — nenhum clube de fidelidade, funil de CRM ou
+ * histórico de serviço por atendimento existe no sistema hoje. Cada cliente real recebe
  * um exemplo pela posição dele na lista carregada (nunca por sorteio), para a fase não
  * mudar entre dois desenhos da mesma tela.
  *
@@ -435,12 +436,15 @@ export const ClientModule = () => {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col">
+                        <div className="flex min-w-0 flex-col">
                           <span className="tabular-nums text-ink">
                             {ultimaVisita.texto}
                             {ultimaVisita.relativo && (
                               <span className="ml-1 text-[13px] font-normal text-muted">{ultimaVisita.relativo}</span>
                             )}
+                          </span>
+                          <span className="truncate text-[13px] text-muted">
+                            {demo.servico} · {demo.profissional}
                           </span>
                         </div>
                       </TableCell>
@@ -508,6 +512,9 @@ export const ClientModule = () => {
                         <p className="tabular-nums text-[13px] text-muted">
                           {ultimaVisita.texto}
                           {ultimaVisita.relativo ? ` ${ultimaVisita.relativo}` : ''}
+                        </p>
+                        <p className="truncate text-[13px] text-muted">
+                          {demo.servico} · {demo.profissional}
                         </p>
                       </div>
                     </div>
