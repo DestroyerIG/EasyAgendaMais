@@ -12,11 +12,15 @@
  * carregada, nunca chamada nova.
  *
  * Dado de exemplo (conteudoDemo.clientes.exemplos): a "Fase CRM" e a etiqueta abaixo do
- * nome, "Ciclo Médio", "Retorno Previsto", o total de atendimentos e a linha "Serviço ·
- * Profissional" sob a Última Visita — nenhum clube de fidelidade, funil de CRM ou
- * histórico de serviço por atendimento existe no sistema hoje. Cada cliente real recebe
- * um exemplo pela posição dele na lista carregada (nunca por sorteio), para a fase não
- * mudar entre dois desenhos da mesma tela.
+ * nome, "Ciclo Médio", "Retorno Previsto" (calculado a cada render a partir de uma
+ * data-base fixa, nunca um texto gravado — correção I2 da revisão final) e a linha
+ * "Serviço · Profissional" sob a Última Visita — nenhum clube de fidelidade, funil de
+ * CRM ou histórico de serviço por atendimento existe no sistema hoje. "LTV Acumulado"
+ * não tem uma contagem de atendimentos ao lado: a lista não carrega o histórico de cada
+ * cliente (só a ficha carrega, ao abrir), então não há como mostrar um total real sem
+ * uma chamada nova, e a versão anterior mostrava um número de exemplo fixo (correção I1).
+ * Cada cliente real recebe um exemplo pela posição dele na lista carregada (nunca por
+ * sorteio), para a fase não mudar entre dois desenhos da mesma tela.
  *
  * Fora da tela, por exigirem função que o sistema não tem: o item de menu "Funil CRM",
  * a fileira de chips que filtraria por fase, o alternador Lista/Fases, a ordenação, a
@@ -53,23 +57,30 @@ import { getApiErrorMessage } from '@/utils/handleApiError';
 import { cn } from '@/lib/cn';
 import { formatCurrency, formatPhone } from '@/lib/formatters';
 import { conteudoDemo } from '@/lib/conteudoDemo';
-import { Users } from 'lucide-react';
+import { linkWhatsapp } from '@/lib/whatsapp';
+import { materialIcon } from '@/lib/materialIconAdapter';
 import { useRegisterTopBarSearch } from '@/components/shell/TopBarSearchContext';
 import type { Client, Appointment } from '@/types';
 
 const TAMANHO_PAGINA = 10;
 
+// M1 da revisão final: Material Symbol no lugar do ícone lucide (EmptyState aceita os
+// dois via o adaptador, e o resto da tela já é Material Symbols).
+const ICONE_GRUPO = materialIcon('group');
+
 // Cores da coluna "Fase CRM": as 5 fases do arquivo de referência mapeadas para tokens
 // do DESIGN.md (o arquivo usa âmbar/verde/laranja/vermelho/azul soltos do Tailwind, que
 // o teste de conformidade de tema reprova neste arquivo).
-const FASE_TOKENS: Record<string, { fundo: string; texto: string; ponto: string }> = {
+// Exportados porque ClientDetailPanel.tsx (que já importa `exemploParaIndice` daqui)
+// usava uma cópia idêntica destes tokens — M3 da revisão final: um lugar só.
+export const FASE_TOKENS: Record<string, { fundo: string; texto: string; ponto: string }> = {
   Novo: { fundo: 'bg-status-confirmed/12', texto: 'text-status-confirmed', ponto: 'bg-status-confirmed' },
   Recorrente: { fundo: 'bg-success/12', texto: 'text-success-text', ponto: 'bg-success' },
   Fiel: { fundo: 'bg-warning/12', texto: 'text-warning-text', ponto: 'bg-warning' },
   'Em risco': { fundo: 'bg-brand-text/12', texto: 'text-brand-text', ponto: 'bg-brand-text' },
   Perdido: { fundo: 'bg-danger/12', texto: 'text-danger', ponto: 'bg-danger' },
 };
-const FASE_PADRAO = FASE_TOKENS.Novo;
+export const FASE_PADRAO = FASE_TOKENS.Novo;
 
 /**
  * Exemplo de CRM ligado ao cliente pela posição dele na lista carregada — nunca por
@@ -101,6 +112,35 @@ export function descreverUltimaVisita(
   return { texto, relativo: null };
 }
 
+/**
+ * "Retorno previsto" de exemplo (clientes.exemplos[].retornoPrevisto): nunca um texto
+ * gravado com data e "em N dias"/"há N dias" fixos (I2 da revisão final) — só a data-base
+ * (dia do mês) e a direção (retorno futuro ou já vencido) são fixas; o texto e se está
+ * vencido saem daqui, recalculados a cada render a partir de `agora`.
+ */
+export function calcularRetornoPrevisto(
+  retorno: { tipo: 'data'; diaBase: number; direcao: 'futuro' | 'vencido' } | { tipo: 'texto'; texto: string },
+  agora: Date = new Date(),
+): { texto: string; vencido: boolean } {
+  if (retorno.tipo === 'texto') return { texto: retorno.texto, vencido: false };
+
+  const hojeSemHora = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate()).getTime();
+  let data = new Date(agora.getFullYear(), agora.getMonth(), retorno.diaBase);
+  if (retorno.direcao === 'futuro' && data.getTime() < hojeSemHora) {
+    data = new Date(agora.getFullYear(), agora.getMonth() + 1, retorno.diaBase);
+  } else if (retorno.direcao === 'vencido' && data.getTime() > hojeSemHora) {
+    data = new Date(agora.getFullYear(), agora.getMonth() - 1, retorno.diaBase);
+  }
+
+  const dias = Math.round((data.getTime() - hojeSemHora) / 86_400_000);
+  if (retorno.direcao === 'vencido') {
+    return { texto: `Venceu há ${Math.abs(dias)} dias`, vencido: true };
+  }
+  const dataTexto = data.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
+  if (dias === 0) return { texto: `${dataTexto} (hoje)`, vencido: false };
+  return { texto: `${dataTexto} (em ${dias} dias)`, vencido: false };
+}
+
 /** Selo de aniversário: true só quando birth_date (real) cai no mês de "agora". */
 export function fazAniversarioNoMes(birthDate: string | undefined, agora: Date = new Date()): boolean {
   if (!birthDate) return false;
@@ -116,12 +156,9 @@ function formatarDiaMes(dateString: string): string {
   return `${dia}/${mes}`;
 }
 
-/** Link do WhatsApp só quando o telefone tem os dígitos de um número brasileiro. */
-export function linkWhatsapp(telefone: string | undefined): string | null {
-  const digitos = (telefone || '').replace(/\D/g, '');
-  if (digitos.length !== 10 && digitos.length !== 11) return null;
-  return `https://wa.me/55${digitos}`;
-}
+// Reexportado para quem já importava `linkWhatsapp` daqui (M3 da revisão final: a
+// implementação agora mora só em '@/lib/whatsapp').
+export { linkWhatsapp };
 
 /**
  * Botões numéricos da paginação com reticências: sempre a 1ª, as 2 seguintes, as
@@ -344,13 +381,13 @@ export const ClientModule = () => {
       ) : filteredClients.length === 0 ? (
         searchTerm ? (
           <EmptyState
-            icon={Users}
+            icon={ICONE_GRUPO}
             title="Nenhum cliente encontrado"
             description="Nenhum cliente corresponde à busca atual."
           />
         ) : (
           <EmptyState
-            icon={Users}
+            icon={ICONE_GRUPO}
             title="Nenhum cliente cadastrado ainda"
             action={{ label: 'Nova cliente', onClick: () => handleOpenModal() }}
             actionVariant="secondary"
@@ -378,7 +415,11 @@ export const ClientModule = () => {
                   const faseTokens = FASE_TOKENS[demo.fase] ?? FASE_PADRAO;
                   const ultimaVisita = descreverUltimaVisita(client.last_visit);
                   const aniversariante = fazAniversarioNoMes(client.birth_date);
-                  const retornoVencido = demo.retornoPrevisto.toLowerCase().includes('venceu');
+                  const retorno = calcularRetornoPrevisto(demo.retornoPrevisto);
+                  // Um retorno vencido (exemplo) ao lado de uma última visita real "(hoje)"
+                  // seria uma contradição visível na mesma linha — omite a célula em vez de
+                  // mostrar o aviso (I2 da revisão final).
+                  const ocultarRetorno = retorno.vencido && ultimaVisita.relativo === '(hoje)';
 
                   return (
                     <TableRow
@@ -458,17 +499,17 @@ export const ClientModule = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className={cn('font-semibold text-ink', retornoVencido && 'text-danger')}>
-                          {demo.retornoPrevisto}
-                        </span>
+                        {!ocultarRetorno && (
+                          <span className={cn('font-semibold text-ink', retorno.vencido && 'text-danger')}>
+                            {retorno.texto}
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-bold tabular-nums text-ink">{formatCurrency(client.total_spent)}</span>
-                          <span className="text-[13px] tabular-nums text-muted">
-                            {demo.totalAtendimentos} atendimento{demo.totalAtendimentos === 1 ? '' : 's'}
-                          </span>
-                        </div>
+                        {/* Sem contador real de atendimentos por cliente na lista (só a
+                            ficha tem histórico carregado) — mostra só o LTV real, sem
+                            inventar uma contagem ao lado (correção I1). */}
+                        <span className="font-bold tabular-nums text-ink">{formatCurrency(client.total_spent)}</span>
                       </TableCell>
                       <TableCell className="text-right">{renderAcoesRapidas(client)}</TableCell>
                     </TableRow>
