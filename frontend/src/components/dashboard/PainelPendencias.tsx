@@ -32,8 +32,13 @@ export function PainelPendencias({ pendencias, className }: PainelPendenciasProp
       <div className="flex items-center justify-between gap-3 border-b border-line pb-3">
         <div className="flex items-center gap-2">
           <h2 className="text-[16px] font-bold text-ink">Precisa de você</h2>
-          <span className="rounded-full bg-brand/15 px-2 py-0.5 text-[11px] font-bold text-ink">
+          {/* hoje-desktop.html: pílula com a palavra "pendências"; hoje-mobile.html:
+              círculo vermelho só com o número — cada breakpoint com o próprio estilo. */}
+          <span className="hidden rounded-full bg-brand/15 px-2 py-0.5 text-[11px] font-bold text-ink lg:inline-flex">
             {pendencias.length} pendências
+          </span>
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-danger text-[11px] font-bold text-surface lg:hidden">
+            {pendencias.length}
           </span>
         </div>
         <span className="text-[12px] font-medium text-muted">

@@ -272,7 +272,10 @@ export const conteudoDemo = {
     profissionaisAtivasHoje: 3,
     pendencias: [
       {
-        icone: 'schedule_send',
+        // Ícone de hoje-desktop.html (`sync`) — hoje-mobile.html usa `schedule_send`
+        // para o mesmo item; título/botão já seguiam o desktop, então o ícone segue
+        // a mesma referência em vez de misturar as duas.
+        icone: 'sync',
         titulo: '9 clientes com manutenção vencendo',
         descricao: 'Serviços no prazo ideal de retorno',
         rotuloBotao: 'Disparar lembrete',

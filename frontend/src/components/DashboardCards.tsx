@@ -1,6 +1,7 @@
 'use client';
 
 import { Icon } from '@/components/ui';
+import { cn } from '@/lib/cn';
 import { conteudoDemo } from '@/lib/conteudoDemo';
 import { formatCurrency } from '@/lib/formatters';
 import type { MetricasAgendaDoDia } from '@/lib/agendaMetrics';
@@ -43,7 +44,11 @@ function CartaoMetrica({
         <div className="flex flex-col justify-between gap-3 rounded-card border border-line bg-surface p-4 shadow-sm sm:p-5">
             <div className="flex items-center justify-between text-muted">
                 <span className="text-[13px] font-semibold">{titulo}</span>
-                <Icon name={icone} size={20} className={iconeTom} />
+                {/* Ícone colorido no celular (hoje-mobile.html), esmaecido no computador
+                    (hoje-desktop.html: os 4 ícones do cabeçalho ficam sem classe de cor,
+                    herdando o `text-muted` do container) — as duas referências divergem
+                    de propósito aqui, cada breakpoint segue a sua. */}
+                <Icon name={icone} size={20} className={cn(iconeTom, 'lg:text-muted')} />
             </div>
             <div className="text-[32px] font-bold leading-none tabular-nums text-ink">{valor}</div>
             {children}
@@ -95,6 +100,10 @@ export function DashboardCards({ data, metricasAgenda }: DashboardCardsProps) {
                 iconeTom="text-tertiary"
                 valor={data.appointmentsToday}
             >
+                {/* Sem mini-barra aqui e no cartão de receita recuperada: hoje-mobile.html
+                    pede uma nos 4 cartões, mas "agendamentos" e "receita recuperada" não
+                    têm um percentual real próprio — o único que existiria seria repetir a
+                    taxa de ocupação (cartão ao lado), o que seria confuso, não honesto. */}
                 <div className="flex items-center gap-1.5 text-[12px] font-semibold text-warning">
                     <span className="h-2 w-2 rounded-full bg-warning" />
                     <span>{legendaVagas}</span>
@@ -107,10 +116,25 @@ export function DashboardCards({ data, metricasAgenda }: DashboardCardsProps) {
                 iconeTom="text-success"
                 valor={metricasAgenda === null ? '—' : `${metricasAgenda.ocupacaoPercentual}%`}
             >
-                <div className="flex items-center gap-1 text-[12px]">
-                    <Icon name="arrow_upward" size={16} className="text-success" />
-                    <span className="font-bold text-success">{taxaOcupacao.variacao}</span>
-                    <span className="text-muted">{taxaOcupacao.comparacaoLabel}</span>
+                <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-1 text-[12px]">
+                        {/* hoje-mobile.html usa a cor "success"; hoje-desktop.html usa
+                            "whatsapp" para esta seta — as duas referências divergem, cada
+                            breakpoint segue a sua. */}
+                        <Icon name="arrow_upward" size={16} className="text-success lg:text-whatsapp" />
+                        <span className="font-bold text-success lg:text-whatsapp">{taxaOcupacao.variacao}</span>
+                        <span className="text-muted">{taxaOcupacao.comparacaoLabel}</span>
+                    </div>
+                    {/* Mini-barra real (hoje-mobile.html tem nos 4 cartões; hoje-desktop.html
+                        só no de faturamento — INVENTARIO.md 150/188 registra o conflito sem
+                        decidir). Aqui dá pra ser honesto nos 4: ocupação já tem percentual
+                        real, então a barra usa esse mesmo número, não um valor à parte. */}
+                    <div className="h-1 w-full overflow-hidden rounded-full bg-surface-2">
+                        <div
+                            className="h-full rounded-full bg-success lg:bg-whatsapp"
+                            style={{ width: `${metricasAgenda === null ? 0 : metricasAgenda.ocupacaoPercentual}%` }}
+                        />
+                    </div>
                 </div>
             </CartaoMetrica>
 

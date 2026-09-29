@@ -88,7 +88,9 @@ export default function DashboardPage() {
     const profissionais = Array.from(new Set(vagasTarde.map((vaga) => vaga.profissional)));
     const horarios = vagasTarde.map((vaga) => paraHoraTexto(vaga.inicioMinutos)).join(' e ');
     return {
-      icone: 'event_busy',
+      // Ícone de hoje-desktop.html (`calendar_today`) — hoje-mobile.html usa
+      // `event_busy` para o mesmo item; título/botão já seguiam o desktop.
+      icone: 'calendar_today',
       titulo: `${vagasTarde.length} horário${vagasTarde.length === 1 ? '' : 's'} vago${vagasTarde.length === 1 ? '' : 's'} à tarde`,
       descricao: `${profissionais.join(', ')} · ${horarios}`,
       rotuloBotao: 'Oferecer à lista de espera',
