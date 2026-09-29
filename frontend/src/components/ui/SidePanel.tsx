@@ -25,11 +25,33 @@ export interface SidePanelProps {
    * agendamento-detalhes.html sem mexer no padrão, que a Ficha da Cliente usa.
    */
   widthClass?: string;
+  /**
+   * Linha pequena acima do título (ex.: "Agendamento #4892" em
+   * agendamento-detalhes.html) — fica no cabeçalho fixo, nunca rola com o conteúdo.
+   */
+  titleAbove?: ReactNode;
+  /**
+   * Conteúdo extra no fim do cabeçalho, antes do botão de fechar (ex.: o selo de
+   * status em agendamento-detalhes.html) — mesmo motivo do `titleAbove`: precisa
+   * continuar visível durante o scroll, não só na primeira tela.
+   */
+  headerEnd?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
 }
 
-export function SidePanel({ open, onOpenChange, title, description, side = 'right', widthClass, children, footer }: SidePanelProps) {
+export function SidePanel({
+  open,
+  onOpenChange,
+  title,
+  description,
+  side = 'right',
+  widthClass,
+  titleAbove,
+  headerEnd,
+  children,
+  footer,
+}: SidePanelProps) {
   const themeClass = useForcedDarkClass();
 
   return (
@@ -46,7 +68,11 @@ export function SidePanel({ open, onOpenChange, title, description, side = 'righ
             )}
           >
             <header className="flex items-center gap-3 border-b border-line px-5 py-4">
-              <Dialog.Title className="flex-1 text-lg font-bold">{title}</Dialog.Title>
+              <div className="flex min-w-0 flex-1 flex-col">
+                {titleAbove}
+                <Dialog.Title className="text-lg font-bold">{title}</Dialog.Title>
+              </div>
+              {headerEnd}
               <Dialog.Close asChild>
                 <IconButton icon={X} label="Fechar" />
               </Dialog.Close>

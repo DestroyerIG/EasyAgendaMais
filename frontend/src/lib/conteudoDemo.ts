@@ -59,7 +59,6 @@ export interface AgendaDetalhes {
   sinalPago: number;
   comprovantePix: string;
   origem: string;
-  observacoes: string;
 }
 
 export interface AgendaContent {
@@ -303,8 +302,6 @@ export const conteudoDemo = {
       sinalPago: 30,
       comprovantePix: '#PIX-99824-A1',
       origem: 'Página Pública (Link da Bio)',
-      observacoes:
-        'Prefere agendar sempre com a mesma profissional. Chegou com 5 min de antecedência.',
     },
   },
   clientes: {

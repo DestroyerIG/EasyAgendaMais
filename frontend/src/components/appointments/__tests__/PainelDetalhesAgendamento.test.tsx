@@ -155,12 +155,16 @@ describe('PainelDetalhesAgendamento', () => {
     expect(screen.getByText('Lembrete WhatsApp enviado')).toBeInTheDocument();
   });
 
-  it('o conteúdo de exemplo sai todo de conteudoDemo.agenda.detalhes', () => {
+  it('o conteúdo de exemplo sai de conteudoDemo.agenda.detalhes', () => {
     abrir();
     const detalhes = conteudoDemo.agenda.detalhes;
 
     expect(screen.getByText(detalhes.origem)).toBeInTheDocument();
-    expect(screen.getByText(`“${detalhes.observacoes}”`)).toBeInTheDocument();
+  });
+
+  it('não mostra “Observações da Cliente” fabricadas (achado da varredura: texto fixo idêntico para qualquer cliente, contradizendo client.notes real na Ficha da Cliente)', () => {
+    abrir();
+    expect(screen.queryByText('Observações da Cliente')).not.toBeInTheDocument();
   });
 
   it('não mostra selo de cliente recorrente nem números de ciclo médio/total de visitas (N1: era um booleano fixo, sempre true)', () => {

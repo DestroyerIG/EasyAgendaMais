@@ -11,16 +11,22 @@
  * cancelar chamam o mesmo handler de status que a Agenda já usava.
  * Dado de exemplo (conteudoDemo.agenda): a duração do atendimento
  * (duracaoPadraoMinutos, porque o DTO não devolve a duração do serviço) e, em
- * conteudoDemo.agenda.detalhes, o sinal por Pix com o comprovante, a origem do
- * agendamento e o texto das observações. O selo "Cliente Recorrente" foi removido
- * (era um booleano fixo em conteudoDemo, sempre `true` para qualquer agendamento —
- * contradizia a lista e a ficha ao abrir o painel de uma cliente nova; achado N1 da
- * re-revisão da rodada de correção final, que sucede a correção I1 original).
+ * conteudoDemo.agenda.detalhes, o sinal por Pix com o comprovante e a origem do
+ * agendamento. O selo "Cliente Recorrente" foi removido (era um booleano fixo em
+ * conteudoDemo, sempre `true` para qualquer agendamento — contradizia a lista e a
+ * ficha ao abrir o painel de uma cliente nova; achado N1 da re-revisão da rodada de
+ * correção final, que sucede a correção I1 original).
  * Sobre o sinal: o sistema não recebe sinal por Pix, então o valor de exemplo é limitado
  * ao preço real do serviço e o "valor a pagar no estúdio" é a diferença — as duas linhas
  * sempre somam o total verdadeiro do atendimento, nunca mais do que ele. Sem preço de
  * serviço (ou com ele zerado), o sinal cai para 0 e as duas linhas somem: não existe
  * sinal pago a mostrar, então a tela não afirma um.
+ * "Observações da Cliente" do arquivo de referência foi removida: era um texto fixo em
+ * conteudoDemo, idêntico para qualquer cliente, contradizendo a nota real (`client.notes`)
+ * que a Ficha da Cliente já mostra — e este painel só recebe `Appointment`, sem o
+ * `client.notes` real, sem uma chamada nova por abertura (o mesmo motivo que já tirou o
+ * selo "Cliente Recorrente" e a contagem de atendimentos da lista, achados da varredura
+ * de telas por Stitch).
  * Fora da tela: as fotos de cliente e profissional do arquivo de referência (o DTO só
  * traz nomes, então entram as iniciais do Avatar) e a especialidade entre parênteses do
  * "Profissional responsável", que é de um segmento só.
@@ -115,14 +121,6 @@ export function ConteudoDetalhesAgendamento({ agendamento, duracaoMinutos }: Con
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Cabeçalho: o número do registro e o status de hoje */}
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-          Agendamento #{numeroDoAgendamento(agendamento.id)}
-        </span>
-        <StatusChip status={agendamento.status} comPonto className="text-[11px]" />
-      </div>
-
       {/* Cliente */}
       <div className="flex flex-col gap-4 rounded-card bg-surface-2 p-4">
         <div className="flex items-start justify-between gap-3">
@@ -232,15 +230,6 @@ export function ConteudoDetalhesAgendamento({ agendamento, duracaoMinutos }: Con
               </div>
             </>
           )}
-        </div>
-
-        {/* Observações */}
-        <div className="flex flex-col gap-1.5 rounded-control bg-surface p-3.5">
-          <div className="flex items-center gap-2 text-muted">
-            <Icon name="notes" size={16} />
-            <span className="text-[11px] font-bold uppercase tracking-wider">Observações da Cliente</span>
-          </div>
-          <p className="pl-6 text-[14px] italic text-ink">“{detalhes.observacoes}”</p>
         </div>
 
         {/* Rodapé de metadados: os dois vêm do registro */}
@@ -366,6 +355,18 @@ export function PainelDetalhesAgendamento({
       title="Detalhes da Sessão"
       side={computador ? 'right' : 'bottom'}
       widthClass={computador ? LARGURA_PAINEL : undefined}
+      titleAbove={
+        agendamento ? (
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+            Agendamento #{numeroDoAgendamento(agendamento.id)}
+          </span>
+        ) : null
+      }
+      headerEnd={
+        // No cabeçalho fixo (agendamento-detalhes.html:399-414), não rola com o
+        // conteúdo — antes ficava dentro do corpo e desaparecia ao rolar o painel.
+        agendamento ? <StatusChip status={agendamento.status} comPonto pontoAnimado className="text-[11px]" /> : null
+      }
       footer={
         agendamento ? (
           <AcoesDetalhesAgendamento

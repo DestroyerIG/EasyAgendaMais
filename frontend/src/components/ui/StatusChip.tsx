@@ -33,18 +33,24 @@ export const STATUS_STRIPE_CLASS: Record<AppointmentStatus, string> = {
 export interface StatusChipProps {
   status: AppointmentStatus;
   className?: string;
-  // Bolinha na cor do status antes do rótulo. Opcional porque só a Agenda no celular
-  // (agenda-mobile.html) desenha essa bolinha; as outras telas mostram o chip liso.
+  // Bolinha na cor do status antes do rótulo. Usada pela Agenda no celular
+  // (agenda-mobile.html, sem pulso) e pelo cabeçalho do painel de detalhes do
+  // agendamento (agendamento-detalhes.html, com pulso via `pontoAnimado`).
   comPonto?: boolean;
+  // `animate-ping` no ponto — só agendamento-detalhes.html:411 pede isso; a bolinha da
+  // Agenda no celular fica parada.
+  pontoAnimado?: boolean;
 }
 
-export function StatusChip({ status, className, comPonto = false }: StatusChipProps) {
+export function StatusChip({ status, className, comPonto = false, pontoAnimado = false }: StatusChipProps) {
   return (
     <span
       data-status={status}
       className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[13px] font-semibold', STATUS_CLASS[status], className)}
     >
-      {comPonto && <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', STATUS_STRIPE_CLASS[status])} />}
+      {comPonto && (
+        <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', STATUS_STRIPE_CLASS[status], pontoAnimado && 'animate-ping')} />
+      )}
       {STATUS_LABEL[status]}
     </span>
   );
