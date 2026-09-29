@@ -108,13 +108,13 @@ export interface ClienteFichaTecnica {
 export interface ClienteGaleriaItem {
   data: string;
   legenda: string;
-  responsavel: string;
 }
 
 export interface ClienteLinhaDoTempoItem {
-  // Ausente no item "cadastro": a data desse evento é sempre client.created_at real
-  // (correção C1/I2), então não há data de exemplo a guardar para ele.
-  data?: string;
+  // Nenhum item guarda data: "cadastro" sempre usa client.created_at real (correção
+  // C1/I2); "whatsapp" e "avaliacao" recalculam a data relativa a cada render a partir
+  // de um deslocamento fixo em dias (DIAS_ATRAS_EXEMPLO em ClientDetailPanel.tsx), nunca
+  // um texto gravado (achado da varredura de telas: a avaliação tinha ficado atrás).
   tipo: 'whatsapp' | 'avaliacao' | 'cadastro';
   descricao: string;
 }
@@ -374,19 +374,17 @@ export const conteudoDemo = {
         ],
       },
       galeria: [
-        { data: '12 de setembro', legenda: 'Sessão de manutenção', responsavel: 'Camila' },
-        { data: '22 de agosto', legenda: 'Sessão completa', responsavel: 'Camila' },
-        { data: '1 de agosto', legenda: 'Primeira sessão do mês', responsavel: 'Camila' },
-        { data: '10 de julho', legenda: 'Sessão de manutenção', responsavel: 'Camila' },
+        { data: '12 de setembro', legenda: 'Sessão de manutenção' },
+        { data: '22 de agosto', legenda: 'Sessão completa' },
+        { data: '1 de agosto', legenda: 'Primeira sessão do mês' },
+        { data: '10 de julho', legenda: 'Sessão de manutenção' },
       ],
       linhaDoTempo: [
         {
-          data: '16 de setembro (ontem)',
           tipo: 'whatsapp',
           descricao: 'Lembrete automático enviado · cliente respondeu "Confirmadíssimo!"',
         },
         {
-          data: '12 de setembro',
           tipo: 'avaliacao',
           descricao: '5 estrelas · recebida via link de satisfação pós-atendimento',
         },

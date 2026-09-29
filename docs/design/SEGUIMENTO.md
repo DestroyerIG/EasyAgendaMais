@@ -78,7 +78,6 @@ Falta de teste automatizado em telas com lógica nova (tarefas 9 e 11):
 ## Melhorias técnicas pequenas
 
 - O Vitest imprime um aviso de configuração a cada execução. Silenciar exige renomear `vitest.config.ts` para `.mts` ou declarar `"type": "module"`.
-- Linhas da lista de clientes abrem o painel por clique, sem acesso por teclado. Já era assim antes da migração.
 - `formatLastVisit` e `formatDate` repetem a mesma formatação de data em arquivos diferentes.
 - As "etiquetas" de status aparecem em cinco receitas de estilo ligeiramente diferentes; um componente `Chip` no kit resolveria.
 

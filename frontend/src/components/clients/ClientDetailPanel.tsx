@@ -139,6 +139,14 @@ interface EventoTimeline {
   chave: string;
   tipo: TipoEvento;
   dataLabel: string;
+  /**
+   * Instante real do evento, em ms — só para ordenar a linha do tempo (nunca exibido).
+   * Sem isto, os dois eventos de exemplo entravam sempre depois de todos os reais,
+   * mesmo quando a última visita real fosse de meses atrás e "ontem" devesse vir
+   * primeiro (achado da varredura de telas por Stitch: "histórico cronológico" que não
+   * era cronológico).
+   */
+  ordemMs: number;
   titulo: string;
   detalhe?: string;
   valor?: string;
@@ -157,12 +165,15 @@ function eventoDoAgendamento(agendamento: Appointment, agora: Date): EventoTimel
   const dataLabelComHora = `${dataBase}${horaCurta ? ` às ${horaCurta}` : ''}`;
   const profissional = agendamento.professional_name;
   const servico = agendamento.service_name;
+  const ordemBruta = new Date(`${agendamento.date?.slice(0, 10)}T${agendamento.time || '00:00:00'}`).getTime();
+  const ordemMs = Number.isNaN(ordemBruta) ? 0 : ordemBruta;
 
   if (tipo === 'financeiro') {
     return {
       chave: agendamento.id,
       tipo,
       dataLabel: dataLabelComHora,
+      ordemMs,
       titulo: `Atendimento concluído${profissional ? ` com ${profissional}` : ''}`,
       detalhe: servico || undefined,
       valor: formatCurrency(agendamento.service_price ?? 0),
@@ -174,6 +185,7 @@ function eventoDoAgendamento(agendamento: Appointment, agora: Date): EventoTimel
       chave: agendamento.id,
       tipo,
       dataLabel: dataLabelComHora,
+      ordemMs,
       titulo: `Agendamento cancelado${servico ? `: ${servico}` : ''}`,
       detalhe: profissional ? `Profissional: ${profissional}` : undefined,
       chip: <StatusChip status="cancelado" />,
@@ -186,6 +198,7 @@ function eventoDoAgendamento(agendamento: Appointment, agora: Date): EventoTimel
     chave: agendamento.id,
     tipo,
     dataLabel: hoje ? `${dataBase} · Em andamento` : dataLabelComHora,
+    ordemMs,
     titulo: `${servico || 'Agendamento'}${profissional ? ` com ${profissional}` : ''}`,
     detalhe: horaCurta ? `Horário previsto: ${horaCurta}` : undefined,
     chip: <StatusChip status="confirmado" />,
@@ -199,11 +212,18 @@ const ROTULO_DEMO: Record<'whatsapp' | 'avaliacao' | 'cadastro', string> = {
   cadastro: 'Cadastro inicial',
 };
 
+/** Dias fixos de exemplo antes de `agora` para cada evento de exemplo — nunca uma
+ *  data gravada, só o deslocamento; o texto/rótulo relativo e o instante para ordenar
+ *  são sempre recalculados a partir de `agora` (mesmo padrão para os dois, achado da
+ *  varredura de telas: a avaliação tinha uma data fixa que a mensagem de WhatsApp, ao
+ *  lado, já não tinha). */
+const DIAS_ATRAS_EXEMPLO: Record<'whatsapp' | 'avaliacao', number> = { whatsapp: 1, avaliacao: 3 };
+
 /**
  * Os dois tipos que o histórico real não cobre (whatsapp, avaliação), sempre os mesmos
- * textos (conteudoDemo) — mas nunca uma data gravada: o rótulo relativo da mensagem de
- * WhatsApp ("ontem") é recalculado a cada render a partir de `agora`, com a mesma lógica
- * de `descreverUltimaVisita` que os eventos reais já usam. "Falta registrada" saiu daqui
+ * textos (conteudoDemo) — mas nunca uma data gravada: o rótulo relativo de cada um é
+ * recalculado a cada render a partir de `agora`, com a mesma lógica de
+ * `descreverUltimaVisita` que os eventos reais já usam. "Falta registrada" saiu daqui
  * porque contradizia a métrica real "Faltas / Cancelamentos: 0" desta mesma ficha; o
  * cadastro real vira `eventoDeCadastro`, a partir do `created_at` do cliente.
  */
@@ -213,23 +233,15 @@ function eventosDeExemplo(agora: Date): EventoTimeline[] {
       item.tipo === 'whatsapp' || item.tipo === 'avaliacao',
     )
     .map((item, indice) => {
-      if (item.tipo === 'whatsapp') {
-        const ontem = new Date(agora);
-        ontem.setDate(agora.getDate() - 1);
-        const visita = descreverUltimaVisita(ontem.toISOString(), agora);
-        return {
-          chave: `exemplo-whatsapp-${indice}`,
-          tipo: 'whatsapp' as const,
-          dataLabel: `${visita.texto}${visita.relativo ? ` ${visita.relativo}` : ''}`,
-          titulo: ROTULO_DEMO.whatsapp,
-          detalhe: item.descricao,
-        };
-      }
+      const data = new Date(agora);
+      data.setDate(agora.getDate() - DIAS_ATRAS_EXEMPLO[item.tipo]);
+      const visita = descreverUltimaVisita(data.toISOString(), agora);
       return {
-        chave: `exemplo-avaliacao-${indice}`,
-        tipo: 'avaliacao' as const,
-        dataLabel: item.data ?? '',
-        titulo: ROTULO_DEMO.avaliacao,
+        chave: `exemplo-${item.tipo}-${indice}`,
+        tipo: item.tipo,
+        dataLabel: `${visita.texto}${visita.relativo ? ` ${visita.relativo}` : ''}`,
+        ordemMs: data.getTime(),
+        titulo: ROTULO_DEMO[item.tipo],
         detalhe: item.descricao,
       };
     });
@@ -239,13 +251,17 @@ function eventosDeExemplo(agora: Date): EventoTimeline[] {
 function eventoDeCadastro(createdAt: string): EventoTimeline {
   const cadastroDemo = conteudoDemo.clientes.perfilDestaque.linhaDoTempo.find(item => item.tipo === 'cadastro');
   const data = new Date(createdAt);
-  const dataLabel = Number.isNaN(data.getTime())
+  const invalida = Number.isNaN(data.getTime());
+  const dataLabel = invalida
     ? 'Data de cadastro não informada'
     : data.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
   return {
     chave: 'cadastro-real',
     tipo: 'cadastro',
     dataLabel,
+    // Sem data real, fica no fim da linha do tempo (mais antigo possível) em vez de
+    // pular para o topo por acaso.
+    ordemMs: invalida ? 0 : data.getTime(),
     titulo: ROTULO_DEMO.cadastro,
     detalhe: cadastroDemo?.descricao,
   };
@@ -338,7 +354,13 @@ export function ClientDetailPanel({
   const eventos = useMemo(() => {
     const agora = new Date();
     const reais = history.map(item => eventoDoAgendamento(item, agora));
-    return [...reais, ...eventosDeExemplo(agora), eventoDeCadastro(client.created_at)];
+    // Ordenados por instante real, não pela ordem em que cada fonte (real, exemplo,
+    // cadastro) foi concatenada — sem isto, "ontem" (exemplo) sempre aparecia depois de
+    // toda a agenda real, mesmo quando a última visita real fosse de meses atrás
+    // (achado da varredura de telas: "histórico cronológico" que não era cronológico).
+    return [...reais, ...eventosDeExemplo(agora), eventoDeCadastro(client.created_at)].sort(
+      (a, b) => b.ordemMs - a.ordemMs,
+    );
   }, [history, client.created_at]);
 
   const filtroAtivo = FILTROS_TIMELINE.find(item => item.id === filtro) ?? FILTROS_TIMELINE[0];
@@ -595,7 +617,12 @@ export function ClientDetailPanel({
                 <p className="truncate text-[11px] font-bold leading-tight">
                   {item.data} - {item.legenda}
                 </p>
-                <p className="text-[10px] opacity-80">Por {item.responsavel}</p>
+                {/* A galeria é um bloco só, compartilhado por todas as clientes — usa o
+                    mesmo profissional do selo "Prefere X" acima em vez do valor fixo
+                    "Camila" que cada foto trazia, que contradizia o selo para as
+                    clientes cujo exemplo indexado usa outra profissional (achado da
+                    varredura de telas por Stitch). */}
+                <p className="text-[10px] opacity-80">Por {exemplo.profissional}</p>
               </div>
             </div>
           ))}

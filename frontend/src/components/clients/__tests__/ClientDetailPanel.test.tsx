@@ -270,6 +270,19 @@ describe('ClientDetailPanel', () => {
     });
   });
 
+  it('a legenda "Por X" da galeria usa o mesmo profissional do selo "Prefere X" (achado da varredura: galeria fixa dizia sempre "Camila")', () => {
+    // Índice 3 do exemplo é Bruna (conteudoDemo.ts) — antes da correção, a galeria
+    // continuava dizendo "Por Camila" mesmo aqui, contradizendo o selo da mesma ficha.
+    abrir({ exemploIndice: 3 });
+    const exemplo = conteudoDemo.clientes.exemplos[3];
+
+    expect(screen.getByText(`Prefere ${exemplo.profissional}`)).toBeInTheDocument();
+    expect(screen.getAllByText(`Por ${exemplo.profissional}`)).toHaveLength(
+      conteudoDemo.clientes.perfilDestaque.galeria.length,
+    );
+    expect(screen.queryByText('Por Camila')).not.toBeInTheDocument();
+  });
+
   it('um atendimento concluído vira evento financeiro com o valor real pago', () => {
     abrir({ history: [agendamento({ status: 'concluido', service_price: 90, service_name: 'Corte e finalização', professional_name: 'Camila' })] });
 
@@ -350,6 +363,24 @@ describe('ClientDetailPanel', () => {
   it('o cadastro inicial da linha do tempo usa o created_at real, não um texto fixo', () => {
     abrir({ client: client({ created_at: '2026-03-12T00:00:00' }) });
     expect(screen.getByText('12 de março de 2026')).toBeInTheDocument();
+  });
+
+  it('a linha do tempo fica em ordem cronológica real (achado da varredura: "ontem", de exemplo, entrava sempre depois de todo o histórico real, mesmo mais antigo)', () => {
+    const seisMesesAtras = new Date();
+    seisMesesAtras.setMonth(seisMesesAtras.getMonth() - 6);
+    abrir({
+      history: [
+        agendamento({ status: 'concluido', date: seisMesesAtras.toISOString(), time: '10:00:00' }),
+      ],
+    });
+
+    const texto = document.body.textContent || '';
+    const posicaoExemploRecente = texto.indexOf('Mensagem de WhatsApp'); // exemplo, "ontem"
+    const posicaoRealAntigo = texto.indexOf('Atendimento concluído com Camila'); // real, 6 meses atrás
+
+    expect(posicaoExemploRecente).toBeGreaterThanOrEqual(0);
+    expect(posicaoRealAntigo).toBeGreaterThanOrEqual(0);
+    expect(posicaoExemploRecente).toBeLessThan(posicaoRealAntigo);
   });
 
   it('o filtro "Financeiro" esconde os outros tipos de evento (filtro real, em memória)', async () => {
