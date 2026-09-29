@@ -143,12 +143,15 @@ export default function PlanosPage() {
   // desta página (PLAN_MAP[planId].features), nunca conteudoDemo — tira automaticamente
   // "Clube de assinaturas e pacotes" (contradiz /dashboard/clube, "chegam em breve") e
   // "Sinal Pix no agendamento" (não existe), que só existiam no array de exemplo.
+  // Ícone por tipo de recurso (ajustes-plano.html): antes disto, todo item exceto o
+  // primeiro usava "check_circle" fixo — a condição que deveria dar destaque ao ícone de
+  // WhatsApp nunca era verdadeira porque nada atribuía "smart_toy" (achado da varredura).
   const recursos = [
     { icone: 'badge', titulo: PROFISSIONAIS_POR_PLANO[planId], descricao: 'Vagas ativas na sua grade de horários.' },
     ...plan.features
       .slice(1)
       .filter((feature) => planId !== 'basico' || !ehRecursoWhatsapp(feature))
-      .map((feature) => ({ icone: 'check_circle', titulo: feature })),
+      .map((feature) => ({ icone: ehRecursoWhatsapp(feature) ? 'smart_toy' : 'check_circle', titulo: feature })),
   ];
 
   // Período da fatura mais recente: recalculado a partir da próxima cobrança real, para
@@ -188,6 +191,12 @@ export default function PlanosPage() {
           <div className="flex items-center gap-2 text-[13px] font-semibold text-brand-text">
             <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" />
             {statusRotulo}
+            {user?.businessName && (
+              <>
+                <span aria-hidden="true">·</span>
+                {user.businessName}
+              </>
+            )}
           </div>
           <h2 className="text-3xl font-bold text-ink">Plano e Cobrança</h2>
           <p className="max-w-2xl text-muted">
@@ -243,7 +252,10 @@ export default function PlanosPage() {
           </div>
 
           <div className="relative py-6">
-            <div className="mb-4 text-[13px] font-bold text-muted">Recursos inclusos no seu plano</div>
+            {/* Ajustes-plano.html usa "no seu pacote"; mantido "plano" aqui para não abrir
+                mais uma variação de nome, além da já pendente (SEGUIMENTO.md, decisão do
+                dono) — só o estilo (uppercase/tracking-wider) segue a referência. */}
+            <div className="mb-4 text-[13px] font-bold uppercase tracking-wider text-muted">Recursos inclusos no seu plano</div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {recursos.map((recurso) => (
                 <div key={recurso.titulo} className="flex items-start gap-3 rounded-xl border border-line/60 bg-surface-2 p-3.5">
@@ -309,6 +321,11 @@ export default function PlanosPage() {
               <>
                 <div className="space-y-4 rounded-xl border border-line/70 bg-surface-2 p-4">
                   <div className="flex items-center justify-between">
+                    {/* ajustes-plano.html põe o logo de duas bolinhas coloridas da
+                        Mastercard ao lado do nome (achado da varredura de telas) — sem
+                        exceção no colorRules.ts para cor de marca fora dos tokens do
+                        DESIGN.md, reproduzir o hexadecimal exato quebraria o teste de
+                        conformidade de tema; fica só o texto. */}
                     <span className="text-[14px] font-semibold text-ink">{demo.formaPagamento.bandeira}</span>
                     <span className="font-mono text-[13px] text-muted">Débito automático</span>
                   </div>
@@ -328,6 +345,13 @@ export default function PlanosPage() {
                     {formatCurrency(plan.price)} será processada automaticamente no vencimento, sem interrupção dos serviços.
                   </p>
                 </div>
+                {/* ajustes-plano.html também mostra um bloco "Pix Automático" ativo ao lado
+                    do cartão — dois métodos de pagamento simultâneos. Este ramo (!cobrancaPorPix)
+                    é justamente para negócios cujo provedor real NÃO é Pix/Asaas; afirmar um
+                    "Pix Automático" aqui contradiria o cobrancaPorPix real, não é uma omissão
+                    decorativa como o logo do cartão — por isso fica de fora (achado da
+                    varredura de telas, mas não corrigido: manter honesto com o provedor real
+                    pesa mais do que reproduzir o card). */}
               </>
             )}
           </div>
