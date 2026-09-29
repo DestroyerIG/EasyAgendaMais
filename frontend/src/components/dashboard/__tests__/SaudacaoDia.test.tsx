@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { saudacaoPorHora, formatarDataPorExtenso } from '../SaudacaoDia';
+import { render, screen } from '@testing-library/react';
+import { saudacaoPorHora, formatarDataPorExtenso, SaudacaoDia } from '../SaudacaoDia';
 
 describe('saudacaoPorHora', () => {
   it('madrugada e manhã (0h a 11h59) dizem Bom dia', () => {
@@ -29,5 +30,17 @@ describe('formatarDataPorExtenso', () => {
   it('não usa zero à esquerda no dia', () => {
     const data = new Date(2026, 8, 3);
     expect(formatarDataPorExtenso(data)).toBe('quinta, 3 de setembro de 2026');
+  });
+});
+
+describe('SaudacaoDia (ações do computador, hoje-desktop.html)', () => {
+  it('mostra "Disparos WhatsApp" e "Novo agendamento", cada um levando para uma tela real', () => {
+    render(<SaudacaoDia businessName="Studio Aurora" />);
+
+    const whatsapp = screen.getByRole('link', { name: /Disparos WhatsApp/ });
+    expect(whatsapp).toHaveAttribute('href', '/whatsapp');
+
+    const novoAgendamento = screen.getByRole('link', { name: /Novo agendamento/ });
+    expect(novoAgendamento).toHaveAttribute('href', '/agendamentos?novo=1');
   });
 });

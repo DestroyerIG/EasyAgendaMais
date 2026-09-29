@@ -1,6 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { conteudoDemo } from '@/lib/conteudoDemo';
+import { Icon } from '@/components/ui';
+import { NEW_APPOINTMENT_HREF, getNavItem } from '@/lib/navigation';
 
 const DIAS_DA_SEMANA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 
@@ -48,6 +51,25 @@ export function SaudacaoDia({ businessName }: SaudacaoDiaProps) {
       <div className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-[11px] font-semibold text-ink lg:hidden">
         <span className="h-2 w-2 rounded-full bg-success" />
         <span>{profissionaisAtivasHoje} profissionais ativas</span>
+      </div>
+      {/* Ações do computador (hoje-desktop.html): sem equivalente no celular, onde o
+          "+" da barra inferior já cobre "Novo agendamento" e o WhatsApp mora no menu
+          "Mais". Os dois levam para telas reais — nenhuma é decorativa. */}
+      <div className="hidden shrink-0 items-center gap-3 lg:flex">
+        <Link
+          href={getNavItem('whatsapp').href}
+          className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2 text-[14px] font-bold text-whatsapp shadow-sm transition-colors hover:border-whatsapp/40 hover:bg-whatsapp/5"
+        >
+          <Icon name="chat" size={18} />
+          Disparos WhatsApp
+        </Link>
+        <Link
+          href={NEW_APPOINTMENT_HREF}
+          className="inline-flex items-center gap-2 rounded-control bg-brand px-4 py-2 text-[14px] font-bold text-on-brand shadow-sm transition-transform hover:brightness-105 active:scale-[0.98]"
+        >
+          <Icon name="add" size={19} />
+          Novo agendamento
+        </Link>
       </div>
     </div>
   );
