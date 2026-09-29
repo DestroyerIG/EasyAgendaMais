@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { cn } from '@/lib/cn';
 import { Avatar, Icon } from '@/components/ui';
 import {
   DropdownMenu,
@@ -36,23 +37,23 @@ function TopBarSearch({ activeId, pageTitle }: { activeId: NavItemId | null; pag
   return (
     <div className="relative hidden items-center sm:flex">
       <Icon name="search" size={19} className="pointer-events-none absolute left-3 text-muted" />
-      {search ? (
-        <input
-          type="text"
-          value={search.value}
-          onChange={(event) => search.onChange(event.target.value)}
-          placeholder={placeholder}
-          className="w-64 rounded-xl border border-line bg-surface-2 py-1.5 pl-9 pr-3.5 text-[13px] text-ink placeholder-muted transition-all focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-        />
-      ) : (
-        <input
-          type="text"
-          disabled
-          placeholder={placeholder}
-          title={`A busca de ${pageTitle} chega junto com essa área.`}
-          className="w-64 cursor-not-allowed rounded-xl border border-line bg-surface-2 py-1.5 pl-9 pr-3.5 text-[13px] text-muted placeholder-muted"
-        />
-      )}
+      {/* Um único <input>, sempre controlado (value nunca é undefined) — alternar entre
+          um <input> sem value (não controlado) e outro com value fazia o React avisar
+          "changing an uncontrolled input to be controlled" ao registrar a busca. */}
+      <input
+        type="text"
+        value={search?.value ?? ''}
+        onChange={search ? (event) => search.onChange(event.target.value) : undefined}
+        disabled={!search}
+        placeholder={placeholder}
+        title={search ? undefined : `A busca de ${pageTitle} chega junto com essa área.`}
+        className={cn(
+          'w-64 rounded-xl border border-line bg-surface-2 py-1.5 pl-9 pr-3.5 text-[13px] placeholder-muted transition-all',
+          search
+            ? 'text-ink focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
+            : 'cursor-not-allowed text-muted',
+        )}
+      />
     </div>
   );
 }

@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { useState } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
+import { useRegisterTopBarSearch } from '../TopBarSearchContext';
 
 const mockPathname = vi.hoisted(() => ({ value: '/dashboard' }));
 const mockLogout = vi.hoisted(() => vi.fn());
@@ -134,5 +136,31 @@ describe('AppShell', () => {
     const search = screen.getByPlaceholderText('Buscar no sistema...');
     expect(search).toBeDisabled();
     expect(search).toHaveAttribute('title', expect.stringContaining('Hoje'));
+  });
+
+  it('registrar a busca de uma tela não avisa "uncontrolled input" (regressão: input trocava de sem value para com value)', () => {
+    const erro = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      function TelaComBusca() {
+        const [termo, setTermo] = useState('');
+        useRegisterTopBarSearch({ value: termo, onChange: setTermo });
+        return <p>conteúdo com busca</p>;
+      }
+
+      render(
+        <ThemeProvider>
+          <AppShell>
+            <TelaComBusca />
+          </AppShell>
+        </ThemeProvider>,
+      );
+
+      const chamadasDeControle = erro.mock.calls.filter((args) =>
+        String(args[0]).includes('changing an uncontrolled input'),
+      );
+      expect(chamadasDeControle).toHaveLength(0);
+    } finally {
+      erro.mockRestore();
+    }
   });
 });
