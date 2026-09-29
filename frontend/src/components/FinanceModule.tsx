@@ -398,7 +398,7 @@ export const FinanceModule = ({
                   <div>
                     <p className="text-[18px] font-bold leading-tight tabular-nums text-ink">{formatCurrency(forma.valor)}</p>
                     <span className="text-[11px] text-muted">
-                      {forma.quantidade} {forma.quantidade === 1 ? 'transação' : 'transações'}
+                      {forma.quantidade} {forma.quantidadeLabel}
                     </span>
                   </div>
                 </div>
@@ -420,12 +420,13 @@ export const FinanceModule = ({
               </div>
 
               <div className="overflow-x-auto rounded-xl border border-line">
-                <table className="w-full min-w-[640px] border-collapse text-left text-[13px]">
+                <table className="w-full min-w-[760px] border-collapse text-left text-[13px]">
                   <thead>
                     <tr className="border-b border-line bg-surface-2 text-[11px] font-bold uppercase tracking-wider text-muted">
                       <th className="px-3.5 py-3">Hora</th>
                       <th className="px-3.5 py-3">Cliente</th>
                       <th className="px-3.5 py-3">Profissional</th>
+                      <th className="px-3.5 py-3">Serviços</th>
                       <th className="px-3.5 py-3">Pagamento</th>
                       <th className="px-3.5 py-3 text-right">Total</th>
                       <th className="px-3.5 py-3 text-center">Status</th>
@@ -443,7 +444,20 @@ export const FinanceModule = ({
                           <div className="text-[11px] tabular-nums text-muted">{comanda.telefone}</div>
                         </td>
                         <td className="px-3.5 py-3.5 text-[12px] font-semibold text-ink">{comanda.profissional}</td>
-                        <td className="px-3.5 py-3.5 text-[12px] text-ink">{comanda.formaPagamento}</td>
+                        <td className="px-3.5 py-3.5 text-[12px] text-ink">{comanda.servico}</td>
+                        <td className="px-3.5 py-3.5 text-[12px]">
+                          <span
+                            className={
+                              comanda.status === 'Aberta'
+                                ? 'font-semibold text-warning'
+                                : comanda.status === 'Falta'
+                                  ? 'text-muted'
+                                  : 'font-medium text-ink'
+                            }
+                          >
+                            {comanda.formaPagamento}
+                          </span>
+                        </td>
                         <td
                           className={
                             comanda.status === 'Falta'

@@ -155,6 +155,10 @@ export interface CaixaFormaPagamento {
   rotulo: string;
   valor: number;
   quantidade: number;
+  // Legenda de quantidade própria por forma (caixa.html: "6 no balcão", "8 antecipados",
+  // "3 transações", "1 na gaveta", "1 crédito plano") — achado da varredura de telas: a
+  // tela generalizava tudo para "N transação/transações", perdendo a variedade real.
+  quantidadeLabel: string;
 }
 
 export interface CaixaComanda {
@@ -162,6 +166,7 @@ export interface CaixaComanda {
   cliente: string;
   telefone: string;
   profissional: string;
+  servico: string;
   formaPagamento: string;
   total: number;
   status: 'Fechada' | 'Aberta' | 'Falta';
@@ -408,12 +413,12 @@ export const conteudoDemo = {
       comandasFalta: 1,
     },
     formasPagamento: [
-      { rotulo: 'Pix', valor: 840, quantidade: 6 },
-      { rotulo: 'Sinais Pix', valor: 240, quantidade: 8 },
-      { rotulo: 'Débito', valor: 385, quantidade: 3 },
-      { rotulo: 'Crédito', valor: 260, quantidade: 2 },
-      { rotulo: 'Dinheiro', valor: 120, quantidade: 1 },
-      { rotulo: 'Clube e pacotes', valor: 110, quantidade: 1 },
+      { rotulo: 'Pix', valor: 840, quantidade: 6, quantidadeLabel: 'no balcão' },
+      { rotulo: 'Sinais Pix', valor: 240, quantidade: 8, quantidadeLabel: 'antecipados' },
+      { rotulo: 'Débito', valor: 385, quantidade: 3, quantidadeLabel: 'transações' },
+      { rotulo: 'Crédito', valor: 260, quantidade: 2, quantidadeLabel: 'transações' },
+      { rotulo: 'Dinheiro', valor: 120, quantidade: 1, quantidadeLabel: 'na gaveta' },
+      { rotulo: 'Clube e pacotes', valor: 110, quantidade: 1, quantidadeLabel: 'crédito plano' },
     ],
     comandas: [
       {
@@ -421,6 +426,7 @@ export const conteudoDemo = {
         cliente: 'Mariana Souza',
         telefone: '(83) 98412-2201',
         profissional: 'Camila',
+        servico: 'Manutenção Gel + Óleo',
         formaPagamento: 'Pix no balcão',
         total: 115,
         status: 'Fechada',
@@ -430,6 +436,7 @@ export const conteudoDemo = {
         cliente: 'Letícia Albuquerque',
         telefone: '(83) 97103-9944',
         profissional: 'Bruna',
+        servico: 'Cílios Volume Russo',
         formaPagamento: 'Crédito 1x',
         total: 210,
         status: 'Fechada',
@@ -439,6 +446,7 @@ export const conteudoDemo = {
         cliente: 'Beatriz Costa',
         telefone: '(83) 99344-1299',
         profissional: 'Camila',
+        servico: 'Manutenção Fibra Vidro',
         formaPagamento: 'Em atendimento',
         total: 110,
         status: 'Aberta',
@@ -448,6 +456,7 @@ export const conteudoDemo = {
         cliente: 'Juliana Mendes',
         telefone: '(83) 98823-1100',
         profissional: 'Bruna',
+        servico: 'Design Sobrancelhas + Buço',
         formaPagamento: 'Sinal Pix + débito',
         total: 105,
         status: 'Fechada',
@@ -457,6 +466,7 @@ export const conteudoDemo = {
         cliente: 'Camila Prado',
         telefone: '(83) 99120-8844',
         profissional: 'Paula',
+        servico: 'Corte Bordado + Escova',
         formaPagamento: 'Não compareceu',
         total: 140,
         status: 'Falta',
@@ -466,6 +476,7 @@ export const conteudoDemo = {
         cliente: 'Renata Vasconcelos',
         telefone: '(83) 99711-5432',
         profissional: 'Camila',
+        servico: 'Pé & Mão Simples Tradicional',
         formaPagamento: 'Dinheiro em espécie',
         total: 120,
         status: 'Fechada',
