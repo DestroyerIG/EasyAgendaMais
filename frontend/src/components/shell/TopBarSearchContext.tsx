@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 export interface TopBarSearchConfig {
   value: string;
@@ -19,7 +19,8 @@ const TopBarSearchContext = createContext<TopBarSearchContextValue | null>(null)
 // estado; aqui só publicamos o valor e o setter já existentes para a TopBar ler.
 export function TopBarSearchProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<TopBarSearchConfig | null>(null);
-  return <TopBarSearchContext.Provider value={{ config, setConfig }}>{children}</TopBarSearchContext.Provider>;
+  const contextValue = useMemo(() => ({ config, setConfig }), [config]);
+  return <TopBarSearchContext.Provider value={contextValue}>{children}</TopBarSearchContext.Provider>;
 }
 
 export function useTopBarSearchConfig(): TopBarSearchConfig | null {
@@ -32,13 +33,17 @@ export function useTopBarSearchConfig(): TopBarSearchConfig | null {
 // testes isolados do módulo), não faz nada.
 export function useRegisterTopBarSearch(config: TopBarSearchConfig | null): void {
   const ctx = useContext(TopBarSearchContext);
+  // Depende do próprio `setConfig` (identidade estável, de useState), não do objeto
+  // `ctx` — esse é recriado a cada render do Provider, inclusive pelos renders que
+  // este mesmo efeito causa, o que virava um loop de atualização infinito.
+  const setConfig = ctx?.setConfig ?? null;
   const value = config?.value ?? null;
   const onChange = config?.onChange ?? null;
 
   useEffect(() => {
-    if (!ctx) return;
-    ctx.setConfig(value !== null && onChange ? { value, onChange } : null);
-    return () => ctx.setConfig(null);
+    if (!setConfig) return;
+    setConfig(value !== null && onChange ? { value, onChange } : null);
+    return () => setConfig(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctx, value, onChange]);
+  }, [setConfig, value, onChange]);
 }
