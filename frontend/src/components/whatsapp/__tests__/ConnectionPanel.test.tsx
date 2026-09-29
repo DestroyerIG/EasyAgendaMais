@@ -54,4 +54,20 @@ describe('ConnectionPanel', () => {
     const chip = screen.getByText('Conectando');
     expect(chip).toHaveClass('text-warning');
   });
+
+  it('mostra as boas práticas anti-bloqueio com as tags reais de mensagem, sem nenhuma menção a Meta/WABA (achado da varredura de telas)', () => {
+    render(
+      <ConnectionPanel
+        waStatus={{ ...baseStatus, status: 'connected' }}
+        statusLoading={false}
+        actionLoading={false}
+        lastSyncedAt={null}
+        onConnect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Boas Práticas & Dicas Anti-bloqueio')).toBeInTheDocument();
+    expect(screen.getByText(/\{nome_cliente\}/)).toBeInTheDocument();
+    expect(screen.queryByText(/Meta|WABA|Business API/)).not.toBeInTheDocument();
+  });
 });

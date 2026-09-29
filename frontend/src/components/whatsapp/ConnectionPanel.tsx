@@ -15,12 +15,48 @@
  * disparos: esse conceito é da Cloud API oficial da Meta, e o sistema conecta por QR
  * code (Evolution API), não por ela — por isso não há barra de consumo diário nem botão
  * de "solicitar aumento de limite" nesta tela (Tarefa 10 / correção I5).
+ *
+ * "Boas Práticas & Dicas Anti-bloqueio" (achado da varredura de telas: card do arquivo
+ * de referência inteiro sem equivalente aqui) foi recriado com conteúdo genérico e real
+ * para este sistema — ver DICAS_ANTI_BLOQUEIO abaixo — sem nenhuma menção a Meta/WABA/
+ * conformidade, que não se aplicam à conexão por QR code.
  */
 
 import Image from 'next/image';
 import { Button, Card, Icon, Skeleton } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { conteudoDemo } from '@/lib/conteudoDemo';
+
+/**
+ * Boas práticas anti-bloqueio (whatsapp-conexao.html:188-247), reescritas para o que o
+ * sistema realmente faz — o arquivo de referência é da Cloud API oficial da Meta e cita
+ * coisas que não existem aqui: pausa automática de 45-90s entre "lotes de campanhas
+ * promocionais" (não existe pacing de lote no envio, só retry de rede em
+ * evolutionApiService.ts) e inclusão automática de "PARAR" nas mensagens promocionais
+ * (o sistema só envia confirmação/lembrete de agendamento, nunca campanha). As dicas 1 e
+ * 2 do arquivo já eram verdadeiras (troquei {nome}/{horarios} pelas tags reais que
+ * MessageConfigPanel.tsx documenta); 3 e 4 foram reescritas como orientação ao dono do
+ * negócio em vez de afirmar um comportamento automático que o sistema não tem.
+ */
+const DICAS_ANTI_BLOQUEIO: { titulo: string; descricao: string }[] = [
+  {
+    titulo: 'Só contatos com consentimento (LGPD)',
+    descricao: 'Envie mensagens só para clientes que já agendaram com você ou autorizaram contato pelo link da bio.',
+  },
+  {
+    titulo: 'Personalize com as tags reais',
+    descricao:
+      'Use {nome_cliente}, {servico} e {horario} em Ajustes → WhatsApp para cada mensagem saída com o dado real do cliente.',
+  },
+  {
+    titulo: 'Evite reenvios em massa repetidos',
+    descricao: 'Espalhar os lembretes ao longo do dia, em vez de reenviar tudo de uma vez, reduz o risco de o número ser sinalizado.',
+  },
+  {
+    titulo: 'Responda rápido quando o cliente responder',
+    descricao: 'Manter a conversa humana e ativa reduz reclamações e mantém a confiança no número.',
+  },
+];
 
 interface WhatsAppStatus {
   status:
@@ -248,7 +284,7 @@ export const ConnectionPanel = ({ waStatus, statusLoading, actionLoading, lastSy
       </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <Card className="lg:col-span-6">
+        <Card className="lg:col-span-4">
           <div className="mb-4 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Icon name="health_metrics" size={22} className="text-whatsapp" />
@@ -285,7 +321,27 @@ export const ConnectionPanel = ({ waStatus, statusLoading, actionLoading, lastSy
           </div>
         </Card>
 
-        <Card className="lg:col-span-6">
+        <Card className="lg:col-span-4">
+          <div className="mb-4 flex items-center gap-2">
+            <Icon name="shield" size={22} className="text-brand-text" />
+            <h3 className="text-[15px] font-bold text-ink">Boas Práticas & Dicas Anti-bloqueio</h3>
+          </div>
+          <div className="flex flex-col gap-2">
+            {DICAS_ANTI_BLOQUEIO.map((dica, indice) => (
+              <div key={dica.titulo} className="flex gap-2.5 rounded-lg bg-surface-2 p-2.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface text-[11px] font-bold text-brand-text">
+                  {indice + 1}
+                </span>
+                <div className="flex min-w-0 flex-col">
+                  <span className="text-[13px] font-bold text-ink">{dica.titulo}</span>
+                  <span className="text-[12px] text-muted">{dica.descricao}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="lg:col-span-4">
           <div className="mb-4 flex items-center gap-2">
             <Icon name="history_toggle_off" size={22} className="text-ink" />
             <h3 className="text-[15px] font-bold text-ink">Histórico Recente de Mensagens</h3>

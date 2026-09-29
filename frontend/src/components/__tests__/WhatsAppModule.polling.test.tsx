@@ -102,4 +102,37 @@ describe('WhatsAppModule — polling de /whatsapp/status', () => {
 
     expect(chamadasDeStatus()).toBe(chamadasAoDesmontar);
   });
+
+  it('depois de um erro, o próximo intervalo já usa "provider_unavailable" (30s) — não o último status bem-sucedido (achado da varredura: waStatusRef ficava um passo atrás do state)', async () => {
+    let falhaNaProximaChamada = false;
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === '/whatsapp/status') {
+        if (falhaNaProximaChamada) return Promise.reject(new Error('network error'));
+        return Promise.resolve({
+          data: { status: 'connected', qrCode: null, connectedNumber: '5599999999', connectedName: null, error: null },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    render(<WhatsAppModule />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(chamadasDeStatus()).toBe(1);
+
+    falhaNaProximaChamada = true;
+    // "connected" usa intervalo de 60s — a chamada seguinte falha e cai em "provider_unavailable".
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    expect(chamadasDeStatus()).toBe(2);
+
+    // Se o ref não tivesse atualizado, o próximo intervalo continuaria em 60s (o último
+    // status bem-sucedido); com o ref atualizado, "provider_unavailable" usa 30s.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(chamadasDeStatus()).toBe(3);
+  });
 });

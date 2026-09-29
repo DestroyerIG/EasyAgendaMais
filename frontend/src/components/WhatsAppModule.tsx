@@ -177,11 +177,17 @@ export const WhatsAppModule = () => {
         setFeatureBlocked(true);
         return;
       }
-      setWaStatus({
+      // waStatusRef também precisa atualizar aqui: getIntervalMs() (o polling adaptativo,
+      // mais abaixo) lê o ref, não o state — sem isto, depois de um erro o próximo
+      // intervalo continuava usando o último status bem-sucedido (achado da varredura de
+      // telas: cadência de retry atrasada depois de uma falha de rede).
+      const statusDeErro = {
         ...DEFAULT_WA_STATUS,
-        status: 'provider_unavailable',
+        status: 'provider_unavailable' as const,
         error: 'Nao foi possivel consultar a Evolution API no momento.',
-      });
+      };
+      waStatusRef.current = statusDeErro;
+      setWaStatus(statusDeErro);
     } finally {
       setStatusLoading(false);
     }
