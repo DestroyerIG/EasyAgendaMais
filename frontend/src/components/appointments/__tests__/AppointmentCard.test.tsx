@@ -193,6 +193,44 @@ describe('AppointmentCard: abrir o painel de detalhes', () => {
     expect(onAbrirDetalhes).toHaveBeenCalledTimes(1);
   });
 
+  it('mostra o link de WhatsApp só em agendamentos confirmados com telefone válido (agenda-mobile.html)', () => {
+    const { rerender } = render(
+      <AppointmentCard {...props} appointment={agendamento({ client_phone: '11987654321' })} />,
+    );
+    expect(screen.getByRole('link', { name: 'Notificar Mariana Souza via WhatsApp' })).toHaveAttribute(
+      'href',
+      'https://wa.me/5511987654321',
+    );
+
+    rerender(<AppointmentCard {...props} appointment={agendamento({ client_phone: '123' })} />);
+    expect(screen.queryByRole('link', { name: /Notificar/ })).not.toBeInTheDocument();
+
+    rerender(
+      <AppointmentCard
+        {...props}
+        appointment={agendamento({ client_phone: '11987654321', status: 'concluido' })}
+      />,
+    );
+    expect(screen.queryByRole('link', { name: /Notificar/ })).not.toBeInTheDocument();
+  });
+
+  it('tocar no link de WhatsApp não abre o painel de detalhes', () => {
+    const onAbrirDetalhes = vi.fn();
+    render(
+      <AppointmentCard
+        {...props}
+        appointment={agendamento({ client_phone: '11987654321' })}
+        onAbrirDetalhes={onAbrirDetalhes}
+      />,
+    );
+    const link = screen.getByRole('link', { name: /Notificar/ });
+
+    fireEvent.pointerDown(link, { clientX: 10, clientY: 10, pointerId: 1 });
+    fireEvent.pointerUp(link, { clientX: 10, clientY: 10, pointerId: 1 });
+
+    expect(onAbrirDetalhes).not.toHaveBeenCalled();
+  });
+
   it('o corpo do cartão vira alvo de teclado só quando há painel para abrir', async () => {
     const onAbrirDetalhes = vi.fn();
     const { unmount } = render(<AppointmentCard {...props} appointment={agendamento()} />);

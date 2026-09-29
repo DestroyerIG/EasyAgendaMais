@@ -116,6 +116,7 @@ export function ProfessionalAgenda({ professional }: ProfessionalAgendaProps) {
                                 duracaoMinutos={conteudoDemo.agenda.duracaoPadraoMinutos}
                                 mostrarDuracaoEPreco={false}
                                 mostrarNomeProfissional={false}
+                                mostrarWhatsapp={false}
                             />
                         </Card>
                     ))}

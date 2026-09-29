@@ -34,6 +34,7 @@ import {
 } from 'react';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
+import { linkWhatsapp } from '@/lib/whatsapp';
 import { Icon, StatusChip, STATUS_STRIPE_CLASS } from '@/components/ui';
 import { formatarDuracao, formatarMinutos, paraMinutos, paraHoraTexto } from './LinhaDoTempo';
 import type { Appointment } from '@/types';
@@ -81,6 +82,13 @@ interface CorpoCartaoProps {
   mostrarDuracaoEPreco?: boolean;
   /** Nome do profissional ao lado do serviço, também só do arquivo de referência. */
   mostrarNomeProfissional?: boolean;
+  /**
+   * Botão de notificar o cliente via WhatsApp ao lado do selo de status
+   * (agenda-mobile.html, achado da varredura de telas). Mesma função `linkWhatsapp` já
+   * usada em outras telas — só aparece quando o telefone é válido. Default `true` para
+   * a Agenda; `false` na agenda de um profissional só (correção I9).
+   */
+  mostrarWhatsapp?: boolean;
 }
 
 /** Miolo do cartão, compartilhado com a agenda de um profissional só. */
@@ -91,9 +99,12 @@ export function CorpoCartaoAgendamento({
   comPontoDeStatus = false,
   mostrarDuracaoEPreco = true,
   mostrarNomeProfissional = true,
+  mostrarWhatsapp = true,
 }: CorpoCartaoProps) {
   const inicioMinutos = paraMinutos(appointment.time);
   const cancelado = appointment.status === 'cancelado';
+  const whatsapp =
+    mostrarWhatsapp && appointment.status === 'confirmado' ? linkWhatsapp(appointment.client_phone) : null;
 
   return (
     <>
@@ -130,6 +141,22 @@ export function CorpoCartaoAgendamento({
         </div>
         <div className="mt-2 flex items-center gap-1.5">
           <StatusChip status={appointment.status} comPonto={comPontoDeStatus} className="text-[11px]" />
+          {whatsapp && (
+            // O corpo do cartão inteiro escuta pointerdown/up para o gesto de arrastar
+            // e para abrir o painel de detalhes num toque parado (AppointmentCard.tsx) —
+            // sem parar a propagação aqui, tocar neste link também abriria o painel.
+            <a
+              href={whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              onPointerDown={(evento) => evento.stopPropagation()}
+              onPointerUp={(evento) => evento.stopPropagation()}
+              aria-label={`Notificar ${appointment.client_name || 'cliente'} via WhatsApp`}
+              className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-whatsapp/10 text-whatsapp"
+            >
+              <Icon name="chat" size={16} />
+            </a>
+          )}
         </div>
       </div>
     </>
