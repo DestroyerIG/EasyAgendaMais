@@ -21,7 +21,7 @@ interface RawAppointment {
   createdAt?: Date | string;
   client?: { name?: string; phone?: string } | null;
   professional?: { name?: string } | null;
-  service?: { name?: string; price?: unknown } | null;
+  service?: { name?: string; price?: unknown; durationMinutes?: number } | null;
 }
 
 export interface AppointmentDto {
@@ -40,6 +40,7 @@ export interface AppointmentDto {
   professional_name: string | null;
   service_name: string | null;
   service_price: number;
+  service_duration_minutes: number;
 }
 
 const dateToLocalIso = (d: Date | string): string => {
@@ -82,4 +83,5 @@ export const toAppointmentDto = (a: RawAppointment): AppointmentDto => ({
   professional_name: a.professional?.name ?? null,
   service_name: a.service?.name ?? null,
   service_price: priceToNumber(a.service?.price),
+  service_duration_minutes: a.service?.durationMinutes ?? 0,
 });

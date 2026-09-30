@@ -55,7 +55,7 @@ export interface AppointmentWithRelations {
   updatedAt: Date;
   client: { name: string; phone: string };
   professional: { name: string };
-  service: { name: string; price: unknown };
+  service: { name: string; price: unknown; durationMinutes: number };
 }
 
 export const VALID_STATUS_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {

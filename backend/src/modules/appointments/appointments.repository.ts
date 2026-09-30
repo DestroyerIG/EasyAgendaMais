@@ -4,7 +4,7 @@ import type { AppointmentWithRelations, CreateAppointmentInput } from './appoint
 const APPOINTMENT_INCLUDE = {
   client: { select: { name: true, phone: true } },
   professional: { select: { name: true } },
-  service: { select: { name: true, price: true } },
+  service: { select: { name: true, price: true, durationMinutes: true } },
 } as const;
 
 export const appointmentsPrismaRepository = {
@@ -88,7 +88,10 @@ export const appointmentsPrismaRepository = {
         businessId,
         professionalId,
         date: new Date(date),
-        time: new Date(`1970-01-01T${time}`),
+        // `time` é @db.Time (sem fuso) — o "Z" garante que "12:00" grave literalmente
+        // 12:00, em vez do meio-dia local do processo Node (achado do usuário: horário
+        // criado ia parar em outro horário quando o servidor não roda em UTC).
+        time: new Date(`1970-01-01T${time}Z`),
         status: 'confirmado',
         ...(excludeId ? { NOT: { id: excludeId } } : {}),
       },
@@ -105,7 +108,7 @@ export const appointmentsPrismaRepository = {
         professionalId: data.professionalId,
         serviceId: data.serviceId,
         date: new Date(data.date),
-        time: new Date(`1970-01-01T${data.time}:00`),
+        time: new Date(`1970-01-01T${data.time}:00Z`),
         status: 'confirmado',
       },
       include: APPOINTMENT_INCLUDE,
@@ -148,7 +151,7 @@ export const appointmentsPrismaRepository = {
         ...(data.professionalId && { professionalId: data.professionalId }),
         ...(data.serviceId && { serviceId: data.serviceId }),
         ...(data.date && { date: new Date(data.date) }),
-        ...(data.time && { time: new Date(`1970-01-01T${data.time}:00`) }),
+        ...(data.time && { time: new Date(`1970-01-01T${data.time}:00Z`) }),
       },
       include: APPOINTMENT_INCLUDE,
     }) as unknown as AppointmentWithRelations;
@@ -185,8 +188,10 @@ export const appointmentsPrismaRepository = {
 
     return appointments.map((a) => {
       const t = a.time;
-      const h = String(t.getHours()).padStart(2, '0');
-      const m = String(t.getMinutes()).padStart(2, '0');
+      // UTC, não hora local: `time` é gravado com "Z" (ver `create`/`update`), então o
+      // valor literal está nos componentes UTC do Date, não nos locais do processo.
+      const h = String(t.getUTCHours()).padStart(2, '0');
+      const m = String(t.getUTCMinutes()).padStart(2, '0');
       return `${h}:${m}`;
     });
   },
