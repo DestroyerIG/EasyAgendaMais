@@ -83,6 +83,7 @@ export const appointmentsPrismaRepository = {
     time: string,
     excludeId?: string
   ): Promise<boolean> {
+    const now = new Date();
     const existing = await prisma.appointment.findFirst({
       where: {
         businessId,
@@ -92,7 +93,11 @@ export const appointmentsPrismaRepository = {
         // 12:00, em vez do meio-dia local do processo Node (achado do usuário: horário
         // criado ia parar em outro horário quando o servidor não roda em UTC).
         time: new Date(`1970-01-01T${time}Z`),
-        status: 'confirmado',
+        status: { in: ['confirmado', 'aguardando_pagamento'] },
+        OR: [
+          { status: 'confirmado' },
+          { status: 'aguardando_pagamento', expiresAt: { gt: now } },
+        ],
         ...(excludeId ? { NOT: { id: excludeId } } : {}),
       },
       select: { id: true },
@@ -176,12 +181,16 @@ export const appointmentsPrismaRepository = {
     professionalId: string,
     date: string
   ): Promise<string[]> {
+    const now = new Date();
     const appointments = await prisma.appointment.findMany({
       where: {
         businessId,
         professionalId,
         date: new Date(date),
-        status: 'confirmado',
+        OR: [
+          { status: 'confirmado' },
+          { status: 'aguardando_pagamento', expiresAt: { gt: now } },
+        ],
       },
       select: { time: true },
     });
