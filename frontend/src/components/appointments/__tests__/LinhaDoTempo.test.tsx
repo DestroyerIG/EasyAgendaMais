@@ -3,10 +3,13 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   ALTURA_HORA,
+  ALTURA_MINIMA_BLOCO_PX,
   LinhaDoTempo,
   agruparPorProfissional,
+  calcularAlturaHora,
   calcularFaixaHoras,
   calcularVagasLivres,
+  duracaoReal,
   faixaHorariaTexto,
   formatarDuracao,
   formatarHorarioFuncionamento,
@@ -70,15 +73,44 @@ describe('conversões de horário', () => {
 });
 
 describe('posicaoDoBloco', () => {
-  it('calcula top e altura a partir do horário e da duração, com 80px por hora', () => {
+  it(`calcula top e altura a partir do horário e da duração, com ${ALTURA_HORA}px por hora`, () => {
     // 08:30 com 90 min numa faixa que começa às 08:00.
-    expect(posicaoDoBloco(510, 90, 480)).toEqual({ top: 40, altura: 120 });
+    expect(posicaoDoBloco(510, 90, 480)).toEqual({ top: ALTURA_HORA / 2, altura: ALTURA_HORA * 1.5 });
     // 10:00 com 60 min: uma hora abaixo do início, um bloco de uma hora.
     expect(posicaoDoBloco(600, 60, 480)).toEqual({ top: 2 * ALTURA_HORA, altura: ALTURA_HORA });
   });
 
   it('não depende de posição fixa: mover o início da faixa move o bloco', () => {
-    expect(posicaoDoBloco(600, 60, 420).top).toBe(240);
+    expect(posicaoDoBloco(600, 60, 420).top).toBe(3 * ALTURA_HORA);
+  });
+});
+
+describe('calcularAlturaHora', () => {
+  it('sem agendamento nenhum, cai na altura compacta do arquivo', () => {
+    expect(calcularAlturaHora([], 60)).toBe(ALTURA_HORA);
+  });
+
+  it('estica o suficiente para o atendimento mais curto do dia não cortar texto, mesmo que seja o único', () => {
+    // 60min a 80px/h dá 80px — menos que o mínimo do bloco cheio (achado do usuário).
+    const altura = calcularAlturaHora([agendamento({ id: '1', time: '09:00:00', service_duration_minutes: 60 })], 60);
+    expect(altura).toBe(Math.ceil((ALTURA_MINIMA_BLOCO_PX * 60) / 60));
+    expect((altura / 60) * 60).toBeGreaterThanOrEqual(ALTURA_MINIMA_BLOCO_PX);
+  });
+
+  it('usa o MENOR atendimento do dia, não o maior nem a média — um só atendimento curto entre vários longos já obriga a régua a esticar', () => {
+    const altura = calcularAlturaHora(
+      [
+        agendamento({ id: '1', time: '09:00:00', service_duration_minutes: 120 }),
+        agendamento({ id: '2', time: '11:00:00', service_duration_minutes: 30 }),
+      ],
+      60,
+    );
+    expect(altura).toBe(Math.ceil((ALTURA_MINIMA_BLOCO_PX * 60) / 30));
+  });
+
+  it('dia só com atendimentos de 90min+ fica na altura compacta do arquivo (não precisa esticar)', () => {
+    const altura = calcularAlturaHora([agendamento({ id: '1', time: '09:00:00', service_duration_minutes: 90 })], 60);
+    expect(altura).toBe(ALTURA_HORA);
   });
 });
 
@@ -154,6 +186,28 @@ describe('calcularVagasLivres', () => {
     );
     expect(vagas).toEqual([{ inicioMinutos: 480, duracaoMinutos: 720 }]);
   });
+
+  it('usa a duração real do atendimento, não a padrão, para achar onde o buraco seguinte começa (achado do usuário: cards se sobrepondo com serviço mais curto que a duração padrão)', () => {
+    const vagas = calcularVagasLivres(
+      [agendamento({ id: '1', time: '08:00:00', service_duration_minutes: 30 })],
+      faixa,
+      60,
+    );
+    // 08:00 + 30min reais (não os 60min padrão) = 08:30 → o buraco começa em 510, não 540.
+    expect(vagas[0]).toEqual({ inicioMinutos: 510, duracaoMinutos: 690 });
+  });
+});
+
+describe('duracaoReal', () => {
+  it('usa a duração real do serviço (service_duration_minutes) quando ela existe', () => {
+    expect(
+      duracaoReal(agendamento({ id: '1', time: '09:00:00', service_duration_minutes: 30 }), 60),
+    ).toBe(30);
+  });
+
+  it('cai na duração padrão só quando o agendamento não traz a própria', () => {
+    expect(duracaoReal(agendamento({ id: '1', time: '09:00:00' }), 60)).toBe(60);
+  });
 });
 
 describe('agruparPorProfissional', () => {
@@ -222,12 +276,102 @@ describe('LinhaDoTempo', () => {
     expect(screen.queryByRole('button', { name: /Ver detalhes/ })).not.toBeInTheDocument();
   });
 
-  it('posiciona o bloco pelo cálculo, não por pixel fixo do arquivo', () => {
-    render(<LinhaDoTempo {...props} agendamentos={[agendamento({ id: '1', time: '10:00:00' })]} />);
+  it('posiciona e dimensiona o bloco pelo cálculo, não por pixel fixo do arquivo', () => {
+    render(
+      <LinhaDoTempo
+        {...props}
+        agendamentos={[agendamento({ id: '1', time: '10:00:00', service_duration_minutes: 90 })]}
+      />,
+    );
 
     const bloco = screen.getByText('Mariana Souza').closest('div[style]') as HTMLElement;
-    expect(bloco.style.top).toBe('160px');
-    expect(bloco.style.height).toBe('80px');
+    expect(bloco.style.top).toBe(`${2 * ALTURA_HORA}px`);
+    expect(bloco.style.height).toBe(`${ALTURA_HORA * 1.5}px`);
+  });
+
+  it('sem sombra em repouso e com o padding do chip de status conferidos ao vivo no arquivo de referência (agenda-desktop.html: boxShadow computado "none", chip "2px 8px")', () => {
+    render(<LinhaDoTempo {...props} agendamentos={[agendamento({ id: '1', time: '09:00:00' })]} />);
+
+    const bloco = screen.getByText('Mariana Souza').closest('div[style]') as HTMLElement;
+    expect(bloco).not.toHaveClass('shadow-sm');
+    expect(bloco).toHaveClass('hover:shadow-md');
+    expect(screen.getByText('Confirmado')).toHaveClass('px-2');
+  });
+
+  it('a régua do dia se ajusta ao atendimento real mais curto (calcularAlturaHora), não a uma escala fixa igual para o dia inteiro — um atendimento de 60min sozinho já obriga a régua a esticar além do valor compacto do arquivo (achado do usuário: em 80px/h fixo o bloco cheio cortava nome, preço e selo; numa escala fixa grande o bastante para qualquer atendimento curto, um dia comum ficava com buracos enormes)', () => {
+    render(
+      <LinhaDoTempo
+        {...props}
+        agendamentos={[agendamento({ id: '1', time: '08:00:00', service_duration_minutes: 60 })]}
+      />,
+    );
+
+    const bloco = screen.getByText('Mariana Souza').closest('div[style]') as HTMLElement;
+    const alturaEsperada = calcularAlturaHora(
+      [agendamento({ id: '1', time: '08:00:00', service_duration_minutes: 60 })],
+      60,
+    );
+    expect(bloco.style.height).toBe(`${alturaEsperada}px`);
+    expect(alturaEsperada).toBeGreaterThan(ALTURA_HORA);
+  });
+
+  it('dois atendimentos de 30min voltados a voltados não se sobrepõem e mostram o conteúdo inteiro — a correção certa era ajustar o espaçamento da linha do tempo ao dia, não uma altura mínima dissociada do horário nem uma escala fixa grande demais (achado do usuário)', () => {
+    const agendamentosDoDia = [
+      agendamento({
+        id: '1',
+        time: '08:00:00',
+        client_name: 'Ana Paula',
+        service_name: 'Corte masculino',
+        professional_id: 'p1',
+        service_duration_minutes: 30,
+      }),
+      agendamento({
+        id: '2',
+        time: '08:30:00',
+        client_name: 'Bianca Reis',
+        professional_id: 'p1',
+        service_duration_minutes: 30,
+      }),
+    ];
+    render(<LinhaDoTempo {...props} agendamentos={agendamentosDoDia} />);
+
+    const blocoAna = screen.getByText('Ana Paula').closest('div[style]') as HTMLElement;
+    const blocoBianca = screen.getByText('Bianca Reis').closest('div[style]') as HTMLElement;
+    const alturaHora = calcularAlturaHora(agendamentosDoDia, 60);
+    const alturaBloco30min = (30 / 60) * alturaHora;
+
+    // Com a grade ajustada ao dia, 30min já rendem espaço de verdade — o
+    // bloco de Ana termina exatamente onde o de Bianca começa, sem se tocarem, e o
+    // conteúdo cheio (nome, serviço, preço, selo) cabe sem cortar nada.
+    expect(blocoAna.style.top).toBe('0px');
+    expect(blocoAna.style.height).toBe(`${alturaBloco30min}px`);
+    expect(blocoBianca.style.top).toBe(`${alturaBloco30min}px`);
+    expect(alturaBloco30min).toBeGreaterThanOrEqual(ALTURA_MINIMA_BLOCO_PX);
+    expect(screen.getByText('Ana Paula')).toBeInTheDocument();
+    expect(screen.getByText('Corte masculino')).toBeInTheDocument();
+  });
+
+  it('usa sempre o layout cheio do arquivo de referência (horário, ícone, cliente, serviço, preço, selo), mesmo em atendimento curto — decisão explícita do usuário de não ter uma versão resumida', () => {
+    render(
+      <LinhaDoTempo
+        {...props}
+        agendamentos={[
+          agendamento({
+            id: '1',
+            time: '08:00:00',
+            client_name: 'Gustavo Pinto',
+            service_name: 'Corte masculino',
+            service_price: 55,
+            service_duration_minutes: 30,
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('Gustavo Pinto')).toBeInTheDocument();
+    expect(screen.getByText('Corte masculino')).toBeInTheDocument();
+    expect(screen.getByText('R$ 55')).toBeInTheDocument();
+    expect(screen.getByText('Confirmado')).toBeInTheDocument();
   });
 
   it('oferece concluir e cancelar em botão de verdade no bloco confirmado', async () => {
@@ -295,5 +439,17 @@ describe('LinhaDoTempo', () => {
     );
     expect(screen.getByText('Mariana Souza')).toHaveClass('line-through');
     expect(screen.queryByText('Confirmado')).not.toBeInTheDocument();
+  });
+
+  it('diminui serviço e preço do cancelado, como o arquivo de referência (agenda-desktop.html:499,502) — não só risca, encolhe e tira o negrito', () => {
+    render(
+      <LinhaDoTempo
+        {...props}
+        agendamentos={[agendamento({ id: '1', time: '09:00:00', status: 'cancelado', service_name: 'Corte' })]}
+      />,
+    );
+    expect(screen.getByText('Corte')).toHaveClass('text-[11px]');
+    expect(screen.getByText('R$ 110')).toHaveClass('text-[11px]');
+    expect(screen.getByText('R$ 110')).not.toHaveClass('font-bold');
   });
 });

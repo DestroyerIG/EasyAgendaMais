@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Plus, Search, AlertCircle, XCircle, Loader2 } from 'lucide-react';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatDurationExtenso } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
 import { Modal, ModalFooter, Field, Select, Input } from '@/components/ui';
 import type { Client, Professional, Service } from '@/types';
@@ -160,7 +160,7 @@ export function CreateAppointmentModal({
             <option value="">Selecione um serviço</option>
             {services.map(service => (
               <option key={service.id} value={service.id}>
-                {service.name} ({service.duration_minutes}min) — {formatCurrency(Number(service.price))}
+                {service.name} ({formatDurationExtenso(service.duration_minutes)}) — {formatCurrency(Number(service.price))}
               </option>
             ))}
           </Select>

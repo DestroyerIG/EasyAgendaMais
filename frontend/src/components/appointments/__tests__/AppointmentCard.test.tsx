@@ -133,6 +133,11 @@ describe('AppointmentCard', () => {
     expect(ponto).toHaveClass('bg-status-confirmed');
   });
 
+  it('o chip de status usa o padding do arquivo de referência (agenda-mobile.html:146, "2px 8px" ao vivo)', () => {
+    render(<AppointmentCard {...props} appointment={agendamento()} />);
+    expect(screen.getByText('Confirmado')).toHaveClass('px-2');
+  });
+
   it('desabilita as ações enquanto a mudança de status está em voo', () => {
     render(<AppointmentCard {...props} actionLoading="a1" appointment={agendamento()} />);
     expect(screen.getByRole('button', { name: /Concluir atendimento/ })).toBeDisabled();

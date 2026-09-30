@@ -30,6 +30,7 @@ export interface Appointment {
     professional_name?: string;
     service_name?: string;
     service_price?: number;
+    service_duration_minutes?: number;
 }
 
 export interface Client {

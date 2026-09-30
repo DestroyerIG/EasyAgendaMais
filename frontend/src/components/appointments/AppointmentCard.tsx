@@ -7,8 +7,9 @@
  * GET /appointments; as duas ações do gesto chamam o mesmo handler de mudança de
  * status que a tela já usava. Um toque parado no corpo do cartão abre o painel de
  * detalhes (agendamento-detalhes.html) — arrastar não abre.
- * Dado de exemplo: a duração embaixo do horário (conteudoDemo.agenda.duracaoPadraoMinutos),
- * porque o DTO de /appointments não devolve a duração do serviço.
+ * Dado real: a duração embaixo do horário é a do serviço (service_duration_minutes,
+ * GET /appointments); duracaoPadraoMinutos (conteudoDemo.agenda) só entra quando o
+ * agendamento não traz duração própria.
  * Fora da tela: o "encaixe rápido" e a ação de cobrar sinal por Pix do arquivo de
  * referência, que dependem de funções que não existem.
  *
@@ -140,7 +141,7 @@ export function CorpoCartaoAgendamento({
           )}
         </div>
         <div className="mt-2 flex items-center gap-1.5">
-          <StatusChip status={appointment.status} comPonto={comPontoDeStatus} className="text-[11px]" />
+          <StatusChip status={appointment.status} comPonto={comPontoDeStatus} className="px-2 text-[11px]" />
           {whatsapp && (
             // O corpo do cartão inteiro escuta pointerdown/up para o gesto de arrastar
             // e para abrir o painel de detalhes num toque parado (AppointmentCard.tsx) —

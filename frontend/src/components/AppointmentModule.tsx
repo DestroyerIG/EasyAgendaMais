@@ -4,16 +4,16 @@
  * Tela Agenda (agenda-desktop.html, agenda-mobile.html).
  *
  * Dado real: todos os agendamentos do período, com cliente, serviço, profissional,
- * valor e status, vindos de GET /appointments; o horário de funcionamento do negócio,
- * de GET /business/settings; as contagens, o faturamento, a ocupação e as vagas livres
- * são calculados desses mesmos agendamentos — as contagens e o faturamento sobre o
- * conjunto que a lista mostra, a ocupação e as vagas sobre o dia do salão, que o filtro
- * de status não muda; os filtros de dia, semana e status e a criação de agendamento seguem
- * exatamente como eram, e o filtro por profissional é peneira local na lista já
- * carregada (nenhuma chamada nova, nenhum handler novo).
- * Dado de exemplo: só a duração de cada atendimento
- * (conteudoDemo.agenda.duracaoPadraoMinutos), porque o DTO de /appointments não
- * devolve a duração do serviço.
+ * valor, status e duração (service_duration_minutes), vindos de GET /appointments; o
+ * horário de funcionamento do negócio, de GET /business/settings; as contagens, o
+ * faturamento, a ocupação e as vagas livres são calculados desses mesmos agendamentos —
+ * as contagens e o faturamento sobre o conjunto que a lista mostra, a ocupação e as
+ * vagas sobre o dia do salão, que o filtro de status não muda; os filtros de dia, semana
+ * e status e a criação de agendamento seguem exatamente como eram, e o filtro por
+ * profissional é peneira local na lista já carregada (nenhuma chamada nova, nenhum
+ * handler novo).
+ * Dado de exemplo: duracaoPadraoMinutos (conteudoDemo.agenda) só entra quando um
+ * agendamento não traz duração própria (registro antigo, anterior a este campo).
  * O painel de detalhes abre sobre a agenda ao clicar no bloco da linha do tempo ou no
  * corpo do cartão, e as ações dele chamam o mesmo handleStatusChange desta tela.
  * Fora da tela: "encaixe inteligente"/"encaixe rápido", bloco de almoço, faixa de
@@ -43,6 +43,7 @@ import {
   calcularFaixaHoras,
   calcularVagasLivres,
   chaveProfissional,
+  duracaoReal,
   formatarDuracao,
   formatarHorarioFuncionamento,
   paraHoraTexto,
@@ -523,7 +524,7 @@ export function AppointmentModule() {
                       key={item.chave}
                       appointment={item.agendamento}
                       actionLoading={actionLoading}
-                      duracaoMinutos={duracaoMinutos}
+                      duracaoMinutos={duracaoReal(item.agendamento, duracaoMinutos)}
                       onStatusChange={handleStatusChange}
                       onAbrirDetalhes={a => setDetalhesId(a.id)}
                     />
@@ -609,7 +610,7 @@ export function AppointmentModule() {
 
       <PainelDetalhesAgendamento
         agendamento={agendamentoDetalhado}
-        duracaoMinutos={duracaoMinutos}
+        duracaoMinutos={agendamentoDetalhado ? duracaoReal(agendamentoDetalhado, duracaoMinutos) : duracaoMinutos}
         actionLoading={actionLoading}
         onFechar={() => setDetalhesId(null)}
         onStatusChange={handleStatusChange}

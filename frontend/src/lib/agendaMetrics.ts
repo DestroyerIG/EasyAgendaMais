@@ -10,6 +10,7 @@ import {
   agruparPorProfissional,
   calcularFaixaHoras,
   calcularVagasLivres,
+  duracaoReal,
   type FaixaHoras,
   type HorarioFuncionamento,
 } from '@/components/appointments/LinhaDoTempo';
@@ -28,9 +29,10 @@ export interface MetricasAgendaDoDia {
 }
 
 /**
- * % de ocupação do dia: minutos ocupados (não cancelados × duração padrão) sobre os
- * minutos disponíveis (colunas de profissional × horas da faixa). Mesma fórmula que
- * AppointmentModule.tsx já usava para o KPI "X% de ocupação" do celular.
+ * % de ocupação do dia: minutos ocupados (soma da duração real de cada agendamento não
+ * cancelado, com a duração padrão só de reserva) sobre os minutos disponíveis (colunas de
+ * profissional × horas da faixa). Mesma fórmula que AppointmentModule.tsx já usava para o
+ * KPI "X% de ocupação" do celular.
  */
 export function calcularOcupacaoPercentual(
   agendamentosDoDia: Appointment[],
@@ -40,8 +42,10 @@ export function calcularOcupacaoPercentual(
 ): number {
   const minutosDisponiveis = Math.max(numColunas, 1) * (faixa.fimMinutos - faixa.inicioMinutos);
   if (minutosDisponiveis <= 0) return 0;
-  const naoCancelados = agendamentosDoDia.filter((agendamento) => agendamento.status !== 'cancelado').length;
-  return Math.min(100, Math.round((naoCancelados * duracaoMinutos * 100) / minutosDisponiveis));
+  const minutosOcupados = agendamentosDoDia
+    .filter((agendamento) => agendamento.status !== 'cancelado')
+    .reduce((soma, agendamento) => soma + duracaoReal(agendamento, duracaoMinutos), 0);
+  return Math.min(100, Math.round((minutosOcupados * 100) / minutosDisponiveis));
 }
 
 /**

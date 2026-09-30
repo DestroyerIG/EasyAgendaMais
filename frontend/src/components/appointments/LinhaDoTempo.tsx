@@ -3,21 +3,33 @@
 /**
  * Linha do tempo da Agenda no computador (agenda-desktop.html).
  *
- * Dado real: colunas de profissional, horário, cliente, serviço, valor e status de
- * cada agendamento vêm de GET /appointments; a faixa de horas começa no horário de
- * funcionamento configurado (GET /business/settings) e as vagas livres saem do
- * cruzamento dos dois. Os blocos são do conjunto que o filtro deixou passar; as colunas,
- * a régua e os buracos são do dia — o filtro de status não desocupa horário.
- * Dado de exemplo: a duração de cada atendimento (conteudoDemo.agenda.duracaoPadraoMinutos),
- * porque o DTO de /appointments ainda não devolve a duração do serviço — é ela que
- * define a altura do bloco. Clicar no bloco abre o painel de detalhes
+ * Dado real: colunas de profissional, horário, cliente, serviço, valor, status e a
+ * duração de cada agendamento (service_duration_minutes) vêm de GET /appointments; a
+ * faixa de horas começa no horário de funcionamento configurado (GET /business/settings)
+ * e as vagas livres saem do cruzamento dos dois. Os blocos são do conjunto que o filtro
+ * deixou passar; as colunas, a régua e os buracos são do dia — o filtro de status não
+ * desocupa horário. É a duração real de cada atendimento que define a altura do bloco
+ * dele — usar uma duração fixa para todos sobrepunha o bloco de um serviço mais curto no
+ * do atendimento marcado logo em seguida (achado do usuário).
+ * Dado de exemplo: duracaoPadraoMinutos (conteudoDemo.agenda) só entra quando um
+ * agendamento não traz duração própria. Clicar no bloco abre o painel de detalhes
  * (agendamento-detalhes.html); os botões rápidos do bloco continuam como eram.
  * Fora da tela: "encaixe inteligente"/"encaixe rápido", bloco de almoço e faixa de
  * "ação química" do arquivo de referência, que dependem de dados e funções que não existem.
  *
  * A referência desenha os blocos em pixels fixos; aqui a posição é sempre calculada:
- * top = (minutos desde o início da faixa / 60) × 80 e height = (duração / 60) × 80,
- * com a altura de uma hora (80px) vinda do arquivo.
+ * top = (minutos desde o início da faixa / 60) × alturaHora e
+ * height = (duração / 60) × alturaHora — mas alturaHora não é uma constante fixa. Ela se
+ * ajusta por dia (calcularAlturaHora), a partir do atendimento real mais curto que a tela
+ * vai desenhar naquele dia: no chão (ALTURA_HORA = 80px, o valor do arquivo) quando todos
+ * os atendimentos do dia são de 60min ou mais, e só estica o suficiente para o mais curto
+ * caber sem cortar texto quando existe um atendimento menor que isso. Uma escala fixa e
+ * grande o bastante para qualquer atendimento curto (240px/h) deixava um dia comum (só
+ * atendimentos de 60min+) com buracos enormes entre os horários — pior para o usuário do
+ * que o problema original (achado do usuário: "ficou muito grande"). E uma altura mínima
+ * dissociada do horário (tentada antes) fazia o bloco curto encostar no seguinte. Ajustar
+ * a própria régua por dia resolve as duas coisas: nunca corta texto, nunca sobrepõe, e só
+ * fica maior que o necessário quando o dia realmente tem um atendimento curto.
  */
 
 import { useEffect, useState } from 'react';
@@ -26,8 +38,29 @@ import { formatCurrency } from '@/lib/formatters';
 import { Avatar, Icon, StatusChip, STATUS_STRIPE_CLASS } from '@/components/ui';
 import type { Appointment } from '@/types';
 
-/** Altura de uma hora na grade, em pixels (agenda-desktop.html). */
+/** Altura de uma hora na grade quando nenhum atendimento do dia precisa de mais espaço — o valor do arquivo de referência. */
 export const ALTURA_HORA = 80;
+
+/**
+ * Altura mínima do bloco cheio, em pixels — medida ao vivo (horário+ícone, cliente,
+ * serviço, preço+selo, com o padding do arquivo). É o piso que calcularAlturaHora usa para
+ * decidir o quanto esticar a régua do dia.
+ */
+export const ALTURA_MINIMA_BLOCO_PX = 110;
+
+/**
+ * Altura de uma hora para o dia sendo desenhado: ALTURA_HORA (compacta) quando todo
+ * atendimento do dia já cabe cheio nela, ou o suficiente para o atendimento mais curto do
+ * dia não cortar texto, o que for maior. Cancelado conta igual aos outros porque o bloco
+ * dele também é desenhado nessa régua (calcularFaixaHoras também não discrimina status).
+ */
+export function calcularAlturaHora(agendamentos: Appointment[], duracaoPadraoMinutos: number): number {
+  if (agendamentos.length === 0) return ALTURA_HORA;
+  const duracaoMinima = Math.min(...agendamentos.map((a) => duracaoReal(a, duracaoPadraoMinutos)));
+  if (duracaoMinima <= 0) return ALTURA_HORA;
+  const necessaria = Math.ceil((ALTURA_MINIMA_BLOCO_PX * 60) / duracaoMinima);
+  return Math.max(ALTURA_HORA, necessaria);
+}
 
 /** Faixa mínima desenhada, também do arquivo de referência: 08:00 às 20:00. */
 export const HORA_INICIO_PADRAO = 8;
@@ -66,6 +99,16 @@ export const paraHoraTexto = (minutos: number): string => {
   const m = minutos % 60;
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
+
+/**
+ * Duração real do atendimento (service_duration_minutes, do GET /appointments) e só na
+ * falta dela — agendamento antigo antes deste campo existir — a duração de exemplo.
+ * Sem isso todo bloco desenhava com a mesma duração fixa e um serviço mais curto que ela
+ * (ex.: 30 min) se sobrepunha ao próximo atendimento marcado logo depois (achado do
+ * usuário: cards se sobrepondo com horários próximos).
+ */
+export const duracaoReal = (agendamento: Appointment, duracaoPadraoMinutos: number): number =>
+  agendamento.service_duration_minutes || duracaoPadraoMinutos;
 
 /** 60 → "60 min": a duração embaixo da hora no cartão do celular (agenda-mobile.html). */
 export const formatarMinutos = (minutos: number): string => `${minutos} min`;
@@ -131,7 +174,7 @@ export function calcularFaixaHoras(
   agendamentos.forEach((agendamento) => {
     const inicio = paraMinutos(agendamento.time);
     horaInicio = Math.min(horaInicio, Math.floor(inicio / 60));
-    horaFim = Math.max(horaFim, Math.ceil((inicio + duracaoPadraoMinutos) / 60));
+    horaFim = Math.max(horaFim, Math.ceil((inicio + duracaoReal(agendamento, duracaoPadraoMinutos)) / 60));
   });
 
   // O dia acaba às 24:00: um atendimento às 23:30 não pode esticar a régua até "25:00".
@@ -144,15 +187,16 @@ export function calcularFaixaHoras(
   return { horaInicio, horaFim, inicioMinutos: horaInicio * 60, fimMinutos: horaFim * 60, horas };
 }
 
-/** Posição do bloco na grade, em pixels, a partir do horário e da duração. */
+/** Posição do bloco na grade, em pixels, a partir do horário, da duração e da altura de uma hora nesse dia (calcularAlturaHora). */
 export function posicaoDoBloco(
   inicioMinutos: number,
   duracaoMinutos: number,
   faixaInicioMinutos: number,
+  alturaHora: number = ALTURA_HORA,
 ): { top: number; altura: number } {
   return {
-    top: ((inicioMinutos - faixaInicioMinutos) / 60) * ALTURA_HORA,
-    altura: (duracaoMinutos / 60) * ALTURA_HORA,
+    top: ((inicioMinutos - faixaInicioMinutos) / 60) * alturaHora,
+    altura: (duracaoMinutos / 60) * alturaHora,
   };
 }
 
@@ -180,7 +224,7 @@ export function calcularVagasLivres(
     .filter((agendamento) => agendamento.status !== 'cancelado')
     .map((agendamento) => {
       const inicio = paraMinutos(agendamento.time);
-      return { inicio, fim: inicio + duracaoPadraoMinutos };
+      return { inicio, fim: inicio + duracaoReal(agendamento, duracaoPadraoMinutos) };
     })
     .sort((a, b) => a.inicio - b.inicio);
 
@@ -245,6 +289,7 @@ interface BlocoAgendamentoProps {
   agendamento: Appointment;
   duracaoMinutos: number;
   faixaInicioMinutos: number;
+  alturaHora: number;
   actionLoading: string | null;
   onStatusChange: (id: string, status: 'concluido' | 'cancelado') => void;
   /** Abre o painel de detalhes (agendamento-detalhes.html). Sem ela o bloco só informa. */
@@ -255,12 +300,13 @@ function BlocoAgendamento({
   agendamento,
   duracaoMinutos,
   faixaInicioMinutos,
+  alturaHora,
   actionLoading,
   onStatusChange,
   onAbrirDetalhes,
 }: BlocoAgendamentoProps) {
   const inicioMinutos = paraMinutos(agendamento.time);
-  const { top, altura } = posicaoDoBloco(inicioMinutos, duracaoMinutos, faixaInicioMinutos);
+  const { top, altura } = posicaoDoBloco(inicioMinutos, duracaoMinutos, faixaInicioMinutos, alturaHora);
   const cancelado = agendamento.status === 'cancelado';
   const podeAgir = agendamento.status === 'confirmado';
   const carregando = actionLoading === agendamento.id;
@@ -269,7 +315,7 @@ function BlocoAgendamento({
   return (
     <div
       className={cn(
-        'group absolute left-1 right-1 flex overflow-hidden rounded-control border shadow-sm transition-shadow',
+        'group absolute left-1 right-1 flex overflow-hidden rounded-control border transition-shadow',
         cancelado ? 'border-line/50 bg-surface-2/40 opacity-60' : 'border-line bg-surface hover:shadow-md',
       )}
       style={{ top, height: altura }}
@@ -310,7 +356,12 @@ function BlocoAgendamento({
           >
             {cliente}
           </h4>
-          <p className={cn('truncate text-[14px] text-muted', cancelado && 'line-through')}>
+          <p
+            className={cn(
+              'truncate text-muted',
+              cancelado ? 'text-[11px] font-semibold line-through' : 'text-[14px]',
+            )}
+          >
             {agendamento.service_name}
           </p>
         </div>
@@ -318,13 +369,13 @@ function BlocoAgendamento({
         <div className="pointer-events-none flex items-center justify-between gap-1">
           <span
             className={cn(
-              'text-[13px] font-bold tabular-nums',
-              cancelado ? 'text-muted line-through' : 'text-ink',
+              'tabular-nums',
+              cancelado ? 'text-[11px] font-semibold text-muted line-through' : 'text-[13px] font-bold text-ink',
             )}
           >
             {formatCurrency(Number(agendamento.service_price || 0), { cents: false })}
           </span>
-          {!cancelado && <StatusChip status={agendamento.status} className="text-[11px]" />}
+          {!cancelado && <StatusChip status={agendamento.status} className="px-2 text-[11px]" />}
         </div>
 
         {/* As mesmas ações do cartão do celular: aparecem no ponteiro e ao receber foco
@@ -359,11 +410,12 @@ function BlocoAgendamento({
 interface BlocoVagaLivreProps {
   vaga: VagaLivre;
   faixaInicioMinutos: number;
+  alturaHora: number;
   onNovoAgendamento: () => void;
 }
 
-function BlocoVagaLivre({ vaga, faixaInicioMinutos, onNovoAgendamento }: BlocoVagaLivreProps) {
-  const { top, altura } = posicaoDoBloco(vaga.inicioMinutos, vaga.duracaoMinutos, faixaInicioMinutos);
+function BlocoVagaLivre({ vaga, faixaInicioMinutos, alturaHora, onNovoAgendamento }: BlocoVagaLivreProps) {
+  const { top, altura } = posicaoDoBloco(vaga.inicioMinutos, vaga.duracaoMinutos, faixaInicioMinutos, alturaHora);
   const compacto = vaga.duracaoMinutos < 60;
   const duracao = formatarDuracao(vaga.duracaoMinutos);
 
@@ -467,7 +519,10 @@ export function LinhaDoTempo({
   };
 
   const faixa = calcularFaixaHoras(doDia, duracaoPadraoMinutos, horarioFuncionamento);
-  const alturaTotal = (faixa.horaFim - faixa.horaInicio) * ALTURA_HORA;
+  // Só os blocos que a tela desenha (agendamentos, não doDia) precisam de espaço — a régua
+  // se ajusta ao atendimento real mais curto entre eles, não ao dia inteiro sem filtro.
+  const alturaHora = calcularAlturaHora(agendamentos, duracaoPadraoMinutos);
+  const alturaTotal = (faixa.horaFim - faixa.horaInicio) * alturaHora;
   const gridTemplateColumns = `68px repeat(${colunas.length}, minmax(0, 1fr))`;
   const agoraVisivel =
     mostrarAgora && relogio !== null && relogio.minutos >= faixa.inicioMinutos && relogio.minutos <= faixa.fimMinutos;
@@ -508,8 +563,8 @@ export function LinhaDoTempo({
         {/* Grade de fundo: uma linha cheia por hora e uma pontilhada na meia hora. */}
         <div className="pointer-events-none absolute inset-0 flex flex-col" aria-hidden="true">
           {faixa.horas.slice(0, -1).map((hora) => (
-            <div key={hora} className="relative h-[80px] border-b border-line/50">
-              <div className="absolute top-[40px] w-full border-b border-dashed border-line/30" />
+            <div key={hora} className="relative border-b border-line/50" style={{ height: alturaHora }}>
+              <div className="absolute w-full border-b border-dashed border-line/30" style={{ top: alturaHora / 2 }} />
             </div>
           ))}
         </div>
@@ -517,7 +572,7 @@ export function LinhaDoTempo({
         {agoraVisivel && relogio && (
           <div
             className="pointer-events-none absolute left-0 right-0 z-30 flex items-center"
-            style={{ top: ((relogio.minutos - faixa.inicioMinutos) / 60) * ALTURA_HORA }}
+            style={{ top: ((relogio.minutos - faixa.inicioMinutos) / 60) * alturaHora }}
           >
             <span className="rounded-r bg-brand px-2 py-0.5 text-[11px] font-bold tabular-nums text-on-brand">
               {paraHoraTexto(relogio.minutos)} Agora
@@ -529,7 +584,7 @@ export function LinhaDoTempo({
         {/* Régua de horas */}
         <div className="relative border-r border-line/70 pr-2 text-right text-[13px] font-semibold tabular-nums text-muted">
           {faixa.horas.map((hora, indice) => (
-            <div key={hora} className="absolute right-2" style={{ top: Math.max(indice * ALTURA_HORA - 8, 0) }}>
+            <div key={hora} className="absolute right-2" style={{ top: Math.max(indice * alturaHora - 8, 0) }}>
               {paraHoraTexto(hora * 60)}
             </div>
           ))}
@@ -545,6 +600,7 @@ export function LinhaDoTempo({
                 key={`vaga-${vaga.inicioMinutos}`}
                 vaga={vaga}
                 faixaInicioMinutos={faixa.inicioMinutos}
+                alturaHora={alturaHora}
                 onNovoAgendamento={onNovoAgendamento}
               />
             ))}
@@ -552,8 +608,9 @@ export function LinhaDoTempo({
               <BlocoAgendamento
                 key={agendamento.id}
                 agendamento={agendamento}
-                duracaoMinutos={duracaoPadraoMinutos}
+                duracaoMinutos={duracaoReal(agendamento, duracaoPadraoMinutos)}
                 faixaInicioMinutos={faixa.inicioMinutos}
+                alturaHora={alturaHora}
                 actionLoading={actionLoading}
                 onStatusChange={onStatusChange}
                 onAbrirDetalhes={onAbrirDetalhes}

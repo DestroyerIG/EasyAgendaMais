@@ -5,14 +5,14 @@
  * agenda no computador e folha de baixo no celular.
  *
  * Dado real: número do agendamento (últimos 4 caracteres do id), cliente, telefone,
- * data, horário de início, profissional, serviço, valor, status, o momento em que foi
- * agendado (created_at) e o lembrete de WhatsApp (reminder_sent) vêm de
- * GET /appointments; o horário de fim é o início mais a duração; as ações de concluir e
- * cancelar chamam o mesmo handler de status que a Agenda já usava.
- * Dado de exemplo (conteudoDemo.agenda): a duração do atendimento
- * (duracaoPadraoMinutos, porque o DTO não devolve a duração do serviço) e, em
- * conteudoDemo.agenda.detalhes, o sinal por Pix com o comprovante e a origem do
- * agendamento. O selo "Cliente Recorrente" foi removido (era um booleano fixo em
+ * data, horário de início, profissional, serviço, valor, status, duração
+ * (service_duration_minutes), o momento em que foi agendado (created_at) e o lembrete de
+ * WhatsApp (reminder_sent) vêm de GET /appointments; o horário de fim é o início mais a
+ * duração; as ações de concluir e cancelar chamam o mesmo handler de status que a Agenda
+ * já usava.
+ * Dado de exemplo (conteudoDemo.agenda): duracaoPadraoMinutos só entra quando o
+ * agendamento não traz duração própria, e, em conteudoDemo.agenda.detalhes, o sinal por
+ * Pix com o comprovante e a origem do agendamento. O selo "Cliente Recorrente" foi removido (era um booleano fixo em
  * conteudoDemo, sempre `true` para qualquer agendamento — contradizia a lista e a
  * ficha ao abrir o painel de uma cliente nova; achado N1 da re-revisão da rodada de
  * correção final, que sucede a correção I1 original).
