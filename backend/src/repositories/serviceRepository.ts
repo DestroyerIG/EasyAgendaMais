@@ -22,21 +22,27 @@ export const serviceRepository = {
     });
   },
 
-  async create(data: { business_id: string; name: string; price: number; duration_minutes: number }) {
+  async create(data: { business_id: string; name: string; price: number; duration_minutes: number; depositPercentage?: number }) {
     return prisma.service.create({
       data: {
         businessId: data.business_id,
         name: data.name,
         price: data.price,
         durationMinutes: data.duration_minutes,
+        depositPercentage: data.depositPercentage ?? null,
       },
     });
   },
 
-  async update(id: string, businessId: string, data: { name: string; price: number; duration_minutes: number }) {
+  async update(id: string, businessId: string, data: { name: string; price: number; duration_minutes: number; depositPercentage?: number }) {
     const result = await prisma.service.updateMany({
       where: { id, businessId },
-      data: { name: data.name, price: data.price, durationMinutes: data.duration_minutes },
+      data: {
+        name: data.name,
+        price: data.price,
+        durationMinutes: data.duration_minutes,
+        ...(data.depositPercentage !== undefined && { depositPercentage: data.depositPercentage }),
+      },
     });
     if (result.count === 0) return null;
     return prisma.service.findFirst({ where: { id } });
