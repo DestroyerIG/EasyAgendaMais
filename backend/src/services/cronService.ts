@@ -119,6 +119,17 @@ export const runReminderJob = async (now: Date = new Date()): Promise<void> => {
   }
 };
 
+export const expirePendingAppointments = async (now: Date = new Date()): Promise<number> => {
+  const result = await prisma.appointment.updateMany({
+    where: {
+      status: 'aguardando_pagamento',
+      expiresAt: { lt: now },
+    },
+    data: { status: 'cancelado' },
+  });
+  return result.count;
+};
+
 export const startReminderCron = (): void => {
   cron.schedule('*/10 * * * *', () => {
     void runReminderJob();
@@ -151,6 +162,17 @@ export const startReminderCron = (): void => {
       }
     } catch (error) {
       logger.error({ err: error }, 'Erro ao expirar trials gratuitos');
+    }
+  });
+
+  cron.schedule('*/5 * * * *', async () => {
+    try {
+      const count = await expirePendingAppointments();
+      if (count > 0) {
+        logger.info({ count }, 'Reservas públicas expiradas canceladas automaticamente');
+      }
+    } catch (error) {
+      logger.error({ err: error }, 'Erro ao expirar reservas públicas pendentes');
     }
   });
 
