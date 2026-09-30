@@ -53,6 +53,7 @@ export interface Service {
     name: string;
     price: number;
     duration_minutes: number;
+    deposit_percentage: number | null;
     active: boolean;
     created_at: string;
 }

@@ -9,6 +9,7 @@ const service: Service = {
   name: 'Coloração',
   price: 220,
   duration_minutes: 120,
+  deposit_percentage: null,
   active: true,
   created_at: '2026-01-01T00:00:00.000Z',
 };

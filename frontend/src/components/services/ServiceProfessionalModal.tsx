@@ -11,6 +11,7 @@ export interface ServiceFormData {
   name: string;
   price: string;
   duration_minutes: string;
+  deposit_percentage: string;
 }
 
 export interface ProfessionalFormData {
@@ -37,7 +38,7 @@ export const ServiceProfessionalModal = ({
   activeTab,
   editingItem,
 }: ServiceProfessionalModalProps) => {
-  const [serviceForm, setServiceForm] = useState<ServiceFormData>({ name: '', price: '', duration_minutes: '' });
+  const [serviceForm, setServiceForm] = useState<ServiceFormData>({ name: '', price: '', duration_minutes: '', deposit_percentage: '' });
   const [professionalForm, setProfessionalForm] = useState<ProfessionalFormData>({ name: '', photo: '' });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>('');
@@ -56,9 +57,10 @@ export const ServiceProfessionalModal = ({
           name: editingItem.name,
           price: editingItem.price.toString(),
           duration_minutes: editingItem.duration_minutes.toString(),
+          deposit_percentage: editingItem.deposit_percentage != null ? editingItem.deposit_percentage.toString() : '',
         });
       } else {
-        setServiceForm({ name: '', price: '', duration_minutes: '' });
+        setServiceForm({ name: '', price: '', duration_minutes: '', deposit_percentage: '' });
       }
     } else {
       if (editingItem && 'photo' in editingItem) {
@@ -203,6 +205,17 @@ export const ServiceProfessionalModal = ({
                 />
               </Field>
             </div>
+            <Field id="service-deposit-percentage" label="Sinal (%)">
+              <Input
+                id="service-deposit-percentage"
+                type="number"
+                min={0}
+                max={100}
+                value={serviceForm.deposit_percentage}
+                onChange={e => setServiceForm({ ...serviceForm, deposit_percentage: e.target.value })}
+                placeholder="Opcional — ex: 30"
+              />
+            </Field>
           </>
         ) : (
           <>
