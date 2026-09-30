@@ -12,8 +12,11 @@ export const publicBookingRepository = {
   },
 
   async findEligibleServices(businessId: string) {
+    // `gt: 0` (em vez de `not: null`) exclui tanto "sem sinal configurado" (null)
+    // quanto "sinal configurado como 0%" — ambos não devem aparecer na vitrine
+    // pública, pois um depósito de R$0 faz buildPixPayload lançar (amount <= 0).
     return prisma.service.findMany({
-      where: { businessId, active: true, depositPercentage: { not: null } },
+      where: { businessId, active: true, depositPercentage: { gt: 0 } },
       select: { id: true, name: true, price: true, durationMinutes: true, depositPercentage: true },
     });
   },
@@ -27,8 +30,8 @@ export const publicBookingRepository = {
 
   async findServiceForBusiness(businessId: string, serviceId: string) {
     return prisma.service.findFirst({
-      where: { id: serviceId, businessId, active: true, depositPercentage: { not: null } },
-      select: { id: true, price: true, durationMinutes: true, depositPercentage: true },
+      where: { id: serviceId, businessId, active: true, depositPercentage: { gt: 0 } },
+      select: { id: true, name: true, price: true, durationMinutes: true, depositPercentage: true },
     });
   },
 

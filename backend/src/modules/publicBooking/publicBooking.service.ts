@@ -11,6 +11,21 @@ const HOLD_MINUTES = 15;
 const calcDeposit = (price: number, depositPercentage: number): number =>
   Math.round(price * (depositPercentage / 100) * 100) / 100;
 
+const computeAvailableSlots = async (
+  businessId: string,
+  professionalId: string,
+  date: string,
+  serviceDurationMinutes: number
+): Promise<string[]> => {
+  const businessSettings = await getBusinessScheduleSettings(businessId);
+  const bookedTimes = await appointmentsPrismaRepository.getBookedSlots(businessId, professionalId, date);
+
+  return generateAvailableTimeSlots(businessSettings, date, {
+    serviceDurationMinutes,
+    bookedTimes,
+  });
+};
+
 export const publicBookingService = {
   async getStorefront(slug: string): Promise<Storefront> {
     const business = await publicBookingRepository.findBusinessBySlug(slug);
@@ -50,15 +65,7 @@ export const publicBookingService = {
     const professional = await publicBookingRepository.findProfessionalForBusiness(business.id, query.professionalId);
     if (!professional) throw new ValidationError('Profissional indisponível para este negócio');
 
-    const businessSettings = await getBusinessScheduleSettings(business.id);
-    const bookedTimes = await appointmentsPrismaRepository.getBookedSlots(
-      business.id, query.professionalId, query.date
-    );
-
-    return generateAvailableTimeSlots(businessSettings, query.date, {
-      serviceDurationMinutes: service.durationMinutes,
-      bookedTimes,
-    });
+    return computeAvailableSlots(business.id, query.professionalId, query.date, service.durationMinutes);
   },
 
   async createPendingAppointment(slug: string, data: CreatePublicAppointmentInput) {
@@ -74,12 +81,33 @@ export const publicBookingService = {
     const professional = await publicBookingRepository.findProfessionalForBusiness(business.id, data.professionalId);
     if (!professional) throw new ValidationError('Profissional indisponível para este negócio');
 
+    const availableSlots = await computeAvailableSlots(
+      business.id, data.professionalId, data.date, service.durationMinutes
+    );
+    if (!availableSlots.includes(data.time)) {
+      throw new ValidationError('Horário indisponível para este serviço e profissional');
+    }
+
     const conflict = await appointmentsPrismaRepository.hasConflict(
       business.id, data.professionalId, data.date, `${data.time}:00`
     );
     if (conflict) throw new ConflictError('Este horário acabou de ser reservado por outra pessoa');
 
     const client = await publicBookingRepository.findOrCreateClient(business.id, data.clientName, data.clientPhone);
+
+    // Calcula o depósito e monta o payload Pix ANTES de criar a reserva: buildPixPayload
+    // pode lançar (ex.: amount <= 0), e não queremos uma reserva "fantasma" em
+    // aguardando_pagamento (segurando o horário por 15min) se o payload falhar.
+    const depositAmount = calcDeposit(Number(service.price), Number(service.depositPercentage));
+
+    const pixPayload = buildPixPayload({
+      pixKey: business.pixKey,
+      pixKeyType: business.pixKeyType as never,
+      merchantName: business.name,
+      merchantCity: 'BRASIL',
+      amount: depositAmount,
+      description: `Sinal - ${service.name}`,
+    });
 
     const expiresAt = new Date(Date.now() + HOLD_MINUTES * 60 * 1000);
     const appointment = await publicBookingRepository.createPendingAppointment({
@@ -90,17 +118,6 @@ export const publicBookingService = {
       date: data.date,
       time: data.time,
       expiresAt,
-    });
-
-    const depositAmount = calcDeposit(Number(service.price), Number(service.depositPercentage));
-
-    const pixPayload = buildPixPayload({
-      pixKey: business.pixKey,
-      pixKeyType: business.pixKeyType as never,
-      merchantName: business.name,
-      merchantCity: 'BRASIL',
-      amount: depositAmount,
-      description: `Sinal - ${appointment.service.name}`,
     });
 
     logger.info({ appointmentId: appointment.id, businessId: business.id }, 'Reserva pública criada, aguardando pagamento');
