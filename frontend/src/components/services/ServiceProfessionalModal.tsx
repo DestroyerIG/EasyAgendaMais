@@ -167,7 +167,7 @@ export const ServiceProfessionalModal = ({
         />
       }
     >
-      <form id="service-professional-form" onSubmit={handleSubmit} className="space-y-6">
+      <form id="service-professional-form" onSubmit={handleSubmit} method="post" className="space-y-6">
         {activeTab === 'servicos' ? (
           <>
             <Field id="service-name" label="Nome do Serviço">

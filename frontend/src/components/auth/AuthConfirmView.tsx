@@ -471,7 +471,7 @@ export function AuthConfirmView() {
         )}
 
         {status === 'error' && (
-          <form onSubmit={handleResendVerification} className="mt-6 space-y-3">
+          <form onSubmit={handleResendVerification} method="post" className="mt-6 space-y-3">
             <Banner tone="warning" variant="inline">
               Se o link expirou, informe seu e-mail para reenviar a verificação.
             </Banner>

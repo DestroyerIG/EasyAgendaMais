@@ -133,7 +133,9 @@ export function ForgotPasswordView({ appUrl }: ForgotPasswordViewProps) {
           Informe o e-mail da sua conta para receber o link de redefinição.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        {/* method="post": mesma proteção do login — sem isso, um clique antes do React
+            hidratar cai no submit nativo do HTML (GET para a própria URL). */}
+        <form onSubmit={handleSubmit} method="post" className="mt-6 space-y-4">
           <Field id="forgot-password-email" label="E-mail">
             <Input
               id="forgot-password-email"

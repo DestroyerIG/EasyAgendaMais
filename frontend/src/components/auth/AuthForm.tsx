@@ -265,8 +265,13 @@ export function AuthForm({ mode }: AuthFormProps) {
             </Banner>
           )}
 
+          {/* method="post": se o clique cair antes do React hidratar, o navegador ainda não
+              tem o onSubmit e envia o form puro — sem isso o padrão HTML é GET para a
+              própria URL, o que vazava a senha em texto puro na barra de endereço (achado
+              do usuário). */}
           <form
             onSubmit={handleSubmit}
+            method="post"
             className="space-y-4"
             aria-label={isLogin ? 'Formulário de login' : 'Formulário de cadastro'}
           >

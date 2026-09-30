@@ -131,7 +131,7 @@ export function EmailVerificationView({ initialToken, initialEmail }: EmailVerif
         )}
 
         {status === 'error' && (
-          <form onSubmit={handleResend} className="mt-6 space-y-3">
+          <form onSubmit={handleResend} method="post" className="mt-6 space-y-3">
             <Field id="resend-email" label="Reenviar e-mail de verificação">
               <Input
                 id="resend-email"

@@ -107,7 +107,7 @@ export const ChatSimulator = ({ onSendMessage }: ChatSimulatorProps) => {
         <div ref={chatEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="border-t border-line bg-surface-2 p-4">
+      <form onSubmit={handleSubmit} method="post" className="border-t border-line bg-surface-2 p-4">
         <div className="flex gap-2">
           <Input
             type="text"

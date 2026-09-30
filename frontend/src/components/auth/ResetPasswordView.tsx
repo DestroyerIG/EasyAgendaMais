@@ -175,7 +175,9 @@ export function ResetPasswordView() {
         <p className="mt-4 text-sm text-muted">{message}</p>
 
         {status === 'ready' && (
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          // method="post": sem isso, um clique antes do React hidratar cai no submit
+          // nativo do HTML (GET para a própria URL), vazando a senha nova na URL.
+          <form onSubmit={handleSubmit} method="post" className="mt-6 space-y-4">
             <Field id="new-password" label="Nova senha">
               <PasswordInput
                 id="new-password"
