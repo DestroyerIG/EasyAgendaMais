@@ -34,6 +34,7 @@ import { applySecurityMiddleware } from './modules/core/middleware/security.js';
 // Route modules — new TS modules
 import billingRoutes from './modules/billing/billing.routes.js';
 import appointmentRoutes from './modules/appointments/appointments.routes.js';
+import businessPublicPageRoutes from './modules/businessPublicPage/businessPublicPage.routes.js';
 
 // Route modules — stub re-exports
 // @ts-ignore
@@ -411,6 +412,11 @@ app.use(
 app.use(
   `${API_V1}/appointments`,
   appointmentRoutes
+);
+
+app.use(
+  `${API_V1}/business-public-page`,
+  businessPublicPageRoutes
 );
 
 app.use(
