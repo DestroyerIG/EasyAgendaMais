@@ -2,6 +2,7 @@
 
 import { Scissors, Clock, DollarSign, Edit2, Trash2 } from 'lucide-react';
 import { Card, IconButton } from '@/components/ui';
+import { formatDurationExtenso } from '@/lib/formatters';
 import type { Service } from '@/types';
 
 interface ServiceCardProps {
@@ -25,7 +26,7 @@ export const ServiceCard = ({ service, onEdit, onDelete }: ServiceCardProps) => 
       <h3 className="text-lg font-bold text-ink">{service.name}</h3>
       <div className="mt-1 flex items-center gap-4 text-[15px] text-muted">
         <span className="flex items-center gap-1.5 tabular-nums">
-          <Clock className="h-4 w-4 text-brand-text" aria-hidden="true" /> {service.duration_minutes} min
+          <Clock className="h-4 w-4 text-brand-text" aria-hidden="true" /> {formatDurationExtenso(service.duration_minutes)}
         </span>
         <span className="flex items-center gap-1.5 tabular-nums">
           <DollarSign className="h-4 w-4 text-success" aria-hidden="true" /> R$ {parseFloat(service.price.toString()).toFixed(2)}
