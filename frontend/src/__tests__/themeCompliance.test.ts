@@ -21,10 +21,12 @@ const COVERAGE_ROOTS: readonly string[] = ['src/app/dashboard', 'src/components'
 
 // Arquivos isentos da cobertura, com o motivo de cada um.
 const COVERAGE_EXEMPT: readonly string[] = [
-  'src/components/marketing', // landing e tabela de planos: fora do escopo, tema próprio
+  // PricingPlansSection: os cards visíveis na landing usam os tokens do DESIGN.md,
+  // mas os modais de Pix/cupom (fluxo autenticado em /dashboard/planos) ainda usam
+  // as cores antigas — fora do escopo desta migração.
+  'src/components/marketing/PricingPlansSection.tsx',
   'src/components/admin', // SuperAdmin: fora do escopo do design system
   'src/components/LoadingSkeleton.tsx', // esqueleto legado das telas fora do escopo
-  'src/app/page.tsx', // landing: fora do escopo
   'src/app/termos', // página institucional: fora do escopo
   'src/app/privacidade', // página institucional: fora do escopo
   'src/app/admin', // SuperAdmin: fora do escopo

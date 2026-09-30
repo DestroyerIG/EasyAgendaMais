@@ -103,6 +103,33 @@
     --color-tertiary-container: 61 189 255;
   }
 
+  /* Mesmos valores do :root, para reafirmar o claro num descendente mesmo quando um
+     ancestral (tema do sistema/usuário) já aplicou .dark — usado pela landing pública,
+     que não tem alternância de tema. Ver ForcedLight. */
+  .light {
+    --color-bg: 246 245 244;
+    --color-surface: 255 255 255;
+    --color-surface-2: 239 237 234;
+    --color-ink: 26 24 23;
+    --color-muted: 102 96 91;
+    --color-line: 226 223 219;
+    --color-brand: 255 122 0;
+    --color-on-brand: 26 24 23;
+    --color-brand-text: 179 77 0;
+    --color-whatsapp: 18 140 74;
+    --color-success: 22 163 74;
+    --color-success-text: 21 128 61;
+    --color-warning: 217 119 6;
+    --color-warning-text: 146 64 14;
+    --color-danger: 220 38 38;
+    --color-status-confirmed: 37 99 235;
+    --color-scrim: 14 13 12;
+    --color-surface-m3: 255 248 246;
+    --color-brand-text-m3: 153 71 0;
+    --color-tertiary: 0 99 153;
+    --color-tertiary-container: 0 168 255;
+  }
+
   /* Contêiner das telas que seguem o design system: fundo, texto e tipografia do DESIGN.md. */
   .app-theme {
     @apply bg-bg text-ink;

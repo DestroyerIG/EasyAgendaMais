@@ -4,13 +4,16 @@ import { forwardRef, type ComponentPropsWithoutRef, type ElementRef } from 'reac
 import * as Menu from '@radix-ui/react-dropdown-menu';
 import { cn } from '@/lib/cn';
 import { useForcedDarkClass } from '@/components/theme/ForcedDark';
+import { useForcedLightClass } from '@/components/theme/ForcedLight';
 
 export const DropdownMenu = Menu.Root;
 export const DropdownMenuTrigger = Menu.Trigger;
 
 export const DropdownMenuContent = forwardRef<ElementRef<typeof Menu.Content>, ComponentPropsWithoutRef<typeof Menu.Content>>(
   function DropdownMenuContent({ className, sideOffset = 6, ...props }, ref) {
-    const themeClass = useForcedDarkClass();
+    const forcedDark = useForcedDarkClass();
+    const forcedLight = useForcedLightClass();
+    const themeClass = forcedDark || forcedLight;
     return (
       <Menu.Portal>
         <div className={themeClass}>

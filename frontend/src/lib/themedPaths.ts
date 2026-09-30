@@ -3,6 +3,7 @@
 export const THEMED_PATHS: readonly string[] = [
   'src/lib/cn.ts',
   'src/components/theme/ThemeProvider.tsx',
+  'src/components/theme/ForcedLight.tsx',
   'src/components/ui',
   'src/components/Toast.tsx',
   'src/components/dev',
@@ -43,4 +44,9 @@ export const THEMED_PATHS: readonly string[] = [
   'src/app/pagamento/page.tsx',
   'src/components/billing',
   'src/components/ErrorBoundary.tsx',
+  'src/app/page.tsx',
+  'src/app/nail-designers/page.tsx',
+  'src/components/marketing/PublicNavbar.tsx',
+  'src/components/marketing/PublicFooter.tsx',
+  'src/components/marketing/landing',
 ];

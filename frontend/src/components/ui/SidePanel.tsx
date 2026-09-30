@@ -5,6 +5,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useForcedDarkClass } from '@/components/theme/ForcedDark';
+import { useForcedLightClass } from '@/components/theme/ForcedLight';
 import { IconButton } from './IconButton';
 
 const SIDE_CLASS = {
@@ -52,7 +53,9 @@ export function SidePanel({
   children,
   footer,
 }: SidePanelProps) {
-  const themeClass = useForcedDarkClass();
+  const forcedDark = useForcedDarkClass();
+  const forcedLight = useForcedLightClass();
+  const themeClass = forcedDark || forcedLight;
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>

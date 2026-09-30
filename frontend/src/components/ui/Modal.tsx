@@ -5,6 +5,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { X, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useForcedDarkClass } from '@/components/theme/ForcedDark';
+import { useForcedLightClass } from '@/components/theme/ForcedLight';
 import { Button } from './Button';
 import { IconButton } from './IconButton';
 
@@ -22,7 +23,9 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, icon: Icon, description, size = 'md', children, footer }: ModalProps) {
-  const themeClass = useForcedDarkClass();
+  const forcedDark = useForcedDarkClass();
+  const forcedLight = useForcedLightClass();
+  const themeClass = forcedDark || forcedLight;
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>

@@ -70,7 +70,7 @@ Cada negócio escolhe uma cor de destaque e envia o logo. Na página pública de
 - Datas de exemplo em 2026 (ex.: terça, 17 de setembro de 2026). Nunca 2024 ou 2025.
 - Horários sempre no formato 24h (08:30, 19:30). Nunca AM/PM.
 - Telefones de exemplo com DDD 83.
-- Planos da plataforma: Solo R$ 39,90/mês (1 profissional), Equipe R$ 99,90/mês (até 5 profissionais), Salão R$ 199,90/mês (profissionais ilimitados e várias unidades). Nunca usar o nome "Pro".
+- Planos da plataforma: Solo R$ 49,90/mês (1 profissional), Equipe R$ 99,90/mês (até 5 profissionais), Salão R$ 199,90/mês (profissionais ilimitados e várias unidades). Nunca usar o nome "Pro". (O export do Stitch trazia R$ 39,90 para o Solo; o valor real cobrado no billing é R$ 49,90 — vale o valor real.)
 - WhatsApp: conexão por QR code no celular do negócio. Não usar "WhatsApp Oficial", "Meta Cloud API", "Verified" nem "WABA".
 - Não inventar números de resultado (porcentagens de redução de faltas, taxas de entrega, multiplicadores) nem depoimentos com nome e cidade; usar o rótulo "Depoimento de exemplo".
 - Fora do escopo, não criar: adiantamento de repasse, terminal POS, sangria e suprimento de caixa, envio de SMS, estoque ou almoxarifado, item de menu "Funil CRM".
