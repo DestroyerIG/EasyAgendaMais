@@ -15,7 +15,7 @@ export const CreateAppointmentSchema = z.object({
 export const UpdateAppointmentSchema = CreateAppointmentSchema.partial();
 
 export const UpdateStatusSchema = z.object({
-  status: z.enum(['confirmado', 'concluido', 'cancelado']),
+  status: z.enum(['confirmado', 'concluido', 'cancelado', 'aguardando_pagamento']),
 });
 
 export const GetAvailableSlotsQuerySchema = z.object({
@@ -26,7 +26,7 @@ export const GetAvailableSlotsQuerySchema = z.object({
 
 export const GetAppointmentsQuerySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  status: z.enum(['confirmado', 'concluido', 'cancelado']).optional(),
+  status: z.enum(['confirmado', 'concluido', 'cancelado', 'aguardando_pagamento']).optional(),
   view: z.enum(['day', 'week']).default('day'),
   professionalId: z.string().uuid().optional(),
 });
@@ -51,6 +51,8 @@ export interface AppointmentWithRelations {
   time: Date;
   status: AppointmentStatus;
   reminderSent: boolean;
+  expiresAt?: Date | null;
+  source: string;
   createdAt: Date;
   updatedAt: Date;
   client: { name: string; phone: string };
@@ -62,4 +64,5 @@ export const VALID_STATUS_TRANSITIONS: Record<AppointmentStatus, AppointmentStat
   confirmado: ['concluido', 'cancelado'],
   concluido: [],
   cancelado: [],
+  aguardando_pagamento: ['confirmado', 'cancelado'],
 };

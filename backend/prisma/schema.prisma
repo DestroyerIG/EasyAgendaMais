@@ -50,6 +50,11 @@ model Business {
   // Metadata
   metadata                     Json      @default("{}")
   instagramHandle              String?   @map("instagram_handle") @db.VarChar(255)
+  slug                         String?   @unique @db.VarChar(100)
+  pixKey                       String?   @map("pix_key") @db.VarChar(255)
+  pixKeyType                   String?   @map("pix_key_type") @db.VarChar(20)
+  logoUrl                      String?   @map("logo_url") @db.Text
+  brandColor                   String?   @map("brand_color") @db.VarChar(7)
   active                       Boolean   @default(true)
   suspendedAt                  DateTime? @map("suspended_at")
   suspendedReason              String?   @map("suspended_reason") @db.VarChar(255)
@@ -147,6 +152,7 @@ model Service {
   name            String   @db.VarChar(255)
   price           Decimal  @db.Decimal(10, 2)
   durationMinutes Int      @map("duration_minutes")
+  depositPercentage Decimal? @map("deposit_percentage") @db.Decimal(5, 2)
   active          Boolean  @default(true)
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
@@ -190,6 +196,8 @@ model Appointment {
   time         DateTime @db.Time(6)
   status       String   @default("confirmado") @db.VarChar(20)
   reminderSent Boolean  @default(false) @map("reminder_sent")
+  expiresAt    DateTime? @map("expires_at")
+  source       String    @default("painel") @db.VarChar(20)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
 
