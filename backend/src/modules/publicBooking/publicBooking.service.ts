@@ -106,9 +106,9 @@ export const publicBookingService = {
     logger.info({ appointmentId: appointment.id, businessId: business.id }, 'Reserva pública criada, aguardando pagamento');
 
     return {
-      appointment,
-      pixPayload,
+      appointmentId: appointment.id,
       depositAmount,
+      pixPayload,
       expiresAt: expiresAt.toISOString(),
     };
   },
