@@ -211,4 +211,13 @@ export const appointmentsPrismaRepository = {
       select: { price: true, durationMinutes: true },
     });
   },
+
+  async findPendingPayment(businessId: string): Promise<AppointmentWithRelations[]> {
+    const now = new Date();
+    return prisma.appointment.findMany({
+      where: { businessId, status: 'aguardando_pagamento', expiresAt: { gt: now } },
+      include: APPOINTMENT_INCLUDE,
+      orderBy: [{ date: 'asc' }, { time: 'asc' }],
+    }) as unknown as AppointmentWithRelations[];
+  },
 };

@@ -77,6 +77,19 @@ export const deleteAppointment = async (
   }
 };
 
+export const getPendingPayment = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const data = await appointmentsService.getPendingPayment(req.user.businessId!);
+    sendSuccess(res, data.map(toAppointmentDto));
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getAvailableSlots = async (
   req: Request,
   res: Response,
