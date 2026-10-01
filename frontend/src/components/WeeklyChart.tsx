@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useThemeColors } from '@/hooks/useThemeColors';
@@ -20,6 +20,10 @@ const isHoje = (dateStr: string) => new Date(dateStr).toDateString() === new Dat
 // Rótulo de cada barra (hoje-desktop.html / hoje-mobile.html): dia da semana
 // abreviado, e "Hoje" para a barra do dia atual em vez do nome do dia.
 const rotuloDia = (dateStr: string) => (isHoje(dateStr) ? 'Hoje' : DIAS_ABREVIADOS[new Date(dateStr).getDay()]);
+
+// Valor em cima de cada barra (hoje-desktop.html): número compacto, sem "R$" — o
+// cifrão já aparece no "Total período" ao lado do título.
+const formatCompacto = (value: number) => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(value);
 
 export function WeeklyChart({ data, className }: WeeklyChartProps) {
     const colors = useThemeColors();
@@ -41,7 +45,7 @@ export function WeeklyChart({ data, className }: WeeklyChartProps) {
             </div>
             {colors ? (
                 <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={data}>
+                    <BarChart data={data} margin={{ top: 24 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={colors.line} vertical={false} />
                         <XAxis
                             dataKey="date"
@@ -66,6 +70,27 @@ export function WeeklyChart({ data, className }: WeeklyChartProps) {
                             {data.map((dia) => (
                                 <Cell key={dia.date} fill={isHoje(dia.date) ? colors.brand : colors.line} />
                             ))}
+                            <LabelList
+                                dataKey="total"
+                                position="top"
+                                offset={8}
+                                content={({ x, y, width, value, index }) => {
+                                    const dia = data[index as number];
+                                    const destaque = dia && isHoje(dia.date);
+                                    return (
+                                        <text
+                                            x={Number(x) + Number(width) / 2}
+                                            y={Number(y) - 8}
+                                            textAnchor="middle"
+                                            fontSize={11}
+                                            fontWeight={700}
+                                            fill={destaque ? colors.brand : colors.muted}
+                                        >
+                                            {formatCompacto(Number(value))}
+                                        </text>
+                                    );
+                                }}
+                            />
                         </Bar>
                     </BarChart>
                 </ResponsiveContainer>

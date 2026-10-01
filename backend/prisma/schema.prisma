@@ -80,6 +80,7 @@ model Business {
   whatsappBotConfig    WhatsappBotConfig?
   whatsappRatings      WhatsappRating[]
   settings             BusinessSettings?
+  notifications        Notification[]
 
   @@map("businesses")
 }
@@ -427,4 +428,23 @@ model BusinessSettings {
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@map("business_settings")
+}
+
+// ─── Notification (sino do painel) ─────────────────────────────────────────
+
+model Notification {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId  String   @map("business_id") @db.Uuid
+  type        String   @db.VarChar(50)
+  title       String   @db.VarChar(255)
+  description String?  @db.Text
+  link        String?  @db.VarChar(500)
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, read])
+  @@index([businessId, createdAt])
+  @@map("notifications")
 }
