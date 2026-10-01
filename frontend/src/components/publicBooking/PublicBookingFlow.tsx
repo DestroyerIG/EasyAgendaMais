@@ -1,9 +1,24 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import axios from 'axios';
 import { publicBookingApi, type StorefrontDto, type ProfessionalDto } from '@/lib/publicBooking';
+import { getApiErrorMessage } from '@/utils/handleApiError';
 
 type Step = 'servico' | 'profissional' | 'horario' | 'dados' | 'pix';
+
+/** Data de hoje no fuso do navegador, em YYYY-MM-DD (formato do <input type="date">). */
+const todayLocalIso = (): string => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+/** "HH:MM" no horário local a partir do ISO de expiração da reserva. */
+const formatDeadline = (expiresAt: string): string =>
+  new Date(expiresAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
 export function PublicBookingFlow({ slug }: { slug: string }) {
   const [storefront, setStorefront] = useState<StorefrontDto | null>(null);
@@ -19,7 +34,13 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [pixResult, setPixResult] = useState<{ pixPayload: string; depositAmount: number } | null>(null);
+  const [pixResult, setPixResult] = useState<{ pixPayload: string; depositAmount: number; expiresAt: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+  }, []);
 
   useEffect(() => {
     publicBookingApi
@@ -30,10 +51,15 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
   }, [slug]);
 
   const selectService = async (id: string) => {
-    setServiceId(id);
-    const list = await publicBookingApi.getProfessionals(slug);
-    setProfessionals(list);
-    setStep('profissional');
+    setError(null);
+    try {
+      const list = await publicBookingApi.getProfessionals(slug);
+      setServiceId(id);
+      setProfessionals(list);
+      setStep('profissional');
+    } catch {
+      setError('Não foi possível carregar os profissionais. Tente novamente.');
+    }
   };
 
   const selectProfessional = (id: string) => {
@@ -43,9 +69,15 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
 
   const loadAvailability = async (selectedDate: string) => {
     setDate(selectedDate);
-    if (!serviceId || !professionalId) return;
-    const slots = await publicBookingApi.getAvailability(slug, { serviceId, professionalId, date: selectedDate });
-    setAvailableSlots(slots);
+    setError(null);
+    if (!serviceId || !professionalId || !selectedDate) return;
+    try {
+      const slots = await publicBookingApi.getAvailability(slug, { serviceId, professionalId, date: selectedDate });
+      setAvailableSlots(slots);
+    } catch {
+      setAvailableSlots([]);
+      setError('Não foi possível carregar os horários disponíveis. Tente novamente.');
+    }
   };
 
   const selectTime = (slot: string) => {
@@ -61,12 +93,33 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
       const result = await publicBookingApi.createAppointment(slug, {
         serviceId, professionalId, date, time, clientName, clientPhone,
       });
-      setPixResult({ pixPayload: result.pixPayload, depositAmount: result.depositAmount });
+      setPixResult({ pixPayload: result.pixPayload, depositAmount: result.depositAmount, expiresAt: result.expiresAt });
       setStep('pix');
-    } catch {
-      setError('Não foi possível criar a reserva. Tente novamente.');
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        // Outra pessoa reservou este horário enquanto o cliente preenchia os dados:
+        // volta para a escolha de horário com a lista atualizada.
+        setTime(null);
+        setStep('horario');
+        await loadAvailability(date);
+        setError('Este horário acabou de ser reservado por outra pessoa. Escolha outro horário.');
+      } else {
+        setError(getApiErrorMessage(err, 'Não foi possível criar a reserva. Tente novamente.'));
+      }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const copyPixCode = async () => {
+    if (!pixResult) return;
+    try {
+      await navigator.clipboard.writeText(pixResult.pixPayload);
+      setCopied(true);
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+      copiedTimer.current = setTimeout(() => setCopied(false), 3000);
+    } catch {
+      setError('Não foi possível copiar automaticamente. Selecione o código e copie manualmente.');
     }
   };
 
@@ -77,6 +130,12 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
   return (
     <div className="mx-auto max-w-xl px-4 py-10">
       <h1 className="text-2xl font-extrabold text-ink">{storefront.name}</h1>
+
+      {error && (
+        <p role="alert" className="mt-4 text-sm text-danger">
+          {error}
+        </p>
+      )}
 
       {step === 'servico' && (
         <div className="mt-6 flex flex-col gap-3">
@@ -113,6 +172,8 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
         <div className="mt-6 flex flex-col gap-4">
           <input
             type="date"
+            aria-label="Data do agendamento"
+            min={todayLocalIso()}
             value={date}
             onChange={(e) => loadAvailability(e.target.value)}
             className="rounded-lg border border-line p-3"
@@ -146,7 +207,6 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
             onChange={(e) => setClientPhone(e.target.value)}
             className="rounded-lg border border-line p-3"
           />
-          {error && <p className="text-sm text-danger">{error}</p>}
           <button
             type="button"
             disabled={submitting || !clientName || !clientPhone}
@@ -161,7 +221,22 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
       {step === 'pix' && pixResult && (
         <div className="mt-6 flex flex-col gap-4 rounded-card border border-line bg-surface-2 p-5">
           <p className="font-bold text-ink">Pague o sinal de R$ {pixResult.depositAmount.toFixed(2)} via Pix</p>
-          <textarea readOnly value={pixResult.pixPayload} className="h-24 rounded-lg border border-line p-3 text-xs" />
+          <p className="text-sm font-semibold text-ink">
+            Pague até {formatDeadline(pixResult.expiresAt)} — depois disso o horário é liberado para outras pessoas.
+          </p>
+          <textarea
+            readOnly
+            aria-label="Código Pix copia e cola"
+            value={pixResult.pixPayload}
+            className="h-24 rounded-lg border border-line p-3 text-xs"
+          />
+          <button
+            type="button"
+            onClick={copyPixCode}
+            className="rounded-lg bg-brand px-4 py-3 font-bold text-on-brand"
+          >
+            {copied ? 'Copiado!' : 'Copiar código'}
+          </button>
           <p className="text-sm text-muted">
             Aguardando confirmação do estabelecimento. Você pode fechar esta página.
           </p>

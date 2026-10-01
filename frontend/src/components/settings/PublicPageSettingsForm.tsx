@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { businessPublicPageApi, type PublicPageSettings } from '@/lib/businessPublicPage';
+import { getApiErrorMessage } from '@/utils/handleApiError';
 
 const PIX_KEY_TYPES: { value: NonNullable<PublicPageSettings['pixKeyType']>; label: string }[] = [
   { value: 'cpf', label: 'CPF' },
@@ -18,6 +19,7 @@ export function PublicPageSettingsForm() {
   const [pixKeyType, setPixKeyType] = useState<PublicPageSettings['pixKeyType']>('telefone');
   const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     businessPublicPageApi.getSettings().then((data) => {
@@ -31,10 +33,14 @@ export function PublicPageSettingsForm() {
   const submit = async () => {
     setSaving(true);
     setSavedMessage(null);
+    setErrorMessage(null);
     try {
       const updated = await businessPublicPageApi.updateSettings({ slug, pixKey, pixKeyType: pixKeyType ?? undefined });
       setSettings(updated);
       setSavedMessage('Configurações salvas.');
+    } catch (err) {
+      // Ex.: link já usado por outro negócio (409) ou chave Pix em formato inválido (400).
+      setErrorMessage(getApiErrorMessage(err, 'Não foi possível salvar as configurações. Tente novamente.'));
     } finally {
       setSaving(false);
     }
@@ -81,6 +87,11 @@ export function PublicPageSettingsForm() {
       </label>
 
       {savedMessage && <p className="text-sm text-whatsapp">{savedMessage}</p>}
+      {errorMessage && (
+        <p role="alert" className="text-sm text-danger">
+          {errorMessage}
+        </p>
+      )}
 
       <button
         type="button"

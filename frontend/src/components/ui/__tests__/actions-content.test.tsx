@@ -5,7 +5,7 @@ import { CalendarX } from 'lucide-react';
 import { Button } from '../Button';
 import { IconButton } from '../IconButton';
 import { MetricCard } from '../MetricCard';
-import { StatusChip, STATUS_LABEL, type AppointmentStatus } from '../StatusChip';
+import { StatusChip, STATUS_LABEL, STATUS_STRIPE_CLASS, type AppointmentStatus } from '../StatusChip';
 import { Avatar, getInitials } from '../Avatar';
 import { EmptyState } from '../EmptyState';
 import { PageHeader } from '../PageHeader';
@@ -75,6 +75,7 @@ describe('StatusChip', () => {
   const expected: Record<AppointmentStatus, string> = {
     confirmado: 'text-status-confirmed',
     aguardando: 'text-warning-text',
+    aguardando_pagamento: 'text-tertiary',
     em_atendimento: 'text-brand-text',
     concluido: 'text-success-text',
     faltou: 'text-danger',
@@ -85,6 +86,15 @@ describe('StatusChip', () => {
     render(<StatusChip status={status} />);
     const chip = screen.getByText(STATUS_LABEL[status]);
     expect(chip).toHaveClass(expected[status]);
+  });
+
+  it('aguardando_pagamento aparece como "Aguardando Pix", com cor distinta de aguardando e em_atendimento', () => {
+    render(<StatusChip status="aguardando_pagamento" />);
+    const chip = screen.getByText('Aguardando Pix');
+    expect(chip).toHaveClass('text-tertiary');
+    expect(chip).not.toHaveClass('text-warning-text');
+    expect(chip).not.toHaveClass('text-brand-text');
+    expect(STATUS_STRIPE_CLASS.aguardando_pagamento).toBe('bg-tertiary');
   });
 
   it('cancelado aparece riscado', () => {

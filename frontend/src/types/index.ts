@@ -22,7 +22,7 @@ export interface Appointment {
     service_id: string;
     date: string;
     time: string;
-    status: 'confirmado' | 'concluido' | 'cancelado';
+    status: 'confirmado' | 'aguardando_pagamento' | 'concluido' | 'cancelado';
     reminder_sent: boolean;
     created_at: string;
     client_name?: string;

@@ -1,10 +1,18 @@
 import { cn } from '@/lib/cn';
 
-export type AppointmentStatus = 'confirmado' | 'aguardando' | 'em_atendimento' | 'concluido' | 'faltou' | 'cancelado';
+export type AppointmentStatus =
+  | 'confirmado'
+  | 'aguardando'
+  | 'aguardando_pagamento'
+  | 'em_atendimento'
+  | 'concluido'
+  | 'faltou'
+  | 'cancelado';
 
 export const STATUS_LABEL: Record<AppointmentStatus, string> = {
   confirmado: 'Confirmado',
   aguardando: 'Aguardando',
+  aguardando_pagamento: 'Aguardando Pix',
   em_atendimento: 'Em atendimento',
   concluido: 'Concluído',
   faltou: 'Faltou',
@@ -14,6 +22,10 @@ export const STATUS_LABEL: Record<AppointmentStatus, string> = {
 const STATUS_CLASS: Record<AppointmentStatus, string> = {
   confirmado: 'bg-status-confirmed/12 text-status-confirmed',
   aguardando: 'bg-warning/12 text-warning-text',
+  // Reserva pública segurando o horário até o sinal Pix ser confirmado. Usa o
+  // tertiary (azul-ciano) porque warning (âmbar) já é "aguardando" e brand
+  // (laranja) é "em atendimento" — precisa ser distinguível dos dois.
+  aguardando_pagamento: 'bg-tertiary/12 text-tertiary',
   em_atendimento: 'bg-brand/12 text-brand-text',
   concluido: 'bg-success/12 text-success-text',
   faltou: 'bg-danger/12 text-danger',
@@ -24,6 +36,7 @@ const STATUS_CLASS: Record<AppointmentStatus, string> = {
 export const STATUS_STRIPE_CLASS: Record<AppointmentStatus, string> = {
   confirmado: 'bg-status-confirmed',
   aguardando: 'bg-warning',
+  aguardando_pagamento: 'bg-tertiary',
   em_atendimento: 'bg-brand',
   concluido: 'bg-success',
   faltou: 'bg-danger',

@@ -41,7 +41,7 @@ import {
   type AppointmentStatus,
 } from '@/components/ui';
 
-const STATUSES: AppointmentStatus[] = ['confirmado', 'aguardando', 'em_atendimento', 'concluido', 'faltou', 'cancelado'];
+const STATUSES: AppointmentStatus[] = ['confirmado', 'aguardando', 'aguardando_pagamento', 'em_atendimento', 'concluido', 'faltou', 'cancelado'];
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
