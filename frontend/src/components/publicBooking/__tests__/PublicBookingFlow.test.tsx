@@ -145,6 +145,18 @@ describe('PublicBookingFlow', () => {
     expect(screen.getByRole('button', { name: 'Copiado!' })).toBeInTheDocument();
   });
 
+  it('na etapa Pix gera e mostra o QR Code do código copia e cola', async () => {
+    const user = userEvent.setup();
+    api.createAppointment.mockResolvedValue({
+      appointmentId: 'appt-1', depositAmount: 39, pixPayload: '000201PIXCODE6304ABCD', expiresAt: new Date().toISOString(),
+    });
+
+    await goToPixStep(user);
+
+    const qrImage = await screen.findByRole('img', { name: /qr code do pix/i });
+    expect(qrImage).toHaveAttribute('src', expect.stringMatching(/^data:image\/png;base64,/));
+  });
+
   it('quando o horário foi reservado por outra pessoa (409), volta para a escolha de horário com a lista atualizada', async () => {
     const user = userEvent.setup();
     api.createAppointment.mockRejectedValue(axiosError(409, 'Este horário acabou de ser reservado por outra pessoa'));

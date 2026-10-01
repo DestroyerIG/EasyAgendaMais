@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
+import QRCode from 'qrcode';
 import { publicBookingApi, type StorefrontDto, type ProfessionalDto } from '@/lib/publicBooking';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 
@@ -36,11 +37,24 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [pixResult, setPixResult] = useState<{ pixPayload: string; depositAmount: number; expiresAt: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
     if (copiedTimer.current) clearTimeout(copiedTimer.current);
   }, []);
+
+  useEffect(() => {
+    if (!pixResult) {
+      setQrCodeUrl(null);
+      return;
+    }
+    let cancelado = false;
+    QRCode.toDataURL(pixResult.pixPayload, { margin: 1, width: 220 })
+      .then((url) => { if (!cancelado) setQrCodeUrl(url); })
+      .catch(() => { if (!cancelado) setQrCodeUrl(null); });
+    return () => { cancelado = true; };
+  }, [pixResult]);
 
   useEffect(() => {
     publicBookingApi
@@ -244,6 +258,16 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
           <p className="text-sm font-semibold text-ink">
             Pague até {formatDeadline(pixResult.expiresAt)} — depois disso o horário é liberado para outras pessoas.
           </p>
+          {qrCodeUrl && (
+            // eslint-disable-next-line @next/next/no-img-element -- data: URL gerado no cliente, sem domínio pro next/image otimizar
+            <img
+              src={qrCodeUrl}
+              alt="QR Code do Pix"
+              width={220}
+              height={220}
+              className="mx-auto rounded-lg border border-line bg-surface p-2"
+            />
+          )}
           <textarea
             readOnly
             aria-label="Código Pix copia e cola"
