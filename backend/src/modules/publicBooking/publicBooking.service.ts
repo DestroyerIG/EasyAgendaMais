@@ -3,6 +3,7 @@ import { publicBookingRepository } from './publicBooking.repository.js';
 import { appointmentsPrismaRepository } from '../appointments/appointments.repository.js';
 import { generateAvailableTimeSlots, getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
 import { buildPixPayload } from '../../utils/pixPayload.js';
+import { notificationsService } from '../notifications/notifications.service.js';
 import logger from '../../utils/logger.js';
 import type { CreatePublicAppointmentInput, GetPublicAvailabilityQuery, Storefront } from './publicBooking.types.js';
 
@@ -148,6 +149,13 @@ export const publicBookingService = {
     );
 
     logger.info({ appointmentId: appointment.id, businessId: business.id }, 'Reserva pública criada, aguardando pagamento');
+
+    const [year, month, day] = data.date.split('-');
+    await notificationsService.notify(business.id, {
+      type: 'nova_reserva',
+      title: 'Nova reserva online',
+      description: `${data.clientName} · ${service.name} · ${day}/${month}/${year} às ${data.time}`,
+    });
 
     return {
       appointmentId: appointment.id,

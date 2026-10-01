@@ -4,6 +4,7 @@ import { publicBookingRepository } from '../modules/publicBooking/publicBooking.
 import { appointmentsPrismaRepository } from '../modules/appointments/appointments.repository.js';
 import { getBusinessScheduleSettings, generateAvailableTimeSlots } from '../services/scheduleSettingsService.js';
 import { NotFoundError, ValidationError, ConflictError } from '../utils/errors.js';
+import { notificationsService } from '../modules/notifications/notifications.service.js';
 
 vi.mock('../modules/publicBooking/publicBooking.repository.js', () => ({
   publicBookingRepository: {
@@ -32,6 +33,10 @@ vi.mock('../modules/appointments/appointments.repository.js', () => ({
 vi.mock('../services/scheduleSettingsService.js', () => ({
   getBusinessScheduleSettings: vi.fn(),
   generateAvailableTimeSlots: vi.fn(),
+}));
+
+vi.mock('../modules/notifications/notifications.service.js', () => ({
+  notificationsService: { notify: vi.fn().mockResolvedValue(undefined) },
 }));
 
 const BUSINESS = {
@@ -173,6 +178,11 @@ describe('publicBookingService.createPendingAppointment', () => {
     // sem isso, uma falha em buildPixPayload deixaria uma reserva "fantasma" segurando
     // o horário por 15min.
     expect(publicBookingRepository.createPendingAppointment).toHaveBeenCalledTimes(1);
+    expect(notificationsService.notify).toHaveBeenCalledWith('biz-1', {
+      type: 'nova_reserva',
+      title: 'Nova reserva online',
+      description: 'Mariana · Corte · 24/10/2099 às 14:00',
+    });
   });
 
   it('rejeita horário que não está na lista de slots disponíveis (fora do expediente, dia fechado, ou grid incompatível)', async () => {

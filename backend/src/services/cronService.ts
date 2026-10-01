@@ -6,6 +6,7 @@ import { businessSettingsRepository } from '../repositories/businessSettingsRepo
 
 // @ts-ignore — sendWhatsAppMessage is a legacy JS service not yet typed
 import { sendWhatsAppMessage } from './whatsapp/index.js';
+import { notificationsService } from '../modules/notifications/notifications.service.js';
 
 // Agendamentos gravam `time`/`date` no relógio local do negócio (BR), não UTC.
 // Render roda em UTC, então o alvo precisa ser calculado no fuso de negócio.
@@ -120,14 +121,37 @@ export const runReminderJob = async (now: Date = new Date()): Promise<void> => {
 };
 
 export const expirePendingAppointments = async (now: Date = new Date()): Promise<number> => {
-  const result = await prisma.appointment.updateMany({
+  const toExpire = await prisma.appointment.findMany({
     where: {
       status: 'aguardando_pagamento',
       expiresAt: { lt: now },
     },
+    select: {
+      id: true,
+      businessId: true,
+      client: { select: { name: true } },
+      service: { select: { name: true } },
+    },
+  });
+
+  if (toExpire.length === 0) return 0;
+
+  await prisma.appointment.updateMany({
+    where: { id: { in: toExpire.map((a) => a.id) } },
     data: { status: 'cancelado' },
   });
-  return result.count;
+
+  await Promise.all(
+    toExpire.map((a) =>
+      notificationsService.notify(a.businessId, {
+        type: 'reserva_expirada',
+        title: 'Reserva expirada sem pagamento',
+        description: `${a.client.name} · ${a.service.name}`,
+      })
+    )
+  );
+
+  return toExpire.length;
 };
 
 export const startReminderCron = (): void => {

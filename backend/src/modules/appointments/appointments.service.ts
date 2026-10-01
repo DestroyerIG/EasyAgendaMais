@@ -20,6 +20,7 @@ import { VALID_STATUS_TRANSITIONS as TRANSITIONS } from './appointments.types.js
 import type { AppointmentStatus } from '../../types/domain.js';
 // @ts-ignore — sendWhatsAppMessage é um serviço JS legado ainda não tipado
 import { sendWhatsAppMessage } from '../../services/whatsapp/index.js';
+import { notificationsService } from '../notifications/notifications.service.js';
 
 export const appointmentsService = {
   async getAll(
@@ -106,6 +107,11 @@ export const appointmentsService = {
     if (newStatus === 'confirmado' && currentStatus === 'aguardando_pagamento') {
       const message = `Olá ${appointment.client.name}! Seu sinal foi confirmado e seu horário está garantido. Te esperamos!`;
       await sendWhatsAppMessage(appointment.client.phone, message, { businessId });
+      await notificationsService.notify(businessId, {
+        type: 'pagamento_confirmado',
+        title: 'Pagamento confirmado',
+        description: `${appointment.client.name} · ${appointment.service.name}`,
+      });
     }
 
     logger.info({ appointmentId: id, from: currentStatus, to: newStatus }, 'Status atualizado');
