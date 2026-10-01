@@ -151,7 +151,13 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
         </p>
       )}
 
-      {step === 'servico' && (
+      {step === 'servico' && storefront.services.length === 0 && (
+        <p className="mt-6 text-sm text-muted">
+          Nenhum serviço disponível para agendamento online no momento. Entre em contato diretamente com o estabelecimento.
+        </p>
+      )}
+
+      {step === 'servico' && storefront.services.length > 0 && (
         <div className="mt-6 flex flex-col gap-3">
           {storefront.services.map((s) => (
             <button

@@ -71,6 +71,14 @@ describe('PublicBookingFlow', () => {
     expect(publicBookingApi.getStorefront).toHaveBeenCalledWith('studio-aurora');
   });
 
+  it('mostra uma mensagem quando o negócio não tem nenhum serviço elegível', async () => {
+    api.getStorefront.mockResolvedValueOnce({ ...STOREFRONT, services: [] });
+
+    render(<PublicBookingFlow slug="studio-aurora" />);
+
+    expect(await screen.findByText(/nenhum serviço disponível para agendamento online/i)).toBeInTheDocument();
+  });
+
   it('mostra as fotos da galeria quando o negócio tem', async () => {
     api.getStorefront.mockResolvedValueOnce({
       ...STOREFRONT,
