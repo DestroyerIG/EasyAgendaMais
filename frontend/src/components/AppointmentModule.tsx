@@ -390,7 +390,7 @@ export function AppointmentModule() {
           <TabsTrigger value="aguardando-pix">Aguardando Pix</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="agenda" className="flex flex-col gap-4 lg:gap-5">
+        <TabsContent value="agenda" className="mt-0 flex flex-col gap-4 lg:gap-5">
         {selectedDate && (
           <DateNavigationBar
             selectedDate={selectedDate}

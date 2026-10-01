@@ -558,6 +558,60 @@ describe('AppointmentModule: a grade do computador também é do dia', () => {
   });
 });
 
+describe('AppointmentModule: aba Aguardando Pix', () => {
+  beforeEach(() => {
+    mockSearch.value = '';
+    mockApiGet.mockReset();
+  });
+
+  /** Responde /appointments e /appointments/pending-payment separadamente; o resto cai no padrão vazio. */
+  const responderComPendentes = (pendentes: unknown[]) => {
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === '/appointments') return Promise.resolve({ data: [] });
+      if (url === '/appointments/pending-payment') return Promise.resolve({ data: pendentes });
+      if (url === '/business/settings') return Promise.reject(new Error('sem acesso'));
+      return Promise.resolve({ data: [] });
+    });
+  };
+
+  it('a aba "Aguardando Pix" não existe de início e só busca pending-payment depois do clique', async () => {
+    responderComPendentes([]);
+    render(<AppointmentModule />);
+
+    await waitFor(() => {
+      expect(mockApiGet).toHaveBeenCalledWith('/appointments', expect.anything());
+    });
+    expect(mockApiGet).not.toHaveBeenCalledWith('/appointments/pending-payment');
+  });
+
+  it('renderiza PendingPaymentList ao selecionar a aba "Aguardando Pix"', async () => {
+    responderComPendentes([
+      {
+        id: 'apt-1',
+        client: { name: 'Mariana', phone: '83999990000' },
+        service: { name: 'Manutenção' },
+        date: '2026-10-24',
+        time: '14:00:00',
+      },
+    ]);
+    render(<AppointmentModule />);
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Aguardando Pix' }));
+
+    expect(await screen.findByText('Mariana')).toBeInTheDocument();
+    expect(mockApiGet).toHaveBeenCalledWith('/appointments/pending-payment');
+  });
+
+  it('mostra o estado vazio quando não há reservas aguardando pagamento', async () => {
+    responderComPendentes([]);
+    render(<AppointmentModule />);
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Aguardando Pix' }));
+
+    expect(await screen.findByText('Nenhuma reserva aguardando pagamento.')).toBeInTheDocument();
+  });
+});
+
 describe('AppointmentModule: painel de detalhes do agendamento', () => {
   beforeEach(() => {
     mockSearch.value = '';
