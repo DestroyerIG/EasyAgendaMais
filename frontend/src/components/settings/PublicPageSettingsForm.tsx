@@ -9,7 +9,10 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, Field, Input, Select, Button } from '@/components/ui';
 
-const BUCKET = 'barber-photos';
+// 'barber-photos' existe no banco mas teve suas políticas de RLS removidas pela
+// migração que o renomeou para 'professional-photos' — reaproveitamos este último,
+// já com RLS ativo, em vez de recriar políticas para um bucket obsoleto.
+const BUCKET = 'professional-photos';
 const MAX_GALLERY_PHOTOS = 6;
 const SLUG_CHECK_DEBOUNCE_MS = 500;
 
