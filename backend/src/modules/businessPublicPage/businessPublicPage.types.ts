@@ -11,6 +11,7 @@ export const UpdatePublicPageSchema = z
     logoUrl: z.string().url().max(2048).optional(),
     brandColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
     galleryPhotos: z.array(z.string().url().max(2048)).max(6).optional(),
+    address: z.string().trim().max(500).optional(),
   })
   .superRefine((data, ctx) => {
     // O formato da chave só pode ser validado conhecendo o tipo — por isso os dois
@@ -48,4 +49,5 @@ export interface PublicPageSettings {
   logoUrl: string | null;
   brandColor: string | null;
   galleryPhotos: string[];
+  address: string | null;
 }

@@ -120,6 +120,22 @@ describe('publicBookingService.getStorefront', () => {
 
     expect(result.galleryPhotos).toEqual(['https://x/foto-1.jpg', 'https://x/foto-2.jpg']);
   });
+
+  it('repassa o endereço do negócio', async () => {
+    (publicBookingRepository.findBusinessBySlug as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'biz-1',
+      name: 'Studio Aurora',
+      logoUrl: null,
+      brandColor: null,
+      galleryPhotos: [],
+      address: 'Rua das Flores, 123 - Centro',
+    });
+    (publicBookingRepository.findEligibleServices as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    const result = await publicBookingService.getStorefront('studio-aurora');
+
+    expect(result.address).toBe('Rua das Flores, 123 - Centro');
+  });
 });
 
 describe('publicBookingService.createPendingAppointment', () => {

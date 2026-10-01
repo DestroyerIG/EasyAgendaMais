@@ -8,10 +8,10 @@ import { AxiosError, type AxiosResponse } from 'axios';
 vi.mock('@/lib/businessPublicPage', () => ({
   businessPublicPageApi: {
     getSettings: vi.fn().mockResolvedValue({
-      slug: null, pixKey: null, pixKeyType: null, logoUrl: null, brandColor: null, galleryPhotos: [],
+      slug: null, pixKey: null, pixKeyType: null, logoUrl: null, brandColor: null, galleryPhotos: [], address: null,
     }),
     updateSettings: vi.fn().mockResolvedValue({
-      slug: 'studio-aurora', pixKey: '83999990000', pixKeyType: 'telefone', logoUrl: null, brandColor: null, galleryPhotos: [],
+      slug: 'studio-aurora', pixKey: '83999990000', pixKeyType: 'telefone', logoUrl: null, brandColor: null, galleryPhotos: [], address: null,
     }),
     checkSlugAvailability: vi.fn().mockResolvedValue(true),
     uploadImage: vi.fn().mockResolvedValue('https://cdn.test/foto.jpg'),
@@ -93,6 +93,21 @@ describe('PublicPageSettingsForm', () => {
     await waitFor(() => {
       expect(businessPublicPageApi.updateSettings).toHaveBeenCalledWith(
         expect.objectContaining({ galleryPhotos: ['https://cdn.test/foto.jpg'] })
+      );
+    });
+  });
+
+  it('salva o endereço preenchido', async () => {
+    const user = userEvent.setup();
+    render(<PublicPageSettingsForm />);
+
+    await waitFor(() => expect(businessPublicPageApi.getSettings).toHaveBeenCalled());
+    await user.type(screen.getByLabelText('Endereço'), 'Rua das Flores, 123 - Centro');
+    await user.click(screen.getByRole('button', { name: /salvar alterações/i }));
+
+    await waitFor(() => {
+      expect(businessPublicPageApi.updateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ address: 'Rua das Flores, 123 - Centro' })
       );
     });
   });

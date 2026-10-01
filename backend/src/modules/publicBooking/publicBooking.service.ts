@@ -56,6 +56,7 @@ export const publicBookingService = {
       logoUrl: business.logoUrl,
       brandColor: business.brandColor,
       galleryPhotos: business.galleryPhotos,
+      address: business.address,
       services: services.map((s) => ({
         id: s.id,
         name: s.name,

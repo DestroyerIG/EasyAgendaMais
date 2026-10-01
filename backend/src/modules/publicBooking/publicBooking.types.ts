@@ -33,5 +33,6 @@ export interface Storefront {
   logoUrl: string | null;
   brandColor: string | null;
   galleryPhotos: string[];
+  address: string | null;
   services: StorefrontService[];
 }

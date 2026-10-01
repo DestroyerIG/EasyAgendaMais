@@ -7,6 +7,7 @@ export interface PublicPageSettings {
   logoUrl: string | null;
   brandColor: string | null;
   galleryPhotos: string[];
+  address: string | null;
 }
 
 export const businessPublicPageApi = {

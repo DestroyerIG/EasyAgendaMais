@@ -6,7 +6,7 @@ import { Check, Loader2, Plus, X } from 'lucide-react';
 import { businessPublicPageApi, type PublicPageSettings } from '@/lib/businessPublicPage';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, Field, Input, Select, Button } from '@/components/ui';
+import { Card, Field, Input, Select, Textarea, Button } from '@/components/ui';
 
 const MAX_GALLERY_PHOTOS = 6;
 const SLUG_CHECK_DEBOUNCE_MS = 500;
@@ -40,6 +40,7 @@ export function PublicPageSettingsForm() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);
   const [galleryPhotos, setGalleryPhotos] = useState<string[]>([]);
+  const [address, setAddress] = useState('');
 
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
@@ -64,6 +65,7 @@ export function PublicPageSettingsForm() {
         setLogoUrl(data.logoUrl);
         setBrandColor(data.brandColor ?? DEFAULT_BRAND_COLOR);
         setGalleryPhotos(data.galleryPhotos ?? []);
+        setAddress(data.address ?? '');
       })
       .catch((err) => {
         setErrorMessage(getApiErrorMessage(err, 'Não foi possível carregar as configurações.'));
@@ -143,6 +145,7 @@ export function PublicPageSettingsForm() {
         logoUrl: logoUrl ?? undefined,
         brandColor,
         galleryPhotos,
+        address,
       });
       setSettings(updated);
       originalSlugRef.current = updated.slug ?? '';
@@ -268,6 +271,19 @@ export function PublicPageSettingsForm() {
               </label>
             )}
           </div>
+        </Card>
+
+        <Card className="flex flex-col gap-3">
+          <h2 className="text-[15px] font-bold text-ink">Localização</h2>
+          <Field id="public-page-address" label="Endereço" hint="Aparece com um mapa na sua página pública.">
+            <Textarea
+              id="public-page-address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Rua Exemplo, 123 - Bairro, Cidade - UF"
+              rows={2}
+            />
+          </Field>
         </Card>
 
         <Card className="flex flex-col gap-3">

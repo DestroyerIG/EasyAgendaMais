@@ -5,7 +5,9 @@ export const businessPublicPageRepository = {
   async findByBusinessId(businessId: string): Promise<PublicPageSettings | null> {
     const business = await prisma.business.findUnique({
       where: { id: businessId },
-      select: { slug: true, pixKey: true, pixKeyType: true, logoUrl: true, brandColor: true, galleryPhotos: true },
+      select: {
+        slug: true, pixKey: true, pixKeyType: true, logoUrl: true, brandColor: true, galleryPhotos: true, address: true,
+      },
     });
     return business;
   },
@@ -22,7 +24,9 @@ export const businessPublicPageRepository = {
     return prisma.business.update({
       where: { id: businessId },
       data,
-      select: { slug: true, pixKey: true, pixKeyType: true, logoUrl: true, brandColor: true, galleryPhotos: true },
+      select: {
+        slug: true, pixKey: true, pixKeyType: true, logoUrl: true, brandColor: true, galleryPhotos: true, address: true,
+      },
     });
   },
 };

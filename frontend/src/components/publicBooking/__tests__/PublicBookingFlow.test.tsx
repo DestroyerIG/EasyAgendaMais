@@ -22,6 +22,7 @@ const STOREFRONT = {
   logoUrl: null,
   brandColor: '#FF7A00',
   galleryPhotos: [] as string[],
+  address: null as string | null,
   services: [
     { id: 'srv-1', name: 'Manutenção Fibra', price: 130, durationMinutes: 105, depositPercentage: 30, depositAmount: 39 },
   ],
@@ -42,22 +43,36 @@ beforeEach(() => {
   vi.clearAllMocks();
   api.getStorefront.mockResolvedValue(STOREFRONT);
   api.getProfessionals.mockResolvedValue([{ id: 'prof-1', name: 'Paula' }]);
-  api.getAvailability.mockResolvedValue(['14:00', '14:30']);
+  api.getAvailability.mockResolvedValue(['09:00', '14:00', '14:30']);
 });
 
-const goToTimeStep = async (user: ReturnType<typeof userEvent.setup>) => {
+const clickContinuar = async (user: ReturnType<typeof userEvent.setup>) =>
+  user.click(screen.getByRole('button', { name: 'Continuar' }));
+
+const goToProfessionalStep = async (user: ReturnType<typeof userEvent.setup>) => {
   render(<PublicBookingFlow slug="studio-aurora" />);
   await user.click(await screen.findByText('Manutenção Fibra'));
-  await user.click(await screen.findByText('Paula'));
+  await clickContinuar(user);
 };
 
-const goToPixStep = async (user: ReturnType<typeof userEvent.setup>) => {
+const goToTimeStep = async (user: ReturnType<typeof userEvent.setup>) => {
+  await goToProfessionalStep(user);
+  await user.click(await screen.findByText('Paula'));
+  await clickContinuar(user);
+};
+
+const goToPagamentoStep = async (user: ReturnType<typeof userEvent.setup>) => {
   await goToTimeStep(user);
   fireEvent.change(screen.getByLabelText('Data do agendamento'), { target: { value: '2099-10-24' } });
   await user.click(await screen.findByRole('button', { name: '14:00' }));
+  await clickContinuar(user);
+};
+
+const goToPixStep = async (user: ReturnType<typeof userEvent.setup>) => {
+  await goToPagamentoStep(user);
   await user.type(screen.getByPlaceholderText('Seu nome'), 'Mariana');
   await user.type(screen.getByPlaceholderText('Seu WhatsApp'), '83999990000');
-  await user.click(screen.getByRole('button', { name: /reservar e pagar sinal/i }));
+  await user.click(screen.getByRole('button', { name: /confirmar agendamento/i }));
 };
 
 describe('PublicBookingFlow', () => {
@@ -99,15 +114,42 @@ describe('PublicBookingFlow', () => {
     expect(screen.queryAllByRole('img')).toHaveLength(0);
   });
 
+  it('mostra endereço e mapa quando o negócio tem localização cadastrada', async () => {
+    api.getStorefront.mockResolvedValueOnce({ ...STOREFRONT, address: 'Rua das Flores, 123 - Centro' });
+
+    render(<PublicBookingFlow slug="studio-aurora" />);
+
+    expect(await screen.findByText('Rua das Flores, 123 - Centro')).toBeInTheDocument();
+    expect(screen.getByTitle('Localização do negócio')).toHaveAttribute(
+      'src',
+      expect.stringContaining(encodeURIComponent('Rua das Flores, 123 - Centro'))
+    );
+  });
+
+  it('não mostra o bloco de localização sem endereço cadastrado', async () => {
+    render(<PublicBookingFlow slug="studio-aurora" />);
+
+    await waitFor(() => expect(screen.getByText('Studio Aurora')).toBeInTheDocument());
+    expect(screen.queryByTitle('Localização do negócio')).not.toBeInTheDocument();
+  });
+
+  it('exige selecionar um serviço antes de habilitar Continuar', async () => {
+    render(<PublicBookingFlow slug="studio-aurora" />);
+    await screen.findByText('Manutenção Fibra');
+
+    expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
+  });
+
   it('mostra erro visível quando falha ao carregar os profissionais', async () => {
     const user = userEvent.setup();
     api.getProfessionals.mockRejectedValue(new Error('falhou'));
     render(<PublicBookingFlow slug="studio-aurora" />);
 
     await user.click(await screen.findByText('Manutenção Fibra'));
+    await clickContinuar(user);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível carregar os profissionais');
-    expect(screen.getByText('Manutenção Fibra')).toBeInTheDocument(); // continua na etapa de serviço
+    expect(screen.getAllByText('Manutenção Fibra').length).toBeGreaterThan(0); // continua na etapa de serviço
   });
 
   it('mostra erro visível quando falha ao carregar os horários', async () => {
@@ -127,6 +169,27 @@ describe('PublicBookingFlow', () => {
     await goToTimeStep(user);
 
     expect(screen.getByLabelText('Data do agendamento')).toHaveAttribute('min', todayIso());
+  });
+
+  it('agrupa os horários livres em Manhã e Tarde', async () => {
+    const user = userEvent.setup();
+    await goToTimeStep(user);
+
+    fireEvent.change(screen.getByLabelText('Data do agendamento'), { target: { value: '2099-10-24' } });
+
+    expect(await screen.findByText('Manhã')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '09:00' })).toBeInTheDocument();
+    expect(screen.getByText('Tarde')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '14:00' })).toBeInTheDocument();
+  });
+
+  it('mostra o resumo do serviço e o cálculo de sinal/restante na etapa de pagamento', async () => {
+    const user = userEvent.setup();
+    await goToPagamentoStep(user);
+
+    expect(screen.getAllByText('Manutenção Fibra').length).toBeGreaterThan(0);
+    expect(screen.getByText('R$ 39,00')).toBeInTheDocument(); // sinal (30% de 130)
+    expect(screen.getByText('R$ 91,00')).toBeInTheDocument(); // restante (130 - 39)
   });
 
   it('na etapa Pix mostra o prazo de pagamento e copia o código com feedback', async () => {

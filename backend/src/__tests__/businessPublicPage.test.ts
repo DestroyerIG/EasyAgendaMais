@@ -95,6 +95,12 @@ describe('UpdatePublicPageSchema — validação de formato da chave Pix por tip
     expect(parse({ galleryPhotos: tooMany }).success).toBe(false);
     expect(parse({ galleryPhotos: ['nao-e-uma-url'] }).success).toBe(false);
   });
+
+  it('aceita um endereço de até 500 caracteres e rejeita além disso', () => {
+    expect(parse({ address: 'Rua das Flores, 123 - Centro, Campina Grande - PB' }).success).toBe(true);
+    expect(parse({ address: 'a'.repeat(500) }).success).toBe(true);
+    expect(parse({ address: 'a'.repeat(501) }).success).toBe(false);
+  });
 });
 
 describe('businessPublicPageService.checkSlugAvailability', () => {

@@ -56,6 +56,7 @@ model Business {
   logoUrl                      String?   @map("logo_url") @db.Text
   brandColor                   String?   @map("brand_color") @db.VarChar(7)
   galleryPhotos                String[]  @default([]) @map("gallery_photos")
+  address                      String?   @db.VarChar(500)
   active                       Boolean   @default(true)
   suspendedAt                  DateTime? @map("suspended_at")
   suspendedReason              String?   @map("suspended_reason") @db.VarChar(255)

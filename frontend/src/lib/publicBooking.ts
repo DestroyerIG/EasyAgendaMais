@@ -15,6 +15,7 @@ export interface StorefrontDto {
   logoUrl: string | null;
   brandColor: string | null;
   galleryPhotos: string[];
+  address: string | null;
   services: StorefrontServiceDto[];
 }
 
