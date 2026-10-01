@@ -1,11 +1,5 @@
-import { EmBreve } from '@/components/shell/EmBreve';
+import { PublicPageSettingsForm } from '@/components/settings/PublicPageSettingsForm';
 
 export default function MinhaPaginaPage() {
-  return (
-    <EmBreve
-      icon="storefront"
-      titulo="Minha página"
-      descricao="A página pública do seu negócio, com agendamento online, chega em breve."
-    />
-  );
+  return <PublicPageSettingsForm />;
 }
