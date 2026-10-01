@@ -1,6 +1,15 @@
-import { describe, it, expect } from 'vitest';
-import { slugify, isValidSlug } from '../modules/businessPublicPage/businessPublicPage.service.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { slugify, isValidSlug, businessPublicPageService } from '../modules/businessPublicPage/businessPublicPage.service.js';
+import { businessPublicPageRepository } from '../modules/businessPublicPage/businessPublicPage.repository.js';
 import { UpdatePublicPageSchema } from '../modules/businessPublicPage/businessPublicPage.types.js';
+
+vi.mock('../modules/businessPublicPage/businessPublicPage.repository.js', () => ({
+  businessPublicPageRepository: {
+    findByBusinessId: vi.fn(),
+    slugExists: vi.fn(),
+    update: vi.fn(),
+  },
+}));
 
 describe('slugify', () => {
   it('normaliza nome do negócio para um slug válido', () => {
@@ -62,5 +71,44 @@ describe('UpdatePublicPageSchema — validação de formato da chave Pix por tip
     expect(parse({ pixKey: 'studio@aurora.com' }).success).toBe(false);
     expect(parse({ pixKeyType: 'email' }).success).toBe(false);
     expect(parse({ slug: 'studio-aurora' }).success).toBe(true);
+  });
+
+  it('aceita até 6 fotos de galeria com URL válida', () => {
+    const urls = Array.from({ length: 6 }, (_, i) => `https://x.com/foto-${i}.jpg`);
+    expect(parse({ galleryPhotos: urls }).success).toBe(true);
+    expect(parse({ galleryPhotos: [] }).success).toBe(true);
+  });
+
+  it('rejeita mais de 6 fotos de galeria ou URL inválida', () => {
+    const tooMany = Array.from({ length: 7 }, (_, i) => `https://x.com/foto-${i}.jpg`);
+    expect(parse({ galleryPhotos: tooMany }).success).toBe(false);
+    expect(parse({ galleryPhotos: ['nao-e-uma-url'] }).success).toBe(false);
+  });
+});
+
+describe('businessPublicPageService.checkSlugAvailability', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('retorna false para um slug em formato inválido, sem consultar o banco', async () => {
+    const available = await businessPublicPageService.checkSlugAvailability('Studio Aurora', 'biz-1');
+    expect(available).toBe(false);
+    expect(businessPublicPageRepository.slugExists).not.toHaveBeenCalled();
+  });
+
+  it('retorna true quando o slug válido não está em uso por outro negócio', async () => {
+    (businessPublicPageRepository.slugExists as ReturnType<typeof vi.fn>).mockResolvedValue(false);
+
+    const available = await businessPublicPageService.checkSlugAvailability('studio-aurora', 'biz-1');
+
+    expect(available).toBe(true);
+    expect(businessPublicPageRepository.slugExists).toHaveBeenCalledWith('studio-aurora', 'biz-1');
+  });
+
+  it('retorna false quando o slug já está em uso por outro negócio', async () => {
+    (businessPublicPageRepository.slugExists as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+
+    const available = await businessPublicPageService.checkSlugAvailability('studio-aurora', 'biz-1');
+
+    expect(available).toBe(false);
   });
 });

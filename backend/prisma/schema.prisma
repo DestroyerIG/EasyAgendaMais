@@ -55,6 +55,7 @@ model Business {
   pixKeyType                   String?   @map("pix_key_type") @db.VarChar(20)
   logoUrl                      String?   @map("logo_url") @db.Text
   brandColor                   String?   @map("brand_color") @db.VarChar(7)
+  galleryPhotos                String[]  @default([]) @map("gallery_photos")
   active                       Boolean   @default(true)
   suspendedAt                  DateTime? @map("suspended_at")
   suspendedReason              String?   @map("suspended_reason") @db.VarChar(255)

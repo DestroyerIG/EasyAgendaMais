@@ -105,6 +105,21 @@ describe('publicBookingService.getStorefront', () => {
     expect(result.services).toHaveLength(1);
     expect(result.services[0].depositAmount).toBe(39); // 30% de 130
   });
+
+  it('repassa as fotos da galeria do negócio', async () => {
+    (publicBookingRepository.findBusinessBySlug as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'biz-1',
+      name: 'Studio Aurora',
+      logoUrl: null,
+      brandColor: null,
+      galleryPhotos: ['https://x/foto-1.jpg', 'https://x/foto-2.jpg'],
+    });
+    (publicBookingRepository.findEligibleServices as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    const result = await publicBookingService.getStorefront('studio-aurora');
+
+    expect(result.galleryPhotos).toEqual(['https://x/foto-1.jpg', 'https://x/foto-2.jpg']);
+  });
 });
 
 describe('publicBookingService.createPendingAppointment', () => {

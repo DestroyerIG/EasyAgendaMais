@@ -7,9 +7,29 @@ import { AxiosError, type AxiosResponse } from 'axios';
 
 vi.mock('@/lib/businessPublicPage', () => ({
   businessPublicPageApi: {
-    getSettings: vi.fn().mockResolvedValue({ slug: null, pixKey: null, pixKeyType: null, logoUrl: null, brandColor: null }),
-    updateSettings: vi.fn().mockResolvedValue({ slug: 'studio-aurora', pixKey: '83999990000', pixKeyType: 'telefone', logoUrl: null, brandColor: null }),
+    getSettings: vi.fn().mockResolvedValue({
+      slug: null, pixKey: null, pixKeyType: null, logoUrl: null, brandColor: null, galleryPhotos: [],
+    }),
+    updateSettings: vi.fn().mockResolvedValue({
+      slug: 'studio-aurora', pixKey: '83999990000', pixKeyType: 'telefone', logoUrl: null, brandColor: null, galleryPhotos: [],
+    }),
+    checkSlugAvailability: vi.fn().mockResolvedValue(true),
   },
+}));
+
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { businessName: 'Studio Aurora' } }),
+}));
+
+const uploadMock = vi.fn().mockResolvedValue({ error: null });
+const getPublicUrlMock = vi.fn().mockReturnValue({ data: { publicUrl: 'https://cdn.test/foto.jpg' } });
+
+vi.mock('@/lib/supabase/client', () => ({
+  getSupabaseClient: () => ({
+    storage: {
+      from: () => ({ upload: uploadMock, getPublicUrl: getPublicUrlMock }),
+    },
+  }),
 }));
 
 describe('PublicPageSettingsForm', () => {
@@ -20,12 +40,69 @@ describe('PublicPageSettingsForm', () => {
     await waitFor(() => expect(businessPublicPageApi.getSettings).toHaveBeenCalled());
 
     await user.type(screen.getByLabelText(/link da sua página/i), 'studio-aurora');
-    await user.type(screen.getByLabelText(/chave pix/i), '83999990000');
-    await user.click(screen.getByRole('button', { name: /salvar/i }));
+    await user.type(screen.getByLabelText(/^chave pix$/i), '83999990000');
+    await user.click(screen.getByRole('button', { name: /salvar alterações/i }));
 
     await waitFor(() => {
       expect(businessPublicPageApi.updateSettings).toHaveBeenCalledWith(
         expect.objectContaining({ slug: 'studio-aurora', pixKey: '83999990000' })
+      );
+    });
+  });
+
+  it('mostra "Disponível" quando o slug digitado não está em uso', async () => {
+    const user = userEvent.setup();
+    render(<PublicPageSettingsForm />);
+
+    await waitFor(() => expect(businessPublicPageApi.getSettings).toHaveBeenCalled());
+    await user.type(screen.getByLabelText(/link da sua página/i), 'novo-slug');
+
+    expect(await screen.findByText('Disponível')).toBeInTheDocument();
+    expect(businessPublicPageApi.checkSlugAvailability).toHaveBeenCalledWith('novo-slug');
+  });
+
+  it('mostra aviso quando o slug digitado já está em uso', async () => {
+    (businessPublicPageApi.checkSlugAvailability as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(false);
+    const user = userEvent.setup();
+    render(<PublicPageSettingsForm />);
+
+    await waitFor(() => expect(businessPublicPageApi.getSettings).toHaveBeenCalled());
+    await user.type(screen.getByLabelText(/link da sua página/i), 'ja-existe');
+
+    expect(await screen.findByText('Este link já está em uso')).toBeInTheDocument();
+  });
+
+  it('seleciona uma cor de destaque ao clicar em um swatch', async () => {
+    const user = userEvent.setup();
+    render(<PublicPageSettingsForm />);
+
+    await waitFor(() => expect(businessPublicPageApi.getSettings).toHaveBeenCalled());
+    await user.click(screen.getByRole('button', { name: 'Usar cor #2563EB' }));
+    await user.click(screen.getByRole('button', { name: /salvar alterações/i }));
+
+    await waitFor(() => {
+      expect(businessPublicPageApi.updateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ brandColor: '#2563EB' })
+      );
+    });
+  });
+
+  it('faz upload de uma foto para a galeria e envia a URL ao salvar', async () => {
+    const user = userEvent.setup();
+    render(<PublicPageSettingsForm />);
+
+    await waitFor(() => expect(businessPublicPageApi.getSettings).toHaveBeenCalled());
+
+    const file = new File(['conteudo'], 'trabalho.jpg', { type: 'image/jpeg' });
+    const input = screen.getByLabelText(/adicionar fotos à galeria/i);
+    await user.upload(input, file);
+
+    await waitFor(() => expect(uploadMock).toHaveBeenCalled());
+    await user.click(screen.getByRole('button', { name: /salvar alterações/i }));
+
+    await waitFor(() => {
+      expect(businessPublicPageApi.updateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ galleryPhotos: ['https://cdn.test/foto.jpg'] })
       );
     });
   });
@@ -44,10 +121,10 @@ describe('PublicPageSettingsForm — falha ao salvar', () => {
 
     await waitFor(() => expect(businessPublicPageApi.getSettings).toHaveBeenCalled());
     await user.type(await screen.findByLabelText(/link da sua página/i), 'studio-aurora');
-    await user.click(screen.getByRole('button', { name: /salvar/i }));
+    await user.click(screen.getByRole('button', { name: /salvar alterações/i }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Este link já está em uso por outro negócio');
     expect(screen.queryByText('Configurações salvas.')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /salvar/i })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /salvar alterações/i })).not.toBeDisabled();
   });
 });

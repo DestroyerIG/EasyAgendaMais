@@ -32,4 +32,10 @@ export const businessPublicPageService = {
 
     return businessPublicPageRepository.update(businessId, data);
   },
+
+  async checkSlugAvailability(slug: string, businessId: string): Promise<boolean> {
+    if (!isValidSlug(slug)) return false;
+    const taken = await businessPublicPageRepository.slugExists(slug, businessId);
+    return !taken;
+  },
 };

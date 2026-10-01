@@ -21,6 +21,7 @@ const STOREFRONT = {
   name: 'Studio Aurora',
   logoUrl: null,
   brandColor: '#FF7A00',
+  galleryPhotos: [] as string[],
   services: [
     { id: 'srv-1', name: 'Manutenção Fibra', price: 130, durationMinutes: 105, depositPercentage: 30, depositAmount: 39 },
   ],
@@ -68,6 +69,26 @@ describe('PublicBookingFlow', () => {
     });
     expect(screen.getByText('Manutenção Fibra')).toBeInTheDocument();
     expect(publicBookingApi.getStorefront).toHaveBeenCalledWith('studio-aurora');
+  });
+
+  it('mostra as fotos da galeria quando o negócio tem', async () => {
+    api.getStorefront.mockResolvedValueOnce({
+      ...STOREFRONT,
+      galleryPhotos: ['https://cdn.test/foto-1.jpg', 'https://cdn.test/foto-2.jpg'],
+    });
+
+    render(<PublicBookingFlow slug="studio-aurora" />);
+
+    const photos = await screen.findAllByRole('img');
+    expect(photos).toHaveLength(2);
+    expect(photos[0]).toHaveAttribute('src', 'https://cdn.test/foto-1.jpg');
+  });
+
+  it('não mostra a galeria quando o negócio não tem fotos', async () => {
+    render(<PublicBookingFlow slug="studio-aurora" />);
+
+    await waitFor(() => expect(screen.getByText('Studio Aurora')).toBeInTheDocument());
+    expect(screen.queryAllByRole('img')).toHaveLength(0);
   });
 
   it('mostra erro visível quando falha ao carregar os profissionais', async () => {

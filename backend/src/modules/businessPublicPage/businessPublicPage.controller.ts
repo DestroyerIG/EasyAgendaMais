@@ -19,3 +19,13 @@ export const updatePublicPageSettings = async (req: Request, res: Response, next
     next(error);
   }
 };
+
+export const checkSlugAvailability = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const slug = String(req.query.slug ?? '');
+    const available = await businessPublicPageService.checkSlugAvailability(slug, req.user.businessId!);
+    sendSuccess(res, { available });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -131,6 +131,20 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
     <div className="mx-auto max-w-xl px-4 py-10">
       <h1 className="text-2xl font-extrabold text-ink">{storefront.name}</h1>
 
+      {storefront.galleryPhotos.length > 0 && (
+        <div className="mt-4 flex gap-2 overflow-x-auto">
+          {storefront.galleryPhotos.map((url, index) => (
+            // eslint-disable-next-line @next/next/no-img-element -- galeria vem de URL externa (Supabase Storage), sem domínio pré-configurado no next/image
+            <img
+              key={url}
+              src={url}
+              alt={`Trabalho realizado ${index + 1}`}
+              className="h-20 w-20 shrink-0 rounded-control border border-line object-cover"
+            />
+          ))}
+        </div>
+      )}
+
       {error && (
         <p role="alert" className="mt-4 text-sm text-danger">
           {error}
