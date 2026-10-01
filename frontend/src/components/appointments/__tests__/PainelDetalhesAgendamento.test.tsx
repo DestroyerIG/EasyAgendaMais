@@ -192,15 +192,32 @@ describe('PainelDetalhesAgendamento', () => {
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled();
   });
 
-  it('confirmar, remarcar e cliente faltou mostram o aviso e não chamam handler nenhum', async () => {
+  it('remarcar e cliente faltou mostram o aviso e não chamam handler nenhum', async () => {
     const { onStatusChange } = abrir();
 
-    for (const nome of ['Confirmar', 'Remarcar', 'Cliente faltou']) {
+    for (const nome of ['Remarcar', 'Cliente faltou']) {
       await userEvent.click(screen.getByRole('button', { name: nome }));
       expect(screen.getAllByText(AVISO_RECURSO_A_CAMINHO).length).toBeGreaterThan(0);
     }
 
     expect(onStatusChange).not.toHaveBeenCalled();
+  });
+
+  it('num agendamento já confirmado, Confirmar fica indisponível (não há volta para confirmado)', () => {
+    abrir({ status: 'confirmado' });
+    expect(screen.getByRole('button', { name: 'Confirmar' })).toBeDisabled();
+  });
+
+  it('numa reserva aguardando pagamento, Confirmar chama o handler com "confirmado" e Cancelar fica disponível', async () => {
+    const { onStatusChange } = abrir({ status: 'aguardando_pagamento' });
+
+    expect(screen.getByRole('button', { name: /Concluir atendimento/ })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar recebimento do Pix' }));
+    expect(onStatusChange).toHaveBeenCalledWith('3f1c9a2b-7d40-4e11-9b8c-000000ab12cd', 'confirmado');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(onStatusChange).toHaveBeenCalledWith('3f1c9a2b-7d40-4e11-9b8c-000000ab12cd', 'cancelado');
   });
 
   it('fechado, não mostra nada do agendamento', () => {

@@ -253,26 +253,32 @@ export function ConteudoDetalhesAgendamento({ agendamento, duracaoMinutos }: Con
 export interface AcoesDetalhesProps {
   agendamento: Appointment;
   actionLoading: string | null;
-  onStatusChange: (id: string, status: 'concluido' | 'cancelado') => void;
+  onStatusChange: (id: string, status: 'confirmado' | 'concluido' | 'cancelado') => void;
 }
 
 /**
- * Rodapé de ações. Concluir e Cancelar chamam o mesmo `handleStatusChange` da Agenda,
- * com o mesmo `actionLoading`, e só ficam ativos no agendamento confirmado — que é a
- * única transição que a API aceita, igual ao cartão e à linha do tempo.
+ * Rodapé de ações. Concluir, Confirmar e Cancelar chamam o mesmo `handleStatusChange` da
+ * Agenda, com o mesmo `actionLoading`, e só ficam ativos nas transições que a API aceita
+ * (VALID_STATUS_TRANSITIONS no backend): `confirmado` → concluir/cancelar, e
+ * `aguardando_pagamento` (reserva pública com sinal via Pix) → confirmar/cancelar.
  *
- * Confirmar, Remarcar e Cliente faltou mostram o aviso de recurso a caminho. Remarcar e
- * Cliente faltou não existem no sistema. Confirmar também não: o agendamento já nasce
- * confirmado e a API não tem transição de volta para "confirmado"
- * (VALID_STATUS_TRANSITIONS no backend), então o botão chamando o handler daria erro em
- * todo clique — parecer funcionar e falhar é pior do que dizer que ainda não dá.
+ * Remarcar e Cliente faltou mostram o aviso de recurso a caminho — não existem no
+ * sistema. Confirmar também mostra o aviso quando o agendamento já nasceu confirmado
+ * (criado pelo painel): não há transição de volta para "confirmado" nesse caso, então o
+ * botão chamando o handler daria erro em todo clique — parecer funcionar e falhar é pior
+ * do que dizer que ainda não dá.
  */
 export function AcoesDetalhesAgendamento({ agendamento, actionLoading, onStatusChange }: AcoesDetalhesProps) {
   const { showToast } = useToast();
-  const podeAgir = agendamento.status === 'confirmado';
+  const aguardandoPagamento = agendamento.status === 'aguardando_pagamento';
+  const podeConcluir = agendamento.status === 'confirmado';
+  const podeCancelar = podeConcluir || aguardandoPagamento;
   const carregando = actionLoading === agendamento.id;
-  const bloqueado = !podeAgir || carregando;
+  const bloqueado = !podeConcluir || carregando;
+  const confirmarBloqueado = !aguardandoPagamento || carregando;
+  const cancelarBloqueado = !podeCancelar || carregando;
   const aCaminho = () => showToast(AVISO_RECURSO_A_CAMINHO, 'info');
+  const confirmarPagamento = () => onStatusChange(agendamento.id, 'confirmado');
 
   return (
     <div className="flex flex-col gap-3">
@@ -289,11 +295,12 @@ export function AcoesDetalhesAgendamento({ agendamento, actionLoading, onStatusC
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
-          onClick={aCaminho}
-          className="flex h-10 items-center justify-center gap-1.5 rounded-control bg-status-confirmed/12 text-[13px] font-bold text-status-confirmed transition-colors hover:bg-status-confirmed/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          disabled={confirmarBloqueado}
+          onClick={aguardandoPagamento ? confirmarPagamento : aCaminho}
+          className="flex h-10 items-center justify-center gap-1.5 rounded-control bg-status-confirmed/12 text-[13px] font-bold text-status-confirmed transition-colors hover:bg-status-confirmed/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Icon name="verified" size={18} />
-          <span>Confirmar</span>
+          <span>{aguardandoPagamento ? 'Confirmar recebimento do Pix' : 'Confirmar'}</span>
         </button>
         <button
           type="button"
@@ -316,7 +323,7 @@ export function AcoesDetalhesAgendamento({ agendamento, actionLoading, onStatusC
         </button>
         <button
           type="button"
-          disabled={bloqueado}
+          disabled={cancelarBloqueado}
           onClick={() => onStatusChange(agendamento.id, 'cancelado')}
           className="flex h-9 items-center justify-center gap-1 rounded-control text-[13px] font-semibold text-muted transition-colors hover:text-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -334,7 +341,7 @@ export interface PainelDetalhesAgendamentoProps {
   duracaoMinutos: number;
   actionLoading: string | null;
   onFechar: () => void;
-  onStatusChange: (id: string, status: 'concluido' | 'cancelado') => void;
+  onStatusChange: (id: string, status: 'confirmado' | 'concluido' | 'cancelado') => void;
 }
 
 export function PainelDetalhesAgendamento({

@@ -265,14 +265,16 @@ export function AppointmentModule() {
   };
 
   // ✅ CORRIGIDO: usa URL dinâmica /appointments/${id}/status
-  const handleStatusChange = async (id: string, status: 'concluido' | 'cancelado') => {
+  const handleStatusChange = async (id: string, status: 'confirmado' | 'concluido' | 'cancelado') => {
     try {
       setActionLoading(id);
       await api.put(`/appointments/${id}/status`, { status });
-      showToast(
-        status === 'concluido' ? 'Atendimento concluído!' : 'Agendamento cancelado',
-        status === 'concluido' ? 'success' : 'info'
-      );
+      const mensagens: Record<typeof status, string> = {
+        confirmado: 'Pagamento confirmado!',
+        concluido: 'Atendimento concluído!',
+        cancelado: 'Agendamento cancelado',
+      };
+      showToast(mensagens[status], status === 'cancelado' ? 'info' : 'success');
       loadAppointments();
     } catch (error: unknown) {
       const message = getApiErrorMessage(error, 'Erro ao atualizar status');
