@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import type { AppointmentWithRelations, CreateAppointmentInput } from './appointments.types.js';
 
@@ -81,10 +82,11 @@ export const appointmentsPrismaRepository = {
     professionalId: string,
     date: string,
     time: string,
-    excludeId?: string
+    excludeId?: string,
+    db: Prisma.TransactionClient = prisma
   ): Promise<boolean> {
     const now = new Date();
-    const existing = await prisma.appointment.findFirst({
+    const existing = await db.appointment.findFirst({
       where: {
         businessId,
         professionalId,
@@ -120,22 +122,36 @@ export const appointmentsPrismaRepository = {
     }) as unknown as AppointmentWithRelations;
   },
 
+  /**
+   * Transição de status condicional e atômica: só altera se o agendamento ainda
+   * estiver em `expectedStatus` (compare-and-set num único UPDATE). Ao confirmar o
+   * pagamento de uma reserva (`aguardando_pagamento` → `confirmado`), exige também
+   * que ela não tenha expirado — senão o horário pode já ter sido liberado e ocupado
+   * por outro cliente antes de o cron de limpeza rodar.
+   * Retorna null quando nenhuma linha foi alterada (status mudou ou reserva expirou).
+   */
   async updateStatus(
     id: string,
     businessId: string,
-    status: string
+    status: string,
+    expectedStatus: string
   ): Promise<AppointmentWithRelations | null> {
-    const existing = await prisma.appointment.findFirst({
-      where: { id, businessId },
-      select: { id: true },
-    });
-    if (!existing) return null;
-
-    return prisma.appointment.update({
-      where: { id },
+    const requiresUnexpiredHold = expectedStatus === 'aguardando_pagamento' && status === 'confirmado';
+    const result = await prisma.appointment.updateMany({
+      where: {
+        id,
+        businessId,
+        status: expectedStatus,
+        ...(requiresUnexpiredHold ? { expiresAt: { gt: new Date() } } : {}),
+      },
       data: { status },
+    });
+    if (result.count !== 1) return null;
+
+    return prisma.appointment.findFirst({
+      where: { id, businessId },
       include: APPOINTMENT_INCLUDE,
-    }) as unknown as AppointmentWithRelations;
+    }) as unknown as AppointmentWithRelations | null;
   },
 
   async update(

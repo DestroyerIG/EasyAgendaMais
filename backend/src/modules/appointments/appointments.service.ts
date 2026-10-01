@@ -73,8 +73,16 @@ export const appointmentsService = {
       );
     }
 
-    const result = await appointmentsPrismaRepository.updateStatus(id, businessId, newStatus);
-    if (!result) throw new NotFoundError('Agendamento');
+    // Compare-and-set: se o status mudou entre a leitura acima e este UPDATE (ex.: o
+    // cron cancelou a reserva expirada) ou a reserva já expirou, nada é alterado.
+    const result = await appointmentsPrismaRepository.updateStatus(id, businessId, newStatus, currentStatus);
+    if (!result) {
+      throw new ConflictError(
+        currentStatus === 'aguardando_pagamento'
+          ? 'Esta reserva já expirou ou teve seu status alterado'
+          : 'Este agendamento teve seu status alterado. Atualize a página e tente novamente'
+      );
+    }
 
     if (newStatus === 'concluido') {
       const service = await appointmentsPrismaRepository.getServiceDetails(

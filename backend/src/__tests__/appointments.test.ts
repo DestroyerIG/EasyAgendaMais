@@ -104,6 +104,7 @@ const mockAppointmentFindMany = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 const mockAppointmentFindFirst = vi.hoisted(() => vi.fn().mockResolvedValue(null));
 const mockAppointmentCreate = vi.hoisted(() => vi.fn().mockResolvedValue({ id: 'apt-uuid' }));
 const mockAppointmentUpdate = vi.hoisted(() => vi.fn().mockResolvedValue({ id: 'apt-uuid' }));
+const mockAppointmentUpdateMany = vi.hoisted(() => vi.fn().mockResolvedValue({ count: 1 }));
 
 vi.mock('../config/prisma.js', () => ({
   prisma: {
@@ -120,6 +121,7 @@ vi.mock('../config/prisma.js', () => ({
       findFirst: mockAppointmentFindFirst,
       create: mockAppointmentCreate,
       update: mockAppointmentUpdate,
+      updateMany: mockAppointmentUpdateMany,
     },
     client: { findFirst: vi.fn().mockResolvedValue({ id: 'client-uuid' }) },
     professional: { findFirst: vi.fn().mockResolvedValue({ id: 'professional-uuid' }) },

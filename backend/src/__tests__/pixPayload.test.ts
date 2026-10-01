@@ -1,6 +1,57 @@
 import { describe, it, expect } from 'vitest';
 import { buildPixPayload } from '../utils/pixPayload.js';
 
+// Payloads de referência completos, comparados byte a byte (incluindo o CRC16).
+// Os CRCs esperados foram calculados por uma implementação independente
+// (Python `binascii.crc_hqx(payload, 0xFFFF)` — CRC16/CCITT-FALSE), que reproduz
+// o exemplo oficial do Manual de Padrões para Iniciação do Pix do BCB
+// (`...62070503***63041D3D`). Sem txid, o BR Code exige literalmente `***` no
+// subcampo 05 do campo 62 (`62070503***`), nunca um subcampo vazio (`62040500`).
+describe('buildPixPayload — payload de referência completo', () => {
+  it('gera o payload exato para chave de e-mail sem txid (usa *** literal)', () => {
+    const payload = buildPixPayload({
+      pixKey: 'fulano@example.com',
+      pixKeyType: 'email',
+      merchantName: 'Fulano de Tal',
+      merchantCity: 'Brasília',
+      amount: 10,
+    });
+
+    expect(payload).toBe(
+      '00020126400014br.gov.bcb.pix0118fulano@example.com520400005303986540510.005802BR5913FULANO DE TAL6008BRASILIA62070503***63045E65'
+    );
+  });
+
+  it('gera o payload exato para chave de telefone digitada com +55, sem duplicar o código do país', () => {
+    const payload = buildPixPayload({
+      pixKey: '+55 (83) 99999-0000',
+      pixKeyType: 'telefone',
+      merchantName: 'Studio Aurora',
+      merchantCity: 'CAMPINA GRANDE',
+      amount: 25.5,
+    });
+
+    expect(payload).toBe(
+      '00020126360014br.gov.bcb.pix0114+5583999990000520400005303986540525.505802BR5913STUDIO AURORA6014CAMPINA GRANDE62070503***63043C3F'
+    );
+  });
+
+  it('normaliza telefone sem código do país, com 55 sem "+" e com +55 para a mesma chave E.164', () => {
+    const base = {
+      pixKeyType: 'telefone' as const,
+      merchantName: 'Studio Aurora',
+      merchantCity: 'CAMPINA GRANDE',
+      amount: 25.5,
+    };
+    const a = buildPixPayload({ ...base, pixKey: '(83) 99999-0000' });
+    const b = buildPixPayload({ ...base, pixKey: '5583999990000' });
+    const c = buildPixPayload({ ...base, pixKey: '+55 83 99999-0000' });
+    expect(a).toBe(b);
+    expect(b).toBe(c);
+    expect(a).not.toContain('+5555');
+  });
+});
+
 describe('buildPixPayload', () => {
   it('gera um payload terminado em CRC16 de 4 dígitos hexadecimais maiúsculos', () => {
     const payload = buildPixPayload({

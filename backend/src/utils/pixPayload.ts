@@ -41,6 +41,57 @@ const normalizeAscii = (value: string): string =>
     .replace(/[^A-Za-z0-9 ]/g, '')
     .toUpperCase();
 
+/**
+ * Reduz um telefone brasileiro aos dígitos nacionais (DDD + número), removendo o
+ * código do país quando presente. Aceita "(83) 99999-0000", "83999990000",
+ * "5583999990000" e "+55 (83) 99999-0000" — todos viram "83999990000".
+ * O código "55" só é removido quando o total tem 12 ou 13 dígitos (55 + 10/11),
+ * para não mutilar um número nacional cujo DDD seja 55 (ex.: "55 99999-0000").
+ */
+export const toNationalPhoneDigits = (value: string): string => {
+  const digits = value.replace(/\D/g, '');
+  if ((digits.length === 12 || digits.length === 13) && digits.startsWith('55')) {
+    return digits.slice(2);
+  }
+  return digits;
+};
+
+/** Limite da chave Pix no campo 26: 99 - "0014br.gov.bcb.pix"(18) - "01XX"(4) = 77. */
+export const PIX_KEY_MAX_LENGTH = 77;
+
+/**
+ * Valida o formato de uma chave Pix de acordo com o tipo. Retorna uma mensagem de
+ * erro em PT-BR, ou null quando a chave é válida.
+ */
+export const validatePixKeyFormat = (pixKey: string, pixKeyType: PixKeyType): string | null => {
+  const trimmed = pixKey.trim();
+  switch (pixKeyType) {
+    case 'cpf':
+      return /^\d{11}$/.test(trimmed.replace(/\D/g, '')) ? null : 'CPF deve ter 11 dígitos';
+    case 'cnpj':
+      return /^\d{14}$/.test(trimmed.replace(/\D/g, '')) ? null : 'CNPJ deve ter 14 dígitos';
+    case 'telefone': {
+      if (/[^\d\s()+-]/.test(trimmed)) return 'Telefone inválido';
+      const national = toNationalPhoneDigits(trimmed);
+      // DDD (11-99, sem zero) + fixo (8 dígitos, começa com 2-5) ou celular (9 dígitos, começa com 9)
+      return /^[1-9][1-9](?:[2-5]\d{7}|9\d{8})$/.test(national)
+        ? null
+        : 'Telefone deve ser um número brasileiro válido com DDD';
+    }
+    case 'aleatoria':
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)
+        ? null
+        : 'Chave aleatória deve estar no formato UUID';
+    case 'email':
+      if (trimmed.length > PIX_KEY_MAX_LENGTH) {
+        return `E-mail deve ter no máximo ${PIX_KEY_MAX_LENGTH} caracteres`;
+      }
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed) ? null : 'E-mail inválido';
+    default:
+      return 'Tipo de chave Pix inválido';
+  }
+};
+
 const formatPixKey = (pixKey: string, pixKeyType: PixKeyType): string => {
   // Runtime validation: pixKeyType must be one of the known types
   const validKeyTypes: PixKeyType[] = ['cpf', 'cnpj', 'email', 'telefone', 'aleatoria'];
@@ -49,8 +100,7 @@ const formatPixKey = (pixKey: string, pixKeyType: PixKeyType): string => {
   }
 
   if (pixKeyType === 'telefone') {
-    const digits = pixKey.replace(/\D/g, '');
-    return `+55${digits}`;
+    return `+55${toNationalPhoneDigits(pixKey)}`;
   }
   if (pixKeyType === 'cpf' || pixKeyType === 'cnpj') {
     return pixKey.replace(/\D/g, '');
@@ -112,8 +162,11 @@ export function buildPixPayload({
 
   const merchantAccountInfo = guiField + keyField + descriptionField;
 
-  // Normalize and bound txId to prevent overflow and encoding issues
-  const normalizedTxId = normalizeAscii(txId || '***').slice(0, 25);
+  // Normalize and bound txId to prevent overflow and encoding issues.
+  // Sem identificador de transação, o padrão BR Code exige o valor literal "***" —
+  // ele NÃO pode passar por normalizeAscii (que removeria os asteriscos e geraria um
+  // subcampo vazio "0500"). Um txid informado que normalize para vazio também cai no "***".
+  const normalizedTxId = (txId && txId !== '***' ? normalizeAscii(txId).slice(0, 25) : '') || '***';
   const additionalData = field(ID_ADDITIONAL_DATA_FIELD_TX_ID, normalizedTxId);
 
   const payloadWithoutCrc =

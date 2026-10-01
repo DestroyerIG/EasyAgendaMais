@@ -11,6 +11,17 @@ const HOLD_MINUTES = 15;
 const calcDeposit = (price: number, depositPercentage: number): number =>
   Math.round(price * (depositPercentage / 100) * 100) / 100;
 
+const todayInTimezone = (timeZone: string): string => {
+  // en-CA formata como YYYY-MM-DD, comparável lexicograficamente com `date`.
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date());
+};
+
+/**
+ * Carrega as configurações de agenda do negócio, rejeita datas anteriores a hoje
+ * (no fuso do negócio) e calcula os horários livres do profissional naquele dia.
+ */
 const computeAvailableSlots = async (
   businessId: string,
   professionalId: string,
@@ -18,6 +29,12 @@ const computeAvailableSlots = async (
   serviceDurationMinutes: number
 ): Promise<string[]> => {
   const businessSettings = await getBusinessScheduleSettings(businessId);
+
+  const timeZone = businessSettings?.timezone || 'America/Sao_Paulo';
+  if (date < todayInTimezone(timeZone)) {
+    throw new ValidationError('Não é possível agendar em uma data que já passou');
+  }
+
   const bookedTimes = await appointmentsPrismaRepository.getBookedSlots(businessId, professionalId, date);
 
   return generateAvailableTimeSlots(businessSettings, date, {
@@ -88,11 +105,6 @@ export const publicBookingService = {
       throw new ValidationError('Horário indisponível para este serviço e profissional');
     }
 
-    const conflict = await appointmentsPrismaRepository.hasConflict(
-      business.id, data.professionalId, data.date, `${data.time}:00`
-    );
-    if (conflict) throw new ConflictError('Este horário acabou de ser reservado por outra pessoa');
-
     const client = await publicBookingRepository.findOrCreateClient(business.id, data.clientName, data.clientPhone);
 
     // Calcula o depósito e monta o payload Pix ANTES de criar a reserva: buildPixPayload
@@ -110,15 +122,28 @@ export const publicBookingService = {
     });
 
     const expiresAt = new Date(Date.now() + HOLD_MINUTES * 60 * 1000);
-    const appointment = await publicBookingRepository.createPendingAppointment({
-      businessId: business.id,
-      clientId: client.id,
-      professionalId: data.professionalId,
-      serviceId: data.serviceId,
-      date: data.date,
-      time: data.time,
-      expiresAt,
-    });
+
+    // Checagem de conflito + criação dentro de uma única transação com advisory lock
+    // por profissional+dia: duas requisições simultâneas para o mesmo horário são
+    // serializadas, e a segunda enxerga a reserva da primeira e recebe 409.
+    const appointment = await publicBookingRepository.withProfessionalDayLock(
+      data.professionalId, data.date, async (tx) => {
+        const conflict = await appointmentsPrismaRepository.hasConflict(
+          business.id, data.professionalId, data.date, `${data.time}:00`, undefined, tx
+        );
+        if (conflict) throw new ConflictError('Este horário acabou de ser reservado por outra pessoa');
+
+        return publicBookingRepository.createPendingAppointment({
+          businessId: business.id,
+          clientId: client.id,
+          professionalId: data.professionalId,
+          serviceId: data.serviceId,
+          date: data.date,
+          time: data.time,
+          expiresAt,
+        }, tx);
+      }
+    );
 
     logger.info({ appointmentId: appointment.id, businessId: business.id }, 'Reserva pública criada, aguardando pagamento');
 

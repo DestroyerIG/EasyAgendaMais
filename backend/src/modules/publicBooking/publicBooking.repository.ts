@@ -1,5 +1,9 @@
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { clientRepository } from '../../repositories/clientRepository.js';
+import { normalizePhone } from '../../utils/whatsapp.js';
+
+type Tx = Prisma.TransactionClient;
 
 export const publicBookingRepository = {
   async findBusinessBySlug(slug: string) {
@@ -43,11 +47,32 @@ export const publicBookingRepository = {
   },
 
   async findOrCreateClient(businessId: string, name: string, phone: string): Promise<{ id: string }> {
-    const existing = await clientRepository.findByPhone(businessId, phone);
+    // Normaliza com a mesma regra do bot de WhatsApp (só dígitos, com DDI 55), para que
+    // "(83) 99999-0000", "83999990000" e "+55 83 99999-0000" sejam o mesmo cliente.
+    const normalizedPhone: string = normalizePhone(phone) ?? phone.replace(/\D/g, '');
+    const existing = await clientRepository.findByPhone(businessId, normalizedPhone);
     if (existing) return existing;
     return clientRepository.create({
-      businessId, name, phone,
+      businessId, name, phone: normalizedPhone,
       email: null, birthDate: null, address: null, notes: null,
+    });
+  },
+
+  /**
+   * Executa `fn` dentro de uma transação que segura um advisory lock do Postgres
+   * para o par profissional+data. Duas reservas concorrentes para o mesmo
+   * profissional no mesmo dia são serializadas: a segunda só faz sua checagem de
+   * conflito depois que a primeira comitou (ou abortou). Um índice único não
+   * resolveria, porque um horário "livre" depende de `expiresAt` (é condicional ao
+   * tempo). O lock é liberado automaticamente no fim da transação.
+   */
+  async withProfessionalDayLock<T>(professionalId: string, date: string, fn: (tx: Tx) => Promise<T>): Promise<T> {
+    const lockKey = `${professionalId}|${date}`;
+    return prisma.$transaction(async (tx) => {
+      // $executeRaw (e não $queryRaw): pg_advisory_xact_lock retorna `void`, que o
+      // Prisma não consegue desserializar como coluna de resultado.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}::text))`;
+      return fn(tx);
     });
   },
 
@@ -59,8 +84,8 @@ export const publicBookingRepository = {
     date: string;
     time: string;
     expiresAt: Date;
-  }) {
-    return prisma.appointment.create({
+  }, db: Tx = prisma) {
+    return db.appointment.create({
       data: {
         businessId: data.businessId,
         clientId: data.clientId,
