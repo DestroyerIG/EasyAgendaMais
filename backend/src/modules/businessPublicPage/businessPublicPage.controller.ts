@@ -29,3 +29,12 @@ export const checkSlugAvailability = async (req: Request, res: Response, next: N
     next(error);
   }
 };
+
+export const uploadPublicPageImage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const url = await businessPublicPageService.uploadImage(req.user.businessId!, req.body);
+    sendSuccess(res, { url });
+  } catch (error) {
+    next(error);
+  }
+};

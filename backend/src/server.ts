@@ -311,6 +311,15 @@ app.use(
   })
 );
 
+// Imagem em base64 (logo/galeria da página pública) infla ~33% sobre o arquivo
+// original; limite maior só para esta rota, sem elevar o limite da API inteira.
+app.use(
+  `${API_V1}/business-public-page/upload-image`,
+  express.json({
+    limit: '6mb',
+  })
+);
+
 app.use(
   express.json({
     limit: API_JSON_BODY_LIMIT,

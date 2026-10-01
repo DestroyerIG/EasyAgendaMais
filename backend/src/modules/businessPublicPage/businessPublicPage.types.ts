@@ -34,6 +34,13 @@ export const UpdatePublicPageSchema = z
 
 export type UpdatePublicPageInput = z.infer<typeof UpdatePublicPageSchema>;
 
+export const UploadImageSchema = z.object({
+  imageBase64: z.string().min(1),
+  contentType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
+});
+
+export type UploadImageInput = z.infer<typeof UploadImageSchema>;
+
 export interface PublicPageSettings {
   slug: string | null;
   pixKey: string | null;

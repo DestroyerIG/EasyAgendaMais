@@ -5,14 +5,9 @@ import Image from 'next/image';
 import { Check, Loader2, Plus, X } from 'lucide-react';
 import { businessPublicPageApi, type PublicPageSettings } from '@/lib/businessPublicPage';
 import { getApiErrorMessage } from '@/utils/handleApiError';
-import { getSupabaseClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, Field, Input, Select, Button } from '@/components/ui';
 
-// 'barber-photos' existe no banco mas teve suas políticas de RLS removidas pela
-// migração que o renomeou para 'professional-photos' — reaproveitamos este último,
-// já com RLS ativo, em vez de recriar políticas para um bucket obsoleto.
-const BUCKET = 'professional-photos';
 const MAX_GALLERY_PHOTOS = 6;
 const SLUG_CHECK_DEBOUNCE_MS = 500;
 
@@ -30,17 +25,11 @@ const DEFAULT_BRAND_COLOR = '#FF7A00';
 
 type SlugStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
-async function uploadImage(file: File): Promise<string> {
-  const supabase = getSupabaseClient();
-  const ext = file.name.split('.').pop() ?? 'jpg';
-  const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true, contentType: file.type });
-  if (error) throw new Error(error.message);
-
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return data.publicUrl;
-}
+// Upload passa pelo backend (businessPublicPageApi.uploadImage), nunca direto do
+// navegador pro Supabase Storage: o cliente Supabase do navegador não tem sessão
+// autenticada própria (o login do app é por cookie/JWT nosso), então RLS sempre
+// rejeitaria o upload com "row-level security policy".
+const uploadImage = (file: File): Promise<string> => businessPublicPageApi.uploadImage(file);
 
 export function PublicPageSettingsForm() {
   const { user } = useAuth();

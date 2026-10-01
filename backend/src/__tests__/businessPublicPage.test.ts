@@ -11,6 +11,17 @@ vi.mock('../modules/businessPublicPage/businessPublicPage.repository.js', () => 
   },
 }));
 
+const uploadMock = vi.fn();
+const getPublicUrlMock = vi.fn();
+
+vi.mock('../services/supabaseAuthService.js', () => ({
+  getSupabaseAdminClient: () => ({
+    storage: {
+      from: () => ({ upload: uploadMock, getPublicUrl: getPublicUrlMock }),
+    },
+  }),
+}));
+
 describe('slugify', () => {
   it('normaliza nome do negócio para um slug válido', () => {
     expect(slugify('Studio Aurora & Unhas')).toBe('studio-aurora-unhas');
@@ -110,5 +121,48 @@ describe('businessPublicPageService.checkSlugAvailability', () => {
     const available = await businessPublicPageService.checkSlugAvailability('studio-aurora', 'biz-1');
 
     expect(available).toBe(false);
+  });
+});
+
+describe('businessPublicPageService.uploadImage', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('envia o buffer decodificado para o Supabase via cliente admin e devolve a URL pública', async () => {
+    uploadMock.mockResolvedValue({ error: null });
+    getPublicUrlMock.mockReturnValue({ data: { publicUrl: 'https://cdn.test/biz-1/foto.jpg' } });
+
+    const imageBase64 = Buffer.from('conteudo-fake-da-imagem').toString('base64');
+    const url = await businessPublicPageService.uploadImage('biz-1', { imageBase64, contentType: 'image/jpeg' });
+
+    expect(url).toBe('https://cdn.test/biz-1/foto.jpg');
+    expect(uploadMock).toHaveBeenCalledTimes(1);
+    const [path, buffer, options] = uploadMock.mock.calls[0];
+    expect(path).toMatch(/^biz-1\/\d+-[a-z0-9]+\.jpg$/);
+    expect(Buffer.isBuffer(buffer)).toBe(true);
+    expect(options).toEqual({ contentType: 'image/jpeg', upsert: true });
+  });
+
+  it('rejeita imagem maior que 4MB antes de chamar o Supabase', async () => {
+    const imageBase64 = Buffer.alloc(4 * 1024 * 1024 + 1).toString('base64');
+
+    await expect(
+      businessPublicPageService.uploadImage('biz-1', { imageBase64, contentType: 'image/png' })
+    ).rejects.toThrow('Imagem inválida ou maior que 4MB');
+    expect(uploadMock).not.toHaveBeenCalled();
+  });
+
+  it('rejeita base64 vazio', async () => {
+    await expect(
+      businessPublicPageService.uploadImage('biz-1', { imageBase64: '', contentType: 'image/png' })
+    ).rejects.toThrow('Imagem inválida ou maior que 4MB');
+  });
+
+  it('propaga erro do Supabase como falha de upload', async () => {
+    uploadMock.mockResolvedValue({ error: { message: 'bucket not found' } });
+    const imageBase64 = Buffer.from('x').toString('base64');
+
+    await expect(
+      businessPublicPageService.uploadImage('biz-1', { imageBase64, contentType: 'image/webp' })
+    ).rejects.toThrow('Falha ao enviar imagem: bucket not found');
   });
 });

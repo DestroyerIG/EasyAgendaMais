@@ -483,7 +483,7 @@ const getSupabaseClient = (): SupabaseClient => {
   return supabaseClient;
 };
 
-const getSupabaseAdminClient = (): SupabaseClient => {
+export const getSupabaseAdminClient = (): SupabaseClient => {
   const config = resolveSupabaseAdminConfig();
 
   if (!config.isConfigured) {

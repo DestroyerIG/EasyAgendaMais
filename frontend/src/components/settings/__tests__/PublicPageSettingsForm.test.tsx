@@ -14,22 +14,12 @@ vi.mock('@/lib/businessPublicPage', () => ({
       slug: 'studio-aurora', pixKey: '83999990000', pixKeyType: 'telefone', logoUrl: null, brandColor: null, galleryPhotos: [],
     }),
     checkSlugAvailability: vi.fn().mockResolvedValue(true),
+    uploadImage: vi.fn().mockResolvedValue('https://cdn.test/foto.jpg'),
   },
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ user: { businessName: 'Studio Aurora' } }),
-}));
-
-const uploadMock = vi.fn().mockResolvedValue({ error: null });
-const getPublicUrlMock = vi.fn().mockReturnValue({ data: { publicUrl: 'https://cdn.test/foto.jpg' } });
-
-vi.mock('@/lib/supabase/client', () => ({
-  getSupabaseClient: () => ({
-    storage: {
-      from: () => ({ upload: uploadMock, getPublicUrl: getPublicUrlMock }),
-    },
-  }),
 }));
 
 describe('PublicPageSettingsForm', () => {
@@ -97,7 +87,7 @@ describe('PublicPageSettingsForm', () => {
     const input = screen.getByLabelText(/adicionar fotos à galeria/i);
     await user.upload(input, file);
 
-    await waitFor(() => expect(uploadMock).toHaveBeenCalled());
+    await waitFor(() => expect(businessPublicPageApi.uploadImage).toHaveBeenCalledWith(file));
     await user.click(screen.getByRole('button', { name: /salvar alterações/i }));
 
     await waitFor(() => {
