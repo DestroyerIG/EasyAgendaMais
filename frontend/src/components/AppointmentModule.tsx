@@ -29,7 +29,17 @@ import { formatDate } from '@/lib/dateUtils';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
 import { conteudoDemo } from '@/lib/conteudoDemo';
-import { EmptyState, Icon, Skeleton, STATUS_STRIPE_CLASS, type AppointmentStatus } from '@/components/ui';
+import {
+  EmptyState,
+  Icon,
+  Skeleton,
+  STATUS_STRIPE_CLASS,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+  type AppointmentStatus,
+} from '@/components/ui';
 import {
   ChipsProfissional,
   DateNavigationBar,
@@ -54,6 +64,7 @@ import {
   type VagaLivre,
 } from '@/components/appointments/LinhaDoTempo';
 import { PainelDetalhesAgendamento } from '@/components/appointments/PainelDetalhesAgendamento';
+import { PendingPaymentList } from '@/components/appointments/PendingPaymentList';
 import { CreateAppointmentModal } from '@/components/appointments/CreateAppointmentModal';
 import type { AppointmentFormData } from '@/components/appointments/CreateAppointmentModal';
 import { useNewAppointmentParam } from '@/hooks/useNewAppointmentParam';
@@ -138,7 +149,10 @@ export function montarItensDoDia(
   return itens.sort((a, b) => a.inicioMinutos - b.inicioMinutos || a.chave.localeCompare(b.chave));
 }
 
+type AgendaTab = 'agenda' | 'aguardando-pix';
+
 export function AppointmentModule() {
+  const [activeTab, setActiveTab] = useState<AgendaTab>('agenda');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   // Inicia vazio: getToday() depende da hora local e divergiria entre SSR (UTC)
@@ -370,243 +384,256 @@ export function AppointmentModule() {
     <div className="flex flex-col gap-4 lg:gap-5">
       <h1 className="sr-only">Agenda</h1>
 
-      {selectedDate && (
-        <DateNavigationBar
-          selectedDate={selectedDate}
-          viewMode={viewMode}
-          statusFilter={statusFilter}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as AgendaTab)}>
+        <TabsList>
+          <TabsTrigger value="agenda">Agenda</TabsTrigger>
+          <TabsTrigger value="aguardando-pix">Aguardando Pix</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="agenda" className="flex flex-col gap-4 lg:gap-5">
+        {selectedDate && (
+          <DateNavigationBar
+            selectedDate={selectedDate}
+            viewMode={viewMode}
+            statusFilter={statusFilter}
+            profissionais={chipsProfissional}
+            totalAgendamentos={porStatus.length}
+            profissionalFiltro={filtroProfissional}
+            onDateChange={setSelectedDate}
+            onViewModeChange={setViewMode}
+            onStatusFilterChange={setStatusFilter}
+            onProfissionalFiltroChange={setProfissionalFiltro}
+            onNovoAgendamento={openModal}
+          />
+        )}
+
+        {/* Fileira deslizante de chips do celular (agenda-mobile.html); no computador os
+            mesmos chips ficam dentro da barra acima. A contagem é do dia, então no modo
+            Semana ela sai. Sem foto: o DTO de /appointments só traz o nome, e o Avatar
+            cai nas iniciais. */}
+        <ChipsProfissional
           profissionais={chipsProfissional}
-          totalAgendamentos={porStatus.length}
-          profissionalFiltro={filtroProfissional}
-          onDateChange={setSelectedDate}
-          onViewModeChange={setViewMode}
-          onStatusFilterChange={setStatusFilter}
-          onProfissionalFiltroChange={setProfissionalFiltro}
-          onNovoAgendamento={openModal}
+          totalGeral={porStatus.length}
+          ativo={filtroProfissional}
+          onChange={setProfissionalFiltro}
+          mostrarContagem={ehDia}
+          className="-mx-4 px-4 lg:hidden"
         />
-      )}
 
-      {/* Fileira deslizante de chips do celular (agenda-mobile.html); no computador os
-          mesmos chips ficam dentro da barra acima. A contagem é do dia, então no modo
-          Semana ela sai. Sem foto: o DTO de /appointments só traz o nome, e o Avatar
-          cai nas iniciais. */}
-      <ChipsProfissional
-        profissionais={chipsProfissional}
-        totalGeral={porStatus.length}
-        ativo={filtroProfissional}
-        onChange={setProfissionalFiltro}
-        mostrarContagem={ehDia}
-        className="-mx-4 px-4 lg:hidden"
-      />
-
-      {/* Sub-cabeçalho operacional: KPIs do dia + legenda (agenda-desktop.html) e a
-          linha de ocupação do celular (agenda-mobile.html). */}
-      <div className="flex flex-col gap-3 rounded-card border border-line bg-surface px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="hidden items-center gap-3 text-[14px] lg:flex">
-          <div className="flex items-center gap-1.5 font-bold text-ink">
-            <span className="h-2 w-2 rounded-full bg-brand" />
-            <span className="tabular-nums">
-              {filteredAppointments.length} agendamento{filteredAppointments.length === 1 ? '' : 's'}
-            </span>
-          </div>
-          <span className="text-muted">·</span>
-          <div className="flex items-center gap-1">
-            <span className="text-muted">Faturamento:</span>
-            <span className="font-bold tabular-nums text-success-text">
-              {formatCurrency(faturamento, { cents: false })}
-            </span>
-          </div>
-          {ehDia && (
-            <>
-              <span className="text-muted">·</span>
-              <div className="flex items-center gap-1 text-muted">
-                <span className="font-bold tabular-nums text-tertiary">{vagasLivres.length}</span>
-                {vagasLivres.length === 1 ? ' horário livre' : ' horários livres'}
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between gap-2 lg:hidden">
-          <div className="flex items-center gap-2">
-            {ehDia ? (
-              <>
-                <span className="h-2 w-2 rounded-full bg-success" />
-                <span className="text-[13px] font-semibold tabular-nums text-ink">{ocupacao}% de ocupação</span>
-                <span className="text-[14px] text-muted">·</span>
-                <span className="text-[14px] tabular-nums text-muted">
-                  {vagasDaLista.length} {vagasDaLista.length === 1 ? 'vaga livre' : 'vagas livres'}
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="h-2 w-2 rounded-full bg-brand" />
-                <span className="text-[13px] font-semibold tabular-nums text-ink">
-                  {filteredAppointments.length} agendamento{filteredAppointments.length === 1 ? '' : 's'} na semana
-                </span>
-              </>
-            )}
-          </div>
-          {horarioFuncionamento && (
-            <span className="shrink-0 text-[11px] font-bold tabular-nums text-brand-text">
-              {formatarHorarioFuncionamento(
-                horarioFuncionamento.aberturaMinutos,
-                horarioFuncionamento.fechamentoMinutos,
-              )}
-            </span>
-          )}
-        </div>
-
-        <div className="hidden flex-wrap items-center gap-3 text-[11px] font-semibold text-muted lg:flex">
-          {STATUS_DA_LEGENDA.map(item => (
-            <div key={item.status} className="flex items-center gap-1.5">
-              <span
-                className={cn(
-                  'h-2.5 w-2.5 rounded-sm',
-                  STATUS_STRIPE_CLASS[item.status],
-                  item.status === 'cancelado' && 'opacity-70',
-                )}
-              />
-              <span className={item.status === 'cancelado' ? 'line-through' : undefined}>{item.rotulo}</span>
+        {/* Sub-cabeçalho operacional: KPIs do dia + legenda (agenda-desktop.html) e a
+            linha de ocupação do celular (agenda-mobile.html). */}
+        <div className="flex flex-col gap-3 rounded-card border border-line bg-surface px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="hidden items-center gap-3 text-[14px] lg:flex">
+            <div className="flex items-center gap-1.5 font-bold text-ink">
+              <span className="h-2 w-2 rounded-full bg-brand" />
+              <span className="tabular-nums">
+                {filteredAppointments.length} agendamento{filteredAppointments.length === 1 ? '' : 's'}
+              </span>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {loading ? (
-        <>
-          <div className="flex flex-col gap-3 lg:hidden">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-24 w-full" label={i === 0 ? 'Carregando agendamentos...' : undefined} />
-            ))}
-          </div>
-          <Skeleton className="hidden h-[480px] w-full lg:block" />
-        </>
-      ) : filteredAppointments.length === 0 ? (
-        <EmptyState
-          icon={ICONE_CALENDARIO}
-          title="Nenhum agendamento"
-          description={
-            statusFilter !== 'todos'
-              ? `Nenhum agendamento com este status neste período.`
-              : 'Não há agendamentos para este período. Crie um novo agendamento para começar!'
-          }
-          action={{ label: 'Criar Agendamento', icon: ICONE_ADICIONAR, onClick: openModal }}
-          actionVariant="secondary"
-        />
-      ) : (
-        <>
-          {/* Celular: lista de cartões com gesto (agenda-mobile.html) */}
-          <div className="flex flex-col gap-3 lg:hidden">
-            {temConfirmado && (
-              <div className="flex items-center justify-center gap-1.5 self-center rounded-full bg-surface-2 px-3 py-1.5 text-[11px] font-semibold text-muted">
-                <Icon name="swipe" size={16} className="text-brand" />
-                <span>Deslize o cartão para concluir ou cancelar</span>
-              </div>
-            )}
-            {grupos.map(([date, dayAppointments]) => (
-              <div key={date} className="flex flex-col gap-2">
-                {!ehDia && (
-                  <h3 className="flex items-center gap-2 text-[13px] font-semibold capitalize text-muted">
-                    <Icon name="calendar_today" size={14} />
-                    {formatDate(date)}
-                  </h3>
-                )}
-                {montarItensDoDia(
-                  dayAppointments,
-                  doDiaPorData[date] ?? dayAppointments,
-                  faixa,
-                  duracaoMinutos,
-                  ehDia,
-                ).map(item =>
-                  item.tipo === 'agendamento' ? (
-                    <AppointmentCard
-                      key={item.chave}
-                      appointment={item.agendamento}
-                      actionLoading={actionLoading}
-                      duracaoMinutos={duracaoReal(item.agendamento, duracaoMinutos)}
-                      onStatusChange={handleStatusChange}
-                      onAbrirDetalhes={a => setDetalhesId(a.id)}
-                    />
-                  ) : (
-                    <button
-                      key={item.chave}
-                      type="button"
-                      onClick={openModal}
-                      aria-label={`Novo agendamento: ${paraHoraTexto(item.inicioMinutos)} com ${primeiroNome(item.profissional)}, ${formatarDuracao(item.vaga.duracaoMinutos)} livre`}
-                      className="flex w-full items-center justify-between gap-3 rounded-card bg-surface-2 p-4 text-left transition-transform active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-                    >
-                      <span className="flex min-w-0 items-center gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-surface text-brand-text shadow-sm">
-                          <Icon name="add" size={20} />
-                        </span>
-                        <span className="flex min-w-0 flex-col">
-                          <span className="flex items-center gap-2">
-                            <span className="text-[24px] font-bold leading-none tracking-tight tabular-nums text-ink">
-                              {paraHoraTexto(item.inicioMinutos)}
-                            </span>
-                            <span className="rounded-full bg-success/12 px-2 py-0.5 text-[11px] font-bold text-success-text">
-                              Horário livre
-                            </span>
-                          </span>
-                          <span className="mt-0.5 truncate text-[14px] text-muted">
-                            {formatarDuracao(item.vaga.duracaoMinutos)} livre com {primeiroNome(item.profissional)}
-                          </span>
-                        </span>
-                      </span>
-                      <Icon name="bolt" size={20} className="shrink-0 text-muted" />
-                    </button>
-                  ),
-                )}
-              </div>
-            ))}
+            <span className="text-muted">·</span>
+            <div className="flex items-center gap-1">
+              <span className="text-muted">Faturamento:</span>
+              <span className="font-bold tabular-nums text-success-text">
+                {formatCurrency(faturamento, { cents: false })}
+              </span>
+            </div>
             {ehDia && (
-              <div className="mt-1 flex items-center justify-between gap-3 rounded-card bg-surface-2 p-4">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/20 text-brand-text">
-                    <Icon name="insights" size={22} />
-                  </span>
-                  <div className="flex min-w-0 flex-col">
-                    <span className="text-[17px] font-semibold leading-tight text-ink">Total previsto hoje</span>
-                    <span className="text-[14px] tabular-nums text-muted">
-                      {confirmados} confirmados · {concluidos} concluídos
-                    </span>
-                  </div>
+              <>
+                <span className="text-muted">·</span>
+                <div className="flex items-center gap-1 text-muted">
+                  <span className="font-bold tabular-nums text-tertiary">{vagasLivres.length}</span>
+                  {vagasLivres.length === 1 ? ' horário livre' : ' horários livres'}
                 </div>
-                <span className="shrink-0 text-[24px] font-bold tabular-nums text-ink">
-                  {formatCurrency(faturamento, { cents: false })}
-                </span>
-              </div>
+              </>
             )}
           </div>
 
-          {/* Computador: linha do tempo por dia (agenda-desktop.html) */}
-          <div className="hidden flex-col gap-5 lg:flex">
-            {grupos.map(([date, dayAppointments]) => (
-              <div key={date} className="flex flex-col gap-2">
-                {!ehDia && (
-                  <h3 className="flex items-center gap-2 text-[13px] font-semibold capitalize text-muted">
-                    <Icon name="calendar_today" size={14} />
-                    {formatDate(date)}
-                  </h3>
+          <div className="flex items-center justify-between gap-2 lg:hidden">
+            <div className="flex items-center gap-2">
+              {ehDia ? (
+                <>
+                  <span className="h-2 w-2 rounded-full bg-success" />
+                  <span className="text-[13px] font-semibold tabular-nums text-ink">{ocupacao}% de ocupação</span>
+                  <span className="text-[14px] text-muted">·</span>
+                  <span className="text-[14px] tabular-nums text-muted">
+                    {vagasDaLista.length} {vagasDaLista.length === 1 ? 'vaga livre' : 'vagas livres'}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="h-2 w-2 rounded-full bg-brand" />
+                  <span className="text-[13px] font-semibold tabular-nums text-ink">
+                    {filteredAppointments.length} agendamento{filteredAppointments.length === 1 ? '' : 's'} na semana
+                  </span>
+                </>
+              )}
+            </div>
+            {horarioFuncionamento && (
+              <span className="shrink-0 text-[11px] font-bold tabular-nums text-brand-text">
+                {formatarHorarioFuncionamento(
+                  horarioFuncionamento.aberturaMinutos,
+                  horarioFuncionamento.fechamentoMinutos,
                 )}
-                <LinhaDoTempo
-                  agendamentos={dayAppointments}
-                  agendamentosDoDia={doDiaPorData[date] ?? dayAppointments}
-                  ordemProfissionais={ordemProfissionais}
-                  duracaoPadraoMinutos={duracaoMinutos}
-                  horarioFuncionamento={horarioFuncionamento}
-                  actionLoading={actionLoading}
-                  mostrarAgora={date === getToday()}
-                  onStatusChange={handleStatusChange}
-                  onNovoAgendamento={openModal}
-                  onAbrirDetalhes={a => setDetalhesId(a.id)}
+              </span>
+            )}
+          </div>
+
+          <div className="hidden flex-wrap items-center gap-3 text-[11px] font-semibold text-muted lg:flex">
+            {STATUS_DA_LEGENDA.map(item => (
+              <div key={item.status} className="flex items-center gap-1.5">
+                <span
+                  className={cn(
+                    'h-2.5 w-2.5 rounded-sm',
+                    STATUS_STRIPE_CLASS[item.status],
+                    item.status === 'cancelado' && 'opacity-70',
+                  )}
                 />
+                <span className={item.status === 'cancelado' ? 'line-through' : undefined}>{item.rotulo}</span>
               </div>
             ))}
           </div>
-        </>
-      )}
+        </div>
+
+        {loading ? (
+          <>
+            <div className="flex flex-col gap-3 lg:hidden">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full" label={i === 0 ? 'Carregando agendamentos...' : undefined} />
+              ))}
+            </div>
+            <Skeleton className="hidden h-[480px] w-full lg:block" />
+          </>
+        ) : filteredAppointments.length === 0 ? (
+          <EmptyState
+            icon={ICONE_CALENDARIO}
+            title="Nenhum agendamento"
+            description={
+              statusFilter !== 'todos'
+                ? `Nenhum agendamento com este status neste período.`
+                : 'Não há agendamentos para este período. Crie um novo agendamento para começar!'
+            }
+            action={{ label: 'Criar Agendamento', icon: ICONE_ADICIONAR, onClick: openModal }}
+            actionVariant="secondary"
+          />
+        ) : (
+          <>
+            {/* Celular: lista de cartões com gesto (agenda-mobile.html) */}
+            <div className="flex flex-col gap-3 lg:hidden">
+              {temConfirmado && (
+                <div className="flex items-center justify-center gap-1.5 self-center rounded-full bg-surface-2 px-3 py-1.5 text-[11px] font-semibold text-muted">
+                  <Icon name="swipe" size={16} className="text-brand" />
+                  <span>Deslize o cartão para concluir ou cancelar</span>
+                </div>
+              )}
+              {grupos.map(([date, dayAppointments]) => (
+                <div key={date} className="flex flex-col gap-2">
+                  {!ehDia && (
+                    <h3 className="flex items-center gap-2 text-[13px] font-semibold capitalize text-muted">
+                      <Icon name="calendar_today" size={14} />
+                      {formatDate(date)}
+                    </h3>
+                  )}
+                  {montarItensDoDia(
+                    dayAppointments,
+                    doDiaPorData[date] ?? dayAppointments,
+                    faixa,
+                    duracaoMinutos,
+                    ehDia,
+                  ).map(item =>
+                    item.tipo === 'agendamento' ? (
+                      <AppointmentCard
+                        key={item.chave}
+                        appointment={item.agendamento}
+                        actionLoading={actionLoading}
+                        duracaoMinutos={duracaoReal(item.agendamento, duracaoMinutos)}
+                        onStatusChange={handleStatusChange}
+                        onAbrirDetalhes={a => setDetalhesId(a.id)}
+                      />
+                    ) : (
+                      <button
+                        key={item.chave}
+                        type="button"
+                        onClick={openModal}
+                        aria-label={`Novo agendamento: ${paraHoraTexto(item.inicioMinutos)} com ${primeiroNome(item.profissional)}, ${formatarDuracao(item.vaga.duracaoMinutos)} livre`}
+                        className="flex w-full items-center justify-between gap-3 rounded-card bg-surface-2 p-4 text-left transition-transform active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                      >
+                        <span className="flex min-w-0 items-center gap-3">
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-surface text-brand-text shadow-sm">
+                            <Icon name="add" size={20} />
+                          </span>
+                          <span className="flex min-w-0 flex-col">
+                            <span className="flex items-center gap-2">
+                              <span className="text-[24px] font-bold leading-none tracking-tight tabular-nums text-ink">
+                                {paraHoraTexto(item.inicioMinutos)}
+                              </span>
+                              <span className="rounded-full bg-success/12 px-2 py-0.5 text-[11px] font-bold text-success-text">
+                                Horário livre
+                              </span>
+                            </span>
+                            <span className="mt-0.5 truncate text-[14px] text-muted">
+                              {formatarDuracao(item.vaga.duracaoMinutos)} livre com {primeiroNome(item.profissional)}
+                            </span>
+                          </span>
+                        </span>
+                        <Icon name="bolt" size={20} className="shrink-0 text-muted" />
+                      </button>
+                    ),
+                  )}
+                </div>
+              ))}
+              {ehDia && (
+                <div className="mt-1 flex items-center justify-between gap-3 rounded-card bg-surface-2 p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/20 text-brand-text">
+                      <Icon name="insights" size={22} />
+                    </span>
+                    <div className="flex min-w-0 flex-col">
+                      <span className="text-[17px] font-semibold leading-tight text-ink">Total previsto hoje</span>
+                      <span className="text-[14px] tabular-nums text-muted">
+                        {confirmados} confirmados · {concluidos} concluídos
+                      </span>
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-[24px] font-bold tabular-nums text-ink">
+                    {formatCurrency(faturamento, { cents: false })}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Computador: linha do tempo por dia (agenda-desktop.html) */}
+            <div className="hidden flex-col gap-5 lg:flex">
+              {grupos.map(([date, dayAppointments]) => (
+                <div key={date} className="flex flex-col gap-2">
+                  {!ehDia && (
+                    <h3 className="flex items-center gap-2 text-[13px] font-semibold capitalize text-muted">
+                      <Icon name="calendar_today" size={14} />
+                      {formatDate(date)}
+                    </h3>
+                  )}
+                  <LinhaDoTempo
+                    agendamentos={dayAppointments}
+                    agendamentosDoDia={doDiaPorData[date] ?? dayAppointments}
+                    ordemProfissionais={ordemProfissionais}
+                    duracaoPadraoMinutos={duracaoMinutos}
+                    horarioFuncionamento={horarioFuncionamento}
+                    actionLoading={actionLoading}
+                    mostrarAgora={date === getToday()}
+                    onStatusChange={handleStatusChange}
+                    onNovoAgendamento={openModal}
+                    onAbrirDetalhes={a => setDetalhesId(a.id)}
+                  />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        </TabsContent>
+
+        <TabsContent value="aguardando-pix" className="mt-0">
+          <PendingPaymentList />
+        </TabsContent>
+      </Tabs>
 
       <PainelDetalhesAgendamento
         agendamento={agendamentoDetalhado}
