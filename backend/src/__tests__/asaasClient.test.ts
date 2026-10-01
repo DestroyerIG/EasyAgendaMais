@@ -110,7 +110,7 @@ describe('asaasClient', () => {
           accept: 'application/json',
           'content-type': 'application/json',
           access_token: 'aact_prod_test_key_123456',
-          'user-agent': 'EasyBarber/1.0',
+          'user-agent': 'EasyAgenda/1.0',
         }),
         body: JSON.stringify({
           name: 'Itallo Gabriel',

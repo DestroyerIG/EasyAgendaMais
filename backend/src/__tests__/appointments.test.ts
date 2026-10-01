@@ -85,7 +85,7 @@ vi.mock('../repositories/authRepository.js', () => ({
 
 const mockBillingContext = vi.hoisted(() => ({
   current: {
-    barbershop_id: 'bbshop-uuid',
+    business_id: 'bbshop-uuid',
     subscription_status: 'active' as string,
     plan: 'profissional' as string,
     payment_method: 'card',
@@ -96,7 +96,7 @@ const mockBillingContext = vi.hoisted(() => ({
 
 vi.mock('../repositories/subscriptionRepository.js', () => ({
   subscriptionRepository: {
-    getBarbershopBillingContext: vi.fn(async () => ({ ...mockBillingContext.current })),
+    getBusinessBillingContext: vi.fn(async () => ({ ...mockBillingContext.current })),
   },
 }));
 
@@ -104,6 +104,7 @@ const mockAppointmentFindMany = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 const mockAppointmentFindFirst = vi.hoisted(() => vi.fn().mockResolvedValue(null));
 const mockAppointmentCreate = vi.hoisted(() => vi.fn().mockResolvedValue({ id: 'apt-uuid' }));
 const mockAppointmentUpdate = vi.hoisted(() => vi.fn().mockResolvedValue({ id: 'apt-uuid' }));
+const mockAppointmentUpdateMany = vi.hoisted(() => vi.fn().mockResolvedValue({ count: 1 }));
 
 vi.mock('../config/prisma.js', () => ({
   prisma: {
@@ -120,9 +121,10 @@ vi.mock('../config/prisma.js', () => ({
       findFirst: mockAppointmentFindFirst,
       create: mockAppointmentCreate,
       update: mockAppointmentUpdate,
+      updateMany: mockAppointmentUpdateMany,
     },
     client: { findFirst: vi.fn().mockResolvedValue({ id: 'client-uuid' }) },
-    barber: { findFirst: vi.fn().mockResolvedValue({ id: 'barber-uuid' }) },
+    professional: { findFirst: vi.fn().mockResolvedValue({ id: 'professional-uuid' }) },
     service: { findFirst: vi.fn().mockResolvedValue({ id: 'service-uuid', durationMinutes: 30, price: 30 }) },
     earning: { create: vi.fn().mockResolvedValue({ id: 'earning-uuid' }) },
   },
@@ -154,7 +156,7 @@ const createAuthHeader = ({
   const authToken = jwt.sign(
     {
       userId: 'user-uuid',
-      barbershopId: 'bbshop-uuid',
+      businessId: 'bbshop-uuid',
       email: 'test@test.com',
       plan,
       role: 'admin',
@@ -220,7 +222,7 @@ describe('Appointments API — /api/v1/appointments', () => {
   describe('POST /api/v1/appointments', () => {
     const validBody = {
       clientId: '550e8400-e29b-41d4-a716-446655440001',
-      barberId: '550e8400-e29b-41d4-a716-446655440002',
+      professionalId: '550e8400-e29b-41d4-a716-446655440002',
       serviceId: '550e8400-e29b-41d4-a716-446655440003',
       date: '2026-04-15',
       time: '09:00',
@@ -228,7 +230,7 @@ describe('Appointments API — /api/v1/appointments', () => {
 
     it('deve criar agendamento com sucesso (201)', async () => {
       mockAppointmentRepo.validateEntityOwnership.mockResolvedValue(
-        { client_ok: '1', barber_ok: '1', service_ok: '1' }
+        { client_ok: '1', professional_ok: '1', service_ok: '1' }
       );
       mockAppointmentRepo.findConflict.mockResolvedValue(null);
       mockAppointmentRepo.create.mockResolvedValue(
@@ -263,7 +265,7 @@ describe('Appointments API — /api/v1/appointments', () => {
 
     it('deve retornar 409 ao conflitar horário', async () => {
       mockAppointmentRepo.validateEntityOwnership.mockResolvedValue(
-        { client_ok: '1', barber_ok: '1', service_ok: '1' }
+        { client_ok: '1', professional_ok: '1', service_ok: '1' }
       );
       mockAppointmentRepo.findConflict.mockResolvedValue({ id: 'existing-apt' });
       // New module checks conflict via prisma.appointment.findFirst directly.

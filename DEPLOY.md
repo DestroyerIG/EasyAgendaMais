@@ -1,4 +1,4 @@
-# Deploy — EasyBarber SaaS 2.0
+# Deploy — EasyAgenda+ SaaS 2.0
 
 Guia de produção. Stack: Node.js 20 + Express + Prisma + PostgreSQL (Supabase) + Vercel (frontend) + Render (backend).
 
@@ -17,7 +17,8 @@ Guia de produção. Stack: Node.js 20 + Express + Prisma + PostgreSQL (Supabase)
 ### Obrigatórias
 
 ```env
-DATABASE_URL=postgresql://user:password@host:5432/barberpro?sslmode=require
+DATABASE_URL=postgresql://user:password@host:5432/easyagenda?sslmode=require
+DIRECT_URL=postgresql://user:password@host:5432/easyagenda?sslmode=require
 JWT_SECRET=chave_forte_32_chars_minimo
 NODE_ENV=production
 PORT=5000
@@ -66,7 +67,7 @@ VERCEL_PROJECT_PREFIX=barberpro-saas-2-0
 OTEL_ENABLED=false
 ```
 
-`BUSINESS_TIMEZONE` define o fuso usado pelo cron de lembretes. O servidor roda em UTC, mas os agendamentos gravam o relógio local da barbearia; sem essa variável o alvo dos lembretes pode sair errado. Padrão: `America/Sao_Paulo`.
+`BUSINESS_TIMEZONE` define o fuso usado pelo cron de lembretes. O servidor roda em UTC, mas os agendamentos gravam o relógio local do negócio; sem essa variável o alvo dos lembretes pode sair errado. Padrão: `America/Sao_Paulo`.
 
 ---
 
@@ -78,7 +79,10 @@ NEXT_PUBLIC_API_URL=https://sua-api.render.com/api/v1
 NEXT_PUBLIC_APP_URL=https://seu-frontend.vercel.app
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+BACKEND_ORIGIN=https://sua-api.render.com
 ```
+
+`DIRECT_URL` (backend) é a conexão que o Prisma Migrate usa (`directUrl` no `schema.prisma`): no Supabase, a conexão direta ou a do Session pooler (porta 5432), não a do Transaction pooler (porta 6543). `BACKEND_ORIGIN` (frontend) é a origem do backend liberada no `connect-src` do CSP em `next.config.js`; é opcional e, sem ela, vale `https://easybarber-backend.onrender.com`.
 
 ---
 
@@ -221,7 +225,7 @@ Validação manual:
 ## Rollback
 
 - **Aplicação**: redeploy da versão anterior no Render
-- **Banco**: `prisma migrate resolve --rolled-back <migration_name>` (não executa SQL — apenas desfaz o registro)
+- **Banco**: `prisma migrate resolve --rolled-back <migration_name>` (não executa SQL — apenas desfaz o registro, e só aceita migration que falhou; para desfazer uma migration aplicada com sucesso, ver `docs/PUBLICACAO-FUNDACAO.md`)
 - **Schema**: restaure backup antes de reverter migration destrutiva
 
 ---

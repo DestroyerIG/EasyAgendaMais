@@ -2,8 +2,9 @@ import '../styles/globals.css'
 import { ToastProvider } from '@/components/Toast'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { ThemeProvider } from '@/components/theme/ThemeProvider'
 import localFont from 'next/font/local'
-import easyBarberLogo from '@/icons/easybarber.png'
+import easyAgendaLogo from '@/icons/easyagenda-logo.svg'
 
 const plusJakartaSans = localFont({
   src: '../assets/fonts/plus-jakarta-sans-latin.woff2',
@@ -22,23 +23,23 @@ const spaceGrotesk = localFont({
 });
 
 export const metadata = {
-  title: 'EasyBarber - Gestão para Barbearias',
-  description: 'EasyBarber é a plataforma para agendamentos, clientes, financeiro e crescimento previsível da sua barbearia.',
-  keywords: 'easybarber, barbearia, agendamento online, gestão financeira, sistema para barbearias',
+  title: 'EasyAgenda+ - Gestão para Negócios de Beleza',
+  description: 'EasyAgenda+ é a plataforma de agendamentos, clientes, financeiro e crescimento previsível para negócios de beleza e bem-estar.',
+  keywords: 'easyagenda, agendamento online, negócios de beleza, bem-estar, gestão financeira, sistema de agendamento',
   openGraph: {
-    title: 'EasyBarber - Gestão para Barbearias',
-    description: 'Controle total da operação da sua barbearia com agendamentos, equipe, clientes e financeiro em um só lugar.',
+    title: 'EasyAgenda+ - Gestão para Negócios de Beleza',
+    description: 'Controle total da operação do seu negócio com agendamentos, equipe, clientes e financeiro em um só lugar.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'EasyBarber - Gestão para Barbearias',
-    description: 'Controle total da operação da sua barbearia com agendamentos, equipe, clientes e financeiro em um só lugar.',
+    title: 'EasyAgenda+ - Gestão para Negócios de Beleza',
+    description: 'Controle total da operação do seu negócio com agendamentos, equipe, clientes e financeiro em um só lugar.',
   },
   icons: {
-    icon: easyBarberLogo.src,
-    shortcut: easyBarberLogo.src,
-    apple: easyBarberLogo.src,
+    icon: easyAgendaLogo.src,
+    shortcut: easyAgendaLogo.src,
+    apple: easyAgendaLogo.src,
   },
 }
 
@@ -48,19 +49,21 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head />
-      <body className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} bg-dark text-white`}>
-        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:bg-primary focus:text-black focus:px-4 focus:py-2 focus:rounded-lg focus:font-bold">
+      <body className={`${plusJakartaSans.variable} ${spaceGrotesk.variable}`}>
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:bg-brand focus:text-on-brand focus:px-4 focus:py-2 focus:rounded-lg focus:font-bold">
           Pular para o conteúdo
         </a>
-        <ErrorBoundary>
-          <ToastProvider>
-            <AuthProvider>
-              {children}
-            </AuthProvider>
-          </ToastProvider>
-        </ErrorBoundary>
+        <ThemeProvider>
+          <ErrorBoundary>
+            <ToastProvider>
+              <AuthProvider>
+                {children}
+              </AuthProvider>
+            </ToastProvider>
+          </ErrorBoundary>
+        </ThemeProvider>
       </body>
     </html>
   )

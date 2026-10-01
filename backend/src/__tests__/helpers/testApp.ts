@@ -11,7 +11,7 @@ import appointmentRoutes from '../../modules/appointments/appointments.routes.js
 import clientRoutes from '../../routes/clients.js';
 import financeRoutes from '../../routes/finance.js';
 import dashboardRoutes from '../../routes/dashboard.js';
-import barbershopRoutes from '../../routes/barbershop.js';
+import businessRoutes from '../../routes/business.js';
 
 export const createTestApp = () => {
   const app = express();
@@ -31,7 +31,7 @@ export const createTestApp = () => {
   app.use(`${API_V1}/appointments`, appointmentRoutes);
   app.use(`${API_V1}/clients`, clientRoutes);
   app.use(`${API_V1}/finance`, financeRoutes);
-  app.use(`${API_V1}/barbershop`, barbershopRoutes);
+  app.use(`${API_V1}/business`, businessRoutes);
 
   // 404
   app.use((req: Request, res: Response) => {

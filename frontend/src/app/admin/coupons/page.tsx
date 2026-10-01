@@ -191,7 +191,7 @@ export default function AdminCouponsPage() {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[380px_1fr]">
-        <form onSubmit={handleSubmit} className="card space-y-4">
+        <form onSubmit={handleSubmit} method="post" className="card space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold">{editingCoupon ? 'Editar cupom' : 'Novo cupom'}</h2>

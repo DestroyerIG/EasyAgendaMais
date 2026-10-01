@@ -2,6 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  /* O til resolve o pacote pelo bundler (não é um caminho de disco); não remover. */
+  src: url('~material-symbols/material-symbols-outlined.woff2') format('woff2');
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+.material-symbols-outlined.fill {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
 /* ─── Base ───────────────────────────────────────────────────────────────────── */
 
 @layer base {
@@ -11,8 +40,106 @@
     box-sizing: border-box;
   }
 
+  /* Tokens do DESIGN.md em canais RGB (permitem transparência no Tailwind). */
+  :root {
+    --color-bg: 246 245 244;
+    --color-surface: 255 255 255;
+    --color-surface-2: 239 237 234;
+    --color-ink: 26 24 23;
+    --color-muted: 102 96 91;
+    --color-line: 226 223 219;
+    --color-brand: 255 122 0;
+    --color-on-brand: 26 24 23;
+    --color-brand-text: 179 77 0;
+    --color-whatsapp: 18 140 74;
+    --color-success: 22 163 74;
+    --color-success-text: 21 128 61;
+    --color-warning: 217 119 6;
+    --color-warning-text: 146 64 14;
+    --color-danger: 220 38 38;
+    --color-status-confirmed: 37 99 235;
+    --color-scrim: 14 13 12;
+
+    /* Família Material 3 dos exports Stitch: tokens sem equivalente exato no conjunto acima. */
+    --color-surface-m3: 255 248 246;
+    --color-brand-text-m3: 153 71 0;
+    --color-tertiary: 0 99 153;
+    --color-tertiary-container: 0 168 255;
+  }
+
+  .dark {
+    --color-bg: 14 13 12;
+    --color-surface: 24 22 21;
+    --color-surface-2: 33 31 29;
+    --color-ink: 243 241 239;
+    --color-muted: 163 157 151;
+    --color-line: 46 43 40;
+    --color-brand: 255 122 0;
+    --color-on-brand: 26 24 23;
+    --color-brand-text: 255 154 61;
+    --color-whatsapp: 37 211 102;
+    --color-success: 74 222 128;
+    --color-success-text: 74 222 128;
+    --color-warning: 251 191 36;
+    --color-warning-text: 251 191 36;
+    --color-danger: 248 113 113;
+    --color-status-confirmed: 37 99 235;
+    --color-scrim: 0 0 0;
+
+    /* Os 8 exports Material 3 não declaram um par escuro para estes 4 tokens;
+       reaproveita-se o token existente de papel mais próximo (ver relatório da Tarefa 1). */
+    --color-surface-m3: 24 22 21;
+    --color-brand-text-m3: 255 154 61;
+    /* tertiary e tertiary-container são o azul do export que não é o status-confirmed
+       (agenda-desktop.html: avatar e faixa da segunda profissional). No escuro guardam
+       o matiz do claro e sobem de luminosidade, que é o que os torna legíveis sobre o
+       fundo escuro — ficam só mais claros, nunca de outra cor:
+         tertiary           #006399 → #70CDFF (matiz 201°, luminosidade 30% → 72%)
+         tertiary-container #00a8ff → #3DBDFF (matiz 200°, luminosidade 50% → 62%)
+       A ordem entre os dois inverte de propósito: no claro o tertiary é o tom escuro
+       (texto) e o container o claro (fundo); no escuro os papéis trocam, como manda o
+       esquema escuro do próprio Material 3. */
+    --color-tertiary: 112 205 255;
+    --color-tertiary-container: 61 189 255;
+  }
+
+  /* Mesmos valores do :root, para reafirmar o claro num descendente mesmo quando um
+     ancestral (tema do sistema/usuário) já aplicou .dark — usado pela landing pública,
+     que não tem alternância de tema. Ver ForcedLight. */
+  .light {
+    --color-bg: 246 245 244;
+    --color-surface: 255 255 255;
+    --color-surface-2: 239 237 234;
+    --color-ink: 26 24 23;
+    --color-muted: 102 96 91;
+    --color-line: 226 223 219;
+    --color-brand: 255 122 0;
+    --color-on-brand: 26 24 23;
+    --color-brand-text: 179 77 0;
+    --color-whatsapp: 18 140 74;
+    --color-success: 22 163 74;
+    --color-success-text: 21 128 61;
+    --color-warning: 217 119 6;
+    --color-warning-text: 146 64 14;
+    --color-danger: 220 38 38;
+    --color-status-confirmed: 37 99 235;
+    --color-scrim: 14 13 12;
+    --color-surface-m3: 255 248 246;
+    --color-brand-text-m3: 153 71 0;
+    --color-tertiary: 0 99 153;
+    --color-tertiary-container: 0 168 255;
+  }
+
+  /* Contêiner das telas que seguem o design system: fundo, texto e tipografia do DESIGN.md. */
+  .app-theme {
+    @apply bg-bg text-ink;
+    --font-display: var(--font-sans);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+
   body {
-    @apply bg-black text-white antialiased;
+    @apply antialiased;
     font-family: var(--font-sans), sans-serif;
   }
 
@@ -25,9 +152,9 @@
   }
 
   ::-webkit-scrollbar              { width: 8px; }
-  ::-webkit-scrollbar-track        { @apply bg-dark-light; }
-  ::-webkit-scrollbar-thumb        { @apply bg-primary rounded; }
-  ::-webkit-scrollbar-thumb:hover  { @apply bg-orange-400; }
+  ::-webkit-scrollbar-track        { @apply bg-surface-2; }
+  ::-webkit-scrollbar-thumb        { @apply bg-line rounded; }
+  ::-webkit-scrollbar-thumb:hover  { @apply bg-muted; }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -37,6 +164,12 @@
       scroll-behavior: auto !important;
     }
   }
+}
+
+/* Quiet zone do QR Code: o leitor exige escuro sobre claro, então este fundo fica
+   branco nos dois temas e por isso não usa token. */
+.qr-surface {
+  background-color: #ffffff;
 }
 
 /* ─── Components ─────────────────────────────────────────────────────────────── */
@@ -76,11 +209,6 @@
            focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50;
   }
 
-  /* Label above input fields */
-  .field-label {
-    @apply text-xs font-bold uppercase tracking-widest text-gray-400 pl-1;
-  }
-
   /* ── Typography ──────────────────────────────────────────────────────────── */
 
   /* Small uppercase label above section headings */
@@ -101,32 +229,10 @@
     @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border;
   }
 
-  /* ── Modal ───────────────────────────────────────────────────────────────── */
-
-  .modal-backdrop {
-    @apply fixed inset-0 z-50 flex items-center justify-center p-4
-           bg-black/70 backdrop-blur-sm animate-fade-in;
-  }
-
-  .modal-content {
-    @apply w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl
-           bg-dark-light border border-white/10 shadow-2xl animate-slide-up;
-  }
-
-  /* ── Tabs ────────────────────────────────────────────────────────────────── */
-
-  .tab-active   { @apply bg-primary text-black font-semibold; }
-  .tab-inactive { @apply text-gray-400 hover:text-white hover:bg-white/5; }
-
   /* ── States ──────────────────────────────────────────────────────────────── */
 
   .skeleton {
     @apply bg-gradient-to-r from-dark-light via-dark-lighter to-dark-light
            bg-[length:200%_100%] animate-shimmer rounded-lg;
-  }
-
-  /* Centered empty/loading state container */
-  .empty-state {
-    @apply flex flex-col items-center space-y-6 py-8;
   }
 }

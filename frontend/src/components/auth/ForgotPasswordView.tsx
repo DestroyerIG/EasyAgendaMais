@@ -9,6 +9,7 @@ import {
   isSupabaseClientConfigured,
 } from '@/lib/supabase/client';
 import { resolveResetPasswordRedirectUrl } from '@/lib/appUrl';
+import { Banner, Button, Card, Field, Input } from '@/components/ui';
 
 type ForgotPasswordViewProps = {
   appUrl?: string;
@@ -124,60 +125,45 @@ export function ForgotPasswordView({ appUrl }: ForgotPasswordViewProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,122,0,0.2),_rgba(0,0,0,0.92)_45%)] px-4 py-10">
-      <div className="mx-auto w-full max-w-xl rounded-2xl border border-white/10 bg-black/70 p-6 sm:p-8 shadow-2xl shadow-black/40 backdrop-blur">
-        <p className="section-eyebrow">EasyBarber</p>
-        <h1 className="mt-3 text-3xl font-black text-white">Esqueceu a senha?</h1>
-        <p className="mt-4 text-sm text-gray-300">
+    <div className="app-theme min-h-screen px-4 py-10">
+      <Card className="mx-auto w-full max-w-xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-text">EasyAgenda+</p>
+        <h1 className="mt-3 text-2xl font-bold text-ink">Esqueceu a senha?</h1>
+        <p className="mt-4 text-sm text-muted">
           Informe o e-mail da sua conta para receber o link de redefinição.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div>
-            <label
-              htmlFor="forgot-password-email"
-              className="block text-xs font-semibold uppercase tracking-[0.2em] text-gray-400"
-            >
-              E-mail
-            </label>
-            <input
+        {/* method="post": mesma proteção do login — sem isso, um clique antes do React
+            hidratar cai no submit nativo do HTML (GET para a própria URL). */}
+        <form onSubmit={handleSubmit} method="post" className="mt-6 space-y-4">
+          <Field id="forgot-password-email" label="E-mail">
+            <Input
               id="forgot-password-email"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="Digite seu e-mail"
-              className="input mt-2"
               required
             />
-          </div>
+          </Field>
 
           {message ? (
-            <div
-              className={`rounded-xl px-4 py-3 text-sm ${
-                status === 'success'
-                  ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
-                  : 'border border-amber-500/40 bg-amber-500/10 text-amber-200'
-              }`}
-            >
+            <Banner tone={status === 'success' ? 'success' : 'danger'} variant="inline">
               {message}
-            </div>
+            </Banner>
           ) : null}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary w-full text-sm disabled:cursor-not-allowed disabled:opacity-70"
-          >
+          <Button type="submit" fullWidth loading={loading}>
             {loading ? 'Enviando...' : 'Enviar link de redefinição'}
-          </button>
+          </Button>
         </form>
 
         <div className="mt-6 text-sm">
-          <Link href="/login" className="text-gray-300 hover:text-white">
+          <Link href="/login" className="text-muted hover:text-ink">
             Voltar para o login
           </Link>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

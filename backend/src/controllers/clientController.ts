@@ -34,7 +34,7 @@ export const normalizeClientBody = (req: Request, res: Response, next: NextFunct
 
 export const getClients = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const result = await clientService.getAll(req.user.barbershopId!, req.query) as { data: unknown[]; meta: import('../utils/response.js').PaginationMeta | undefined };
+    const result = await clientService.getAll(req.user.businessId!, req.query) as { data: unknown[]; meta: import('../utils/response.js').PaginationMeta | undefined };
     if (result.meta) {
       sendSuccess(res, result.data, 200, result.meta);
     } else {
@@ -47,7 +47,7 @@ export const getClients = async (req: Request, res: Response, next: NextFunction
 
 export const createClient = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const data = await clientService.create(req.user.barbershopId!, req.body);
+    const data = await clientService.create(req.user.businessId!, req.body);
     sendCreated(res, data);
   } catch (error) {
     next(error);
@@ -56,7 +56,7 @@ export const createClient = async (req: Request, res: Response, next: NextFuncti
 
 export const updateClient = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const data = await clientService.update(req.params['id'] as string, req.user.barbershopId!, req.body);
+    const data = await clientService.update(req.params['id'] as string, req.user.businessId!, req.body);
     sendSuccess(res, data);
   } catch (error) {
     next(error);
@@ -65,7 +65,7 @@ export const updateClient = async (req: Request, res: Response, next: NextFuncti
 
 export const getClientHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const data = await clientService.getHistory(req.user.barbershopId!, req.params['id'] as string);
+    const data = await clientService.getHistory(req.user.businessId!, req.params['id'] as string);
     sendSuccess(res, (data as Parameters<typeof toAppointmentDto>[0][]).map(toAppointmentDto));
   } catch (error) {
     next(error);

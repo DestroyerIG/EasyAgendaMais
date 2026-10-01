@@ -15,7 +15,7 @@ import type { Request } from 'express';
 
 interface AuthUser {
   userId?: string | null;
-  barbershopId?: string | null;
+  businessId?: string | null;
   role?: string | null;
 }
 
@@ -39,9 +39,9 @@ const ensureConfirmed = (confirmation: unknown): void => {
   }
 };
 
-const actorPayload = (authUser: AuthUser | null | undefined): { actorUserId: string | null; actorBarbershopId: string | null } => ({
+const actorPayload = (authUser: AuthUser | null | undefined): { actorUserId: string | null; actorBusinessId: string | null } => ({
   actorUserId: authUser?.userId || null,
-  actorBarbershopId: authUser?.barbershopId || null,
+  actorBusinessId: authUser?.businessId || null,
 });
 
 export const adminService = {
@@ -96,8 +96,8 @@ export const adminService = {
         req,
         actionType: 'TENANT_BLOCKED',
         ...actorPayload(authUser),
-        targetBarbershopId: tenantRecord.id as string,
-        resourceType: 'barbershop',
+        targetBusinessId: tenantRecord.id as string,
+        resourceType: 'business',
         resourceId: tenantRecord.id as string,
         details: {
           reason: body.reason || null,
@@ -117,8 +117,8 @@ export const adminService = {
         req,
         actionType: 'TENANT_BLOCKED',
         ...actorPayload(authUser),
-        targetBarbershopId: tenantId,
-        resourceType: 'barbershop',
+        targetBusinessId: tenantId,
+        resourceType: 'business',
         resourceId: tenantId,
         details: { reason: body.reason || null },
         errorMessage: (error as Error).message,
@@ -156,8 +156,8 @@ export const adminService = {
         req,
         actionType: 'TENANT_UNBLOCKED',
         ...actorPayload(authUser),
-        targetBarbershopId: tenantRecord.id as string,
-        resourceType: 'barbershop',
+        targetBusinessId: tenantRecord.id as string,
+        resourceType: 'business',
         resourceId: tenantRecord.id as string,
       });
 
@@ -174,8 +174,8 @@ export const adminService = {
         req,
         actionType: 'TENANT_UNBLOCKED',
         ...actorPayload(authUser),
-        targetBarbershopId: tenantId,
-        resourceType: 'barbershop',
+        targetBusinessId: tenantId,
+        resourceType: 'business',
         resourceId: tenantId,
         errorMessage: (error as Error).message,
       });
@@ -211,8 +211,8 @@ export const adminService = {
         req,
         actionType: 'TENANT_SOFT_DELETED',
         ...actorPayload(authUser),
-        targetBarbershopId: tenantRecord.id as string,
-        resourceType: 'barbershop',
+        targetBusinessId: tenantRecord.id as string,
+        resourceType: 'business',
         resourceId: tenantRecord.id as string,
         details: {
           reason: body.reason || null,
@@ -232,8 +232,8 @@ export const adminService = {
         req,
         actionType: 'TENANT_SOFT_DELETED',
         ...actorPayload(authUser),
-        targetBarbershopId: tenantId,
-        resourceType: 'barbershop',
+        targetBusinessId: tenantId,
+        resourceType: 'business',
         resourceId: tenantId,
         details: { reason: body.reason || null },
         errorMessage: (error as Error).message,
@@ -285,7 +285,7 @@ export const adminService = {
         actionType: 'USER_BLOCKED',
         ...actorPayload(authUser),
         targetUserId: updatedUserRecord.id as string,
-        targetBarbershopId: updatedUserRecord.barbershop_id as string,
+        targetBusinessId: updatedUserRecord.business_id as string,
         resourceType: 'user',
         resourceId: updatedUserRecord.id as string,
         details: {
@@ -308,7 +308,7 @@ export const adminService = {
         actionType: 'USER_BLOCKED',
         ...actorPayload(authUser),
         targetUserId: userId,
-        targetBarbershopId: (targetUserRecord?.barbershop_id as string) || null,
+        targetBusinessId: (targetUserRecord?.business_id as string) || null,
         resourceType: 'user',
         resourceId: userId,
         details: { reason: body.reason || null },
@@ -354,7 +354,7 @@ export const adminService = {
         actionType: 'USER_UNBLOCKED',
         ...actorPayload(authUser),
         targetUserId: updatedUserRecord.id as string,
-        targetBarbershopId: updatedUserRecord.barbershop_id as string,
+        targetBusinessId: updatedUserRecord.business_id as string,
         resourceType: 'user',
         resourceId: updatedUserRecord.id as string,
         details: {
@@ -376,7 +376,7 @@ export const adminService = {
         actionType: 'USER_UNBLOCKED',
         ...actorPayload(authUser),
         targetUserId: userId,
-        targetBarbershopId: (targetUserRecord?.barbershop_id as string) || null,
+        targetBusinessId: (targetUserRecord?.business_id as string) || null,
         resourceType: 'user',
         resourceId: userId,
         errorMessage: (error as Error).message,
@@ -394,14 +394,14 @@ export const adminService = {
     ensureConfirmed(body.confirmation);
 
     try {
-      const result = await subscriptionService.resyncBarbershopSubscription(tenantId);
+      const result = await subscriptionService.resyncBusinessSubscription(tenantId);
       const resultRecord = result as Record<string, unknown>;
 
       await auditLogService.logAdminAction({
         req,
         actionType: 'SUBSCRIPTION_RESYNC_TRIGGERED',
         ...actorPayload(authUser),
-        targetBarbershopId: tenantId,
+        targetBusinessId: tenantId,
         resourceType: 'subscription',
         resourceId: tenantId,
         details: {
@@ -418,7 +418,7 @@ export const adminService = {
         req,
         actionType: 'SUBSCRIPTION_RESYNC_TRIGGERED',
         ...actorPayload(authUser),
-        targetBarbershopId: tenantId,
+        targetBusinessId: tenantId,
         resourceType: 'subscription',
         resourceId: tenantId,
         errorMessage: (error as Error).message,
@@ -441,8 +441,8 @@ export const adminService = {
       throw new ValidationError('Plano inválido', [`plan deve ser um de: ${[...VALID_PLANS].join(', ')}`]);
     }
 
-    const context = await subscriptionRepository.getBarbershopBillingContext(tenantId);
-    if (!context) throw new NotFoundError('Barbearia');
+    const context = await subscriptionRepository.getBusinessBillingContext(tenantId);
+    if (!context) throw new NotFoundError('Negócio');
 
     await subscriptionRepository.updateSubscriptionState(tenantId, { plan: body.plan });
     await subscriptionRepository.setDesiredPlan(tenantId, body.plan);
@@ -451,7 +451,7 @@ export const adminService = {
       req,
       actionType: 'SUBSCRIPTION_PLAN_OVERRIDE',
       ...actorPayload(authUser),
-      targetBarbershopId: tenantId,
+      targetBusinessId: tenantId,
       resourceType: 'subscription',
       resourceId: tenantId,
       details: {
@@ -478,8 +478,8 @@ export const adminService = {
       throw new ValidationError('Status inválido', [`status deve ser um de: ${[...VALID_STATUSES].join(', ')}`]);
     }
 
-    const context = await subscriptionRepository.getBarbershopBillingContext(tenantId);
-    if (!context) throw new NotFoundError('Barbearia');
+    const context = await subscriptionRepository.getBusinessBillingContext(tenantId);
+    if (!context) throw new NotFoundError('Negócio');
 
     await subscriptionRepository.updateSubscriptionState(tenantId, {
       subscriptionStatus: body.status as 'active' | 'trialing' | 'pending' | 'past_due' | 'unpaid' | 'canceled' | 'incomplete',
@@ -489,7 +489,7 @@ export const adminService = {
       req,
       actionType: 'SUBSCRIPTION_STATUS_OVERRIDE',
       ...actorPayload(authUser),
-      targetBarbershopId: tenantId,
+      targetBusinessId: tenantId,
       resourceType: 'subscription',
       resourceId: tenantId,
       details: {
@@ -511,8 +511,8 @@ export const adminService = {
   ): Promise<unknown> {
     ensureConfirmed(body.confirmation);
 
-    const context = await subscriptionRepository.getBarbershopBillingContext(tenantId);
-    if (!context) throw new NotFoundError('Barbearia');
+    const context = await subscriptionRepository.getBusinessBillingContext(tenantId);
+    if (!context) throw new NotFoundError('Negócio');
 
     const result = await billingService.cancelSubscription(tenantId);
 
@@ -520,7 +520,7 @@ export const adminService = {
       req,
       actionType: 'SUBSCRIPTION_CANCELED',
       ...actorPayload(authUser),
-      targetBarbershopId: tenantId,
+      targetBusinessId: tenantId,
       resourceType: 'subscription',
       resourceId: tenantId,
       details: {

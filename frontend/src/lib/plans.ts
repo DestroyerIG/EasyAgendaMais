@@ -16,11 +16,11 @@ export const SAAS_PLANS: SaaSPlan[] = [
     id: 'basico',
     name: 'Básico',
     price: 49.9,
-    trialDays: 7,
-    description: 'Para barbearias enxutas que precisam organizar a operação sem complexidade.',
+    trialDays: 14,
+    description: 'Para negócios enxutos que precisam organizar a operação sem complexidade.',
     ctaLabel: 'Começar no Básico',
     features: [
-      '1 barbeiro ativo',
+      '1 profissional ativo',
       'Agendamentos online ilimitados',
       'Gestão de clientes com histórico',
       'Lembretes automáticos via WhatsApp',
@@ -31,12 +31,12 @@ export const SAAS_PLANS: SaaSPlan[] = [
     id: 'profissional',
     name: 'Profissional',
     price: 99.9,
-    trialDays: 7,
+    trialDays: 14,
     description: 'Plano ideal para crescimento com mais equipe, previsibilidade e performance.',
     recommended: true,
     ctaLabel: 'Assinar Profissional',
     features: [
-      'Até 5 barbeiros ativos',
+      'Até 5 profissionais ativos',
       'Agenda inteligente com encaixes',
       'Comissões e produtividade da equipe',
       'Relatórios gerenciais mensais',
@@ -48,11 +48,11 @@ export const SAAS_PLANS: SaaSPlan[] = [
     id: 'premium',
     name: 'Premium',
     price: 199.9,
-    trialDays: 7,
+    trialDays: 14,
     description: 'Para operações em expansão que exigem escala, controle e visão estratégica.',
     ctaLabel: 'Escalar com Premium',
     features: [
-      'Barbeiros ilimitados',
+      'Profissionais ilimitados',
       'Relatórios avançados e metas',
       'Automação de lembretes e campanhas',
       'Suporte prioritário',
@@ -69,4 +69,17 @@ export const PLAN_MAP: Record<PlanId, SaaSPlan> = SAAS_PLANS.reduce((acc, plan) 
 
 export const isPlanId = (value: string): value is PlanId => {
   return value === 'basico' || value === 'profissional' || value === 'premium';
+};
+
+// Nome curto do plano para a casca do painel (rodapé da barra lateral): Solo, Equipe
+// ou Salão — nunca o nome comercial ("Básico"/"Profissional"/"Premium") usado nas
+// páginas de preço, e nunca "Pro".
+export const PLAN_SHELL_LABEL: Record<PlanId, string> = {
+  basico: 'Solo',
+  profissional: 'Equipe',
+  premium: 'Salão',
+};
+
+export const getPlanShellLabel = (plan: string): string => {
+  return isPlanId(plan) ? PLAN_SHELL_LABEL[plan] : PLAN_SHELL_LABEL.basico;
 };

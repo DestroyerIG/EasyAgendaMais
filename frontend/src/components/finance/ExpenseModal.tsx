@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
-import { Modal, ModalFooter } from '@/components/ui';
+import { Modal, ModalFooter, Field, Input, Select } from '@/components/ui';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
 import type { Expense } from '@/types';
 
@@ -63,52 +63,50 @@ export function ExpenseModal({ isOpen, onClose, onSubmit, editingExpense }: Expe
         />
       }
     >
-      <div className="space-y-2">
-        <label className="field-label">Descrição</label>
-        <input
-          type="text"
-          value={formData.description}
-          onChange={e => setFormData({ ...formData, description: e.target.value })}
-          className="input"
-          placeholder="Ex: Aluguel da sala"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="field-label">Categoria</label>
-          <select
-            value={formData.category}
-            onChange={e => setFormData({ ...formData, category: e.target.value })}
-            className="input"
-          >
-            <option value="" disabled>Selecione...</option>
-            {EXPENSE_CATEGORIES.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-2">
-          <label className="field-label">Valor (R$)</label>
-          <input
-            type="number"
-            step="0.01"
-            value={formData.amount}
-            onChange={e => setFormData({ ...formData, amount: e.target.value })}
-            className="input"
-            placeholder="100.00"
+      <div className="flex flex-col gap-4">
+        <Field id="expense-description" label="Descrição">
+          <Input
+            id="expense-description"
+            type="text"
+            value={formData.description}
+            onChange={e => setFormData({ ...formData, description: e.target.value })}
+            placeholder="Ex: Aluguel da sala"
           />
-        </div>
-      </div>
+        </Field>
 
-      <div className="space-y-2">
-        <label className="field-label">Data</label>
-        <input
-          type="date"
-          value={formData.date}
-          onChange={e => setFormData({ ...formData, date: e.target.value })}
-          className="input [color-scheme:dark]"
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <Field id="expense-category" label="Categoria">
+            <Select
+              id="expense-category"
+              value={formData.category}
+              onChange={e => setFormData({ ...formData, category: e.target.value })}
+            >
+              <option value="" disabled>Selecione...</option>
+              {EXPENSE_CATEGORIES.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field id="expense-amount" label="Valor (R$)">
+            <Input
+              id="expense-amount"
+              type="number"
+              step="0.01"
+              value={formData.amount}
+              onChange={e => setFormData({ ...formData, amount: e.target.value })}
+              placeholder="100.00"
+            />
+          </Field>
+        </div>
+
+        <Field id="expense-date" label="Data">
+          <Input
+            id="expense-date"
+            type="date"
+            value={formData.date}
+            onChange={e => setFormData({ ...formData, date: e.target.value })}
+          />
+        </Field>
       </div>
     </Modal>
   );

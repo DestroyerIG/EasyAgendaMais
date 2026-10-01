@@ -10,7 +10,7 @@ export { createCheckoutSessionSchema };
 export const createCheckoutSession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const data = await subscriptionService.createCheckoutSession(
-      req.user.barbershopId!,
+      req.user.businessId!,
       req.body.plan as string,
       (req.body.paymentMethod as string | undefined) ?? ''
     );
@@ -22,7 +22,7 @@ export const createCheckoutSession = async (req: Request, res: Response, next: N
 
 export const getSubscriptionStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const data = await subscriptionService.getStatus(req.user.barbershopId!);
+    const data = await subscriptionService.getStatus(req.user.businessId!);
     sendSuccess(res, data);
   } catch (error) {
     next(error);
@@ -31,7 +31,7 @@ export const getSubscriptionStatus = async (req: Request, res: Response, next: N
 
 export const createPortalSession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const data = await subscriptionService.createPortalSession(req.user.barbershopId!);
+    const data = await subscriptionService.createPortalSession(req.user.businessId!);
     sendSuccess(res, data);
   } catch (error) {
     next(error);

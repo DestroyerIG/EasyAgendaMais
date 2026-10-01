@@ -1,4 +1,4 @@
-# 💈 EasyBarber SaaS 2.0
+# EasyAgenda+ SaaS 2.0
 
 ![Node.js](https://img.shields.io/badge/Node.js-20+-green?style=flat-square&logo=node.js)
 ![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)
@@ -7,7 +7,7 @@
 ![Status](https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow?style=flat-square)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue?style=flat-square)](./LICENSE)
 
-> **Plataforma SaaS multi-tenant para gestão de barbearias — agenda inteligente, financeiro,
+> **Plataforma SaaS multi-tenant para gestão de negócios de beleza e bem-estar — agenda inteligente, financeiro,
 > automações de WhatsApp, billing híbrido e painel administrativo de plataforma.**
 
 ---
@@ -17,11 +17,11 @@
 - Cadastro, confirmação de e-mail e login via **Supabase Auth**
 - Sessão com cookies httpOnly e refresh token
 - Dashboard tenant com métricas em tempo real
-- Gestão de agendamentos, clientes, serviços e barbeiros
+- Gestão de agendamentos, clientes, serviços e profissionais
 - Configuração operacional: dias de funcionamento, horários e intervalos
 - Financeiro com receitas, despesas e relatórios
 - Automação WhatsApp via **Evolution API v2**
-- Lembretes automáticos de agendamento via cron (2h antes, fuso da barbearia)
+- Lembretes automáticos de agendamento via cron (2h antes, fuso do negócio)
 - Billing híbrido: **Stripe** (cartão/assinatura) + **Asaas** (Pix)
 - Controle de acesso por plano e status de assinatura
 - Admin de plataforma: métricas, tenants, assinaturas, bloqueios e logs
@@ -70,7 +70,7 @@ Route → Middleware → Controller → Service → Repository → PostgreSQL
 
 ### Fluxo WhatsApp
 ```
-Frontend → Backend EasyBarber → Evolution API v2 externa
+Frontend → Backend EasyAgenda+ → Evolution API v2 externa
 ```
 
 ### Fluxo Billing
@@ -85,7 +85,7 @@ Frontend → Backend → Stripe/Asaas → Webhook → Backend → PostgreSQL
 ## 🗂️ Estrutura do Projeto
 
 ```
-Barberpro-saas-2.0/
+easyagenda-saas/
 │
 ├── 📁 backend/
 │   ├── prisma/
@@ -156,7 +156,7 @@ cd frontend && npm run dev
 ### Backend (mínimo)
 
 ```env
-DATABASE_URL=postgresql://postgres:senha@localhost:5432/barberpro
+DATABASE_URL=postgresql://postgres:senha@localhost:5432/easyagenda
 JWT_SECRET=troque_por_uma_chave_forte
 FRONTEND_URL=http://localhost:3000
 APP_URL=http://localhost:3000
@@ -236,7 +236,7 @@ Base URL: `http://localhost:5000/api/v1`
 | `/appointments` | Agendamentos |
 | `/clients` | Clientes |
 | `/finance` | Financeiro |
-| `/barbershop` | Configuração da barbearia |
+| `/business` | Configuração do negócio |
 | `/whatsapp` | Automações e webhook |
 | `/subscriptions` | Assinaturas |
 | `/billing` | Billing e pagamentos |
@@ -258,7 +258,7 @@ Base URL: `http://localhost:5000/api/v1`
 
 - Provider atual: **Evolution API v2** externa
 - Webhook principal: `/api/v1/whatsapp/webhook`
-- Tenant por instância: `barbershops.whatsapp_instance_name`
+- Tenant por instância: `businesses.whatsapp_instance_name`
 
 > Veja `WHATSAPP_BOT.md` para configuração completa.
 
@@ -315,6 +315,6 @@ Colaborador
 ---
 
 <p align="center">
-  Desenvolvido com 💈 precisão, 🟢 Node.js e foco em produto.<br/>
+  Desenvolvido com ✨ precisão, 🟢 Node.js e foco em produto.<br/>
   <i>"Boas ferramentas não apenas organizam — elas transformam negócios."</i>
 </p>

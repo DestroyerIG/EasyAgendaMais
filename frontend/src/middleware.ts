@@ -9,6 +9,9 @@ const DASHBOARD_ALIAS_ROUTES = [
   'planos',
   'configuracoes',
   'whatsapp',
+  'clube',
+  'relatorios',
+  'minha-pagina',
 ] as const;
 
 type DashboardAliasRoute = typeof DASHBOARD_ALIAS_ROUTES[number];
@@ -105,6 +108,9 @@ export const config = {
     '/pagamento/:path*',
     '/configuracoes/:path*',
     '/whatsapp/:path*',
+    '/clube/:path*',
+    '/relatorios/:path*',
+    '/minha-pagina/:path*',
     '/admin/:path*',
     '/login',
     '/cadastro',

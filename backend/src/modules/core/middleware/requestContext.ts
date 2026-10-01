@@ -3,7 +3,7 @@ import { AsyncLocalStorage } from 'async_hooks';
 export interface RequestContext {
   requestId?: string;
   userId?: string;
-  barbershopId?: string;
+  businessId?: string;
 }
 
 const storage = new AsyncLocalStorage<RequestContext>();

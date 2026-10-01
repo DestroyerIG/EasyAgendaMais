@@ -40,7 +40,7 @@ describe('evolutionApiService session state error classification', () => {
   });
 
   it('classifies unexpected logout as session state error', () => {
-    const error = new EvolutionApiError('Instance "easybarber" - LOGOUT', {
+    const error = new EvolutionApiError('Instance "easyagenda" - LOGOUT', {
       status: 500,
     });
 
@@ -69,7 +69,7 @@ describe('evolutionApiService session state error classification', () => {
   });
 
   it('classifies 404 as instance_not_found', () => {
-    const error = new EvolutionApiError("The 'easybarber' instance does not exist", {
+    const error = new EvolutionApiError("The 'easyagenda' instance does not exist", {
       status: 404,
     });
 
@@ -80,7 +80,7 @@ describe('evolutionApiService session state error classification', () => {
     const error = new EvolutionApiError('Falha ao consultar instancia', {
       status: 400,
       details: {
-        message: ["The 'easybarber' instance does not exist"],
+        message: ["The 'easyagenda' instance does not exist"],
       },
     });
 

@@ -15,7 +15,7 @@ import type { UserRole } from '../types/domain.js';
 
 interface JwtPayload {
   userId: string;
-  barbershopId: string | null;
+  businessId: string | null;
   email: string;
   plan: string;
   role: UserRole | undefined;
@@ -24,10 +24,10 @@ interface JwtPayload {
 }
 
 interface UserPayload {
-  barbershopId: string | null;
+  businessId: string | null;
   email: string;
   role: UserRole | undefined;
-  barbershopName: string | null;
+  businessName: string | null;
   plan: string;
   emailVerified: boolean;
   subscriptionStatus: string | null;
@@ -39,7 +39,7 @@ interface RegisterResponse {
   verificationEmailSent: boolean;
   message: string;
   user: UserPayload;
-  barbershop: {
+  business: {
     id: string | null;
     name: string;
     plan: string;
@@ -54,7 +54,7 @@ interface VerificationResponse {
     emailVerified: boolean;
     emailVerifiedAt: string;
   };
-  barbershopId?: string | null;
+  businessId?: string | null;
   desiredPlan?: string;
   subscriptionStatus?: string;
   paymentRequired: boolean;
@@ -70,12 +70,12 @@ interface ReconcileSummary {
   pendingRegistrationFound: boolean;
   localUserCreated: boolean;
   localUserUpdated: boolean;
-  barbershopCreated: boolean;
-  barbershopReused: boolean;
+  businessCreated: boolean;
+  businessReused: boolean;
   pendingRegistrationCompleted: boolean;
   syncApplied: boolean;
   reason: string;
-  barbershopId?: string | null;
+  businessId?: string | null;
   desiredPlan?: string;
   subscriptionStatus?: string;
   paymentRequired?: boolean;
@@ -99,7 +99,7 @@ interface InternalSessionResult {
   user: UserPayload;
   desiredPlan: string;
   subscriptionStatus: string;
-  barbershopId: string | null;
+  businessId: string | null;
 }
 
 interface CookieOptions {
@@ -117,7 +117,7 @@ interface CookieOptionsSet {
 }
 
 interface RegisterParams {
-  barbershopName: string;
+  businessName: string;
   ownerName: string;
   email: string;
   whatsapp: string;
@@ -134,11 +134,11 @@ interface LoginParams {
 
 interface SessionUser {
   userId: string;
-  barbershopId: string | null;
+  businessId: string | null;
   email: string;
   plan: string;
   role: string;
-  barbershopName?: string | null;
+  businessName?: string | null;
   emailVerified?: boolean;
   subscriptionStatus?: string | null;
   subscriptionCurrentPeriodEnd?: string | null;
@@ -146,7 +146,7 @@ interface SessionUser {
 
 interface GetMeParams {
   userId: string;
-  barbershopId: string | null;
+  businessId: string | null;
   email: string;
   plan: string;
   role: string;
@@ -165,7 +165,7 @@ interface VerifyEmailTokenInput {
 
 const COMMON_PASSWORDS = new Set([
   'password', '123456', '12345678', 'qwerty', 'abc123', 'password1',
-  'senha123', 'barbearia', 'barberpro', '123456789', '1234567890',
+  'senha123', 'barbearia', 'easyagenda', '123456789', '1234567890',
   'admin123', 'welcome', 'letmein', 'monkey', 'master', 'dragon',
 ]);
 
@@ -259,19 +259,19 @@ const clearAuthCookies = (res: Response): void => {
 };
 
 const buildUserPayload = ({
-  barbershopId,
+  businessId,
   email,
   role,
-  barbershopName,
+  businessName,
   plan,
   emailVerified,
   subscriptionStatus,
   subscriptionCurrentPeriodEnd,
 }: UserPayload): UserPayload => ({
-  barbershopId,
+  businessId,
   email,
   role,
-  barbershopName,
+  businessName,
   plan,
   emailVerified,
   subscriptionStatus,
@@ -281,38 +281,38 @@ const buildUserPayload = ({
 const buildRegisterResponse = ({
   email,
   role,
-  barbershopName,
+  businessName,
   plan,
   desiredPlan,
   verificationEmailSent,
-  barbershopId,
+  businessId,
   message,
 }: {
   email: string;
   role: UserRole | undefined;
-  barbershopName: string;
+  businessName: string;
   plan: string;
   desiredPlan: string;
   verificationEmailSent: boolean;
-  barbershopId: string | null;
+  businessId: string | null;
   message: string;
 }): RegisterResponse => ({
   verificationRequired: true,
   verificationEmailSent,
   message,
   user: buildUserPayload({
-    barbershopId,
+    businessId,
     email,
     role,
-    barbershopName,
+    businessName,
     plan,
     emailVerified: false,
     subscriptionStatus: 'incomplete',
     subscriptionCurrentPeriodEnd: null,
   }),
-  barbershop: {
-    id: barbershopId,
-    name: barbershopName,
+  business: {
+    id: businessId,
+    name: businessName,
     plan,
     desiredPlan,
   },
@@ -333,7 +333,7 @@ const buildVerificationResponse = ({
     emailVerified: true,
     emailVerifiedAt,
   },
-  ...(confirmation?.barbershopId ? { barbershopId: confirmation.barbershopId } : {}),
+  ...(confirmation?.businessId ? { businessId: confirmation.businessId } : {}),
   ...(confirmation?.desiredPlan ? { desiredPlan: confirmation.desiredPlan } : {}),
   ...(confirmation?.subscriptionStatus ? { subscriptionStatus: confirmation.subscriptionStatus } : {}),
   paymentRequired: confirmation
@@ -390,7 +390,7 @@ const mapResendVerificationSupabaseError = (error: unknown): AppError => {
 // ─── Core flows ───────────────────────────────────────────────────────────────
 
 const registerWithSupabasePrimaryFlow = async ({
-  barbershopName,
+  businessName,
   ownerName,
   email,
   whatsapp,
@@ -486,7 +486,7 @@ const registerWithSupabasePrimaryFlow = async ({
     pendingRegistration = await authRepository.upsertPendingRegistration(null, {
       email: normalizedEmail,
       supabaseUserId,
-      barbershopName,
+      businessName,
       ownerName,
       whatsapp,
       cpfCnpj,
@@ -543,11 +543,11 @@ const registerWithSupabasePrimaryFlow = async ({
   return buildRegisterResponse({
     email: normalizedEmail,
     role: normalizeRole('tenant_admin'),
-    barbershopName,
+    businessName,
     plan,
     desiredPlan: onboardingDesiredPlan,
     verificationEmailSent,
-    barbershopId: (pendingRegistration?.id as string) || null,
+    businessId: (pendingRegistration?.id as string) || null,
     message: verificationEmailSent
       ? 'Cadastro realizado com sucesso. Verifique seu e-mail para ativar a conta.'
       : 'Cadastro iniciado, mas não foi possível enviar o e-mail de verificação no momento. Solicite o reenvio para ativar a conta.',
@@ -577,8 +577,8 @@ const reconcileSupabaseConfirmedUser = async ({
     pendingRegistrationFound: false,
     localUserCreated: false,
     localUserUpdated: false,
-    barbershopCreated: false,
-    barbershopReused: false,
+    businessCreated: false,
+    businessReused: false,
     pendingRegistrationCompleted: false,
     syncApplied: false,
     reason,
@@ -642,31 +642,31 @@ const reconcileSupabaseConfirmedUser = async ({
 
     summary.localUserFound = Boolean(localUser);
 
-    // INVARIANT: if user has barbershop_id, ALWAYS reuse — NEVER create new tenant
-    let barbershopId: string | null = (localUser?.barbershop_id as string) || null;
+    // INVARIANT: if user has business_id, ALWAYS reuse — NEVER create new tenant
+    let businessId: string | null = (localUser?.business_id as string) || null;
 
-    if (barbershopId) {
+    if (businessId) {
       // User already has tenant — hard reuse, no further lookup needed
-      summary.barbershopReused = true;
+      summary.businessReused = true;
       logger.info(
-        { event: 'tenant_reused_existing_user', barbershopId, userId: localUser?.id, email: normalizedEmail, supabaseUserId, reason },
+        { event: 'tenant_reused_existing_user', businessId, userId: localUser?.id, email: normalizedEmail, supabaseUserId, reason },
         'Reconciliação: tenant existente reutilizado via usuário local'
       );
     } else if (localUser) {
-      // User exists but barbershop_id is null — data integrity issue, try email fallback
-      const reusableBarbershop = await authRepository.findBarbershopByEmailForUpdate(client, normalizedEmail);
-      if (reusableBarbershop) {
-        barbershopId = (reusableBarbershop as Record<string, unknown>).id as string;
-        summary.barbershopReused = true;
+      // User exists but business_id is null — data integrity issue, try email fallback
+      const reusableBusiness = await authRepository.findBusinessByEmailForUpdate(client, normalizedEmail);
+      if (reusableBusiness) {
+        businessId = (reusableBusiness as Record<string, unknown>).id as string;
+        summary.businessReused = true;
         logger.info(
-          { event: 'tenant_reused_existing_barbershop', barbershopId, userId: localUser?.id, email: normalizedEmail, supabaseUserId, reason },
-          'Reconciliação: tenant existente reutilizado via email (usuário sem barbershop_id)'
+          { event: 'tenant_reused_existing_business', businessId, userId: localUser?.id, email: normalizedEmail, supabaseUserId, reason },
+          'Reconciliação: tenant existente reutilizado via email (usuário sem business_id)'
         );
       } else {
-        // INVARIANT VIOLATION: user exists but no barbershop found — block creation
+        // INVARIANT VIOLATION: user exists but no business found — block creation
         logger.error(
           { event: 'tenant_integrity_error', userId: localUser.id, email: normalizedEmail, supabaseUserId, reason },
-          'INVARIANT: usuário local existe sem barbershop associado — criação de tenant bloqueada'
+          'INVARIANT: usuário local existe sem business associado — criação de tenant bloqueada'
         );
         throw new AppError(
           'Erro de integridade: usuário sem tenant associado. Contate o suporte.',
@@ -675,20 +675,20 @@ const reconcileSupabaseConfirmedUser = async ({
         );
       }
     } else {
-      // No local user at all — check for existing barbershop by email before creating
+      // No local user at all — check for existing business by email before creating
       const lookupEmail = (pendingReg?.email as string) || normalizedEmail;
-      const reusableBarbershop = await authRepository.findBarbershopByEmailForUpdate(client, lookupEmail);
+      const reusableBusiness = await authRepository.findBusinessByEmailForUpdate(client, lookupEmail);
 
-      if (reusableBarbershop) {
-        barbershopId = (reusableBarbershop as Record<string, unknown>).id as string;
-        summary.barbershopReused = true;
+      if (reusableBusiness) {
+        businessId = (reusableBusiness as Record<string, unknown>).id as string;
+        summary.businessReused = true;
         logger.info(
-          { event: 'tenant_reused_existing_barbershop', barbershopId, email: normalizedEmail, supabaseUserId, reason },
+          { event: 'tenant_reused_existing_business', businessId, email: normalizedEmail, supabaseUserId, reason },
           'Reconciliação: tenant existente reutilizado via email (sem usuário local)'
         );
       } else if (pendingReg) {
-        const createdBarbershop = await authRepository.createBarbershop(client, {
-          name: pendingReg.barbershop_name as string,
+        const createdBusiness = await authRepository.createBusiness(client, {
+          name: pendingReg.business_name as string,
           ownerName: pendingReg.owner_name as string,
           email: pendingReg.email as string,
           whatsapp: pendingReg.whatsapp as string,
@@ -696,16 +696,16 @@ const reconcileSupabaseConfirmedUser = async ({
           plan: TRIAL_PLAN,
           desiredPlan: (pendingReg.desired_plan as string) || DEFAULT_PLAN,
         });
-        barbershopId = (createdBarbershop as Record<string, unknown>).id as string;
-        summary.barbershopCreated = true;
+        businessId = (createdBusiness as Record<string, unknown>).id as string;
+        summary.businessCreated = true;
         logger.info(
-          { event: 'tenant_created_new', barbershopId, email: normalizedEmail, supabaseUserId, reason, source: 'pending_registration' },
+          { event: 'tenant_created_new', businessId, email: normalizedEmail, supabaseUserId, reason, source: 'pending_registration' },
           'Reconciliação: novo tenant criado a partir de pending_registration'
         );
       } else {
         const meta = (supabaseUser.user_metadata as Record<string, unknown>) || {};
         const displayName = (meta.full_name as string) || (meta.name as string) || normalizedEmail;
-        const createdBarbershop = await authRepository.createBarbershop(client, {
+        const createdBusiness = await authRepository.createBusiness(client, {
           name: displayName,
           ownerName: displayName,
           email: normalizedEmail,
@@ -714,23 +714,23 @@ const reconcileSupabaseConfirmedUser = async ({
           plan: TRIAL_PLAN,
           desiredPlan: DEFAULT_PLAN,
         });
-        barbershopId = (createdBarbershop as Record<string, unknown>).id as string;
-        summary.barbershopCreated = true;
+        businessId = (createdBusiness as Record<string, unknown>).id as string;
+        summary.businessCreated = true;
         logger.info(
-          { event: 'tenant_created_new', barbershopId, email: normalizedEmail, supabaseUserId, reason, source: 'supabase_identity' },
+          { event: 'tenant_created_new', businessId, email: normalizedEmail, supabaseUserId, reason, source: 'supabase_identity' },
           'Reconciliação: novo tenant criado a partir de identidade Supabase'
         );
       }
     }
 
-    summary.barbershopId = barbershopId;
+    summary.businessId = businessId;
 
-    // Get real subscription status from barbershop — never infer incomplete blindly
-    if (barbershopId) {
-      const barbershop = await authRepository.findBarbershopById(client, barbershopId);
-      summary.subscriptionStatus = (barbershop?.subscription_status as string) || 'incomplete';
+    // Get real subscription status from business — never infer incomplete blindly
+    if (businessId) {
+      const business = await authRepository.findBusinessById(client, businessId);
+      summary.subscriptionStatus = (business?.subscription_status as string) || 'incomplete';
       summary.desiredPlan = (pendingReg?.desired_plan as string) ||
-        (barbershop?.desired_plan as string) ||
+        (business?.desired_plan as string) ||
         (localUser?.desired_plan as string) ||
         DEFAULT_PLAN;
     } else {
@@ -740,7 +740,7 @@ const reconcileSupabaseConfirmedUser = async ({
 
     summary.paymentRequired = !['active', 'trialing'].includes(summary.subscriptionStatus || '');
 
-    if (!localUser && barbershopId) {
+    if (!localUser && businessId) {
       const passwordHash = (pendingReg?.password_hash as string) || generateSupabasePasswordHashPlaceholder();
       const isPlatformAdmin = PLATFORM_ADMIN_EMAILS.has(normalizedEmail);
       const upsertUser = isPlatformAdmin
@@ -748,7 +748,7 @@ const reconcileSupabaseConfirmedUser = async ({
         : authRepository.upsertTenantAdminUser;
 
       localUser = await upsertUser(client, {
-        barbershopId,
+        businessId,
         email: normalizedEmail,
         passwordHash,
         supabaseUserId,
@@ -767,12 +767,12 @@ const reconcileSupabaseConfirmedUser = async ({
         'Admin role resolved during reconcile'
       );
 
-      // INVARIANT: upsert must not silently adopt a different barbershop_id
-      const returnedBarbershopId = localUser?.barbershop_id as string | null;
-      if (returnedBarbershopId && returnedBarbershopId !== barbershopId) {
+      // INVARIANT: upsert must not silently adopt a different business_id
+      const returnedBusinessId = localUser?.business_id as string | null;
+      if (returnedBusinessId && returnedBusinessId !== businessId) {
         logger.error(
-          { event: 'tenant_invariant_violated', intendedBarbershopId: barbershopId, actualBarbershopId: returnedBarbershopId, email: normalizedEmail, supabaseUserId },
-          'INVARIANT VIOLATED: upsert retornou barbershop_id diferente'
+          { event: 'tenant_invariant_violated', intendedBusinessId: businessId, actualBusinessId: returnedBusinessId, email: normalizedEmail, supabaseUserId },
+          'INVARIANT VIOLATED: upsert retornou business_id diferente'
         );
         throw new AppError('Erro de integridade de tenant detectado.', 500, 'TENANT_INVARIANT_VIOLATED');
       }
@@ -780,7 +780,7 @@ const reconcileSupabaseConfirmedUser = async ({
       summary.localUserCreated = Boolean(localUser);
       summary.localUserFound = Boolean(localUser);
       logger.info(
-        { event: 'user_created', userId: localUser?.id, barbershopId, email: normalizedEmail, supabaseUserId, reason, isPlatformAdmin },
+        { event: 'user_created', userId: localUser?.id, businessId, email: normalizedEmail, supabaseUserId, reason, isPlatformAdmin },
         'Reconciliação: usuário local criado'
       );
     } else if (localUser) {
@@ -794,7 +794,7 @@ const reconcileSupabaseConfirmedUser = async ({
         summary.localUserUpdated = true;
       }
       logger.info(
-        { event: 'user_reconciled', userId: localUser.id, barbershopId, email: normalizedEmail, supabaseUserId, reason },
+        { event: 'user_reconciled', userId: localUser.id, businessId, email: normalizedEmail, supabaseUserId, reason },
         'Reconciliação: usuário local sincronizado'
       );
     }
@@ -972,7 +972,7 @@ const createInternalSessionForConfirmedUser = async (
   const normalizedRole = normalizeRole(user.role as string);
   const accessToken = generateAccessToken({
     userId: user.id as string,
-    barbershopId: (user.barbershop_id as string) || null,
+    businessId: (user.business_id as string) || null,
     email: user.email as string,
     plan: user.plan as string,
     role: normalizedRole,
@@ -987,10 +987,10 @@ const createInternalSessionForConfirmedUser = async (
     token: accessToken,
     refreshToken,
     user: buildUserPayload({
-      barbershopId: (user.barbershop_id as string) || null,
+      businessId: (user.business_id as string) || null,
       email: user.email as string,
       role: normalizedRole,
-      barbershopName: (user.barbershop_name as string) || null,
+      businessName: (user.business_name as string) || null,
       plan: user.plan as string,
       emailVerified: Boolean(user.email_verified),
       subscriptionStatus: (user.subscription_status as string) || null,
@@ -998,7 +998,7 @@ const createInternalSessionForConfirmedUser = async (
     }),
     desiredPlan: (user.desired_plan as string) || (user.plan as string) || DEFAULT_PLAN,
     subscriptionStatus: (user.subscription_status as string) || 'incomplete',
-    barbershopId: (user.barbershop_id as string) || null,
+    businessId: (user.business_id as string) || null,
   };
 };
 
@@ -1012,7 +1012,7 @@ export const authService = {
   async register(
     _res: Response,
     {
-      barbershopName,
+      businessName,
       ownerName,
       email,
       whatsapp,
@@ -1023,7 +1023,7 @@ export const authService = {
     }: RegisterParams
   ): Promise<RegisterResponse> {
     return registerWithSupabasePrimaryFlow({
-      barbershopName,
+      businessName,
       ownerName,
       email,
       whatsapp,
@@ -1216,7 +1216,7 @@ export const authService = {
 
       const accessToken = generateAccessToken({
         userId: user.id as string,
-        barbershopId: (user.barbershop_id as string) || null,
+        businessId: (user.business_id as string) || null,
         email: user.email as string,
         plan: user.plan as string,
         role: normalizedRole,
@@ -1241,10 +1241,10 @@ export const authService = {
         token: accessToken,
         refreshToken,
         user: buildUserPayload({
-          barbershopId: (user.barbershop_id as string) || null,
+          businessId: (user.business_id as string) || null,
           email: user.email as string,
           role: normalizedRole,
-          barbershopName: (user.barbershop_name as string) || null,
+          businessName: (user.business_name as string) || null,
           plan: user.plan as string,
           emailVerified: resolvedEmailVerified,
           subscriptionStatus: (user.subscription_status as string) || null,
@@ -1276,7 +1276,7 @@ export const authService = {
 
     const accessToken = generateAccessToken({
       userId: row.user_id as string,
-      barbershopId: (row.barbershop_id as string) || null,
+      businessId: (row.business_id as string) || null,
       email: row.email as string,
       plan: row.plan as string,
       role: normalizedRole,
@@ -1290,10 +1290,10 @@ export const authService = {
       token: accessToken,
       refreshToken: newRefreshToken,
       user: buildUserPayload({
-        barbershopId: (row.barbershop_id as string) || null,
+        businessId: (row.business_id as string) || null,
         email: row.email as string,
         role: normalizedRole,
-        barbershopName: (row.barbershop_name as string) || null,
+        businessName: (row.business_name as string) || null,
         plan: row.plan as string,
         emailVerified: Boolean(row.email_verified),
         subscriptionStatus: (row.subscription_status as string) || null,
@@ -1308,7 +1308,7 @@ export const authService = {
     const normalizedRole = normalizeRole(sessionUser.role);
     const accessToken = generateAccessToken({
       userId: sessionUser.userId,
-      barbershopId: sessionUser.barbershopId,
+      businessId: sessionUser.businessId,
       email: sessionUser.email,
       plan: sessionUser.plan,
       role: normalizedRole,
@@ -1324,10 +1324,10 @@ export const authService = {
       token: accessToken,
       refreshToken,
       user: buildUserPayload({
-        barbershopId: sessionUser.barbershopId,
+        businessId: sessionUser.businessId,
         email: sessionUser.email,
         role: normalizedRole,
-        barbershopName: sessionUser.barbershopName ?? null,
+        businessName: sessionUser.businessName ?? null,
         plan: sessionUser.plan,
         emailVerified: Boolean(sessionUser.emailVerified),
         subscriptionStatus: sessionUser.subscriptionStatus ?? null,
@@ -1433,7 +1433,7 @@ export const authService = {
     logger.info(
       {
         email: identity.email,
-        barbershopId: session.barbershopId,
+        businessId: session.businessId,
         desiredPlan,
         subscriptionStatus,
         paymentRequired,
@@ -1450,7 +1450,7 @@ export const authService = {
         emailVerifiedAt: identity.verifiedAt || new Date().toISOString(),
         confirmation: {
           ...confirmation,
-          barbershopId: session.barbershopId,
+          businessId: session.businessId,
           desiredPlan,
           subscriptionStatus,
           paymentRequired,
@@ -1588,7 +1588,7 @@ export const authService = {
 
   async getMe({
     userId: _userId,
-    barbershopId,
+    businessId,
     email,
     plan: _plan,
     role: _role,
@@ -1603,10 +1603,10 @@ export const authService = {
 
     return {
       user: {
-        barbershopId: barbershopId || (user.barbershop_id as string) || null,
+        businessId: businessId || (user.business_id as string) || null,
         email: user.email as string,
         role: normalizedRole,
-        barbershopName: (user.barbershop_name as string) || null,
+        businessName: (user.business_name as string) || null,
         plan: user.plan as string,
         emailVerified: Boolean(user.email_verified),
         subscriptionStatus: (user.subscription_status as string) || null,

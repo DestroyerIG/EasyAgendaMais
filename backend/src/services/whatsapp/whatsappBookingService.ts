@@ -49,7 +49,7 @@ interface AppointmentListRow {
   time: string;
   status: string;
   service_id?: string;
-  barber_id?: string;
+  professional_id?: string;
 }
 
 interface BookingMessageResult {
@@ -60,15 +60,15 @@ interface BookingMessageResult {
 
 export const handleCancelAppointment = async (
   phone: string,
-  barbershopId: string,
+  businessId: string,
   config: BotConfig,
 ): Promise<BookingMessageResult> => {
   try {
     const appointments = await prisma.$queryRaw<AppointmentListRow[]>(Prisma.sql`
       SELECT id, date, time, status FROM appointments
-       WHERE barbershop_id = ${barbershopId}::uuid
+       WHERE business_id = ${businessId}::uuid
          AND client_id = (
-           SELECT id FROM clients WHERE phone = ${phone} AND barbershop_id = ${barbershopId}::uuid
+           SELECT id FROM clients WHERE phone = ${phone} AND business_id = ${businessId}::uuid
          )
          AND status = 'confirmado'
          AND date >= CURRENT_DATE
@@ -86,7 +86,7 @@ export const handleCancelAppointment = async (
     });
     message += '\n⚠️ Clique no número do agendamento para cancelar ou digite 0️⃣ para voltar ao menu de atendimento';
 
-    await updateSession(phone, barbershopId, STEPS.CONFIRM_CANCEL, { appointments });
+    await updateSession(phone, businessId, STEPS.CONFIRM_CANCEL, { appointments });
     return { message };
   } catch (error) {
     logger.error({ err: error }, 'Erro ao listar agendamentos para cancelamento');
@@ -97,12 +97,12 @@ export const handleCancelAppointment = async (
 export const handleConfirmCancel = async (
   phone: string,
   choice: string,
-  barbershopId: string,
+  businessId: string,
   data: Record<string, unknown>,
   config: BotConfig,
 ): Promise<BookingMessageResult> => {
   if (choice === '0' || choice.toLowerCase() === 'menu') {
-    return goBackToMainMenu(phone, barbershopId);
+    return goBackToMainMenu(phone, businessId);
   }
 
   const appointmentIndex = parseInt(choice) - 1;
@@ -123,7 +123,7 @@ export const handleConfirmCancel = async (
       where: { id: appointmentId },
       data: { status: 'cancelado' },
     });
-    const mainMenu = await goBackToMainMenu(phone, barbershopId);
+    const mainMenu = await goBackToMainMenu(phone, businessId);
     return { message: formatMessage(config.cancel_success_message) + '\n\n' + mainMenu.message };
   } catch (error) {
     logger.error({ err: error }, 'Erro ao cancelar agendamento');
@@ -135,15 +135,15 @@ export const handleConfirmCancel = async (
 
 export const handleRescheduleAppointment = async (
   phone: string,
-  barbershopId: string,
+  businessId: string,
   config: BotConfig,
 ): Promise<BookingMessageResult> => {
   try {
     const appointments = await prisma.$queryRaw<AppointmentListRow[]>(Prisma.sql`
-      SELECT id, date, time, service_id, barber_id FROM appointments
-       WHERE barbershop_id = ${barbershopId}::uuid
+      SELECT id, date, time, service_id, professional_id FROM appointments
+       WHERE business_id = ${businessId}::uuid
          AND client_id = (
-           SELECT id FROM clients WHERE phone = ${phone} AND barbershop_id = ${barbershopId}::uuid
+           SELECT id FROM clients WHERE phone = ${phone} AND business_id = ${businessId}::uuid
          )
          AND status = 'confirmado'
          AND date >= CURRENT_DATE
@@ -161,7 +161,7 @@ export const handleRescheduleAppointment = async (
     });
     message += '\n👉 Clique no número para reagendar ou digite 0️⃣ para voltar ao menu de atendimento';
 
-    await updateSession(phone, barbershopId, STEPS.CONFIRM_RESCHEDULE, { appointments });
+    await updateSession(phone, businessId, STEPS.CONFIRM_RESCHEDULE, { appointments });
     return { message };
   } catch (error) {
     logger.error({ err: error }, 'Erro ao listar agendamentos para reagendamento');
@@ -172,12 +172,12 @@ export const handleRescheduleAppointment = async (
 export const handleConfirmReschedule = async (
   phone: string,
   choice: string,
-  barbershopId: string,
+  businessId: string,
   data: Record<string, unknown>,
   config: BotConfig,
 ): Promise<BookingMessageResult> => {
   if (choice === '0' || choice.toLowerCase() === 'menu') {
-    return goBackToMainMenu(phone, barbershopId);
+    return goBackToMainMenu(phone, businessId);
   }
 
   const appointmentIndex = parseInt(choice) - 1;
@@ -194,10 +194,10 @@ export const handleConfirmReschedule = async (
   const newData: Record<string, unknown> = {
     appointmentId: appointment.id,
     serviceId: appointment.service_id,
-    barberId: appointment.barber_id,
+    professionalId: appointment.professional_id,
   };
 
-  await updateSession(phone, barbershopId, STEPS.CHOOSE_DATE, newData);
+  await updateSession(phone, businessId, STEPS.CHOOSE_DATE, newData);
 
   /**
    * FIX Bug 5 — reagendamento: o código original usava new Date(today) com
@@ -213,7 +213,7 @@ export const handleConfirmReschedule = async (
   });
 
   // Persiste availableDates para que handleChooseDateStep encontre as datas corretas
-  await updateSession(phone, barbershopId, STEPS.CHOOSE_DATE, {
+  await updateSession(phone, businessId, STEPS.CHOOSE_DATE, {
     ...newData,
     availableDates: dates,
   });
@@ -225,15 +225,15 @@ export const handleConfirmReschedule = async (
 
 export const handlePostAttendanceEvaluation = async (
   phone: string,
-  barbershopId: string,
+  businessId: string,
   config: BotConfig,
 ): Promise<BookingMessageResult> => {
   try {
     const lastAppointments = await prisma.$queryRaw<{ id: string; date: Date; time: string }[]>(Prisma.sql`
       SELECT id, date, time FROM appointments
-       WHERE barbershop_id = ${barbershopId}::uuid
+       WHERE business_id = ${businessId}::uuid
          AND client_id = (
-           SELECT id FROM clients WHERE phone = ${phone} AND barbershop_id = ${barbershopId}::uuid
+           SELECT id FROM clients WHERE phone = ${phone} AND business_id = ${businessId}::uuid
          )
          AND status = 'confirmado'
          AND date < CURRENT_DATE
@@ -246,7 +246,7 @@ export const handlePostAttendanceEvaluation = async (
 
     const message = formatMessage(config.rating_question_message);
     const firstAppointment = lastAppointments[0];
-    await updateSession(phone, barbershopId, STEPS.SEND_RATING, { appointmentId: firstAppointment?.id ?? '' });
+    await updateSession(phone, businessId, STEPS.SEND_RATING, { appointmentId: firstAppointment?.id ?? '' });
     return { message };
   } catch (error) {
     logger.error({ err: error }, 'Erro ao buscar avaliação');
@@ -257,12 +257,12 @@ export const handlePostAttendanceEvaluation = async (
 export const handleSendRating = async (
   phone: string,
   choice: string,
-  barbershopId: string,
+  businessId: string,
   data: Record<string, unknown>,
   config: BotConfig,
 ): Promise<BookingMessageResult> => {
   if (choice === '0') {
-    return goBackToMainMenu(phone, barbershopId);
+    return goBackToMainMenu(phone, businessId);
   }
 
   const rating = parseInt(choice);
@@ -276,14 +276,14 @@ export const handleSendRating = async (
     await prisma.whatsappRating.upsert({
       where: { appointmentId },
       create: {
-        barbershopId,
+        businessId,
         appointmentId,
         rating,
       },
       update: { rating },
     });
 
-    const mainMenu = await goBackToMainMenu(phone, barbershopId);
+    const mainMenu = await goBackToMainMenu(phone, businessId);
     return {
       message: formatMessage(config.rating_confirmation_message, { ratingText: RATING_TEXTS[rating] ?? '' }) + '\n\n' + mainMenu.message,
     };

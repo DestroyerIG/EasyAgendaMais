@@ -23,7 +23,7 @@ export interface MessagesUpsertResult {
   authorPhone?: string;
   text?: string;
   messageId?: string | null;
-  barbershopId?: string;
+  businessId?: string;
 }
 
 export const handleMessagesUpsert = async (
@@ -113,14 +113,14 @@ export const handleMessagesUpsert = async (
     {
       instanceName: effectiveInstance,
       authorPhone: resolved.phone,
-      barbershopId: tenant.barbershop.id,
+      businessId: tenant.business.id,
       textPreview: parsed.text.slice(0, 50),
     },
     'msg_handler: processing',
   );
 
   await botOrchestrator.process({
-    barbershopId: tenant.barbershop.id,
+    businessId: tenant.business.id,
     authorPhone: resolved.phone as string,
     text: parsed.text,
     messageId: parsed.messageId,
@@ -141,6 +141,6 @@ export const handleMessagesUpsert = async (
     authorPhone: resolved.phone as string,
     text: parsed.text,
     messageId: parsed.messageId ?? null,
-    barbershopId: tenant.barbershop.id,
+    businessId: tenant.business.id,
   };
 };

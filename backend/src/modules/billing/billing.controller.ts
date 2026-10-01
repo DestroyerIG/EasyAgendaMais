@@ -18,7 +18,7 @@ export const createCheckoutSession = async (
 ): Promise<void> => {
   try {
     const data = await billingService.createCheckoutSession(
-      req.user.barbershopId!,
+      req.user.businessId!,
       req.body.plan,
       req.body.paymentMethod,
       req.body.couponCode
@@ -35,7 +35,7 @@ export const getBillingStatus = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const data = await billingService.getStatus(req.user.barbershopId!);
+    const data = await billingService.getStatus(req.user.businessId!);
     sendSuccess(res, data);
   } catch (error) {
     next(error);
@@ -48,7 +48,7 @@ export const cancelBillingSubscription = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const data = await billingService.cancelSubscription(req.user.barbershopId!);
+    const data = await billingService.cancelSubscription(req.user.businessId!);
     sendSuccess(res, data);
   } catch (error) {
     next(error);
@@ -61,7 +61,7 @@ export const reactivateBillingSubscription = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const data = await billingService.reactivateSubscription(req.user.barbershopId!);
+    const data = await billingService.reactivateSubscription(req.user.businessId!);
     sendSuccess(res, data);
   } catch (error) {
     next(error);
@@ -75,7 +75,7 @@ export const getPixPaymentStatus = async (
 ): Promise<void> => {
   try {
     const data = await billingService.getPixPaymentStatus(
-      req.user.barbershopId!,
+      req.user.businessId!,
       req.params['paymentId'] as string
     );
     sendSuccess(res, data);

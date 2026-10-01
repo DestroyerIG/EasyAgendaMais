@@ -5,7 +5,7 @@ import type { AppointmentStatus } from '../../types/domain.js';
 
 export const CreateAppointmentSchema = z.object({
   clientId: z.string().uuid(),
-  barberId: z.string().uuid(),
+  professionalId: z.string().uuid(),
   serviceId: z.string().uuid(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   time: z.string().regex(/^\d{2}:\d{2}$/),
@@ -15,20 +15,20 @@ export const CreateAppointmentSchema = z.object({
 export const UpdateAppointmentSchema = CreateAppointmentSchema.partial();
 
 export const UpdateStatusSchema = z.object({
-  status: z.enum(['confirmado', 'concluido', 'cancelado']),
+  status: z.enum(['confirmado', 'concluido', 'cancelado', 'aguardando_pagamento']),
 });
 
 export const GetAvailableSlotsQuerySchema = z.object({
-  barberId: z.string().uuid(),
+  professionalId: z.string().uuid(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   serviceId: z.string().uuid().optional(),
 });
 
 export const GetAppointmentsQuerySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  status: z.enum(['confirmado', 'concluido', 'cancelado']).optional(),
+  status: z.enum(['confirmado', 'concluido', 'cancelado', 'aguardando_pagamento']).optional(),
   view: z.enum(['day', 'week']).default('day'),
-  barberId: z.string().uuid().optional(),
+  professionalId: z.string().uuid().optional(),
 });
 
 // ─── Input types ──────────────────────────────────────────────────────────────
@@ -43,23 +43,26 @@ export type GetAvailableSlotsQuery = z.infer<typeof GetAvailableSlotsQuerySchema
 
 export interface AppointmentWithRelations {
   id: string;
-  barbershopId: string;
+  businessId: string;
   clientId: string;
-  barberId: string;
+  professionalId: string;
   serviceId: string;
   date: Date;
   time: Date;
   status: AppointmentStatus;
   reminderSent: boolean;
+  expiresAt?: Date | null;
+  source: string;
   createdAt: Date;
   updatedAt: Date;
   client: { name: string; phone: string };
-  barber: { name: string };
-  service: { name: string; price: unknown };
+  professional: { name: string };
+  service: { name: string; price: unknown; durationMinutes: number };
 }
 
 export const VALID_STATUS_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
   confirmado: ['concluido', 'cancelado'],
   concluido: [],
   cancelado: [],
+  aguardando_pagamento: ['confirmado', 'cancelado'],
 };

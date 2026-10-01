@@ -30,7 +30,7 @@ export const refreshTokenRepository = {
         user: {
           blocked: false,
           emailVerified: true,
-          barbershop: {
+          business: {
             active: true,
           },
         },
@@ -38,7 +38,7 @@ export const refreshTokenRepository = {
       include: {
         user: {
           include: {
-            barbershop: true,
+            business: true,
           },
         },
       },
@@ -54,11 +54,11 @@ export const refreshTokenRepository = {
       email: result.user.email,
       role: result.user.role,
       email_verified: result.user.emailVerified,
-      barbershop_id: result.user.barbershop.id,
-      plan: result.user.barbershop.plan,
-      barbershop_name: result.user.barbershop.name,
-      subscription_status: result.user.barbershop.subscriptionStatus,
-      subscription_current_period_end: result.user.barbershop.subscriptionCurrentPeriodEnd,
+      business_id: result.user.business.id,
+      plan: result.user.business.plan,
+      business_name: result.user.business.name,
+      subscription_status: result.user.business.subscriptionStatus,
+      subscription_current_period_end: result.user.business.subscriptionCurrentPeriodEnd,
     };
   },
 

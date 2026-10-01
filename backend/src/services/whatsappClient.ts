@@ -31,11 +31,11 @@ import {
   isSelfMessage,
 } from '../utils/whatsapp.js';
 import {
-  ensureBarbershopWhatsAppInstanceName,
-  getBarbershopWhatsAppInstanceContext,
+  ensureBusinessWhatsAppInstanceName,
+  getBusinessWhatsAppInstanceContext,
   normalizeWhatsAppInstanceName,
 } from './whatsapp/whatsappInstanceService.js';
-import { barbershopSettingsRepository } from '../repositories/barbershopSettingsRepository.js';
+import { businessSettingsRepository } from '../repositories/businessSettingsRepository.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -53,14 +53,14 @@ interface WhatsAppState {
 type WhatsAppStatePatch = Partial<WhatsAppState>;
 
 interface ClientInstanceContext {
-  barbershopId: string | null;
+  businessId: string | null;
   instanceName: string | null;
   [key: string]: unknown;
 }
 
 interface ResolveClientInstanceContextOptions {
   instanceName?: string | null;
-  barbershopId?: string | null;
+  businessId?: string | null;
   createIfMissing?: boolean;
 }
 
@@ -76,14 +76,14 @@ interface SendWhatsAppTextContext {
   fromMe?: boolean | number | string;
   authorPhone?: string;
   instanceName?: string | null;
-  barbershopId?: string | null;
+  businessId?: string | null;
   knownInstanceNumbers?: string[];
   [key: string]: unknown;
 }
 
 interface ConnectWhatsAppContext {
   instanceName?: string | null;
-  barbershopId?: string | null;
+  businessId?: string | null;
   [key: string]: unknown;
 }
 
@@ -220,32 +220,32 @@ const snapshotState = (instanceName: string | null = null): WhatsAppState => ({
 
 const resolveClientInstanceContext = async ({
   instanceName = null,
-  barbershopId = null,
+  businessId = null,
   createIfMissing = false,
 }: ResolveClientInstanceContextOptions = {}): Promise<ClientInstanceContext> => {
   const normalizedInstanceName = normalizeWhatsAppInstanceName(instanceName);
 
   if (normalizedInstanceName) {
     return {
-      barbershopId: barbershopId || null,
+      businessId: businessId || null,
       instanceName: normalizedInstanceName,
     };
   }
 
-  if (!barbershopId) {
+  if (!businessId) {
     const fallbackConfig = getEvolutionConfig();
     return {
-      barbershopId: null,
+      businessId: null,
       instanceName: normalizeWhatsAppInstanceName(fallbackConfig.instanceName),
     };
   }
 
   const context = createIfMissing
-    ? await ensureBarbershopWhatsAppInstanceName(barbershopId)
-    : await getBarbershopWhatsAppInstanceContext(barbershopId);
+    ? await ensureBusinessWhatsAppInstanceName(businessId)
+    : await getBusinessWhatsAppInstanceContext(businessId);
 
   return {
-    barbershopId,
+    businessId,
     instanceName: normalizeWhatsAppInstanceName(context.whatsappInstanceName as string | null),
   };
 };
@@ -445,7 +445,7 @@ const resolveConnectedNumberFromDatabase = async (instanceName: string | null = 
   }
 
   try {
-    const matches = await barbershopSettingsRepository.findWhatsAppInstanceNameDiagnostics(
+    const matches = await businessSettingsRepository.findWhatsAppInstanceNameDiagnostics(
       normalizedInstanceName
     );
 
@@ -465,7 +465,7 @@ const resolveConnectedNumberFromDatabase = async (instanceName: string | null = 
         instanceName: normalizedInstanceName,
         connectedNumber: normalized,
         source: 'database',
-        barbershopId: activeMatch?.id || null,
+        businessId: activeMatch?.id || null,
       },
       'connectedNumber resolvido via banco'
     );
@@ -777,7 +777,7 @@ export const ensureInstance = async (
 ): Promise<{ existed: boolean; evolutionState: string | null }> => {
   const instanceContext = await resolveClientInstanceContext({
     instanceName: context?.instanceName,
-    barbershopId: context?.barbershopId,
+    businessId: context?.businessId,
     createIfMissing: true,
   });
   const resolvedInstanceName = instanceContext.instanceName;
@@ -808,7 +808,7 @@ export const ensureInstance = async (
 };
 
 export const connectWhatsApp = async (context: ConnectWhatsAppContext = {}): Promise<boolean> => {
-  const resolvedLockKey = context?.instanceName ?? context?.barbershopId ?? '__default__';
+  const resolvedLockKey = context?.instanceName ?? context?.businessId ?? '__default__';
   return withInstanceLock(resolvedLockKey, async () => connectWhatsAppInner(context));
 };
 
@@ -816,7 +816,7 @@ const connectWhatsAppInner = async (context: ConnectWhatsAppContext = {}): Promi
   try {
     const instanceContext = await resolveClientInstanceContext({
       instanceName: context?.instanceName,
-      barbershopId: context?.barbershopId,
+      businessId: context?.businessId,
       createIfMissing: true,
     });
     const resolvedInstanceName = instanceContext.instanceName;
@@ -911,7 +911,7 @@ export const getWhatsAppQrCode = async (context: ConnectWhatsAppContext = {}): P
   try {
     const instanceContext = await resolveClientInstanceContext({
       instanceName: context?.instanceName,
-      barbershopId: context?.barbershopId,
+      businessId: context?.businessId,
       createIfMissing: true,
     });
     const resolvedInstanceName = instanceContext.instanceName;
@@ -958,7 +958,7 @@ export const disconnectWhatsApp = async (context: ConnectWhatsAppContext = {}): 
   try {
     const instanceContext = await resolveClientInstanceContext({
       instanceName: context?.instanceName,
-      barbershopId: context?.barbershopId,
+      businessId: context?.businessId,
       createIfMissing: false,
     });
     const resolvedInstanceName = instanceContext.instanceName;
@@ -1192,8 +1192,8 @@ export const sendWhatsAppText = async (
   // ========== REGRA 1: Bloqueio de auto-resposta ==========
   const instanceContext = await resolveClientInstanceContext({
     instanceName: context?.instanceName,
-    barbershopId: context?.barbershopId,
-    createIfMissing: Boolean(context?.barbershopId),
+    businessId: context?.businessId,
+    createIfMissing: Boolean(context?.businessId),
   });
   const resolvedInstanceName = instanceContext.instanceName;
   const endpoint = `/message/sendText/${resolvedInstanceName}`;
@@ -1451,7 +1451,7 @@ export const initializeWhatsAppInstance = async (
 ): Promise<{ ok: boolean; status: WhatsAppState }> => {
   const instanceContext = await resolveClientInstanceContext({
     instanceName: context?.instanceName,
-    barbershopId: context?.barbershopId,
+    businessId: context?.businessId,
     createIfMissing: true,
   });
   const { baseURL, instanceName } = getEvolutionConfig({ instanceName: instanceContext.instanceName });
@@ -1476,7 +1476,7 @@ export const refreshWhatsAppStatus = async (
 ): Promise<WhatsAppState> => {
   const instanceContext = await resolveClientInstanceContext({
     instanceName: context?.instanceName,
-    barbershopId: context?.barbershopId,
+    businessId: context?.businessId,
     createIfMissing: false,
   });
 

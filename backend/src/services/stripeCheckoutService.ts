@@ -1,7 +1,8 @@
 import type Stripe from 'stripe';
 import { getFrontendBaseUrl } from '../config/stripe.js';
+import { TRIAL_DAYS } from '../config/trial.js';
 
-export const RECURRING_TRIAL_DAYS = 7;
+export const RECURRING_TRIAL_DAYS = TRIAL_DAYS;
 export const ONE_TIME_ACCESS_DAYS = 30;
 
 type PaymentMethodType = 'card' | 'boleto';
@@ -24,7 +25,7 @@ const resolvePaymentMethodTypes = ({ mode, paymentMethod }: ResolvePaymentMethod
 };
 
 interface BuildCheckoutMetadataParams {
-  barbershopId: string | number;
+  businessId: string | number;
   plan: string;
   paymentMethod: string;
   flowType: string;
@@ -32,15 +33,15 @@ interface BuildCheckoutMetadataParams {
 
 interface CheckoutMetadata {
   [key: string]: string;
-  barbershopId: string;
+  businessId: string;
   plan: string;
   paymentMethod: string;
   flowType: string;
 }
 
-const buildCheckoutMetadata = ({ barbershopId, plan, paymentMethod, flowType }: BuildCheckoutMetadataParams): CheckoutMetadata => {
+const buildCheckoutMetadata = ({ businessId, plan, paymentMethod, flowType }: BuildCheckoutMetadataParams): CheckoutMetadata => {
   return {
-    barbershopId: String(barbershopId),
+    businessId: String(businessId),
     plan: String(plan),
     paymentMethod: String(paymentMethod),
     flowType: String(flowType),
@@ -49,7 +50,7 @@ const buildCheckoutMetadata = ({ barbershopId, plan, paymentMethod, flowType }: 
 
 interface BuildCheckoutSessionPayloadParams {
   customerId: string;
-  barbershopId: string | number;
+  businessId: string | number;
   plan: string;
   paymentMethod: string;
   mode: string;
@@ -82,7 +83,7 @@ interface OneTimePeriodDates {
 export const stripeCheckoutService = {
   buildCheckoutSessionPayload({
     customerId,
-    barbershopId,
+    businessId,
     plan,
     paymentMethod,
     mode,
@@ -101,7 +102,7 @@ export const stripeCheckoutService = {
     }
 
     const metadata = buildCheckoutMetadata({
-      barbershopId,
+      businessId,
       plan,
       paymentMethod,
       flowType,

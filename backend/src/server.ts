@@ -34,6 +34,8 @@ import { applySecurityMiddleware } from './modules/core/middleware/security.js';
 // Route modules — new TS modules
 import billingRoutes from './modules/billing/billing.routes.js';
 import appointmentRoutes from './modules/appointments/appointments.routes.js';
+import businessPublicPageRoutes from './modules/businessPublicPage/businessPublicPage.routes.js';
+import publicBookingRoutes from './modules/publicBooking/publicBooking.routes.js';
 
 // Route modules — stub re-exports
 // @ts-ignore
@@ -49,7 +51,7 @@ import clientRoutes from './modules/clients/clients.routes.js';
 import financeRoutes from './modules/finance/finance.routes.js';
 
 // @ts-ignore
-import barbershopRoutes from './modules/barbershop/barbershop.routes.js';
+import businessRoutes from './modules/business/business.routes.js';
 
 // @ts-ignore
 import whatsappRoutes from './modules/whatsapp/whatsapp.routes.js';
@@ -74,9 +76,6 @@ import { startReminderCron } from './services/cronService.js';
 
 // @ts-ignore
 import { getAsaasApiKeyDiagnostics } from './integrations/asaas/client.js';
-
-// @ts-ignore
-import debugRoutes from './routes/debug.js';
 
 dotenv.config();
 
@@ -312,6 +311,15 @@ app.use(
   })
 );
 
+// Imagem em base64 (logo/galeria da página pública) infla ~33% sobre o arquivo
+// original; limite maior só para esta rota, sem elevar o limite da API inteira.
+app.use(
+  `${API_V1}/business-public-page/upload-image`,
+  express.json({
+    limit: '6mb',
+  })
+);
+
 app.use(
   express.json({
     limit: API_JSON_BODY_LIMIT,
@@ -349,13 +357,13 @@ const apiLimiter = rateLimit({
     const user = (
       req as Request & {
         user?: {
-          barbershopId?: string;
+          businessId?: string;
         };
       }
     ).user;
 
-    if (user?.barbershopId) {
-      return `tenant:${user.barbershopId}`;
+    if (user?.businessId) {
+      return `tenant:${user.businessId}`;
     }
 
     return ipKeyGenerator(req.ip || 'unknown');
@@ -417,6 +425,16 @@ app.use(
 );
 
 app.use(
+  `${API_V1}/business-public-page`,
+  businessPublicPageRoutes
+);
+
+app.use(
+  `${API_V1}/public`,
+  publicBookingRoutes
+);
+
+app.use(
   `${API_V1}/clients`,
   clientRoutes
 );
@@ -427,8 +445,8 @@ app.use(
 );
 
 app.use(
-  `${API_V1}/barbershop`,
-  barbershopRoutes
+  `${API_V1}/business`,
+  businessRoutes
 );
 
 app.use(
@@ -451,13 +469,6 @@ app.use(
   adminRoutes
 );
 
-app.use(
-  `${API_V1}/debug`,
-  debugRoutes
-);
-
-app.use('/debug', debugRoutes);
-
 app.get(
   '/',
   (
@@ -466,7 +477,7 @@ app.get(
   ) => {
     return res.json({
       message:
-        '💈 EasyBarber SaaS API',
+        'EasyAgenda+ SaaS API',
       version: '1.0.0',
       status: 'online',
       port: PORT,

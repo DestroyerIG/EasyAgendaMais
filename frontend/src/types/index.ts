@@ -1,4 +1,4 @@
-// Interfaces TypeScript do EasyBarber
+// Interfaces TypeScript do EasyAgenda
 
 export interface DashboardData {
     appointmentsToday: number;
@@ -16,25 +16,26 @@ export interface WeeklyEarning {
 
 export interface Appointment {
     id: string;
-    barbershop_id: string;
+    business_id: string;
     client_id: string;
-    barber_id: string;
+    professional_id: string;
     service_id: string;
     date: string;
     time: string;
-    status: 'confirmado' | 'concluido' | 'cancelado';
+    status: 'confirmado' | 'aguardando_pagamento' | 'concluido' | 'cancelado';
     reminder_sent: boolean;
     created_at: string;
     client_name?: string;
     client_phone?: string;
-    barber_name?: string;
+    professional_name?: string;
     service_name?: string;
     service_price?: number;
+    service_duration_minutes?: number;
 }
 
 export interface Client {
     id: string;
-    barbershop_id: string;
+    business_id: string;
     name: string;
     phone: string;
     email?: string;
@@ -48,17 +49,18 @@ export interface Client {
 
 export interface Service {
     id: string;
-    barbershop_id: string;
+    business_id: string;
     name: string;
     price: number;
     duration_minutes: number;
+    deposit_percentage: number | null;
     active: boolean;
     created_at: string;
 }
 
-export interface Barber {
+export interface Professional {
     id: string;
-    barbershop_id: string;
+    business_id: string;
     name: string;
     photo: string | null;
     active: boolean;
@@ -79,10 +81,10 @@ export interface FinanceSummary {
 }
 
 export interface User {
-    barbershopId?: string | null;
+    businessId?: string | null;
     email: string;
     role: string;
-    barbershopName: string;
+    businessName: string;
     plan: string;
     emailVerified?: boolean;
     subscriptionStatus?: 'active' | 'trialing' | 'pending' | 'past_due' | 'unpaid' | 'canceled' | 'incomplete';
@@ -91,7 +93,7 @@ export interface User {
 
 export interface Expense {
     id: string;
-    barbershop_id: string;
+    business_id: string;
     description: string;
     category: string;
     amount: number;
@@ -110,7 +112,7 @@ export interface MonthlyReportDay {
 
 export interface AppointmentFormData {
     clientId: string;
-    barberId: string;
+    professionalId: string;
     serviceId: string;
     date: string;
     time: string;
@@ -131,7 +133,7 @@ export interface ServiceFormData {
     duration_minutes: number;
 }
 
-export interface BarberFormData {
+export interface ProfessionalFormData {
     name: string;
     photo?: string | null;
 }
@@ -154,7 +156,7 @@ export interface RegisterResponse {
     verificationEmailSent: boolean;
     message: string;
     user: User;
-    barbershop: {
+    business: {
         id: string;
         name: string;
         plan: string;
@@ -202,11 +204,4 @@ export interface WhatsAppStatus {
     connectedName: string | null;
     error: string | null;
     provider?: string;
-}
-
-export type TabId = 'dashboard' | 'agendamentos' | 'financeiro' | 'clientes' | 'servicos' | 'planos' | 'configuracoes' | 'whatsapp';
-
-export interface TabItem {
-    id: TabId;
-    label: string;
 }

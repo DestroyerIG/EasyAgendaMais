@@ -47,13 +47,13 @@ export function applySecurityMiddleware(app: Application): void {
       keyGenerator: (req: Request): string => {
         const user = (
           req as Request & {
-            user?: { barbershopId?: string };
+            user?: { businessId?: string };
           }
         ).user;
 
         // Prioriza tenant
-        if (user?.barbershopId) {
-          return `tenant:${user.barbershopId}`;
+        if (user?.businessId) {
+          return `tenant:${user.businessId}`;
         }
 
         // Fallback seguro IPv4/IPv6

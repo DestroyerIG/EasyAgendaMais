@@ -10,7 +10,7 @@ const normalizeJsonb = (value: unknown): string | null => {
 };
 
 export const subscriptionRepository = {
-  async getBarbershopBillingContext(barbershopId: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
+  async getBusinessBillingContext(businessId: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
     const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
       SELECT id, name, owner_name, email, whatsapp, plan, desired_plan,
              cpf_cnpj,
@@ -34,8 +34,8 @@ export const subscriptionRepository = {
              last_payment_date,
              canceled_at,
              metadata
-      FROM barbershops
-      WHERE id = ${barbershopId}::uuid AND active = true
+      FROM businesses
+      WHERE id = ${businessId}::uuid AND active = true
     `);
 
     return result?.[0] || null;
@@ -63,35 +63,35 @@ export const subscriptionRepository = {
              last_payment_date,
              canceled_at,
              metadata
-      FROM barbershops
+      FROM businesses
       WHERE stripe_customer_id = ${stripeCustomerId}::text AND active = true
     `);
 
     return result[0] || null;
   },
 
-  async setStripeCustomerId(barbershopId: string, stripeCustomerId: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
+  async setStripeCustomerId(businessId: string, stripeCustomerId: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
     const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
-      UPDATE barbershops
+      UPDATE businesses
       SET stripe_customer_id = ${stripeCustomerId}::text,
           provider = COALESCE(provider, 'stripe'),
           provider_customer_id = COALESCE(provider_customer_id, ${stripeCustomerId}::text),
           subscription_updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${barbershopId}::uuid
+      WHERE id = ${businessId}::uuid
       RETURNING stripe_customer_id, provider, provider_customer_id
     `);
 
     return result[0] || null;
   },
 
-  async setAsaasCustomerId(barbershopId: string, asaasCustomerId: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
-    if (!barbershopId || !asaasCustomerId) {
+  async setAsaasCustomerId(businessId: string, asaasCustomerId: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
+    if (!businessId || !asaasCustomerId) {
       return null;
     }
 
     try {
       const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
-        UPDATE barbershops
+        UPDATE businesses
         SET asaas_customer_id = ${asaasCustomerId}::text,
             metadata = jsonb_set(
               COALESCE(metadata, '{}'::jsonb),
@@ -100,7 +100,7 @@ export const subscriptionRepository = {
               true
             ),
             subscription_updated_at = CURRENT_TIMESTAMP
-        WHERE id = ${barbershopId}::uuid
+        WHERE id = ${businessId}::uuid
         RETURNING id, asaas_customer_id, provider_customer_id, metadata
       `);
 
@@ -111,7 +111,7 @@ export const subscriptionRepository = {
       }
 
       const fallback = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
-        UPDATE barbershops
+        UPDATE businesses
         SET metadata = jsonb_set(
               COALESCE(metadata, '{}'::jsonb),
               '{asaas,customerId}',
@@ -124,7 +124,7 @@ export const subscriptionRepository = {
               ELSE provider_customer_id
             END,
             subscription_updated_at = CURRENT_TIMESTAMP
-        WHERE id = ${barbershopId}::uuid
+        WHERE id = ${businessId}::uuid
         RETURNING id, provider_customer_id, metadata
       `);
 
@@ -132,16 +132,16 @@ export const subscriptionRepository = {
     }
   },
 
-  async setDesiredPlan(barbershopId: string, desiredPlan: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
-    if (!barbershopId || !desiredPlan) {
+  async setDesiredPlan(businessId: string, desiredPlan: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
+    if (!businessId || !desiredPlan) {
       return null;
     }
 
     const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
-      UPDATE barbershops
+      UPDATE businesses
          SET desired_plan = ${desiredPlan}::text,
              subscription_updated_at = CURRENT_TIMESTAMP
-       WHERE id = ${barbershopId}::uuid
+       WHERE id = ${businessId}::uuid
       RETURNING id, desired_plan
     `);
 
@@ -170,7 +170,7 @@ export const subscriptionRepository = {
              last_payment_date,
              canceled_at,
              metadata
-      FROM barbershops
+      FROM businesses
       WHERE provider = ${provider}::text
         AND provider_customer_id = ${providerCustomerId}::text
         AND active = true
@@ -201,7 +201,7 @@ export const subscriptionRepository = {
              last_payment_date,
              canceled_at,
              metadata
-      FROM barbershops
+      FROM businesses
       WHERE provider = ${provider}::text
         AND provider_subscription_id = ${providerSubscriptionId}::text
         AND active = true
@@ -232,7 +232,7 @@ export const subscriptionRepository = {
              last_payment_date,
              canceled_at,
              metadata
-      FROM barbershops
+      FROM businesses
       WHERE provider = ${provider}::text
         AND provider_payment_id = ${providerPaymentId}::text
         AND active = true
@@ -242,7 +242,7 @@ export const subscriptionRepository = {
   },
 
   async updateSubscriptionState(
-    barbershopId: string,
+    businessId: string,
     payload: {
       plan?: string | null;
       stripeSubscriptionId?: string | null;
@@ -268,7 +268,7 @@ export const subscriptionRepository = {
     },
     _client: unknown = null
   ): Promise<Record<string, unknown> | null> {
-    const p1 = barbershopId;
+    const p1 = businessId;
     const p2 = payload.plan ?? null;
     const p3 = payload.stripeSubscriptionId ?? null;
     const p4 = payload.stripePriceId ?? null;
@@ -292,7 +292,7 @@ export const subscriptionRepository = {
     const p22 = payload.stripeCustomerId ?? null;
 
     const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
-      UPDATE barbershops
+      UPDATE businesses
       SET plan = COALESCE(${p2}::text, plan),
           stripe_customer_id = COALESCE(${p22}::text, stripe_customer_id),
           stripe_subscription_id = CASE
@@ -355,14 +355,14 @@ export const subscriptionRepository = {
     event: {
       eventId: string;
       eventType: string;
-      barbershopId?: string | null;
+      businessId?: string | null;
       payload?: unknown;
     },
     _client: unknown = null
   ): Promise<Record<string, unknown> | null> {
     const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
-      INSERT INTO subscription_events (stripe_event_id, event_type, barbershop_id, payload)
-      VALUES (${event.eventId}::text, ${event.eventType}::text, ${event.barbershopId || null}::uuid, ${normalizeJsonb(event.payload)}::jsonb)
+      INSERT INTO subscription_events (stripe_event_id, event_type, business_id, payload)
+      VALUES (${event.eventId}::text, ${event.eventType}::text, ${event.businessId || null}::uuid, ${normalizeJsonb(event.payload)}::jsonb)
       ON CONFLICT (stripe_event_id) DO NOTHING
       RETURNING id
     `);
@@ -378,7 +378,7 @@ export const subscriptionRepository = {
     return Boolean(result[0]);
   },
 
-  async getSubscriptionStatus(barbershopId: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
+  async getSubscriptionStatus(businessId: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
     const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
       SELECT plan,
              desired_plan,
@@ -401,16 +401,16 @@ export const subscriptionRepository = {
              last_payment_date,
              canceled_at,
              metadata
-      FROM barbershops
-      WHERE id = ${barbershopId}::uuid AND active = true
+      FROM businesses
+      WHERE id = ${businessId}::uuid AND active = true
     `);
 
     return result[0] || null;
   },
 
-  async expireOneTimeSubscriptions(_client: unknown = null): Promise<{ expiredCount: number; barbershopIds: string[] }> {
+  async expireOneTimeSubscriptions(_client: unknown = null): Promise<{ expiredCount: number; businessIds: string[] }> {
     const result = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
-      UPDATE barbershops
+      UPDATE businesses
       SET subscription_status = 'unpaid',
           subscription_updated_at = CURRENT_TIMESTAMP
       WHERE (
@@ -425,7 +425,7 @@ export const subscriptionRepository = {
 
     return {
       expiredCount: result.length,
-      barbershopIds: result.map((row) => row.id),
+      businessIds: result.map((row) => row.id),
     };
   },
 
@@ -434,7 +434,7 @@ export const subscriptionRepository = {
       provider: string;
       eventId: string;
       eventType: string;
-      barbershopId?: string | null;
+      businessId?: string | null;
       payload?: unknown;
       status?: string;
     },
@@ -445,7 +445,7 @@ export const subscriptionRepository = {
         provider,
         event_id,
         event_type,
-        barbershop_id,
+        business_id,
         payload,
         processed_at,
         status
@@ -454,7 +454,7 @@ export const subscriptionRepository = {
         ${event.provider}::text,
         ${event.eventId}::text,
         ${event.eventType}::text,
-        ${event.barbershopId || null}::uuid,
+        ${event.businessId || null}::uuid,
         ${normalizeJsonb(event.payload)}::jsonb,
         CURRENT_TIMESTAMP,
         ${event.status || 'processed'}::text
@@ -480,7 +480,7 @@ export const subscriptionRepository = {
 
   async upsertBillingPayment(
     payment: {
-      barbershopId: string;
+      businessId: string;
       provider: string;
       providerPaymentId: string;
       providerSubscriptionId?: string | null;
@@ -498,7 +498,7 @@ export const subscriptionRepository = {
   ): Promise<Record<string, unknown> | null> {
     const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
       INSERT INTO billing_payments (
-        barbershop_id,
+        business_id,
         provider,
         provider_payment_id,
         provider_subscription_id,
@@ -513,7 +513,7 @@ export const subscriptionRepository = {
         metadata
       )
       VALUES (
-        ${payment.barbershopId}::uuid,
+        ${payment.businessId}::uuid,
         ${payment.provider}::text,
         ${payment.providerPaymentId}::text,
         ${payment.providerSubscriptionId ?? null}::text,
@@ -529,7 +529,7 @@ export const subscriptionRepository = {
       )
       ON CONFLICT (provider, provider_payment_id)
       DO UPDATE SET
-        barbershop_id = EXCLUDED.barbershop_id,
+        business_id = EXCLUDED.business_id,
         provider_subscription_id = COALESCE(EXCLUDED.provider_subscription_id, billing_payments.provider_subscription_id),
         payment_method = COALESCE(EXCLUDED.payment_method, billing_payments.payment_method),
         external_status = COALESCE(EXCLUDED.external_status, billing_payments.external_status),

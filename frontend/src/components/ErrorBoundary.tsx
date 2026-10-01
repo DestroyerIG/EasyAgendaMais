@@ -2,6 +2,7 @@
 
 import { Component, ReactNode } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { Button, Card } from '@/components/ui';
 
 interface Props {
     children: ReactNode;
@@ -33,23 +34,20 @@ export class ErrorBoundary extends Component<Props, State> {
     render() {
         if (this.state.hasError) {
             return (
-                <div className="min-h-screen flex items-center justify-center bg-black">
-                    <div className="bg-dark-light border border-red-500/20 rounded-2xl p-8 max-w-md text-center" role="alert" aria-live="assertive">
-                        <AlertCircle className="text-red-500 mx-auto mb-4" size={48} aria-hidden="true" />
-                        <h2 className="text-2xl font-bold text-white mb-2">
+                <div className="app-theme flex min-h-screen items-center justify-center px-4">
+                    <Card className="max-w-md text-center" role="alert" aria-live="assertive">
+                        <AlertCircle className="mx-auto mb-4 text-danger" size={48} aria-hidden="true" />
+                        <h2 className="mb-2 text-2xl font-bold text-ink">
                             Algo deu errado
                         </h2>
-                        <p className="text-gray-400 mb-6">
+                        <p className="mb-6 text-muted">
                             Ocorreu um erro inesperado. Tente recarregar a página.
                         </p>
-                        <button
-                            onClick={this.handleRetry}
-                            className="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:bg-orange-600 text-black font-bold rounded-lg transition-all"
-                        >
-                            <RefreshCw size={18} />
+                        <Button onClick={this.handleRetry}>
+                            <RefreshCw size={18} aria-hidden="true" />
                             Tentar Novamente
-                        </button>
-                    </div>
+                        </Button>
+                    </Card>
                 </div>
             );
         }

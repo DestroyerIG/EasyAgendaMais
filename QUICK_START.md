@@ -13,7 +13,7 @@ Fluxo curto para subir o projeto em desenvolvimento.
 
 ```bash
 git clone <url-do-repositorio>
-cd Barberpro-saas-2.0
+cd easyagenda-saas
 npm run install:all
 ```
 
@@ -29,7 +29,7 @@ No mínimo, configure no `backend/.env`:
 ```env
 PORT=5000
 NODE_ENV=development
-DATABASE_URL=postgresql://postgres:senha@localhost:5432/barberpro
+DATABASE_URL=postgresql://postgres:senha@localhost:5432/easyagenda
 JWT_SECRET=troque_por_uma_chave_forte
 FRONTEND_URL=http://localhost:3000
 APP_URL=http://localhost:3000
@@ -54,8 +54,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
 Crie o banco se ainda não existir:
 
 ```bash
-createdb -h localhost -p 5432 -U postgres --encoding=UTF8 barberpro
-psql -h localhost -p 5432 -U postgres -d barberpro -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+createdb -h localhost -p 5432 -U postgres --encoding=UTF8 easyagenda
+psql -h localhost -p 5432 -U postgres -d easyagenda -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
 ```
 
 Aplique o schema:
@@ -81,7 +81,7 @@ for file in \
   backend/src/config/migration_v18_asaas_customer_id.sql \
   backend/src/config/migration_v19_business_days_and_intervals.sql
 do
-  psql -h localhost -p 5432 -U postgres -d barberpro -v ON_ERROR_STOP=1 -f "$file"
+  psql -h localhost -p 5432 -U postgres -d easyagenda -v ON_ERROR_STOP=1 -f "$file"
 done
 ```
 

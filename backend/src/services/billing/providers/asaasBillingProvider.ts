@@ -7,40 +7,40 @@ export const asaasBillingProvider = {
   provider: 'asaas' as const,
 
   async createCustomer({
-    barbershop,
+    business,
     idempotencyKey = null,
     onCustomerResolved = null,
   }: {
-    barbershop: Record<string, unknown>;
+    business: Record<string, unknown>;
     idempotencyKey?: string | null;
     onCustomerResolved?: ((customer: unknown) => void) | null;
   }): Promise<unknown> {
     return asaasService.getOrCreateAsaasCustomer({
-      barbershop,
+      business,
       idempotencyKey,
       onCustomerResolved,
     });
   },
 
   async createSubscription({
-    barbershop,
+    business,
     plan,
     amount,
     idempotencyKey = null,
     onCustomerResolved = null,
   }: {
-    barbershop: Record<string, unknown>;
+    business: Record<string, unknown>;
     plan: string;
     amount: number;
     idempotencyKey?: string | null;
     onCustomerResolved?: ((customer: unknown) => void) | null;
   }): Promise<unknown> {
-    if (!barbershop) {
-      throw new AppError('Barbearia inválida para checkout Pix', 400, 'INVALID_BARBERSHOP');
+    if (!business) {
+      throw new AppError('Negócio inválido para checkout Pix', 400, 'INVALID_BUSINESS');
     }
 
     return asaasService.createPixSubscription({
-      barbershop,
+      business,
       plan,
       amount,
       idempotencyKey,
@@ -50,7 +50,7 @@ export const asaasBillingProvider = {
 
   async createPixCharge({
     customerId,
-    barbershopId,
+    businessId,
     plan,
     amount,
     dueDate,
@@ -59,7 +59,7 @@ export const asaasBillingProvider = {
     idempotencyKey = null,
   }: {
     customerId: string;
-    barbershopId: string;
+    businessId: string;
     plan: string;
     amount: number;
     dueDate: string;
@@ -69,7 +69,7 @@ export const asaasBillingProvider = {
   }): Promise<unknown> {
     return asaasService.createPixCharge({
       customerId,
-      barbershopId,
+      businessId,
       plan,
       amount,
       dueDate,

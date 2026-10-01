@@ -44,7 +44,7 @@ describe('@lid + destination Evolution (Render)', () => {
   it('não usa lid_sender_fallback quando sender = destination (cache connected vazio)', () => {
     const payload = {
       event: 'messages-upsert',
-      instanceName: 'itallobarber_12f46de4',
+      instanceName: 'italloprofessional_12f46de4',
       destination: '558396311811@s.whatsapp.net',
       key: { remoteJid: '268796367515747@lid', fromMe: false },
       sender: '558396311811@s.whatsapp.net',
@@ -61,14 +61,14 @@ describe('whatsappInstanceCache multi-tenant + ENV', () => {
   const prevEv = process.env.EVOLUTION_PHONE;
 
   beforeEach(() => {
-    clearInstanceNumber('easybarber_test_tenant');
+    clearInstanceNumber('easyagenda_test_tenant');
     clearInstanceNumber(null);
     delete process.env.WHATSAPP_PHONE;
     delete process.env.EVOLUTION_PHONE;
   });
 
   afterEach(() => {
-    clearInstanceNumber('easybarber_test_tenant');
+    clearInstanceNumber('easyagenda_test_tenant');
     clearInstanceNumber(null);
     if (prevWa !== undefined) process.env.WHATSAPP_PHONE = prevWa;
     else delete process.env.WHATSAPP_PHONE;
@@ -78,7 +78,7 @@ describe('whatsappInstanceCache multi-tenant + ENV', () => {
 
   it('não aplica ENV em instância nomeada sem número em cache', () => {
     process.env.WHATSAPP_PHONE = '5511999887766';
-    expect(getConnectedNumber('easybarber_test_tenant')).toBeNull();
+    expect(getConnectedNumber('easyagenda_test_tenant')).toBeNull();
   });
 
   it('aplica ENV apenas para instância default', () => {
@@ -87,8 +87,8 @@ describe('whatsappInstanceCache multi-tenant + ENV', () => {
   });
 
   it('updateInstanceDirect não apaga número válido com patch null', () => {
-    updateInstanceDirect('easybarber_test_tenant', { connectedNumber: '5583987654321', status: 'connected' });
-    updateInstanceDirect('easybarber_test_tenant', { connectedNumber: null, status: 'disconnected' });
-    expect(getConnectedNumber('easybarber_test_tenant')).toBe('5583987654321');
+    updateInstanceDirect('easyagenda_test_tenant', { connectedNumber: '5583987654321', status: 'connected' });
+    updateInstanceDirect('easyagenda_test_tenant', { connectedNumber: null, status: 'disconnected' });
+    expect(getConnectedNumber('easyagenda_test_tenant')).toBe('5583987654321');
   });
 });

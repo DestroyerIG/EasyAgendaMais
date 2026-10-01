@@ -42,16 +42,16 @@ export const adminRepository = {
     ] = await Promise.all([
       prisma.$queryRaw<Array<Record<string, unknown>>>(
         Prisma.sql`SELECT
-          (SELECT COUNT(*) FROM barbershops) AS total_accounts,
-          (SELECT COUNT(*) FROM barbershops WHERE active = true) AS active_accounts,
-          (SELECT COUNT(*) FROM barbershops WHERE active = false) AS suspended_accounts,
-          (SELECT COUNT(*) FROM barbershops WHERE subscription_status IN ('active', 'trialing') AND active = true) AS active_subscriptions,
-          (SELECT COUNT(*) FROM barbershops WHERE subscription_status = 'canceled') AS canceled_subscriptions,
-          (SELECT COUNT(*) FROM barbershops WHERE subscription_status = 'trialing') AS trial_users,
+          (SELECT COUNT(*) FROM businesses) AS total_accounts,
+          (SELECT COUNT(*) FROM businesses WHERE active = true) AS active_accounts,
+          (SELECT COUNT(*) FROM businesses WHERE active = false) AS suspended_accounts,
+          (SELECT COUNT(*) FROM businesses WHERE subscription_status IN ('active', 'trialing') AND active = true) AS active_subscriptions,
+          (SELECT COUNT(*) FROM businesses WHERE subscription_status = 'canceled') AS canceled_subscriptions,
+          (SELECT COUNT(*) FROM businesses WHERE subscription_status = 'trialing') AS trial_users,
           (SELECT COUNT(*) FROM users) AS total_users,
           (SELECT COUNT(*) FROM users WHERE blocked = true) AS blocked_users,
           (SELECT COUNT(*) FROM appointments WHERE created_at >= NOW() - (${periodDays}::text || ' days')::interval) AS appointments_in_period,
-          (SELECT COUNT(DISTINCT barbershop_id) FROM appointments WHERE created_at >= NOW() - INTERVAL '30 days') AS active_tenants_30d`
+          (SELECT COUNT(DISTINCT business_id) FROM appointments WHERE created_at >= NOW() - INTERVAL '30 days') AS active_tenants_30d`
       ),
       prisma.$queryRaw<Array<Record<string, unknown>>>(
         Prisma.sql`SELECT COALESCE(SUM(
@@ -73,13 +73,13 @@ export const adminRepository = {
             ELSE 0
           END
         ), 0) AS estimated_mrr
-        FROM barbershops
+        FROM businesses
         WHERE active = true
           AND subscription_status IN ('active', 'trialing')`
       ),
       prisma.$queryRaw<Array<Record<string, unknown>>>(
         Prisma.sql`SELECT DATE(created_at) AS day, COUNT(*)::int AS total
-         FROM barbershops
+         FROM businesses
          WHERE created_at >= NOW() - (${periodDays}::text || ' days')::interval
          GROUP BY DATE(created_at)
          ORDER BY DATE(created_at)`
@@ -93,13 +93,13 @@ export const adminRepository = {
       ),
       prisma.$queryRaw<Array<Record<string, unknown>>>(
         Prisma.sql`SELECT subscription_status, COUNT(*)::int AS total
-         FROM barbershops
+         FROM businesses
          GROUP BY subscription_status
          ORDER BY total DESC`
       ),
       prisma.$queryRaw<Array<Record<string, unknown>>>(
         Prisma.sql`SELECT plan, COUNT(*)::int AS total
-         FROM barbershops
+         FROM businesses
          GROUP BY plan
          ORDER BY total DESC`
       ),
@@ -187,13 +187,13 @@ export const adminRepository = {
           (
             SELECT MAX(a.created_at)
             FROM appointments a
-            WHERE a.barbershop_id = b.id
+            WHERE a.business_id = b.id
           ) AS last_activity_at
-        FROM barbershops b
+        FROM businesses b
         LEFT JOIN LATERAL (
           SELECT u.id, u.email, u.role, u.blocked
           FROM users u
-          WHERE u.barbershop_id = b.id
+          WHERE u.business_id = b.id
           ORDER BY
             CASE
               WHEN u.role = 'tenant_admin' THEN 0
@@ -317,11 +317,11 @@ export const adminRepository = {
         owner_user.email AS owner_user_email,
         owner_user.role AS owner_user_role,
         owner_user.blocked AS owner_user_blocked
-      FROM barbershops b
+      FROM businesses b
       LEFT JOIN LATERAL (
         SELECT u.id, u.email, u.role, u.blocked
         FROM users u
-        WHERE u.barbershop_id = b.id
+        WHERE u.business_id = b.id
         ORDER BY
           CASE
             WHEN u.role = 'tenant_admin' THEN 0
@@ -344,38 +344,38 @@ export const adminRepository = {
       clientsResult,
       appointmentsMonthResult,
       servicesResult,
-      barbersResult,
+      professionalsResult,
       lastActivityResult,
     ] = await Promise.all([
       prisma.$queryRaw<Array<Record<string, unknown>>>(
         Prisma.sql`SELECT COUNT(*)::int AS total_users,
                 COUNT(*) FILTER (WHERE blocked = true)::int AS blocked_users
          FROM users
-         WHERE barbershop_id = ${tenantId}::uuid`
+         WHERE business_id = ${tenantId}::uuid`
       ),
       prisma.$queryRaw<Array<Record<string, unknown>>>(
-        Prisma.sql`SELECT COUNT(*)::int AS total_clients FROM clients WHERE barbershop_id = ${tenantId}::uuid`
+        Prisma.sql`SELECT COUNT(*)::int AS total_clients FROM clients WHERE business_id = ${tenantId}::uuid`
       ),
       prisma.$queryRaw<Array<Record<string, unknown>>>(
         Prisma.sql`SELECT COUNT(*)::int AS total_appointments_month
          FROM appointments
-         WHERE barbershop_id = ${tenantId}::uuid
+         WHERE business_id = ${tenantId}::uuid
            AND created_at >= date_trunc('month', NOW())`
       ),
       prisma.$queryRaw<Array<Record<string, unknown>>>(
         Prisma.sql`SELECT COUNT(*)::int AS total_services
          FROM services
-         WHERE barbershop_id = ${tenantId}::uuid AND active = true`
+         WHERE business_id = ${tenantId}::uuid AND active = true`
       ),
       prisma.$queryRaw<Array<Record<string, unknown>>>(
-        Prisma.sql`SELECT COUNT(*)::int AS total_barbers
-         FROM barbers
-         WHERE barbershop_id = ${tenantId}::uuid AND active = true`
+        Prisma.sql`SELECT COUNT(*)::int AS total_professionals
+         FROM professionals
+         WHERE business_id = ${tenantId}::uuid AND active = true`
       ),
       prisma.$queryRaw<Array<Record<string, unknown>>>(
         Prisma.sql`SELECT MAX(created_at) AS last_activity_at
          FROM appointments
-         WHERE barbershop_id = ${tenantId}::uuid`
+         WHERE business_id = ${tenantId}::uuid`
       ),
     ]);
 
@@ -387,7 +387,7 @@ export const adminRepository = {
         totalClients: (clientsResult[0] as Record<string, unknown>)?.['total_clients'] || 0,
         totalAppointmentsMonth: (appointmentsMonthResult[0] as Record<string, unknown>)?.['total_appointments_month'] || 0,
         totalServices: (servicesResult[0] as Record<string, unknown>)?.['total_services'] || 0,
-        totalBarbers: (barbersResult[0] as Record<string, unknown>)?.['total_barbers'] || 0,
+        totalProfessionals: (professionalsResult[0] as Record<string, unknown>)?.['total_professionals'] || 0,
         lastActivityAt: (lastActivityResult[0] as Record<string, unknown>)?.['last_activity_at'] || null,
       },
     };
@@ -399,7 +399,7 @@ export const adminRepository = {
     { active, reason }: { active: boolean; reason?: string }
   ): Promise<unknown> {
     const result = await prisma.$queryRaw<Array<Record<string, unknown>>>(
-      Prisma.sql`UPDATE barbershops
+      Prisma.sql`UPDATE businesses
        SET active = ${active},
            suspended_at = CASE WHEN ${active} = false THEN NOW() ELSE NULL END,
            suspended_reason = CASE WHEN ${active} = false THEN COALESCE(${reason || null}, suspended_reason) ELSE NULL END,
@@ -417,7 +417,7 @@ export const adminRepository = {
     reason?: string
   ): Promise<unknown> {
     const result = await prisma.$queryRaw<Array<Record<string, unknown>>>(
-      Prisma.sql`UPDATE barbershops
+      Prisma.sql`UPDATE businesses
        SET active = false,
            suspended_at = NOW(),
            suspended_reason = COALESCE(${reason || null}, 'soft_deleted'),
@@ -438,11 +438,11 @@ export const adminRepository = {
         u.blocked,
         u.blocked_at,
         u.blocked_reason,
-        u.barbershop_id,
-        b.name AS barbershop_name,
-        b.active AS barbershop_active
+        u.business_id,
+        b.name AS business_name,
+        b.active AS business_active
        FROM users u
-       JOIN barbershops b ON b.id = u.barbershop_id
+       JOIN businesses b ON b.id = u.business_id
         WHERE u.id = ${userId}::uuid`
     );
 
@@ -461,7 +461,7 @@ export const adminRepository = {
            blocked_reason = CASE WHEN ${blocked} = true THEN ${reason || null} ELSE NULL END,
            updated_at = CURRENT_TIMESTAMP
         WHERE id = ${userId}::uuid
-       RETURNING id, email, role, barbershop_id, blocked, blocked_at, blocked_reason`
+       RETURNING id, email, role, business_id, blocked, blocked_at, blocked_reason`
     );
 
     return result[0] || null;
@@ -481,7 +481,7 @@ export const adminRepository = {
 
   async revokeTenantRefreshTokens(_client: unknown = null, tenantId: string): Promise<void> {
     const users = await prisma.user.findMany({
-      where: { barbershopId: tenantId },
+      where: { businessId: tenantId },
       select: { id: true },
     });
 
@@ -570,11 +570,11 @@ export const adminRepository = {
         b.stripe_subscription_id,
         b.active,
         owner_user.email AS owner_user_email
-      FROM barbershops b
+      FROM businesses b
       LEFT JOIN LATERAL (
         SELECT u.email
         FROM users u
-        WHERE u.barbershop_id = b.id
+        WHERE u.business_id = b.id
         ORDER BY
           CASE
             WHEN u.role = 'tenant_admin' THEN 0
@@ -592,7 +592,7 @@ export const adminRepository = {
 
     const countQuery = `
       SELECT COUNT(*)::int AS total
-      FROM barbershops b
+      FROM businesses b
       ${whereSql}
     `;
 

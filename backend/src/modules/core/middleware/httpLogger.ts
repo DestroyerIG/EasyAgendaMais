@@ -15,7 +15,7 @@ export function httpLoggerMiddleware(req: Request, res: Response, next: NextFunc
       status: res.statusCode,
       duration,
       ip: req.ip,
-      barbershopId: req.user?.barbershopId,
+      businessId: req.user?.businessId,
     }, 'request');
   });
 

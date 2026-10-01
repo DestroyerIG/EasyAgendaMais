@@ -2,7 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
-import { MessageSquare, Send, Terminal } from 'lucide-react';
+import { Card, Button, Icon, Input, IconButton, EmptyState } from '@/components/ui';
+import { materialIcon } from '@/lib/materialIconAdapter';
+import { cn } from '@/lib/cn';
 
 interface BotMessage {
   id: string;
@@ -50,43 +52,42 @@ export const ChatSimulator = ({ onSendMessage }: ChatSimulatorProps) => {
   };
 
   return (
-    <div className="card rounded-2xl flex flex-col h-[600px] overflow-hidden">
-      <div className="p-4 border-b border-gray-800 bg-black/40 flex items-center justify-between">
+    <Card className="flex h-[600px] flex-col overflow-hidden p-0">
+      <div className="flex items-center justify-between border-b border-line bg-surface-2 p-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center text-primary">
-            <MessageSquare size={20} />
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-whatsapp/12 text-whatsapp">
+            <Icon name="chat" size={20} />
           </div>
           <div>
-            <h3 className="font-bold text-white text-sm">Teste o Bot</h3>
-            <p className="text-[10px] text-green-500 font-bold uppercase tracking-tighter">EasyBarber Bot Online</p>
+            <h3 className="text-lg font-bold text-ink">Teste o Bot</h3>
+            <p className="text-[13px] font-bold text-success-text">Assistente virtual online</p>
           </div>
         </div>
-        <button onClick={() => setMessages([])} className="text-xs text-gray-500 hover:text-white uppercase font-black">
+        <Button variant="ghost" size="sm" onClick={() => setMessages([])}>
           Limpar Conversa
-        </button>
+        </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div className="flex-1 space-y-4 overflow-y-auto p-6">
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-50">
-            <Terminal size={48} className="text-gray-700" />
-            <div>
-              <p className="text-gray-400 font-bold uppercase tracking-widest text-sm">Simulador de WhatsApp</p>
-              <p className="text-xs text-gray-600">Mande um &quot;Oi&quot; para começar o agendamento.</p>
-            </div>
-          </div>
+          <EmptyState
+            icon={materialIcon('terminal')}
+            title="Simulador de WhatsApp"
+            description='Mande um "Oi" para começar o agendamento.'
+          />
         )}
         {messages.map(msg => (
-          <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div key={msg.id} className={cn('flex', msg.sender === 'user' ? 'justify-end' : 'justify-start')}>
             <div
-              className={`max-w-[80%] p-4 rounded-2xl text-sm ${
+              className={cn(
+                'max-w-[80%] rounded-2xl p-4 text-[15px]',
                 msg.sender === 'user'
-                  ? 'bg-primary text-black font-medium rounded-tr-none'
-                  : 'bg-black/40 text-gray-200 border border-gray-800 rounded-tl-none'
-              }`}
+                  ? 'rounded-tr-none bg-surface-2 text-ink'
+                  : 'rounded-tl-none bg-whatsapp/12 text-ink',
+              )}
             >
               <p className="whitespace-pre-wrap">{msg.text}</p>
-              <p className={`text-[10px] mt-2 opacity-60 ${msg.sender === 'user' ? 'text-black' : 'text-gray-500'}`}>
+              <p className="mt-2 text-[13px] text-muted">
                 {format(msg.timestamp, 'HH:mm')}
               </p>
             </div>
@@ -94,11 +95,11 @@ export const ChatSimulator = ({ onSendMessage }: ChatSimulatorProps) => {
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-black/40 p-4 rounded-2xl rounded-tl-none border border-gray-800">
+            <div className="rounded-2xl rounded-tl-none bg-whatsapp/12 p-4">
               <div className="flex gap-1">
-                <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" />
-                <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce [animation-delay:0.2s]" />
-                <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce [animation-delay:0.4s]" />
+                <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted" />
+                <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:0.2s]" />
+                <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:0.4s]" />
               </div>
             </div>
           </div>
@@ -106,20 +107,23 @@ export const ChatSimulator = ({ onSendMessage }: ChatSimulatorProps) => {
         <div ref={chatEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 bg-black/20 border-t border-gray-800">
+      <form onSubmit={handleSubmit} method="post" className="border-t border-line bg-surface-2 p-4">
         <div className="flex gap-2">
-          <input
+          <Input
             type="text"
             value={inputText}
             onChange={e => setInputText(e.target.value)}
             placeholder="Envie uma mensagem..."
-            className="flex-1 bg-black/40 border border-gray-800 p-3 rounded-xl text-sm text-white focus:outline-none focus:border-primary transition-all"
+            className="flex-1"
           />
-          <button type="submit" className="bg-primary hover:bg-orange-600 text-black p-3 rounded-xl transition-all shadow-lg shadow-primary/20">
-            <Send size={20} />
-          </button>
+          <IconButton
+            type="submit"
+            icon={materialIcon('send')}
+            label="Enviar mensagem"
+            variant="secondary"
+          />
         </div>
       </form>
-    </div>
+    </Card>
   );
 };

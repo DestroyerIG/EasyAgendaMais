@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EasyAgenda+ | Painel de Gestão</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: '#FF7A00',
+            ink: '#1A1817',
+            muted: '#66605B',
+            line: '#E2DFDB',
+            surface: '#FFFFFF',
+            'surface-2': '#EFEDEA',
+            bg: '#F6F5F4',
+            whatsapp: '#128C4A',
+            statusConfirmed: '#2563EB',
+            statusWarning: '#D97706',
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 22;
+      vertical-align: middle;
+    }
+    .material-symbols-outlined.fill {
+      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 22;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #E2DFDB;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-bg text-ink min-h-screen antialiased flex flex-col">
+<!-- Fixed Navigation Sidebar (248px width) -->
+<aside class="fixed left-0 top-0 h-screen w-[248px] bg-surface border-r border-line z-50 flex flex-col justify-between">
+<div class="flex flex-col">
+<!-- Logo Header -->
+<div class="h-16 px-5 border-b border-line flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center font-black text-brand text-lg leading-none">
+            +
+          </div>
+<div class="flex flex-col leading-tight">
+<span class="font-bold text-[17px] tracking-tight text-ink">EasyAgenda<span class="text-brand">+</span></span>
+<span class="text-[11px] font-medium text-muted">Gestão de Beleza</span>
+</div>
+</div>
+</div>
+<!-- Navigation List -->
+<nav class="flex flex-col gap-1 p-3">
+<!-- Hoje (Active) -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface-2 text-ink font-bold text-[14px] transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px] text-brand fill">today</span>
+<span>Hoje</span>
+</a>
+<!-- Agenda -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:text-ink hover:bg-surface-2/60 font-semibold text-[14px] transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">calendar_month</span>
+<span>Agenda</span>
+</a>
+<!-- Clientes -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:text-ink hover:bg-surface-2/60 font-semibold text-[14px] transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">group</span>
+<span>Clientes</span>
+</a>
+<!-- Caixa -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:text-ink hover:bg-surface-2/60 font-semibold text-[14px] transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">point_of_sale</span>
+<span>Caixa</span>
+</a>
+<!-- Clube e pacotes -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:text-ink hover:bg-surface-2/60 font-semibold text-[14px] transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">loyalty</span>
+<span>Clube e pacotes</span>
+</a>
+<!-- WhatsApp -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:text-ink hover:bg-surface-2/60 font-semibold text-[14px] transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">chat</span>
+<span>WhatsApp</span>
+</a>
+<!-- Relatórios -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:text-ink hover:bg-surface-2/60 font-semibold text-[14px] transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">bar_chart</span>
+<span>Relatórios</span>
+</a>
+<!-- Minha página -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:text-ink hover:bg-surface-2/60 font-semibold text-[14px] transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">storefront</span>
+<span>Minha página</span>
+</a>
+<!-- Ajustes -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:text-ink hover:bg-surface-2/60 font-semibold text-[14px] transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span>Ajustes</span>
+</a>
+</nav>
+</div>
+<!-- Sidebar Footer -->
+<div class="p-3 border-t border-line">
+<div class="p-2.5 rounded-2xl bg-surface-2 border border-line/60 flex items-center justify-between cursor-pointer hover:bg-line/40 transition-colors">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-9 h-9 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center text-brand flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]">spa</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="text-[13px] font-bold text-ink truncate leading-tight">Studio Aurora</span>
+<span class="text-[11px] font-semibold text-muted leading-tight">Plano Equipe</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-muted text-[18px]">unfold_more</span>
+</div>
+</div>
+</aside>
+<!-- Main Content Wrapper with Sidebar offset -->
+<div class="pl-[248px] flex flex-col flex-1">
+<!-- Top Bar Header (Sticky, matching 64px) -->
+<header class="sticky top-0 h-16 bg-surface/90 backdrop-blur-md border-b border-line z-40 px-6 flex items-center justify-between">
+<!-- Breadcrumb -->
+<div class="flex items-center gap-2 text-[14px] text-muted font-medium">
+<span class="material-symbols-outlined text-[18px] text-muted">storefront</span>
+<span>Studio Aurora</span>
+<span class="text-line font-light">/</span>
+<span class="text-ink font-semibold">Painel de Gestão</span>
+</div>
+<!-- Right Actions (Search, Notification, Profile) -->
+<div class="flex items-center gap-4">
+<!-- Search Input -->
+<div class="relative hidden sm:flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-muted text-[19px]">search</span>
+<input class="pl-9 pr-3.5 py-1.5 w-64 bg-surface-2 border border-line rounded-xl text-[13px] text-ink placeholder-muted focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all" placeholder="Buscar no sistema..." type="text"/>
+</div>
+<!-- Notification Bell -->
+<button class="relative w-9 h-9 rounded-xl border border-line bg-surface hover:bg-surface-2 flex items-center justify-center text-muted hover:text-ink transition-colors" title="Notificações" type="button">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-brand ring-2 ring-surface"></span>
+</button>
+<!-- Divider -->
+<div class="h-6 w-[1px] bg-line"></div>
+<!-- User Profile Pill -->
+<div class="flex items-center gap-2.5 pl-1 cursor-pointer">
+<div class="w-8 h-8 rounded-xl bg-surface-2 border border-line flex items-center justify-center text-ink font-bold text-xs">
+            CA
+          </div>
+<div class="hidden md:flex flex-col text-left leading-none">
+<span class="text-[13px] font-bold text-ink">Carla</span>
+<span class="text-[11px] font-medium text-muted mt-0.5">Administradora</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Page Content -->
+<main class="p-6 max-w-[1400px] w-full mx-auto flex flex-col gap-6">
+<!-- Page Header & Main Actions -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div>
+<h1 class="text-2xl font-bold tracking-tight text-ink">Bom dia, Carla</h1>
+<p class="text-[14px] text-muted font-medium mt-0.5">terça, 17 de setembro de 2026</p>
+</div>
+<div class="flex items-center gap-3">
+<!-- WhatsApp Action Button -->
+<button class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface border border-line hover:border-whatsapp/40 text-whatsapp font-bold text-[14px] shadow-sm hover:bg-whatsapp/5 transition-all" type="button">
+<svg class="w-4 h-4 fill-current" viewbox="0 0 24 24">
+<path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.599 2.679-.702c.972.575 1.909.854 2.782.854 3.179 0 5.765-2.587 5.765-5.766.001-3.18-2.585-5.638-5.766-5.638zm0-2.172c4.418 0 8 3.582 8 8 0 4.418-3.582 8-8 8-1.378 0-2.671-.351-3.805-.967l-4.226 1.107 1.13-4.135c-.71-1.2-1.099-2.576-1.099-4.005 0-4.418 3.582-8 8-8z"></path>
+</svg>
+<span>Disparos WhatsApp</span>
+</button>
+<!-- New Appointment Primary CTA -->
+<button class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand hover:brightness-105 active:scale-[0.99] text-ink font-bold text-[14px] shadow-sm transition-all" type="button">
+<span class="material-symbols-outlined text-[19px] font-bold">add</span>
+<span>Novo agendamento</span>
+</button>
+</div>
+</div>
+<!-- 4 Metric Cards Grid -->
+<section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+<!-- Card 1: Faturamento hoje -->
+<div class="bg-surface rounded-2xl p-5 border border-line shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between text-muted">
+<span class="text-[13px] font-semibold">Faturamento hoje</span>
+<span class="material-symbols-outlined text-[20px]">payments</span>
+</div>
+<div class="my-3">
+<div class="text-[28px] font-bold text-ink tracking-tight font-mono">R$ 1.460</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between text-[12px] text-muted">
+<span>Meta R$ 1.800</span>
+<span class="font-bold text-ink">81%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-2 rounded-full overflow-hidden">
+<div class="h-full bg-brand rounded-full" style="width: 81%"></div>
+</div>
+</div>
+</div>
+<!-- Card 2: Agendamentos hoje -->
+<div class="bg-surface rounded-2xl p-5 border border-line shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between text-muted">
+<span class="text-[13px] font-semibold">Agendamentos hoje</span>
+<span class="material-symbols-outlined text-[20px]">event_available</span>
+</div>
+<div class="my-3">
+<div class="text-[28px] font-bold text-ink tracking-tight font-mono">16</div>
+</div>
+<div class="flex items-center gap-1.5 text-statusWarning text-[12px] font-semibold">
+<span class="w-2 h-2 rounded-full bg-statusWarning"></span>
+<span>2 horários livres à tarde</span>
+</div>
+</div>
+<!-- Card 3: Taxa de ocupação -->
+<div class="bg-surface rounded-2xl p-5 border border-line shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between text-muted">
+<span class="text-[13px] font-semibold">Taxa de ocupação</span>
+<span class="material-symbols-outlined text-[20px]">pie_chart</span>
+</div>
+<div class="my-3">
+<div class="text-[28px] font-bold text-ink tracking-tight font-mono">84%</div>
+</div>
+<div class="flex items-center gap-1 text-[12px]">
+<span class="material-symbols-outlined text-[16px] text-whatsapp font-bold">arrow_upward</span>
+<span class="font-bold text-whatsapp">+6%</span>
+<span class="text-muted">vs média de terça</span>
+</div>
+</div>
+<!-- Card 4: Receita recuperada no mês -->
+<div class="bg-surface rounded-2xl p-5 border border-line shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between text-muted">
+<span class="text-[13px] font-semibold">Receita recuperada no mês</span>
+<span class="material-symbols-outlined text-[20px]">mark_chat_read</span>
+</div>
+<div class="my-3">
+<div class="text-[28px] font-bold text-ink tracking-tight font-mono">R$ 2.980</div>
+</div>
+<div class="flex items-center gap-1.5 text-[12px] text-muted">
+<span class="w-2 h-2 rounded-full bg-whatsapp"></span>
+<span>via lembretes WhatsApp</span>
+</div>
+</div>
+</section>
+<!-- Main Layout: 2 Columns (7fr vs 5fr) -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- LEFT COLUMN: 7 Columns -->
+<div class="lg:col-span-7 flex flex-col gap-6">
+<!-- Block 1: 'Precisa de você' (4 pendências) -->
+<div class="bg-surface rounded-2xl p-5 border border-line shadow-sm flex flex-col gap-4">
+<div class="flex items-center justify-between border-b border-line pb-3">
+<div class="flex items-center gap-2">
+<h2 class="text-[16px] font-bold text-ink">Precisa de você</h2>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-brand/15 text-ink font-mono">4 pendências</span>
+</div>
+<span class="text-[12px] font-medium text-muted">Ações de um clique</span>
+</div>
+<div class="flex flex-col gap-3">
+<!-- Item 1: Horários vagos -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-surface-2/60 border border-line/50 rounded-xl gap-3 hover:bg-surface-2 transition-colors">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center text-brand shrink-0">
+<span class="material-symbols-outlined text-[20px]">calendar_today</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="text-[13px] font-bold text-ink truncate">2 horários vagos à tarde com Bruna</span>
+<span class="text-[12px] text-muted">14:30 e 16:45 sem agendamento</span>
+</div>
+</div>
+<button class="shrink-0 px-3 py-1.5 rounded-lg bg-surface border border-line hover:border-ink/30 text-ink font-bold text-[12px] shadow-sm transition-all cursor-pointer" type="button">
+                  Oferecer à lista de espera
+                </button>
+</div>
+<!-- Item 2: Manutenções vencendo -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-surface-2/60 border border-line/50 rounded-xl gap-3 hover:bg-surface-2 transition-colors">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center text-whatsapp shrink-0">
+<span class="material-symbols-outlined text-[20px]">sync</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="text-[13px] font-bold text-ink truncate">9 clientes com manutenção vencendo</span>
+<span class="text-[12px] text-muted">Cílios e unhas no prazo ideal de retorno</span>
+</div>
+</div>
+<button class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-whatsapp text-white hover:brightness-105 font-bold text-[12px] shadow-sm transition-all cursor-pointer" type="button">
+<span class="material-symbols-outlined text-[15px]">send</span>
+<span>Disparar lembrete</span>
+</button>
+</div>
+<!-- Item 3: Sinais Pix pendentes -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-surface-2/60 border border-line/50 rounded-xl gap-3 hover:bg-surface-2 transition-colors">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center text-statusWarning shrink-0">
+<span class="material-symbols-outlined text-[20px]">qr_code_2</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="text-[13px] font-bold text-ink truncate">3 sinais Pix aguardando pagamento</span>
+<span class="text-[12px] text-muted">Expira em 30 minutos (R$ 110 pendentes)</span>
+</div>
+</div>
+<button class="shrink-0 px-3 py-1.5 rounded-lg bg-surface border border-line hover:border-statusWarning/50 text-statusWarning font-bold text-[12px] shadow-sm transition-all cursor-pointer" type="button">
+                  Ver pendências
+                </button>
+</div>
+<!-- Item 4: Avaliação com alerta -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-surface-2/60 border border-line/50 rounded-xl gap-3 hover:bg-surface-2 transition-colors">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center text-red-600 shrink-0">
+<span class="material-symbols-outlined text-[20px]">star_half</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="text-[13px] font-bold text-ink truncate">1 avaliação desfavorável registrada</span>
+<span class="text-[12px] text-muted">Cliente Camila Dias · Ontem às 18:30</span>
+</div>
+</div>
+<button class="shrink-0 px-3 py-1.5 rounded-lg bg-surface border border-line hover:border-red-400 text-red-600 font-bold text-[12px] shadow-sm transition-all cursor-pointer" type="button">
+                  Ver e responder
+                </button>
+</div>
+</div>
+</div>
+<!-- Block 2: Chart 'Faturamento últimos 7 dias' -->
+<div class="bg-surface rounded-2xl p-5 border border-line shadow-sm flex flex-col gap-4">
+<div class="flex items-center justify-between border-b border-line pb-3">
+<div>
+<h2 class="text-[16px] font-bold text-ink">Faturamento últimos 7 dias</h2>
+<span class="text-[12px] text-muted">Comparativo diário da semana</span>
+</div>
+<div class="text-right">
+<span class="text-[11px] font-semibold text-muted">Total período</span>
+<div class="text-[18px] font-bold text-ink font-mono">R$ 11.420</div>
+</div>
+</div>
+<!-- SVG Bar Chart -->
+<div class="w-full pt-2">
+<svg class="w-full h-44 overflow-visible" fill="none" viewbox="0 0 520 180" xmlns="http://www.w3.org/2000/svg">
+<!-- Horizontal Grid Lines -->
+<line stroke="#EFEDEA" stroke-dasharray="3 3" stroke-width="1" x1="35" x2="500" y1="20" y2="20"></line>
+<line stroke="#EFEDEA" stroke-dasharray="3 3" stroke-width="1" x1="35" x2="500" y1="80" y2="80"></line>
+<line stroke="#E2DFDB" stroke-width="1" x1="35" x2="500" y1="140" y2="140"></line>
+<!-- Y-Axis Labels -->
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="10" font-weight="600" x="5" y="24">2.5k</text>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="10" font-weight="600" x="5" y="84">1.5k</text>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="10" font-weight="600" x="14" y="144">0</text>
+<!-- Bars (Qua, Qui, Sex, Sab, Seg, Hoje) -->
+<!-- Qua: 1.250 -->
+<g class="cursor-pointer group">
+<rect class="group-hover:fill-line transition-colors" fill="#EFEDEA" height="72" rx="6" width="38" x="65" y="68"></rect>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="10" font-weight="600" text-anchor="middle" x="84" y="60">1.250</text>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="11" font-weight="600" text-anchor="middle" x="84" y="160">Qua</text>
+</g>
+<!-- Qui: 1.520 -->
+<g class="cursor-pointer group">
+<rect class="group-hover:fill-line transition-colors" fill="#EFEDEA" height="88" rx="6" width="38" x="140" y="52"></rect>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="10" font-weight="600" text-anchor="middle" x="159" y="44">1.520</text>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="11" font-weight="600" text-anchor="middle" x="159" y="160">Qui</text>
+</g>
+<!-- Sex: 2.380 -->
+<g class="cursor-pointer group">
+<rect class="group-hover:fill-line transition-colors" fill="#EFEDEA" height="110" rx="6" width="38" x="215" y="30"></rect>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="10" font-weight="600" text-anchor="middle" x="234" y="22">2.380</text>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="11" font-weight="600" text-anchor="middle" x="234" y="160">Sex</text>
+</g>
+<!-- Sab: 2.890 -->
+<g class="cursor-pointer group">
+<rect class="group-hover:fill-line transition-colors" fill="#EFEDEA" height="122" rx="6" width="38" x="290" y="18"></rect>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="10" font-weight="600" text-anchor="middle" x="309" y="10">2.890</text>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="11" font-weight="600" text-anchor="middle" x="309" y="160">Sáb</text>
+</g>
+<!-- Seg: 1.920 -->
+<g class="cursor-pointer group">
+<rect class="group-hover:fill-line transition-colors" fill="#EFEDEA" height="98" rx="6" width="38" x="365" y="42"></rect>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="10" font-weight="600" text-anchor="middle" x="384" y="34">1.920</text>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="11" font-weight="600" text-anchor="middle" x="384" y="160">Seg</text>
+</g>
+<!-- Hoje: 1.460 (Highlighted) -->
+<g class="cursor-pointer group">
+<rect class="group-hover:brightness-105 transition-all" fill="#FF7A00" height="84" rx="6" width="38" x="440" y="56"></rect>
+<text fill="#FF7A00" font-family="Plus Jakarta Sans" font-size="11" font-weight="700" text-anchor="middle" x="459" y="48">1.460</text>
+<text fill="#1A1817" font-family="Plus Jakarta Sans" font-size="11" font-weight="700" text-anchor="middle" x="459" y="160">Hoje</text>
+<circle cx="459" cy="172" fill="#FF7A00" r="2.5"></circle>
+</g>
+</svg>
+</div>
+</div>
+</div>
+<!-- RIGHT COLUMN: 5 Columns ('Próximas 2 horas') -->
+<div class="lg:col-span-5 flex flex-col gap-6">
+<div class="bg-surface rounded-2xl p-5 border border-line shadow-sm flex flex-col gap-4">
+<!-- Header & Filter Tabs -->
+<div class="flex flex-col gap-3 border-b border-line pb-3.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<h2 class="text-[16px] font-bold text-ink">Próximas 2 horas</h2>
+<span class="w-2 h-2 rounded-full bg-brand animate-pulse"></span>
+</div>
+<span class="text-[12px] font-semibold text-muted font-mono">4 atendimentos</span>
+</div>
+<!-- Filter Chips -->
+<div class="flex items-center gap-1.5 overflow-x-auto pb-1">
+<button class="px-3 py-1 rounded-full text-[12px] font-bold bg-surface-2 text-ink border border-line/80 whitespace-nowrap" type="button">
+                  Todos
+                </button>
+<button class="px-3 py-1 rounded-full text-[12px] font-medium text-muted hover:text-ink hover:bg-surface-2/60 whitespace-nowrap transition-colors" type="button">
+                  Camila (unhas)
+                </button>
+<button class="px-3 py-1 rounded-full text-[12px] font-medium text-muted hover:text-ink hover:bg-surface-2/60 whitespace-nowrap transition-colors" type="button">
+                  Bruna (cílios)
+                </button>
+<button class="px-3 py-1 rounded-full text-[12px] font-medium text-muted hover:text-ink hover:bg-surface-2/60 whitespace-nowrap transition-colors" type="button">
+                  Paula (cabelo)
+                </button>
+</div>
+</div>
+<!-- 4 Appointment Cards -->
+<div class="flex flex-col gap-3">
+<!-- Card 1 -->
+<div class="flex bg-surface-2/40 border border-line rounded-xl overflow-hidden hover:border-ink/20 transition-all">
+<div class="w-1.5 bg-statusConfirmed shrink-0"></div>
+<div class="flex flex-col w-full p-3 gap-1">
+<div class="flex items-center justify-between">
+<span class="text-[12px] font-bold text-ink font-mono">10:00 - 11:30</span>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-statusConfirmed/10 text-statusConfirmed">
+                      Confirmado
+                    </span>
+</div>
+<div class="flex items-baseline justify-between mt-0.5">
+<span class="text-[14px] font-bold text-ink">Mariana Souza</span>
+<span class="text-[14px] font-bold text-ink font-mono">R$ 180</span>
+</div>
+<div class="flex items-center justify-between text-[12px] text-muted mt-0.5">
+<span class="truncate">Alongamento em gel · Camila</span>
+<span class="inline-flex items-center gap-1 font-bold text-whatsapp shrink-0 text-[11px]">
+<span class="material-symbols-outlined text-[13px]">check_circle</span>
+                      Sinal pago R$ 30
+                    </span>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="flex bg-surface-2/40 border border-line rounded-xl overflow-hidden hover:border-ink/20 transition-all">
+<div class="w-1.5 bg-brand shrink-0"></div>
+<div class="flex flex-col w-full p-3 gap-1">
+<div class="flex items-center justify-between">
+<span class="text-[12px] font-bold text-ink font-mono">10:15 - 11:15</span>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-brand/15 text-ink">
+                      Em atendimento
+                    </span>
+</div>
+<div class="flex items-baseline justify-between mt-0.5">
+<span class="text-[14px] font-bold text-ink">Letícia Albuquerque</span>
+<span class="text-[14px] font-bold text-ink font-mono">R$ 210</span>
+</div>
+<div class="flex items-center justify-between text-[12px] text-muted mt-0.5">
+<span class="truncate">Extensão cílios volume russo · Bruna</span>
+<span class="inline-flex items-center gap-1 font-bold text-whatsapp shrink-0 text-[11px]">
+<span class="material-symbols-outlined text-[13px]">check_circle</span>
+                      Sinal pago R$ 40
+                    </span>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="flex bg-surface-2/40 border border-line rounded-xl overflow-hidden hover:border-ink/20 transition-all">
+<div class="w-1.5 bg-statusConfirmed shrink-0"></div>
+<div class="flex flex-col w-full p-3 gap-1">
+<div class="flex items-center justify-between">
+<span class="text-[12px] font-bold text-ink font-mono">10:30 - 12:00</span>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-statusConfirmed/10 text-statusConfirmed">
+                      Confirmado
+                    </span>
+</div>
+<div class="flex items-baseline justify-between mt-0.5">
+<span class="text-[14px] font-bold text-ink">Juliana Paes</span>
+<span class="text-[14px] font-bold text-ink font-mono">R$ 160</span>
+</div>
+<div class="flex items-center justify-between text-[12px] text-muted mt-0.5">
+<span class="truncate">Corte + Escova modelada · Paula</span>
+<span class="text-[11px] font-medium text-muted">Pagar no local</span>
+</div>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="flex bg-surface-2/40 border border-line rounded-xl overflow-hidden hover:border-ink/20 transition-all">
+<div class="w-1.5 bg-statusWarning shrink-0"></div>
+<div class="flex flex-col w-full p-3 gap-1">
+<div class="flex items-center justify-between">
+<span class="text-[12px] font-bold text-ink font-mono">11:30 - 12:30</span>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-statusWarning/10 text-statusWarning">
+                      Aguardando confirmação
+                    </span>
+</div>
+<div class="flex items-baseline justify-between mt-0.5">
+<span class="text-[14px] font-bold text-ink">Beatriz Costa</span>
+<span class="text-[14px] font-bold text-ink font-mono">R$ 110</span>
+</div>
+<div class="flex items-center justify-between text-[12px] text-muted mt-0.5">
+<span class="truncate">Manutenção em gel · Camila</span>
+<button class="text-[11px] font-bold text-whatsapp hover:underline flex items-center gap-0.5 bg-transparent p-0 cursor-pointer" type="button">
+<span>Reenviar WhatsApp</span>
+<span class="material-symbols-outlined text-[13px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Card Footer Link -->
+<div class="pt-1">
+<a class="inline-flex items-center justify-center gap-1.5 w-full py-2.5 px-3 rounded-xl bg-surface-2 border border-line hover:bg-line/40 text-ink font-bold text-[13px] transition-colors text-center" href="#">
+<span>Ver grade completa da agenda</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+</body></html>

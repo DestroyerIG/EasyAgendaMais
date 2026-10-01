@@ -26,7 +26,7 @@ vi.mock('../services/whatsappClient.js', () => ({
 }));
 
 vi.mock('../services/whatsapp/whatsappInstanceService.js', () => ({
-  getBarbershopWhatsAppInstanceContext: vi.fn(async () => ({ whatsappInstanceName: 'easybarber' })),
+  getBusinessWhatsAppInstanceContext: vi.fn(async () => ({ whatsappInstanceName: 'easyagenda' })),
 }));
 
 vi.mock('../middleware/auth.js', () => ({
@@ -95,7 +95,7 @@ describe('POST /api/v1/whatsapp/webhook/:event', () => {
   it('preserva metadata util do payload bruto @lid mesmo quando o nodo normalizado e mais pobre', async () => {
     const handler = getWebhookEventHandler();
     const payload = {
-      instanceName: 'easybarber',
+      instanceName: 'easyagenda',
       sender: '558396311811@s.whatsapp.net',
       message: {
         conversation: 'Olá',
@@ -136,7 +136,7 @@ describe('POST /api/v1/whatsapp/webhook/:event', () => {
     expect((res.body as Record<string, unknown>).data).toMatchObject({ processed: true });
     expect(mockHandleIncomingMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        instanceName: 'easybarber',
+        instanceName: 'easyagenda',
         key: expect.objectContaining({
           remoteJid: '236197968359561@lid',
         }),

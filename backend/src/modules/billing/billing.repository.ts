@@ -12,7 +12,7 @@ export const billingRepository = {
   },
 
   async upsertPayment(data: {
-    barbershopId: string;
+    businessId: string;
     provider: string;
     providerPaymentId: string;
     providerSubscriptionId?: string | null;
@@ -40,7 +40,7 @@ export const billingRepository = {
         qrCode: data.qrCode,
       },
       create: {
-        barbershopId: data.barbershopId,
+        businessId: data.businessId,
         provider: data.provider,
         providerPaymentId: data.providerPaymentId,
         providerSubscriptionId: data.providerSubscriptionId ?? null,
@@ -71,7 +71,7 @@ export const billingRepository = {
     provider: string;
     eventId: string;
     eventType: string;
-    barbershopId?: string | null;
+    businessId?: string | null;
     payload?: unknown;
     status?: string;
   }): Promise<BillingWebhookEvent> {
@@ -80,7 +80,7 @@ export const billingRepository = {
         provider: data.provider,
         eventId: data.eventId,
         eventType: data.eventType,
-        barbershopId: data.barbershopId ?? null,
+        businessId: data.businessId ?? null,
         payload: data.payload as object ?? undefined,
         status: data.status ?? 'processed',
         processedAt: new Date(),
@@ -89,11 +89,11 @@ export const billingRepository = {
   },
 
   async findRecentPayments(
-    barbershopId: string,
+    businessId: string,
     limit = 10
   ): Promise<BillingPayment[]> {
     return prisma.billingPayment.findMany({
-      where: { barbershopId },
+      where: { businessId },
       orderBy: { createdAt: 'desc' },
       take: limit,
     });

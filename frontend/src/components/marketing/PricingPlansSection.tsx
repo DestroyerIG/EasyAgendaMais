@@ -14,7 +14,7 @@ import {
   type PixCheckoutSessionResponse,
   type SubscriptionStatus,
 } from '@/lib/billing';
-import { barbershopProfileApi } from '@/lib/barbershopProfile';
+import { businessProfileApi } from '@/lib/businessProfile';
 import { PLAN_MAP, SAAS_PLANS, type PlanId, isPlanId } from '@/lib/plans';
 import { formatCurrency } from '@/lib/formatters';
 import { getApiErrorCode, getApiErrorMessage } from '@/utils/handleApiError';
@@ -24,7 +24,39 @@ import {
   normalizeCpfCnpjDigits,
 } from '@/utils/cpfCnpj';
 
-const PIX_STORAGE_KEY = 'easybarber:pixCheckout';
+// Nome, subtítulo e lista de recursos exibidos nos cards seguem literalmente o
+// export do Stitch (Solo/Equipe/Salão) — só o preço é o real cobrado no billing
+// (plan.price, de SAAS_PLANS), que já diverge do valor do mockup para o Solo.
+const PLAN_DISPLAY: Record<PlanId, { name: string; subtitle: string; features: string[]; ctaLabel: string }> = {
+  basico: {
+    name: 'Solo',
+    subtitle: '1 profissional',
+    features: [
+      'Página com galeria',
+      'Bot de WhatsApp',
+      'Lembrete e confirmação',
+      'Sinal via Pix',
+      'Radar de Retorno',
+      'Ficha de clientes',
+      'Caixa',
+    ],
+    ctaLabel: 'Começar 14 dias grátis',
+  },
+  profissional: {
+    name: 'Equipe',
+    subtitle: 'Até 5 profissionais',
+    features: ['Tudo do Solo +', 'Comissões', 'Acesso das profissionais', 'Lista de espera', 'Campanhas e relatórios'],
+    ctaLabel: 'Testar 14 dias grátis',
+  },
+  premium: {
+    name: 'Salão',
+    subtitle: 'Profissionais ilimitados',
+    features: ['Tudo do Equipe +', 'Clube e pacotes', 'Salão-parceiro', 'Várias unidades', 'Suporte prioritário'],
+    ctaLabel: 'Começar 14 dias grátis',
+  },
+};
+
+const PIX_STORAGE_KEY = 'easyagenda:pixCheckout';
 
 type SupportedPaymentMethod = Extract<CheckoutPaymentMethod, 'card' | 'pix'>;
 
@@ -111,7 +143,7 @@ interface PricingPlansSectionProps {
 
 export function PricingPlansSection({
   sectionId = 'planos',
-  title = 'Planos para cada fase da sua barbearia',
+  title = 'Planos para cada fase do seu negócio',
   subtitle = 'Teste 14 dias grátis com acesso completo ao plano Profissional — sem cartão, sem compromisso. Assine quando quiser para continuar.',
   currentPlan,
   subscriptionStatus,
@@ -123,7 +155,7 @@ export function PricingPlansSection({
   const [pixCheckoutPlanId, setPixCheckoutPlanId] = useState<PlanId | null>(null);
   const [isPixModalOpen, setIsPixModalOpen] = useState(false);
   const [pixStatusLoading, setPixStatusLoading] = useState(false);
-  const [barbershopCpfCnpj, setBarbershopCpfCnpj] = useState<string>('');
+  const [businessCpfCnpj, setBusinessCpfCnpj] = useState<string>('');
   const [pendingPixPlanId, setPendingPixPlanId] = useState<PlanId | null>(null);
   const [isCpfCnpjModalOpen, setIsCpfCnpjModalOpen] = useState(false);
   const [cpfCnpjInput, setCpfCnpjInput] = useState('');
@@ -416,9 +448,9 @@ export function PricingPlansSection({
       const errorCode = getApiErrorCode(error);
 
       if (errorCode === 'CPF_CNPJ_REQUIRED') {
-        openCpfCnpjModal(pixPreCheckoutPlanId, barbershopCpfCnpj);
+        openCpfCnpjModal(pixPreCheckoutPlanId, businessCpfCnpj);
         setIsPixPreCheckoutOpen(false);
-        showToast('Para continuar no Pix, informe o CPF/CNPJ da barbearia.', 'info');
+        showToast('Para continuar no Pix, informe o CPF/CNPJ do negócio.', 'info');
         return;
       }
 
@@ -451,32 +483,32 @@ export function PricingPlansSection({
   };
 
   const ensureCpfCnpjForPix = async (planId: PlanId) => {
-    if (isValidCpfCnpj(barbershopCpfCnpj)) {
+    if (isValidCpfCnpj(businessCpfCnpj)) {
       return true;
     }
 
     try {
-      const profile = await barbershopProfileApi.getProfile();
+      const profile = await businessProfileApi.getProfile();
       const normalizedCpfCnpj = normalizeCpfCnpjDigits(profile.cpfCnpj);
 
       if (isValidCpfCnpj(normalizedCpfCnpj)) {
-        setBarbershopCpfCnpj(normalizedCpfCnpj);
+        setBusinessCpfCnpj(normalizedCpfCnpj);
         return true;
       }
 
       openCpfCnpjModal(planId, normalizedCpfCnpj);
-      showToast('Antes de pagar com Pix, informe o CPF/CNPJ da barbearia.', 'info');
+      showToast('Antes de pagar com Pix, informe o CPF/CNPJ do negócio.', 'info');
       return false;
     } catch (error: unknown) {
       const errorCode = getApiErrorCode(error);
 
       if (errorCode === 'NOT_FOUND' || errorCode === 'CPF_CNPJ_REQUIRED' || errorCode === 'VALIDATION_ERROR') {
         openCpfCnpjModal(planId);
-        showToast('Antes de pagar com Pix, informe o CPF/CNPJ da barbearia.', 'info');
+        showToast('Antes de pagar com Pix, informe o CPF/CNPJ do negócio.', 'info');
         return false;
       }
 
-      const message = getApiErrorMessage(error, 'Não foi possível validar o CPF/CNPJ da barbearia.');
+      const message = getApiErrorMessage(error, 'Não foi possível validar o CPF/CNPJ do negócio.');
       showToast(message, 'error');
       return false;
     }
@@ -505,10 +537,10 @@ export function PricingPlansSection({
     setCpfCnpjSaving(true);
 
     try {
-      const profile = await barbershopProfileApi.updateProfile(normalizedCpfCnpj);
+      const profile = await businessProfileApi.updateProfile(normalizedCpfCnpj);
       const savedCpfCnpj = normalizeCpfCnpjDigits(profile.cpfCnpj) || normalizedCpfCnpj;
 
-      setBarbershopCpfCnpj(savedCpfCnpj);
+      setBusinessCpfCnpj(savedCpfCnpj);
       setCpfCnpjInput(formatCpfCnpj(savedCpfCnpj));
       setIsCpfCnpjModalOpen(false);
       setCpfCnpjError(null);
@@ -588,10 +620,10 @@ export function PricingPlansSection({
     <section id={sectionId} className={className}>
       {showHeader && (
         <div className="mx-auto mb-6 sm:mb-10 max-w-3xl text-center">
-          <p className="section-eyebrow">Planos</p>
-          <h2 className="mt-3 text-3xl font-black leading-tight sm:text-4xl">{title}</h2>
-          <p className="mt-4 text-gray-400">{subtitle}</p>
-          <p className="mt-3 text-sm text-gray-500">
+          <p className="text-xs font-bold uppercase tracking-widest text-brand">Investimento justo e transparente</p>
+          <h2 className="mt-3 text-3xl font-extrabold leading-tight tracking-tight text-ink sm:text-4xl">{title}</h2>
+          <p className="mt-4 text-muted">{subtitle}</p>
+          <p className="mt-3 text-sm text-muted">
             Em cada plano você pode escolher checkout com cartão via Stripe ou pagamento Pix via Asaas.
           </p>
         </div>
@@ -621,6 +653,7 @@ export function PricingPlansSection({
 
       <div className="grid gap-6 lg:grid-cols-3">
         {SAAS_PLANS.map((plan) => {
+          const display = PLAN_DISPLAY[plan.id];
           const recommended = plan.recommended;
           const current = isCurrentPlan(plan.id);
           const planBusy = processingAction?.planId === plan.id;
@@ -631,34 +664,34 @@ export function PricingPlansSection({
             <article
               key={plan.id}
               className={[
-                'relative rounded-2xl border bg-dark-light p-7 transition-all',
-                recommended ? 'border-primary shadow-xl shadow-primary/10' : 'border-white/10',
-                current ? 'ring-2 ring-emerald-400/60' : '',
+                'relative rounded-card border bg-surface p-7 transition-all',
+                recommended ? 'border-2 border-brand shadow-xl' : 'border-line shadow-sm',
+                current ? 'ring-2 ring-whatsapp/60' : '',
               ].join(' ')}
             >
               {recommended && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-xs font-black uppercase tracking-[0.2em] text-black">
-                  Recomendado
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand px-4 py-1 text-xs font-bold uppercase tracking-wide text-on-brand shadow-sm">
+                  Mais popular
                 </span>
               )}
 
               <div className="mb-5 text-center">
-                <h3 className="text-2xl font-black">{plan.name}</h3>
-                <p className="mt-2 text-sm text-gray-400">{plan.description}</p>
-                <p className="mt-4 text-4xl font-black text-primary">
+                <h3 className="text-2xl font-extrabold text-ink">{display.name}</h3>
+                <p className="mt-2 text-sm text-muted">{display.subtitle}</p>
+                <p className="mt-4 text-4xl font-extrabold tabular-nums text-ink">
                   {formatCurrency(plan.price)}
-                  <span className="text-sm font-medium text-gray-400">/mês</span>
+                  <span className="text-sm font-medium text-muted">/mês</span>
                 </p>
-                <p className="mt-2 inline-flex items-center rounded-full border border-emerald-400/35 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-medium leading-snug text-emerald-200 sm:text-xs">
+                <p className="mt-2 inline-flex items-center rounded-full bg-whatsapp/10 px-3 py-1.5 text-[11px] font-medium leading-snug text-whatsapp sm:text-xs">
                   14 dias grátis no cadastro · sem cartão obrigatório
                 </p>
               </div>
 
-              <ul className="space-y-2 text-sm text-gray-300">
-                {plan.features.map((feature) => (
+              <ul className="space-y-2 text-sm text-ink">
+                {display.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-400" />
-                    <span>{feature}</span>
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-whatsapp" />
+                    <span className={feature.endsWith('+') ? 'font-bold' : undefined}>{feature}</span>
                   </li>
                 ))}
               </ul>
@@ -671,13 +704,13 @@ export function PricingPlansSection({
                       className={[
                         'block w-full rounded-xl px-4 py-3 text-center text-sm font-bold transition-colors',
                         recommended
-                          ? 'bg-primary text-black hover:bg-orange-500'
-                          : 'bg-white text-black hover:bg-gray-200',
+                          ? 'bg-brand text-on-brand hover:opacity-90'
+                          : 'border border-line bg-bg text-ink hover:bg-surface-2',
                       ].join(' ')}
                     >
-                      Começar grátis
+                      {display.ctaLabel}
                     </a>
-                    <p className="text-center text-[11px] text-gray-500">
+                    <p className="text-center text-[11px] text-muted">
                       14 dias grátis · sem cartão no cadastro
                     </p>
                   </>
@@ -690,10 +723,10 @@ export function PricingPlansSection({
                       className={[
                         'w-full rounded-xl px-4 py-3 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-75',
                         current
-                          ? 'bg-emerald-500/20 text-emerald-300'
+                          ? 'bg-whatsapp/15 text-whatsapp'
                           : recommended
-                          ? 'bg-primary text-black hover:bg-orange-500'
-                          : 'bg-white text-black hover:bg-gray-200',
+                          ? 'bg-brand text-on-brand hover:opacity-90'
+                          : 'border border-line bg-bg text-ink hover:bg-surface-2',
                       ].join(' ')}
                     >
                       {cardBusy ? 'Redirecionando...' : current ? 'Plano atual' : 'Assinar com Cartão'}
@@ -706,14 +739,14 @@ export function PricingPlansSection({
                       className={[
                         'w-full rounded-xl border px-4 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-75',
                         current
-                          ? 'border-emerald-300/40 bg-emerald-500/10 text-emerald-200'
-                          : 'border-cyan-300/40 bg-cyan-500/10 text-cyan-100 hover:bg-cyan-500/20',
+                          ? 'border-whatsapp/40 bg-whatsapp/10 text-whatsapp'
+                          : 'border-status-confirmed/40 bg-status-confirmed/10 text-status-confirmed hover:bg-status-confirmed/20',
                       ].join(' ')}
                     >
                       {pixBusy ? 'Gerando Pix...' : current ? 'Plano atual' : 'Pagar com Pix'}
                     </button>
 
-                    <p className="text-center text-[11px] text-gray-500">
+                    <p className="text-center text-[11px] text-muted">
                       Cartão abre checkout Stripe. Pix gera QR Code na tela para pagamento imediato.
                     </p>
                   </>

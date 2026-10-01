@@ -29,7 +29,7 @@ vi.mock('../services/cronService.js', () => ({
 
 // Mock financeService dependencies
 const mockDashboardRepo = {
-  getByBarbershop: vi.fn(),
+  getByBusiness: vi.fn(),
 };
 
 vi.mock('../repositories/dashboardRepository.js', () => ({
@@ -63,7 +63,7 @@ vi.mock('../repositories/authRepository.js', () => ({
 
 const mockBillingContext = vi.hoisted(() => ({
   current: {
-    barbershop_id: 'bbshop-uuid',
+    business_id: 'bbshop-uuid',
     subscription_status: 'active' as string,
     plan: 'profissional' as string,
     payment_method: 'card',
@@ -74,7 +74,7 @@ const mockBillingContext = vi.hoisted(() => ({
 
 vi.mock('../repositories/subscriptionRepository.js', () => ({
   subscriptionRepository: {
-    getBarbershopBillingContext: vi.fn(async () => ({ ...mockBillingContext.current })),
+    getBusinessBillingContext: vi.fn(async () => ({ ...mockBillingContext.current })),
   },
 }));
 
@@ -112,7 +112,7 @@ const createAuthHeader = ({
   const authToken = jwt.sign(
     {
       userId: 'user-uuid',
-      barbershopId: 'bbshop-uuid',
+      businessId: 'bbshop-uuid',
       email: 'test@test.com',
       plan,
       role: 'admin',

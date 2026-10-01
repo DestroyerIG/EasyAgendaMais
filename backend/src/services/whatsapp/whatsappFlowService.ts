@@ -47,14 +47,14 @@ import {
   handleSendRating,
 } from './whatsappBookingService.js';
 import {
-  getBarbershopBusinessSettings,
+  getBusinessScheduleSettings,
   isWithinBusinessHours,
   isBusinessOpenOnDate,
   generateAvailableTimeSlots,
   formatBusinessHoursRange,
-} from '../barbershopBusinessSettingsService.js';
+} from '../scheduleSettingsService.js';
 import { appointmentService } from '../appointmentService.js';
-import { barbershopSettingsRepository } from '../../repositories/barbershopSettingsRepository.js';
+import { businessSettingsRepository } from '../../repositories/businessSettingsRepository.js';
 
 // ==================== LOCAL INTERFACES ====================
 
@@ -65,14 +65,14 @@ interface ServiceRow {
   duration_minutes: number;
 }
 
-interface BarberRow {
+interface ProfessionalRow {
   id: string;
   name: string;
 }
 
 interface MenuOptionRow {
   id: string;
-  barbershop_id: string;
+  business_id: string;
   option_order: number;
   label: string;
   emoji: string;
@@ -108,8 +108,8 @@ interface ResolveIncomingMessageResult {
 }
 
 interface HandleIncomingMessageOptions {
-  barbershopId?: string;
-  barbershopContextSource?: string;
+  businessId?: string;
+  businessContextSource?: string;
   simulationMode?: boolean;
   eventName?: string;
   messageId?: string;
@@ -373,7 +373,7 @@ const mergeKnownInstanceNumbers = (values: (string | null | undefined)[] = []): 
 };
 
 const SESSION_LOOKUP_WINDOW_MS_DEFAULT = 30 * 60 * 1000;
-const INSTANCE_BARBERSHOP_MAP_ENV_KEY = 'WHATSAPP_INSTANCE_BARBERSHOP_MAP';
+const INSTANCE_BUSINESS_MAP_ENV_KEY = 'WHATSAPP_INSTANCE_BUSINESS_MAP';
 
 const normalizeFlowInstanceName = (value: unknown): string | null => {
   if (typeof value !== 'string') {
@@ -444,10 +444,10 @@ const extractWebhookInstanceName = (payload: Record<string, unknown> = {}): stri
   return null;
 };
 
-let instanceBarbershopMapCacheRaw: string | null = null;
-let instanceBarbershopMapCache: Map<string, string> = new Map();
+let instanceBusinessMapCacheRaw: string | null = null;
+let instanceBusinessMapCache: Map<string, string> = new Map();
 
-const normalizeFlowBarbershopId = (value: unknown): string | null => {
+const normalizeFlowBusinessId = (value: unknown): string | null => {
   if (typeof value !== 'string') {
     return null;
   }
@@ -456,14 +456,14 @@ const normalizeFlowBarbershopId = (value: unknown): string | null => {
   return normalized || null;
 };
 
-const readInstanceBarbershopMapFromEnv = (): Map<string, string> => {
-  const raw = String(process.env[INSTANCE_BARBERSHOP_MAP_ENV_KEY] || '').trim();
+const readInstanceBusinessMapFromEnv = (): Map<string, string> => {
+  const raw = String(process.env[INSTANCE_BUSINESS_MAP_ENV_KEY] || '').trim();
   const defaultInstanceName = normalizeFlowInstanceName(process.env.EVOLUTION_INSTANCE_NAME);
-  const defaultBarbershopId = normalizeFlowBarbershopId(process.env.WHATSAPP_DEFAULT_BARBERSHOP_ID);
-  const cacheKey = `${raw}::${defaultInstanceName || ''}::${defaultBarbershopId || ''}`;
+  const defaultBusinessId = normalizeFlowBusinessId(process.env.WHATSAPP_DEFAULT_BUSINESS_ID);
+  const cacheKey = `${raw}::${defaultInstanceName || ''}::${defaultBusinessId || ''}`;
 
-  if (cacheKey === instanceBarbershopMapCacheRaw) {
-    return instanceBarbershopMapCache;
+  if (cacheKey === instanceBusinessMapCacheRaw) {
+    return instanceBusinessMapCache;
   }
 
   const resolved = new Map<string, string>();
@@ -474,12 +474,12 @@ const readInstanceBarbershopMapFromEnv = (): Map<string, string> => {
         const parsed = JSON.parse(raw) as unknown;
 
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-          for (const [instanceName, barbershopId] of Object.entries(parsed as Record<string, unknown>)) {
+          for (const [instanceName, businessId] of Object.entries(parsed as Record<string, unknown>)) {
             const normalizedInstanceName = normalizeFlowInstanceName(instanceName);
-            const normalizedBarbershopId = normalizeFlowBarbershopId(barbershopId);
+            const normalizedBusinessId = normalizeFlowBusinessId(businessId);
 
-            if (normalizedInstanceName && normalizedBarbershopId) {
-              resolved.set(normalizedInstanceName, normalizedBarbershopId);
+            if (normalizedInstanceName && normalizedBusinessId) {
+              resolved.set(normalizedInstanceName, normalizedBusinessId);
             }
           }
         }
@@ -487,9 +487,9 @@ const readInstanceBarbershopMapFromEnv = (): Map<string, string> => {
         logger.warn(
           {
             err: error,
-            envKey: INSTANCE_BARBERSHOP_MAP_ENV_KEY,
+            envKey: INSTANCE_BUSINESS_MAP_ENV_KEY,
           },
-          'Falha ao interpretar mapa de instancia->barbershop (JSON)'
+          'Falha ao interpretar mapa de instancia->business (JSON)'
         );
       }
     } else {
@@ -505,44 +505,44 @@ const readInstanceBarbershopMapFromEnv = (): Map<string, string> => {
           continue;
         }
 
-        const [instanceName, barbershopId] = token.split(separator, 2);
+        const [instanceName, businessId] = token.split(separator, 2);
         const normalizedInstanceName = normalizeFlowInstanceName(instanceName);
-        const normalizedBarbershopId = normalizeFlowBarbershopId(barbershopId);
+        const normalizedBusinessId = normalizeFlowBusinessId(businessId);
 
-        if (normalizedInstanceName && normalizedBarbershopId) {
-          resolved.set(normalizedInstanceName, normalizedBarbershopId);
+        if (normalizedInstanceName && normalizedBusinessId) {
+          resolved.set(normalizedInstanceName, normalizedBusinessId);
         }
       }
     }
   }
 
-  if (defaultInstanceName && defaultBarbershopId && !resolved.has(defaultInstanceName)) {
-    resolved.set(defaultInstanceName, defaultBarbershopId);
+  if (defaultInstanceName && defaultBusinessId && !resolved.has(defaultInstanceName)) {
+    resolved.set(defaultInstanceName, defaultBusinessId);
   }
 
-  instanceBarbershopMapCacheRaw = cacheKey;
-  instanceBarbershopMapCache = resolved;
+  instanceBusinessMapCacheRaw = cacheKey;
+  instanceBusinessMapCache = resolved;
 
   return resolved;
 };
 
-const resolveBarbershopFromInstanceName = (instanceName: string | null): string | null => {
+const resolveBusinessFromInstanceName = (instanceName: string | null): string | null => {
   const normalizedInstanceName = normalizeFlowInstanceName(instanceName);
 
   if (!normalizedInstanceName) {
     return null;
   }
 
-  return readInstanceBarbershopMapFromEnv().get(normalizedInstanceName) ?? null;
+  return readInstanceBusinessMapFromEnv().get(normalizedInstanceName) ?? null;
 };
 
-interface BarbershopFromInstance {
-  barbershopId: string;
+interface BusinessFromInstance {
+  businessId: string;
   instanceName: string;
   source: string;
 }
 
-const resolveBarbershopFromInstanceNameInDatabase = async (instanceName: string | null): Promise<BarbershopFromInstance | null> => {
+const resolveBusinessFromInstanceNameInDatabase = async (instanceName: string | null): Promise<BusinessFromInstance | null> => {
   const normalizedInstanceName = normalizeFlowInstanceName(instanceName);
 
   if (!normalizedInstanceName) {
@@ -550,10 +550,10 @@ const resolveBarbershopFromInstanceNameInDatabase = async (instanceName: string 
   }
 
   try {
-    const barbershop = await barbershopSettingsRepository.findByWhatsAppInstanceName(normalizedInstanceName);
+    const business = await businessSettingsRepository.findByWhatsAppInstanceName(normalizedInstanceName);
 
-    if (!(barbershop as { id?: string })?.id) {
-      const diagnostics = await barbershopSettingsRepository.findWhatsAppInstanceNameDiagnostics(
+    if (!(business as { id?: string })?.id) {
+      const diagnostics = await businessSettingsRepository.findWhatsAppInstanceNameDiagnostics(
         normalizedInstanceName
       ) as Array<{ id: string; name: string; active: boolean; whatsapp?: string; whatsappInstanceName?: string }>;
 
@@ -564,32 +564,32 @@ const resolveBarbershopFromInstanceNameInDatabase = async (instanceName: string 
           lookupMatches: diagnostics.length,
           activeMatches: diagnostics.filter((item) => item.active === true).length,
           matches: diagnostics.map((item) => ({
-            barbershopId: item.id,
+            businessId: item.id,
             name: item.name,
             active: item.active,
             whatsapp: item.whatsapp || null,
             whatsappInstanceName: item.whatsappInstanceName,
           })),
         },
-        'Lookup de instanceName no banco nao encontrou barbearia ativa vinculada'
+        'Lookup de instanceName no banco nao encontrou negocio ativo vinculado'
       );
       return null;
     }
 
-    const bs = barbershop as { id: string; whatsappInstanceName?: string };
+    const bs = business as { id: string; whatsappInstanceName?: string };
 
     logger.info(
       {
         instanceName: normalizedInstanceName,
         lookupFound: true,
-        barbershopId: bs.id,
+        businessId: bs.id,
         whatsappInstanceName: bs.whatsappInstanceName,
       },
-      'Lookup de instanceName no banco resolveu barbearia'
+      'Lookup de instanceName no banco resolveu negocio'
     );
 
     return {
-      barbershopId: bs.id,
+      businessId: bs.id,
       instanceName: normalizedInstanceName,
       source: 'instance_db',
     };
@@ -599,7 +599,7 @@ const resolveBarbershopFromInstanceNameInDatabase = async (instanceName: string 
         err: error,
         instanceName: normalizedInstanceName,
       },
-      'Falha ao resolver barbershop por instanceName no banco'
+      'Falha ao resolver business por instanceName no banco'
     );
     return null;
   }
@@ -629,12 +629,12 @@ const buildLookupNumbers = (values: (string | null | undefined)[] = []): string[
   return Array.from(normalized);
 };
 
-interface BarbershopFromNumbers {
-  barbershopId: string;
+interface BusinessFromNumbers {
+  businessId: string;
   matchedNumber: string | null;
 }
 
-const resolveBarbershopFromKnownNumbers = async (values: string[] = []): Promise<BarbershopFromNumbers | null> => {
+const resolveBusinessFromKnownNumbers = async (values: string[] = []): Promise<BusinessFromNumbers | null> => {
   const lookupNumbers = buildLookupNumbers(values);
 
   if (!lookupNumbers.length) {
@@ -646,7 +646,7 @@ const resolveBarbershopFromKnownNumbers = async (values: string[] = []): Promise
       Prisma.sql`
         SELECT id,
                regexp_replace(COALESCE(whatsapp,''),'\D','','g') AS whatsapp_digits
-          FROM barbershops
+          FROM businesses
          WHERE regexp_replace(COALESCE(whatsapp,''),'\D','','g') = ANY(${lookupNumbers}::text[])
          ORDER BY created_at ASC NULLS LAST, id ASC
          LIMIT 3
@@ -662,18 +662,18 @@ const resolveBarbershopFromKnownNumbers = async (values: string[] = []): Promise
         {
           lookupNumbers,
           matches: rows.map((row) => ({
-            barbershopId: row.id,
+            businessId: row.id,
             whatsappDigits: row.whatsapp_digits,
           })),
         },
-        'Resolucao de barbershop por numero da instancia ambigua; aguardando mapeamento explicito'
+        'Resolucao de business por numero da instancia ambigua; aguardando mapeamento explicito'
       );
       return null;
     }
 
     const firstRow = rows[0];
     return {
-      barbershopId: firstRow!.id,
+      businessId: firstRow!.id,
       matchedNumber: firstRow!.whatsapp_digits || null,
     };
   } catch (error) {
@@ -682,7 +682,7 @@ const resolveBarbershopFromKnownNumbers = async (values: string[] = []): Promise
         err: error,
         lookupNumbers,
       },
-      'Falha ao resolver barbershop por numeros conhecidos da instancia'
+      'Falha ao resolver business por numeros conhecidos da instancia'
     );
     return null;
   }
@@ -701,7 +701,7 @@ const resolveSessionLookupWindowMs = (): number => {
   return Math.max(parsed, 5 * 60 * 1000);
 };
 
-const resolveBarbershopFromSessionContext = async (phone: unknown): Promise<string | null> => {
+const resolveBusinessFromSessionContext = async (phone: unknown): Promise<string | null> => {
   const normalizedPhone = normalizeWhatsAppNumber(phone);
 
   if (!normalizedPhone) {
@@ -711,14 +711,14 @@ const resolveBarbershopFromSessionContext = async (phone: unknown): Promise<stri
   const lookupWindowMs = resolveSessionLookupWindowMs();
 
   try {
-    const rows = await prisma.$queryRaw<Array<{ barbershop_id: string; last_updated_at: Date }>>(
+    const rows = await prisma.$queryRaw<Array<{ business_id: string; last_updated_at: Date }>>(
       Prisma.sql`
-        SELECT barbershop_id,
+        SELECT business_id,
                MAX(updated_at) AS last_updated_at
           FROM whatsapp_sessions
          WHERE phone = ${normalizedPhone}
            AND updated_at >= NOW() - (${lookupWindowMs}::bigint * INTERVAL '1 millisecond')
-         GROUP BY barbershop_id
+         GROUP BY business_id
          ORDER BY last_updated_at DESC
          LIMIT 2
       `
@@ -733,14 +733,14 @@ const resolveBarbershopFromSessionContext = async (phone: unknown): Promise<stri
         {
           phone: normalizedPhone,
           lookupWindowMs,
-          matches: rows.map((row) => row.barbershop_id),
+          matches: rows.map((row) => row.business_id),
         },
-        'Contexto de sessao WhatsApp ambiguo para resolver barbershop'
+        'Contexto de sessao WhatsApp ambiguo para resolver business'
       );
       return null;
     }
 
-    return rows[0]?.barbershop_id || null;
+    return rows[0]?.business_id || null;
   } catch (error) {
     logger.warn(
       {
@@ -748,7 +748,7 @@ const resolveBarbershopFromSessionContext = async (phone: unknown): Promise<stri
         phone: normalizedPhone,
         lookupWindowMs,
       },
-      'Falha ao resolver barbershop pelo contexto de sessao WhatsApp'
+      'Falha ao resolver business pelo contexto de sessao WhatsApp'
     );
     return null;
   }
@@ -811,52 +811,52 @@ const formatDateBR = (dateStr: string, options: Intl.DateTimeFormatOptions = {})
   return new Date(year ?? 0, (month ?? 1) - 1, day ?? 1).toLocaleDateString('pt-BR', options);
 };
 
-// ==================== RESOLUÇÃO DE BARBERSHOP ====================
+// ==================== RESOLUÇÃO DE BUSINESS ====================
 
-const resolveFlowBarbershopId = async (options: HandleIncomingMessageOptions = {}): Promise<string | null> => {
-  const explicitBarbershopId = normalizeFlowBarbershopId(options?.barbershopId);
+const resolveFlowBusinessId = async (options: HandleIncomingMessageOptions = {}): Promise<string | null> => {
+  const explicitBusinessId = normalizeFlowBusinessId(options?.businessId);
 
-  if (explicitBarbershopId) {
+  if (explicitBusinessId) {
     logger.info(
       {
-        barbershopId: explicitBarbershopId,
+        businessId: explicitBusinessId,
         source: options?.source || 'explicit',
         simulationMode: Boolean(options?.simulationMode),
       },
-      'Barbershop resolvido por contexto explicito no fluxo WhatsApp'
+      'Business resolvido por contexto explicito no fluxo WhatsApp'
     );
 
-    return explicitBarbershopId;
+    return explicitBusinessId;
   }
 
   const instanceName = normalizeFlowInstanceName(options?.instanceName);
-  const barbershopFromInstanceDb = await resolveBarbershopFromInstanceNameInDatabase(instanceName);
+  const businessFromInstanceDb = await resolveBusinessFromInstanceNameInDatabase(instanceName);
 
-  if (barbershopFromInstanceDb?.barbershopId) {
+  if (businessFromInstanceDb?.businessId) {
     logger.info(
       {
-        barbershopId: barbershopFromInstanceDb.barbershopId,
+        businessId: businessFromInstanceDb.businessId,
         instanceName,
         source: 'instance_db',
       },
-      'Barbershop resolvido por mapeamento de instancia no banco'
+      'Business resolvido por mapeamento de instancia no banco'
     );
-    return barbershopFromInstanceDb.barbershopId;
+    return businessFromInstanceDb.businessId;
   }
 
-  const barbershopFromInstanceMap = resolveBarbershopFromInstanceName(instanceName);
+  const businessFromInstanceMap = resolveBusinessFromInstanceName(instanceName);
 
-  if (barbershopFromInstanceMap) {
+  if (businessFromInstanceMap) {
     logger.info(
       {
-        barbershopId: barbershopFromInstanceMap,
+        businessId: businessFromInstanceMap,
         instanceName,
         source: 'instance_map_legacy_env',
         deprecated: true,
       },
-      'Barbershop resolvido por mapeamento legado de instancia (.env deprecated)'
+      'Business resolvido por mapeamento legado de instancia (.env deprecated)'
     );
-    return barbershopFromInstanceMap;
+    return businessFromInstanceMap;
   }
 
   if (instanceName) {
@@ -864,11 +864,11 @@ const resolveFlowBarbershopId = async (options: HandleIncomingMessageOptions = {
       {
         instanceName,
         source: 'instance_db',
-        hasLegacyEnvMap: readInstanceBarbershopMapFromEnv().size > 0,
+        hasLegacyEnvMap: readInstanceBusinessMapFromEnv().size > 0,
         legacyEnvFallbackTried: false,
-        finalBarbershopId: null,
+        finalBusinessId: null,
       },
-      'Falha ao resolver barbershop por instanceName (fail closed)'
+      'Falha ao resolver business por instanceName (fail closed)'
     );
     return null;
   }
@@ -879,36 +879,36 @@ const resolveFlowBarbershopId = async (options: HandleIncomingMessageOptions = {
     ...(Array.isArray(options?.knownInstanceNumbers) ? options.knownInstanceNumbers : []),
   ]);
 
-  const barbershopFromKnownNumbers = await resolveBarbershopFromKnownNumbers(knownInstanceNumbers);
+  const businessFromKnownNumbers = await resolveBusinessFromKnownNumbers(knownInstanceNumbers);
 
-  if (barbershopFromKnownNumbers?.barbershopId) {
+  if (businessFromKnownNumbers?.businessId) {
     logger.info(
       {
-        barbershopId: barbershopFromKnownNumbers.barbershopId,
-        matchedNumber: barbershopFromKnownNumbers.matchedNumber,
+        businessId: businessFromKnownNumbers.businessId,
+        matchedNumber: businessFromKnownNumbers.matchedNumber,
         knownInstanceNumbers,
         source: 'instance_numbers',
       },
-      'Barbershop resolvido por numero conhecido da instancia'
+      'Business resolvido por numero conhecido da instancia'
     );
-    return barbershopFromKnownNumbers.barbershopId;
+    return businessFromKnownNumbers.businessId;
   }
 
-  const barbershopFromSession = await resolveBarbershopFromSessionContext(options?.phone);
+  const businessFromSession = await resolveBusinessFromSessionContext(options?.phone);
 
-  if (barbershopFromSession) {
+  if (businessFromSession) {
     logger.info(
       {
-        barbershopId: barbershopFromSession,
+        businessId: businessFromSession,
         phone: normalizeWhatsAppNumber(options?.phone),
         source: 'session_context',
       },
-      'Barbershop resolvido por contexto de sessao ativa'
+      'Business resolvido por contexto de sessao ativa'
     );
-    return barbershopFromSession;
+    return businessFromSession;
   }
 
-  const configuredId = process.env.WHATSAPP_DEFAULT_BARBERSHOP_ID?.trim() || null;
+  const configuredId = process.env.WHATSAPP_DEFAULT_BUSINESS_ID?.trim() || null;
   if (configuredId) return configuredId;
 
   logger.warn(
@@ -917,10 +917,10 @@ const resolveFlowBarbershopId = async (options: HandleIncomingMessageOptions = {
       knownInstanceNumbers,
       phone: normalizeWhatsAppNumber(options?.phone),
       connectedNumber,
-      hasDefaultBarbershopId: Boolean(configuredId),
-      hasInstanceMapConfig: readInstanceBarbershopMapFromEnv().size > 0,
+      hasDefaultBusinessId: Boolean(configuredId),
+      hasInstanceMapConfig: readInstanceBusinessMapFromEnv().size > 0,
     },
-    'Falha ao resolver barbershop de forma segura; fallback automatico desativado'
+    'Falha ao resolver business de forma segura; fallback automatico desativado'
   );
 
   return null;
@@ -928,24 +928,28 @@ const resolveFlowBarbershopId = async (options: HandleIncomingMessageOptions = {
 
 // ==================== CONSTRUÇÃO DO MENU ====================
 
-const getBarbershopName = async (barbershopId: string): Promise<string> => {
-  if (!barbershopId) return 'EasyBarber';
+// Usado quando o nome do negócio não está disponível. Nunca a marca da
+// plataforma: o bot fala em nome do próprio negócio.
+const BUSINESS_NAME_FALLBACK = 'nossa equipe';
+
+const getBusinessName = async (businessId: string): Promise<string> => {
+  if (!businessId) return BUSINESS_NAME_FALLBACK;
   try {
-    const barbershop = await prisma.barbershop.findFirst({
-      where: { id: barbershopId },
+    const business = await prisma.business.findFirst({
+      where: { id: businessId },
       select: { name: true },
     });
-    return barbershop?.name || 'EasyBarber';
+    return business?.name || BUSINESS_NAME_FALLBACK;
   } catch {
-    return 'EasyBarber';
+    return BUSINESS_NAME_FALLBACK;
   }
 };
 
-const buildFallbackWelcomeMessage = (barbershopName: string): string => [
-  `Olá 👋 Bem-vindo à *${barbershopName}*!`, '',
-  'Me chame de *EasyBarber Bot* 🤖 e estou aqui para agilizar seu atendimento.', '',
+const buildFallbackWelcomeMessage = (businessName: string): string => [
+  'Olá 👋 Bem-vindo!', '',
+  `Sou o assistente virtual de *${businessName}* 🤖 e estou aqui para agilizar seu atendimento.`, '',
   'Como posso ajudar hoje?', '',
-  '1️⃣ *Agendar um horário* 💈',
+  '1️⃣ *Agendar um horário* 📅',
   '2️⃣ *Ver nossos serviços* 📋',
   '3️⃣ *Cancelar agendamento* ❌',
   '4️⃣ *Reagendamento* 🔄',
@@ -956,17 +960,17 @@ const buildFallbackWelcomeMessage = (barbershopName: string): string => [
   '9️⃣ *Encerrar atendimento* 🚪',
 ].join('\n');
 
-const buildMenuMessage = async (barbershopId: string): Promise<string> => {
-  const [config, options, barbershopName] = await Promise.all([
-    getBotConfig(barbershopId),
-    getMenuOptions(barbershopId),
-    getBarbershopName(barbershopId),
+const buildMenuMessage = async (businessId: string): Promise<string> => {
+  const [config, options, businessName] = await Promise.all([
+    getBotConfig(businessId),
+    getMenuOptions(businessId),
+    getBusinessName(businessId),
   ]);
-  if (!options?.length) return buildFallbackWelcomeMessage(barbershopName);
+  if (!options?.length) return buildFallbackWelcomeMessage(businessName);
   return buildWelcomeMessage(
-    config?.welcome_header || 'Olá 👋 Bem-vindo à {nome_barbearia}!\n\nComo posso ajudar hoje?',
+    config?.welcome_header || 'Olá 👋 Bem-vindo!\n\nSou o assistente virtual de {nome_negocio}.\n\nComo posso ajudar hoje?',
     (options as MenuOptionRow[]).map((item) => ({ label: item.label, emoji: item.emoji })),
-    barbershopName
+    businessName
   );
 };
 
@@ -985,15 +989,15 @@ const buildBusinessContextMessage = (businessSettings: BusinessSettings): string
   return message;
 };
 
-const buildContextualMenuMessage = async (barbershopId: string, businessSettings: BusinessSettings): Promise<string> => {
-  const menuMessage = await buildMenuMessage(barbershopId);
+const buildContextualMenuMessage = async (businessId: string, businessSettings: BusinessSettings): Promise<string> => {
+  const menuMessage = await buildMenuMessage(businessId);
   return `${buildBusinessContextMessage(businessSettings)}\n\n${menuMessage}`;
 };
 
-export const goBackToMainMenu = async (phone: string, barbershopId: string): Promise<{ message: string }> => {
-  await deleteSession(phone, barbershopId);
-  await createSession(phone, barbershopId);
-  return { message: await buildMenuMessage(barbershopId) };
+export const goBackToMainMenu = async (phone: string, businessId: string): Promise<{ message: string }> => {
+  await deleteSession(phone, businessId);
+  await createSession(phone, businessId);
+  return { message: await buildMenuMessage(businessId) };
 };
 
 const logGreetingEvaluation = (
@@ -1022,14 +1026,14 @@ const logGreetingEvaluation = (
 const handleMenuStep = async (
   phone: string,
   text: string,
-  barbershopId: string,
+  businessId: string,
   config: BotConfig,
   sendContext: SendWhatsAppMessageContext
 ): Promise<{ ok: boolean }> => {
   const choice = normalizeChoice(text);
 
   if (!choice) {
-    await sendWhatsAppMessage(phone, config.invalid_option_message + '\n\n' + await buildMenuMessage(barbershopId), sendContext);
+    await sendWhatsAppMessage(phone, config.invalid_option_message + '\n\n' + await buildMenuMessage(businessId), sendContext);
     return { ok: true };
   }
 
@@ -1037,50 +1041,50 @@ const handleMenuStep = async (
     Prisma.sql`
       SELECT * FROM whatsapp_menu_options
        WHERE active = true
-         AND barbershop_id = ${barbershopId}::uuid
+         AND business_id = ${businessId}::uuid
          AND option_order = ${choice}
        LIMIT 1
     `
   );
 
   if (!options.length) {
-    await sendWhatsAppMessage(phone, config.invalid_option_message + '\n\n' + await buildMenuMessage(barbershopId), sendContext);
+    await sendWhatsAppMessage(phone, config.invalid_option_message + '\n\n' + await buildMenuMessage(businessId), sendContext);
     return { ok: true };
   }
 
   const option = options[0];
   if (!option) {
-    await sendWhatsAppMessage(phone, config.invalid_option_message + '\n\n' + await buildMenuMessage(barbershopId), sendContext);
+    await sendWhatsAppMessage(phone, config.invalid_option_message + '\n\n' + await buildMenuMessage(businessId), sendContext);
     return { ok: true };
   }
 
   if (option.type === 'custom' && option.response_message) {
     await sendWhatsAppMessage(phone, option.response_message, sendContext);
-    await deleteSession(phone, barbershopId);
+    await deleteSession(phone, businessId);
     return { ok: true };
   }
 
   switch (option.handler) {
     case 'schedule': {
       const client = await prisma.client.findFirst({
-        where: { phone, barbershopId },
+        where: { phone, businessId },
         select: { id: true, name: true },
       });
 
       if (client) {
         const services = await prisma.service.findMany({
-          where: { barbershopId, active: true },
+          where: { businessId, active: true },
           select: { id: true, name: true, price: true, durationMinutes: true },
           orderBy: { name: 'asc' },
         });
 
         if (!services.length) {
           await sendWhatsAppMessage(phone, 'Desculpe, não há serviços disponíveis no momento.', sendContext);
-          await deleteSession(phone, barbershopId);
+          await deleteSession(phone, businessId);
           return { ok: true };
         }
 
-        let msg = '💈 *Escolha o serviço:*\n\n';
+        let msg = '📋 *Escolha o serviço:*\n\n';
         services.forEach((s, i) => {
           msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)\n`;
         });
@@ -1089,7 +1093,7 @@ const handleMenuStep = async (
         /**
          * FIX Bug 4 — um único updateSession com todos os dados necessários.
          */
-        await updateSession(phone, barbershopId, STEPS.CHOOSE_SERVICE, {
+        await updateSession(phone, businessId, STEPS.CHOOSE_SERVICE, {
           clientId: client.id,
           clientName: client.name,
           services: services.map((s) => ({
@@ -1101,7 +1105,7 @@ const handleMenuStep = async (
         });
         await sendWhatsAppMessage(phone, msg, sendContext);
       } else {
-        await updateSession(phone, barbershopId, STEPS.ASK_NAME, {});
+        await updateSession(phone, businessId, STEPS.ASK_NAME, {});
         await sendWhatsAppMessage(phone, config.ask_name_message, sendContext);
       }
       return { ok: true };
@@ -1109,66 +1113,66 @@ const handleMenuStep = async (
 
     case 'view_services': {
       const services = await prisma.service.findMany({
-        where: { barbershopId, active: true },
+        where: { businessId, active: true },
         select: { name: true, price: true, durationMinutes: true },
         orderBy: { name: 'asc' },
       });
       const msg = services.length
         ? '📋 *Nossos serviços:*\n\n' + services.map((s) =>
-            `💈 *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)`
+            `✨ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)`
           ).join('\n')
         : 'Não há serviços cadastrados no momento.';
       await sendWhatsAppMessage(phone, msg, sendContext);
-      await deleteSession(phone, barbershopId);
+      await deleteSession(phone, businessId);
       return { ok: true };
     }
 
     case 'cancel': {
-      const result = await handleCancelAppointment(phone, barbershopId, config);
+      const result = await handleCancelAppointment(phone, businessId, config);
       await sendWhatsAppMessage(phone, result.message, sendContext);
       return { ok: true };
     }
 
     case 'reschedule': {
-      const result = await handleRescheduleAppointment(phone, barbershopId, config);
+      const result = await handleRescheduleAppointment(phone, businessId, config);
       await sendWhatsAppMessage(phone, result.message, sendContext);
       return { ok: true };
     }
 
     case 'rating': {
-      const result = await handlePostAttendanceEvaluation(phone, barbershopId, config);
+      const result = await handlePostAttendanceEvaluation(phone, businessId, config);
       await sendWhatsAppMessage(phone, result.message, sendContext);
       return { ok: true };
     }
 
     case 'promotions':
       await sendWhatsAppMessage(phone, config.promotions_message, sendContext);
-      await deleteSession(phone, barbershopId);
+      await deleteSession(phone, businessId);
       return { ok: true };
 
     case 'instagram': {
-      const barbershop = await prisma.barbershop.findFirst({
-        where: { id: barbershopId },
+      const business = await prisma.business.findFirst({
+        where: { id: businessId },
         select: { instagramHandle: true },
       });
-      const handle = barbershop?.instagramHandle || '@suabarbearia';
+      const handle = business?.instagramHandle || '@seunegocio';
       await sendWhatsAppMessage(phone, config.instagram_message.replace('{instagram_handle}', handle), sendContext);
-      await deleteSession(phone, barbershopId);
+      await deleteSession(phone, businessId);
       return { ok: true };
     }
 
     case 'attendant':
       await sendWhatsAppMessage(phone, config.attendant_message, sendContext);
-      await deleteSession(phone, barbershopId);
+      await deleteSession(phone, businessId);
       return { ok: true };
 
     case 'end_session':
       await sendWhatsAppMessage(phone, config.end_session_message, sendContext);
-      await deleteSession(phone, barbershopId);
+      await deleteSession(phone, businessId);
       return { ok: true };
 
     default: {
-      await sendWhatsAppMessage(phone, config.invalid_option_message + '\n\n' + await buildMenuMessage(barbershopId), sendContext);
+      await sendWhatsAppMessage(phone, config.invalid_option_message + '\n\n' + await buildMenuMessage(businessId), sendContext);
       return { ok: true };
     }
   }
@@ -1177,12 +1181,12 @@ const handleMenuStep = async (
 const handleAskNameStep = async (
   phone: string,
   text: string,
-  barbershopId: string,
+  businessId: string,
   config: BotConfig,
   sendContext: SendWhatsAppMessageContext
 ): Promise<{ ok: boolean }> => {
   if (text === '0' || text.toLowerCase() === 'menu') {
-    const result = await goBackToMainMenu(phone, barbershopId);
+    const result = await goBackToMainMenu(phone, businessId);
     await sendWhatsAppMessage(phone, result.message, sendContext);
     return { ok: true };
   }
@@ -1194,7 +1198,7 @@ const handleAskNameStep = async (
   }
 
   const existing = await prisma.client.findFirst({
-    where: { phone, barbershopId },
+    where: { phone, businessId },
     select: { id: true },
   });
 
@@ -1207,31 +1211,31 @@ const handleAskNameStep = async (
     });
   } else {
     const nc = await prisma.client.create({
-      data: { barbershopId, name, phone },
+      data: { businessId, name, phone },
       select: { id: true },
     });
     clientId = nc.id;
   }
 
   const services = await prisma.service.findMany({
-    where: { barbershopId, active: true },
+    where: { businessId, active: true },
     select: { id: true, name: true, price: true, durationMinutes: true },
     orderBy: { name: 'asc' },
   });
 
   if (!services.length) {
     await sendWhatsAppMessage(phone, 'Desculpe, não há serviços disponíveis no momento.', sendContext);
-    await deleteSession(phone, barbershopId);
+    await deleteSession(phone, businessId);
     return { ok: true };
   }
 
-  let msg = `✅ Olá, *${name}*! Bem-vindo!\n\n💈 *Escolha o serviço:*\n\n`;
+  let msg = `✅ Olá, *${name}*! Bem-vindo!\n\n📋 *Escolha o serviço:*\n\n`;
   services.forEach((s, i) => {
     msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)\n`;
   });
   msg += '\n0️⃣ Voltar ao menu';
 
-  await updateSession(phone, barbershopId, STEPS.CHOOSE_SERVICE, {
+  await updateSession(phone, businessId, STEPS.CHOOSE_SERVICE, {
     clientId,
     clientName: name,
     services: services.map((s) => ({
@@ -1248,13 +1252,13 @@ const handleAskNameStep = async (
 const handleChooseServiceStep = async (
   phone: string,
   text: string,
-  barbershopId: string,
+  businessId: string,
   sessionData: Record<string, unknown>,
   config: BotConfig,
   sendContext: SendWhatsAppMessageContext
 ): Promise<{ ok: boolean }> => {
   if (text === '0' || text.toLowerCase() === 'menu') {
-    const r = await goBackToMainMenu(phone, barbershopId);
+    const r = await goBackToMainMenu(phone, businessId);
     await sendWhatsAppMessage(phone, r.message, sendContext);
     return { ok: true };
   }
@@ -1263,7 +1267,7 @@ const handleChooseServiceStep = async (
   const services = (sessionData.services as ServiceRow[]) || [];
 
   if (!choice || choice < 1 || choice > services.length) {
-    let msg = `${config.invalid_option_message}\n\n💈 *Escolha o serviço:*\n\n`;
+    let msg = `${config.invalid_option_message}\n\n📋 *Escolha o serviço:*\n\n`;
     services.forEach((s, i) => {
       msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.duration_minutes} min)\n`;
     });
@@ -1278,60 +1282,60 @@ const handleChooseServiceStep = async (
     return { ok: true };
   }
 
-  const barbers = await prisma.barber.findMany({
-    where: { barbershopId, active: true },
+  const professionals = await prisma.professional.findMany({
+    where: { businessId, active: true },
     select: { id: true, name: true },
     orderBy: { name: 'asc' },
   });
 
-  if (!barbers.length) {
-    await sendWhatsAppMessage(phone, 'Desculpe, não há barbeiros disponíveis no momento.', sendContext);
-    await deleteSession(phone, barbershopId);
+  if (!professionals.length) {
+    await sendWhatsAppMessage(phone, 'Desculpe, não há profissionais disponíveis no momento.', sendContext);
+    await deleteSession(phone, businessId);
     return { ok: true };
   }
 
-  await updateSession(phone, barbershopId, STEPS.CHOOSE_BARBER, {
+  await updateSession(phone, businessId, STEPS.CHOOSE_PROFESSIONAL, {
     ...sessionData,
     serviceId: sel.id,
     serviceName: sel.name,
     servicePrice: sel.price,
     serviceDuration: sel.duration_minutes,
-    barbers: barbers.map((b) => ({ id: b.id, name: b.name })),
+    professionals: professionals.map((b) => ({ id: b.id, name: b.name })),
   });
 
-  let msg = `✅ *${sel.name}* selecionado!\n\n👨‍🦱 *Escolha o barbeiro:*\n\n`;
-  barbers.forEach((b, i) => { msg += `${i + 1}️⃣ *${b.name}*\n`; });
+  let msg = `✅ *${sel.name}* selecionado!\n\n👤 *Escolha o profissional:*\n\n`;
+  professionals.forEach((b, i) => { msg += `${i + 1}️⃣ *${b.name}*\n`; });
   msg += '\n0️⃣ Voltar ao menu';
   await sendWhatsAppMessage(phone, msg, sendContext);
   return { ok: true };
 };
 
-const handleChooseBarberStep = async (
+const handleChooseProfessionalStep = async (
   phone: string,
   text: string,
-  barbershopId: string,
+  businessId: string,
   sessionData: Record<string, unknown>,
   config: BotConfig,
   sendContext: SendWhatsAppMessageContext
 ): Promise<{ ok: boolean }> => {
   if (text === '0' || text.toLowerCase() === 'menu') {
-    const r = await goBackToMainMenu(phone, barbershopId);
+    const r = await goBackToMainMenu(phone, businessId);
     await sendWhatsAppMessage(phone, r.message, sendContext);
     return { ok: true };
   }
 
   const choice = normalizeChoice(text);
-  const barbers = (sessionData.barbers as BarberRow[]) || [];
+  const professionals = (sessionData.professionals as ProfessionalRow[]) || [];
 
-  if (!choice || choice < 1 || choice > barbers.length) {
-    let msg = `${config.invalid_option_message}\n\n👨‍🦱 *Escolha o barbeiro:*\n\n`;
-    barbers.forEach((b, i) => { msg += `${i + 1}️⃣ *${b.name}*\n`; });
+  if (!choice || choice < 1 || choice > professionals.length) {
+    let msg = `${config.invalid_option_message}\n\n👤 *Escolha o profissional:*\n\n`;
+    professionals.forEach((b, i) => { msg += `${i + 1}️⃣ *${b.name}*\n`; });
     msg += '\n0️⃣ Voltar ao menu';
     await sendWhatsAppMessage(phone, msg, sendContext);
     return { ok: true };
   }
 
-  const sel = barbers[choice - 1];
+  const sel = professionals[choice - 1];
   if (!sel) {
     await sendWhatsAppMessage(phone, config.invalid_option_message, sendContext);
     return { ok: true };
@@ -1340,10 +1344,10 @@ const handleChooseBarberStep = async (
   // FIX Bug 5: generateNextDays usa fuso local
   const availableDates = generateNextDays(7);
 
-  await updateSession(phone, barbershopId, STEPS.CHOOSE_DATE, {
+  await updateSession(phone, businessId, STEPS.CHOOSE_DATE, {
     ...sessionData,
-    barberId: sel.id,
-    barberName: sel.name,
+    professionalId: sel.id,
+    professionalName: sel.name,
     availableDates,
   });
 
@@ -1360,7 +1364,7 @@ const handleChooseBarberStep = async (
 const handleChooseDateStep = async (
   phone: string,
   text: string,
-  barbershopId: string,
+  businessId: string,
   sessionData: Record<string, unknown>,
   config: BotConfig,
   sendContext: SendWhatsAppMessageContext,
@@ -1368,7 +1372,7 @@ const handleChooseDateStep = async (
   options: { now?: Date } = {}
 ): Promise<{ ok: boolean }> => {
   if (text === '0' || text.toLowerCase() === 'menu') {
-    const r = await goBackToMainMenu(phone, barbershopId);
+    const r = await goBackToMainMenu(phone, businessId);
     await sendWhatsAppMessage(phone, r.message, sendContext);
     return { ok: true };
   }
@@ -1397,13 +1401,13 @@ const handleChooseDateStep = async (
     return { ok: true };
   }
 
-  const barberId = sessionData.barberId as string;
+  const professionalId = sessionData.professionalId as string;
 
   const bookedRows = await prisma.$queryRaw<Array<{ time: string }>>(
     Prisma.sql`
       SELECT time FROM appointments
-       WHERE barbershop_id = ${barbershopId}::uuid
-         AND barber_id = ${barberId}::uuid
+       WHERE business_id = ${businessId}::uuid
+         AND professional_id = ${professionalId}::uuid
          AND date = ${selectedDate}::date
          AND status != 'cancelado'
     `
@@ -1430,7 +1434,7 @@ const handleChooseDateStep = async (
     return { ok: true };
   }
 
-  await updateSession(phone, barbershopId, STEPS.CHOOSE_TIME, {
+  await updateSession(phone, businessId, STEPS.CHOOSE_TIME, {
     ...sessionData,
     selectedDate,
     availableSlots,
@@ -1454,14 +1458,14 @@ const handleChooseDateStep = async (
 const handleChooseTimeStep = async (
   phone: string,
   text: string,
-  barbershopId: string,
+  businessId: string,
   sessionData: Record<string, unknown>,
   config: BotConfig,
   sendContext: SendWhatsAppMessageContext,
   businessSettings: BusinessSettings
 ): Promise<{ ok: boolean }> => {
   if (text === '0' || text.toLowerCase() === 'menu') {
-    const r = await goBackToMainMenu(phone, barbershopId);
+    const r = await goBackToMainMenu(phone, businessId);
     await sendWhatsAppMessage(phone, r.message, sendContext);
     return { ok: true };
   }
@@ -1483,13 +1487,13 @@ const handleChooseTimeStep = async (
     return { ok: true };
   }
   const selectedDate = sessionData.selectedDate as string;
-  const barberId = sessionData.barberId as string;
+  const professionalId = sessionData.professionalId as string;
 
   const conflictRows = await prisma.$queryRaw<Array<{ id: string }>>(
     Prisma.sql`
       SELECT id FROM appointments
-       WHERE barbershop_id = ${barbershopId}::uuid
-         AND barber_id = ${barberId}::uuid
+       WHERE business_id = ${businessId}::uuid
+         AND professional_id = ${professionalId}::uuid
          AND date = ${selectedDate}::date
          AND time = ${(selectedTime + ':00')}::time
          AND status != 'cancelado'
@@ -1502,8 +1506,8 @@ const handleChooseTimeStep = async (
     const bookedRows = await prisma.$queryRaw<Array<{ time: string }>>(
       Prisma.sql`
         SELECT time FROM appointments
-         WHERE barbershop_id = ${barbershopId}::uuid
-           AND barber_id = ${barberId}::uuid
+         WHERE business_id = ${businessId}::uuid
+           AND professional_id = ${professionalId}::uuid
            AND date = ${selectedDate}::date
            AND status != 'cancelado'
       `
@@ -1523,7 +1527,7 @@ const handleChooseTimeStep = async (
     /**
      * FIX Bug 6 — persiste newSlots na sessão ANTES de retornar.
      */
-    await updateSession(phone, barbershopId, STEPS.CHOOSE_TIME, {
+    await updateSession(phone, businessId, STEPS.CHOOSE_TIME, {
       ...sessionData,
       availableSlots: newSlots,
     });
@@ -1537,7 +1541,7 @@ const handleChooseTimeStep = async (
 
   const appointmentPayload = {
     clientId: sessionData.clientId as string,
-    barberId,
+    professionalId,
     serviceId: sessionData.serviceId as string,
     date: selectedDate,
     time: selectedTime,
@@ -1546,7 +1550,7 @@ const handleChooseTimeStep = async (
   logger.info(
     {
       phone,
-      barbershopId,
+      businessId,
       autoConfirmAppointments: businessSettings.autoConfirmAppointments,
     },
     'Iniciando criacao de agendamento via WhatsApp bot'
@@ -1555,7 +1559,7 @@ const handleChooseTimeStep = async (
   logger.debug(
     {
       phone,
-      barbershopId,
+      businessId,
       appointmentPayload,
     },
     'Payload consolidado para criacao de agendamento via WhatsApp bot'
@@ -1563,13 +1567,13 @@ const handleChooseTimeStep = async (
 
   let createdAppointment: { id: string; status: string };
   try {
-    createdAppointment = await appointmentService.create(barbershopId, appointmentPayload) as { id: string; status: string };
+    createdAppointment = await appointmentService.create(businessId, appointmentPayload) as { id: string; status: string };
   } catch (error) {
     logger.error(
       {
         err: error,
         phone,
-        barbershopId,
+        businessId,
         appointmentPayload,
       },
       'Falha ao persistir agendamento via WhatsApp bot'
@@ -1589,9 +1593,9 @@ const handleChooseTimeStep = async (
       appointmentId: createdAppointment.id,
       appointmentStatus: createdAppointment.status,
       phone,
-      barbershopId,
+      businessId,
       clientId: appointmentPayload.clientId,
-      barberId: appointmentPayload.barberId,
+      professionalId: appointmentPayload.professionalId,
       serviceId: appointmentPayload.serviceId,
     },
     'Agendamento persistido via WhatsApp bot'
@@ -1602,7 +1606,7 @@ const handleChooseTimeStep = async (
 
   const confirmationMsg = config.confirmation_message
     .replace('{servico}', (sessionData.serviceName as string) || '')
-    .replace('{barbeiro}', (sessionData.barberName as string) || '')
+    .replace('{profissional}', (sessionData.professionalName as string) || '')
     .replace('{data}', dateFormatted)
     .replace('{horario}', selectedTime)
     .replace('{valor}', Number(sessionData.servicePrice).toFixed(2));
@@ -1613,14 +1617,14 @@ const handleChooseTimeStep = async (
     {
       appointmentId: createdAppointment.id,
       phone,
-      barbershopId,
+      businessId,
       confirmationSent,
     },
     'Resultado do envio de confirmacao de agendamento via WhatsApp bot'
   );
 
   if (confirmationSent) {
-    await deleteSession(phone, barbershopId);
+    await deleteSession(phone, businessId);
   }
 
   return { ok: confirmationSent };
@@ -1999,14 +2003,14 @@ export const handleIncomingMessage = async (
       return { ok: false, ignored: true, reason: 'empty_text' };
     }
 
-    const explicitBarbershopId = normalizeFlowBarbershopId(options?.barbershopId);
-    const barbershopContextSource = explicitBarbershopId
-      ? String(options?.barbershopContextSource || 'explicit_option')
+    const explicitBusinessId = normalizeFlowBusinessId(options?.businessId);
+    const businessContextSource = explicitBusinessId
+      ? String(options?.businessContextSource || 'explicit_option')
       : null;
 
-    const barbershopId = await resolveFlowBarbershopId({
-      barbershopId: explicitBarbershopId ?? undefined,
-      source: barbershopContextSource ?? undefined,
+    const businessId = await resolveFlowBusinessId({
+      businessId: explicitBusinessId ?? undefined,
+      source: businessContextSource ?? undefined,
       simulationMode: Boolean(options?.simulationMode),
       connectedNumber: connectedNumber ?? undefined,
       knownInstanceNumbers,
@@ -2014,48 +2018,48 @@ export const handleIncomingMessage = async (
       instanceName: instanceName ?? undefined,
     });
 
-    if (!barbershopId) {
+    if (!businessId) {
       logger.warn(
         {
           ...flowDebugBase,
-          explicitBarbershopId,
-          barbershopContextSource,
+          explicitBusinessId,
+          businessContextSource,
           instanceName,
           knownInstanceNumbers,
         },
-        'Mensagem ignorada: barbershop nao resolvido'
+        'Mensagem ignorada: business nao resolvido'
       );
-      return { ok: false, ignored: true, reason: 'barbershop_not_resolved' };
+      return { ok: false, ignored: true, reason: 'business_not_resolved' };
     }
 
     // Carry the resolved tenant into the send context so the outbound layer
-    // (sendWhatsAppText) can pick the right provider/credentials per barbershop.
-    sendContext.barbershopId = barbershopId;
+    // (sendWhatsAppText) can pick the right provider/credentials per business.
+    sendContext.businessId = businessId;
 
     logger.info({
       ...flowDebugBase,
       text: normalizedText,
-      barbershopId,
+      businessId,
     }, 'Processando mensagem no fluxo WhatsApp');
 
     logger.info(
       {
         ...flowDebugBase,
         text: normalizedText,
-        barbershopId,
+        businessId,
       },
       'FLUXO EXECUTADO'
     );
 
-    const config = await getBotConfig(barbershopId);
-    const businessSettings = await getBarbershopBusinessSettings(barbershopId) as unknown as BusinessSettings;
+    const config = await getBotConfig(businessId);
+    const businessSettings = await getBusinessScheduleSettings(businessId) as unknown as BusinessSettings;
     const now = options?.now instanceof Date ? options.now : new Date();
 
     if (!isWithinBusinessHours(businessSettings, now)) {
       logger.info(
         {
           phone: normalizedPhone,
-          barbershopId,
+          businessId,
           openingTime: businessSettings.openingTime,
           closingTime: businessSettings.closingTime,
           timezone: businessSettings.timezone,
@@ -2072,7 +2076,7 @@ export const handleIncomingMessage = async (
       logger.info(
         {
           ...flowDebugBase,
-          barbershopId,
+          businessId,
           decision: 'outside_business_hours',
           sent,
         },
@@ -2089,13 +2093,13 @@ export const handleIncomingMessage = async (
       rule?: string;
       canonicalGreeting?: string;
     };
-    let session: WhatsAppSession | null = await getSession(normalizedPhone!, barbershopId);
+    let session: WhatsAppSession | null = await getSession(normalizedPhone!, businessId);
     const sessionExpired = Boolean(session && isSessionExpired(session));
 
     logGreetingEvaluation(
       {
         ...flowDebugBase,
-        barbershopId,
+        businessId,
       },
       greetingEvaluation,
       {
@@ -2107,20 +2111,20 @@ export const handleIncomingMessage = async (
 
     if (greetingEvaluation.isGreeting) {
       if (session) {
-        await deleteSession(normalizedPhone!, barbershopId);
+        await deleteSession(normalizedPhone!, businessId);
       }
 
-      await createSession(normalizedPhone!, barbershopId);
+      await createSession(normalizedPhone!, businessId);
       const sent = await sendWhatsAppMessage(
         normalizedPhone!,
-        await buildContextualMenuMessage(barbershopId, businessSettings),
+        await buildContextualMenuMessage(businessId, businessSettings),
         sendContext
       );
 
       logger.info(
         {
           ...flowDebugBase,
-          barbershopId,
+          businessId,
           phone: normalizedPhone,
           originalText: greetingEvaluation.originalText,
           normalizedText: greetingEvaluation.normalizedText,
@@ -2141,14 +2145,14 @@ export const handleIncomingMessage = async (
 
     if (!session || sessionExpired) {
       if (sessionExpired) {
-        await deleteSession(normalizedPhone!, barbershopId);
+        await deleteSession(normalizedPhone!, businessId);
       }
 
       // REGRA 5: Sem sessão ativa, menu SÓ dispara com saudação.
       logger.info(
         {
           ...flowDebugBase,
-          barbershopId,
+          businessId,
           originalText: greetingEvaluation.originalText,
           normalizedText: greetingEvaluation.normalizedText,
           greetingMatched: false,
@@ -2167,7 +2171,7 @@ export const handleIncomingMessage = async (
     logger.info(
       {
         ...flowDebugBase,
-        barbershopId,
+        businessId,
         step: currentStep,
         sessionState: 'active',
         decision: 'continue_active_session',
@@ -2178,7 +2182,7 @@ export const handleIncomingMessage = async (
     logger.debug(
       {
         ...flowDebugBase,
-        barbershopId,
+        businessId,
         step: currentStep,
         text: normalizedText,
       },
@@ -2189,22 +2193,22 @@ export const handleIncomingMessage = async (
 
     switch (currentStep) {
       case STEPS.MENU:
-        stepResult = await handleMenuStep(normalizedPhone!, normalizedText, barbershopId, config, sendContext);
+        stepResult = await handleMenuStep(normalizedPhone!, normalizedText, businessId, config, sendContext);
         break;
       case STEPS.ASK_NAME:
-        stepResult = await handleAskNameStep(normalizedPhone!, normalizedText, barbershopId, config, sendContext);
+        stepResult = await handleAskNameStep(normalizedPhone!, normalizedText, businessId, config, sendContext);
         break;
       case STEPS.CHOOSE_SERVICE:
-        stepResult = await handleChooseServiceStep(normalizedPhone!, normalizedText, barbershopId, sessionData, config, sendContext);
+        stepResult = await handleChooseServiceStep(normalizedPhone!, normalizedText, businessId, sessionData, config, sendContext);
         break;
-      case STEPS.CHOOSE_BARBER:
-        stepResult = await handleChooseBarberStep(normalizedPhone!, normalizedText, barbershopId, sessionData, config, sendContext);
+      case STEPS.CHOOSE_PROFESSIONAL:
+        stepResult = await handleChooseProfessionalStep(normalizedPhone!, normalizedText, businessId, sessionData, config, sendContext);
         break;
       case STEPS.CHOOSE_DATE:
         stepResult = await handleChooseDateStep(
           normalizedPhone!,
           normalizedText,
-          barbershopId,
+          businessId,
           sessionData,
           config,
           sendContext,
@@ -2216,7 +2220,7 @@ export const handleIncomingMessage = async (
         stepResult = await handleChooseTimeStep(
           normalizedPhone!,
           normalizedText,
-          barbershopId,
+          businessId,
           sessionData,
           config,
           sendContext,
@@ -2224,30 +2228,30 @@ export const handleIncomingMessage = async (
         );
         break;
       case STEPS.CONFIRM_CANCEL: {
-        const r = await handleConfirmCancel(normalizedPhone!, normalizedText, barbershopId, sessionData, config);
+        const r = await handleConfirmCancel(normalizedPhone!, normalizedText, businessId, sessionData, config);
         await sendWhatsAppMessage(normalizedPhone!, r.message, sendContext);
         stepResult = { ok: true };
         break;
       }
       case STEPS.CONFIRM_RESCHEDULE: {
-        const r = await handleConfirmReschedule(normalizedPhone!, normalizedText, barbershopId, sessionData, config);
+        const r = await handleConfirmReschedule(normalizedPhone!, normalizedText, businessId, sessionData, config);
         await sendWhatsAppMessage(normalizedPhone!, r.message, sendContext);
         stepResult = { ok: true };
         break;
       }
       case STEPS.SEND_RATING: {
-        const r = await handleSendRating(normalizedPhone!, normalizedText, barbershopId, sessionData, config);
+        const r = await handleSendRating(normalizedPhone!, normalizedText, businessId, sessionData, config);
         await sendWhatsAppMessage(normalizedPhone!, r.message, sendContext);
         stepResult = { ok: true };
         break;
       }
       default: {
         logger.warn({ phone: normalizedPhone, step: currentStep }, 'Step desconhecido, resetando sessão');
-        await deleteSession(normalizedPhone!, barbershopId);
-        await createSession(normalizedPhone!, barbershopId);
+        await deleteSession(normalizedPhone!, businessId);
+        await createSession(normalizedPhone!, businessId);
         const sent = await sendWhatsAppMessage(
           normalizedPhone!,
-          await buildContextualMenuMessage(barbershopId, businessSettings),
+          await buildContextualMenuMessage(businessId, businessSettings),
           sendContext
         );
         stepResult = { ok: sent };
@@ -2258,7 +2262,7 @@ export const handleIncomingMessage = async (
     logger.info(
       {
         ...flowDebugBase,
-        barbershopId,
+        businessId,
         step: currentStep,
         processed: stepResult.ok,
       },

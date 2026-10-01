@@ -3,16 +3,16 @@
  * para o DTO plano em snake_case que o frontend consome.
  *
  * Corrige 3 problemas de exibição:
- *  - relações aninhadas (barber.name/service.price) → barber_name/service_price
+ *  - relações aninhadas (professional.name/service.price) → professional_name/service_price
  *  - `time` (DateTime 1970-01-01T..) → "HH:MM:SS"
  *  - `date` (UTC midnight) → "YYYY-MM-DDT00:00:00" local p/ evitar off-by-one no fuso BR
  */
 
 interface RawAppointment {
   id: string;
-  barbershopId?: string;
+  businessId?: string;
   clientId?: string;
-  barberId?: string;
+  professionalId?: string;
   serviceId?: string;
   date: Date | string;
   time: Date | string;
@@ -20,15 +20,15 @@ interface RawAppointment {
   reminderSent?: boolean;
   createdAt?: Date | string;
   client?: { name?: string; phone?: string } | null;
-  barber?: { name?: string } | null;
-  service?: { name?: string; price?: unknown } | null;
+  professional?: { name?: string } | null;
+  service?: { name?: string; price?: unknown; durationMinutes?: number } | null;
 }
 
 export interface AppointmentDto {
   id: string;
-  barbershop_id?: string;
+  business_id?: string;
   client_id?: string;
-  barber_id?: string;
+  professional_id?: string;
   service_id?: string;
   date: string;
   time: string;
@@ -37,9 +37,10 @@ export interface AppointmentDto {
   created_at?: string;
   client_name: string | null;
   client_phone: string | null;
-  barber_name: string | null;
+  professional_name: string | null;
   service_name: string | null;
   service_price: number;
+  service_duration_minutes: number;
 }
 
 const dateToLocalIso = (d: Date | string): string => {
@@ -68,9 +69,9 @@ const priceToNumber = (p: unknown): number => {
 
 export const toAppointmentDto = (a: RawAppointment): AppointmentDto => ({
   id: a.id,
-  barbershop_id: a.barbershopId,
+  business_id: a.businessId,
   client_id: a.clientId,
-  barber_id: a.barberId,
+  professional_id: a.professionalId,
   service_id: a.serviceId,
   date: dateToLocalIso(a.date),
   time: timeToHms(a.time),
@@ -79,7 +80,8 @@ export const toAppointmentDto = (a: RawAppointment): AppointmentDto => ({
   created_at: a.createdAt ? new Date(a.createdAt).toISOString() : undefined,
   client_name: a.client?.name ?? null,
   client_phone: a.client?.phone ?? null,
-  barber_name: a.barber?.name ?? null,
+  professional_name: a.professional?.name ?? null,
   service_name: a.service?.name ?? null,
   service_price: priceToNumber(a.service?.price),
+  service_duration_minutes: a.service?.durationMinutes ?? 0,
 });

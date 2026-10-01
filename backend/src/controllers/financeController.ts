@@ -7,7 +7,7 @@ export { addExpenseSchema, updateExpenseSchema };
 
 export const getFinanceSummary = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const data = await financeService.getSummary(req.user.barbershopId!);
+    const data = await financeService.getSummary(req.user.businessId!);
     sendSuccess(res, data);
   } catch (error) {
     next(error);
@@ -16,7 +16,7 @@ export const getFinanceSummary = async (req: Request, res: Response, next: NextF
 
 export const getMonthlyReport = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const data = await financeService.getMonthlyReport(req.user.barbershopId!, req.query);
+    const data = await financeService.getMonthlyReport(req.user.businessId!, req.query);
     sendSuccess(res, data);
   } catch (error) {
     next(error);
@@ -25,7 +25,7 @@ export const getMonthlyReport = async (req: Request, res: Response, next: NextFu
 
 export const addExpense = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const data = await financeService.addExpense(req.user.barbershopId!, req.body);
+    const data = await financeService.addExpense(req.user.businessId!, req.body);
     sendCreated(res, data);
   } catch (error) {
     next(error);
@@ -34,7 +34,7 @@ export const addExpense = async (req: Request, res: Response, next: NextFunction
 
 export const updateExpense = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const data = await financeService.updateExpense(req.params['id'] as string, req.user.barbershopId!, req.body);
+    const data = await financeService.updateExpense(req.params['id'] as string, req.user.businessId!, req.body);
     sendSuccess(res, data);
   } catch (error) {
     next(error);
@@ -43,7 +43,7 @@ export const updateExpense = async (req: Request, res: Response, next: NextFunct
 
 export const deleteExpense = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    await financeService.deleteExpense(req.params['id'] as string, req.user.barbershopId!);
+    await financeService.deleteExpense(req.params['id'] as string, req.user.businessId!);
     sendSuccess(res, { message: 'Gasto excluído com sucesso' });
   } catch (error) {
     next(error);
@@ -52,7 +52,7 @@ export const deleteExpense = async (req: Request, res: Response, next: NextFunct
 
 export const getExpenses = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const data = await financeService.getExpenses(req.user.barbershopId!, req.query);
+    const data = await financeService.getExpenses(req.user.businessId!, req.query);
     sendSuccess(res, data);
   } catch (error) {
     next(error);

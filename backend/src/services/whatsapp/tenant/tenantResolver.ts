@@ -1,11 +1,11 @@
 /**
- * tenantResolver.ts — Resolve barbershop pelo instanceName da Evolution API.
+ * tenantResolver.ts — Resolve business pelo instanceName da Evolution API.
  *
  * Fluxo:
  *   1. Consultar tenantCache
- *   2. Cache miss → query no banco (barbershops + subscription_status)
+ *   2. Cache miss → query no banco (businesses + subscription_status)
  *   3. Popular cache com TTL de 60s
- *   4. Retornar { barbershop, connectedNumber, subscriptionStatus } ou null
+ *   4. Retornar { business, connectedNumber, subscriptionStatus } ou null
  *
  * Nunca lança exceção — retorna null em caso de erro ou não encontrado.
  */
@@ -15,19 +15,19 @@ import logger from '../../../utils/logger.js';
 import { prisma } from '../../../config/prisma.js';
 import { getTenant, setTenant } from './tenantCache.js';
 
-export interface TenantBarbershop {
+export interface TenantBusiness {
   id: string;
   name: string;
   instanceName: string;
 }
 
 export interface TenantData {
-  barbershop: TenantBarbershop;
+  business: TenantBusiness;
   connectedNumber: string | null;
   subscriptionStatus: string | null;
 }
 
-interface BarbershopRow {
+interface BusinessRow {
   id: string;
   name: string;
   connected_number: string | null;
@@ -36,7 +36,7 @@ interface BarbershopRow {
 }
 
 /**
- * Resolves the tenant (barbershop) associated with a WhatsApp instance.
+ * Resolves the tenant (business) associated with a WhatsApp instance.
  *
  * @param instanceName  Raw instanceName from Evolution API webhook
  */
@@ -52,13 +52,13 @@ export const resolveTenant = async (instanceName: string): Promise<TenantData | 
 
   // 2. Database query — uses raw SQL because of the NULLIF/btrim/lower pattern
   try {
-    const rows = await prisma.$queryRaw<BarbershopRow[]>(Prisma.sql`
+    const rows = await prisma.$queryRaw<BusinessRow[]>(Prisma.sql`
       SELECT id,
              name,
              whatsapp                AS connected_number,
              whatsapp_instance_name  AS instance_name,
              subscription_status
-        FROM barbershops
+        FROM businesses
        WHERE active = true
          AND NULLIF(btrim(whatsapp_instance_name), '') IS NOT NULL
          AND lower(btrim(whatsapp_instance_name)) = ${key}
@@ -66,17 +66,17 @@ export const resolveTenant = async (instanceName: string): Promise<TenantData | 
     `);
 
     if (!rows.length) {
-      logger.debug({ instanceName: key }, 'resolveTenant: barbershop not found');
+      logger.debug({ instanceName: key }, 'resolveTenant: business not found');
       return null;
     }
 
     const row = rows[0];
     if (!row) {
-      logger.debug({ instanceName: key }, 'resolveTenant: barbershop not found');
+      logger.debug({ instanceName: key }, 'resolveTenant: business not found');
       return null;
     }
     const tenant: TenantData = {
-      barbershop: {
+      business: {
         id: row.id,
         name: row.name,
         instanceName: row.instance_name,

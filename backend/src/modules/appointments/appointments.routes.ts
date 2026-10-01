@@ -17,12 +17,14 @@ import {
   updateAppointmentStatus,
   deleteAppointment,
   getAvailableSlots,
+  getPendingPayment,
 } from './appointments.controller.js';
 
 const router = express.Router();
 const guard = [authMiddleware, requireTenantRoles, requireFeature('appointments')];
 
 router.get('/',           ...guard, validate({ query: GetAppointmentsQuerySchema }), getAppointments);
+router.get('/pending-payment', ...guard, getPendingPayment);
 router.get('/available-slots', ...guard, validate({ query: GetAvailableSlotsQuerySchema }), getAvailableSlots);
 router.post('/',          ...guard, validate({ body: CreateAppointmentSchema }), createAppointment);
 router.put('/:id',        ...guard, validate({ body: UpdateAppointmentSchema }), updateAppointment);

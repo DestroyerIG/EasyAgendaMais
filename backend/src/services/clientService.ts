@@ -16,27 +16,27 @@ interface ClientData {
 }
 
 export const clientService = {
-  async getAll(barbershopId: string, { page, limit }: PaginationOptions = {}) {
+  async getAll(businessId: string, { page, limit }: PaginationOptions = {}) {
     if (page && limit) {
-      const data = await clientRepository.findManyPaginated(barbershopId, {
+      const data = await clientRepository.findManyPaginated(businessId, {
         page: parseInt(String(page), 10),
         limit: Math.min(parseInt(String(limit), 10), 100),
         orderBy: 'created_at DESC',
       });
       return { data, meta: undefined as any };
     }
-    const data = await clientRepository.findMany(barbershopId, { orderBy: 'created_at DESC' });
+    const data = await clientRepository.findMany(businessId, { orderBy: 'created_at DESC' });
     return { data, meta: undefined as any };
   },
 
-  async create(barbershopId: string, data: ClientData) {
-    const existing = await clientRepository.findByPhone(barbershopId, data.phone);
+  async create(businessId: string, data: ClientData) {
+    const existing = await clientRepository.findByPhone(businessId, data.phone);
     if (existing) {
       throw new ConflictError('Cliente já cadastrado com este telefone');
     }
 
     return clientRepository.create({
-      barbershopId: barbershopId,
+      businessId: businessId,
       name: data.name,
       phone: data.phone,
       email: data.email ?? null,
@@ -46,8 +46,8 @@ export const clientService = {
     });
   },
 
-  async update(id: string, barbershopId: string, data: ClientData) {
-    const result = await clientRepository.update(id, barbershopId, {
+  async update(id: string, businessId: string, data: ClientData) {
+    const result = await clientRepository.update(id, businessId, {
       name: data.name,
       phone: data.phone,
       email: data.email ?? null,
@@ -63,7 +63,7 @@ export const clientService = {
     return result;
   },
 
-  async getHistory(barbershopId: string, clientId: string) {
-    return clientRepository.getHistory(barbershopId, clientId);
+  async getHistory(businessId: string, clientId: string) {
+    return clientRepository.getHistory(businessId, clientId);
   },
 };

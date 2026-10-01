@@ -83,7 +83,7 @@ export const errorHandler = (
         requiredPlan: err.requiredPlan,
         path: req.path,
         requestId: req.requestId,
-        barbershopId: req.user?.barbershopId,
+        businessId: req.user?.businessId,
       },
       err.message
     );
@@ -115,7 +115,7 @@ export const errorHandler = (
         providerData: appErr.providerData,
         path: req.path,
         requestId: req.requestId,
-        barbershopId: req.user?.barbershopId,
+        businessId: req.user?.businessId,
       },
       appErr.message
     );
@@ -142,7 +142,7 @@ export const errorHandler = (
   }
 
   logger.error(
-    { err, path: req.path, method: req.method, requestId: req.requestId, barbershopId: req.user?.barbershopId },
+    { err, path: req.path, method: req.method, requestId: req.requestId, businessId: req.user?.businessId },
     'Erro interno não tratado'
   );
 

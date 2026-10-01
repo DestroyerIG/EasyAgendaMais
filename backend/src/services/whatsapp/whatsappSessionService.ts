@@ -10,7 +10,7 @@ import { SESSION_TIMEOUT_MS, STEPS } from './whatsappConstants.js';
 export interface WhatsAppSession {
   id: string;
   phone: string;
-  barbershopId: string;
+  businessId: string;
   step: string;
   data: Record<string, unknown> | null;
   createdAt: Date;
@@ -18,19 +18,19 @@ export interface WhatsAppSession {
 }
 
 /**
- * Busca sessão ativa para o phone/barbershop.
+ * Busca sessão ativa para o phone/business.
  * Retorna null se não encontrada.
  */
-export const getSession = async (phone: string, barbershopId: string): Promise<WhatsAppSession | null> => {
+export const getSession = async (phone: string, businessId: string): Promise<WhatsAppSession | null> => {
   const session = await prisma.whatsappSession.findFirst({
-    where: { phone, barbershopId },
+    where: { phone, businessId },
     orderBy: { updatedAt: 'desc' },
   });
   if (!session) return null;
   return {
     id: session.id,
     phone: session.phone,
-    barbershopId: session.barbershopId,
+    businessId: session.businessId,
     step: session.step,
     data: (session.data as Record<string, unknown>) ?? null,
     createdAt: session.createdAt,
@@ -49,11 +49,11 @@ export const isSessionExpired = (session: WhatsAppSession | null): boolean => {
 /**
  * Cria sessão nova no step 'menu' com data vazia.
  */
-export const createSession = async (phone: string, barbershopId: string): Promise<void> => {
+export const createSession = async (phone: string, businessId: string): Promise<void> => {
   await prisma.whatsappSession.create({
     data: {
       phone,
-      barbershopId,
+      businessId,
       step: STEPS.MENU,
       data: Prisma.JsonNull,
     },
@@ -65,12 +65,12 @@ export const createSession = async (phone: string, barbershopId: string): Promis
  */
 export const updateSession = async (
   phone: string,
-  barbershopId: string,
+  businessId: string,
   step: string,
   data: Record<string, unknown>,
 ): Promise<void> => {
   await prisma.whatsappSession.updateMany({
-    where: { phone, barbershopId },
+    where: { phone, businessId },
     data: {
       step,
       data: data as Prisma.InputJsonValue,
@@ -79,10 +79,10 @@ export const updateSession = async (
 };
 
 /**
- * Remove sessões do phone/barbershop.
+ * Remove sessões do phone/business.
  */
-export const deleteSession = async (phone: string, barbershopId: string): Promise<void> => {
+export const deleteSession = async (phone: string, businessId: string): Promise<void> => {
   await prisma.whatsappSession.deleteMany({
-    where: { phone, barbershopId },
+    where: { phone, businessId },
   });
 };

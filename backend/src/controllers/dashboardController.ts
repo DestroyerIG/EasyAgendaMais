@@ -4,7 +4,7 @@ import { sendSuccess } from '../utils/response.js';
 
 export const getDashboard = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const data = await dashboardService.getDashboard(req.user.barbershopId!);
+    const data = await dashboardService.getDashboard(req.user.businessId!);
     sendSuccess(res, data);
   } catch (error) {
     next(error);

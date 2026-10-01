@@ -9,7 +9,7 @@ import { parseEvolutionWebhook } from '../services/whatsapp/utils/payloadParser.
 
 const LID_PAYLOAD = {
   event: 'messages-upsert',
-  instance: 'itallobarber_12f46de4',
+  instance: 'italloprofessional_12f46de4',
   data: {
     key: {
       remoteJid: '247269873942566@lid',
@@ -30,7 +30,7 @@ const LID_PAYLOAD = {
 
 const DIRECT_PAYLOAD = {
   event: 'messages-upsert',
-  instance: 'barber_abc',
+  instance: 'professional_abc',
   data: {
     key: {
       remoteJid: '5511999887766@s.whatsapp.net',
@@ -49,7 +49,7 @@ const DIRECT_PAYLOAD = {
 
 const FROM_ME_PAYLOAD = {
   event: 'messages-upsert',
-  instance: 'barber_abc',
+  instance: 'professional_abc',
   data: {
     key: {
       remoteJid: '5511999887766@s.whatsapp.net',
@@ -71,7 +71,7 @@ describe('parseEvolutionWebhook', () => {
 
     it('retorna objeto não-nulo', () => expect(parsed).not.toBeNull());
     it('event = messages-upsert', () => expect(parsed!.event).toBe('messages-upsert'));
-    it('instanceName correto', () => expect(parsed!.instanceName).toBe('itallobarber_12f46de4'));
+    it('instanceName correto', () => expect(parsed!.instanceName).toBe('italloprofessional_12f46de4'));
     it('messageId correto', () => expect(parsed!.messageId).toBe('ACCC752295081680F6CC2418A3504074'));
     it('remoteJid = @lid', () => expect(parsed!.remoteJid).toBe('247269873942566@lid'));
     it('fromMe = false', () => expect(parsed!.fromMe).toBe(false));
@@ -136,12 +136,12 @@ describe('parseEvolutionWebhook', () => {
     it('parseia evento connection-update', () => {
       const p = parseEvolutionWebhook({
         event: 'connection-update',
-        instance: 'barber_abc',
+        instance: 'professional_abc',
         data: { state: 'open' },
       });
       expect(p).not.toBeNull();
       expect(p!.event).toBe('connection-update');
-      expect(p!.instanceName).toBe('barber_abc');
+      expect(p!.instanceName).toBe('professional_abc');
     });
   });
 

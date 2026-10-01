@@ -1,6 +1,6 @@
 # Start Here
 
-Guia de entrada para devs que acabaram de clonar o EasyBarber SaaS 2.0.
+Guia de entrada para devs que acabaram de clonar o EasyAgenda+ SaaS 2.0.
 
 ## Ordem Recomendada de Leitura
 

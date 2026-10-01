@@ -12,8 +12,8 @@ const mockGetEvolutionConfig = vi.hoisted(() => vi.fn());
 const mockIsSessionStateError = vi.hoisted(() => vi.fn());
 const mockGetProviderErrorMessage = vi.hoisted(() => vi.fn());
 const mockIsInstanceNotFoundError = vi.hoisted(() => vi.fn());
-const mockEnsureBarbershopWhatsAppInstanceName = vi.hoisted(() => vi.fn());
-const mockGetBarbershopWhatsAppInstanceContext = vi.hoisted(() => vi.fn());
+const mockEnsureBusinessWhatsAppInstanceName = vi.hoisted(() => vi.fn());
+const mockGetBusinessWhatsAppInstanceContext = vi.hoisted(() => vi.fn());
 const mockNormalizeWhatsAppInstanceName = vi.hoisted(() => vi.fn());
 
 class MockEvolutionApiError extends Error {
@@ -56,8 +56,8 @@ vi.mock('../utils/logger.js', () => ({
 }));
 
 vi.mock('../services/whatsapp/whatsappInstanceService.js', () => ({
-  ensureBarbershopWhatsAppInstanceName: mockEnsureBarbershopWhatsAppInstanceName,
-  getBarbershopWhatsAppInstanceContext: mockGetBarbershopWhatsAppInstanceContext,
+  ensureBusinessWhatsAppInstanceName: mockEnsureBusinessWhatsAppInstanceName,
+  getBusinessWhatsAppInstanceContext: mockGetBusinessWhatsAppInstanceContext,
   normalizeWhatsAppInstanceName: mockNormalizeWhatsAppInstanceName,
 }));
 
@@ -80,23 +80,23 @@ describe('whatsappClient destination resolution', () => {
     });
     mockGetInstanceMe.mockResolvedValue({});
     mockGetEvolutionConfig.mockReturnValue({
-      instanceName: 'easybarber',
+      instanceName: 'easyagenda',
     });
     mockSendTextMessage.mockResolvedValue({
       payload: { key: 'ok' },
       meta: {
-        endpoint: '/message/sendText/easybarber',
+        endpoint: '/message/sendText/easyagenda',
         payloadShape: 'number+textMessage',
       },
     });
     mockIsSessionStateError.mockReturnValue(false);
     mockGetProviderErrorMessage.mockReturnValue('');
     mockIsInstanceNotFoundError.mockReturnValue(false);
-    mockEnsureBarbershopWhatsAppInstanceName.mockResolvedValue({
+    mockEnsureBusinessWhatsAppInstanceName.mockResolvedValue({
       id: 'tenant-alpha',
       whatsappInstanceName: 'tenant-alpha',
     });
-    mockGetBarbershopWhatsAppInstanceContext.mockResolvedValue({
+    mockGetBusinessWhatsAppInstanceContext.mockResolvedValue({
       id: 'tenant-alpha',
       whatsappInstanceName: 'tenant-alpha',
     });
@@ -107,7 +107,7 @@ describe('whatsappClient destination resolution', () => {
 
   it('sets status as instance_not_found when Evolution reports missing instance', async () => {
     mockGetInstanceStatus.mockRejectedValue(
-      new MockEvolutionApiError("The 'easybarber' instance does not exist", {
+      new MockEvolutionApiError("The 'easyagenda' instance does not exist", {
         status: 404,
         code: 'EVOLUTION_API_ERROR',
       })
@@ -165,14 +165,14 @@ describe('whatsappClient destination resolution', () => {
     );
   });
 
-  it('resolves outbound instance by authenticated barbershop context', async () => {
+  it('resolves outbound instance by authenticated business context', async () => {
     const sent = await sendWhatsAppText('558396311811', 'Oi', {
       remoteJidOriginal: '558396311811@s.whatsapp.net',
-      barbershopId: 'tenant-alpha',
+      businessId: 'tenant-alpha',
     });
 
     expect(sent).toBe(true);
-    expect(mockEnsureBarbershopWhatsAppInstanceName).toHaveBeenCalledWith('tenant-alpha');
+    expect(mockEnsureBusinessWhatsAppInstanceName).toHaveBeenCalledWith('tenant-alpha');
     expect(mockSendTextMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         phone: '558396311811',

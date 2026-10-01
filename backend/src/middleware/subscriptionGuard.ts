@@ -14,7 +14,7 @@ export const requireFeature = (feature: string) => {
     if (!decision.allowed) {
       logger.warn({
         event: 'feature_access_blocked',
-        tenantId: req.user?.barbershopId,
+        tenantId: req.user?.businessId,
         feature,
         currentPlan: req.user?.plan,
         requiredPlan: decision.requiredPlan,

@@ -483,7 +483,7 @@ const getSupabaseClient = (): SupabaseClient => {
   return supabaseClient;
 };
 
-const getSupabaseAdminClient = (): SupabaseClient => {
+export const getSupabaseAdminClient = (): SupabaseClient => {
   const config = resolveSupabaseAdminConfig();
 
   if (!config.isConfigured) {
@@ -730,7 +730,7 @@ export const supabaseAuthService = {
           options: {
             emailRedirectTo: redirectTo ?? undefined,
             data: {
-              source: 'easybarber',
+              source: 'easyagenda',
               provider: 'supabase',
             },
           },

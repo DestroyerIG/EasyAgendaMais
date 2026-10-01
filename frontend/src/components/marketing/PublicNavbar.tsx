@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
-import easyBarberLogo from '@/icons/easybarber.png';
 
 const navItems = [
   { href: '#inicio', label: 'Início' },
@@ -17,39 +15,40 @@ export function PublicNavbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 lg:px-8">
-        <Link href="/" className="flex items-center gap-2" aria-label="EasyBarber página inicial">
-          <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-primary/30 bg-black/40">
-            <Image src={easyBarberLogo} alt="Logo EasyBarber" width={40} height={40} className="h-full w-full object-contain" priority />
-          </span>
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-primary/70">Gestão para Barbearias</p>
-            <p className="text-xl font-black leading-none">EasyBarber</p>
-          </div>
+    <header className="sticky top-0 z-50 border-b border-line bg-surface/80 shadow-[0_1px_8px_rgba(0,0,0,0.04)] backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-8">
+        <Link href="/" className="flex items-center gap-1" aria-label="EasyAgenda+ página inicial">
+          <span className="text-xl font-black tracking-tight text-ink">EasyAgenda</span>
+          <span className="text-xl font-black text-brand">+</span>
         </Link>
 
         <nav className="hidden items-center gap-8 lg:flex" aria-label="Navegação pública">
           {navItems.map((item) => (
-            <a key={item.href} href={item.href} className="text-sm font-semibold text-gray-300 transition-colors hover:text-white">
+            <a key={item.href} href={item.href} className="text-sm font-semibold text-muted transition-colors hover:text-ink">
               {item.label}
             </a>
           ))}
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <Link href="/login" className="inline-flex items-center justify-center rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white transition-colors hover:border-white">
+          <Link
+            href="/login"
+            className="inline-flex items-center justify-center rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink transition-colors hover:border-ink/40"
+          >
             Login
           </Link>
-          <Link href="/cadastro" className="btn-primary inline-flex items-center justify-center px-5 py-2 text-sm">
-            Começar grátis
+          <Link
+            href="/cadastro"
+            className="inline-flex items-center justify-center rounded-lg bg-brand px-5 py-2 text-sm font-bold text-on-brand transition-opacity hover:opacity-90"
+          >
+            Testar grátis
           </Link>
         </div>
 
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
-          className="rounded-lg border border-white/20 p-2 text-white lg:hidden"
+          className="rounded-lg border border-line p-2 text-ink lg:hidden"
           aria-label={open ? 'Fechar menu' : 'Abrir menu'}
           aria-expanded={open}
           aria-controls="mobile-menu"
@@ -59,24 +58,32 @@ export function PublicNavbar() {
       </div>
 
       {open && (
-        <div id="mobile-menu" className="border-t border-white/10 bg-black/95 lg:hidden">
+        <div id="mobile-menu" className="border-t border-line bg-surface lg:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-4">
             {navItems.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2 text-sm font-semibold text-gray-200 hover:bg-white/5"
+                className="rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-surface-2"
               >
                 {item.label}
               </a>
             ))}
             <div className="mt-2 flex flex-col gap-2">
-              <Link href="/login" onClick={() => setOpen(false)} className="rounded-lg border border-white/20 px-4 py-2 text-sm text-center font-semibold text-white">
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className="rounded-lg border border-line px-4 py-2 text-center text-sm font-semibold text-ink"
+              >
                 Login
               </Link>
-              <Link href="/cadastro" onClick={() => setOpen(false)} className="btn-primary text-center text-sm">
-                Começar grátis
+              <Link
+                href="/cadastro"
+                onClick={() => setOpen(false)}
+                className="rounded-lg bg-brand px-4 py-2 text-center text-sm font-bold text-on-brand"
+              >
+                Testar grátis
               </Link>
             </div>
           </div>

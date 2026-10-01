@@ -19,7 +19,7 @@ export type BillingProvider = 'stripe' | 'asaas' | 'coupon';
 
 export type PaymentMethod = 'card' | 'pix' | 'coupon';
 
-export type AppointmentStatus = 'confirmado' | 'concluido' | 'cancelado';
+export type AppointmentStatus = 'confirmado' | 'concluido' | 'cancelado' | 'aguardando_pagamento';
 
 // ─── Entity Interfaces ───────────────────────────────────────────────────────
 
@@ -28,14 +28,14 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
-  barbershopId: string | null;
+  businessId: string | null;
   supabaseId: string | null;
   active: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface Barbershop {
+export interface Business {
   id: string;
   name: string;
   slug: string;
@@ -49,7 +49,7 @@ export interface Barbershop {
 
 export interface Subscription {
   id: string;
-  barbershopId: string;
+  businessId: string;
   plan: PlanId;
   status: SubscriptionStatus;
   provider: BillingProvider;
@@ -73,9 +73,9 @@ export interface Plan {
 
 export interface Appointment {
   id: string;
-  barbershopId: string;
+  businessId: string;
   clientId: string;
-  barberId: string;
+  professionalId: string;
   serviceId: string;
   date: string;
   time: string;
@@ -87,7 +87,7 @@ export interface Appointment {
 
 export interface Client {
   id: string;
-  barbershopId: string;
+  businessId: string;
   name: string;
   phone: string;
   email: string | null;
@@ -96,9 +96,9 @@ export interface Client {
   createdAt: Date;
 }
 
-export interface Barber {
+export interface Professional {
   id: string;
-  barbershopId: string;
+  businessId: string;
   name: string;
   phone: string | null;
   active: boolean;
@@ -107,7 +107,7 @@ export interface Barber {
 
 export interface Service {
   id: string;
-  barbershopId: string;
+  businessId: string;
   name: string;
   price: number;
   duration: number;
@@ -117,7 +117,7 @@ export interface Service {
 
 export interface Payment {
   id: string;
-  barbershopId: string;
+  businessId: string;
   subscriptionId: string | null;
   provider: BillingProvider;
   providerPaymentId: string;
@@ -134,7 +134,7 @@ export interface JwtPayload {
   userId: string;
   email: string;
   role: UserRole;
-  barbershopId: string | null;
+  businessId: string | null;
   plan: PlanId | null;
   subscriptionStatus: SubscriptionStatus | null;
   iat?: number;
@@ -157,8 +157,8 @@ export interface SubscriptionAccessDecision {
 
 // ─── Billing ─────────────────────────────────────────────────────────────────
 
-export interface BarbershopBillingContext {
-  barbershop_id: string;
+export interface BusinessBillingContext {
+  business_id: string;
   subscription_status: string | null;
   payment_method: string | null;
   provider_subscription_id: string | null;
@@ -172,7 +172,7 @@ export interface BarbershopBillingContext {
 
 export const AppointmentCreateSchema = z.object({
   clientId: z.string().uuid(),
-  barberId: z.string().uuid(),
+  professionalId: z.string().uuid(),
   serviceId: z.string().uuid(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   time: z.string().regex(/^\d{2}:\d{2}$/),

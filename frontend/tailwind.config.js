@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+const token = (name) => `rgb(var(--color-${name}) / <alpha-value>)`;
+
 module.exports = {
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -11,10 +13,41 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Cores antigas: usadas só por páginas fora do escopo do design system (landing, SuperAdmin).
         primary: '#FF7A00',
         dark: '#000000',
         'dark-light': '#1a1a1a',
         'dark-lighter': '#252525',
+        // Tokens do DESIGN.md (valores em globals.css, claro em :root e escuro em .dark).
+        bg: token('bg'),
+        surface: token('surface'),
+        'surface-2': token('surface-2'),
+        ink: token('ink'),
+        muted: token('muted'),
+        line: token('line'),
+        brand: token('brand'),
+        'on-brand': token('on-brand'),
+        'brand-text': token('brand-text'),
+        whatsapp: token('whatsapp'),
+        success: token('success'),
+        'success-text': token('success-text'),
+        warning: token('warning'),
+        'warning-text': token('warning-text'),
+        danger: token('danger'),
+        'status-confirmed': token('status-confirmed'),
+        scrim: token('scrim'),
+        // Família Material 3 dos exports Stitch (ver globals.css).
+        'surface-m3': token('surface-m3'),
+        'brand-text-m3': token('brand-text-m3'),
+        tertiary: token('tertiary'),
+        'tertiary-container': token('tertiary-container'),
+      },
+      opacity: {
+        12: '0.12',
+      },
+      borderRadius: {
+        control: '10px',
+        card: '16px',
       },
       fontWeight: {
         // Space Grotesk max=700, Plus Jakarta Sans max=800. Clamp black to 800

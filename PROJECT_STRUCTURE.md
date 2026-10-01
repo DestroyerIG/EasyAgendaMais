@@ -1,4 +1,4 @@
-# Project Structure — EasyBarber SaaS 2.0
+# Project Structure — EasyAgenda+ SaaS 2.0
 
 Stack: Node.js 20 + Express 4 + TypeScript + Prisma 5 + PostgreSQL + Next.js (frontend).
 
@@ -46,7 +46,7 @@ backend/
 │   │   ├── dashboard/             # routes (re-exporta routes/dashboard.ts)
 │   │   ├── clients/               # routes (re-exporta routes/clients.ts)
 │   │   ├── finance/               # routes (re-exporta routes/finance.ts)
-│   │   ├── barbershop/            # routes (re-exporta routes/barbershop.ts)
+│   │   ├── business/              # routes (re-exporta routes/business.ts)
 │   │   ├── whatsapp/              # routes (re-exporta routes/whatsapp.ts)
 │   │   ├── subscriptions/         # routes (re-exporta routes/subscriptions.ts)
 │   │   ├── admin/                 # routes (re-exporta routes/admin.ts)
@@ -61,8 +61,8 @@ backend/
 │   │   ├── adminRepository.ts
 │   │   ├── auditRepository.ts
 │   │   ├── authRepository.ts
-│   │   ├── barberRepository.ts
-│   │   ├── barbershopSettingsRepository.ts
+│   │   ├── professionalRepository.ts
+│   │   ├── businessSettingsRepository.ts
 │   │   ├── clientRepository.ts
 │   │   ├── dashboardRepository.ts
 │   │   ├── financeRepository.ts

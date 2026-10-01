@@ -4,8 +4,8 @@ import { evolutionApi, type ConnectionStateResponse } from './evolution-api.serv
 import { EvolutionApiError, InstanceNotFoundError } from './whatsapp.types.js';
 import type { NormalizedStatus } from './whatsapp.types.js';
 import {
-  ensureBarbershopWhatsAppInstanceName,
-  getBarbershopWhatsAppInstanceContext,
+  ensureBusinessWhatsAppInstanceName,
+  getBusinessWhatsAppInstanceContext,
 } from '../../services/whatsapp/whatsappInstanceService.js';
 import {
   extractQrBase64,
@@ -276,8 +276,8 @@ export const whatsappService = {
    * Verifica se instância existe na Evolution API.
    * Se não existir (404), cria uma nova com webhook correto.
    */
-  async getOrCreateInstance(barbershopId: string): Promise<NormalizedStatus> {
-    const ctx = await ensureBarbershopWhatsAppInstanceName(barbershopId);
+  async getOrCreateInstance(businessId: string): Promise<NormalizedStatus> {
+    const ctx = await ensureBusinessWhatsAppInstanceName(businessId);
     const instanceName = ctx.whatsappInstanceName;
 
     if (!instanceName) {
@@ -315,8 +315,8 @@ export const whatsappService = {
    * This eliminates the previous bug where deleteInstance + createInstance
    * ran back-to-back and Evolution had not yet propagated the delete.
    */
-  async connectWhatsApp(barbershopId: string): Promise<NormalizedStatus> {
-    const ctx = await ensureBarbershopWhatsAppInstanceName(barbershopId);
+  async connectWhatsApp(businessId: string): Promise<NormalizedStatus> {
+    const ctx = await ensureBusinessWhatsAppInstanceName(businessId);
     const instanceName = ctx.whatsappInstanceName;
 
     if (!instanceName) {
@@ -414,8 +414,8 @@ export const whatsappService = {
   /**
    * Retorna status atual consultando a Evolution API diretamente.
    */
-  async getStatus(barbershopId: string): Promise<NormalizedStatus> {
-    const ctx = await getBarbershopWhatsAppInstanceContext(barbershopId);
+  async getStatus(businessId: string): Promise<NormalizedStatus> {
+    const ctx = await getBusinessWhatsAppInstanceContext(businessId);
     const instanceName = ctx.whatsappInstanceName;
 
     if (!instanceName) {
@@ -436,8 +436,8 @@ export const whatsappService = {
   /**
    * Retorna QR Code do cache (populado por QRCODE_UPDATED webhook).
    */
-  async getQRCode(barbershopId: string): Promise<string | null> {
-    const ctx = await getBarbershopWhatsAppInstanceContext(barbershopId);
+  async getQRCode(businessId: string): Promise<string | null> {
+    const ctx = await getBusinessWhatsAppInstanceContext(businessId);
     const instanceName = ctx.whatsappInstanceName;
     if (!instanceName) return null;
 
@@ -452,7 +452,7 @@ export const whatsappService = {
     //    QR would never stabilize. Recreate only happens on POST /connect.
     try {
       logger.info(
-        { instanceName, barbershopId },
+        { instanceName, businessId },
         'whatsapp-service: cache miss, tentando connectInstance (read-only)',
       );
       const connectPayload = await evolutionApi.connectInstance(instanceName);
@@ -466,7 +466,7 @@ export const whatsappService = {
       return null;
     } catch (err) {
       logger.warn(
-        { err, instanceName, barbershopId },
+        { err, instanceName, businessId },
         'whatsapp-service: fallback connectInstance falhou',
       );
       return null;
@@ -476,8 +476,8 @@ export const whatsappService = {
   /**
    * Remove a instância da Evolution API, encerrando a sessão.
    */
-  async disconnect(barbershopId: string): Promise<void> {
-    const ctx = await getBarbershopWhatsAppInstanceContext(barbershopId);
+  async disconnect(businessId: string): Promise<void> {
+    const ctx = await getBusinessWhatsAppInstanceContext(businessId);
     const instanceName = ctx.whatsappInstanceName;
     if (!instanceName) return;
     await evolutionApi.deleteInstance(instanceName);
@@ -583,10 +583,10 @@ export const whatsappService = {
     };
   },
 
-  async sendText(barbershopId: string, number: string, text: string): Promise<unknown> {
-    const ctx = await getBarbershopWhatsAppInstanceContext(barbershopId);
+  async sendText(businessId: string, number: string, text: string): Promise<unknown> {
+    const ctx = await getBusinessWhatsAppInstanceContext(businessId);
     const instanceName = ctx.whatsappInstanceName;
-    if (!instanceName) throw new Error('Instância WhatsApp não configurada para esta barbearia');
+    if (!instanceName) throw new Error('Instância WhatsApp não configurada para este negócio');
     return evolutionApi.sendText(instanceName, number, text);
   },
 
@@ -600,7 +600,7 @@ export const whatsappService = {
    * connection-update events, race with the real instance, and prevent the
    * real one from ever reaching the `qrcode` state.
    *
-   * The DB (barbershops.whatsapp_instance_name, UNIQUE per tenant) is the
+   * The DB (businesses.whatsapp_instance_name, UNIQUE per tenant) is the
    * source of truth. Anything Evolution knows about that isn't in the DB
    * is fair game to delete.
    *
@@ -618,7 +618,7 @@ export const whatsappService = {
 
     const rows = await prisma.$queryRaw<Array<{ whatsapp_instance_name: string | null }>>`
       SELECT whatsapp_instance_name
-        FROM barbershops
+        FROM businesses
        WHERE active = true
          AND NULLIF(btrim(whatsapp_instance_name), '') IS NOT NULL
     `;
@@ -691,7 +691,7 @@ export const whatsappService = {
    * the underscore-less `itallobarbereacb8a07`) also received setWebhook
    * calls — producing the double "setWebhook" log lines the operator saw.
    * The DB is now the source of truth: only names present in
-   * barbershops.whatsapp_instance_name get reconfigured. Anything else in
+   * businesses.whatsapp_instance_name get reconfigured. Anything else in
    * Evolution is treated as an orphan and surfaced for cleanupCorrupted.
    *
    * Safe to call repeatedly.
@@ -709,7 +709,7 @@ export const whatsappService = {
     // Source of truth: DB. Anything not in here is NOT touched.
     const rows = await prisma.$queryRaw<Array<{ whatsapp_instance_name: string | null }>>`
       SELECT whatsapp_instance_name
-        FROM barbershops
+        FROM businesses
        WHERE active = true
          AND NULLIF(btrim(whatsapp_instance_name), '') IS NOT NULL
     `;

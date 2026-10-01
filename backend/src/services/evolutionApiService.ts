@@ -204,7 +204,7 @@ const getConfig = (overrides: { instanceName?: string | null; webhookUrl?: strin
   // intentionally NOT a production default. If neither override nor env is
   // present, instanceName is empty and any operation that needs it will
   // surface a clear error via ensureConfigured() instead of silently
-  // misrouting calls to a hardcoded tenant (previously 'easybarber').
+  // misrouting calls to a hardcoded tenant (previously 'easyagenda').
   const fallbackInstanceName = process.env.EVOLUTION_INSTANCE_NAME || '';
   const instanceName = normalizeInstanceName(overrides.instanceName) || normalizeInstanceName(fallbackInstanceName);
   // Same precedence as modules/whatsapp/whatsapp.service.ts. Reading only the

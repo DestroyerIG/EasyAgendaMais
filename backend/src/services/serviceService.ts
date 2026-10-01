@@ -1,53 +1,60 @@
 import { serviceRepository } from '../repositories/serviceRepository.js';
 import { NotFoundError } from '../utils/errors.js';
+import { toServiceDto, type ServiceDto } from './serviceSerializer.js';
 
 interface ServiceData {
   name: string;
   price: number;
   duration_minutes: number;
+  depositPercentage?: number;
 }
 
 export const serviceService = {
-  async getServices(barbershopId: string) {
-    return serviceRepository.findAllActive(barbershopId);
+  async getServices(businessId: string): Promise<ServiceDto[]> {
+    const services = await serviceRepository.findAllActive(businessId);
+    return services.map(toServiceDto);
   },
 
-  async createService(barbershopId: string, data: ServiceData) {
-    return (serviceRepository as unknown as {
+  async createService(businessId: string, data: ServiceData): Promise<ServiceDto> {
+    const created = await (serviceRepository as unknown as {
       create(data: {
-        barbershop_id: string;
+        business_id: string;
         name: string;
         price: number;
         duration_minutes: number;
-      }): Promise<unknown>;
+        depositPercentage?: number;
+      }): Promise<Parameters<typeof toServiceDto>[0]>;
     }).create({
-      barbershop_id: barbershopId,
+      business_id: businessId,
       name: data.name,
       price: data.price,
       duration_minutes: data.duration_minutes,
+      depositPercentage: data.depositPercentage,
     });
+    return toServiceDto(created);
   },
 
-  async updateService(id: string, barbershopId: string, data: ServiceData) {
+  async updateService(id: string, businessId: string, data: ServiceData): Promise<ServiceDto> {
     const result = await (serviceRepository as unknown as {
       update(
         id: string,
-        barbershopId: string,
-        data: { name: string; price: number; duration_minutes: number }
-      ): Promise<unknown>;
-    }).update(id, barbershopId, {
+        businessId: string,
+        data: { name: string; price: number; duration_minutes: number; depositPercentage?: number }
+      ): Promise<Parameters<typeof toServiceDto>[0] | null>;
+    }).update(id, businessId, {
       name: data.name,
       price: data.price,
       duration_minutes: data.duration_minutes,
+      depositPercentage: data.depositPercentage,
     });
     if (!result) throw new NotFoundError('Serviço');
-    return result;
+    return toServiceDto(result);
   },
 
-  async deleteService(id: string, barbershopId: string): Promise<void> {
+  async deleteService(id: string, businessId: string): Promise<void> {
     const result = await (serviceRepository as unknown as {
-      softDelete(id: string, barbershopId: string): Promise<unknown>;
-    }).softDelete(id, barbershopId);
+      softDelete(id: string, businessId: string): Promise<unknown>;
+    }).softDelete(id, businessId);
     if (!result) throw new NotFoundError('Serviço');
   },
 };

@@ -1,9 +1,9 @@
-# Script de Configuração Rápida do BarberPro SaaS
+# Script de Configuração Rápida do EasyAgenda+ SaaS
 # Execute este script após instalar o PostgreSQL
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Green
-Write-Host "   CONFIGURACAO DO BARBERPRO SAAS" -ForegroundColor Green
+Write-Host "   CONFIGURACAO DO EASYAGENDA+ SAAS" -ForegroundColor Green
 Write-Host "============================================" -ForegroundColor Green
 Write-Host ""
 
@@ -12,7 +12,7 @@ $pgHost = "127.0.0.1"
 $pgPort = "5432"
 $pgUser = "postgres"
 $pgDatabase = "postgres"
-$projectDatabase = "barberpro"
+$projectDatabase = "easyagenda"
 
 try {
     # 1. Verificar se PostgreSQL está instalado
@@ -156,7 +156,7 @@ SMTP_HOST=
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASS=
-SMTP_FROM="EasyBarber <no-reply@easybarber.local>"
+SMTP_FROM="EasyAgenda+ <no-reply@easyagenda.local>"
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 STRIPE_PRICE_ID_BASICO=
@@ -168,7 +168,7 @@ STRIPE_PRICE_ID_PREMIUM_ONE_TIME=
 ASAAS_API_KEY=
 ASAAS_BASE_URL=https://api.asaas.com/v3
 ASAAS_WEBHOOK_TOKEN=
-ASAAS_BILLING_DESCRIPTION=EasyBarber - Plano {plan} ({barbershop})
+ASAAS_BILLING_DESCRIPTION=EasyAgenda+ - Plano {plan} ({business})
 ASAAS_TIMEOUT_MS=12000
 "@ | Out-File -FilePath $envFile -Encoding UTF8
 

@@ -6,13 +6,13 @@ const mockPoolQuery = vi.hoisted(() => vi.fn());
 
 let mockAuthenticatedUser: {
   userId: string;
-  barbershopId: string | null;
+  businessId: string | null;
   email: string;
   plan: string;
   role: string;
 } = {
   userId: 'user-1',
-  barbershopId: 'tenant-1',
+  businessId: 'tenant-1',
   email: 'tenant@test.com',
   plan: 'premium',
   role: 'tenant_admin',
@@ -70,7 +70,7 @@ vi.mock('../utils/logger.js', () => ({
 
 vi.mock('../config/prisma.js', () => ({
   prisma: {
-    $queryRaw: vi.fn().mockResolvedValue([{ id: 'tenant-1', name: 'Barber Test', whatsapp_instance_name: 'instance-1' }]),
+    $queryRaw: vi.fn().mockResolvedValue([{ id: 'tenant-1', name: 'Professional Test', whatsapp_instance_name: 'instance-1' }]),
     $executeRaw: vi.fn().mockResolvedValue(0),
     $transaction: vi.fn(async (cb: unknown) => {
       if (typeof cb === 'function') return (cb as (tx: unknown) => unknown)({});
@@ -78,9 +78,9 @@ vi.mock('../config/prisma.js', () => ({
     }),
     $connect: vi.fn().mockResolvedValue(undefined),
     $disconnect: vi.fn().mockResolvedValue(undefined),
-    barbershop: {
-      findFirst: vi.fn().mockResolvedValue({ id: 'tenant-1', name: 'Barber Test', whatsappInstanceName: 'instance-1' }),
-      findUnique: vi.fn().mockResolvedValue({ id: 'tenant-1', name: 'Barber Test' }),
+    business: {
+      findFirst: vi.fn().mockResolvedValue({ id: 'tenant-1', name: 'Professional Test', whatsappInstanceName: 'instance-1' }),
+      findUnique: vi.fn().mockResolvedValue({ id: 'tenant-1', name: 'Professional Test' }),
     },
   },
 }));
@@ -109,7 +109,7 @@ describe('POST /api/v1/whatsapp/simulator/message', () => {
 
     mockAuthenticatedUser = {
       userId: 'user-1',
-      barbershopId: 'tenant-1',
+      businessId: 'tenant-1',
       email: 'tenant@test.com',
       plan: 'premium',
       role: 'tenant_admin',
@@ -123,10 +123,10 @@ describe('POST /api/v1/whatsapp/simulator/message', () => {
     });
   });
 
-  it('processa simulador com barbershopId valido no payload', async () => {
+  it('processa simulador com businessId valido no payload', async () => {
     const response = await request
       .post('/api/v1/whatsapp/simulator/message')
-      .send({ text: 'oi', barbershopId: 'tenant-1' });
+      .send({ text: 'oi', businessId: 'tenant-1' });
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
@@ -136,13 +136,13 @@ describe('POST /api/v1/whatsapp/simulator/message', () => {
       'oi',
       expect.objectContaining({
         simulationMode: true,
-        barbershopId: 'tenant-1',
-        barbershopContextSource: 'payload',
+        businessId: 'tenant-1',
+        businessContextSource: 'payload',
       })
     );
   });
 
-  it('usa barbershopId do contexto autenticado quando payload nao informa', async () => {
+  it('usa businessId do contexto autenticado quando payload nao informa', async () => {
     const response = await request
       .post('/api/v1/whatsapp/simulator/message')
       .send({ text: 'oi' });
@@ -154,16 +154,16 @@ describe('POST /api/v1/whatsapp/simulator/message', () => {
       'oi',
       expect.objectContaining({
         simulationMode: true,
-        barbershopId: 'tenant-1',
-        barbershopContextSource: 'auth',
+        businessId: 'tenant-1',
+        businessContextSource: 'auth',
       })
     );
   });
 
-  it('falha com erro claro quando contexto de barbershop nao esta disponivel', async () => {
+  it('falha com erro claro quando contexto de business nao esta disponivel', async () => {
     mockAuthenticatedUser = {
       userId: 'user-1',
-      barbershopId: null,
+      businessId: null,
       email: 'tenant@test.com',
       plan: 'premium',
       role: 'tenant_admin',
@@ -175,31 +175,31 @@ describe('POST /api/v1/whatsapp/simulator/message', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.success).toBe(false);
-    expect(response.body.error.code).toBe('WHATSAPP_SIMULATOR_BARBERSHOP_REQUIRED');
+    expect(response.body.error.code).toBe('WHATSAPP_SIMULATOR_BUSINESS_REQUIRED');
     expect(mockHandleIncomingMessage).not.toHaveBeenCalled();
   });
 
-  it('rejeita payload com barbershopId diferente do tenant autenticado', async () => {
+  it('rejeita payload com businessId diferente do tenant autenticado', async () => {
     const response = await request
       .post('/api/v1/whatsapp/simulator/message')
-      .send({ text: 'oi', barbershopId: 'tenant-2' });
+      .send({ text: 'oi', businessId: 'tenant-2' });
 
     expect(response.status).toBe(403);
     expect(response.body.success).toBe(false);
-    expect(response.body.error.code).toBe('WHATSAPP_SIMULATOR_BARBERSHOP_FORBIDDEN');
+    expect(response.body.error.code).toBe('WHATSAPP_SIMULATOR_BUSINESS_FORBIDDEN');
     expect(mockHandleIncomingMessage).not.toHaveBeenCalled();
   });
 
-  it('nao retorna 200 silencioso quando fluxo responde barbershop_not_resolved', async () => {
+  it('nao retorna 200 silencioso quando fluxo responde business_not_resolved', async () => {
     mockHandleIncomingMessage.mockResolvedValue({
       ok: false,
       ignored: true,
-      reason: 'barbershop_not_resolved',
+      reason: 'business_not_resolved',
     });
 
     const response = await request
       .post('/api/v1/whatsapp/simulator/message')
-      .send({ text: 'oi', barbershopId: 'tenant-1' });
+      .send({ text: 'oi', businessId: 'tenant-1' });
 
     expect(response.status).toBe(422);
     expect(response.body.success).toBe(false);

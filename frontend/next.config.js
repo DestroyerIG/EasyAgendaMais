@@ -1,6 +1,7 @@
 const path = require('path');
 
-const PRODUCTION_BACKEND_ORIGIN = 'https://easybarber-backend.onrender.com';
+const PRODUCTION_BACKEND_ORIGIN =
+  process.env.BACKEND_ORIGIN || 'https://easybarber-backend.onrender.com';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -81,6 +82,8 @@ const nextConfig = {
               "img-src 'self' data: blob: https:",
               "font-src 'self'",
               `connect-src 'self' ${apiOrigin} ${PRODUCTION_BACKEND_ORIGIN} ${supabaseOrigin} ${supabaseWssOrigin}`,
+              // Mapa de localização na vitrine pública (/agendar/:slug) via iframe do Google Maps.
+              "frame-src 'self' https://www.google.com https://maps.google.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

@@ -47,8 +47,8 @@ const mockAuthRepository = {
   findAnyUserByEmail: vi.fn(),
   findUserByEmailForSync: vi.fn(),
   findUserBySupabaseUserIdForUpdate: vi.fn(),
-  findBarbershopByEmailForUpdate: vi.fn(),
-  createBarbershop: vi.fn(),
+  findBusinessByEmailForUpdate: vi.fn(),
+  createBusiness: vi.fn(),
   createUser: vi.fn(),
   upsertPendingRegistration: vi.fn(),
   findPendingRegistrationByEmail: vi.fn(),
@@ -89,7 +89,7 @@ const mockBillingContextState = vi.hoisted(() => ({
 
 vi.mock('../repositories/subscriptionRepository.js', () => ({
   subscriptionRepository: {
-    getBarbershopBillingContext: vi.fn(async () =>
+    getBusinessBillingContext: vi.fn(async () =>
       mockBillingContextState.current ? { ...mockBillingContextState.current } : null
     ),
   },
@@ -148,8 +148,8 @@ const localUser = {
   id: 'user-uuid',
   email: 'joao@teste.com',
   email_verified: true,
-  barbershop_id: 'barbershop-uuid',
-  barbershop_name: 'Barbearia Teste',
+  business_id: 'business-uuid',
+  business_name: 'Negócio Teste',
   plan: 'premium',
   role: 'tenant_admin',
   auth_provider: 'supabase',
@@ -186,7 +186,7 @@ describe('Auth API — Supabase only', () => {
 
   describe('POST /api/v1/auth/register', () => {
     const validBody = {
-      barbershopName: 'Barbearia Teste',
+      businessName: 'Negócio Teste',
       ownerName: 'Joao Silva',
       email: 'joao@teste.com',
       whatsapp: '11999999999',
@@ -208,8 +208,8 @@ describe('Auth API — Supabase only', () => {
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
       expect(res.body.data.verificationRequired).toBe(true);
-      expect(res.body.data.barbershop.plan).toBe('basico');
-      expect(res.body.data.barbershop.desiredPlan).toBe('premium');
+      expect(res.body.data.business.plan).toBe('profissional');
+      expect(res.body.data.business.desiredPlan).toBe('premium');
       expect(mockSupabaseAuthService.signUpForEmailVerification).toHaveBeenCalledWith(
         'joao@teste.com',
         'Senha123!',
@@ -320,7 +320,7 @@ describe('Auth API — Supabase only', () => {
       const token = jwt.sign(
         {
           userId: 'user-uuid',
-          barbershopId: 'barbershop-uuid',
+          businessId: 'business-uuid',
           email: 'joao@teste.com',
           plan: 'premium',
           role: 'tenant_admin',
@@ -343,7 +343,7 @@ describe('Auth API — Supabase only', () => {
     const buildTenantToken = () => jwt.sign(
       {
         userId: 'user-uuid',
-        barbershopId: 'barbershop-uuid',
+        businessId: 'business-uuid',
         email: 'joao@teste.com',
         plan: 'premium',
         role: 'tenant_admin',
@@ -354,7 +354,7 @@ describe('Auth API — Supabase only', () => {
 
     it('bloqueia dashboard quando assinatura está incompleta', async () => {
       mockBillingContextState.current = {
-        barbershop_id: 'barbershop-uuid',
+        business_id: 'business-uuid',
         subscription_status: 'incomplete',
         provider: null,
         payment_method: null,
@@ -365,7 +365,7 @@ describe('Auth API — Supabase only', () => {
       };
       mockQuery.mockResolvedValueOnce({
         rows: [{
-          id: 'barbershop-uuid',
+          id: 'business-uuid',
           subscription_status: 'incomplete',
           provider: null,
           payment_method: null,
@@ -392,7 +392,7 @@ describe('Auth API — Supabase only', () => {
     it.skip('bloqueia status active sem evidência de pagamento', async () => {
       // Middleware reads billing context from the (mocked) repository.
       mockBillingContextState.current = {
-        barbershop_id: 'barbershop-uuid',
+        business_id: 'business-uuid',
         subscription_status: 'active',
         provider: null,
         payment_method: null,
@@ -403,7 +403,7 @@ describe('Auth API — Supabase only', () => {
       };
       mockQuery.mockResolvedValueOnce({
         rows: [{
-          id: 'barbershop-uuid',
+          id: 'business-uuid',
           subscription_status: 'active',
           provider: null,
           payment_method: null,
@@ -433,8 +433,8 @@ describe('Auth API — Supabase only', () => {
         email: 'joao@teste.com',
         role: 'tenant_admin',
         email_verified: true,
-        barbershop_id: 'barbershop-uuid',
-        barbershop_name: 'Barbearia Teste',
+        business_id: 'business-uuid',
+        business_name: 'Negócio Teste',
         plan: 'premium',
         subscription_status: 'active',
         subscription_current_period_end: null,
@@ -445,8 +445,8 @@ describe('Auth API — Supabase only', () => {
         email: 'joao@teste.com',
         role: 'tenant_admin',
         email_verified: true,
-        barbershop_id: 'barbershop-uuid',
-        barbershop_name: 'Barbearia Teste',
+        business_id: 'business-uuid',
+        business_name: 'Negócio Teste',
         plan: 'premium',
         subscription_status: 'active',
         subscription_current_period_end: null,

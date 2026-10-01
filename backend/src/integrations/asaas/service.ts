@@ -17,7 +17,7 @@ import { asaasMapper, type AsaasWebhookPayment, type AsaasPixQrCodePayload, type
 // Types
 // ---------------------------------------------------------------------------
 
-export interface AsaasBarbershopInput {
+export interface AsaasBusinessInput {
   id?: string | null;
   name?: string | null;
   email?: string | null;
@@ -151,10 +151,10 @@ const PLAN_VALUES = Object.freeze({
 }) as Record<string, number>;
 
 const GENERIC_CUSTOMER_NAMES = new Set([
-  'equipe easybarber',
-  'equipe easy barber',
-  'easybarber',
-  'easy barber',
+  'equipe easyagenda',
+  'equipe easy agenda',
+  'easyagenda',
+  'easy agenda',
 ]);
 
 // ---------------------------------------------------------------------------
@@ -524,7 +524,7 @@ const maskApiKey = (value: unknown): string | null => {
 const buildAsaasHeadersLog = (): Record<string, unknown> => ({
   accept: 'application/json',
   'content-type': 'application/json',
-  'user-agent': 'EasyBarber/1.0',
+  'user-agent': 'EasyAgenda/1.0',
   access_token: maskApiKey(normalizeAsaasApiKey(process.env.ASAAS_API_KEY)),
 });
 
@@ -568,19 +568,19 @@ const buildMinimalPixPaymentPayload = ({
   return removeAsaasEmptyFields(payload as unknown as Record<string, unknown>) as Record<string, unknown>;
 };
 
-const resolveBillingDescription = ({ plan, barbershopName }: { plan: string; barbershopName?: string | null }): string => {
+const resolveBillingDescription = ({ plan, businessName }: { plan: string; businessName?: string | null }): string => {
   const template =
     process.env.ASAAS_BILLING_DESCRIPTION ||
-    'EasyBarber - Plano {plan} ({barbershop})';
+    'EasyAgenda+ - Plano {plan} ({business})';
 
   return template
     .replaceAll('{plan}', plan)
-    .replaceAll('{barbershop}', barbershopName || 'Barbearia')
+    .replaceAll('{business}', businessName || 'Negócio')
     .slice(0, 500);
 };
 
-const buildExternalReference = ({ barbershopId, plan }: { barbershopId: string; plan: string }): string => {
-  return `barbershop:${barbershopId}:plan:${plan}`;
+const buildExternalReference = ({ businessId, plan }: { businessId: string; plan: string }): string => {
+  return `business:${businessId}:plan:${plan}`;
 };
 
 const parseAsaasDate = (value: unknown): Date | null => {
@@ -636,15 +636,15 @@ const resolvePixQrCode = async (paymentId: string): Promise<AsaasPixQrCodePayloa
   }
 };
 
-const resolveCustomerNameCandidates = (barbershop: AsaasBarbershopInput): string[] => {
+const resolveCustomerNameCandidates = (business: AsaasBusinessInput): string[] => {
   return [
-    barbershop?.owner_name,
-    barbershop?.ownerName,
-    barbershop?.responsible_name,
-    barbershop?.responsibleName,
-    barbershop?.metadata?.ownerName,
-    barbershop?.metadata?.responsibleName,
-    barbershop?.name,
+    business?.owner_name,
+    business?.ownerName,
+    business?.responsible_name,
+    business?.responsibleName,
+    business?.metadata?.ownerName,
+    business?.metadata?.responsibleName,
+    business?.name,
   ]
     .map((value) => normalizeText(value))
     .filter(Boolean) as string[];
@@ -655,8 +655,8 @@ const isGenericCustomerName = (value: string): boolean => {
   return GENERIC_CUSTOMER_NAMES.has(normalized);
 };
 
-const resolveCustomerName = (barbershop: AsaasBarbershopInput): string | null => {
-  const candidates = resolveCustomerNameCandidates(barbershop);
+const resolveCustomerName = (business: AsaasBusinessInput): string | null => {
+  const candidates = resolveCustomerNameCandidates(business);
   if (candidates.length === 0) {
     return null;
   }
@@ -701,16 +701,16 @@ const isValidPublicEmail = (email: unknown): boolean => {
   return true;
 };
 
-const resolveCustomerEmail = (barbershop: AsaasBarbershopInput): string | null => {
-  const candidate = typeof barbershop?.email === 'string' ? barbershop.email.trim() : '';
+const resolveCustomerEmail = (business: AsaasBusinessInput): string | null => {
+  const candidate = typeof business?.email === 'string' ? business.email.trim() : '';
   return isValidPublicEmail(candidate) ? candidate.toLowerCase() : null;
 };
 
-const resolveCustomerExternalReference = (barbershop: AsaasBarbershopInput): string | null => {
+const resolveCustomerExternalReference = (business: AsaasBusinessInput): string | null => {
   const candidates = [
-    barbershop?.id,
-    barbershop?.tenantId,
-    barbershop?.tenant_id,
+    business?.id,
+    business?.tenantId,
+    business?.tenant_id,
   ];
 
   for (const candidate of candidates) {
@@ -723,20 +723,20 @@ const resolveCustomerExternalReference = (barbershop: AsaasBarbershopInput): str
   return null;
 };
 
-const resolveSavedAsaasCustomerId = (barbershop: AsaasBarbershopInput): string | null => {
-  const normalizedProvider = String(barbershop?.provider || '').trim().toLowerCase();
-  const normalizedPaymentMethod = String(barbershop?.payment_method || '').trim().toLowerCase();
+const resolveSavedAsaasCustomerId = (business: AsaasBusinessInput): string | null => {
+  const normalizedProvider = String(business?.provider || '').trim().toLowerCase();
+  const normalizedPaymentMethod = String(business?.payment_method || '').trim().toLowerCase();
   const canTrustProviderCustomerId =
     normalizedProvider === 'asaas' || normalizedPaymentMethod === 'pix';
 
   const candidates = [
-    barbershop?.asaas_customer_id,
-    barbershop?.asaasCustomerId,
-    canTrustProviderCustomerId ? barbershop?.provider_customer_id : null,
-    barbershop?.customer_id,
-    barbershop?.customerId,
-    barbershop?.metadata?.asaas?.customerId,
-    barbershop?.metadata?.billing?.asaas?.customerId,
+    business?.asaas_customer_id,
+    business?.asaasCustomerId,
+    canTrustProviderCustomerId ? business?.provider_customer_id : null,
+    business?.customer_id,
+    business?.customerId,
+    business?.metadata?.asaas?.customerId,
+    business?.metadata?.billing?.asaas?.customerId,
   ];
 
   for (const candidate of candidates) {
@@ -749,14 +749,14 @@ const resolveSavedAsaasCustomerId = (barbershop: AsaasBarbershopInput): string |
   return null;
 };
 
-const resolveCustomerCpfCnpjInput = (barbershop: AsaasBarbershopInput): string | null => {
+const resolveCustomerCpfCnpjInput = (business: AsaasBusinessInput): string | null => {
   const candidates = [
-    barbershop?.cpf_cnpj,
-    barbershop?.cpfCnpj,
-    barbershop?.document,
-    barbershop?.documentNumber,
-    barbershop?.metadata?.cpfCnpj,
-    barbershop?.metadata?.document,
+    business?.cpf_cnpj,
+    business?.cpfCnpj,
+    business?.document,
+    business?.documentNumber,
+    business?.metadata?.cpfCnpj,
+    business?.metadata?.document,
   ];
 
   for (const candidate of candidates) {
@@ -796,18 +796,18 @@ const validateCustomerCpfCnpjOrThrow = (cpfCnpj: string | null): void => {
   }
 };
 
-const buildCustomerPayload = (barbershop: AsaasBarbershopInput): AsaasCustomerPayload => {
-  const name = resolveCustomerName(barbershop);
-  const email = resolveCustomerEmail(barbershop);
+const buildCustomerPayload = (business: AsaasBusinessInput): AsaasCustomerPayload => {
+  const name = resolveCustomerName(business);
+  const email = resolveCustomerEmail(business);
   const mobilePhone = normalizeBrazilPhone(
-    barbershop?.whatsapp || barbershop?.phone || barbershop?.mobile_phone
+    business?.whatsapp || business?.phone || business?.mobile_phone
   );
-  const cpfCnpj = resolveCustomerCpfCnpjInput(barbershop);
-  const externalReference = resolveCustomerExternalReference(barbershop);
+  const cpfCnpj = resolveCustomerCpfCnpjInput(business);
+  const externalReference = resolveCustomerExternalReference(business);
   const notificationDisabledCandidates = [
-    barbershop?.notificationDisabled,
-    barbershop?.metadata?.asaas?.notificationDisabled,
-    barbershop?.metadata?.billing?.asaas?.notificationDisabled,
+    business?.notificationDisabled,
+    business?.metadata?.asaas?.notificationDisabled,
+    business?.metadata?.billing?.asaas?.notificationDisabled,
   ];
   const notificationDisabled = notificationDisabledCandidates.find(
     (value) => typeof value === 'boolean'
@@ -943,19 +943,19 @@ export const asaasService = {
   resolvePlanValue,
 
   async getOrCreateAsaasCustomer({
-    barbershop,
+    business,
     idempotencyKey = null,
     onCustomerResolved = null,
   }: {
-    barbershop: AsaasBarbershopInput;
+    business: AsaasBusinessInput;
     idempotencyKey?: string | null;
     onCustomerResolved?: ((customerId: string, meta?: unknown) => Promise<void> | void) | null;
   }): Promise<AsaasCustomer> {
-    if (!barbershop?.id) {
+    if (!business?.id) {
       throw new AppError(
-        'Barbearia inválida para criação de cliente Asaas',
+        'Negócio inválido para criação de cliente Asaas',
         400,
-        'INVALID_BARBERSHOP'
+        'INVALID_BUSINESS'
       );
     }
 
@@ -967,14 +967,14 @@ export const asaasService = {
       try {
         await onCustomerResolved(customerId, {
           source,
-          barbershopId: barbershop.id,
+          businessId: business.id,
         });
       } catch (persistError) {
         const err = persistError as { message?: string } | null;
         logger.warn(
           {
             event: 'asaas_customer_persist_warning',
-            barbershopId: barbershop.id,
+            businessId: business.id,
             source,
             customerId,
             message: err?.message,
@@ -987,18 +987,18 @@ export const asaasService = {
     logger.info(
       {
         event: 'asaas_customer_lookup_db_start',
-        barbershopId: barbershop.id,
+        businessId: business.id,
       },
       'Buscando customer Asaas salvo no banco'
     );
 
-    const savedCustomerId = resolveSavedAsaasCustomerId(barbershop);
+    const savedCustomerId = resolveSavedAsaasCustomerId(business);
 
     if (savedCustomerId) {
       logger.info(
         {
           event: 'asaas_customer_reuse_from_db',
-          barbershopId: barbershop.id,
+          businessId: business.id,
           customerId: savedCustomerId,
         },
         'Customer Asaas reutilizado a partir do banco'
@@ -1011,12 +1011,12 @@ export const asaasService = {
       };
     }
 
-    const payload = buildCustomerPayload(barbershop);
+    const payload = buildCustomerPayload(business);
 
     logger.info(
       {
         event: 'asaas_customer_payload_prepared',
-        barbershopId: barbershop.id,
+        businessId: business.id,
         payload: maskSensitiveData(payload),
       },
       'Payload de cliente Asaas preparado'
@@ -1025,7 +1025,7 @@ export const asaasService = {
     logger.info(
       {
         event: 'asaas_customer_lookup_asaas_start',
-        barbershopId: barbershop.id,
+        businessId: business.id,
         cpfCnpj: maskDigitsTail(payload.cpfCnpj),
       },
       'Buscando customer Asaas por CPF/CNPJ antes de criar'
@@ -1040,7 +1040,7 @@ export const asaasService = {
           logger.info(
             {
               event: 'asaas_customer_reuse_from_asaas_by_cpfcnpj',
-              barbershopId: barbershop.id,
+              businessId: business.id,
               customerId: existingByDocument.id,
             },
             'Customer Asaas localizado por CPF/CNPJ'
@@ -1054,7 +1054,7 @@ export const asaasService = {
           {
             event: 'asaas_customer_lookup_warning',
             source: 'cpf_cnpj',
-            barbershopId: barbershop.id,
+            businessId: business.id,
             message: err?.message,
             cpfCnpj: maskDigitsTail(payload.cpfCnpj),
           },
@@ -1066,7 +1066,7 @@ export const asaasService = {
     logger.info(
       {
         event: 'asaas_customer_create_start',
-        barbershopId: barbershop.id,
+        businessId: business.id,
         method: 'POST',
         path: '/customers',
         payload: maskSensitiveData(payload),
@@ -1080,7 +1080,7 @@ export const asaasService = {
       logger.info(
         {
           event: 'asaas_customer_create_success',
-          barbershopId: barbershop.id,
+          businessId: business.id,
           customerId: createdCustomer?.id || null,
           externalReference: payload.externalReference || null,
         },
@@ -1113,7 +1113,7 @@ export const asaasService = {
       logger.error(
         {
           event: 'asaas_customer_create_error',
-          barbershopId: barbershop.id,
+          businessId: business.id,
           message: (error as { message?: string } | null)?.message,
           provider: providerContext.provider,
           statusCode: providerContext.statusCode,
@@ -1136,7 +1136,7 @@ export const asaasService = {
         logger.info(
           {
             event: 'asaas_customer_lookup_after_create_error_start',
-            barbershopId: barbershop.id,
+            businessId: business.id,
             cpfCnpj: maskDigitsTail(payload.cpfCnpj),
           },
           'Iniciando fallback de lookup de customer apos erro 400 no create'
@@ -1151,7 +1151,7 @@ export const asaasService = {
             logger.info(
               {
                 event: 'asaas_customer_recovered_after_create_error',
-                barbershopId: barbershop.id,
+                businessId: business.id,
                 customerId: recoveredCustomer.id,
               },
               'Customer Asaas recuperado apos falha no create'
@@ -1165,7 +1165,7 @@ export const asaasService = {
             {
               event: 'asaas_customer_lookup_warning',
               source: 'lookup_after_create_error',
-              barbershopId: barbershop.id,
+              businessId: business.id,
               message: err?.message,
               cpfCnpj: maskDigitsTail(payload.cpfCnpj),
             },
@@ -1176,7 +1176,7 @@ export const asaasService = {
         logger.error(
           {
             event: 'asaas_customer_failed_after_fallback',
-            barbershopId: barbershop.id,
+            businessId: business.id,
             provider: providerContext.provider,
             statusCode: providerContext.statusCode,
             method: providerContext.method,
@@ -1233,16 +1233,16 @@ export const asaasService = {
   },
 
   async createOrGetCustomer({
-    barbershop,
+    business,
     idempotencyKey = null,
     onCustomerResolved = null,
   }: {
-    barbershop: AsaasBarbershopInput;
+    business: AsaasBusinessInput;
     idempotencyKey?: string | null;
     onCustomerResolved?: ((customerId: string, meta?: unknown) => Promise<void> | void) | null;
   }): Promise<AsaasCustomer> {
     return this.getOrCreateAsaasCustomer({
-      barbershop,
+      business,
       idempotencyKey,
       onCustomerResolved,
     });
@@ -1250,7 +1250,7 @@ export const asaasService = {
 
   async createPixCharge({
     customerId,
-    barbershopId,
+    businessId,
     plan,
     amount,
     dueDate,
@@ -1259,7 +1259,7 @@ export const asaasService = {
     externalReference,
   }: {
     customerId: string;
-    barbershopId: string;
+    businessId: string;
     plan: string;
     amount?: number | null;
     dueDate?: unknown;
@@ -1280,7 +1280,7 @@ export const asaasService = {
     logger.info(
       {
         event: 'asaas_pix_payment_create_start',
-        barbershopId,
+        businessId,
         method: 'POST',
         path: '/payments',
         endpoint: '/payments',
@@ -1300,7 +1300,7 @@ export const asaasService = {
       logger.info(
         {
           event: 'asaas_pix_payment_create_success',
-          barbershopId,
+          businessId,
           paymentId: createdPayment?.id || null,
           status: createdPayment?.status || null,
         },
@@ -1350,26 +1350,26 @@ export const asaasService = {
   },
 
   async createPixSubscription({
-    barbershop,
+    business,
     plan,
     nextDueDate,
     amount,
     idempotencyKey = null,
     onCustomerResolved = null,
   }: {
-    barbershop: AsaasBarbershopInput;
+    business: AsaasBusinessInput;
     plan: string;
     nextDueDate?: unknown;
     amount?: number | null;
     idempotencyKey?: string | null;
     onCustomerResolved?: ((customerId: string, meta?: unknown) => Promise<void> | void) | null;
   }): Promise<AsaasPixChargeResult> {
-    const payerCpfCnpj = resolveCustomerCpfCnpjInput(barbershop);
+    const payerCpfCnpj = resolveCustomerCpfCnpjInput(business);
 
     validateCustomerCpfCnpjOrThrow(payerCpfCnpj);
 
     const customer = await this.getOrCreateAsaasCustomer({
-      barbershop,
+      business,
       idempotencyKey,
       onCustomerResolved,
     });
@@ -1378,12 +1378,12 @@ export const asaasService = {
     const resolvedDueDate = resolvePixDueDate(nextDueDate || addDays(new Date(), 1));
     const payment = await this.createPixCharge({
       customerId: customer.id,
-      barbershopId: barbershop.id!,
+      businessId: business.id!,
       plan,
       amount: resolvedAmount,
       dueDate: resolvedDueDate,
       idempotencyKey,
-      externalReference: buildExternalReference({ barbershopId: barbershop.id!, plan }),
+      externalReference: buildExternalReference({ businessId: business.id!, plan }),
     });
 
     const pixQrCode = payment?.id ? await resolvePixQrCode(payment.id) : null;

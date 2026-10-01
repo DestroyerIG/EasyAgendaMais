@@ -2,35 +2,35 @@ import { prisma } from '../config/prisma.js';
 import { startOfDay, endOfDay } from '../utils/dateUtils.js';
 
 export const dashboardRepository = {
-  async getDashboardData(barbershopId: string, today: Date) {
+  async getDashboardData(businessId: string, today: Date) {
     const [appointmentsToday, earningsToday, expensesToday, totalClients, weeklyEarnings] =
       await Promise.all([
         prisma.appointment.count({
           where: { 
-            barbershopId, 
+            businessId, 
             date: { gte: startOfDay(today), lte: endOfDay(today) }, 
             status: 'confirmado' 
           },
         }),
         prisma.earning.aggregate({
           where: { 
-            barbershopId, 
+            businessId, 
             date: { gte: startOfDay(today), lte: endOfDay(today) } 
           },
           _sum: { amount: true },
         }),
         prisma.expense.aggregate({
           where: { 
-            barbershopId, 
+            businessId, 
             date: { gte: startOfDay(today), lte: endOfDay(today) } 
           },
           _sum: { amount: true },
         }),
-        prisma.client.count({ where: { barbershopId } }),
+        prisma.client.count({ where: { businessId } }),
         prisma.earning.groupBy({
           by: ['date'],
           where: {
-            barbershopId,
+            businessId,
             date: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
           },
           _sum: { amount: true },

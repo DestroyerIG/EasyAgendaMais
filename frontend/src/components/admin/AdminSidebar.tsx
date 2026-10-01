@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Activity, Building2, CreditCard, LayoutDashboard, ScrollText, Tags } from 'lucide-react';
-import easyBarberLogo from '@/icons/easybarber.png';
+import easyAgendaLogo from '@/icons/easyagenda-logo.svg';
 
 const links = [
   { href: '/admin', label: 'Resumo', icon: LayoutDashboard },
@@ -23,11 +23,11 @@ export function AdminSidebar() {
       <div className="px-5 py-5">
         <div className="flex items-center gap-3">
           <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-primary/30 bg-black/40">
-            <Image src={easyBarberLogo} alt="Logo EasyBarber" width={40} height={40} className="h-full w-full object-contain" priority />
+            <Image src={easyAgendaLogo} alt="Logo EasyAgenda+" width={40} height={40} className="h-full w-full object-contain" priority />
           </span>
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary/70">Área Administrativa</p>
-            <h1 className="mt-1 text-xl font-black text-white">EasyBarber</h1>
+            <h1 className="mt-1 text-xl font-black text-white">EasyAgenda+</h1>
           </div>
         </div>
       </div>

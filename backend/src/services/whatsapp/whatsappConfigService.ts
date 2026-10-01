@@ -11,7 +11,7 @@ import { DEFAULT_BOT_CONFIG, FALLBACK_BOT_CONFIG, DEFAULT_MENU_OPTIONS, BotConfi
 
 interface MenuOptionRow {
   id: string;
-  barbershop_id: string;
+  business_id: string;
   option_order: number;
   label: string;
   emoji: string;
@@ -24,10 +24,10 @@ interface MenuOptionRow {
 /**
  * Busca configuração de mensagens do bot (todas as mensagens configuráveis).
  */
-export const getBotConfig = async (barbershopId: string): Promise<BotConfig> => {
+export const getBotConfig = async (businessId: string): Promise<BotConfig> => {
   try {
     const dbConfig = await prisma.whatsappBotConfig.findFirst({
-      where: { barbershopId },
+      where: { businessId },
     });
 
     if (dbConfig) {
@@ -57,7 +57,7 @@ export const getBotConfig = async (barbershopId: string): Promise<BotConfig> => 
 
     return DEFAULT_BOT_CONFIG;
   } catch (error) {
-    logger.error({ err: error, barbershopId }, 'Erro ao buscar config do bot');
+    logger.error({ err: error, businessId }, 'Erro ao buscar config do bot');
     return DEFAULT_BOT_CONFIG;
   }
 };
@@ -66,11 +66,11 @@ export const getBotConfig = async (barbershopId: string): Promise<BotConfig> => 
  * Busca opções do menu dinâmico do bot.
  * Nota: whatsapp_menu_options não está no schema Prisma — usa $queryRaw.
  */
-export const getMenuOptions = async (barbershopId: string): Promise<MenuOptionRow[]> => {
+export const getMenuOptions = async (businessId: string): Promise<MenuOptionRow[]> => {
   try {
     const rows = await prisma.$queryRaw<MenuOptionRow[]>(Prisma.sql`
       SELECT * FROM whatsapp_menu_options
-       WHERE barbershop_id = ${barbershopId}::uuid AND active = true
+       WHERE business_id = ${businessId}::uuid AND active = true
        ORDER BY option_order ASC
     `);
 
@@ -78,27 +78,27 @@ export const getMenuOptions = async (barbershopId: string): Promise<MenuOptionRo
       return rows;
     }
 
-    await seedDefaultMenuOptions(barbershopId);
+    await seedDefaultMenuOptions(businessId);
     return prisma.$queryRaw<MenuOptionRow[]>(Prisma.sql`
       SELECT * FROM whatsapp_menu_options
-       WHERE barbershop_id = ${barbershopId}::uuid AND active = true
+       WHERE business_id = ${businessId}::uuid AND active = true
        ORDER BY option_order ASC
     `);
   } catch (error) {
-    logger.error({ err: error, barbershopId }, 'Erro ao buscar opções do menu');
+    logger.error({ err: error, businessId }, 'Erro ao buscar opções do menu');
     return [];
   }
 };
 
 /**
- * Seed de opções padrão do menu para uma barbearia.
+ * Seed de opções padrão do menu para um negócio.
  */
-export const seedDefaultMenuOptions = async (barbershopId: string): Promise<void> => {
+export const seedDefaultMenuOptions = async (businessId: string): Promise<void> => {
   for (const opt of DEFAULT_MENU_OPTIONS as MenuOption[]) {
     await prisma.$executeRaw(Prisma.sql`
-      INSERT INTO whatsapp_menu_options (barbershop_id, option_order, label, emoji, type, handler, active)
-      VALUES (${barbershopId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)
-      ON CONFLICT (barbershop_id, option_order) DO NOTHING
+      INSERT INTO whatsapp_menu_options (business_id, option_order, label, emoji, type, handler, active)
+      VALUES (${businessId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)
+      ON CONFLICT (business_id, option_order) DO NOTHING
     `);
   }
 };

@@ -4,31 +4,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '@/lib/api';
 import { useToast } from './Toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { PageHeader } from '@/components/ui';
+import { PageHeader, Button, Card, Icon, Tabs, TabsList, TabsTrigger, TabsContent, buttonVariants } from '@/components/ui';
+import { cn } from '@/lib/cn';
 import { ConnectionPanel } from '@/components/whatsapp/ConnectionPanel';
 import { MessageConfigPanel, BotConfig } from '@/components/whatsapp/MessageConfigPanel';
 import { MenuOptionsPanel, MenuOption } from '@/components/whatsapp/MenuOptionsPanel';
 import { ChatSimulator } from '@/components/whatsapp/ChatSimulator';
-import {
-  Smartphone,
-  Settings2,
-  Bot,
-  Zap,
-  ShieldCheck,
-  Clock,
-  User,
-  Wifi,
-  Loader2,
-  CheckCircle,
-  QrCode,
-  WifiOff,
-  AlertTriangle,
-  LogOut,
-  RefreshCw,
-  List,
-  Lock,
-  ArrowUpCircle,
-} from 'lucide-react';
 
 interface WhatsAppStatus {
   status:
@@ -114,6 +95,26 @@ const DEFAULT_WA_STATUS: WhatsAppStatus = {
   error: null,
 };
 
+type ConnectionTone = 'success' | 'warning' | 'danger';
+
+const TONE_ICON_WRAP_CLASS: Record<ConnectionTone, string> = {
+  success: 'bg-success/12 text-success',
+  warning: 'bg-warning/12 text-warning',
+  danger: 'bg-danger/12 text-danger',
+};
+
+const TONE_TEXT_CLASS: Record<ConnectionTone, string> = {
+  success: 'text-success',
+  warning: 'text-warning',
+  danger: 'text-danger',
+};
+
+const TONE_STRIPE_CLASS: Record<ConnectionTone, string> = {
+  success: 'bg-success',
+  warning: 'bg-warning',
+  danger: 'bg-danger',
+};
+
 export const WhatsAppModule = () => {
   const [activeTab, setActiveTab] = useState<'simulador' | 'config' | 'mensagens' | 'menu'>('config');
   const [waStatus, setWaStatus] = useState<WhatsAppStatus>(DEFAULT_WA_STATUS);
@@ -132,6 +133,8 @@ export const WhatsAppModule = () => {
   const [statusLoading, setStatusLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [featureBlocked, setFeatureBlocked] = useState(false);
+  // Hora do último status recebido com sucesso — só o front sabe disso, não é fabricado.
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const { showToast } = useToast();
   const { user } = useAuth();
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -162,6 +165,7 @@ export const WhatsAppModule = () => {
 
       waStatusRef.current = mergedStatus;
       setWaStatus(mergedStatus);
+      setLastSyncedAt(new Date());
     } catch (err: unknown) {
       // Ignorar erros de requisições canceladas (AbortController)
       if (err && typeof err === 'object' && 'name' in err && (err as { name: string }).name === 'CanceledError') return;
@@ -173,11 +177,17 @@ export const WhatsAppModule = () => {
         setFeatureBlocked(true);
         return;
       }
-      setWaStatus({
+      // waStatusRef também precisa atualizar aqui: getIntervalMs() (o polling adaptativo,
+      // mais abaixo) lê o ref, não o state — sem isto, depois de um erro o próximo
+      // intervalo continuava usando o último status bem-sucedido (achado da varredura de
+      // telas: cadência de retry atrasada depois de uma falha de rede).
+      const statusDeErro = {
         ...DEFAULT_WA_STATUS,
-        status: 'provider_unavailable',
+        status: 'provider_unavailable' as const,
         error: 'Nao foi possivel consultar a Evolution API no momento.',
-      });
+      };
+      waStatusRef.current = statusDeErro;
+      setWaStatus(statusDeErro);
     } finally {
       setStatusLoading(false);
     }
@@ -334,14 +344,14 @@ export const WhatsAppModule = () => {
   };
 
   const handleSimulatorMessage = async (text: string): Promise<string | null> => {
-    const barbershopId =
-      typeof user?.barbershopId === 'string' && user.barbershopId.trim()
-        ? user.barbershopId.trim()
+    const businessId =
+      typeof user?.businessId === 'string' && user.businessId.trim()
+        ? user.businessId.trim()
         : null;
 
-    if (!barbershopId) {
+    if (!businessId) {
       showToast(
-        'Nao foi possivel identificar a barbearia autenticada para o simulador. Faca login novamente.',
+        'Não foi possível identificar o negócio autenticado para o simulador. Faça login novamente.',
         'error'
       );
       return null;
@@ -352,7 +362,7 @@ export const WhatsAppModule = () => {
         text,
         phone: '5511999999999',
         pushName: 'Simulador',
-        barbershopId,
+        businessId,
       });
 
       return response.data?.lastBotResponse || null;
@@ -381,13 +391,13 @@ export const WhatsAppModule = () => {
 
   const getStatusConfig = () => {
     switch (waStatus.status) {
-      case 'connected': return { icon: <CheckCircle size={20} />, label: 'Conectado', sublabel: waStatus.connectedName || waStatus.connectedNumber || '', color: 'text-green-500', bg: 'bg-green-500/10', border: 'border-green-500/20', barColor: 'bg-green-500', pulse: true };
-      case 'pairing': return { icon: <QrCode size={20} />, label: 'Aguardando pareamento', sublabel: 'Escaneie o QR Code no WhatsApp', color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20', barColor: 'bg-amber-500', pulse: false };
-      case 'instance_not_found': return { icon: <AlertTriangle size={20} />, label: 'Instancia inexistente', sublabel: waStatus.error || 'A instancia configurada nao existe na Evolution', color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', barColor: 'bg-yellow-500', pulse: false };
+      case 'connected': return { tone: 'success' as const, icon: 'check_circle', label: 'Conectado', sublabel: waStatus.connectedName || waStatus.connectedNumber || '', pulse: true };
+      case 'pairing': return { tone: 'warning' as const, icon: 'qr_code_scanner', label: 'Aguardando pareamento', sublabel: 'Escaneie o QR Code no WhatsApp', pulse: false };
+      case 'instance_not_found': return { tone: 'danger' as const, icon: 'warning', label: 'Instancia inexistente', sublabel: waStatus.error || 'A instancia configurada nao existe na Evolution', pulse: false };
       case 'provider_unavailable':
-      case 'unavailable': return { icon: <WifiOff size={20} />, label: 'API indisponivel', sublabel: waStatus.error || 'Evolution API fora do ar', color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20', barColor: 'bg-slate-500', pulse: false };
-      case 'error': return { icon: <AlertTriangle size={20} />, label: 'Erro', sublabel: waStatus.error || 'Falha inesperada no provider', color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20', barColor: 'bg-orange-500', pulse: false };
-      default: return { icon: <WifiOff size={20} />, label: 'Desconectado', sublabel: waStatus.error || 'Clique em conectar para iniciar', color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/20', barColor: 'bg-red-500', pulse: false };
+      case 'unavailable': return { tone: 'danger' as const, icon: 'wifi_off', label: 'API indisponivel', sublabel: waStatus.error || 'Evolution API fora do ar', pulse: false };
+      case 'error': return { tone: 'danger' as const, icon: 'warning', label: 'Erro', sublabel: waStatus.error || 'Falha inesperada no provider', pulse: false };
+      default: return { tone: 'danger' as const, icon: 'wifi_off', label: 'Desconectado', sublabel: waStatus.error || 'Clique em conectar para iniciar', pulse: false };
     }
   };
 
@@ -399,39 +409,36 @@ export const WhatsAppModule = () => {
       : 'Conectar';
 
   const tabs = [
-    { id: 'config' as const, label: 'Conexão', icon: Smartphone },
-    { id: 'menu' as const, label: 'Menu', icon: List },
-    { id: 'mensagens' as const, label: 'Mensagens', icon: Settings2 },
-    { id: 'simulador' as const, label: 'Simulador', icon: Bot },
+    { id: 'config' as const, label: 'Conexão', icon: 'smartphone' },
+    { id: 'menu' as const, label: 'Menu', icon: 'list' },
+    { id: 'mensagens' as const, label: 'Mensagens', icon: 'tune' },
+    { id: 'simulador' as const, label: 'Simulador', icon: 'smart_toy' },
   ];
 
   if (featureBlocked) {
     return (
       <div className="space-y-8 pb-10">
         <PageHeader
-          title="WhatsApp Business Bot"
+          title="WhatsApp"
           description="Automatize seus agendamentos e lembretes via WhatsApp."
         />
-        <div className="card flex flex-col items-center gap-6 py-16 text-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-500/10">
-            <Lock size={36} className="text-amber-400" />
+        <Card className="flex flex-col items-center gap-6 py-16 text-center">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-warning/12">
+            <Icon name="lock" size={36} className="text-warning" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-white">Recurso não disponível no seu plano</h2>
-            <p className="max-w-md text-gray-400">
+            <h2 className="text-2xl font-bold text-ink">Recurso não disponível no seu plano</h2>
+            <p className="max-w-md text-muted">
               Seu plano atual não inclui integração com WhatsApp. Faça upgrade para o plano{' '}
-              <span className="font-semibold text-white">Profissional</span> ou{' '}
-              <span className="font-semibold text-white">Premium</span> para automatizar seus agendamentos e lembretes via WhatsApp.
+              <span className="font-semibold text-ink">Profissional</span> ou{' '}
+              <span className="font-semibold text-ink">Premium</span> para automatizar seus agendamentos e lembretes via WhatsApp.
             </p>
           </div>
-          <a
-            href="/planos"
-            className="btn-primary flex items-center gap-2"
-          >
-            <ArrowUpCircle size={18} />
+          <a href="/planos" className={cn(buttonVariants({ variant: 'primary' }), 'gap-2')}>
+            <Icon name="arrow_circle_up" size={18} />
             Ver planos disponíveis
           </a>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -439,121 +446,122 @@ export const WhatsAppModule = () => {
   return (
     <div className="space-y-8 pb-10">
       <PageHeader
-        title="WhatsApp Business Bot"
+        title="WhatsApp"
         description="Automatize seus agendamentos e lembretes via WhatsApp."
-        action={
-          <div className="flex p-1 bg-dark-light border border-gray-800 rounded-xl">
-            {tabs.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setActiveTab(t.id)}
-                className={`flex items-center gap-2 ${activeTab === t.id ? 'tab-active' : 'tab-inactive'}`}
-              >
-                <t.icon size={16} /> {t.label}
-              </button>
-            ))}
-          </div>
-        }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Sidebar */}
-        <div className="space-y-6">
-          <div className={`card border ${statusConfig.border} p-4 sm:p-6 rounded-2xl relative overflow-hidden transition-all duration-500`}>
-            <div className={`absolute top-0 right-0 w-2 h-full ${statusConfig.barColor} opacity-20`} />
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-              <Zap size={14} className="text-primary" /> Status da Conexão
-            </h3>
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 ${statusConfig.bg} rounded-full flex items-center justify-center ${statusConfig.color} ${statusConfig.pulse ? 'animate-pulse' : ''}`}>
-                {statusLoading ? <Loader2 size={20} className="animate-spin" /> : statusConfig.icon}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)}>
+        <TabsList>
+          {tabs.map(t => (
+            <TabsTrigger key={t.id} value={t.id} className="gap-2">
+              <Icon name={t.icon} size={16} />
+              {t.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-4">
+          {/* Sidebar */}
+          <div className="space-y-6">
+            <Card className="relative overflow-hidden">
+              <div className={cn('absolute right-0 top-0 h-full w-1 opacity-40', TONE_STRIPE_CLASS[statusConfig.tone])} />
+              <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-ink">
+                <Icon name="bolt" size={14} className="text-brand-text" /> Status da Conexão
+              </h3>
+              <div className="flex items-center gap-3">
+                <div className={cn('flex h-10 w-10 items-center justify-center rounded-full', TONE_ICON_WRAP_CLASS[statusConfig.tone], statusConfig.pulse && 'animate-pulse')}>
+                  {statusLoading ? <Icon name="progress_activity" size={20} className="animate-spin" /> : <Icon name={statusConfig.icon} size={20} />}
+                </div>
+                <div>
+                  <p className={cn('text-[13px] font-bold', TONE_TEXT_CLASS[statusConfig.tone])}>
+                    {statusLoading ? 'Verificando...' : statusConfig.label}
+                  </p>
+                  <p className="text-[13px] text-muted">
+                    {statusLoading ? '' : (statusConfig.sublabel?.length > 30 ? statusConfig.sublabel.substring(0, 30) + '...' : statusConfig.sublabel)}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className={`text-sm font-bold uppercase italic ${statusConfig.color}`}>
-                  {statusLoading ? 'Verificando...' : statusConfig.label}
-                </p>
-                <p className="text-[10px] text-gray-500 font-medium">
-                  {statusLoading ? '' : (statusConfig.sublabel?.length > 30 ? statusConfig.sublabel.substring(0, 30) + '...' : statusConfig.sublabel)}
-                </p>
+              <div className="mt-4 flex gap-2">
+                {waStatus.status === 'connected' && (
+                  <Button variant="danger" size="sm" onClick={handleDisconnect} loading={actionLoading}>
+                    {!actionLoading && <Icon name="logout" size={14} />}
+                    Desconectar
+                  </Button>
+                )}
+                {(
+                  waStatus.status === 'disconnected' ||
+                  waStatus.status === 'error' ||
+                  waStatus.status === 'pairing' ||
+                  waStatus.status === 'instance_not_found' ||
+                  waStatus.status === 'provider_unavailable' ||
+                  waStatus.status === 'unavailable'
+                ) && (
+                  <Button variant="whatsapp" size="sm" onClick={handleConnect} loading={actionLoading}>
+                    {!actionLoading && <Icon name="refresh" size={14} />}
+                    {connectButtonLabel}
+                  </Button>
+                )}
               </div>
-            </div>
-            <div className="mt-4 flex gap-2">
-              {waStatus.status === 'connected' && (
-                <button onClick={handleDisconnect} disabled={actionLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-all disabled:opacity-50">
-                  {actionLoading ? <Loader2 size={12} className="animate-spin" /> : <LogOut size={12} />} Desconectar
-                </button>
-              )}
-              {(
-                waStatus.status === 'disconnected' ||
-                waStatus.status === 'error' ||
-                waStatus.status === 'pairing' ||
-                waStatus.status === 'instance_not_found' ||
-                waStatus.status === 'provider_unavailable' ||
-                waStatus.status === 'unavailable'
-              ) && (
-                <button onClick={handleConnect} disabled={actionLoading} className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-all disabled:opacity-50">
-                  {actionLoading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} {connectButtonLabel}
-                </button>
-              )}
-            </div>
+            </Card>
+
+            <Card>
+              <h3 className="mb-4 text-lg font-bold text-ink">Recursos Ativos</h3>
+              <ul className="space-y-4">
+                {[
+                  { icon: 'verified_user', text: 'Agendamento Automático (24/7)' },
+                  { icon: 'schedule', text: 'Lembretes Automáticos (2h antes)' },
+                  { icon: 'person', text: 'Captura de novos clientes' },
+                  { icon: 'wifi', text: 'Conexao via Evolution API externa' },
+                ].map(recurso => (
+                  <li key={recurso.text} className="flex items-start gap-3">
+                    <Icon name={recurso.icon} size={16} className="mt-1 text-brand-text" />
+                    <p className="text-[13px] leading-relaxed text-muted">{recurso.text}</p>
+                  </li>
+                ))}
+              </ul>
+            </Card>
           </div>
 
-          <div className="card p-6 rounded-2xl">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Recursos Ativos</h3>
-            <ul className="space-y-4">
-              {[
-                { icon: ShieldCheck, text: 'Agendamento Automático (24/7)' },
-                { icon: Clock, text: 'Lembretes Automáticos (2h antes)' },
-                { icon: User, text: 'Captura de novos clientes' },
-                { icon: Wifi, text: 'Conexao via Evolution API externa' },
-              ].map(({ icon: Icon, text }) => (
-                <li key={text} className="flex items-start gap-3">
-                  <Icon size={16} className="text-primary mt-1" />
-                  <p className="text-xs text-silver leading-relaxed">{text}</p>
-                </li>
-              ))}
-            </ul>
+          {/* Main content */}
+          <div className="lg:col-span-3">
+            <TabsContent value="config" className="mt-0">
+              <ConnectionPanel
+                waStatus={waStatus}
+                statusLoading={statusLoading}
+                actionLoading={actionLoading}
+                lastSyncedAt={lastSyncedAt}
+                onConnect={handleConnect}
+              />
+            </TabsContent>
+            <TabsContent value="menu" className="mt-0">
+              <MenuOptionsPanel
+                options={menuOptions}
+                loading={menuLoading}
+                actionLoading={actionLoading}
+                onToggle={handleMenuToggle}
+                onUpdate={handleMenuUpdate}
+                onDelete={handleMenuDelete}
+                onCreate={handleMenuCreate}
+                onReorder={handleMenuReorder}
+                onReset={handleMenuReset}
+              />
+            </TabsContent>
+            <TabsContent value="mensagens" className="mt-0">
+              <MessageConfigPanel
+                botConfig={botConfig}
+                onChange={setBotConfig}
+                configLoading={configLoading}
+                actionLoading={actionLoading}
+                onSave={handleSaveConfig}
+                onReset={handleResetConfig}
+              />
+            </TabsContent>
+            <TabsContent value="simulador" className="mt-0">
+              <ChatSimulator onSendMessage={handleSimulatorMessage} />
+            </TabsContent>
           </div>
         </div>
-
-        {/* Main content */}
-        <div className="lg:col-span-3">
-          {activeTab === 'config' && (
-            <ConnectionPanel
-              waStatus={waStatus}
-              statusLoading={statusLoading}
-              actionLoading={actionLoading}
-              onConnect={handleConnect}
-            />
-          )}
-          {activeTab === 'menu' && (
-            <MenuOptionsPanel
-              options={menuOptions}
-              loading={menuLoading}
-              actionLoading={actionLoading}
-              onToggle={handleMenuToggle}
-              onUpdate={handleMenuUpdate}
-              onDelete={handleMenuDelete}
-              onCreate={handleMenuCreate}
-              onReorder={handleMenuReorder}
-              onReset={handleMenuReset}
-            />
-          )}
-          {activeTab === 'mensagens' && (
-            <MessageConfigPanel
-              botConfig={botConfig}
-              onChange={setBotConfig}
-              configLoading={configLoading}
-              actionLoading={actionLoading}
-              onSave={handleSaveConfig}
-              onReset={handleResetConfig}
-            />
-          )}
-          {activeTab === 'simulador' && (
-            <ChatSimulator onSendMessage={handleSimulatorMessage} />
-          )}
-        </div>
-      </div>
+      </Tabs>
     </div>
   );
 };
