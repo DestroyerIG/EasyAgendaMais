@@ -219,7 +219,7 @@ da meia-noite mostra "23:30 às 01:30".
 
 **Drawer de detalhes** — refeito pelo `7ba488`: cabeçalho "Agendamento #N" + chip de status;
 cliente com telefone, selo "Cliente recorrente" e botão de WhatsApp; cartões "Ciclo médio"
-(com "Ideal para o serviço" só quando houver ≥ 3 visitas) e "Total de visitas em <ano>"
+(com o selo "Ciclo regular" só quando houver ≥ 3 visitas — "Ideal para o serviço" afirmaria uma comparação que o sistema não faz) e "Total de visitas em <ano>"
 ("Última há N dias com <profissional>"); "Serviço e horário" com origem real; "Pagamento" com
 sinal real e "Restante no balcão"; "Observações da ficha técnica" com `client.notes` (bloco
 some se vazio); botões por status (Iniciar / Concluir atendimento e receber / Remarcar /
@@ -257,7 +257,7 @@ comissão própria e intervalo no modal da profissional; comissão padrão em Aj
 - Comprovante falhou no WhatsApp → comanda fecha; aviso "Comprovante não enviado" e
   `receipt_sent_at` fica nulo; o drawer oferece "Reenviar comprovante".
 - Agendamento cancelado/faltou não pode abrir comanda (409).
-- Faltou com sinal pago: o sinal continua contado em "Sinais Pix" do dia em que foi pago; não
+- Faltou com sinal pago: o sinal retido entra em "Sinais Pix" do caixa do dia do atendimento perdido (o sistema não guarda a data exata do pagamento do sinal); não
   vira comanda.
 - Intervalo de almoço fora do expediente ou com fim ≤ início → 400.
 - Valores negativos ou quantidade < 1 → 400.
