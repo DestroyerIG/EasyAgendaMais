@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"ink-dark":"#F3F1EF","ink-light":"#1A1817","surface-tint":"#994700","danger-light":"#DC2626","on-tertiary":"#ffffff","tertiary":"#006399","line-light":"#E2DFDB","tertiary-fixed":"#cde5ff","surface-container-high":"#ede7e5","brand-text-light":"#B34D00","surface-container":"#f3edea","on-secondary":"#ffffff","surface-container-lowest":"#ffffff","on-brand":"#1A1817","surface-bright":"#fff8f6","background":"#fff8f6","brand-text-dark":"#FF9A3D","on-secondary-fixed":"#1f1b17","warning-light":"#D97706","outline-variant":"#e0c0af","tertiary-container":"#00a8ff","on-tertiary-fixed-variant":"#004a75","secondary-container":"#eae1da","inverse-on-surface":"#f6efed","muted-light":"#66605B","primary":"#994700","on-surface-variant":"#584235","on-error":"#ffffff","warning-dark":"#FBBF24","inverse-primary":"#ffb68b","on-error-container":"#93000a","on-background":"#1d1b1a","surface-variant":"#e7e1df","on-tertiary-fixed":"#001d32","surface":"#fff8f6","whatsapp-light":"#128C4A","on-primary-fixed":"#321200","success-light":"#16A34A","whatsapp-dark":"#25D366","error-container":"#ffdad6","line-dark":"#2E2B28","error":"#ba1a1a","inverse-surface":"#32302f","bg-light":"#F6F5F4","on-secondary-fixed-variant":"#4b4641","on-secondary-container":"#69635e","primary-fixed":"#ffdbc8","muted-dark":"#A39D97","secondary-fixed":"#eae1da","danger-dark":"#F87171","primary-container":"#ff7a00","primary-fixed-dim":"#ffb68b","success-dark":"#4ADE80","surface-dark":"#181615","on-surface":"#1d1b1a","on-tertiary-container":"#003a5c","status-confirmed":"#2563EB","surface-2-dark":"#211F1D","secondary":"#635d58","surface-container-low":"#f9f2f0","surface-light":"#FFFFFF","bg-dark":"#0E0D0C","surface-2-light":"#EFEDEA","surface-dim":"#dfd9d7","tertiary-fixed-dim":"#95ccff","on-primary-container":"#5c2800","on-primary":"#ffffff","surface-container-highest":"#e7e1df","secondary-fixed-dim":"#cdc5bf","on-primary-fixed-variant":"#753400","outline":"#8c7263"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-xs":"0.25rem","gutter":"1rem","space-sm":"0.5rem","space-md":"1rem","space-lg":"1.5rem","margin":"1rem","space-xl":"2rem"},"fontFamily":{"headline-md":["Plus Jakarta Sans"],"title-lg":["Plus Jakarta Sans"],"body-md":["Plus Jakarta Sans"],"display-lg":["Plus Jakarta Sans"],"label-sm":["Plus Jakarta Sans"],"body-sm":["Plus Jakarta Sans"],"headline-lg-mobile":["Plus Jakarta Sans"],"title-md":["Plus Jakarta Sans"],"label-md":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"]},"fontSize":{"headline-md":["24px",{"lineHeight":"32px","fontWeight":"700"}],"title-lg":["20px",{"lineHeight":"28px","fontWeight":"700"}],"body-md":["15px",{"lineHeight":"22.5px","fontWeight":"400"}],"display-lg":["40px",{"lineHeight":"48px","fontWeight":"800"}],"label-sm":["11px",{"lineHeight":"16px","fontWeight":"600"}],"body-sm":["14px",{"lineHeight":"20px","fontWeight":"400"}],"headline-lg-mobile":["28px",{"lineHeight":"36px","fontWeight":"700"}],"title-md":["17px",{"lineHeight":"24px","fontWeight":"600"}],"label-md":["13px",{"lineHeight":"18px","fontWeight":"600"}],"headline-lg":["32px",{"lineHeight":"40px","fontWeight":"700"}]}}}};</script></head><body class="bg-bg-light text-on-surface font-body-md text-body-md antialiased"><aside class="fixed left-0 top-0 h-full w-[248px] bg-surface-light border-r border-line-light z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col"><div class="h-16 px-space-md border-b border-line-light flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-on-brand text-[20px]">calendar_month</span></div><span class="font-title-md text-title-md text-on-surface font-bold tracking-tight">EasyAgenda<span class="text-brand-text-light font-extrabold">+</span></span></div></div><div class="p-space-md"><nav class="flex flex-col gap-space-xs" data-active-classes="bg-surface-container text-primary font-bold"><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="hoje" href="#"><span class="material-symbols-outlined text-[20px]">today</span><span>Hoje</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="agenda" href="#"><span class="material-symbols-outlined text-[20px]">calendar_today</span><span>Agenda</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="clientes" href="#"><span class="material-symbols-outlined text-[20px]">group</span><span>Clientes</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="caixa" href="#"><span class="material-symbols-outlined text-[20px]">point_of_sale</span><span>Caixa</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="clube-e-pacotes" href="#"><span class="material-symbols-outlined text-[20px]">card_membership</span><span>Clube e pacotes</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="whatsapp" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[20px] text-whatsapp-light">chat</span><span>WhatsApp</span></div><span class="w-2 h-2 rounded-full bg-whatsapp-light"></span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="relatorios" href="#"><span class="material-symbols-outlined text-[20px]">bar_chart</span><span>Relatórios</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="minha-pagina" href="#"><span class="material-symbols-outlined text-[20px]">public</span><span>Minha página</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="ajustes" href="#"><span class="material-symbols-outlined text-[20px]">settings</span><span>Ajustes</span></a></nav></div></div><div class="p-space-md border-t border-line-light"><div class="bg-surface-2-light border border-line-light rounded-xl p-space-sm flex items-center justify-between"><div class="flex flex-col"><span class="font-label-md text-label-md text-on-surface font-bold">Studio Aurora</span><span class="font-label-sm text-label-sm text-muted-light">Plano Equipe</span></div></div></div></aside><div class="pl-[248px]"><header class="fixed top-0 left-[248px] right-0 h-16 bg-surface-light border-b border-line-light z-40 flex items-center justify-between px-space-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="w-96 flex items-center bg-surface-2-light border border-line-light rounded-lg px-space-md py-space-xs gap-space-sm"><span class="material-symbols-outlined text-muted-light text-[18px]">search</span><input class="bg-transparent w-full focus:outline-none font-body-sm text-body-sm text-on-surface placeholder:text-muted-light" placeholder="Buscar conversa, cliente ou disparo..." type="text"/></div><div class="flex items-center gap-space-lg"><button class="p-space-xs text-on-surface-variant hover:text-on-surface transition-colors relative"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary-container"></span></button><div class="flex items-center gap-space-sm pl-space-md border-l border-line-light"><div class="flex flex-col text-right"><span class="font-label-md text-label-md text-on-surface font-bold leading-none">Carla</span><span class="font-label-sm text-label-sm text-muted-light leading-tight">Administradora</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><div class="fixed top-16 left-[248px] right-0 h-12 bg-surface-light border-b border-line-light z-30 px-space-xl flex items-center"><nav class="flex items-center gap-space-lg h-full" data-active-classes="border-b-2 border-primary text-primary font-bold"><a class="h-full flex items-center px-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors border-b-2 border-transparent" data-path="whatsapp-hora-de-voltar" href="#">Hora de voltar</a><a class="h-full flex items-center px-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors border-b-2 border-transparent" data-path="whatsapp-automacoes" href="#">Automações</a><a class="h-full flex items-center px-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors border-b-2 border-transparent" data-path="whatsapp-campanhas" href="#">Campanhas</a><a aria-current="page" class="h-full flex items-center px-space-xs transition-colors border-b-2 border-primary text-primary font-bold" data-path="whatsapp-conversas" href="#">Conversas</a><a class="h-full flex items-center px-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors border-b-2 border-transparent" data-path="whatsapp-conexao" href="#">Conexão</a></nav></div><main class="w-full pt-28 px-space-xl pb-space-xl bg-bg-light min-h-screen"><div class="flex flex-col w-full">
+<div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-space-md mb-space-lg">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-sm mb-space-xs">
+<span class="w-2.5 h-2.5 rounded-full bg-whatsapp-light"></span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-muted-light font-bold">Inbox Operacional</span>
+<span class="text-line-light">•</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-bold">Instância: +55 (83) 98120-4000</span>
+</div>
+<div class="flex items-baseline gap-space-sm">
+<h1 class="font-headline-md text-headline-md text-on-surface tracking-tight">Conversas do WhatsApp</h1>
+<span class="font-label-md text-label-md px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-bold">14 abertas</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm w-full lg:w-auto">
+<div class="flex items-center gap-space-xs bg-surface-light p-1 rounded-xl shadow-sm">
+<button class="px-space-md py-1.5 rounded-lg font-label-md text-label-md bg-surface-container text-primary font-bold transition-all" id="filter-all">
+          Todas <span class="ml-1 opacity-70">14</span>
+</button>
+<button class="px-space-md py-1.5 rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-all" id="filter-waiting">
+          Aguardando você <span class="ml-1 px-1.5 py-0.2 rounded-full bg-warning-light/15 text-warning-light font-bold text-label-sm">3</span>
+</button>
+<button class="px-space-md py-1.5 rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-all" id="filter-bot">
+          Pelo Bot <span class="ml-1 opacity-70">9</span>
+</button>
+<button class="px-space-md py-1.5 rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-all" id="filter-done">
+          Finalizadas
+        </button>
+</div>
+<div class="hidden sm:flex items-center pl-space-sm gap-space-xs">
+<button class="w-10 h-10 rounded-xl bg-surface-light flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors shadow-sm" title="Atualizar conversas">
+<span class="material-symbols-outlined text-[20px]">sync</span>
+</button>
+<button class="w-10 h-10 rounded-xl bg-surface-light flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors shadow-sm" title="Configurações de fluxo">
+<span class="material-symbols-outlined text-[20px]">tune</span>
+</button>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-space-lg items-start">
+<div class="xl:col-span-4 flex flex-col gap-space-md bg-surface-light p-space-md rounded-xl shadow-sm">
+<div class="flex items-center gap-space-sm bg-surface-container-low px-space-md py-2 rounded-lg">
+<span class="material-symbols-outlined text-muted-light text-[18px]">search</span>
+<input class="bg-transparent text-on-surface placeholder:text-muted-light font-body-sm text-body-sm w-full focus:outline-none" placeholder="Buscar cliente ou mensagem..." type="text"/>
+<span class="material-symbols-outlined text-muted-light text-[16px] cursor-pointer hover:text-on-surface">filter_list</span>
+</div>
+<div class="flex items-center justify-between px-space-xs">
+<span class="font-label-sm text-label-sm text-muted-light uppercase tracking-wider font-bold">Fila de atendimento</span>
+<span class="font-label-sm text-label-sm text-primary font-bold cursor-pointer hover:underline">Marcar lidas</span>
+</div>
+<div class="flex flex-col gap-1 overflow-y-auto max-h-[calc(100vh-280px)] pr-1" id="chat-list">
+<div class="p-space-md rounded-xl bg-surface-container cursor-pointer transition-all flex flex-col gap-2 relative">
+<div class="absolute left-0 top-3 bottom-3 w-1 bg-primary rounded-r"></div>
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="relative">
+<img class="w-11 h-11 rounded-full object-cover" data-alt="Close-up portrait of Mariana Souza, an elegant Brazilian woman with smiling eyes and natural styling in soft warm light, modern beauty salon client." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFooSZ-zANYbXZJNWzHexNqBroLJWj5ekao97e9jgAxY5SAosUUowfJPJT21Hea_aaUz_2pdfBmDkwzVpPYCkUNgLn-zJpfaQ70zAO29DsOOtTJYeMTnDYltOo_aviEwEgEdQql49klkFrMFZVvOZGvmjXwOIZhI4CyeD1H4qBJer71ektlkfPMDtH5d7bjW3Agy68R_ea2e43vZVLMo5uYgYxaN53ABLBXsxrrwGSs7ps4fBT8JrD9A"/>
+<span class="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-whatsapp-light ring-2 ring-surface-light"></span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-title-md font-bold text-on-surface">Mariana Souza</span>
+<span class="px-2 py-0.5 rounded-full bg-primary-fixed text-primary font-label-sm text-label-sm">Humano</span>
+</div>
+<span class="font-label-sm text-label-sm text-muted-light font-mono">(83) 99876-5432</span>
+</div>
+</div>
+<div class="flex flex-col items-end gap-1">
+<span class="font-label-sm text-label-sm font-bold text-primary font-mono">10:42</span>
+<span class="w-5 h-5 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-sm text-label-sm font-bold shadow-sm">1</span>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface font-semibold line-clamp-2 pl-space-xs">
+            Pode ser na quinta às 14h sim! Como faço o pagamento do sinal?
+          </p>
+<div class="flex items-center justify-between text-muted-light font-label-sm text-label-sm pt-1">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">face</span> Atendente: Carla</span>
+<span class="text-primary font-bold flex items-center gap-0.5">Sinal pendente <span class="material-symbols-outlined text-[13px]">payments</span></span>
+</div>
+</div>
+<div class="p-space-md rounded-xl hover:bg-surface-container-low cursor-pointer transition-all flex flex-col gap-2">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-11 h-11 rounded-full bg-surface-container-high flex items-center justify-center font-title-md text-title-md font-bold text-secondary">
+                RD
+              </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-title-md font-bold text-on-surface">Rafaela Diniz</span>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">Bot</span>
+</div>
+<span class="font-label-sm text-label-sm text-muted-light font-mono">(83) 98711-2290</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-muted-light font-mono">10:15</span>
+</div>
+<p class="font-body-sm text-body-sm text-muted-light line-clamp-1 pl-space-xs">
+            Lembrete de agendamento confirmado enviado automaticamente.
+          </p>
+</div>
+<div class="p-space-md rounded-xl hover:bg-surface-container-low cursor-pointer transition-all flex flex-col gap-2">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-space-sm">
+<img class="w-11 h-11 rounded-full object-cover" data-alt="Portrait photo of client Beatriz Costa with gentle smile against minimalist warm beige interior backdrop, natural studio lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA2b_x-oJmCOjMZU4Gr6428F0p7LSWV4Pajh87t9Hl5rCRfw7YcgKenznBTGwHGAVt1WHpCPFXYXQ2RvSwFzRNbTeEYMXHDKwlS6QEA1ipX_Lzdm8rqBRwNqz6aMYi-BmjV2TwDnr2CEqa9eeojrLNm5soRdYjPxccZ2ghFJ1D4Sku5T8fKQBlXoDNW9s2Hb4HluppVjVz9K1nuCmiBGakYLaIQTBZlIrDrtUaIt7j04fOFKjk46tOeVg"/>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-title-md font-bold text-on-surface">Beatriz Costa</span>
+<span class="px-2 py-0.5 rounded-full bg-warning-light/15 text-warning-light font-label-sm text-label-sm">Aguardando</span>
+</div>
+<span class="font-label-sm text-label-sm text-muted-light font-mono">(83) 99102-4433</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-muted-light font-mono">09:58</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant font-medium line-clamp-1 pl-space-xs">
+            Queria saber se tem vaga pra hoje ainda com a Bruna...
+          </p>
+</div>
+<div class="p-space-md rounded-xl hover:bg-surface-container-low cursor-pointer transition-all flex flex-col gap-2">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-11 h-11 rounded-full bg-surface-container-high flex items-center justify-center font-title-md text-title-md font-bold text-secondary">
+                JP
+              </div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-title-md font-bold text-on-surface">Juliana Paes</span>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">Bot</span>
+</div>
+<span class="font-label-sm text-label-sm text-muted-light font-mono">(83) 98820-9944</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-muted-light font-mono">09:20</span>
+</div>
+<p class="font-body-sm text-body-sm text-muted-light line-clamp-1 pl-space-xs">
+            Comprovante Pix recebido! Seu horário foi confirmado.
+          </p>
+</div>
+<div class="p-space-md rounded-xl hover:bg-surface-container-low cursor-pointer transition-all flex flex-col gap-2">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-space-sm">
+<img class="w-11 h-11 rounded-full object-cover" data-alt="Portrait photo of Leticia Albuquerque, stylish customer with polished hair and subtle studio lighting, calm professional aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvHdMbypcuhqFSALPDCEgoxZjzloFUFE_jcSjrGeHuGQYBKtID6FoM_6mhBD4ah0rRitaFY1s5_T39WbesfzofLeSeRa8s3V6AIm41u1RMns-Kv61esQhQ7MQHj4ltfXmbrWaExK8inzuJ0f2-LlgDR9SvdOGJcndeoxUGVTXLYxJRMh8cHOtNAs0Rsl1PI-9S8EbWthucAsFpSEwed1wk6b1P6ki38pFttVmXp24SFH1ecUebCfI3MQ"/>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-title-md font-bold text-on-surface">Letícia Albuquerque</span>
+<span class="px-2 py-0.5 rounded-full bg-primary-fixed text-primary font-label-sm text-label-sm">Humano</span>
+</div>
+<span class="font-label-sm text-label-sm text-muted-light font-mono">(83) 99611-3001</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-muted-light font-mono">Ontem</span>
+</div>
+<p class="font-body-sm text-body-sm text-muted-light line-clamp-1 pl-space-xs">
+            Obrigada, Camila! Amei o resultado.
+          </p>
+</div>
+</div>
+</div>
+<div class="xl:col-span-8 grid grid-cols-1 lg:grid-cols-12 gap-space-md bg-surface-light rounded-xl shadow-sm overflow-hidden min-h-[720px]">
+<div class="lg:col-span-8 flex flex-col justify-between h-full bg-surface-light">
+<div class="p-space-md bg-surface-container-low flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm shadow-sm z-10">
+<div class="flex items-center gap-space-sm">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Client Mariana Souza profile picture with friendly expression, sharp clarity, neutral background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCDD64vWgUw5HzfXJePe2rmRNe7jxCLbdC9RU1XdBrXnR7uP5nVH5mNNcGbZrAE7QPEuBek10YLNxPBG3macNWOGo72_8d88z3QnE93v1a0hnhyyz3KdjRbKVPeVa0otZApphM6GnJf2PCx8rxq_ATOpUd8VOsGSJ8qlowSO8CyOdDAu_YjDV4kpdHJi7lA-fkmwK_vcwshDmAJyNt7nZ9NIWi4c2QU1G2NWFSq6K1VrAxXF5Z3l8ibw"/>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-title-md text-title-md font-bold text-on-surface">Mariana Souza</span>
+<span class="w-2 h-2 rounded-full bg-whatsapp-light"></span>
+</div>
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm">
+<span class="font-mono text-muted-light">(83) 99876-5432</span>
+<span>•</span>
+<span class="text-primary font-bold">Em atendimento humano (Carla)</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="px-3 py-1.5 rounded-lg bg-surface-2-light text-on-surface-variant hover:text-on-surface font-label-md text-label-md font-semibold transition-colors flex items-center gap-1" id="btn-return-bot">
+<span class="material-symbols-outlined text-[16px]">smart_toy</span>
+<span class="hidden sm:inline">Devolver ao Bot</span>
+</button>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container text-primary hover:bg-surface-container-high font-label-md text-label-md font-bold transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">badge</span>
+<span>Ver ficha CRM</span>
+</button>
+<button class="lg:hidden p-2 rounded-lg bg-surface-2-light text-on-surface-variant" id="toggle-drawer-btn">
+<span class="material-symbols-outlined text-[18px]">info</span>
+</button>
+</div>
+</div>
+<div class="p-space-md bg-surface-container-lowest flex-1 overflow-y-auto flex flex-col gap-space-md" id="chat-messages">
+<div class="flex items-center justify-center my-space-xs">
+<span class="px-3 py-1 rounded-full bg-surface-container-high text-muted-light font-label-sm text-label-sm font-semibold">
+              Hoje • 19 de Setembro
+            </span>
+</div>
+<div class="flex flex-col max-w-[82%] self-start gap-1">
+<div class="bg-surface-container-low p-space-md rounded-2xl rounded-tl-sm text-on-surface shadow-sm">
+<div class="flex items-center gap-1 text-tertiary font-label-sm text-label-sm font-bold mb-1">
+<span class="material-symbols-outlined text-[14px]">smart_toy</span>
+<span>Bot EasyAgenda+</span>
+</div>
+<p class="font-body-md text-body-md leading-relaxed">
+                Olá Mariana! Identificamos que seu horário para <strong>Alongamento em gel</strong> está pré-reservado para quinta-feira às 14h com Camila. Deseja efetuar o pagamento do sinal de <strong>R$ 30,00</strong> via Pix para garantir sua vaga?
+              </p>
+</div>
+<span class="font-label-sm text-label-sm text-muted-light font-mono self-start pl-2">10:30 • Automático</span>
+</div>
+<div class="flex flex-col max-w-[80%] self-end gap-1">
+<div class="bg-surface-container p-space-md rounded-2xl rounded-tr-sm text-on-surface shadow-sm">
+<p class="font-body-md text-body-md leading-relaxed">
+                Oi! O link não abriu aqui no meu banco, consegue me mandar a chave copia e cola de novo?
+              </p>
+</div>
+<div class="flex items-center gap-1 self-end pr-2">
+<span class="font-label-sm text-label-sm text-muted-light font-mono">10:32</span>
+<span class="material-symbols-outlined text-whatsapp-light text-[14px]">done_all</span>
+</div>
+</div>
+<div class="flex items-center justify-center my-1">
+<div class="px-3 py-1 rounded-full bg-primary-fixed/60 text-on-primary-fixed font-label-sm text-label-sm font-bold flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[14px]">support_agent</span>
+<span>Carla assumiu o atendimento</span>
+</div>
+</div>
+<div class="flex flex-col max-w-[80%] self-start gap-1">
+<div class="bg-surface-2-light p-space-md rounded-2xl rounded-tl-sm text-on-surface shadow-sm">
+<div class="flex items-center gap-1 text-primary font-label-sm text-label-sm font-bold mb-1">
+<span class="material-symbols-outlined text-[14px]">person</span>
+<span>Carla (Studio Aurora)</span>
+</div>
+<p class="font-body-md text-body-md leading-relaxed">Olá Mariana, bom dia! Claro, segue a chave Pix do estúdio:</p>
+</div>
+<span class="font-label-sm text-label-sm text-muted-light font-mono self-start pl-2">10:34</span>
+</div>
+<div class="flex flex-col max-w-[80%] self-start gap-1">
+<div class="bg-surface-2-light p-space-md rounded-2xl rounded-tl-sm text-on-surface shadow-sm flex flex-col gap-2">
+<div class="flex items-center justify-between bg-surface-light p-space-sm rounded-lg">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-muted-light">Chave E-mail</span>
+<span class="font-mono text-body-sm font-bold text-on-surface select-all">pix@studioaurora.com.br</span>
+<span class="font-label-sm text-label-sm text-muted-light">Studio Aurora Beleza LTDA</span>
+</div>
+<button class="p-2 rounded-lg bg-surface-container text-primary hover:bg-surface-container-high transition-colors" onclick="navigator.clipboard.writeText('pix@studioaurora.com.br');" title="Copiar chave">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-muted-light font-mono self-start pl-2">10:34</span>
+</div>
+<div class="flex flex-col max-w-[80%] self-end gap-1">
+<div class="bg-surface-container p-space-md rounded-2xl rounded-tr-sm text-on-surface shadow-sm">
+<p class="font-body-md text-body-md leading-relaxed">
+                Prontinho, fiz a transferência! Pode ser na quinta às 14h sim! Como faço o pagamento do sinal? Já está debitado aqui.
+              </p>
+</div>
+<div class="flex items-center gap-1 self-end pr-2">
+<span class="font-label-sm text-label-sm text-muted-light font-mono">10:42</span>
+<span class="material-symbols-outlined text-whatsapp-light text-[14px]">done_all</span>
+</div>
+</div>
+</div>
+<div class="p-space-md bg-surface-light flex flex-col gap-space-sm shadow-sm">
+<div class="flex items-center gap-space-xs overflow-x-auto pb-1 scrollbar-none">
+<button class="px-3 py-1 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm whitespace-nowrap flex items-center gap-1 transition-colors" onclick="insertQuickResponse('Chave Pix: pix@studioaurora.com.br (Studio Aurora Beleza LTDA). Favor enviar o comprovante por aqui!')">
+<span class="material-symbols-outlined text-[14px] text-primary">bolt</span>
+<span>Chave Pix</span>
+</button>
+<button class="px-3 py-1 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm whitespace-nowrap flex items-center gap-1 transition-colors" onclick="insertQuickResponse('Nosso estúdio fica na Av. Epitácio Pessoa, 1200 - Sala 402. Temos estacionamento cortesia para clientes!')">
+<span class="material-symbols-outlined text-[14px] text-primary">pin_drop</span>
+<span>Como chegar</span>
+</button>
+<button class="px-3 py-1 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm whitespace-nowrap flex items-center gap-1 transition-colors" onclick="insertQuickResponse('Horários disponíveis para Camila na Quinta: 14:00, 16:30 e 18:00.')">
+<span class="material-symbols-outlined text-[14px] text-tertiary">calendar_add_on</span>
+<span>Horários livres</span>
+</button>
+<button class="px-3 py-1 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm whitespace-nowrap flex items-center gap-1 transition-colors" onclick="insertQuickResponse('Cancelamentos ou remarcações podem ser feitos sem custo com até 4 horas de antecedência.')">
+<span class="material-symbols-outlined text-[14px] text-muted-light">policy</span>
+<span>Política</span>
+</button>
+</div>
+<div class="flex items-end gap-space-sm">
+<div class="flex items-center gap-1 mb-1 text-muted-light">
+<button class="p-2 rounded-lg hover:bg-surface-container hover:text-on-surface transition-colors" title="Anexar comprovante ou imagem">
+<span class="material-symbols-outlined text-[20px]">attach_file</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-surface-container hover:text-on-surface transition-colors" title="Gerar cobrança Pix">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+</button>
+</div>
+<div class="flex-1 bg-surface-container-low rounded-xl px-space-md py-2.5 flex items-center">
+<textarea class="bg-transparent text-on-surface placeholder:text-muted-light font-body-sm text-body-sm w-full focus:outline-none resize-none max-h-24" id="chat-input" placeholder="Escreva uma mensagem para Mariana..." rows="1"></textarea>
+</div>
+<button class="w-11 h-11 rounded-xl bg-whatsapp-light hover:brightness-110 text-on-secondary flex items-center justify-center transition-transform active:scale-95 shadow-md flex-shrink-0" id="btn-send-message" title="Enviar mensagem via WhatsApp">
+<span class="material-symbols-outlined text-[20px]">send</span>
+</button>
+</div>
+</div>
+</div>
+<div class="lg:col-span-4 bg-surface-container-low p-space-md flex flex-col gap-space-md">
+<div class="flex items-center justify-between pb-space-xs">
+<span class="font-label-md text-label-md font-bold text-on-surface">Contexto da Cliente</span>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-primary-fixed text-primary font-bold">Cliente Fiel</span>
+</div>
+<div class="bg-surface-light p-space-md rounded-xl flex flex-col gap-space-sm shadow-sm">
+<div class="flex items-center gap-space-sm">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="Portrait closeup of customer Mariana Souza, bright warm neutral lighting, professional beauty client aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1Neer4nWx6kBhk31IomLSTPtYuzpzksaPLKv29KXCrQo-MgfYT3Ks-EhEkCqy-n9U3cnx8H318wXTe4sH0yoJRWrzgk6npqIgd90lN07RrKLK_RHIxArI4mwrOCHSBKGrrE8v70ZvfclKSDyLV8Sg8nfD9h5B1y6zgLHxjOkcugust5qvxpR7GDwb4mHgRCc4voyAPEynd2prqMKTnyTf4rwABzsE7TLGv9-hoNZPCNXEmTPI0U3kNA"/>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md font-bold text-on-surface">Mariana Souza</span>
+<span class="font-label-sm text-label-sm text-muted-light font-mono">Cadastrada há 8 meses</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-2 pt-space-xs">
+<div class="bg-surface-container-low p-2 rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-muted-light">LTV Acumulado</span>
+<span class="font-title-md text-title-md font-bold text-on-surface font-mono">R$ 1.820</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-muted-light">Ciclo Médio</span>
+<span class="font-title-md text-title-md font-bold text-on-surface font-mono">21 dias</span>
+</div>
+</div>
+</div>
+<div class="bg-surface-light p-space-md rounded-xl flex flex-col gap-space-sm shadow-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-bold text-on-surface">Agendamento Relacionado</span>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-warning-light/15 text-warning-light font-bold">Sinal Pendente</span>
+</div>
+<div class="flex flex-col gap-1 p-space-sm bg-surface-container-low rounded-lg">
+<div class="flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-primary">calendar_month</span>
+<span class="font-title-md text-title-md font-bold">Quinta, 19/Set • 14:00</span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm pl-6">
+<span>Alongamento em gel</span>
+<span class="font-bold font-mono">R$ 130,00</span>
+</div>
+<div class="flex items-center justify-between text-muted-light font-label-sm text-label-sm pl-6">
+<span>Profissional: Camila Rocha</span>
+<span>Sinal: R$ 30,00</span>
+</div>
+</div>
+<div class="p-2.5 rounded-lg bg-warning-light/10 flex items-start gap-2">
+<span class="material-symbols-outlined text-warning-light text-[18px] mt-0.5">info</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant leading-snug">
+              O bot aguarda a confirmação deste sinal Pix de <strong>R$ 30,00</strong> para travar a vaga na agenda de Camila.
+            </p>
+</div>
+<button class="w-full py-2.5 px-space-md rounded-lg bg-primary-container text-on-brand font-title-md text-title-md font-bold flex items-center justify-center gap-2 hover:brightness-105 active:scale-98 transition-all shadow-sm" id="btn-confirm-booking">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+<span>Confirmar agendamento</span>
+</button>
+</div>
+<div class="bg-surface-light p-space-md rounded-xl flex flex-col gap-space-sm shadow-sm">
+<span class="font-label-md text-label-md font-bold text-on-surface">Histórico Recente</span>
+<div class="flex flex-col gap-2 font-body-sm text-body-sm">
+<div class="flex items-center justify-between text-on-surface-variant">
+<span>28/Ago • Manutenção Gel</span>
+<span class="font-bold font-mono text-success-light">R$ 110 (Pago)</span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant">
+<span>06/Ago • Spa dos Pés</span>
+<span class="font-bold font-mono text-success-light">R$ 65 (Pago)</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  function insertQuickResponse(text) {
+    const input = document.getElementById('chat-input');
+    if (input) {
+      input.value = text;
+      input.focus();
+    }
+  }
+
+  document.getElementById('btn-send-message')?.addEventListener('click', function() {
+    const input = document.getElementById('chat-input');
+    const container = document.getElementById('chat-messages');
+    if (!input || !input.value.trim() || !container) return;
+
+    const msg = input.value.trim();
+    const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    const newBubble = document.createElement('div');
+    newBubble.className = 'flex flex-col max-w-[80%] self-start gap-1';
+    newBubble.innerHTML = `
+      <div class="bg-surface-2-light p-space-md rounded-2xl rounded-tl-sm text-on-surface shadow-sm">
+        <div class="flex items-center gap-1 text-primary font-label-sm text-label-sm font-bold mb-1">
+          <span class="material-symbols-outlined text-[14px]">person</span>
+          <span>Carla (Studio Aurora)</span>
+        </div>
+        <p class="font-body-md text-body-md leading-relaxed">${msg}</p>
+      </div>
+      <span class="font-label-sm text-label-sm text-muted-light font-mono self-start pl-2">${time}</span>
+    `;
+
+    container.appendChild(newBubble);
+    input.value = '';
+    container.scrollTop = container.scrollHeight;
+  });
+
+  document.getElementById('btn-confirm-booking')?.addEventListener('click', function() {
+    this.classList.remove('bg-primary-container', 'text-on-brand');
+    this.classList.add('bg-surface-container', 'text-success-light');
+    this.innerHTML = '<span class="material-symbols-outlined text-[18px]">check_circle</span> <span>Agendamento Confirmado!</span>';
+    this.disabled = true;
+
+    const container = document.getElementById('chat-messages');
+    if (container) {
+      const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const confirmBubble = document.createElement('div');
+      confirmBubble.className = 'flex flex-col max-w-[80%] self-start gap-1';
+      confirmBubble.innerHTML = `
+        <div class="bg-surface-2-light p-space-md rounded-2xl rounded-tl-sm text-on-surface shadow-sm">
+          <div class="flex items-center gap-1 text-whatsapp-light font-label-sm text-label-sm font-bold mb-1">
+            <span class="material-symbols-outlined text-[14px]">task_alt</span>
+            <span>EasyAgenda+ Confirmação</span>
+          </div>
+          <p class="font-body-md text-body-md leading-relaxed">Sinal recebido com sucesso! Seu horário para Quinta, 19/set às 14h com Camila foi 100% confirmado. Esperamos você!</p>
+        </div>
+        <span class="font-label-sm text-label-sm text-muted-light font-mono self-start pl-2">${time}</span>
+      `;
+      container.appendChild(confirmBubble);
+      container.scrollTop = container.scrollHeight;
+    }
+  });
+
+  document.getElementById('btn-return-bot')?.addEventListener('click', function() {
+    alert('Atendimento repassado ao Bot com sucesso.');
+  });
+</script></main></div></body></html>

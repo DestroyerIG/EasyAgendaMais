@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>EasyAgenda+ | Para Nail Designers</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand: "#FF7A00",
+            "on-brand": "#1A1817",
+            ink: "#1A1817",
+            muted: "#66605B",
+            line: "#E2DFDB",
+            bg: "#F6F5F4",
+            surface: "#FFFFFF",
+            "surface-2": "#EFEDEA",
+            whatsapp: "#128C4A",
+            "whatsapp-bright": "#25D366"
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif']
+          },
+          borderRadius: {
+            '2xl': '16px',
+            'btn': '10px'
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    @layer base {
+      html, body {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #F6F5F4;
+        color: #1A1817;
+        -webkit-tap-highlight-color: transparent;
+      }
+      body {
+        overscroll-behavior-y: none;
+      }
+    }
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    details summary::-webkit-details-marker {
+      display: none;
+    }
+  </style>
+</head>
+<body class="bg-bg text-ink flex flex-col min-h-screen antialiased">
+<!-- 1. Cabeçalho fixo no topo -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-line">
+<div class="max-w-[420px] mx-auto h-16 px-4 flex items-center justify-between">
+<a class="flex items-center gap-1.5 focus:outline-none" href="#">
+<span class="material-symbols-outlined text-brand text-[24px]" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+<span class="text-[19px] font-extrabold tracking-tight text-ink">EasyAgenda<span class="text-brand">+</span></span>
+</a>
+<a class="min-h-[44px] px-4 flex items-center justify-center rounded-btn bg-surface-2 border border-line text-ink text-[13px] font-semibold transition-colors hover:bg-[#e4e1dc] active:scale-[0.98]" href="#planos">
+        Testar grátis
+      </a>
+</div>
+</header>
+<!-- Conteúdo Principal (sem bottom navigation) -->
+<main class="flex-1 w-full max-w-[420px] mx-auto pt-16 flex flex-col">
+<!-- 2. Hero Section -->
+<section class="px-4 pt-6 pb-8 flex flex-col gap-4">
+<!-- Chip discreto -->
+<div class="inline-flex items-center gap-1.5 self-start px-3 py-1.5 rounded-full bg-surface-2 border border-line text-muted text-[12px] font-semibold">
+<span class="material-symbols-outlined text-[15px]" style="font-variation-settings: 'FILL' 1;">spa</span>
+<span>Para nail designers</span>
+</div>
+<!-- Título Principal -->
+<h1 class="text-[28px] leading-[1.25] font-extrabold text-ink tracking-tight">
+        Pare de responder “tem horário amanhã?” no direct.
+      </h1>
+<!-- Subtítulo -->
+<p class="text-[15px] leading-relaxed text-muted font-normal">
+        Sua cliente agenda sozinha pelo link da bio, paga o sinal no Pix e recebe o lembrete da manutenção no WhatsApp.
+      </p>
+<!-- CTA Principal & Apoio -->
+<div class="flex flex-col gap-2.5 pt-1">
+<a class="w-full min-h-[48px] px-5 py-3 rounded-btn bg-brand text-on-brand font-bold text-[15px] flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.98]" href="#planos">
+<span>Testar 14 dias grátis</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</a>
+<p class="text-center text-[12px] font-medium text-muted">
+          Sem cartão de crédito • Configuração rápida em minutos
+        </p>
+</div>
+<!-- Mockup Visual de Celular / Agendamento -->
+<div class="mt-3 rounded-2xl bg-white border border-line p-4 shadow-sm flex flex-col gap-3">
+<div class="flex items-center justify-between pb-2.5 border-b border-line/60">
+<div class="flex items-center gap-2">
+<div class="w-2.5 h-2.5 rounded-full bg-whatsapp-bright"></div>
+<span class="text-[13px] font-bold text-ink">Camila Nails • Agendamento</span>
+</div>
+<span class="text-[11px] font-medium text-muted bg-surface-2 px-2 py-0.5 rounded-md">Link da Bio</span>
+</div>
+<div class="bg-bg rounded-xl p-3 flex flex-col gap-1.5 border border-line/50">
+<div class="flex justify-between items-center">
+<span class="text-[14px] font-bold text-ink">Alongamento em Gel</span>
+<span class="text-[14px] font-extrabold text-ink">R$ 140</span>
+</div>
+<div class="flex items-center gap-1.5 text-muted text-[13px]">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+<span>Sábado, 14:00</span>
+</div>
+</div>
+<div class="p-2.5 rounded-xl bg-[#E8F5E9] border border-[#C8E6C9] flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-whatsapp text-[18px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-[12px] font-bold text-[#14532D]">Sinal Pix de R$ 30 confirmado</span>
+</div>
+<span class="text-[11px] font-semibold text-whatsapp bg-white/80 px-2 py-0.5 rounded-md">Garantido</span>
+</div>
+</div>
+</section>
+<!-- 3. Três Dores com Solução -->
+<section class="px-4 py-8 bg-surface-2 border-y border-line flex flex-col gap-4">
+<div>
+<span class="text-[12px] font-bold text-brand uppercase tracking-wider">Feito sob medida</span>
+<h2 class="text-[22px] font-extrabold text-ink tracking-tight mt-0.5">
+          Mais foco no atendimento, menos tempo no celular
+        </h2>
+</div>
+<div class="flex flex-col gap-3.5">
+<!-- Cartão 1 -->
+<div class="rounded-2xl bg-white border border-line p-4 shadow-sm flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded-md bg-red-50 text-red-700 text-[11px] font-bold">Dor</span>
+<span class="text-[13px] font-semibold text-muted">Cliente que falta</span>
+</div>
+<h3 class="text-[16px] font-bold text-ink">Solução: Sinal via Pix</h3>
+<p class="text-[14px] leading-relaxed text-muted">
+            A vaga só é confirmada quando o Pix de sinal cai na sua conta. Você elimina o prejuízo de horários vagos de última hora.
+          </p>
+</div>
+<!-- Cartão 2 -->
+<div class="rounded-2xl bg-white border border-line p-4 shadow-sm flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 text-[11px] font-bold">Dor</span>
+<span class="text-[13px] font-semibold text-muted">Manutenção esquecida</span>
+</div>
+<h3 class="text-[16px] font-bold text-ink">Solução: Radar de Retorno</h3>
+<p class="text-[14px] leading-relaxed text-muted">
+            Lembrete automático após o ciclo ideal de 21 dias para renovar o alongamento. A cliente retorna sem danificar a estrutura das unhas.
+          </p>
+</div>
+<!-- Cartão 3 -->
+<div class="rounded-2xl bg-white border border-line p-4 shadow-sm flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded-md bg-stone-100 text-stone-700 text-[11px] font-bold">Dor</span>
+<span class="text-[13px] font-semibold text-muted">Direct lotado</span>
+</div>
+<h3 class="text-[16px] font-bold text-ink">Solução: Link com horários livres</h3>
+<p class="text-[14px] leading-relaxed text-muted">
+            A cliente escolhe data e serviço pelo link da bio 24h sem você parar de atender. A agenda se preenche no automático.
+          </p>
+</div>
+</div>
+</section>
+<!-- 4. Galeria que agenda -->
+<section class="px-4 py-8 flex flex-col gap-5">
+<div>
+<span class="text-[12px] font-bold text-brand uppercase tracking-wider">Catálogo Interativo</span>
+<h2 class="text-[22px] font-extrabold text-ink tracking-tight mt-0.5">
+          Galeria que agenda
+        </h2>
+<p class="text-[14px] leading-relaxed text-muted mt-1">
+          A cliente clica na foto da unha que amou e já agenda diretamente aquele procedimento, sem dúvidas de valores ou detalhes.
+        </p>
+</div>
+<div class="flex flex-col gap-4">
+<!-- Foto 1 -->
+<div class="rounded-2xl bg-white border border-line overflow-hidden shadow-sm flex flex-col">
+<img alt="Alongamento Fibra Natural em unhas amendoadas bem estruturadas" class="w-full h-44 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCnWy6xxua7CU95HCwBf1PNvWeoT-jZOWG_K5bQD3ijkS-xK3fq0nlLnj0IVytxnO93hx52Ace2FzdB3gGZMVh9kFe23PiEOVpMk_buWEZHLIVuioX7xBMbznSm28DiVszFS8NcfFYeP4MD5eCc7eocvmE8RLzJ7_Xh-eFQvsSbvIHGLj5h1UB5aYwHIcLrg65_wqQWeTi9_xpOMd843Z6hah6n5JaD1HsVQnzPahNDmKwKNbRYvOE8A"/>
+<div class="p-4 flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<h3 class="font-bold text-[16px] text-ink">Alongamento Fibra Natural</h3>
+<span class="font-extrabold text-[16px] text-ink">R$ 180</span>
+</div>
+<a class="min-h-[44px] w-full rounded-btn bg-surface-2 border border-line text-ink font-semibold text-[13px] flex items-center justify-center gap-1.5 transition-colors active:bg-[#e4e1dc]" href="#planos">
+<span>Quero esse</span>
+<span class="material-symbols-outlined text-[17px]">calendar_today</span>
+</a>
+</div>
+</div>
+<!-- Foto 2 -->
+<div class="rounded-2xl bg-white border border-line overflow-hidden shadow-sm flex flex-col">
+<img alt="Manutenção e esmaltação em gel profissional com brilho impecável" class="w-full h-44 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3Fa8QAcqaRtd3kZksbAT8o2mH3Y723BIkZc_ghZJrEgNjY_XOXHvstGKRPS1XArTHEYdeTF_nkmhFVeZlziW4PuXqlDX_0ZksACdpPtN_8A5ztZcBAoeXE0nwbqYK4r-Z0hvaajdT6mOFQdIxZcqPkeoXhQ3RmuHWR-8BB2ElzV-R4j7nCCre2INo-TSUEj4Nc8oA6QqMMIwiHEzUaUJX3wzSj3KBjIHjdhvRceYckLm6_7HM6G8tVA"/>
+<div class="p-4 flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<h3 class="font-bold text-[16px] text-ink">Manutenção + Esmaltação em Gel</h3>
+<span class="font-extrabold text-[16px] text-ink">R$ 120</span>
+</div>
+<a class="min-h-[44px] w-full rounded-btn bg-surface-2 border border-line text-ink font-semibold text-[13px] flex items-center justify-center gap-1.5 transition-colors active:bg-[#e4e1dc]" href="#planos">
+<span>Quero esse</span>
+<span class="material-symbols-outlined text-[17px]">calendar_today</span>
+</a>
+</div>
+</div>
+<!-- Foto 3 -->
+<div class="rounded-2xl bg-white border border-line overflow-hidden shadow-sm flex flex-col">
+<img alt="Nail Art Minimalista com linhas delicadas e acabamento fino" class="w-full h-44 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNnkwQTpmFzznF3au7a3eRdrNAmrSS022HvfVSZDvTG7_1aoL0IDDZIinCE5ns8KwCE7FXdds-QkmWIxAAKKUqwttLy1u9cUNOOk4mwkvGPlUOG5TeRysdNZlM9nEk_1r61ni4B97Ltxg-9XzWjq6wNy29aIEJ-g1PXu_LRI6pYP7WeurrcNjQ4gqCDZnA1CVGGqVi2Ff0BTHsC4XlNt3St4gACZI872Aw8EjjjKZdgWyQxM-djLQOeA"/>
+<div class="p-4 flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<h3 class="font-bold text-[16px] text-ink">Nail Art Minimalista</h3>
+<span class="font-extrabold text-[16px] text-ink">R$ 150</span>
+</div>
+<a class="min-h-[44px] w-full rounded-btn bg-surface-2 border border-line text-ink font-semibold text-[13px] flex items-center justify-center gap-1.5 transition-colors active:bg-[#e4e1dc]" href="#planos">
+<span>Quero esse</span>
+<span class="material-symbols-outlined text-[17px]">calendar_today</span>
+</a>
+</div>
+</div>
+</div>
+</section>
+<!-- 5. Bloco de Depoimento -->
+<section class="px-4 py-7 bg-surface-2 border-y border-line flex flex-col gap-3">
+<div class="rounded-2xl bg-white border border-line p-5 shadow-sm flex flex-col gap-3">
+<div class="self-start px-2.5 py-1 rounded-md bg-surface-2 border border-line text-muted text-[11px] font-bold uppercase tracking-wide">
+          Depoimento de exemplo
+        </div>
+<blockquote class="text-[15px] font-medium leading-relaxed text-ink italic">
+          “Antes eu passava o intervalo do almoço e o fim do expediente respondendo direct para combinar horário. Com o sinal no Pix e a agenda na bio, as clientes chegam no horário certo e o dia flui com tranquilidade na mesa.”
+        </blockquote>
+<div class="flex items-center gap-2 pt-1 border-t border-line/60">
+<span class="material-symbols-outlined text-muted text-[18px]">verified</span>
+<span class="text-[12px] font-semibold text-muted">Relato comum de rotina no estúdio</span>
+</div>
+</div>
+</section>
+<!-- 6. Seção de Preço / Plano -->
+<section class="px-4 py-8 flex flex-col gap-5" id="planos">
+<div>
+<span class="text-[12px] font-bold text-brand uppercase tracking-wider">Investimento simples</span>
+<h2 class="text-[22px] font-extrabold text-ink tracking-tight mt-0.5">
+          Tudo o que você precisa em um único plano
+        </h2>
+</div>
+<div class="rounded-2xl bg-white border border-line p-5 shadow-sm flex flex-col gap-5">
+<div class="flex flex-col gap-1 pb-4 border-b border-line">
+<span class="text-[14px] font-bold text-muted">Plano Solo</span>
+<div class="flex items-baseline gap-1 mt-1">
+<span class="text-[28px] font-extrabold text-ink">R$ 39,90</span>
+<span class="text-[14px] font-semibold text-muted">/mês</span>
+</div>
+<span class="text-[12px] text-muted font-normal">Assinatura mensal sem fidelidade. Cancele quando desejar.</span>
+</div>
+<div class="flex flex-col gap-3">
+<div class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-brand text-[20px] shrink-0 mt-0.5" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-[14px] text-ink">Página de agendamento com galeria "Quero esse"</span>
+</div>
+<div class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-brand text-[20px] shrink-0 mt-0.5" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-[14px] text-ink">Cobrança de sinal via Pix sem taxa intermediária</span>
+</div>
+<div class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-brand text-[20px] shrink-0 mt-0.5" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-[14px] text-ink">Lembretes automáticos no WhatsApp</span>
+</div>
+<div class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-brand text-[20px] shrink-0 mt-0.5" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-[14px] text-ink">Radar de Retorno aos 21 dias</span>
+</div>
+</div>
+<a class="w-full min-h-[48px] px-5 py-3 rounded-btn bg-brand text-on-brand font-bold text-[15px] flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.98] mt-2" href="#cadastro">
+<span>Testar 14 dias grátis</span>
+<span class="material-symbols-outlined text-[19px]">arrow_forward</span>
+</a>
+</div>
+</section>
+<!-- 7. Perguntas Frequentes (FAQ) -->
+<section class="px-4 py-8 bg-surface-2 border-t border-line flex flex-col gap-4">
+<div>
+<span class="text-[12px] font-bold text-brand uppercase tracking-wider">Tire suas dúvidas</span>
+<h2 class="text-[22px] font-extrabold text-ink tracking-tight mt-0.5">
+          Perguntas frequentes
+        </h2>
+</div>
+<div class="flex flex-col gap-3">
+<!-- FAQ 1 -->
+<details class="group rounded-2xl bg-white border border-line p-4 transition-all">
+<summary class="flex items-center justify-between font-bold text-[14px] text-ink cursor-pointer list-none select-none">
+<span>E se a cliente não pagar o sinal?</span>
+<span class="material-symbols-outlined text-muted text-[20px] transition-transform group-open:rotate-180">keyboard_arrow_down</span>
+</summary>
+<p class="mt-3 text-[13px] leading-relaxed text-muted pt-2 border-t border-line/60">
+            A vaga é liberada automaticamente após 15 minutos e volta para a agenda livre para que outra cliente possa reservar.
+          </p>
+</details>
+<!-- FAQ 2 -->
+<details class="group rounded-2xl bg-white border border-line p-4 transition-all">
+<summary class="flex items-center justify-between font-bold text-[14px] text-ink cursor-pointer list-none select-none">
+<span>Atendo a domicílio, funciona?</span>
+<span class="material-symbols-outlined text-muted text-[20px] transition-transform group-open:rotate-180">keyboard_arrow_down</span>
+</summary>
+<p class="mt-3 text-[13px] leading-relaxed text-muted pt-2 border-t border-line/60">
+            Sim, você pode configurar taxa de deslocamento e definir seus raios de atendimento ou locais diretamente nas configurações.
+          </p>
+</details>
+<!-- FAQ 3 -->
+<details class="group rounded-2xl bg-white border border-line p-4 transition-all">
+<summary class="flex items-center justify-between font-bold text-[14px] text-ink cursor-pointer list-none select-none">
+<span>O Pix cai direto na minha conta?</span>
+<span class="material-symbols-outlined text-muted text-[20px] transition-transform group-open:rotate-180">keyboard_arrow_down</span>
+</summary>
+<p class="mt-3 text-[13px] leading-relaxed text-muted pt-2 border-t border-line/60">
+            Sim, o pagamento vai direto para a sua chave Pix cadastrada, sem retenção da plataforma e sem taxas extras sobre o seu serviço.
+          </p>
+</details>
+</div>
+</section>
+<!-- 8. CTA Final & Rodapé -->
+<section class="px-4 py-8 flex flex-col gap-4 text-center" id="cadastro">
+<div class="rounded-2xl bg-white border border-line p-6 flex flex-col items-center gap-3 shadow-sm">
+<div class="w-12 h-12 rounded-full bg-surface-2 border border-line flex items-center justify-center text-brand">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">spa</span>
+</div>
+<h2 class="text-[20px] font-extrabold text-ink tracking-tight">
+          Mais tranquilidade na sua rotina de mesa
+        </h2>
+<p class="text-[14px] leading-relaxed text-muted max-w-[320px]">
+          Comece hoje mesmo a organizar seus atendimentos com agendamento automático e garantia de sinal via Pix.
+        </p>
+<a class="w-full min-h-[48px] px-5 py-3 rounded-btn bg-brand text-on-brand font-bold text-[15px] flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.98] mt-1" href="#cadastro">
+<span>Testar 14 dias grátis</span>
+<span class="material-symbols-outlined text-[19px]">arrow_forward</span>
+</a>
+</div>
+</section>
+<!-- Rodapé -->
+<footer class="px-4 py-6 border-t border-line bg-surface-2 flex flex-col items-center text-center gap-3">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-brand text-[20px]" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+<span class="text-[16px] font-extrabold text-ink">EasyAgenda<span class="text-brand">+</span></span>
+</div>
+<p class="text-[12px] text-muted">
+        Feito para profissionais de beleza e bem-estar
+      </p>
+<div class="flex items-center justify-center gap-4 text-[12px] font-semibold text-muted pt-1">
+<a class="min-h-[44px] flex items-center hover:text-ink" href="#">Termos de Uso</a>
+<span>•</span>
+<a class="min-h-[44px] flex items-center hover:text-ink" href="#">Privacidade</a>
+</div>
+<p class="text-[11px] text-muted/80 pb-4">
+        © 2025 EasyAgenda+. Todos os direitos reservados.
+      </p>
+</footer>
+</main>
+</body></html>

@@ -1,0 +1,667 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Relatórios · Studio Aurora · EasyAgenda+</title>
+<!-- Google Fonts & Material Symbols -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand: "#FF7A00",
+            "brand-dark": "#B34D00",
+            "brand-light": "#FFF3EB",
+            ink: "#1A1817",
+            muted: "#66605B",
+            line: "#E2DFDB",
+            bg: "#F6F5F4",
+            surface: "#FFFFFF",
+            "surface-2": "#EFEDEA",
+            "surface-3": "#E5E2DE",
+            success: "#16A34A",
+            "success-bg": "#ECFDF5",
+            warning: "#D97706",
+            danger: "#DC2626",
+            tertiary: "#006399",
+            "status-confirmed": "#2563EB",
+            whatsapp: "#128C4A"
+          },
+          fontFamily: {
+            sans: ["Plus Jakarta Sans", "sans-serif"]
+          },
+          borderRadius: {
+            'card': '16px'
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #F6F5F4;
+      color: #1A1817;
+      -webkit-font-smoothing: antialiased;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 450, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill {
+      font-variation-settings: 'FILL' 1;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #E2DFDB;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #66605B;
+    }
+  </style>
+</head>
+<body class="bg-bg text-ink min-h-screen">
+<!-- 1. BARRA LATERAL FIXA (248px) -->
+<aside class="fixed left-0 top-0 h-full w-[248px] bg-white border-r border-line z-50 flex flex-col justify-between p-4 select-none">
+<div class="flex flex-col gap-6">
+<!-- Logo EasyAgenda+ -->
+<div class="flex items-center gap-2.5 px-2 py-1">
+<div class="w-9 h-9 rounded-xl bg-brand flex items-center justify-center text-ink font-extrabold text-base tracking-tighter shadow-sm">
+          EA+
+        </div>
+<div class="flex flex-col">
+<span class="font-bold text-[17px] text-ink leading-tight tracking-tight">EasyAgenda+</span>
+<span class="text-[10px] font-bold uppercase tracking-wider text-muted">Gestão de Beleza</span>
+</div>
+</div>
+<!-- 9 Itens de Navegação -->
+<nav class="flex flex-col gap-1">
+<!-- 1. Hoje -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-muted hover:text-ink hover:bg-surface-2 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">today</span>
+<span>Hoje</span>
+</a>
+<!-- 2. Agenda -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-muted hover:text-ink hover:bg-surface-2 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">calendar_month</span>
+<span>Agenda</span>
+</a>
+<!-- 3. Clientes -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-muted hover:text-ink hover:bg-surface-2 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">group</span>
+<span>Clientes</span>
+</a>
+<!-- 4. Caixa -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-muted hover:text-ink hover:bg-surface-2 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">point_of_sale</span>
+<span>Caixa</span>
+</a>
+<!-- 5. Clube e pacotes -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-muted hover:text-ink hover:bg-surface-2 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">loyalty</span>
+<span>Clube e pacotes</span>
+</a>
+<!-- 6. WhatsApp -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-muted hover:text-ink hover:bg-surface-2 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">chat</span>
+<span>WhatsApp</span>
+</a>
+<!-- 7. Relatórios (ATIVO) -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold text-ink bg-brand/15 border border-brand/30 transition-all shadow-sm" href="#">
+<span class="material-symbols-outlined text-[20px] text-brand fill">bar_chart</span>
+<span class="text-ink">Relatórios</span>
+</a>
+<!-- 8. Minha página -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-muted hover:text-ink hover:bg-surface-2 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">storefront</span>
+<span>Minha página</span>
+</a>
+<!-- 9. Ajustes -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-muted hover:text-ink hover:bg-surface-2 transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span>Ajustes</span>
+</a>
+</nav>
+</div>
+<!-- Rodapé da barra lateral: Studio Aurora · Plano Equipe -->
+<div class="bg-surface-2 p-2.5 rounded-xl border border-line flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center font-bold text-xs text-brand shrink-0">
+        SA
+      </div>
+<div class="flex flex-col min-w-0 flex-1">
+<span class="font-bold text-[13px] text-ink truncate">Studio Aurora</span>
+<span class="text-[11px] font-semibold text-brand-dark">Plano Equipe</span>
+</div>
+</div>
+</aside>
+<!-- CONTEÚDO PRINCIPAL (Deslocado 248px à esquerda) -->
+<div class="pl-[248px]">
+<!-- 2. TOPBAR / CABEÇALHO FIXO -->
+<header class="sticky top-0 left-[248px] right-0 h-16 bg-white/95 backdrop-blur border-b border-line z-40 flex items-center justify-between px-8">
+<!-- Breadcrumb -->
+<div class="flex items-center gap-2 text-sm">
+<span class="text-muted font-medium">Studio Aurora</span>
+<span class="text-line text-base font-bold">/</span>
+<span class="text-ink font-bold">Relatórios</span>
+</div>
+<!-- Barra de Busca & Usuária -->
+<div class="flex items-center gap-4">
+<!-- Campo de Busca -->
+<div class="relative w-72">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-muted">search</span>
+<input class="w-full pl-9 pr-3 py-1.5 bg-surface-2 border border-line rounded-lg text-xs text-ink placeholder:text-muted focus:outline-none focus:border-brand transition-colors" placeholder="Buscar clientes, serviços..." type="text">
+</div>
+<!-- Notificações -->
+<button class="w-9 h-9 rounded-lg border border-line hover:bg-surface-2 flex items-center justify-center text-muted hover:text-ink relative transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brand"></span>
+</button>
+<!-- Divisor vertical -->
+<div class="h-6 w-px bg-line"></div>
+<!-- Perfil Usuária: Carla · Administradora -->
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-brand text-ink font-bold text-xs flex items-center justify-center shadow-sm">
+            C
+          </div>
+<div class="flex flex-col text-left">
+<span class="text-xs font-bold text-ink leading-tight">Carla</span>
+<span class="text-[11px] font-medium text-muted leading-tight">Administradora</span>
+</div>
+</div>
+</div>
+</header>
+<!-- ÁREA PRINCIPAL DA PÁGINA -->
+<main class="p-8 max-w-[1400px] mx-auto flex flex-col gap-6">
+<!-- 3. CABEÇALHO DA PÁGINA: Título, Filtro e Ação Principal -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<h1 class="text-2xl font-extrabold text-ink tracking-tight">Relatórios</h1>
+<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-success border border-emerald-200">
+              Dados atualizados hoje
+            </span>
+</div>
+<p class="text-sm text-muted">
+            Performance operacional, ocupação de equipe e análise financeira em tempo real.
+          </p>
+</div>
+<div class="flex items-center gap-3 flex-wrap">
+<!-- Dropdown de Período -->
+<div class="flex items-center gap-2 bg-white border border-line px-3.5 py-2 rounded-[10px] text-xs font-semibold text-ink shadow-sm cursor-pointer hover:border-muted transition-colors">
+<span class="material-symbols-outlined text-[18px] text-brand">calendar_today</span>
+<span>18 de agosto a 17 de setembro de 2026</span>
+<span class="material-symbols-outlined text-[16px] text-muted ml-1">expand_more</span>
+</div>
+<!-- Botão Exportar relatório -->
+<button class="flex items-center gap-2 bg-brand text-ink font-bold text-xs px-4 py-2 rounded-[10px] hover:brightness-95 transition-all shadow-sm active:scale-[0.98]" type="button">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span>Exportar relatório</span>
+</button>
+</div>
+</div>
+<!-- 4. QUATRO CARTÕES DE MÉTRICA PRINCIPAIS (Superfície #FFFFFF, Borda #E2DFDB, Raio 16px, Padding 20px) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+<!-- Card 1: Ticket Médio -->
+<div class="bg-surface border border-line rounded-card p-5 shadow-sm flex flex-col justify-between gap-4">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="text-xs font-bold uppercase tracking-wider text-muted">Ticket Médio</span>
+<span class="text-2xl font-extrabold text-ink tabular-nums mt-1">R$ 132,50</span>
+</div>
+<div class="w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-brand">
+<span class="material-symbols-outlined text-[22px]">receipt_long</span>
+</div>
+</div>
+<div class="flex items-center gap-1.5 text-xs">
+<span class="inline-flex items-center font-bold text-success bg-success-bg px-1.5 py-0.5 rounded border border-emerald-100">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> +8,4%
+            </span>
+<span class="text-muted text-[11px]">vs mês anterior</span>
+</div>
+</div>
+<!-- Card 2: Retorno no Ciclo -->
+<div class="bg-surface border border-line rounded-card p-5 shadow-sm flex flex-col justify-between gap-4">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="text-xs font-bold uppercase tracking-wider text-muted">Retorno no Ciclo</span>
+<span class="text-2xl font-extrabold text-ink tabular-nums mt-1">72%</span>
+</div>
+<div class="w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-brand">
+<span class="material-symbols-outlined text-[22px]">replay</span>
+</div>
+</div>
+<div class="flex items-center gap-1.5 text-[11px] text-muted">
+<span class="w-2 h-2 rounded-full bg-success shrink-0"></span>
+<span>Voltam em até 25 dias</span>
+</div>
+</div>
+<!-- Card 3: Taxa de Faltas -->
+<div class="bg-surface border border-line rounded-card p-5 shadow-sm flex flex-col justify-between gap-4">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="text-xs font-bold uppercase tracking-wider text-muted">Taxa de Faltas</span>
+<span class="text-2xl font-extrabold text-ink tabular-nums mt-1">2,8%</span>
+</div>
+<div class="w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-brand">
+<span class="material-symbols-outlined text-[22px]">event_busy</span>
+</div>
+</div>
+<div class="flex items-center gap-1.5 text-[11px] text-muted">
+<span class="material-symbols-outlined text-success text-[15px]">verified</span>
+<span>Sinal Pix + lembrete ativo</span>
+</div>
+</div>
+<!-- Card 4: Faturamento do Mês -->
+<div class="bg-surface border border-line rounded-card p-5 shadow-sm flex flex-col justify-between gap-3">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="text-xs font-bold uppercase tracking-wider text-muted">Faturamento do Mês</span>
+<span class="text-2xl font-extrabold text-ink tabular-nums mt-1">R$ 34.180</span>
+</div>
+<div class="w-10 h-10 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-brand">
+<span class="material-symbols-outlined text-[22px]">payments</span>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between text-[11px]">
+<span class="text-muted font-medium">Meta R$ 38.000</span>
+<span class="font-bold text-brand-dark tabular-nums">90% atingido</span>
+</div>
+<div class="w-full bg-surface-2 h-2 rounded-full overflow-hidden border border-line/60">
+<div class="bg-brand h-full rounded-full transition-all duration-500" style="width: 90%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- 5. GRID DE CONTEÚDO (Heatmap à Esquerda + Rosca de Canais à Direita) -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+<!-- ESQUERDA: MAPA DE CALOR DE OCUPAÇÃO (Col span 7) -->
+<div class="xl:col-span-7 bg-surface border border-line rounded-card p-6 shadow-sm flex flex-col justify-between gap-5">
+<!-- Topo do Bloco -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+<div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-brand text-[20px]">grid_view</span>
+<h2 class="text-base font-bold text-ink">Mapa de Calor de Ocupação da Grade</h2>
+</div>
+<p class="text-xs text-muted mt-0.5">
+                Distribuição de horários ocupados por profissional e dia da semana.
+              </p>
+</div>
+<!-- Legenda Discreta de Intensidade -->
+<div class="flex items-center gap-2 bg-surface-2 px-3 py-1.5 rounded-lg border border-line shrink-0">
+<span class="text-[10px] font-bold text-muted uppercase">Lotação</span>
+<div class="flex items-center gap-1">
+<span class="w-3 h-3 rounded-sm bg-orange-50 border border-orange-100" title="30-50%"></span>
+<span class="w-3 h-3 rounded-sm bg-orange-100 border border-orange-200" title="50-70%"></span>
+<span class="w-3 h-3 rounded-sm bg-orange-200" title="70-85%"></span>
+<span class="w-3 h-3 rounded-sm bg-orange-300" title="85-95%"></span>
+<span class="w-3 h-3 rounded-sm bg-orange-500" title="95%+"></span>
+</div>
+<span class="text-[10px] font-semibold text-muted">98%</span>
+</div>
+</div>
+<!-- Tabela do Heatmap em Grid Responsivo e Perfeito -->
+<div class="w-full overflow-x-auto">
+<table class="w-full border-separate border-spacing-1.5 text-xs min-w-[540px]">
+<thead>
+<tr class="text-center font-bold text-[11px] text-muted">
+<th class="text-left font-semibold py-1 px-2 text-ink">Profissional</th>
+<th class="w-12 py-1 bg-surface-2 rounded-md font-semibold">Seg</th>
+<th class="py-1 bg-surface-2 rounded-md font-semibold" colspan="2">Terça</th>
+<th class="py-1 bg-surface-2 rounded-md font-semibold" colspan="2">Quarta</th>
+<th class="py-1 bg-surface-2 rounded-md font-semibold" colspan="2">Quinta</th>
+<th class="py-1 bg-surface-2 rounded-md font-semibold" colspan="2">Sexta</th>
+<th class="py-1 bg-surface-2 rounded-md font-semibold" colspan="2">Sábado</th>
+</tr>
+<tr class="text-center text-[10px] font-semibold text-muted">
+<th></th>
+<th class="text-[9px] text-muted/60">-</th>
+<th class="w-9 text-muted/70">M</th>
+<th class="w-9 text-muted/70">T</th>
+<th class="w-9 text-muted/70">M</th>
+<th class="w-9 text-muted/70">T</th>
+<th class="w-9 text-muted/70">M</th>
+<th class="w-9 text-muted/70">T</th>
+<th class="w-9 text-muted/70">M</th>
+<th class="w-9 text-muted/70">T</th>
+<th class="w-9 text-muted/70">M</th>
+<th class="w-9 text-muted/70">T</th>
+</tr>
+</thead>
+<tbody class="tabular-nums">
+<!-- 1. Camila Rocha · Unhas -->
+<tr>
+<td class="py-2 px-2 text-left">
+<div class="font-bold text-ink text-xs leading-tight">Camila Rocha</div>
+<div class="text-[10px] text-muted">Unhas</div>
+</td>
+<td class="bg-surface-2 text-muted font-medium text-center rounded-md py-2.5 text-[10px]" title="Fechado">-</td>
+<td class="bg-orange-50 text-orange-950 font-bold text-center rounded-md py-2.5 border border-orange-100">42%</td>
+<td class="bg-orange-100 text-orange-950 font-bold text-center rounded-md py-2.5">68%</td>
+<td class="bg-orange-200 text-orange-950 font-bold text-center rounded-md py-2.5">75%</td>
+<td class="bg-orange-200 text-orange-950 font-bold text-center rounded-md py-2.5">82%</td>
+<td class="bg-orange-200 text-orange-950 font-bold text-center rounded-md py-2.5">78%</td>
+<td class="bg-orange-300 text-orange-950 font-bold text-center rounded-md py-2.5">88%</td>
+<td class="bg-orange-300 text-orange-950 font-bold text-center rounded-md py-2.5">89%</td>
+<td class="bg-orange-500 text-white font-extrabold text-center rounded-md py-2.5 shadow-sm">98%</td>
+<td class="bg-orange-500 text-white font-extrabold text-center rounded-md py-2.5 shadow-sm">96%</td>
+<td class="bg-orange-500 text-white font-extrabold text-center rounded-md py-2.5 shadow-sm">98%</td>
+</tr>
+<!-- 2. Bruna Lima · Cílios e sobrancelha -->
+<tr>
+<td class="py-2 px-2 text-left">
+<div class="font-bold text-ink text-xs leading-tight">Bruna Lima</div>
+<div class="text-[10px] text-muted">Cílios e sobrancelha</div>
+</td>
+<td class="bg-surface-2 text-muted font-medium text-center rounded-md py-2.5 text-[10px]" title="Fechado">-</td>
+<td class="bg-orange-50 text-orange-950 font-bold text-center rounded-md py-2.5 border border-orange-100">38%</td>
+<td class="bg-orange-100 text-orange-950 font-bold text-center rounded-md py-2.5">60%</td>
+<td class="bg-orange-100 text-orange-950 font-bold text-center rounded-md py-2.5">70%</td>
+<td class="bg-orange-200 text-orange-950 font-bold text-center rounded-md py-2.5">81%</td>
+<td class="bg-orange-200 text-orange-950 font-bold text-center rounded-md py-2.5">74%</td>
+<td class="bg-orange-300 text-orange-950 font-bold text-center rounded-md py-2.5">86%</td>
+<td class="bg-orange-300 text-orange-950 font-bold text-center rounded-md py-2.5">92%</td>
+<td class="bg-orange-500 text-white font-extrabold text-center rounded-md py-2.5 shadow-sm">97%</td>
+<td class="bg-orange-500 text-white font-extrabold text-center rounded-md py-2.5 shadow-sm">95%</td>
+<td class="bg-orange-300 text-orange-950 font-bold text-center rounded-md py-2.5">94%</td>
+</tr>
+<!-- 3. Paula Mendes · Cabelo -->
+<tr>
+<td class="py-2 px-2 text-left">
+<div class="font-bold text-ink text-xs leading-tight">Paula Mendes</div>
+<div class="text-[10px] text-muted">Cabelo</div>
+</td>
+<td class="bg-surface-2 text-muted font-medium text-center rounded-md py-2.5 text-[10px]" title="Fechado">-</td>
+<td class="bg-orange-50 text-orange-950 font-bold text-center rounded-md py-2.5 border border-orange-100">46%</td>
+<td class="bg-orange-200 text-orange-950 font-bold text-center rounded-md py-2.5">72%</td>
+<td class="bg-orange-200 text-orange-950 font-bold text-center rounded-md py-2.5">76%</td>
+<td class="bg-orange-200 text-orange-950 font-bold text-center rounded-md py-2.5">85%</td>
+<td class="bg-orange-200 text-orange-950 font-bold text-center rounded-md py-2.5">80%</td>
+<td class="bg-orange-300 text-orange-950 font-bold text-center rounded-md py-2.5">90%</td>
+<td class="bg-orange-300 text-orange-950 font-bold text-center rounded-md py-2.5">94%</td>
+<td class="bg-orange-500 text-white font-extrabold text-center rounded-md py-2.5 shadow-sm">99%</td>
+<td class="bg-orange-500 text-white font-extrabold text-center rounded-md py-2.5 shadow-sm">97%</td>
+<td class="bg-orange-500 text-white font-extrabold text-center rounded-md py-2.5 shadow-sm">96%</td>
+</tr>
+<!-- 4. Média do estúdio (Destacada) -->
+<tr class="border-t border-line">
+<td class="py-2 px-2 text-left">
+<div class="font-extrabold text-ink text-xs flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px] text-brand">equalizer</span>
+<span>Média do estúdio</span>
+</div>
+</td>
+<td class="bg-surface-2 text-muted font-bold text-center rounded-md py-2.5 text-[10px]">Fechado</td>
+<td class="bg-orange-50 text-orange-950 font-extrabold text-center rounded-md py-2.5 border border-orange-100">42%</td>
+<td class="bg-orange-100 text-orange-950 font-extrabold text-center rounded-md py-2.5">67%</td>
+<td class="bg-orange-200 text-orange-950 font-extrabold text-center rounded-md py-2.5">74%</td>
+<td class="bg-orange-200 text-orange-950 font-extrabold text-center rounded-md py-2.5">83%</td>
+<td class="bg-orange-200 text-orange-950 font-extrabold text-center rounded-md py-2.5">77%</td>
+<td class="bg-orange-300 text-orange-950 font-extrabold text-center rounded-md py-2.5">88%</td>
+<td class="bg-orange-300 text-orange-950 font-extrabold text-center rounded-md py-2.5">92%</td>
+<td class="bg-orange-500 text-white font-black text-center rounded-md py-2.5 shadow-sm">98%</td>
+<td class="bg-orange-500 text-white font-black text-center rounded-md py-2.5 shadow-sm">96%</td>
+<td class="bg-orange-500 text-white font-black text-center rounded-md py-2.5 shadow-sm">96%</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Rodapé de Dica Rápida -->
+<div class="flex items-center gap-2 bg-surface-2/80 p-3 rounded-xl border border-line text-xs">
+<span class="material-symbols-outlined text-brand text-[18px] shrink-0">lightbulb</span>
+<p class="text-muted leading-relaxed">
+<span class="font-bold text-ink">Oportunidade:</span> Terças de manhã têm 42% de ocupação média. Ideal para promoções pontuais via disparo WhatsApp.
+            </p>
+</div>
+</div>
+<!-- DIREITA: DONUT CHART "ORIGEM DOS AGENDAMENTOS" (Col span 5) -->
+<div class="xl:col-span-5 bg-surface border border-line rounded-card p-6 shadow-sm flex flex-col justify-between gap-5">
+<div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-brand text-[20px]">donut_small</span>
+<h2 class="text-base font-bold text-ink">Origem dos agendamentos</h2>
+</div>
+<p class="text-xs text-muted mt-0.5">
+              Canais de atração no período selecionado (336 no total).
+            </p>
+</div>
+<!-- Donut SVG Centralizado -->
+<div class="relative w-44 h-44 mx-auto flex items-center justify-center my-1">
+<svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+<!-- Background Circle (r=38 => circumference ≈ 238.76) -->
+<circle cx="50" cy="50" fill="none" r="38" stroke="#EFEDEA" stroke-width="11"></circle>
+<!-- Segmento 1: Página Pública (44% = 105.05) -> #FF7A00 -->
+<circle cx="50" cy="50" fill="none" r="38" stroke="#FF7A00" stroke-dasharray="105.05 238.76" stroke-dashoffset="0" stroke-linecap="round" stroke-width="11"></circle>
+<!-- Segmento 2: Bot WhatsApp (31% = 74.02) -> #128C4A -->
+<circle cx="50" cy="50" fill="none" r="38" stroke="#128C4A" stroke-dasharray="74.02 238.76" stroke-dashoffset="-105.05" stroke-width="11"></circle>
+<!-- Segmento 3: Balcão (15% = 35.81) -> #1A1817 -->
+<circle cx="50" cy="50" fill="none" r="38" stroke="#1A1817" stroke-dasharray="35.81 238.76" stroke-dashoffset="-179.07" stroke-width="11"></circle>
+<!-- Segmento 4: Radar Retorno (10% = 23.88) -> #2563EB -->
+<circle cx="50" cy="50" fill="none" r="38" stroke="#2563EB" stroke-dasharray="23.88 238.76" stroke-dashoffset="-214.88" stroke-width="11"></circle>
+</svg>
+<!-- Centro do Donut -->
+<div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+<span class="text-2xl font-extrabold text-ink tabular-nums leading-none">336</span>
+<span class="text-[11px] font-semibold text-muted mt-1">agendamentos</span>
+</div>
+</div>
+<!-- Legenda detalhada -->
+<div class="flex flex-col gap-2">
+<!-- 1. Página pública: 44% · R$ 15.040 (#FF7A00) -->
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-2 border border-line text-xs">
+<div class="flex items-center gap-2.5">
+<span class="w-3 h-3 rounded-full bg-brand shrink-0"></span>
+<span class="font-bold text-ink">Página pública</span>
+</div>
+<div class="flex items-center gap-2 tabular-nums">
+<span class="font-extrabold text-ink">44%</span>
+<span class="text-muted font-medium">·</span>
+<span class="font-bold text-brand-dark">R$ 15.040</span>
+</div>
+</div>
+<!-- 2. Bot WhatsApp: 31% · R$ 10.590 (#128C4A) -->
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-2 border border-line text-xs">
+<div class="flex items-center gap-2.5">
+<span class="w-3 h-3 rounded-full bg-whatsapp shrink-0"></span>
+<span class="font-bold text-ink">Bot WhatsApp</span>
+</div>
+<div class="flex items-center gap-2 tabular-nums">
+<span class="font-extrabold text-ink">31%</span>
+<span class="text-muted font-medium">·</span>
+<span class="font-bold text-emerald-800">R$ 10.590</span>
+</div>
+</div>
+<!-- 3. Balcão: 15% · R$ 5.130 (#1A1817) -->
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-2 border border-line text-xs">
+<div class="flex items-center gap-2.5">
+<span class="w-3 h-3 rounded-full bg-ink shrink-0"></span>
+<span class="font-bold text-ink">Balcão</span>
+</div>
+<div class="flex items-center gap-2 tabular-nums">
+<span class="font-extrabold text-ink">15%</span>
+<span class="text-muted font-medium">·</span>
+<span class="font-bold text-ink">R$ 5.130</span>
+</div>
+</div>
+<!-- 4. Radar de Retorno: 10% · R$ 3.420 (#2563EB) -->
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-2 border border-line text-xs">
+<div class="flex items-center gap-2.5">
+<span class="w-3 h-3 rounded-full bg-status-confirmed shrink-0"></span>
+<span class="font-bold text-ink">Radar de Retorno</span>
+</div>
+<div class="flex items-center gap-2 tabular-nums">
+<span class="font-extrabold text-ink">10%</span>
+<span class="text-muted font-medium">·</span>
+<span class="font-bold text-blue-700">R$ 3.420</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 6. BLOCO INFERIOR: EVOLUÇÃO DO FATURAMENTO MÊS A MÊS (Abril a Setembro de 2026) -->
+<div class="bg-surface border border-line rounded-card p-6 shadow-sm flex flex-col gap-6">
+<!-- Topo e Legenda do Gráfico de Barras -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-brand text-[22px]">stacked_bar_chart</span>
+<h2 class="text-base font-bold text-ink">Faturamento mês a mês</h2>
+</div>
+<p class="text-xs text-muted mt-0.5">
+              Histórico dos últimos 6 meses com segregação entre Serviços e Produtos.
+            </p>
+</div>
+<!-- Legenda de Cores e Meta -->
+<div class="flex items-center gap-4 flex-wrap text-xs">
+<div class="flex items-center gap-1.5">
+<span class="w-3 h-3 rounded bg-brand"></span>
+<span class="text-muted font-semibold">Serviços</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-3 h-3 rounded bg-status-confirmed"></span>
+<span class="text-muted font-semibold">Produtos</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-4 border-t-2 border-dashed border-red-500"></span>
+<span class="text-muted font-semibold">Meta (R$ 38.000)</span>
+</div>
+</div>
+</div>
+<!-- Área das Barras -->
+<div class="relative w-full pt-4">
+<!-- Linha de Meta Tracejada (R$ 38.000 em escala máxima de 42k ~ 90% de altura) -->
+<div class="absolute left-0 right-0 top-[40px] flex items-center z-10 pointer-events-none">
+<div class="w-full border-t border-dashed border-red-400"></div>
+<span class="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded ml-2 shrink-0">
+              Meta: R$ 38.000
+            </span>
+</div>
+<!-- Container de Colunas de 6 Meses -->
+<div class="grid grid-cols-6 gap-3 sm:gap-6 items-end h-64 border-b border-line pb-2 relative z-0">
+<!-- 1. Abr 2026: R$ 24.200 (Serviços 82% = R$ 19.850 / Produtos 18% = R$ 4.350) -->
+<div class="flex flex-col items-center gap-2 h-full justify-end group">
+<span class="text-[11px] font-bold text-ink tabular-nums">R$ 24.200</span>
+<div class="w-full max-w-[56px] flex flex-col rounded-t-lg overflow-hidden bg-surface-2 transition-transform group-hover:scale-[1.02]" style="height: 140px;">
+<!-- Produtos -->
+<div class="w-full bg-status-confirmed" style="height: 18%;" title="Produtos: R$ 4.350"></div>
+<!-- Serviços -->
+<div class="w-full bg-brand" style="height: 82%;" title="Serviços: R$ 19.850"></div>
+</div>
+<div class="flex flex-col items-center">
+<span class="text-xs font-bold text-ink">Abr</span>
+<span class="text-[10px] text-muted font-medium">2026</span>
+</div>
+</div>
+<!-- 2. Mai 2026: R$ 26.800 (Serviços 80% / Produtos 20%) -->
+<div class="flex flex-col items-center gap-2 h-full justify-end group">
+<span class="text-[11px] font-bold text-ink tabular-nums">R$ 26.800</span>
+<div class="w-full max-w-[56px] flex flex-col rounded-t-lg overflow-hidden bg-surface-2 transition-transform group-hover:scale-[1.02]" style="height: 155px;">
+<div class="w-full bg-status-confirmed" style="height: 20%;" title="Produtos: R$ 5.360"></div>
+<div class="w-full bg-brand" style="height: 80%;" title="Serviços: R$ 21.440"></div>
+</div>
+<div class="flex flex-col items-center">
+<span class="text-xs font-bold text-ink">Mai</span>
+<span class="text-[10px] text-muted font-medium">2026</span>
+</div>
+</div>
+<!-- 3. Jun 2026: R$ 28.100 (Serviços 78% / Produtos 22%) -->
+<div class="flex flex-col items-center gap-2 h-full justify-end group">
+<span class="text-[11px] font-bold text-ink tabular-nums">R$ 28.100</span>
+<div class="w-full max-w-[56px] flex flex-col rounded-t-lg overflow-hidden bg-surface-2 transition-transform group-hover:scale-[1.02]" style="height: 162px;">
+<div class="w-full bg-status-confirmed" style="height: 22%;" title="Produtos: R$ 6.180"></div>
+<div class="w-full bg-brand" style="height: 78%;" title="Serviços: R$ 21.920"></div>
+</div>
+<div class="flex flex-col items-center">
+<span class="text-xs font-bold text-ink">Jun</span>
+<span class="text-[10px] text-muted font-medium">2026</span>
+</div>
+</div>
+<!-- 4. Jul 2026: R$ 29.900 (Serviços 79% / Produtos 21%) -->
+<div class="flex flex-col items-center gap-2 h-full justify-end group">
+<span class="text-[11px] font-bold text-ink tabular-nums">R$ 29.900</span>
+<div class="w-full max-w-[56px] flex flex-col rounded-t-lg overflow-hidden bg-surface-2 transition-transform group-hover:scale-[1.02]" style="height: 172px;">
+<div class="w-full bg-status-confirmed" style="height: 21%;" title="Produtos: R$ 6.270"></div>
+<div class="w-full bg-brand" style="height: 79%;" title="Serviços: R$ 23.630"></div>
+</div>
+<div class="flex flex-col items-center">
+<span class="text-xs font-bold text-ink">Jul</span>
+<span class="text-[10px] text-muted font-medium">2026</span>
+</div>
+</div>
+<!-- 5. Ago 2026: R$ 31.450 (Serviços 76% / Produtos 24%) -->
+<div class="flex flex-col items-center gap-2 h-full justify-end group">
+<span class="text-[11px] font-bold text-ink tabular-nums">R$ 31.450</span>
+<div class="w-full max-w-[56px] flex flex-col rounded-t-lg overflow-hidden bg-surface-2 transition-transform group-hover:scale-[1.02]" style="height: 182px;">
+<div class="w-full bg-status-confirmed" style="height: 24%;" title="Produtos: R$ 7.550"></div>
+<div class="w-full bg-brand" style="height: 76%;" title="Serviços: R$ 23.900"></div>
+</div>
+<div class="flex flex-col items-center">
+<span class="text-xs font-bold text-ink">Ago</span>
+<span class="text-[10px] text-muted font-medium">2026</span>
+</div>
+</div>
+<!-- 6. Set 2026: R$ 34.180 (Atual - Mês em Curso) -->
+<div class="flex flex-col items-center gap-2 h-full justify-end group">
+<span class="text-[11px] font-extrabold text-brand-dark tabular-nums">R$ 34.180</span>
+<div class="w-full max-w-[56px] flex flex-col rounded-t-lg overflow-hidden ring-2 ring-brand/30 shadow-md transition-transform group-hover:scale-[1.02]" style="height: 198px;">
+<div class="w-full bg-status-confirmed" style="height: 23%;" title="Produtos: R$ 7.860"></div>
+<div class="w-full bg-brand" style="height: 77%;" title="Serviços: R$ 26.320"></div>
+</div>
+<div class="flex flex-col items-center">
+<div class="flex items-center gap-1">
+<span class="text-xs font-bold text-ink">Set</span>
+<span class="w-1.5 h-1.5 rounded-full bg-success"></span>
+</div>
+<span class="text-[10px] text-brand-dark font-extrabold uppercase">Atual</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Cartões de Resumo de Insights no Rodapé -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+<div class="p-3.5 bg-surface-2 rounded-xl border border-line flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center text-brand shrink-0">
+<span class="material-symbols-outlined text-[19px]">shopping_bag</span>
+</div>
+<div class="flex flex-col">
+<span class="font-bold text-xs text-ink">Venda de homecare</span>
+<span class="text-[11px] text-muted">Representa 21% da receita (crescimento de +14% pós-atendimento).</span>
+</div>
+</div>
+<div class="p-3.5 bg-surface-2 rounded-xl border border-line flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-success shrink-0">
+<span class="material-symbols-outlined text-[19px]">trending_up</span>
+</div>
+<div class="flex flex-col">
+<span class="font-bold text-xs text-ink">Projeção do fechamento</span>
+<span class="text-[11px] text-muted">Tendência de R$ 38.450 nos próximos 13 dias de setembro.</span>
+</div>
+</div>
+<div class="p-3.5 bg-surface-2 rounded-xl border border-line flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-status-confirmed shrink-0">
+<span class="material-symbols-outlined text-[19px]">alarm_on</span>
+</div>
+<div class="flex flex-col">
+<span class="font-bold text-xs text-ink">Horários de pico</span>
+<span class="text-[11px] text-muted">Sextas e Sábados operando com 96% de ocupação média.</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,511 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "outline-variant": "#e0c0af",
+          "tertiary-container": "#00a8ff",
+          "inverse-surface": "#32302f",
+          "secondary-container": "#eae1da",
+          "success-light": "#16A34A",
+          "surface-container-lowest": "#ffffff",
+          "error-container": "#ffdad6",
+          "inverse-primary": "#ffb68b",
+          "bg-light": "#F6F5F4",
+          "tertiary-fixed-dim": "#95ccff",
+          "surface-2-dark": "#211F1D",
+          "whatsapp-dark": "#25D366",
+          "muted-light": "#66605B",
+          "secondary-fixed": "#eae1da",
+          "on-primary-container": "#5c2800",
+          "brand-text-dark": "#FF9A3D",
+          "success-dark": "#4ADE80",
+          "on-error-container": "#93000a",
+          "secondary-fixed-dim": "#cdc5bf",
+          "surface-container-low": "#f9f2f0",
+          "surface-tint": "#994700",
+          "on-primary-fixed": "#321200",
+          "primary-fixed": "#ffdbc8",
+          "on-primary": "#ffffff",
+          "on-error": "#ffffff",
+          "brand-text-light": "#B34D00",
+          "surface-2-light": "#EFEDEA",
+          "outline": "#8c7263",
+          "on-secondary-fixed": "#1f1b17",
+          "ink-light": "#1A1817",
+          "ink-dark": "#F3F1EF",
+          "surface": "#fff8f6",
+          "on-tertiary-fixed": "#001d32",
+          "warning-dark": "#FBBF24",
+          "line-light": "#E2DFDB",
+          "on-tertiary-fixed-variant": "#004a75",
+          "surface-dim": "#dfd9d7",
+          "surface-container-high": "#ede7e5",
+          "surface-bright": "#fff8f6",
+          "surface-dark": "#181615",
+          "background": "#fff8f6",
+          "on-secondary-fixed-variant": "#4b4641",
+          "warning-light": "#D97706",
+          "on-surface-variant": "#584235",
+          "on-brand": "#1A1817",
+          "status-confirmed": "#2563EB",
+          "on-surface": "#1d1b1a",
+          "on-secondary": "#ffffff",
+          "surface-container": "#f3edea",
+          "primary": "#994700",
+          "secondary": "#635d58",
+          "inverse-on-surface": "#f6efed",
+          "line-dark": "#2E2B28",
+          "surface-variant": "#e7e1df",
+          "on-tertiary-container": "#003a5c",
+          "primary-container": "#ff7a00",
+          "danger-light": "#DC2626",
+          "tertiary": "#006399",
+          "surface-container-highest": "#e7e1df",
+          "whatsapp-light": "#128C4A",
+          "on-primary-fixed-variant": "#753400",
+          "primary-fixed-dim": "#ffb68b",
+          "muted-dark": "#A39D97",
+          "on-background": "#1d1b1a",
+          "on-tertiary": "#ffffff",
+          "bg-dark": "#0E0D0C",
+          "on-secondary-container": "#69635e",
+          "tertiary-fixed": "#cde5ff",
+          "surface-light": "#FFFFFF",
+          "danger-dark": "#F87171",
+          "error": "#ba1a1a"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "gutter": "1rem",
+          "space-xl": "2rem",
+          "space-sm": "0.5rem",
+          "space-xs": "0.25rem",
+          "space-md": "1rem",
+          "space-lg": "1.5rem",
+          "margin": "1rem"
+        },
+        "fontFamily": {
+          "headline-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "title-md": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-lg-mobile": [
+            "Plus Jakarta Sans"
+          ],
+          "label-sm": [
+            "Plus Jakarta Sans"
+          ],
+          "body-sm": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-md": [
+            "Plus Jakarta Sans"
+          ],
+          "title-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "display-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "label-md": [
+            "Plus Jakarta Sans"
+          ],
+          "body-md": [
+            "Plus Jakarta Sans"
+          ]
+        },
+        "fontSize": {
+          "headline-lg": [
+            "32px",
+            {
+              "lineHeight": "40px",
+              "fontWeight": "700"
+            }
+          ],
+          "title-md": [
+            "17px",
+            {
+              "lineHeight": "24px",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-lg-mobile": [
+            "28px",
+            {
+              "lineHeight": "36px",
+              "fontWeight": "700"
+            }
+          ],
+          "label-sm": [
+            "11px",
+            {
+              "lineHeight": "16px",
+              "fontWeight": "600"
+            }
+          ],
+          "body-sm": [
+            "14px",
+            {
+              "lineHeight": "20px",
+              "fontWeight": "400"
+            }
+          ],
+          "headline-md": [
+            "24px",
+            {
+              "lineHeight": "32px",
+              "fontWeight": "700"
+            }
+          ],
+          "title-lg": [
+            "20px",
+            {
+              "lineHeight": "28px",
+              "fontWeight": "700"
+            }
+          ],
+          "display-lg": [
+            "40px",
+            {
+              "lineHeight": "48px",
+              "fontWeight": "800"
+            }
+          ],
+          "label-md": [
+            "13px",
+            {
+              "lineHeight": "18px",
+              "fontWeight": "600"
+            }
+          ],
+          "body-md": [
+            "15px",
+            {
+              "lineHeight": "22.5px",
+              "fontWeight": "400"
+            }
+          ]
+        }
+      },
+    },
+  }</script></head><body class="bg-bg-light font-body-md text-body-md text-ink-light"><aside class="fixed left-0 top-0 h-full w-[248px] bg-surface-light border-r border-line-light z-50 flex flex-col justify-between"><div class="flex flex-col"><div class="h-16 px-space-lg flex items-center gap-2.5 border-b border-line-light"><div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[20px]">event_available</span></div><span class="font-title-lg text-title-lg text-ink-light tracking-tight">EasyAgenda<span class="text-primary-container font-headline-lg text-title-lg">+</span></span></div><nav class="flex flex-col gap-1 px-3 py-space-md" data-active-classes="bg-surface-2-light text-primary font-label-md font-bold"><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="hoje" href="#"><span class="material-symbols-outlined text-[20px]">today</span>Hoje</a><a aria-current="page" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors bg-surface-2-light text-primary font-label-md font-bold" data-path="agenda" href="#"><span class="material-symbols-outlined text-[20px]">calendar_month</span>Agenda</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="clientes" href="#"><span class="material-symbols-outlined text-[20px]">group</span>Clientes</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="caixa" href="#"><span class="material-symbols-outlined text-[20px]">payments</span>Caixa</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="clube-e-pacotes" href="#"><span class="material-symbols-outlined text-[20px]">loyalty</span>Clube e pacotes</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="whatsapp" href="#"><span class="material-symbols-outlined text-[20px]">chat</span>WhatsApp</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="relatorios" href="#"><span class="material-symbols-outlined text-[20px]">bar_chart</span>Relatórios</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="minha-pagina" href="#"><span class="material-symbols-outlined text-[20px]">storefront</span>Minha página</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-light font-label-md text-label-md hover:bg-surface-2-light hover:text-ink-light transition-colors" data-path="ajustes" href="#"><span class="material-symbols-outlined text-[20px]">settings</span>Ajustes</a></nav></div><div class="p-space-md border-t border-line-light"><div class="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-surface-2-light"><span class="material-symbols-outlined text-[18px] text-muted-light">store</span><div class="flex flex-col min-w-0"><span class="font-label-md text-label-md text-ink-light truncate">Studio Aurora</span><span class="font-label-sm text-label-sm text-muted-light truncate">Plano Equipe</span></div></div></div></aside><div class="pl-[248px]"><header class="fixed top-0 left-[248px] right-0 h-16 bg-surface-light border-b border-line-light z-40 flex items-center justify-between px-space-lg"><div class="flex items-center gap-2 text-muted-light font-label-md text-label-md"><span class="hover:text-ink-light cursor-pointer">Studio Aurora</span><span class="material-symbols-outlined text-[16px]">chevron_right</span><span class="text-ink-light font-semibold">Painel de Gestão</span></div><div class="flex items-center gap-space-md"><div class="relative flex items-center"><span class="material-symbols-outlined absolute left-3 text-muted-light text-[18px]">search</span><input class="h-9 pl-9 pr-4 w-64 rounded-lg bg-surface-2-light border border-line-light text-ink-light font-body-sm text-body-sm placeholder:text-muted-light focus:outline-none focus:border-primary-container" placeholder="Buscar agendamento ou cliente..." type="text"></div><button class="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-2-light text-muted-light hover:text-ink-light transition-colors"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary-container"></span></button><div class="flex items-center gap-3 pl-2 border-l border-line-light"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="relative pt-16 w-full px-space-lg py-space-lg bg-bg-light"><div class="flex flex-col w-full">
+<div class="relative w-full rounded-2xl bg-surface-light shadow-xl overflow-hidden mb-6">
+<div class="p-6 bg-surface-2-light flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-start md:items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-on-primary shadow-sm">
+<span class="material-symbols-outlined text-[26px]">point_of_sale</span>
+</div>
+<div>
+<div class="flex items-center gap-2 flex-wrap">
+<span class="font-label-sm text-label-sm uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-primary-container text-on-primary font-bold">
+              Comanda #1042
+            </span>
+<span class="font-label-md text-label-md text-muted-light font-medium">Finalização de Atendimento</span>
+<span class="w-1 h-1 rounded-full bg-outline"></span>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-surface-container text-ink-light">Mesa 02</span>
+</div>
+<h1 class="font-headline-md text-headline-md text-ink-light mt-1 flex items-center gap-2">
+            Mariana Souza
+            <span class="material-symbols-outlined text-[18px] text-whatsapp-light" title="Cliente Verificada">check_circle</span>
+</h1>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-3 px-3 py-2 rounded-xl bg-surface-light shadow-sm">
+<div class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-primary font-bold">
+            CR
+          </div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-muted-light">Profissional Responsável</span>
+<span class="font-label-md text-label-md text-ink-light font-bold">Camila Rocha</span>
+</div>
+</div>
+<button class="w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center text-muted-light hover:text-ink-light transition-colors">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+</div>
+<div class="p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+<div class="lg:col-span-7 flex flex-col gap-6">
+<div>
+<div class="flex items-center justify-between mb-3">
+<h2 class="font-title-lg text-title-lg text-ink-light flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[22px]">receipt_long</span>
+              Itens do Atendimento
+            </h2>
+<span class="font-label-sm text-label-sm text-muted-light">2 itens registrados</span>
+</div>
+<div class="space-y-3">
+<div class="p-4 rounded-xl bg-surface-container-low flex items-center justify-between gap-4">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-10 h-10 rounded-lg bg-surface-light flex items-center justify-center text-primary shadow-sm shrink-0">
+<span class="material-symbols-outlined text-[22px]">brush</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md text-ink-light truncate">Manutenção Fibra de Vidro</span>
+<div class="flex items-center gap-2 text-muted-light font-body-sm text-body-sm">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">schedule</span> 1h30
+                    </span>
+<span>•</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-2-light text-ink-light font-label-sm text-label-sm">Serviço Principal</span>
+</div>
+</div>
+</div>
+<div class="text-right shrink-0">
+<span class="font-title-md text-title-md text-ink-light font-bold">R$ 110,00</span>
+</div>
+</div>
+<div class="p-4 rounded-xl bg-surface-container-low flex items-center justify-between gap-4">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-10 h-10 rounded-lg bg-surface-light flex items-center justify-center text-tertiary shadow-sm shrink-0">
+<span class="material-symbols-outlined text-[22px]">shopping_bag</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md text-ink-light truncate">Óleo Hidratante de Cutícula 10ml</span>
+<span class="font-body-sm text-body-sm text-muted-light">Produto Home Care</span>
+</div>
+</div>
+<div class="flex items-center gap-4 shrink-0">
+<div class="flex items-center bg-surface-light rounded-lg p-1 shadow-sm">
+<button class="w-7 h-7 flex items-center justify-center text-muted-light hover:text-ink-light transition-colors">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<span class="w-7 text-center font-label-md text-label-md text-ink-light font-bold">1</span>
+<button class="w-7 h-7 flex items-center justify-center text-muted-light hover:text-ink-light transition-colors">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+<div class="text-right">
+<span class="font-title-md text-title-md text-ink-light font-bold">R$ 25,00</span>
+</div>
+<button class="w-8 h-8 rounded-lg text-danger-light hover:bg-error-container/30 flex items-center justify-center transition-colors" title="Remover item">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</div>
+</div>
+<div class="mt-4 p-4 rounded-xl bg-surface-2-light flex flex-col gap-3">
+<span class="font-label-md text-label-md text-ink-light font-bold flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+              Adicionar serviço ou produto extra
+            </span>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-muted-light text-[20px]">search</span>
+<input class="w-full h-11 pl-10 pr-4 rounded-xl bg-surface-light text-ink-light font-body-sm text-body-sm placeholder:text-muted-light focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="Buscar esmaltação, blindagem, kit pós..." type="text">
+</div>
+<div class="flex items-center gap-2 flex-wrap pt-1">
+<span class="font-label-sm text-label-sm text-muted-light">Atalhos:</span>
+<button class="px-3 py-1.5 rounded-lg bg-surface-light text-ink-light hover:bg-surface-container font-label-sm text-label-sm flex items-center gap-1 shadow-sm transition-all">
+<span class="material-symbols-outlined text-[16px] text-primary">add</span>
+                Base Fortalecedora (R$ 35)
+              </button>
+<button class="px-3 py-1.5 rounded-lg bg-surface-light text-ink-light hover:bg-surface-container font-label-sm text-label-sm flex items-center gap-1 shadow-sm transition-all">
+<span class="material-symbols-outlined text-[16px] text-primary">add</span>
+                Remoção Express (R$ 30)
+              </button>
+<button class="px-3 py-1.5 rounded-lg bg-surface-light text-ink-light hover:bg-surface-container font-label-sm text-label-sm flex items-center gap-1 shadow-sm transition-all">
+<span class="material-symbols-outlined text-[16px] text-primary">add</span>
+                Nail Art Simples (R$ 20)
+              </button>
+</div>
+</div>
+</div>
+<div>
+<h2 class="font-title-lg text-title-lg text-ink-light flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-primary text-[22px]">credit_card</span>
+            Forma de Pagamento
+          </h2>
+<div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+<label class="relative flex flex-col p-3.5 rounded-xl bg-primary-container/10 ring-2 ring-primary-container cursor-pointer transition-all">
+<input checked="" class="sr-only" name="payment_method" type="radio">
+<div class="flex items-center justify-between mb-2">
+<span class="material-symbols-outlined text-primary-container text-[22px]">qr_code_2</span>
+<span class="px-2 py-0.5 rounded-full bg-success-light/20 text-success-light font-label-sm text-label-sm font-bold">Sem taxa</span>
+</div>
+<span class="font-title-md text-title-md text-ink-light">Pix</span>
+<span class="font-label-sm text-label-sm text-muted-light">Instantâneo</span>
+</label>
+<label class="relative flex flex-col p-3.5 rounded-xl bg-surface-2-light hover:bg-surface-container cursor-pointer transition-all">
+<input class="sr-only" name="payment_method" type="radio">
+<div class="flex items-center justify-between mb-2">
+<span class="material-symbols-outlined text-muted-light text-[22px]">credit_card</span>
+</div>
+<span class="font-title-md text-title-md text-ink-light">Cartão Débito</span>
+<span class="font-label-sm text-label-sm text-muted-light">Máquina Studio</span>
+</label>
+<label class="relative flex flex-col p-3.5 rounded-xl bg-surface-2-light hover:bg-surface-container cursor-pointer transition-all">
+<input class="sr-only" name="payment_method" type="radio">
+<div class="flex items-center justify-between mb-2">
+<span class="material-symbols-outlined text-muted-light text-[22px]">payments</span>
+</div>
+<span class="font-title-md text-title-md text-ink-light">Cartão Crédito</span>
+<span class="font-label-sm text-label-sm text-muted-light">À vista / 1x</span>
+</label>
+<label class="relative flex flex-col p-3.5 rounded-xl bg-surface-2-light hover:bg-surface-container cursor-pointer transition-all">
+<input class="sr-only" name="payment_method" type="radio">
+<div class="flex items-center justify-between mb-2">
+<span class="material-symbols-outlined text-muted-light text-[22px]">attach_money</span>
+</div>
+<span class="font-title-md text-title-md text-ink-light">Dinheiro</span>
+<span class="font-label-sm text-label-sm text-muted-light">Troco disponível</span>
+</label>
+<label class="relative flex flex-col p-3.5 rounded-xl bg-surface-2-light hover:bg-surface-container cursor-pointer transition-all md:col-span-2">
+<input class="sr-only" name="payment_method" type="radio">
+<div class="flex items-center justify-between mb-2">
+<span class="material-symbols-outlined text-tertiary text-[22px]">loyalty</span>
+<span class="px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-sm text-label-sm font-bold">1 restante</span>
+</div>
+<span class="font-title-md text-title-md text-ink-light">Clube Fibra VIP</span>
+<span class="font-label-sm text-label-sm text-muted-light">Assinatura mensal ativa</span>
+</label>
+</div>
+</div>
+</div>
+<div class="lg:col-span-5 flex flex-col gap-5">
+<div class="p-6 rounded-2xl bg-surface-2-light flex flex-col gap-4 shadow-sm">
+<span class="font-title-md text-title-md text-ink-light font-bold flex items-center justify-between">
+            Resumo Financeiro
+            <span class="material-symbols-outlined text-muted-light text-[20px]">calculate</span>
+</span>
+<div class="space-y-2.5 font-body-sm text-body-sm text-ink-light">
+<div class="flex items-center justify-between">
+<span class="text-muted-light">Serviços executados</span>
+<span class="font-semibold">R$ 110,00</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-muted-light">Produtos extras</span>
+<span class="font-semibold">R$ 25,00</span>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="text-muted-light font-medium">Subtotal</span>
+<span class="font-bold">R$ 135,00</span>
+</div>
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-success-light/10 text-success-light font-label-md text-label-md font-bold">
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+                Sinal já pago via Pix
+              </span>
+<span>− R$ 30,00</span>
+</div>
+</div>
+<div class="flex items-center justify-between gap-3 pt-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-muted-light text-[18px]">sell</span>
+<span class="font-body-sm text-body-sm text-muted-light">Desconto</span>
+</div>
+<button class="font-label-sm text-label-sm text-primary font-bold hover:underline flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">add</span> Adicionar cupom
+            </button>
+</div>
+<div class="pt-2">
+<div class="flex items-center justify-between mb-2">
+<span class="font-label-md text-label-md text-ink-light font-bold flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-brand-text-light">volunteer_activism</span>
+                Gorjeta para Camila
+              </span>
+<span class="font-label-sm text-label-sm text-muted-light">100% repassado</span>
+</div>
+<div class="grid grid-cols-4 gap-2">
+<button class="py-1.5 rounded-lg bg-surface-light text-ink-light font-label-md text-label-md hover:bg-surface-container font-semibold transition-colors">
+                R$ 5
+              </button>
+<button class="py-1.5 rounded-lg bg-primary-container text-on-brand font-label-md text-label-md font-bold shadow-sm">
+                R$ 10
+              </button>
+<button class="py-1.5 rounded-lg bg-surface-light text-ink-light font-label-md text-label-md hover:bg-surface-container font-semibold transition-colors">
+                R$ 15
+              </button>
+<button class="py-1.5 rounded-lg bg-surface-light text-ink-light font-label-md text-label-md hover:bg-surface-container font-semibold transition-colors">
+                Outro
+              </button>
+</div>
+</div>
+<div class="mt-2 pt-4 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-muted-light font-bold">Total a Cobrar</span>
+<span class="font-label-sm text-label-sm text-muted-light">Saldo remanescente</span>
+</div>
+<span class="font-headline-lg text-headline-lg text-primary-container font-extrabold tracking-tight">
+              R$ 115,00
+            </span>
+</div>
+</div>
+<div class="p-5 rounded-2xl bg-surface-container-low flex flex-col gap-3">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-bold text-ink-light flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-tertiary">analytics</span>
+              Divisão do Repasse Automático
+            </span>
+<span class="font-label-sm text-label-sm text-muted-light">Regra Studio Aurora</span>
+</div>
+<div class="space-y-1.5 font-body-sm text-body-sm text-muted-light">
+<div class="flex items-center justify-between">
+<span>Serviço (50% de R$ 110)</span>
+<span class="font-semibold text-ink-light">R$ 55,00</span>
+</div>
+<div class="flex items-center justify-between">
+<span>Produto (20% de R$ 25)</span>
+<span class="font-semibold text-ink-light">R$ 5,00</span>
+</div>
+<div class="flex items-center justify-between">
+<span>Gorjeta integral cliente</span>
+<span class="font-semibold text-ink-light">R$ 10,00</span>
+</div>
+</div>
+<div class="pt-3 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-muted-light">Comissão Total Profissional</span>
+<span class="font-title-md text-title-md font-bold text-success-light">R$ 70,00</span>
+</div>
+<div class="flex flex-col text-right">
+<span class="font-label-sm text-label-sm text-muted-light">Retenção Casa (Studio)</span>
+<span class="font-title-md text-title-md font-bold text-ink-light">R$ 55,00</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="p-6 bg-surface-2-light flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
+<button class="w-full sm:w-auto px-5 py-3 rounded-xl bg-surface-light text-ink-light font-label-md text-label-md font-bold hover:bg-surface-container transition-colors shadow-sm flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">bookmark</span>
+        Salvar como Rascunho
+      </button>
+<div class="w-full sm:w-auto flex items-center gap-3">
+<button class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-primary-container text-on-brand font-headline-md text-title-md font-bold hover:opacity-95 shadow-md flex items-center justify-center gap-2 transition-all">
+<span class="material-symbols-outlined text-[22px]">check_circle</span>
+          Fechar Comanda e Enviar WhatsApp (R$ 115,00)
+        </button>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+<div class="p-4 rounded-xl bg-surface-light shadow-sm flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-whatsapp-light/10 text-whatsapp-light flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">chat</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-ink-light font-bold">Comprovante Instantâneo</span>
+<span class="font-body-sm text-body-sm text-muted-light">Enviado com chave Pix e recibo fiscal</span>
+</div>
+</div>
+<div class="p-4 rounded-xl bg-surface-light shadow-sm flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-success-light/10 text-success-light flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">account_balance_wallet</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-ink-light font-bold">Lançamento em Caixa</span>
+<span class="font-body-sm text-body-sm text-muted-light">Entrada confirmada no fluxo financeiro de hoje</span>
+</div>
+</div>
+</div>
+</div></main></div></body></html>
