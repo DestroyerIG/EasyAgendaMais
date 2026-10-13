@@ -6,10 +6,11 @@ export const PLAN_LEVELS: Readonly<Record<PlanId, number>> = Object.freeze({
   premium: 3,
 });
 
+// Nome que o cliente vê (Solo/Equipe/Salão). Os ids internos continuam basico/profissional/premium.
 export const PLAN_NAMES: Readonly<Record<PlanId, string>> = Object.freeze({
-  basico: 'Básico',
-  profissional: 'Profissional',
-  premium: 'Premium',
+  basico: 'Solo',
+  profissional: 'Equipe',
+  premium: 'Salão',
 });
 
 export type Feature =
@@ -33,7 +34,7 @@ export const FEATURE_REQUIREMENTS: Readonly<Record<Feature, PlanId>> = Object.fr
   finance: 'basico',
   reports: 'profissional',
   exports: 'profissional',
-  whatsapp_automation: 'profissional',
+  whatsapp_automation: 'basico',
   advanced_admin: 'basico',
   billing: 'basico',
   subscription_status: 'basico',

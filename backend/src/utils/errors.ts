@@ -1,3 +1,6 @@
+import { PLAN_NAMES } from '../config/planPermissions.js';
+import type { PlanId } from '../types/domain.js';
+
 export class AppError extends Error {
   statusCode: number;
   code: string;
@@ -50,7 +53,7 @@ export class PlanLimitError extends AppError {
 
   constructor(requiredPlan: string) {
     super(
-      `Esta funcionalidade requer o plano ${requiredPlan} ou superior`,
+      `Esta funcionalidade requer o plano ${PLAN_NAMES[requiredPlan as PlanId] ?? requiredPlan} ou superior`,
       403,
       'PLAN_LIMIT'
     );

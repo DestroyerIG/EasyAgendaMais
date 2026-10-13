@@ -37,6 +37,13 @@ describe('scheduleSettingsService', () => {
     expect(settings).toEqual(DEFAULT_SCHEDULE_SETTINGS);
   });
 
+  it('o padrão de horário é o mesmo do banco (business_settings): 09:00-20:00, aceita encaixe, não confirma sozinho', () => {
+    expect(DEFAULT_SCHEDULE_SETTINGS.openingTime).toBe('09:00');
+    expect(DEFAULT_SCHEDULE_SETTINGS.closingTime).toBe('20:00');
+    expect(DEFAULT_SCHEDULE_SETTINGS.allowWalkins).toBe(true);
+    expect(DEFAULT_SCHEDULE_SETTINGS.autoConfirmAppointments).toBe(false);
+  });
+
   it('valida expediente: 07:30 fora e 10:00 dentro do horario', () => {
     const settings = {
       openingTime: '08:00',

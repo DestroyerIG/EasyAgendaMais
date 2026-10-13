@@ -18,7 +18,7 @@ export const EXPENSE_CATEGORIES = [
 ] as const;
 
 export const PLANS = {
-  basico: { name: 'Básico', price: 49.9, professionals: 1 },
-  profissional: { name: 'Profissional', price: 99.9, professionals: 5 },
-  premium: { name: 'Premium', price: 199.9, professionals: 999 },
+  basico: { name: 'Solo', price: 49.9, professionals: 1 },
+  profissional: { name: 'Equipe', price: 99.9, professionals: 5 },
+  premium: { name: 'Salão', price: 199.9, professionals: 999 },
 } as const;

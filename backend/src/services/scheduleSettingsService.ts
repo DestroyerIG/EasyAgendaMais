@@ -1,5 +1,6 @@
 import { businessSettingsRepository } from '../repositories/businessSettingsRepository.js';
 import logger from '../utils/logger.js';
+import { BUSINESS_SCHEDULE_DEFAULTS } from '../config/scheduleDefaults.js';
 
 const DEFAULT_TIMEZONE = 'America/Sao_Paulo';
 const ALLOWED_SLOT_INTERVALS = new Set([0, 15, 20, 30, 45, 60, 90, 120]);
@@ -17,12 +18,12 @@ const DEFAULT_DIAS_ABERTOS: Record<DiaSemana, boolean> = {
 };
 
 export const DEFAULT_SCHEDULE_SETTINGS = {
-  openingTime: '08:00',
-  closingTime: '18:00',
-  slotIntervalMinutes: 30,
+  openingTime: BUSINESS_SCHEDULE_DEFAULTS.openingTime,
+  closingTime: BUSINESS_SCHEDULE_DEFAULTS.closingTime,
+  slotIntervalMinutes: BUSINESS_SCHEDULE_DEFAULTS.slotIntervalMinutes,
   diasAbertos: { ...DEFAULT_DIAS_ABERTOS },
-  allowWalkins: false,
-  autoConfirmAppointments: true,
+  allowWalkins: BUSINESS_SCHEDULE_DEFAULTS.allowWalkins,
+  autoConfirmAppointments: BUSINESS_SCHEDULE_DEFAULTS.autoConfirmAppointments,
   timezone: DEFAULT_TIMEZONE,
 };
 

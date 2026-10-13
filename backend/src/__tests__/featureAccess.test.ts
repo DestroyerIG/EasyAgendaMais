@@ -9,12 +9,10 @@ describe('evaluateFeatureAccess', () => {
       expect(result.allowed).toBe(true);
     });
 
-    it('blocks whatsapp on basico plan', () => {
+    it('allows whatsapp on basico (Solo) plan', () => {
       const result = evaluateFeatureAccess({ feature: SubscriptionFeature.WHATSAPP, plan: 'basico', subscriptionStatus: 'active' });
-      expect(result.allowed).toBe(false);
-      expect(result.reason).toBe('plan_upgrade_required');
-      expect(result.requiredPlan).toBe('profissional');
-      expect(result.upgradeRequired).toBe(true);
+      expect(result.allowed).toBe(true);
+      expect(result.reason).toBe('ok');
     });
 
     it('allows whatsapp on profissional plan', () => {
@@ -61,8 +59,13 @@ describe('evaluateFeatureAccess', () => {
       expect(result.allowed).toBe(true);
     });
 
-    it('blocks whatsapp on basico trialing', () => {
+    it('allows whatsapp on basico trialing', () => {
       const result = evaluateFeatureAccess({ feature: SubscriptionFeature.WHATSAPP, plan: 'basico', subscriptionStatus: 'trialing' });
+      expect(result.allowed).toBe(true);
+    });
+
+    it('blocks reports on basico trialing', () => {
+      const result = evaluateFeatureAccess({ feature: SubscriptionFeature.REPORTS, plan: 'basico', subscriptionStatus: 'trialing' });
       expect(result.allowed).toBe(false);
       expect(result.upgradeRequired).toBe(true);
     });
@@ -85,9 +88,9 @@ describe('evaluateFeatureAccess', () => {
 
   describe('feature blocked error response shape', () => {
     it('returns requiredPlan in decision', () => {
-      const result = evaluateFeatureAccess({ feature: SubscriptionFeature.WHATSAPP, plan: 'basico', subscriptionStatus: 'active' });
+      const result = evaluateFeatureAccess({ feature: SubscriptionFeature.REPORTS, plan: 'basico', subscriptionStatus: 'active' });
       expect(result.requiredPlan).toBe('profissional');
-      expect(result.message).toContain('Profissional');
+      expect(result.message).toContain('plano Equipe');
       expect(result.upgradeRequired).toBe(true);
       expect(result.billingActionRequired).toBe(false);
     });
@@ -103,13 +106,13 @@ describe('evaluateFeatureAccess', () => {
 
   describe('upgrade / downgrade scenarios', () => {
     it('downgrade: blocks profissional-only feature after downgrade to basico', () => {
-      const result = evaluateFeatureAccess({ feature: SubscriptionFeature.WHATSAPP, plan: 'basico', subscriptionStatus: 'active' });
+      const result = evaluateFeatureAccess({ feature: SubscriptionFeature.REPORTS, plan: 'basico', subscriptionStatus: 'active' });
       expect(result.allowed).toBe(false);
     });
 
     it('upgrade: unlocks profissional features after upgrade', () => {
-      const before = evaluateFeatureAccess({ feature: SubscriptionFeature.WHATSAPP, plan: 'basico', subscriptionStatus: 'active' });
-      const after = evaluateFeatureAccess({ feature: SubscriptionFeature.WHATSAPP, plan: 'profissional', subscriptionStatus: 'active' });
+      const before = evaluateFeatureAccess({ feature: SubscriptionFeature.REPORTS, plan: 'basico', subscriptionStatus: 'active' });
+      const after = evaluateFeatureAccess({ feature: SubscriptionFeature.REPORTS, plan: 'profissional', subscriptionStatus: 'active' });
       expect(before.allowed).toBe(false);
       expect(after.allowed).toBe(true);
     });
@@ -142,5 +145,14 @@ describe('SubscriptionFeature const', () => {
       const result = evaluateFeatureAccess({ feature: key, plan: 'premium', subscriptionStatus: 'active' });
       expect(result.reason).not.toBe('unknown_feature');
     }
+  });
+});
+
+describe('PlanLimitError', () => {
+  it('mostra o nome visível do plano, não o id interno', async () => {
+    const { PlanLimitError } = await import('../utils/errors.js');
+    const err = new PlanLimitError('profissional');
+    expect(err.message).toBe('Esta funcionalidade requer o plano Equipe ou superior');
+    expect(err.requiredPlan).toBe('profissional');
   });
 });
