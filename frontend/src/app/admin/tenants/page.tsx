@@ -199,9 +199,9 @@ export default function AdminTenantsPage() {
             className="input"
           >
             <option value="">Plano</option>
-            <option value="basico">Básico</option>
-            <option value="profissional">Profissional</option>
-            <option value="premium">Premium</option>
+            <option value="basico">Solo</option>
+            <option value="profissional">Equipe</option>
+            <option value="premium">Salão</option>
           </select>
 
           <select

@@ -28,9 +28,9 @@ const formatDate = (value: string | null | undefined) => {
 };
 
 const PLAN_LABEL: Record<string, string> = {
-  basico: 'Básico',
-  profissional: 'Profissional',
-  premium: 'Premium',
+  basico: 'Solo',
+  profissional: 'Equipe',
+  premium: 'Salão',
 };
 
 const STATUS_LABEL: Record<string, string> = {
