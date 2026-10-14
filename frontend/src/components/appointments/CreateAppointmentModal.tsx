@@ -17,8 +17,13 @@ interface CreateAppointmentModalProps {
   slotsLoading: boolean;
   onLoadSlots: (professionalId: string, date: string, serviceId: string) => void;
   onSubmit: (data: AppointmentFormData) => Promise<void>;
-  /** Pré-preenchimento vindo de um clique em horário livre da Agenda. */
-  inicial?: { professionalId?: string; date?: string; time?: string };
+  /**
+   * Pré-preenchimento: profissional, data e horário de um clique em horário livre da
+   * Agenda; ao remarcar, também a cliente e o serviço do agendamento.
+   */
+  inicial?: { professionalId?: string; date?: string; time?: string; clientId?: string; serviceId?: string };
+  /** Remarcando um agendamento existente: muda o título e o botão (quem salva é o pai, com PUT). */
+  editandoId?: string;
 }
 
 export interface AppointmentFormData {
@@ -31,7 +36,7 @@ export interface AppointmentFormData {
 
 export function CreateAppointmentModal({
   isOpen, onClose, clients, professionals, services,
-  availableSlots, slotsLoading, onLoadSlots, onSubmit, inicial
+  availableSlots, slotsLoading, onLoadSlots, onSubmit, inicial, editandoId
 }: CreateAppointmentModalProps) {
   const today = new Date().toISOString().split('T')[0];
   const [formData, setFormData] = useState<AppointmentFormData>({
@@ -52,12 +57,13 @@ export function CreateAppointmentModal({
     if (!isOpen) return;
     const professionalId = inicial?.professionalId ?? '';
     const date = inicial?.date ?? today;
-    setFormData({ clientId: '', serviceId: '', professionalId, date, time: '' });
+    const serviceId = inicial?.serviceId ?? '';
+    setFormData({ clientId: inicial?.clientId ?? '', serviceId, professionalId, date, time: '' });
     setClientSearch('');
     const pedirHorarios = Boolean(professionalId && date);
     setHorarioPendente(pedirHorarios ? inicial?.time ?? null : null);
     slotsDoPedido.current = availableSlots;
-    if (pedirHorarios) onLoadSlots(professionalId, date, '');
+    if (pedirHorarios) onLoadSlots(professionalId, date, serviceId);
     // Só a abertura importa: `inicial` e `onLoadSlots` mudam de identidade a cada render do pai.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -113,13 +119,13 @@ export function CreateAppointmentModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Novo Agendamento"
+      title={editandoId ? 'Remarcar agendamento' : 'Novo Agendamento'}
       icon={Plus}
       footer={
         <ModalFooter
           onCancel={onClose}
           onSubmit={handleSubmit}
-          submitLabel="Agendar"
+          submitLabel={editandoId ? 'Salvar' : 'Agendar'}
           submitIcon={Plus}
           submitting={submitting}
           disabled={!isValid}

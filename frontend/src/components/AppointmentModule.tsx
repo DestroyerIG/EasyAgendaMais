@@ -18,7 +18,9 @@
  * corpo do cartão. Bloco, cartão e painel disparam a mesma `handleAcao`: iniciar,
  * faltou, cancelar e voltar para confirmado mudam o status; concluir abre a comanda
  * (ComandaModal), que é quem conclui ao ser fechada. Clicar num horário livre abre o
- * novo agendamento com a profissional, a data e o horário da vaga.
+ * novo agendamento com a profissional, a data e o horário da vaga. Remarcar, no painel,
+ * abre o mesmo modal com a profissional, a data, a cliente e o serviço do agendamento, e
+ * salvar faz PUT /appointments/:id; na reserva aguardando Pix, o painel confirma o Pix.
  * Fora da tela: "encaixe inteligente"/"encaixe rápido", faixa de "ação química",
  * cobrança de sinal por Pix e aviso de chegada prevista, todos do arquivo de referência
  * e todos sem função que os sustente.
@@ -190,6 +192,9 @@ export function montarItensDoDia(
 
 type AgendaTab = 'agenda' | 'aguardando-pix';
 
+/** O pré-preenchimento do modal: o do horário livre e, ao remarcar, cliente e serviço. */
+type InicialDoModal = InicialNovoAgendamento & { clientId?: string; serviceId?: string };
+
 export function AppointmentModule() {
   const [activeTab, setActiveTab] = useState<AgendaTab>('agenda');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -208,7 +213,9 @@ export function AppointmentModule() {
   // Comanda aberta pelo "Concluir" (id do agendamento) e o pré-preenchimento do novo
   // agendamento vindo de um clique em horário livre.
   const [comandaDe, setComandaDe] = useState<string | null>(null);
-  const [inicialNovo, setInicialNovo] = useState<InicialNovoAgendamento | undefined>();
+  const [inicialNovo, setInicialNovo] = useState<InicialDoModal | undefined>();
+  // Remarcar reaproveita o modal de novo agendamento; com um id aqui, salvar vira PUT.
+  const [remarcandoId, setRemarcandoId] = useState<string | undefined>();
   const { showToast } = useToast();
   const newAppointment = useNewAppointmentParam();
 
@@ -279,7 +286,7 @@ export function AppointmentModule() {
     };
   }, []);
 
-  const openModal = async (inicial?: InicialNovoAgendamento) => {
+  const openModal = async (inicial?: InicialDoModal) => {
     setInicialNovo(inicial);
     setShowModal(true);
     setAvailableSlots([]);
@@ -318,9 +325,27 @@ export function AppointmentModule() {
   };
 
   const handleSubmit = async (formData: AppointmentFormData) => {
-    await api.post('/appointments', formData);
-    showToast('Agendamento criado com sucesso!', 'success');
+    if (remarcandoId) {
+      await api.put(`/appointments/${remarcandoId}`, formData);
+      showToast('Agendamento remarcado!', 'success');
+    } else {
+      await api.post('/appointments', formData);
+      showToast('Agendamento criado com sucesso!', 'success');
+    }
     loadAppointments();
+  };
+
+  // Remarcar pelo painel: o modal abre com a profissional, a data, a cliente e o serviço
+  // do agendamento; a pessoa escolhe o novo horário e o salvar faz PUT /appointments/:id.
+  const handleRemarcar = (agendamento: Appointment) => {
+    setDetalhesId(null);
+    setRemarcandoId(agendamento.id);
+    openModal({
+      professionalId: agendamento.professional_id,
+      date: agendamento.date.substring(0, 10),
+      clientId: agendamento.client_id,
+      serviceId: agendamento.service_id,
+    });
   };
 
   const handleAcao = async (agendamento: Appointment, acao: AcaoAgendamento) => {
@@ -339,7 +364,7 @@ export function AppointmentModule() {
 
   // Confirmar o Pix de uma reserva pelo painel de detalhes (aguardando_pagamento →
   // confirmado). Não é uma AcaoAgendamento; a aba "Aguardando Pix" faz o mesmo.
-  const confirmarPagamento = async (id: string) => {
+  const confirmarPagamento = async ({ id }: Appointment) => {
     try {
       setActionLoading(id);
       await api.put(`/appointments/${id}/status`, { status: 'confirmado' });
@@ -352,14 +377,6 @@ export function AppointmentModule() {
     }
   };
 
-  // O rodapé atual do painel ainda fala em status (a Tarefa 13 o troca pelas ações):
-  // concluir vira a ação que abre a comanda e cancelar vira a ação de cancelar.
-  const handleStatusDoPainel = (id: string, status: 'confirmado' | 'concluido' | 'cancelado') => {
-    if (status === 'confirmado') { confirmarPagamento(id); return; }
-    const agendamento = appointments.find(a => a.id === id);
-    if (agendamento) handleAcao(agendamento, status === 'concluido' ? 'concluir' : 'cancelar');
-  };
-
   const agendamentoDetalhado = detalhesId
     ? appointments.find(a => a.id === detalhesId) ?? null
     : null;
@@ -367,6 +384,7 @@ export function AppointmentModule() {
   const closeModal = () => {
     setShowModal(false);
     setInicialNovo(undefined);
+    setRemarcandoId(undefined);
     newAppointment.clear();
   };
 
@@ -738,10 +756,11 @@ export function AppointmentModule() {
 
       <PainelDetalhesAgendamento
         agendamento={agendamentoDetalhado}
-        duracaoMinutos={agendamentoDetalhado ? duracaoReal(agendamentoDetalhado, duracaoMinutos) : duracaoMinutos}
         actionLoading={actionLoading}
         onFechar={() => setDetalhesId(null)}
-        onStatusChange={handleStatusDoPainel}
+        onAcao={handleAcao}
+        onRemarcar={handleRemarcar}
+        onConfirmarPix={confirmarPagamento}
       />
 
       <CreateAppointmentModal
@@ -755,6 +774,7 @@ export function AppointmentModule() {
         onLoadSlots={loadAvailableSlots}
         onSubmit={handleSubmit}
         inicial={inicialNovo}
+        editandoId={remarcandoId}
       />
 
       <ComandaModal appointmentId={comandaDe} onClose={() => setComandaDe(null)} onAtualizada={loadAppointments} />

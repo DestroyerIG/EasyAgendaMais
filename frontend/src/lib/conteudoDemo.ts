@@ -48,19 +48,6 @@ export interface HojeContent {
 
 // ─── Agenda (agenda-desktop.html, agenda-mobile.html, agendamento-detalhes.html) ─
 
-// O painel de detalhes (agendamento-detalhes.html) tira do banco tudo o que o DTO de
-// /appointments já traz — cliente, telefone, data, hora, profissional, serviço, valor,
-// status, created_at e reminder_sent — e o número do agendamento sai do id real. O que
-// sobra aqui é só o que nenhuma tabela responde ainda.
-export interface AgendaDetalhes {
-  // Sinal por Pix: o sistema não recebe sinal, mas a tela mostra o bloco. Na tela o
-  // sinal é limitado ao preço real do serviço e o valor a pagar é a diferença, para as
-  // duas linhas sempre fecharem com o total verdadeiro do atendimento.
-  sinalPago: number;
-  comprovantePix: string;
-  origem: string;
-}
-
 export interface AgendaContent {
   // A duração de cada atendimento decide a altura do bloco na linha do tempo e o
   // "60 min" embaixo da hora no cartão do celular (agenda-desktop.html,
@@ -69,7 +56,6 @@ export interface AgendaContent {
   // valor único. Quando o DTO passar a trazer service_duration_minutes, use-o e
   // apague esta chave.
   duracaoPadraoMinutos: number;
-  detalhes: AgendaDetalhes;
 }
 
 // ─── Clientes (clientes-lista.html, cliente-ficha.html) ────────────────────────
@@ -303,11 +289,6 @@ export const conteudoDemo = {
   },
   agenda: {
     duracaoPadraoMinutos: 60,
-    detalhes: {
-      sinalPago: 30,
-      comprovantePix: '#PIX-99824-A1',
-      origem: 'Página Pública (Link da Bio)',
-    },
   },
   clientes: {
     exemplos: [

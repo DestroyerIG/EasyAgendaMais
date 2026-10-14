@@ -1,61 +1,52 @@
 'use client';
 
 /**
- * Painel de detalhes do agendamento (agendamento-detalhes.html), 440px por cima da
+ * Painel de detalhes do agendamento ("Drawer completo" do Stitch,
+ * studio-aurora-detalhes-do-agendamento-drawer-completo--7ba488.html), 440px por cima da
  * agenda no computador e folha de baixo no celular.
  *
- * Dado real: número do agendamento (últimos 4 caracteres do id), cliente, telefone,
- * data, horário de início, profissional, serviço, valor, status, duração
- * (service_duration_minutes), o momento em que foi agendado (created_at) e o lembrete de
- * WhatsApp (reminder_sent) vêm de GET /appointments; o horário de fim é o início mais a
- * duração (passou da meia-noite, volta para 00h); concluir abre a comanda e cancelar
- * cancela, pelo adaptador da Agenda para a mesma `handleAcao` do bloco e do cartão. A
- * duração recebida é a real do agendamento; a Agenda só cai num fallback técnico de 30
- * min quando o DTO não traz service_duration_minutes, o que não deve acontecer.
- * Dado de exemplo: em conteudoDemo.agenda.detalhes, o sinal por
- * Pix com o comprovante e a origem do agendamento. O selo "Cliente Recorrente" foi removido (era um booleano fixo em
- * conteudoDemo, sempre `true` para qualquer agendamento — contradizia a lista e a
- * ficha ao abrir o painel de uma cliente nova; achado N1 da re-revisão da rodada de
- * correção final, que sucede a correção I1 original).
- * Sobre o sinal: o sistema não recebe sinal por Pix, então o valor de exemplo é limitado
- * ao preço real do serviço e o "valor a pagar no estúdio" é a diferença — as duas linhas
- * sempre somam o total verdadeiro do atendimento, nunca mais do que ele. Sem preço de
- * serviço (ou com ele zerado), o sinal cai para 0 e as duas linhas somem: não existe
- * sinal pago a mostrar, então a tela não afirma um.
- * "Observações da Cliente" do arquivo de referência foi removida: era um texto fixo em
- * conteudoDemo, idêntico para qualquer cliente, contradizendo a nota real (`client.notes`)
- * que a Ficha da Cliente já mostra — e este painel só recebe `Appointment`, sem o
- * `client.notes` real, sem uma chamada nova por abertura (o mesmo motivo que já tirou o
- * selo "Cliente Recorrente" e a contagem de atendimentos da lista, achados da varredura
- * de telas por Stitch).
- * Fora da tela: as fotos de cliente e profissional do arquivo de referência (o DTO só
- * traz nomes, então entram as iniciais do Avatar) e a especialidade entre parênteses do
- * "Profissional responsável", que é de um segmento só.
+ * Tudo é dado real. Do `Appointment` que já veio da lista: número (o da comanda, quando
+ * existe; senão os últimos 4 caracteres do id), cliente, telefone, origem (`source`),
+ * serviço, profissional, data, horário com a duração do serviço, preço, sinal
+ * (`deposit_amount`) e a comanda (`comanda_*`). De GET /appointments/:id/details, pedido a
+ * cada troca de agendamento: o ciclo médio, as visitas do ano, a última visita, o selo de
+ * cliente recorrente e as observações da ficha técnica. Enquanto essa leitura não chega,
+ * os dois blocos que dependem dela mostram esqueleto; se ela falha, somem (com um aviso)
+ * e o resto do painel continua com o que a lista trouxe.
+ *
+ * O selo do ciclo diz "Ciclo regular", não "Ideal para o serviço" do Stitch: o sistema
+ * não compara o ciclo com nada do serviço, então só afirma regularidade quando há visitas
+ * suficientes para um ciclo significar algo (3 ou mais no ano).
+ *
+ * Ações: as de ACOES_POR_STATUS, disparadas pela mesma `onAcao` do bloco e do cartão.
+ * "Concluir" abre a comanda (é a comanda que conclui); com comanda em rascunho o botão vira
+ * "Continuar comanda #N". Numa reserva aguardando o Pix, o botão principal é confirmar o
+ * Pix recebido (`onConfirmarPix`), que não é uma AcaoAgendamento. Status final: sem ações.
+ *
+ * Fora da tela: as fotos de cliente e profissional (o DTO só traz nomes, então entram as
+ * iniciais do Avatar).
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
-import { conteudoDemo } from '@/lib/conteudoDemo';
 import { formatCurrency, formatPhone } from '@/lib/formatters';
+import { buscarDetalhesAgendamento, reenviarComprovante, type AppointmentDetails } from '@/lib/comanda';
 import { useToast } from '@/components/Toast';
-import { AVISO_RECURSO_A_CAMINHO, Avatar, Icon, SidePanel, StatusChip } from '@/components/ui';
+import { Avatar, Icon, SidePanel, Skeleton, StatusChip } from '@/components/ui';
+import { getApiErrorMessage } from '@/utils/handleApiError';
 import { formatarDataAgenda } from './DateNavigationBar';
 import { formatarDuracao } from './LinhaDoTempo';
-import { ACOES_POR_STATUS } from './acoes';
+import { ACOES_POR_STATUS, ROTULO_ACAO, type AcaoAgendamento } from './acoes';
 import { linkWhatsapp } from '@/lib/whatsapp';
 import type { Appointment } from '@/types';
 
-/** Largura do painel no computador (agendamento-detalhes.html). */
+/** Largura do painel no computador. */
 export const LARGURA_PAINEL = 'sm:max-w-[440px]';
 
 /** A partir daqui o painel abre à direita; abaixo disso, como folha de baixo. */
 export const MEDIA_COMPUTADOR = '(min-width: 1024px)';
 
-/**
- * "Agendamento #4892" do arquivo de referência: os últimos 4 caracteres do id real, em
- * maiúsculas. É um número que existe e identifica o registro — nada de contador de
- * exemplo.
- */
+/** Os últimos 4 caracteres do id real, em maiúsculas — quando ainda não há comanda. */
 export const numeroDoAgendamento = (id: string): string => (id || '').slice(-4).toUpperCase();
 
 /** "10:00 às 12:30": o fim é o início mais a duração; passou da meia-noite, volta para 00h. */
@@ -67,30 +58,16 @@ export const faixaDoAtendimento = (hora: string, duracaoMinutos: number): string
   return `${fmt(inicio)} às ${fmt(fim)}`;
 };
 
-/**
- * Sinal e saldo do atendimento. O preço na tela é sempre o real; o sinal de exemplo
- * nunca passa dele, e o saldo é a diferença — assim as duas linhas fecham com o total
- * verdadeiro mesmo quando o serviço custa menos que o sinal do exemplo.
- */
-export function repartirValor(precoServico: number, sinalDeExemplo: number): { sinal: number; aPagar: number } {
-  const preco = Math.max(0, Number(precoServico) || 0);
-  const sinal = Math.min(Math.max(0, sinalDeExemplo), preco);
-  return { sinal, aPagar: preco - sinal };
-}
-
-/** "Agendado em 14/09 às 21:14", a partir do created_at do registro. */
-export function agendadoEmTexto(criadoEm: string): string | null {
-  const data = new Date(criadoEm);
-  if (Number.isNaN(data.getTime())) return null;
-  const dia = String(data.getDate()).padStart(2, '0');
-  const mes = String(data.getMonth() + 1).padStart(2, '0');
-  const hora = String(data.getHours()).padStart(2, '0');
-  const minuto = String(data.getMinutes()).padStart(2, '0');
-  return `Agendado em ${dia}/${mes} às ${hora}:${minuto}`;
-}
-
-// Reexportado para quem já importava `linkWhatsapp` daqui (M3 da revisão final).
+// Reexportado para quem já importava `linkWhatsapp` daqui.
 export { linkWhatsapp };
+
+const ORIGEM: Record<string, { texto: string; icone: string }> = {
+  painel: { texto: 'Agendado no painel', icone: 'desktop_windows' },
+  publico: { texto: 'Página pública (link da bio)', icone: 'link' },
+  whatsapp: { texto: 'WhatsApp', icone: 'chat' },
+};
+
+const STATUS_FINAL = new Set(['concluido', 'faltou', 'cancelado']);
 
 /** Vale a largura de computador? Lido só depois da montagem, nunca no servidor. */
 function useLarguraDeComputador(): boolean {
@@ -107,150 +84,281 @@ function useLarguraDeComputador(): boolean {
   return computador;
 }
 
-function Linha({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn('flex items-center gap-3 rounded-control bg-surface p-3', className)}>{children}</div>;
+type EstadoDetalhes = { fase: 'carregando' } | { fase: 'pronto'; dados: AppointmentDetails } | { fase: 'erro' };
+
+/** GET /appointments/:id/details, refeito a cada troca de agendamento. */
+function useDetalhes(id: string): EstadoDetalhes {
+  const { showToast } = useToast();
+  const [estado, setEstado] = useState<EstadoDetalhes>({ fase: 'carregando' });
+
+  useEffect(() => {
+    let cancelado = false;
+    setEstado({ fase: 'carregando' });
+    buscarDetalhesAgendamento(id)
+      .then((dados) => {
+        if (!cancelado) setEstado({ fase: 'pronto', dados });
+      })
+      .catch(() => {
+        if (cancelado) return;
+        setEstado({ fase: 'erro' });
+        showToast('Não foi possível carregar o histórico da cliente', 'error');
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [id, showToast]);
+
+  return estado;
+}
+
+function Bloco({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn('space-y-3 rounded-card border border-line bg-surface p-4 shadow-sm', className)}>{children}</div>;
+}
+
+function Indicador({ titulo, valor, unidade, rodape }: { titulo: string; valor: string; unidade: string; rodape?: ReactNode }) {
+  return (
+    <div className="flex flex-col justify-between rounded-control border border-line bg-bg p-3">
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">{titulo}</span>
+      {/* Número grande e unidade pequena só para os olhos; o leitor de tela ouve a frase inteira. */}
+      <div aria-hidden="true" className="mt-1 flex items-baseline gap-1">
+        <span className="text-[22px] font-bold tabular-nums text-ink">{valor}</span>
+        <span className="text-[12px] font-medium text-muted">{unidade}</span>
+      </div>
+      <span className="sr-only">{`${valor} ${unidade}`}</span>
+      {rodape}
+    </div>
+  );
+}
+
+function IndicadoresDaCliente({ stats }: { stats: AppointmentDetails['client_stats'] }) {
+  if (stats.last_visit_days_ago === null) {
+    return (
+      <div className="flex items-start gap-2.5 rounded-control border border-line bg-bg p-3">
+        <Icon name="waving_hand" size={20} className="mt-0.5 shrink-0 text-brand-text" />
+        <div className="flex flex-col">
+          <span className="text-[13px] font-bold text-ink">Primeira visita</span>
+          <span className="text-[12px] text-muted">Ainda não há atendimentos concluídos desta cliente</span>
+        </div>
+      </div>
+    );
+  }
+
+  const cicloRegular = stats.visits_this_year >= 3 && stats.average_cycle_days !== null;
+  const ultima = stats.last_visit_professional
+    ? `Última há ${stats.last_visit_days_ago} dias com ${stats.last_visit_professional}`
+    : `Última há ${stats.last_visit_days_ago} dias`;
+
+  return (
+    <div className={cn('grid gap-2.5 pt-1', stats.average_cycle_days !== null ? 'grid-cols-2' : 'grid-cols-1')}>
+      {stats.average_cycle_days !== null && (
+        <Indicador
+          titulo="Ciclo médio"
+          valor={String(stats.average_cycle_days)}
+          unidade="dias"
+          rodape={
+            cicloRegular ? (
+              <span className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-success-text">
+                <Icon name="verified" size={13} />
+                Ciclo regular
+              </span>
+            ) : null
+          }
+        />
+      )}
+      <Indicador
+        titulo="Total de visitas"
+        valor={String(stats.visits_this_year)}
+        unidade={`em ${new Date().getFullYear()}`}
+        rodape={<span className="mt-1 truncate text-[11px] font-medium text-muted">{ultima}</span>}
+      />
+    </div>
+  );
+}
+
+function ReenviarComprovante({ comandaId }: { comandaId: string }) {
+  const { showToast } = useToast();
+  const [enviando, setEnviando] = useState(false);
+
+  const reenviar = async () => {
+    try {
+      setEnviando(true);
+      const { sent } = await reenviarComprovante(comandaId);
+      if (sent) showToast('Comprovante reenviado pelo WhatsApp', 'success');
+      else showToast('Comprovante não enviado: o WhatsApp do negócio não está conectado', 'info');
+    } catch (error: unknown) {
+      showToast(getApiErrorMessage(error, 'Erro ao reenviar o comprovante'), 'error');
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={reenviar}
+      disabled={enviando}
+      className="flex h-9 items-center justify-center gap-1.5 rounded-control border border-line/60 bg-surface-2 px-3 text-[13px] font-bold text-ink transition-colors hover:bg-line focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      <Icon name="receipt_long" size={17} />
+      <span>Reenviar comprovante</span>
+    </button>
+  );
 }
 
 export interface ConteudoDetalhesProps {
   agendamento: Appointment;
-  duracaoMinutos: number;
 }
 
-/** O miolo do painel, sem a moldura — é o que os testes leem. */
-export function ConteudoDetalhesAgendamento({ agendamento, duracaoMinutos }: ConteudoDetalhesProps) {
-  const detalhes = conteudoDemo.agenda.detalhes;
+/** O miolo do painel, sem a moldura. */
+export function ConteudoDetalhesAgendamento({ agendamento }: ConteudoDetalhesProps) {
+  const estado = useDetalhes(agendamento.id);
   const cliente = agendamento.client_name || 'Cliente';
   const whatsapp = linkWhatsapp(agendamento.client_phone);
-  const { sinal, aPagar } = repartirValor(Number(agendamento.service_price || 0), detalhes.sinalPago);
-  const agendadoEm = agendadoEmTexto(agendamento.created_at);
+  const origem = agendamento.source ? ORIGEM[agendamento.source] : undefined;
+  const duracao = agendamento.service_duration_minutes || 0;
+  const horario = duracao > 0
+    ? `${faixaDoAtendimento(agendamento.time, duracao)} (${formatarDuracao(duracao)})`
+    : agendamento.time.slice(0, 5);
+  const preco = Math.max(0, Number(agendamento.service_price || 0));
+  const sinal = agendamento.status !== 'aguardando_pagamento' ? Math.max(0, Number(agendamento.deposit_amount || 0)) : 0;
+  const restante = Math.max(0, preco - sinal);
+  const comandaFechada = agendamento.comanda_status === 'fechada' && agendamento.comanda_id;
+  const recorrente = estado.fase === 'pronto' && estado.dados.client_stats.is_recurring;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="space-y-4">
       {/* Cliente */}
-      <div className="flex flex-col gap-4 rounded-card bg-surface-2 p-4">
-        <div className="flex items-start justify-between gap-3">
+      <Bloco className="space-y-3.5">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             {/* Decorativo: o nome vem escrito ao lado. */}
             <span aria-hidden="true" className="flex shrink-0">
-              <Avatar name={cliente} size={56} className="rounded-card bg-surface text-[17px] font-bold" />
+              <Avatar name={cliente} size={48} className="border border-line bg-surface-2 text-[15px] font-bold" />
             </span>
             <div className="flex min-w-0 flex-col">
-              <h3 className="truncate text-[20px] font-bold leading-tight text-ink">{cliente}</h3>
+              <span className="truncate text-[16px] font-bold leading-tight text-ink">{cliente}</span>
               {agendamento.client_phone && (
-                <div className="mt-0.5 flex items-center gap-2">
-                  <span className="text-[14px] font-medium text-muted">{formatPhone(agendamento.client_phone)}</span>
-                  {whatsapp && (
-                    <a
-                      href={whatsapp}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Abrir no WhatsApp"
-                      aria-label={`Abrir conversa de ${cliente} no WhatsApp`}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-control bg-whatsapp text-surface transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-                    >
-                      <Icon name="chat" size={16} />
-                    </a>
-                  )}
-                </div>
+                <span className="mt-0.5 text-[13px] font-medium text-muted">{formatPhone(agendamento.client_phone)}</span>
               )}
             </div>
           </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {recorrente && (
+              <span className="flex items-center gap-1 rounded-full border border-line bg-surface-2 px-2.5 py-1 text-[11px] font-bold text-ink">
+                <Icon name="repeat" size={14} className="text-brand-text" />
+                Cliente recorrente
+              </span>
+            )}
+            {whatsapp && (
+              <a
+                href={whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Conversar no WhatsApp"
+                aria-label={`Abrir conversa de ${cliente} no WhatsApp`}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-whatsapp text-surface shadow-sm transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              >
+                <Icon name="chat" size={18} />
+              </a>
+            )}
+          </div>
         </div>
-      </div>
+
+        {estado.fase === 'carregando' && (
+          <div className="grid grid-cols-2 gap-2.5 pt-1">
+            <Skeleton className="h-[88px]" label="Carregando histórico da cliente" />
+            <Skeleton className="h-[88px]" />
+          </div>
+        )}
+        {estado.fase === 'pronto' && <IndicadoresDaCliente stats={estado.dados.client_stats} />}
+      </Bloco>
 
       {/* Serviço e horário */}
-      <div className="flex flex-col gap-4 rounded-card bg-surface-2 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-[13px] font-bold uppercase tracking-wide text-muted">Serviço &amp; Horário</span>
-          <span className="flex items-center gap-1 rounded-full bg-surface px-2.5 py-1 text-[11px] font-bold text-brand-text shadow-sm">
-            <Icon name="link" size={14} />
-            {detalhes.origem}
-          </span>
-        </div>
-
-        <div className="flex flex-col gap-2.5">
-          <Linha>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-surface-2 text-brand-text">
-              <Icon name="schedule" size={22} />
+      <Bloco>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2.5">
+          <span className="text-[12px] font-bold uppercase tracking-wide text-muted">Serviço e horário</span>
+          {origem && (
+            <span className="flex items-center gap-1 rounded-full border border-line bg-surface-2 px-2.5 py-0.5 text-[11px] font-bold text-brand-text">
+              <Icon name={origem.icone} size={13} />
+              Origem: {origem.texto}
             </span>
-            <div className="flex min-w-0 flex-col">
-              <span className="text-[13px] font-bold text-ink">{formatarDataAgenda(agendamento.date.split('T')[0])}</span>
-              <span className="text-[14px] tabular-nums text-muted">
-                {faixaDoAtendimento(agendamento.time, duracaoMinutos)} (Duração estimada:{' '}
-                {formatarDuracao(duracaoMinutos)})
+          )}
+        </div>
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[13px] text-muted">Serviço:</span>
+            <span className="text-right text-[14px] font-bold text-ink">{agendamento.service_name}</span>
+          </div>
+          {agendamento.professional_name && (
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[13px] text-muted">Profissional:</span>
+              <span className="flex items-center gap-1.5 text-[14px] font-bold text-ink">
+                <span aria-hidden="true" className="flex shrink-0">
+                  <Avatar name={agendamento.professional_name} size={20} className="bg-brand/20 text-[10px] font-bold text-brand-text" />
+                </span>
+                <span>{agendamento.professional_name}</span>
               </span>
             </div>
-          </Linha>
-
-          {agendamento.professional_name && (
-            <Linha className="justify-between">
-              <div className="flex min-w-0 items-center gap-3">
-                <span aria-hidden="true" className="flex shrink-0">
-                  <Avatar name={agendamento.professional_name} size={40} className="bg-surface-2" />
-                </span>
-                <div className="flex min-w-0 flex-col">
-                  <span className="truncate text-[13px] font-bold text-ink">{agendamento.professional_name}</span>
-                  <span className="text-[14px] text-muted">Profissional responsável</span>
-                </div>
-              </div>
-              <Icon name="badge" size={20} className="shrink-0 text-muted" />
-            </Linha>
           )}
-        </div>
-
-        {/* Valores: o preço é o real; o sinal de exemplo nunca passa dele */}
-        <div className="flex flex-col gap-3 rounded-control bg-surface p-4">
           <div className="flex items-start justify-between gap-3">
-            <span className="text-[17px] font-bold text-ink">{agendamento.service_name}</span>
-            <span className="shrink-0 text-[17px] font-bold tabular-nums text-ink">
-              {formatCurrency(Number(agendamento.service_price || 0))}
+            <span className="shrink-0 text-[13px] text-muted">Data e horário:</span>
+            <span className="max-w-[270px] text-right text-[13px] font-bold tabular-nums text-ink">
+              {`${formatarDataAgenda(agendamento.date.split('T')[0])} · ${horario}`}
             </span>
           </div>
+        </div>
+      </Bloco>
 
-          {sinal > 0 && (
-            <>
-              <div className="flex items-center justify-between gap-2 rounded-control bg-success/12 p-2.5 text-success-text">
-                <div className="flex min-w-0 items-center gap-2">
-                  <Icon name="payments" size={18} className="shrink-0" />
-                  <div className="flex min-w-0 flex-col">
-                    <span className="text-[13px] font-bold tabular-nums">
-                      Sinal pago {formatCurrency(sinal)} via Pix
-                    </span>
-                    <span className="truncate text-[11px] opacity-90">
-                      Comp. {detalhes.comprovantePix} · Confirmado
-                    </span>
-                  </div>
-                </div>
-                <Icon name="check_circle" size={20} className="shrink-0" />
-              </div>
-
-              <div className="flex items-center justify-between gap-3 pt-1">
-                <div className="flex flex-col">
-                  <span className="text-[11px] text-muted">Valor a pagar no estúdio</span>
-                  <span className="text-[11px] text-muted">Cartão, Dinheiro ou Pix final</span>
-                </div>
-                <span className="shrink-0 text-[24px] font-black tabular-nums text-brand-text">
-                  {formatCurrency(aPagar)}
-                </span>
-              </div>
-            </>
-          )}
+      {/* Pagamento */}
+      <Bloco>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[12px] font-bold uppercase tracking-wide text-muted">Pagamento</span>
+          <div className="text-right">
+            <span className="mr-1 text-[11px] text-muted">Valor total:</span>
+            <span className="text-[16px] font-bold tabular-nums text-ink">{formatCurrency(preco)}</span>
+          </div>
         </div>
 
-        {/* Rodapé de metadados: os dois vêm do registro */}
-        <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] text-muted">
-          {agendadoEm && <span className="tabular-nums">{agendadoEm}</span>}
-          <span className="flex items-center gap-1">
-            <span
-              className={cn(
-                'h-1.5 w-1.5 rounded-full',
-                agendamento.reminder_sent ? 'bg-success' : 'bg-muted',
-              )}
-            />
-            <span>Lembrete WhatsApp {agendamento.reminder_sent ? 'enviado' : 'não enviado'}</span>
-          </span>
+        {sinal > 0 && (
+          <div className="flex items-center justify-between gap-2 rounded-control border border-success/30 bg-success/10 p-2.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <Icon name="check_circle" size={18} className="shrink-0 text-success-text" />
+              <span className="text-[13px] font-bold tabular-nums text-success-text">Sinal pago {formatCurrency(sinal)} via Pix</span>
+            </div>
+            <span className="shrink-0 rounded bg-success px-2 py-0.5 text-[10px] font-bold text-surface">CONFIRMADO</span>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <div className="flex flex-col">
+            <span className="text-[13px] font-bold text-ink">Restante no balcão:</span>
+            <span className="text-[11px] text-muted">Cartão, dinheiro ou Pix na saída</span>
+          </div>
+          <span className="shrink-0 text-[20px] font-extrabold tabular-nums text-brand-text">{formatCurrency(restante)}</span>
         </div>
-      </div>
+
+        {comandaFechada && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+            <span className="flex items-center gap-1.5 text-[13px] font-bold text-ink">
+              <Icon name="receipt_long" size={18} className="text-success-text" />
+              Comanda #{agendamento.comanda_number} fechada
+            </span>
+            <ReenviarComprovante comandaId={agendamento.comanda_id as string} />
+          </div>
+        )}
+      </Bloco>
+
+      {/* Observações da ficha técnica */}
+      {estado.fase === 'carregando' && <Skeleton className="h-16 rounded-card" />}
+      {estado.fase === 'pronto' && estado.dados.client_notes?.trim() && (
+        <div className="flex items-start gap-2.5 rounded-card border border-warning/30 bg-warning/10 p-3.5">
+          <Icon name="warning" size={20} className="mt-0.5 shrink-0 text-warning" />
+          <div className="flex flex-col">
+            <span className="text-[12px] font-bold uppercase tracking-wider text-warning-text">Observações da ficha técnica</span>
+            <p className="mt-0.5 whitespace-pre-line text-[13px] font-semibold text-ink">{estado.dados.client_notes}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -258,86 +366,73 @@ export function ConteudoDetalhesAgendamento({ agendamento, duracaoMinutos }: Con
 export interface AcoesDetalhesProps {
   agendamento: Appointment;
   actionLoading: string | null;
-  onStatusChange: (id: string, status: 'confirmado' | 'concluido' | 'cancelado') => void;
+  onAcao: (a: Appointment, acao: AcaoAgendamento) => void;
+  onRemarcar: (a: Appointment) => void;
+  onConfirmarPix?: (a: Appointment) => void;
 }
 
-/**
- * Rodapé de ações. Concluir, Confirmar e Cancelar chamam o mesmo `handleStatusChange` da
- * Agenda, com o mesmo `actionLoading`, e só ficam ativos nas transições que a API aceita
- * (VALID_STATUS_TRANSITIONS no backend): `confirmado` → concluir/cancelar, e
- * `aguardando_pagamento` (reserva pública com sinal via Pix) → confirmar/cancelar.
- *
- * Remarcar e Cliente faltou mostram o aviso de recurso a caminho — não existem no
- * sistema. Confirmar também mostra o aviso quando o agendamento já nasceu confirmado
- * (criado pelo painel): não há transição de volta para "confirmado" nesse caso, então o
- * botão chamando o handler daria erro em todo clique — parecer funcionar e falhar é pior
- * do que dizer que ainda não dá.
- */
-export function AcoesDetalhesAgendamento({ agendamento, actionLoading, onStatusChange }: AcoesDetalhesProps) {
-  const { showToast } = useToast();
-  const aguardandoPagamento = agendamento.status === 'aguardando_pagamento';
-  // Concluir aqui abre a comanda (a Agenda traduz 'concluido' para a ação 'concluir').
-  // A Tarefa 13 troca este rodapé pelas ações de ACOES_POR_STATUS.
-  const podeConcluir = ACOES_POR_STATUS[agendamento.status]?.includes('concluir') ?? false;
-  const podeCancelar = ACOES_POR_STATUS[agendamento.status]?.includes('cancelar') ?? false;
+const SECUNDARIO =
+  'flex h-10 items-center justify-center gap-1.5 rounded-control border border-line/60 bg-surface-2 text-[13px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50';
+
+/** Rodapé de ações: só o que ACOES_POR_STATUS permite para o status atual. */
+export function AcoesDetalhesAgendamento({ agendamento, actionLoading, onAcao, onRemarcar, onConfirmarPix }: AcoesDetalhesProps) {
+  if (STATUS_FINAL.has(agendamento.status)) return null;
+
+  const acoes = ACOES_POR_STATUS[agendamento.status] ?? [];
   const carregando = actionLoading === agendamento.id;
-  const bloqueado = !podeConcluir || carregando;
-  const confirmarBloqueado = !aguardandoPagamento || carregando;
-  const cancelarBloqueado = !podeCancelar || carregando;
-  const aCaminho = () => showToast(AVISO_RECURSO_A_CAMINHO, 'info');
-  const confirmarPagamento = () => onStatusChange(agendamento.id, 'confirmado');
+  const aguardandoPix = agendamento.status === 'aguardando_pagamento' && onConfirmarPix;
+  const rascunho = agendamento.comanda_status === 'rascunho' && agendamento.comanda_number != null;
+  const textoPrincipal = rascunho ? `Continuar comanda #${agendamento.comanda_number}` : 'Concluir atendimento e receber';
+
+  const secundarios: Array<{ chave: string; texto: string; icone: string; cor: string; onClick: () => void }> = [
+    { chave: 'remarcar', texto: 'Remarcar', icone: 'edit_calendar', cor: 'text-ink hover:bg-line', onClick: () => onRemarcar(agendamento) },
+  ];
+  if (acoes.includes('faltou')) {
+    secundarios.push({ chave: 'faltou', texto: ROTULO_ACAO.faltou.texto, icone: ROTULO_ACAO.faltou.icone, cor: 'text-danger hover:bg-danger/10', onClick: () => onAcao(agendamento, 'faltou') });
+  }
+  if (acoes.includes('cancelar')) {
+    secundarios.push({ chave: 'cancelar', texto: ROTULO_ACAO.cancelar.texto, icone: ROTULO_ACAO.cancelar.icone, cor: 'text-muted hover:bg-line hover:text-ink', onClick: () => onAcao(agendamento, 'cancelar') });
+  }
+
+  const principal = 'flex w-full items-center justify-center gap-2 rounded-control bg-brand px-4 py-3.5 text-[15px] font-bold text-on-brand shadow-sm transition-all hover:brightness-105 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50';
 
   return (
-    <div className="flex flex-col gap-3">
-      <button
-        type="button"
-        disabled={bloqueado}
-        onClick={() => onStatusChange(agendamento.id, 'concluido')}
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-control bg-brand text-[17px] font-bold text-on-brand shadow-sm transition-transform active:scale-[0.99] hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <Icon name="task_alt" size={22} />
-        <span>Concluir atendimento &amp; Receber</span>
-      </button>
+    <div className="space-y-3">
+      {acoes.includes('concluir') && (
+        <button type="button" disabled={carregando} onClick={() => onAcao(agendamento, 'concluir')} className={principal}>
+          <Icon name={rascunho ? 'receipt_long' : 'task_alt'} size={20} />
+          <span>{textoPrincipal}</span>
+        </button>
+      )}
+      {aguardandoPix && (
+        <button type="button" disabled={carregando} onClick={() => onConfirmarPix(agendamento)} className={principal}>
+          <Icon name="verified" size={20} />
+          <span>Confirmar Pix recebido</span>
+        </button>
+      )}
 
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          disabled={confirmarBloqueado}
-          onClick={aguardandoPagamento ? confirmarPagamento : aCaminho}
-          className="flex h-10 items-center justify-center gap-1.5 rounded-control bg-status-confirmed/12 text-[13px] font-bold text-status-confirmed transition-colors hover:bg-status-confirmed/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Icon name="verified" size={18} />
-          <span>{aguardandoPagamento ? 'Confirmar recebimento do Pix' : 'Confirmar'}</span>
-        </button>
-        <button
-          type="button"
-          onClick={aCaminho}
-          className="flex h-10 items-center justify-center gap-1.5 rounded-control bg-surface-2 text-[13px] font-bold text-ink transition-colors hover:bg-line/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-        >
-          <Icon name="edit_calendar" size={18} />
-          <span>Remarcar</span>
-        </button>
+      <div className={cn('grid gap-2', secundarios.length === 3 ? 'grid-cols-3' : secundarios.length === 2 ? 'grid-cols-2' : 'grid-cols-1')}>
+        {secundarios.map((b) => (
+          <button key={b.chave} type="button" disabled={carregando} onClick={b.onClick} className={cn(SECUNDARIO, b.cor)}>
+            <Icon name={b.icone} size={17} />
+            <span>{b.texto}</span>
+          </button>
+        ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={aCaminho}
-          className="flex h-9 items-center justify-center gap-1 rounded-control bg-danger/12 text-[13px] font-semibold text-danger transition-colors hover:bg-danger/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-        >
-          <Icon name="person_off" size={16} />
-          <span>Cliente faltou</span>
-        </button>
-        <button
-          type="button"
-          disabled={cancelarBloqueado}
-          onClick={() => onStatusChange(agendamento.id, 'cancelado')}
-          className="flex h-9 items-center justify-center gap-1 rounded-control text-[13px] font-semibold text-muted transition-colors hover:text-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Icon name="cancel" size={16} />
-          <span>Cancelar</span>
-        </button>
-      </div>
+      {acoes.includes('desfazer_inicio') && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            disabled={carregando}
+            onClick={() => onAcao(agendamento, 'desfazer_inicio')}
+            className="flex items-center gap-1 rounded-control px-2 py-1 text-[12px] font-semibold text-muted underline-offset-2 transition-colors hover:text-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Icon name={ROTULO_ACAO.desfazer_inicio.icone} size={14} />
+            <span>{ROTULO_ACAO.desfazer_inicio.texto}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -345,20 +440,24 @@ export function AcoesDetalhesAgendamento({ agendamento, actionLoading, onStatusC
 export interface PainelDetalhesAgendamentoProps {
   /** O agendamento a mostrar; `null` mantém o painel fechado. */
   agendamento: Appointment | null;
-  duracaoMinutos: number;
   actionLoading: string | null;
   onFechar: () => void;
-  onStatusChange: (id: string, status: 'confirmado' | 'concluido' | 'cancelado') => void;
+  onAcao: (a: Appointment, acao: AcaoAgendamento) => void;
+  onRemarcar: (a: Appointment) => void;
+  /** Reserva pública aguardando o Pix: confirmar o pagamento (aguardando_pagamento → confirmado). */
+  onConfirmarPix?: (a: Appointment) => void;
 }
 
 export function PainelDetalhesAgendamento({
   agendamento,
-  duracaoMinutos,
   actionLoading,
   onFechar,
-  onStatusChange,
+  onAcao,
+  onRemarcar,
+  onConfirmarPix,
 }: PainelDetalhesAgendamentoProps) {
   const computador = useLarguraDeComputador();
+  const temRodape = agendamento !== null && !STATUS_FINAL.has(agendamento.status);
 
   return (
     <SidePanel
@@ -366,34 +465,40 @@ export function PainelDetalhesAgendamento({
       onOpenChange={(aberto) => {
         if (!aberto) onFechar();
       }}
-      title="Detalhes da Sessão"
+      title="Detalhes da sessão"
       side={computador ? 'right' : 'bottom'}
       widthClass={computador ? LARGURA_PAINEL : undefined}
       titleAbove={
         agendamento ? (
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-            Agendamento #{numeroDoAgendamento(agendamento.id)}
+          <span className="text-[12px] font-bold uppercase tracking-tight text-muted">
+            Agendamento #{agendamento.comanda_number ?? numeroDoAgendamento(agendamento.id)}
           </span>
         ) : null
       }
       headerEnd={
-        // No cabeçalho fixo (agendamento-detalhes.html:399-414), não rola com o
-        // conteúdo — antes ficava dentro do corpo e desaparecia ao rolar o painel.
-        agendamento ? <StatusChip status={agendamento.status} comPonto pontoAnimado className="text-[11px]" /> : null
+        // No cabeçalho fixo: continua visível enquanto o conteúdo rola.
+        agendamento ? (
+          <StatusChip
+            status={agendamento.status}
+            comPonto
+            pontoAnimado={agendamento.status === 'em_atendimento'}
+            className="text-[12px]"
+          />
+        ) : null
       }
       footer={
-        agendamento ? (
+        temRodape && agendamento ? (
           <AcoesDetalhesAgendamento
             agendamento={agendamento}
             actionLoading={actionLoading}
-            onStatusChange={onStatusChange}
+            onAcao={onAcao}
+            onRemarcar={onRemarcar}
+            onConfirmarPix={onConfirmarPix}
           />
         ) : null
       }
     >
-      {agendamento ? (
-        <ConteudoDetalhesAgendamento agendamento={agendamento} duracaoMinutos={duracaoMinutos} />
-      ) : null}
+      {agendamento ? <ConteudoDetalhesAgendamento key={agendamento.id} agendamento={agendamento} /> : null}
     </SidePanel>
   );
 }

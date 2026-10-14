@@ -63,6 +63,17 @@ describe('CreateAppointmentModal', () => {
     expect(screen.getByRole('button', { name: '10:00' })).not.toHaveClass('bg-brand');
   });
 
+  it('remarcando, abre com cliente e serviço do agendamento e busca horários do serviço', () => {
+    const onLoadSlots = vi.fn();
+    render(<CreateAppointmentModal {...base} availableSlots={[]} onLoadSlots={onLoadSlots}
+      clients={[{ id: 'c1', name: 'Rafaela Diniz', phone: '83996542210' } as never]}
+      inicial={{ professionalId: 'p1', date: '2026-10-14', clientId: 'c1', serviceId: 's1' }} editandoId="a1" />);
+    expect(screen.getByText('Remarcar agendamento')).toBeInTheDocument();
+    expect(onLoadSlots).toHaveBeenCalledWith('p1', '2026-10-14', 's1');
+    expect(screen.getByLabelText('Serviço')).toHaveValue('s1');
+    expect(screen.getByRole('button', { name: /Salvar/ })).toBeInTheDocument();
+  });
+
   it('sem inicial, abre vazio e não busca horários', () => {
     const onLoadSlots = vi.fn();
     render(<CreateAppointmentModal isOpen onClose={vi.fn()} clients={[]} professionals={[]}
