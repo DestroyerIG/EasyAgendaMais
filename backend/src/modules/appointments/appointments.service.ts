@@ -163,9 +163,12 @@ export const appointmentsService = {
       businessId, professionalId, date
     );
 
+    const pausa = await appointmentsPrismaRepository.getProfessionalBreak(professionalId, businessId);
+
     return (generateAvailableTimeSlots as Function)(businessSettings, date, {
       serviceDurationMinutes: duration,
       bookedTimes,
+      blockedRanges: pausa ? [pausa] : [],
     });
   },
 

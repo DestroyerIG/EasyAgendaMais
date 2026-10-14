@@ -194,6 +194,15 @@ export const appointmentsPrismaRepository = {
     return true;
   },
 
+  async getProfessionalBreak(professionalId: string, businessId: string): Promise<{ start: string; end: string } | null> {
+    const p = await prisma.professional.findFirst({
+      where: { id: professionalId, businessId },
+      select: { breakStart: true, breakEnd: true },
+    });
+    if (!p?.breakStart || !p?.breakEnd) return null;
+    return { start: p.breakStart.toISOString().substring(11, 16), end: p.breakEnd.toISOString().substring(11, 16) };
+  },
+
   async getBookedSlots(
     businessId: string,
     professionalId: string,

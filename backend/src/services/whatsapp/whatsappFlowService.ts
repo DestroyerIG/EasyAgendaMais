@@ -54,6 +54,7 @@ import {
   formatBusinessHoursRange,
 } from '../scheduleSettingsService.js';
 import { appointmentService } from '../appointmentService.js';
+import { appointmentsPrismaRepository } from '../../modules/appointments/appointments.repository.js';
 import { businessSettingsRepository } from '../../repositories/businessSettingsRepository.js';
 
 // ==================== LOCAL INTERFACES ====================
@@ -1418,12 +1419,15 @@ const handleChooseDateStep = async (
   const bookedTimes = bookedRows.map((row) => formatTimeHm(row.time));
   const serviceDuration = (sessionData.serviceDuration as number) || (businessSettings.slotIntervalMinutes ?? 30);
 
+  const pausa = await appointmentsPrismaRepository.getProfessionalBreak(professionalId, businessId);
+
   const availableSlots = generateAvailableTimeSlots(
     businessSettings,
     selectedDate,
     {
       serviceDurationMinutes: serviceDuration,
       bookedTimes,
+      blockedRanges: pausa ? [pausa] : [],
       currentDate: options?.now || new Date(),
     }
   );

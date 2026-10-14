@@ -40,6 +40,7 @@ const mockAppointmentRepo = {
   validateEntityOwnership: vi.fn(),
   findConflict: vi.fn(),
   getBookedSlots: vi.fn(),
+  getProfessionalBreak: vi.fn().mockResolvedValue(null),
 };
 
 vi.mock('../repositories/appointmentRepository.js', () => ({

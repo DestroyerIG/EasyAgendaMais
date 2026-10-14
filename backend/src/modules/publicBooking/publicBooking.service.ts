@@ -38,9 +38,12 @@ const computeAvailableSlots = async (
 
   const bookedTimes = await appointmentsPrismaRepository.getBookedSlots(businessId, professionalId, date);
 
+  const pausa = await appointmentsPrismaRepository.getProfessionalBreak(professionalId, businessId);
+
   return generateAvailableTimeSlots(businessSettings, date, {
     serviceDurationMinutes,
     bookedTimes,
+    blockedRanges: pausa ? [pausa] : [],
   });
 };
 

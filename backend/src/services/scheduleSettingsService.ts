@@ -287,6 +287,7 @@ interface GenerateSlotsOptions {
   serviceDurationMinutes?: number;
   bookedTimes?: unknown[];
   currentDate?: Date;
+  blockedRanges?: Array<{ start: string; end: string }>;
 }
 
 export const generateAvailableTimeSlots = (
@@ -296,6 +297,7 @@ export const generateAvailableTimeSlots = (
     serviceDurationMinutes,
     bookedTimes = [],
     currentDate = new Date(),
+    blockedRanges = [],
   }: GenerateSlotsOptions = {}
 ): string[] => {
   const normalized = normalizeScheduleSettings(settings);
@@ -329,7 +331,12 @@ export const generateAvailableTimeSlots = (
 
   for (let minute = firstSlotMinute; minute + duration <= closingMinutes; minute += slotStep) {
     const slot = fromMinutes(minute);
-    if (!normalizedBookedTimes.has(slot)) {
+    const cruzaBloqueio = blockedRanges.some(({ start, end }) => {
+      const ini = toMinutes(start);
+      const fim = toMinutes(end);
+      return minute < fim && minute + duration > ini;
+    });
+    if (!normalizedBookedTimes.has(slot) && !cruzaBloqueio) {
       availableSlots.push(slot);
     }
   }

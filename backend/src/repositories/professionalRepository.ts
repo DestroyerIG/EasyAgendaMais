@@ -1,5 +1,16 @@
 import { prisma } from '../config/prisma.js';
 
+interface ProfessionalWriteData {
+  name?: string;
+  photo?: string | null;
+  breakStart?: string | null;
+  breakEnd?: string | null;
+  commissionServicePct?: number | null;
+  commissionProductPct?: number | null;
+}
+
+const toTime = (hhmm: string | null) => (hhmm ? new Date(`1970-01-01T${hhmm}:00Z`) : null);
+
 export const professionalRepository = {
   async findAllActive(businessId: string) {
     return prisma.professional.findMany({
@@ -12,20 +23,31 @@ export const professionalRepository = {
     return prisma.professional.count({ where: { businessId, active: true } });
   },
 
-  async create(data: { business_id: string; name: string; photo: string | null }) {
+  async create(data: ProfessionalWriteData & { business_id: string; name: string; photo: string | null }) {
     return prisma.professional.create({
       data: {
         businessId: data.business_id,
         name: data.name,
         photo: data.photo,
+        breakStart: toTime(data.breakStart ?? null),
+        breakEnd: toTime(data.breakEnd ?? null),
+        commissionServicePct: data.commissionServicePct ?? null,
+        commissionProductPct: data.commissionProductPct ?? null,
       },
     });
   },
 
-  async update(id: string, businessId: string, data: { name: string; photo?: string | null }) {
+  async update(id: string, businessId: string, data: ProfessionalWriteData) {
     const result = await prisma.professional.updateMany({
       where: { id, businessId },
-      data: { name: data.name, photo: data.photo },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.photo !== undefined && { photo: data.photo }),
+        ...(data.breakStart !== undefined && { breakStart: toTime(data.breakStart) }),
+        ...(data.breakEnd !== undefined && { breakEnd: toTime(data.breakEnd) }),
+        ...(data.commissionServicePct !== undefined && { commissionServicePct: data.commissionServicePct }),
+        ...(data.commissionProductPct !== undefined && { commissionProductPct: data.commissionProductPct }),
+      },
     });
     if (result.count === 0) return null;
     return prisma.professional.findFirst({ where: { id } });
