@@ -1,0 +1,685 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+    @layer base {
+      html, body { margin: 0; padding: 0; }
+      body { overscroll-behavior: none; }
+      main > :first-child { margin-top: 0 !important; }
+      main > :last-child { margin-bottom: 0 !important; }
+    }
+    ::-webkit-scrollbar { display: none; }
+    .diagonal-stripes {
+      background: repeating-linear-gradient(45deg, #F6F5F4, #F6F5F4 8px, #EFEDEA 8px, #EFEDEA 16px);
+    }
+    .chemical-stripes {
+      background: repeating-linear-gradient(45deg, rgba(0,99,153,0.04), rgba(0,99,153,0.04) 6px, transparent 6px, transparent 12px);
+    }
+  </style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "ink": "#1A1817",
+            "muted": "#66605B",
+            "line": "#E2DFDB",
+            "bg": "#F6F5F4",
+            "surface": "#FFFFFF",
+            "surface-2": "#EFEDEA",
+            "brand": "#FF7A00",
+            "on-brand": "#1A1817",
+            "status-confirmed": "#2563EB",
+            "warning": "#D97706",
+            "success": "#16A34A",
+            "danger": "#DC2626",
+            "tertiary": "#006399"
+          },
+          fontFamily: {
+            sans: ["Plus Jakarta Sans", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-bg font-sans text-ink antialiased">
+<!-- BARRA LATERAL (248px) -->
+<aside class="fixed left-0 top-0 h-full w-[248px] bg-surface border-r border-line z-50 flex flex-col justify-between">
+<div class="flex flex-col">
+<!-- Logo + Subtítulo -->
+<div class="h-16 px-5 flex items-center gap-3 border-b border-line">
+<div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-surface text-[20px]">calendar_today</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center text-[17px] font-bold text-ink leading-tight tracking-tight">
+            EasyAgenda<span class="text-brand font-extrabold">+</span>
+</div>
+<span class="text-[10px] font-bold tracking-wider text-muted uppercase">GESTÃO DE BELEZA</span>
+</div>
+</div>
+<!-- 9 Itens Oficiais de Navegação -->
+<nav class="flex flex-col gap-1 px-3 py-4">
+<!-- 1. Hoje -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted text-[13.5px] font-medium hover:bg-surface-2 hover:text-ink transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">today</span>
+<span>Hoje</span>
+</a>
+<!-- 2. Agenda (Ativo) -->
+<a aria-current="page" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-surface-2 text-brand text-[13.5px] font-bold transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px] text-brand">calendar_month</span>
+<span>Agenda</span>
+</a>
+<!-- 3. Clientes -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted text-[13.5px] font-medium hover:bg-surface-2 hover:text-ink transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">group</span>
+<span>Clientes</span>
+</a>
+<!-- 4. Caixa -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted text-[13.5px] font-medium hover:bg-surface-2 hover:text-ink transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+<span>Caixa</span>
+</a>
+<!-- 5. Clube e pacotes -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted text-[13.5px] font-medium hover:bg-surface-2 hover:text-ink transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">loyalty</span>
+<span>Clube e pacotes</span>
+</a>
+<!-- 6. WhatsApp -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted text-[13.5px] font-medium hover:bg-surface-2 hover:text-ink transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">chat</span>
+<span>WhatsApp</span>
+</a>
+<!-- 7. Relatórios -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted text-[13.5px] font-medium hover:bg-surface-2 hover:text-ink transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">bar_chart</span>
+<span>Relatórios</span>
+</a>
+<!-- 8. Minha página -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted text-[13.5px] font-medium hover:bg-surface-2 hover:text-ink transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">storefront</span>
+<span>Minha página</span>
+</a>
+<!-- 9. Ajustes -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted text-[13.5px] font-medium hover:bg-surface-2 hover:text-ink transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span>Ajustes</span>
+</a>
+</nav>
+</div>
+<!-- Rodapé da barra lateral -->
+<div class="p-3 border-t border-line">
+<div class="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-surface-2">
+<span class="material-symbols-outlined text-[18px] text-muted">verified</span>
+<div class="flex flex-col min-w-0">
+<span class="text-[13px] font-bold text-ink truncate leading-tight">Studio Aurora</span>
+<span class="text-[11px] font-medium text-muted truncate">Plano Equipe</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- ÁREA PRINCIPAL -->
+<div class="pl-[248px]">
+<!-- CABEÇALHO SUPERIOR -->
+<header class="fixed top-0 left-[248px] right-0 h-16 bg-surface border-b border-line z-40 flex items-center justify-between px-6">
+<div class="flex items-center gap-2 text-muted text-[13.5px]">
+<span class="hover:text-ink cursor-pointer font-medium">Studio Aurora</span>
+<span class="material-symbols-outlined text-[16px] text-muted">chevron_right</span>
+<span class="text-ink font-bold">Agenda</span>
+</div>
+<div class="flex items-center gap-4">
+<!-- Campo de busca -->
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-muted text-[18px]">search</span>
+<input class="h-9 pl-9 pr-4 w-72 rounded-lg bg-surface-2 border border-line text-ink text-[13px] placeholder:text-muted focus:outline-none focus:border-brand" placeholder="Buscar agendamento ou cliente..." type="text">
+</div>
+<button class="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-2 text-muted hover:text-ink transition-colors" title="Notificações">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-brand"></span>
+</button>
+<!-- Perfil da Carla Administradora -->
+<div class="flex items-center gap-2.5 pl-3 border-l border-line cursor-pointer">
+<div class="w-8 h-8 rounded-full bg-brand/15 text-brand font-bold text-[13px] flex items-center justify-center border border-brand/30">
+            CA
+          </div>
+<div class="hidden sm:flex flex-col text-left">
+<span class="text-[13px] font-bold text-ink leading-tight">Carla</span>
+<span class="text-[11px] font-medium text-muted leading-tight">Administradora</span>
+</div>
+</div>
+</div>
+</header>
+<!-- CONTEÚDO PRINCIPAL -->
+<main class="pt-20 px-6 pb-8 bg-bg">
+<div class="flex flex-col gap-4 max-w-[1520px] mx-auto">
+<!-- TOP CONTROLS: DATA, VISUALIZAÇÃO, FILTRO PROFISSIONAIS & CTA -->
+<div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-surface p-4 rounded-[16px] border border-line shadow-sm">
+<div class="flex flex-wrap items-center gap-3 lg:gap-4">
+<!-- Controles de Data -->
+<div class="flex items-center gap-1.5 bg-surface-2 p-1 rounded-lg">
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface text-ink transition-colors" title="Dia anterior">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<button class="px-2.5 py-1 text-[13px] font-bold text-ink hover:bg-surface rounded transition-colors">
+                Hoje
+              </button>
+<button class="w-8 h-8 flex items-center justify-center rounded hover:bg-surface text-ink transition-colors" title="Próximo dia">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+<div class="h-4 w-px bg-line mx-1"></div>
+<div class="flex items-center gap-2 px-2.5 py-1 text-ink text-[14px] font-bold">
+<span class="material-symbols-outlined text-brand text-[18px]">calendar_today</span>
+<span>quinta, 17 de setembro de 2026</span>
+</div>
+</div>
+<!-- Segmented Control: Dia / Semana -->
+<div class="flex items-center bg-surface-2 p-1 rounded-lg text-[13px]">
+<button class="px-3.5 py-1.5 rounded-md bg-surface text-ink font-bold shadow-sm transition-all">Dia</button>
+<button class="px-3.5 py-1.5 rounded-md text-muted hover:text-ink font-medium transition-all">Semana</button>
+</div>
+<!-- Chips de Profissionais -->
+<div class="flex items-center gap-1.5 border-l border-line pl-3">
+<button class="px-3 py-1.5 rounded-full bg-ink text-surface text-[12px] font-bold">
+                Todas
+              </button>
+<button class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 hover:bg-line/60 text-ink text-[12px] font-medium transition-colors">
+<span class="w-5 h-5 rounded-full bg-brand/20 text-brand flex items-center justify-center text-[10px] font-bold">C</span>
+                Camila <span class="text-muted text-[11px]">(unhas)</span>
+</button>
+<button class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 hover:bg-line/60 text-ink text-[12px] font-medium transition-colors">
+<span class="w-5 h-5 rounded-full bg-tertiary/20 text-tertiary flex items-center justify-center text-[10px] font-bold">B</span>
+                Bruna <span class="text-muted text-[11px]">(cílios)</span>
+</button>
+<button class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 hover:bg-line/60 text-ink text-[12px] font-medium transition-colors">
+<span class="w-5 h-5 rounded-full bg-success/20 text-success flex items-center justify-center text-[10px] font-bold">P</span>
+                Paula <span class="text-muted text-[11px]">(cabelo)</span>
+</button>
+</div>
+</div>
+<!-- Botão de Ação Principal em Linha Única -->
+<button class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-brand text-on-brand font-bold text-[13.5px] whitespace-nowrap shadow-sm hover:brightness-105 active:scale-[0.98] transition-all flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>Novo agendamento</span>
+</button>
+</div>
+<!-- BARRA DE RESUMO E LEGENDA -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-surface px-4 py-2.5 rounded-[16px] border border-line shadow-sm text-[13px]">
+<!-- Métricas diárias em linha única -->
+<div class="flex items-center gap-2.5 whitespace-nowrap">
+<div class="flex items-center gap-1.5 font-bold text-ink">
+<span class="w-2 h-2 rounded-full bg-brand"></span>
+<span>16 agendamentos</span>
+</div>
+<span class="text-muted font-normal">·</span>
+<div class="flex items-center gap-1 font-bold text-ink whitespace-nowrap">
+<span class="text-muted font-normal">Faturamento:</span>
+<span class="text-success tabular-nums">R$ 1.460</span>
+</div>
+<span class="text-muted font-normal">·</span>
+<div class="flex items-center gap-1 text-muted">
+<span class="text-tertiary font-bold tabular-nums">3</span> horários livres
+            </div>
+</div>
+<!-- Legenda organizada em uma única linha -->
+<div class="flex flex-wrap items-center gap-3.5 text-[12px] text-muted whitespace-nowrap">
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-status-confirmed"></span>
+<span>Confirmado</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-warning"></span>
+<span>Aguardando confirmação</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-brand"></span>
+<span>Em atendimento</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-success"></span>
+<span>Concluído</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-danger"></span>
+<span>Faltou</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-muted line-through opacity-70"></span>
+<span class="line-through">Cancelado</span>
+</div>
+</div>
+</div>
+<!-- TIMELINE DA AGENDA (08:00 às 20:00 = 12 horas, 80px/hora = 960px) -->
+<div class="bg-surface rounded-[16px] border border-line shadow-sm overflow-hidden flex flex-col">
+<!-- Cabeçalho das Colunas das Profissionais -->
+<div class="grid grid-cols-[72px_1fr_1fr_1fr] bg-surface-2/60 border-b border-line sticky top-0 z-30">
+<div class="p-3 text-center text-[11px] font-bold text-muted flex items-center justify-center">
+              GMT-3
+            </div>
+<!-- Coluna 1: Camila Rocha -->
+<div class="px-4 py-2.5 border-l border-line flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-brand/15 text-brand font-bold text-[12px] flex items-center justify-center ring-2 ring-brand/20">
+                  CR
+                </div>
+<div class="flex flex-col">
+<span class="text-[14px] font-bold text-ink leading-tight">Camila Rocha</span>
+<span class="text-[11px] text-muted">Nail Designer</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-surface text-[11px] font-bold text-muted border border-line">
+                6 atendimentos
+              </span>
+</div>
+<!-- Coluna 2: Bruna Lima -->
+<div class="px-4 py-2.5 border-l border-line flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-tertiary/15 text-tertiary font-bold text-[12px] flex items-center justify-center ring-2 ring-tertiary/20">
+                  BL
+                </div>
+<div class="flex flex-col">
+<span class="text-[14px] font-bold text-ink leading-tight">Bruna Lima</span>
+<span class="text-[11px] text-muted">Cílios &amp; Sobrancelhas</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-surface text-[11px] font-bold text-muted border border-line">
+                5 atendimentos
+              </span>
+</div>
+<!-- Coluna 3: Paula Mendes -->
+<div class="px-4 py-2.5 border-l border-line flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-full bg-success/15 text-success font-bold text-[12px] flex items-center justify-center ring-2 ring-success/20">
+                  PM
+                </div>
+<div class="flex flex-col">
+<span class="text-[14px] font-bold text-ink leading-tight">Paula Mendes</span>
+<span class="text-[11px] text-muted">Hair Stylist</span>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-surface text-[11px] font-bold text-muted border border-line">
+                5 atendimentos
+              </span>
+</div>
+</div>
+<!-- Corpo da Timeline com 960px de altura (12 horas x 80px) -->
+<div class="relative grid grid-cols-[72px_1fr_1fr_1fr] h-[960px] select-none bg-surface">
+<!-- Linhas de Fundo das Horas e Meias Horas (z-0) -->
+<div class="col-span-4 absolute inset-0 pointer-events-none flex flex-col z-0">
+<div class="h-[80px] border-b border-line/60 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line/40"></div></div>
+<div class="h-[80px] border-b border-line/60 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line/40"></div></div>
+<div class="h-[80px] border-b border-line/60 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line/40"></div></div>
+<div class="h-[80px] border-b border-line/60 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line/40"></div></div>
+<div class="h-[80px] border-b border-line/60 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line/40"></div></div>
+<div class="h-[80px] border-b border-line/60 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line/40"></div></div>
+<div class="h-[80px] border-b border-line/60 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line/40"></div></div>
+<div class="h-[80px] border-b border-line/60 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line/40"></div></div>
+<div class="h-[80px] border-b border-line/60 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line/40"></div></div>
+<div class="h-[80px] border-b border-line/60 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line/40"></div></div>
+<div class="h-[80px] border-b border-line/60 relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line/40"></div></div>
+<div class="h-[80px] relative"><div class="absolute top-[40px] w-full border-b border-dashed border-line/40"></div></div>
+</div>
+<!-- LINHA DA HORA ATUAL (11:15 = 3.25h * 80px = 260px) -> z-1 (NÃO cobre cards pois cards têm z-10) -->
+<div class="absolute left-0 right-0 top-[260px] z-[1] pointer-events-none flex items-center">
+<span class="bg-brand text-on-brand text-[11px] font-extrabold px-2 py-0.5 rounded-r shadow-sm">
+                11:15 Agora
+              </span>
+<div class="h-0.5 flex-1 bg-brand"></div>
+</div>
+<!-- Coluna de Horários da Esquerda com tabular-nums -->
+<div class="relative border-r border-line flex flex-col justify-between text-muted text-[13px] font-semibold tabular-nums py-1 pr-2 text-right bg-surface z-10">
+<div class="h-[80px] -mt-2.5">08:00</div>
+<div class="h-[80px] -mt-2.5">09:00</div>
+<div class="h-[80px] -mt-2.5">10:00</div>
+<div class="h-[80px] -mt-2.5">11:00</div>
+<div class="h-[80px] -mt-2.5">12:00</div>
+<div class="h-[80px] -mt-2.5">13:00</div>
+<div class="h-[80px] -mt-2.5">14:00</div>
+<div class="h-[80px] -mt-2.5">15:00</div>
+<div class="h-[80px] -mt-2.5">16:00</div>
+<div class="h-[80px] -mt-2.5">17:00</div>
+<div class="h-[80px] -mt-2.5">18:00</div>
+<div class="h-[80px] -mt-2.5">19:00</div>
+<div class="-mt-2.5">20:00</div>
+</div>
+<!-- ============================================== -->
+<!-- COLUNA 1: CAMILA ROCHA                         -->
+<!-- ============================================== -->
+<div class="relative border-r border-line p-1">
+<!-- 08:30–10:00 (90 min) Concluído: Mariana Souza -->
+<div class="absolute left-1 right-1 top-[40px] h-[120px] z-10 bg-surface rounded-[10px] border border-line shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1.5 bg-success flex-shrink-0"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0 bg-surface">
+<div>
+<div class="flex items-center justify-between gap-1">
+<span class="text-[12px] font-semibold tabular-nums text-muted">08:30 – 10:00</span>
+<span class="px-1.5 py-0.5 rounded text-[10.5px] font-bold bg-success/10 text-success flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]">check_circle</span> Sinal pago R$ 30
+                      </span>
+</div>
+<h4 class="text-[14px] font-bold text-ink truncate mt-0.5">Mariana Souza</h4>
+<p class="text-[12px] text-muted truncate">Manutenção Fibra</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[13px] font-bold tabular-nums text-ink">R$ 110</span>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-success/15 text-success">Concluído</span>
+</div>
+</div>
+</div>
+<!-- 10:00–12:30 (150 min) Em Atendimento: Rafaela Diniz -->
+<div class="absolute left-1 right-1 top-[160px] h-[200px] z-10 bg-surface rounded-[10px] border border-brand/40 shadow-xs flex overflow-hidden ring-1 ring-brand/30 hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1.5 bg-brand animate-pulse flex-shrink-0"></div>
+<div class="p-3 flex flex-col justify-between w-full min-w-0 bg-surface">
+<div>
+<div class="flex items-center justify-between gap-1">
+<span class="text-[12px] font-bold tabular-nums text-brand">10:00 – 12:30</span>
+<span class="px-1.5 py-0.5 rounded text-[10.5px] font-bold bg-brand/15 text-brand flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]">payments</span> Sinal pago R$ 30
+                      </span>
+</div>
+<h4 class="text-[15px] font-bold text-ink truncate mt-1">Rafaela Diniz</h4>
+<p class="text-[13px] text-ink/80 truncate">Alongamento em Gel</p>
+<div class="mt-2.5 flex items-center gap-1.5 text-[12px] font-bold text-brand">
+<span class="w-2 h-2 rounded-full bg-brand animate-ping"></span>
+<span>Em procedimento</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-line/70">
+<span class="text-[15px] font-bold tabular-nums text-ink">R$ 180</span>
+<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-brand text-on-brand">Em atendimento</span>
+</div>
+</div>
+</div>
+<!-- 12:30–13:30 (60 min) Almoço da equipe -->
+<div class="absolute left-1 right-1 top-[360px] h-[80px] z-10 rounded-[10px] border border-line flex items-center justify-center overflow-hidden diagonal-stripes">
+<div class="flex items-center gap-1.5 bg-surface/95 px-3 py-1 rounded-md text-[12px] font-semibold text-muted shadow-xs border border-line">
+<span class="material-symbols-outlined text-[16px]">restaurant</span>
+<span>Almoço da equipe</span>
+</div>
+</div>
+<!-- 13:30–15:00 (90 min) Confirmado: Juliana Costa -->
+<div class="absolute left-1 right-1 top-[440px] h-[120px] z-10 bg-surface rounded-[10px] border border-line shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1.5 bg-status-confirmed flex-shrink-0"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0 bg-surface">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-[12px] font-semibold tabular-nums text-muted">13:30 – 15:00</span>
+<span class="material-symbols-outlined text-status-confirmed text-[16px]">verified</span>
+</div>
+<h4 class="text-[14px] font-bold text-ink truncate mt-0.5">Juliana Costa</h4>
+<p class="text-[12px] text-muted truncate">Esmaltação em Gel</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[13px] font-bold tabular-nums text-ink">R$ 70</span>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-status-confirmed/15 text-status-confirmed">Confirmado</span>
+</div>
+</div>
+</div>
+<!-- 15:00–15:30 (30 min) Slot Livre -->
+<div class="absolute left-1 right-1 top-[560px] h-[40px] z-10 rounded-[10px] border border-dashed border-line bg-surface flex items-center justify-center text-muted hover:border-brand hover:text-brand transition-colors cursor-pointer group">
+<span class="text-[11.5px] font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px]">add</span>
+<span>Livre 30 min · Clique para agendar</span>
+</span>
+</div>
+<!-- 15:30–17:00 (90 min) Aguardando sinal: Vanessa Alves -->
+<div class="absolute left-1 right-1 top-[600px] h-[120px] z-10 bg-surface rounded-[10px] border border-line shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1.5 bg-warning flex-shrink-0"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0 bg-surface">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-[12px] font-semibold tabular-nums text-muted">15:30 – 17:00</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-warning/15 text-warning">Pendência</span>
+</div>
+<h4 class="text-[14px] font-bold text-ink truncate mt-0.5">Vanessa Alves</h4>
+<p class="text-[12px] text-muted truncate">Manutenção Alongamento</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[13px] font-bold tabular-nums text-ink">R$ 110</span>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-warning/15 text-warning">Aguardando sinal</span>
+</div>
+</div>
+</div>
+<!-- 17:30–18:30 (60 min) Cancelado: Camila Dias -->
+<div class="absolute left-1 right-1 top-[760px] h-[80px] z-10 bg-surface-2/70 rounded-[10px] border border-line flex overflow-hidden opacity-75">
+<div class="w-1.5 bg-muted flex-shrink-0"></div>
+<div class="p-2 flex flex-col justify-between w-full min-w-0">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-[12px] font-semibold tabular-nums text-muted line-through">17:30 – 18:30</span>
+<span class="text-[11px] font-bold text-muted line-through">Cancelado</span>
+</div>
+<h4 class="text-[13.5px] font-bold text-muted truncate line-through mt-0.5">Camila Dias</h4>
+<p class="text-[11.5px] text-muted truncate line-through">Blindagem Diamond</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[12.5px] font-bold tabular-nums text-muted line-through">R$ 90</span>
+</div>
+</div>
+</div>
+</div>
+<!-- ============================================== -->
+<!-- COLUNA 2: BRUNA LIMA                           -->
+<!-- ============================================== -->
+<div class="relative border-r border-line p-1">
+<!-- 09:00–10:15 (75 min) Concluído: Letícia Albuquerque -->
+<div class="absolute left-1 right-1 top-[80px] h-[100px] z-10 bg-surface rounded-[10px] border border-line shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1.5 bg-success flex-shrink-0"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0 bg-surface">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-[12px] font-semibold tabular-nums text-muted">09:00 – 10:15</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/10 text-success flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[11px]">check_circle</span> Sinal pago
+                      </span>
+</div>
+<h4 class="text-[14px] font-bold text-ink truncate mt-0.5">Letícia Albuquerque</h4>
+<p class="text-[12px] text-muted truncate">Extensão Volume Russo</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[13px] font-bold tabular-nums text-ink">R$ 210</span>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-success/15 text-success">Concluído</span>
+</div>
+</div>
+</div>
+<!-- 10:30–11:30 (60 min) Aguardando confirmação: Fernanda Torres -->
+<div class="absolute left-1 right-1 top-[200px] h-[80px] z-10 bg-surface rounded-[10px] border border-line shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1.5 bg-warning flex-shrink-0"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0 bg-surface">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-[12px] font-semibold tabular-nums text-muted">10:30 – 11:30</span>
+<span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-warning/15 text-warning">Aguardando confirmação</span>
+</div>
+<h4 class="text-[13.5px] font-bold text-ink truncate mt-0.5">Fernanda Torres</h4>
+<p class="text-[11.5px] text-muted truncate">Design de Sobrancelha</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[12.5px] font-bold tabular-nums text-ink">R$ 65</span>
+</div>
+</div>
+</div>
+<!-- 12:00–13:00 (60 min) Almoço -->
+<div class="absolute left-1 right-1 top-[320px] h-[80px] z-10 rounded-[10px] border border-line flex items-center justify-center overflow-hidden diagonal-stripes">
+<div class="flex items-center gap-1.5 bg-surface/95 px-3 py-1 rounded-md text-[12px] font-semibold text-muted shadow-xs border border-line">
+<span class="material-symbols-outlined text-[16px]">restaurant</span>
+<span>Almoço</span>
+</div>
+</div>
+<!-- 13:00–14:15 (75 min) Confirmado: Beatriz Martins -->
+<div class="absolute left-1 right-1 top-[400px] h-[100px] z-10 bg-surface rounded-[10px] border border-line shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1.5 bg-status-confirmed flex-shrink-0"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0 bg-surface">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-[12px] font-semibold tabular-nums text-muted">13:00 – 14:15</span>
+<span class="material-symbols-outlined text-status-confirmed text-[16px]">verified</span>
+</div>
+<h4 class="text-[14px] font-bold text-ink truncate mt-0.5">Beatriz Martins</h4>
+<p class="text-[12px] text-muted truncate">Lash Lifting</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[13px] font-bold tabular-nums text-ink">R$ 130</span>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-status-confirmed/15 text-status-confirmed">Confirmado</span>
+</div>
+</div>
+</div>
+<!-- 14:30–15:15 Slot Vago: Encaixe Rápido -->
+<div class="absolute left-1 right-1 top-[520px] h-[60px] z-10 rounded-[10px] border-2 border-dashed border-line hover:border-brand bg-surface-2/40 flex items-center justify-center transition-colors cursor-pointer group">
+<span class="text-[12.5px] font-bold text-muted group-hover:text-brand flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+<span>+ Encaixe rápido (14:30)</span>
+</span>
+</div>
+<!-- 16:45–17:30 Slot Vago: Encaixe Rápido -->
+<div class="absolute left-1 right-1 top-[700px] h-[60px] z-10 rounded-[10px] border-2 border-dashed border-line hover:border-brand bg-surface-2/40 flex items-center justify-center transition-colors cursor-pointer group">
+<span class="text-[12.5px] font-bold text-muted group-hover:text-brand flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+<span>+ Encaixe rápido (16:45)</span>
+</span>
+</div>
+<!-- 17:30–18:30 (60 min) Faltou: Carla Peixoto (Texto 100% legível) -->
+<div class="absolute left-1 right-1 top-[760px] h-[80px] z-10 bg-danger/5 rounded-[10px] border border-danger/30 shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1.5 bg-danger flex-shrink-0"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0 bg-surface">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-[12px] font-bold tabular-nums text-danger">17:30 – 18:30</span>
+<span class="material-symbols-outlined text-danger text-[16px]">person_off</span>
+</div>
+<h4 class="text-[13.5px] font-bold text-ink truncate mt-0.5">Carla Peixoto</h4>
+<p class="text-[11.5px] text-muted truncate">Manutenção Cílios</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[12.5px] font-bold tabular-nums text-ink">R$ 120</span>
+<span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-danger/15 text-danger">Faltou</span>
+</div>
+</div>
+</div>
+</div>
+<!-- ============================================== -->
+<!-- COLUNA 3: PAULA MENDES                         -->
+<!-- ============================================== -->
+<div class="relative p-1">
+<!-- 09:00–10:00 (60 min) Concluído: Juliana Paes (100% legível) -->
+<div class="absolute left-1 right-1 top-[80px] h-[80px] z-10 bg-surface rounded-[10px] border border-line shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1.5 bg-success flex-shrink-0"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0 bg-surface">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-[12px] font-semibold tabular-nums text-muted">09:00 – 10:00</span>
+<span class="material-symbols-outlined text-success text-[16px]">check_circle</span>
+</div>
+<h4 class="text-[13.5px] font-bold text-ink truncate mt-0.5">Juliana Paes</h4>
+<p class="text-[11.5px] text-muted truncate">Escova Modelada</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[12.5px] font-bold tabular-nums text-ink">R$ 90</span>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-success/15 text-success">Concluído</span>
+</div>
+</div>
+</div>
+<!-- 10:15–12:15 (120 min) BLOCO DE COLORAÇÃO COM PAUSA QUÍMICA E ENCAIXE EXPRESS -->
+<div class="absolute left-1 right-1 top-[180px] h-[160px] z-10 bg-surface rounded-[10px] border border-brand/40 shadow-xs flex overflow-hidden ring-1 ring-brand/30">
+<div class="w-1.5 bg-brand animate-pulse flex-shrink-0"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0 bg-surface relative">
+<!-- Topo do bloco: Coloração Iluminada -->
+<div>
+<div class="flex items-center justify-between">
+<span class="text-[12px] font-bold tabular-nums text-brand">10:15 – 12:15</span>
+<span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-brand text-on-brand">Em atendimento</span>
+</div>
+<div class="flex items-baseline justify-between mt-0.5">
+<h4 class="text-[13.5px] font-bold text-ink truncate">Coloração Iluminada</h4>
+<span class="text-[12px] font-bold tabular-nums text-ink">R$ 280</span>
+</div>
+<p class="text-[11px] text-muted">Procedimento Químico</p>
+</div>
+<!-- Intervalo de Pausa Química com Encaixe Express -->
+<div class="my-1 rounded-lg border border-tertiary/30 p-1.5 chemical-stripes">
+<div class="flex items-center justify-between mb-1">
+<span class="text-[11px] font-bold text-tertiary flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">timer</span>
+<span>Pausa química 35 min (tempo de ação)</span>
+</span>
+</div>
+<!-- Mini card do encaixe express -->
+<div class="bg-surface rounded-md p-1.5 border border-line shadow-xs flex items-center justify-between">
+<div class="min-w-0 pr-1">
+<span class="text-[11.5px] font-bold text-ink block truncate leading-tight">Corte curto · Aline Maia</span>
+<span class="text-[10.5px] font-semibold text-muted leading-tight">Encaixe express</span>
+</div>
+<div class="flex items-center gap-1 text-right flex-shrink-0">
+<span class="text-[11.5px] font-bold tabular-nums text-success">R$ 80</span>
+<span class="material-symbols-outlined text-brand text-[14px]">bolt</span>
+</div>
+</div>
+</div>
+<!-- Rodapé do bloco: Finalização e Total -->
+<div class="flex items-center justify-between text-[11px] text-muted pt-0.5 border-t border-line/60">
+<span class="truncate">Finalização: Lavatório &amp; Escova</span>
+<span class="font-bold text-ink tabular-nums whitespace-nowrap pl-1">Total do bloco: R$ 360</span>
+</div>
+</div>
+</div>
+<!-- 12:30–13:30 (60 min) Almoço -->
+<div class="absolute left-1 right-1 top-[360px] h-[80px] z-10 rounded-[10px] border border-line flex items-center justify-center overflow-hidden diagonal-stripes">
+<div class="flex items-center gap-1.5 bg-surface/95 px-3 py-1 rounded-md text-[12px] font-semibold text-muted shadow-xs border border-line">
+<span class="material-symbols-outlined text-[16px]">restaurant</span>
+<span>Almoço</span>
+</div>
+</div>
+<!-- 14:00–15:30 (90 min) Confirmado: Renata Prado -->
+<div class="absolute left-1 right-1 top-[480px] h-[120px] z-10 bg-surface rounded-[10px] border border-line shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1.5 bg-status-confirmed flex-shrink-0"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0 bg-surface">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-[12px] font-semibold tabular-nums text-muted">14:00 – 15:30</span>
+<span class="material-symbols-outlined text-status-confirmed text-[16px]">verified</span>
+</div>
+<h4 class="text-[14px] font-bold text-ink truncate mt-0.5">Renata Prado</h4>
+<p class="text-[12px] text-muted truncate">Mechas e Tonalização</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[13px] font-bold tabular-nums text-ink">R$ 320</span>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-status-confirmed/15 text-status-confirmed">Confirmado</span>
+</div>
+</div>
+</div>
+<!-- 16:00–17:00 (60 min) Aguardando: Sophia Lima -->
+<div class="absolute left-1 right-1 top-[640px] h-[80px] z-10 bg-surface rounded-[10px] border border-line shadow-xs flex overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-1.5 bg-warning flex-shrink-0"></div>
+<div class="p-2.5 flex flex-col justify-between w-full min-w-0 bg-surface">
+<div>
+<div class="flex items-center justify-between">
+<span class="text-[12px] font-semibold tabular-nums text-muted">16:00 – 17:00</span>
+<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-warning/15 text-warning">Aguardando</span>
+</div>
+<h4 class="text-[13.5px] font-bold text-ink truncate mt-0.5">Sophia Lima</h4>
+<p class="text-[11.5px] text-muted truncate">Corte &amp; Hidratação</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[12.5px] font-bold tabular-nums text-ink">R$ 150</span>
+</div>
+</div>
+</div>
+<!-- 17:30–19:00 (90 min) Slot Vago Noturno -->
+<div class="absolute left-1 right-1 top-[760px] h-[120px] z-10 rounded-[10px] border border-dashed border-line bg-surface flex flex-col items-center justify-center text-muted hover:border-brand hover:text-brand transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-[22px] text-muted group-hover:text-brand">event_available</span>
+<span class="text-[13px] font-bold mt-1 text-ink group-hover:text-brand">1h30 livre</span>
+<span class="text-[11px] text-muted">Clique para agendar</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

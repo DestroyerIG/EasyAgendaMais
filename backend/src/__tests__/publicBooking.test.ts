@@ -27,6 +27,7 @@ vi.mock('../modules/appointments/appointments.repository.js', () => ({
   appointmentsPrismaRepository: {
     hasConflict: vi.fn(),
     getBookedSlots: vi.fn(),
+    getProfessionalBreak: vi.fn().mockResolvedValue(null),
   },
 }));
 

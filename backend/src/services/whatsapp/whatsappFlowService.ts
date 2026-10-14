@@ -54,6 +54,7 @@ import {
   formatBusinessHoursRange,
 } from '../scheduleSettingsService.js';
 import { appointmentService } from '../appointmentService.js';
+import { appointmentsPrismaRepository } from '../../modules/appointments/appointments.repository.js';
 import { businessSettingsRepository } from '../../repositories/businessSettingsRepository.js';
 
 // ==================== LOCAL INTERFACES ====================
@@ -1409,11 +1410,16 @@ const handleChooseDateStep = async (
        WHERE business_id = ${businessId}::uuid
          AND professional_id = ${professionalId}::uuid
          AND date = ${selectedDate}::date
-         AND status != 'cancelado'
+         AND (
+           status IN ('confirmado', 'em_atendimento')
+           OR (status = 'aguardando_pagamento' AND expires_at > NOW())
+         )
     `
   );
   const bookedTimes = bookedRows.map((row) => formatTimeHm(row.time));
   const serviceDuration = (sessionData.serviceDuration as number) || (businessSettings.slotIntervalMinutes ?? 30);
+
+  const pausa = await appointmentsPrismaRepository.getProfessionalBreak(professionalId, businessId);
 
   const availableSlots = generateAvailableTimeSlots(
     businessSettings,
@@ -1421,6 +1427,7 @@ const handleChooseDateStep = async (
     {
       serviceDurationMinutes: serviceDuration,
       bookedTimes,
+      blockedRanges: pausa ? [pausa] : [],
       currentDate: options?.now || new Date(),
     }
   );
@@ -1496,7 +1503,10 @@ const handleChooseTimeStep = async (
          AND professional_id = ${professionalId}::uuid
          AND date = ${selectedDate}::date
          AND time = ${(selectedTime + ':00')}::time
-         AND status != 'cancelado'
+         AND (
+           status IN ('confirmado', 'em_atendimento')
+           OR (status = 'aguardando_pagamento' AND expires_at > NOW())
+         )
     `
   );
 
@@ -1509,7 +1519,10 @@ const handleChooseTimeStep = async (
          WHERE business_id = ${businessId}::uuid
            AND professional_id = ${professionalId}::uuid
            AND date = ${selectedDate}::date
-           AND status != 'cancelado'
+           AND (
+             status IN ('confirmado', 'em_atendimento')
+             OR (status = 'aguardando_pagamento' AND expires_at > NOW())
+           )
       `
     );
     const bookedTimes = new Set(bookedRows.map((r) => formatTimeHm(r.time)));
@@ -1567,7 +1580,7 @@ const handleChooseTimeStep = async (
 
   let createdAppointment: { id: string; status: string };
   try {
-    createdAppointment = await appointmentService.create(businessId, appointmentPayload) as { id: string; status: string };
+    createdAppointment = await appointmentService.create(businessId, appointmentPayload, { source: 'whatsapp' }) as { id: string; status: string };
   } catch (error) {
     logger.error(
       {

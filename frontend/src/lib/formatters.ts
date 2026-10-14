@@ -39,3 +39,30 @@ export const formatDurationExtenso = (minutos: number): string => {
   const rotuloHoras = `${horas} hora${horas > 1 ? 's' : ''}`;
   return resto === 0 ? rotuloHoras : `${rotuloHoras} e ${resto} min`;
 };
+
+/**
+ * Lê um valor em reais digitado no padrão brasileiro. Aceita "1250", "1.250", "1.250,50",
+ * "1250,5", "R$ 12,00" e também "12.5" (um único ponto seguido de 1 ou 2 dígitos é decimal).
+ * Devolve null para texto vazio, negativo ou que não seja um valor.
+ */
+export const parseValorBR = (texto: string): number | null => {
+  const t = texto.replace(/r\$/gi, '').replace(/\s+/g, '');
+  if (t === '') return null;
+  const inteiro = /^(\d+|\d{1,3}(\.\d{3})+)$/;
+  let normalizado: string;
+  if (t.includes(',')) {
+    const partes = t.split(',');
+    if (partes.length !== 2) return null;
+    const [int, dec] = partes as [string, string];
+    if (!inteiro.test(int) || !/^\d{1,2}$/.test(dec)) return null;
+    normalizado = `${int.replace(/\./g, '')}.${dec}`;
+  } else if (/^\d+\.\d{1,2}$/.test(t)) {
+    normalizado = t;
+  } else if (inteiro.test(t)) {
+    normalizado = t.replace(/\./g, '');
+  } else {
+    return null;
+  }
+  const v = Number(normalizado);
+  return Number.isFinite(v) ? Math.round(v * 100) / 100 : null;
+};

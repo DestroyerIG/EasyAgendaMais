@@ -14,6 +14,9 @@ export interface WeeklyEarning {
     total: number;
 }
 
+export type AppointmentStatus =
+    | 'aguardando_pagamento' | 'confirmado' | 'em_atendimento' | 'concluido' | 'faltou' | 'cancelado';
+
 export interface Appointment {
     id: string;
     business_id: string;
@@ -22,7 +25,16 @@ export interface Appointment {
     service_id: string;
     date: string;
     time: string;
-    status: 'confirmado' | 'aguardando_pagamento' | 'concluido' | 'cancelado';
+    status: AppointmentStatus;
+    source?: 'painel' | 'publico' | 'whatsapp' | string;
+    deposit_amount?: number | null;
+    started_at?: string | null;
+    comanda_id?: string | null;
+    comanda_status?: 'rascunho' | 'fechada' | null;
+    comanda_number?: number | null;
+    /** Gravados no fechamento da comanda; null enquanto não fechada. */
+    comanda_total_charged?: number | null;
+    comanda_deposit_applied?: number | null;
     reminder_sent: boolean;
     created_at: string;
     client_name?: string;
@@ -65,6 +77,10 @@ export interface Professional {
     photo: string | null;
     active: boolean;
     created_at: string;
+    breakStart?: string | null;
+    breakEnd?: string | null;
+    commissionServicePct?: number | null;
+    commissionProductPct?: number | null;
 }
 
 export interface FinanceSummary {
@@ -99,6 +115,8 @@ export interface Expense {
     amount: number;
     date: string;
     created_at: string;
+    payment_method?: 'dinheiro' | 'pix' | 'debito' | 'credito' | null;
+    paymentMethod?: 'dinheiro' | 'pix' | 'debito' | 'credito' | null;
 }
 
 export interface MonthlyReportDay {
@@ -143,6 +161,7 @@ export interface ExpenseFormData {
     category: string;
     amount: number;
     date: string;
+    paymentMethod?: 'dinheiro' | 'pix' | 'debito' | 'credito' | null;
 }
 
 // --- API Response Types ---

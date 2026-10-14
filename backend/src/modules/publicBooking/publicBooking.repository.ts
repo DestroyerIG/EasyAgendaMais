@@ -84,6 +84,7 @@ export const publicBookingRepository = {
     date: string;
     time: string;
     expiresAt: Date;
+    depositAmount: number;
   }, db: Tx = prisma) {
     return db.appointment.create({
       data: {
@@ -96,6 +97,7 @@ export const publicBookingRepository = {
         status: 'aguardando_pagamento',
         expiresAt: data.expiresAt,
         source: 'publico',
+        depositAmount: data.depositAmount,
       },
       include: {
         client: { select: { name: true, phone: true } },

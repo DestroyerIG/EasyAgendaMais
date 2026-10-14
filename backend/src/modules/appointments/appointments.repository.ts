@@ -1,11 +1,13 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
+import { OCCUPYING_STATUSES } from '../../config/appointmentStatus.js';
 import type { AppointmentWithRelations, CreateAppointmentInput } from './appointments.types.js';
 
 const APPOINTMENT_INCLUDE = {
   client: { select: { name: true, phone: true } },
   professional: { select: { name: true } },
   service: { select: { name: true, price: true, durationMinutes: true } },
+  comanda: { select: { id: true, status: true, number: true, totalCharged: true, depositApplied: true } },
 } as const;
 
 export const appointmentsPrismaRepository = {
@@ -49,6 +51,19 @@ export const appointmentsPrismaRepository = {
       where: { id, businessId },
       include: APPOINTMENT_INCLUDE,
     }) as unknown as AppointmentWithRelations | null;
+  },
+
+  findClientVisits(clientId: string, businessId: string, before: Date) {
+    return prisma.appointment.findMany({
+      where: { clientId, businessId, status: 'concluido', date: { lt: before } },
+      select: { date: true, professional: { select: { name: true } } },
+      orderBy: { date: 'desc' },
+    });
+  },
+
+  async findClientNotes(clientId: string, businessId: string): Promise<string | null> {
+    const c = await prisma.client.findFirst({ where: { id: clientId, businessId }, select: { notes: true } });
+    return c?.notes ?? null;
   },
 
   async validateOwnership(
@@ -95,9 +110,8 @@ export const appointmentsPrismaRepository = {
         // 12:00, em vez do meio-dia local do processo Node (achado do usuário: horário
         // criado ia parar em outro horário quando o servidor não roda em UTC).
         time: new Date(`1970-01-01T${time}Z`),
-        status: { in: ['confirmado', 'aguardando_pagamento'] },
         OR: [
-          { status: 'confirmado' },
+          { status: { in: [...OCCUPYING_STATUSES] } },
           { status: 'aguardando_pagamento', expiresAt: { gt: now } },
         ],
         ...(excludeId ? { NOT: { id: excludeId } } : {}),
@@ -107,7 +121,7 @@ export const appointmentsPrismaRepository = {
     return existing !== null;
   },
 
-  async create(data: CreateAppointmentInput & { businessId: string }): Promise<AppointmentWithRelations> {
+  async create(data: CreateAppointmentInput & { businessId: string; source?: string }): Promise<AppointmentWithRelations> {
     return prisma.appointment.create({
       data: {
         businessId: data.businessId,
@@ -117,6 +131,7 @@ export const appointmentsPrismaRepository = {
         date: new Date(data.date),
         time: new Date(`1970-01-01T${data.time}:00Z`),
         status: 'confirmado',
+        source: data.source ?? 'painel',
       },
       include: APPOINTMENT_INCLUDE,
     }) as unknown as AppointmentWithRelations;
@@ -134,7 +149,8 @@ export const appointmentsPrismaRepository = {
     id: string,
     businessId: string,
     status: string,
-    expectedStatus: string
+    expectedStatus: string,
+    extra: { startedAt?: Date | null; finishedAt?: Date } = {}
   ): Promise<AppointmentWithRelations | null> {
     const requiresUnexpiredHold = expectedStatus === 'aguardando_pagamento' && status === 'confirmado';
     const result = await prisma.appointment.updateMany({
@@ -144,7 +160,7 @@ export const appointmentsPrismaRepository = {
         status: expectedStatus,
         ...(requiresUnexpiredHold ? { expiresAt: { gt: new Date() } } : {}),
       },
-      data: { status },
+      data: { status, ...extra },
     });
     if (result.count !== 1) return null;
 
@@ -192,6 +208,15 @@ export const appointmentsPrismaRepository = {
     return true;
   },
 
+  async getProfessionalBreak(professionalId: string, businessId: string): Promise<{ start: string; end: string } | null> {
+    const p = await prisma.professional.findFirst({
+      where: { id: professionalId, businessId },
+      select: { breakStart: true, breakEnd: true },
+    });
+    if (!p?.breakStart || !p?.breakEnd) return null;
+    return { start: p.breakStart.toISOString().substring(11, 16), end: p.breakEnd.toISOString().substring(11, 16) };
+  },
+
   async getBookedSlots(
     businessId: string,
     professionalId: string,
@@ -204,7 +229,7 @@ export const appointmentsPrismaRepository = {
         professionalId,
         date: new Date(date),
         OR: [
-          { status: 'confirmado' },
+          { status: { in: [...OCCUPYING_STATUSES] } },
           { status: 'aguardando_pagamento', expiresAt: { gt: now } },
         ],
       },

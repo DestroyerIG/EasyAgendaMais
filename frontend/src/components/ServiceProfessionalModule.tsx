@@ -7,6 +7,7 @@ import { Plus, ArrowLeft, Scissors, Users } from 'lucide-react';
 import type { Service, Professional } from '@/types';
 import { ProfessionalAgenda } from './ProfessionalAgenda';
 import { PageHeader, Button, Card, Skeleton, EmptyState, Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui';
+import { ProdutosTab } from '@/components/services/ProdutosTab';
 import { ServiceCard } from '@/components/services/ServiceCard';
 import { ProfessionalCard } from '@/components/services/ProfessionalCard';
 import { ServiceProfessionalModal } from '@/components/services/ServiceProfessionalModal';
@@ -14,7 +15,7 @@ import type { ServiceFormData, ProfessionalFormData } from '@/components/service
 import { getApiErrorMessage } from '@/utils/handleApiError';
 
 export const ServiceProfessionalModule = () => {
-  const [activeTab, setActiveTab] = useState<'servicos' | 'profissionais'>('servicos');
+  const [activeTab, setActiveTab] = useState<'servicos' | 'profissionais' | 'produtos'>('servicos');
   const [services, setServices] = useState<Service[]>([]);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,7 +72,14 @@ export const ServiceProfessionalModule = () => {
   };
 
   const handleProfessionalSubmit = async (data: ProfessionalFormData) => {
-    const payload = { name: data.name, photo: data.photo || null };
+    const payload = {
+      name: data.name,
+      photo: data.photo || null,
+      breakStart: data.breakStart,
+      breakEnd: data.breakEnd,
+      commissionServicePct: data.commissionServicePct,
+      commissionProductPct: data.commissionProductPct,
+    };
     try {
       if (editingItem) {
         await api.put(`/business/professionals/${editingItem.id}`, payload);
@@ -132,16 +140,19 @@ export const ServiceProfessionalModule = () => {
         title="Serviços e equipe"
         description="Gerencie o que você oferece e quem atende seus clientes."
         action={
-          <Button onClick={() => handleOpenModal()}>
-            <Plus className="h-4 w-4" aria-hidden="true" /> {activeTab === 'servicos' ? 'Novo Serviço' : 'Novo Profissional'}
-          </Button>
+          activeTab === 'produtos' ? undefined : (
+            <Button onClick={() => handleOpenModal()}>
+              <Plus className="h-4 w-4" aria-hidden="true" /> {activeTab === 'servicos' ? 'Novo Serviço' : 'Novo Profissional'}
+            </Button>
+          )
         }
       />
 
-      <Tabs value={activeTab} onValueChange={value => setActiveTab(value as 'servicos' | 'profissionais')}>
+      <Tabs value={activeTab} onValueChange={value => setActiveTab(value as 'servicos' | 'profissionais' | 'produtos')}>
         <TabsList>
           <TabsTrigger value="servicos">Serviços</TabsTrigger>
           <TabsTrigger value="profissionais">Equipe</TabsTrigger>
+          <TabsTrigger value="produtos">Produtos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="servicos">
@@ -187,6 +198,10 @@ export const ServiceProfessionalModule = () => {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="produtos">
+          <ProdutosTab />
+        </TabsContent>
       </Tabs>
 
       <ServiceProfessionalModal
@@ -194,7 +209,7 @@ export const ServiceProfessionalModule = () => {
         onClose={() => setIsModalOpen(false)}
         onSubmitService={handleServiceSubmit}
         onSubmitProfessional={handleProfessionalSubmit}
-        activeTab={activeTab}
+        activeTab={activeTab === 'produtos' ? 'servicos' : activeTab}
         editingItem={editingItem}
       />
     </div>

@@ -6,6 +6,7 @@ export const addExpenseSchema = z.object({
   category: z.string().min(1, 'Categoria é obrigatória').max(50),
   amount: z.number().positive('Valor deve ser positivo').multipleOf(0.01, 'Valor deve ter no máximo 2 casas decimais'),
   date: dateYMD,
+  paymentMethod: z.enum(['dinheiro', 'pix', 'debito', 'credito']).nullable().optional(),
 });
 
 export const updateExpenseSchema = addExpenseSchema.partial();

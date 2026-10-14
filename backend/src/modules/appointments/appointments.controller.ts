@@ -105,3 +105,12 @@ export const getAvailableSlots = async (
     next(error);
   }
 };
+
+export const getAppointmentDetails = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await appointmentsService.getDetails(String(req.params['id']), req.user.businessId!);
+    sendSuccess(res, { ...data, appointment: toAppointmentDto(data.appointment) });
+  } catch (error) {
+    next(error);
+  }
+};

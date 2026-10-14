@@ -1,0 +1,627 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "inverse-primary": "#ffb68b",
+          "danger-dark": "#F87171",
+          "ink-dark": "#F3F1EF",
+          "on-primary-fixed": "#321200",
+          "error": "#ba1a1a",
+          "on-tertiary-container": "#003a5c",
+          "tertiary-fixed": "#cde5ff",
+          "error-container": "#ffdad6",
+          "whatsapp-light": "#128C4A",
+          "surface-container-low": "#f9f2f0",
+          "bg-light": "#F6F5F4",
+          "on-brand": "#1A1817",
+          "surface-light": "#FFFFFF",
+          "surface-2-light": "#EFEDEA",
+          "on-tertiary-fixed-variant": "#004a75",
+          "danger-light": "#DC2626",
+          "tertiary-fixed-dim": "#95ccff",
+          "primary-fixed": "#ffdbc8",
+          "secondary": "#635d58",
+          "surface-tint": "#994700",
+          "surface-container-highest": "#e7e1df",
+          "primary-container": "#ff7a00",
+          "brand-text-light": "#B34D00",
+          "on-primary": "#ffffff",
+          "line-light": "#E2DFDB",
+          "on-primary-container": "#5c2800",
+          "tertiary": "#006399",
+          "status-confirmed": "#2563EB",
+          "on-error-container": "#93000a",
+          "surface-variant": "#e7e1df",
+          "brand-text-dark": "#FF9A3D",
+          "primary-fixed-dim": "#ffb68b",
+          "surface-container-lowest": "#ffffff",
+          "success-dark": "#4ADE80",
+          "primary": "#994700",
+          "surface-bright": "#fff8f6",
+          "on-secondary-fixed-variant": "#4b4641",
+          "warning-dark": "#FBBF24",
+          "secondary-fixed": "#eae1da",
+          "background": "#fff8f6",
+          "bg-dark": "#0E0D0C",
+          "on-secondary": "#ffffff",
+          "surface": "#fff8f6",
+          "tertiary-container": "#00a8ff",
+          "on-secondary-container": "#69635e",
+          "surface-container-high": "#ede7e5",
+          "line-dark": "#2E2B28",
+          "secondary-fixed-dim": "#cdc5bf",
+          "surface-dark": "#181615",
+          "success-light": "#16A34A",
+          "muted-light": "#66605B",
+          "surface-dim": "#dfd9d7",
+          "on-tertiary-fixed": "#001d32",
+          "secondary-container": "#eae1da",
+          "inverse-surface": "#32302f",
+          "on-background": "#1d1b1a",
+          "on-surface-variant": "#584235",
+          "on-primary-fixed-variant": "#753400",
+          "outline": "#8c7263",
+          "on-tertiary": "#ffffff",
+          "surface-2-dark": "#211F1D",
+          "inverse-on-surface": "#f6efed",
+          "muted-dark": "#A39D97",
+          "on-error": "#ffffff",
+          "on-secondary-fixed": "#1f1b17",
+          "warning-light": "#D97706",
+          "outline-variant": "#e0c0af",
+          "whatsapp-dark": "#25D366",
+          "on-surface": "#1d1b1a",
+          "surface-container": "#f3edea",
+          "ink-light": "#1A1817"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "space-lg": "1.5rem",
+          "gutter": "1rem",
+          "margin": "1rem",
+          "space-xl": "2rem",
+          "space-sm": "0.5rem",
+          "space-xs": "0.25rem",
+          "space-md": "1rem"
+        },
+        "fontFamily": {
+          "body-md": [
+            "Plus Jakarta Sans"
+          ],
+          "title-md": [
+            "Plus Jakarta Sans"
+          ],
+          "display-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "title-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-lg": [
+            "Plus Jakarta Sans"
+          ],
+          "label-sm": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-md": [
+            "Plus Jakarta Sans"
+          ],
+          "label-md": [
+            "Plus Jakarta Sans"
+          ],
+          "body-sm": [
+            "Plus Jakarta Sans"
+          ],
+          "headline-lg-mobile": [
+            "Plus Jakarta Sans"
+          ]
+        },
+        "fontSize": {
+          "body-md": [
+            "15px",
+            {
+              "lineHeight": "22.5px",
+              "fontWeight": "400"
+            }
+          ],
+          "title-md": [
+            "17px",
+            {
+              "lineHeight": "24px",
+              "fontWeight": "600"
+            }
+          ],
+          "display-lg": [
+            "40px",
+            {
+              "lineHeight": "48px",
+              "fontWeight": "800"
+            }
+          ],
+          "title-lg": [
+            "20px",
+            {
+              "lineHeight": "28px",
+              "fontWeight": "700"
+            }
+          ],
+          "headline-lg": [
+            "32px",
+            {
+              "lineHeight": "40px",
+              "fontWeight": "700"
+            }
+          ],
+          "label-sm": [
+            "11px",
+            {
+              "lineHeight": "16px",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-md": [
+            "24px",
+            {
+              "lineHeight": "32px",
+              "fontWeight": "700"
+            }
+          ],
+          "label-md": [
+            "13px",
+            {
+              "lineHeight": "18px",
+              "fontWeight": "600"
+            }
+          ],
+          "body-sm": [
+            "14px",
+            {
+              "lineHeight": "20px",
+              "fontWeight": "400"
+            }
+          ],
+          "headline-lg-mobile": [
+            "28px",
+            {
+              "lineHeight": "36px",
+              "fontWeight": "700"
+            }
+          ]
+        }
+      },
+    },
+  }</script></head><body class="bg-bg-light font-body-md text-on-surface min-h-screen"><aside class="fixed left-0 top-0 h-screen w-[248px] bg-surface-light shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between select-none"><div class="flex flex-col"><div class="h-16 px-space-md flex items-center gap-space-sm"><div class="w-9 h-9 rounded-xl bg-primary-container flex items-center justify-center text-on-brand shadow-sm"><span class="material-symbols-outlined text-[20px]">calendar_clock</span></div><div class="flex flex-col leading-none"><span class="font-title-md text-title-md text-on-surface font-bold tracking-tight">EasyAgenda<span class="text-primary-container">+</span></span></div></div><nav class="px-space-xs mt-space-sm flex flex-col gap-space-xs" data-active-classes="bg-primary-container text-on-brand font-title-md shadow-sm rounded-lg"><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="hoje" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span><span>Hoje</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="agenda" href="#"><span class="material-symbols-outlined text-[20px]">calendar_month</span><span>Agenda</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="clientes" href="#"><span class="material-symbols-outlined text-[20px]">group</span><span>Clientes</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="caixa" href="#"><span class="material-symbols-outlined text-[20px]">point_of_sale</span><span>Caixa</span></a><a aria-current="page" class="flex items-center gap-space-sm px-space-md py-space-sm transition-colors bg-primary-container text-on-brand font-title-md shadow-sm rounded-lg" data-path="clube-e-pacotes" href="#"><span class="material-symbols-outlined text-[20px]">loyalty</span><span>Clube e pacotes</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="whatsapp" href="#"><span class="material-symbols-outlined text-[20px]">chat</span><span>WhatsApp</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="relatorios" href="#"><span class="material-symbols-outlined text-[20px]">monitoring</span><span>Relatórios</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="minha-pagina" href="#"><span class="material-symbols-outlined text-[20px]">storefront</span><span>Minha página</span></a><a class="flex items-center gap-space-sm px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="ajustes" href="#"><span class="material-symbols-outlined text-[20px]">settings</span><span>Ajustes</span></a></nav></div><div class="p-space-md m-space-xs rounded-xl bg-surface-2-light flex flex-col gap-space-xs"><div class="flex items-center justify-between"><span class="font-title-md text-body-sm text-on-surface font-bold truncate">Studio Aurora</span><span class="px-space-xs py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm uppercase font-bold tracking-wider">Pro</span></div><span class="font-label-sm text-label-sm text-secondary">EasyAgenda+ SaaS Studio</span></div></aside><div class="pl-[248px]"><header class="fixed top-0 left-[248px] right-0 h-16 bg-surface-light/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-space-lg"><div class="flex items-center gap-space-sm text-secondary font-label-md text-label-md"><span class="material-symbols-outlined text-[16px] text-secondary">home</span><span>/</span><span class="font-body-md text-body-sm text-on-surface">Studio Aurora</span><span>/</span><span class="font-title-md text-body-sm text-primary font-bold">Clube e pacotes</span></div><div class="flex items-center gap-space-md"><div class="relative w-80"><span class="material-symbols-outlined absolute left-space-sm top-1/2 -translate-y-1/2 text-secondary text-[18px]">search</span><input class="w-full h-10 pl-9 pr-8 bg-surface-2-light rounded-lg font-body-sm text-body-sm text-on-surface placeholder:text-secondary focus:outline-none focus:bg-surface-light focus:ring-2 focus:ring-primary-container transition-all" placeholder="Buscar clientes, planos ou serviços..." type="text"><kbd class="absolute right-space-sm top-1/2 -translate-y-1/2 h-5 w-5 rounded bg-surface-light text-secondary font-label-sm text-label-sm flex items-center justify-center shadow-sm">/</kbd></div><button class="w-10 h-10 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors relative"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary-container"></span></button><div class="flex items-center gap-space-sm pl-space-xs"><div class="flex flex-col items-end leading-none"><span class="font-title-md text-body-sm text-on-surface font-bold">Carla</span><span class="font-label-sm text-label-sm text-secondary">Administradora</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 px-space-lg bg-bg-light min-h-[calc(100vh-4rem)]"><div class="flex flex-col w-full pb-space-xl">
+<!-- Submenu horizontal com abas -->
+<div class="flex items-center justify-between border-b border-line-light mb-space-lg">
+<div class="flex items-center gap-space-lg">
+<button class="relative pb-space-md font-title-md text-body-md font-bold text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-[19px]">loyalty</span>
+<span>Planos e Pacotes</span>
+<span class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full"></span>
+</button>
+<button class="pb-space-md font-title-md text-body-md text-secondary hover:text-on-surface transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[19px]">group</span>
+<span>Assinantes &amp; Vendas Ativas</span>
+<span class="px-1.5 py-0.5 rounded-full bg-surface-2-light text-secondary font-label-sm text-label-sm font-bold">60</span>
+</button>
+<button class="pb-space-md font-title-md text-body-md text-secondary hover:text-on-surface transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[19px]">credit_card</span>
+<span>Configurações de Cobrança</span>
+</button>
+</div>
+<!-- Quick Stats Pill -->
+<div class="hidden lg:flex items-center gap-space-md pb-space-md text-secondary font-label-md text-label-md">
+<div class="flex items-center gap-1.5 bg-surface-light px-3 py-1.5 rounded-lg shadow-sm">
+<span class="material-symbols-outlined text-[16px] text-success-light">payments</span>
+<span class="font-bold text-on-surface">MRR: R$ 9.780</span>
+</div>
+<div class="flex items-center gap-1.5 bg-surface-light px-3 py-1.5 rounded-lg shadow-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary">inventory_2</span>
+<span class="font-bold text-on-surface">22 Pacotes Vigentes</span>
+</div>
+</div>
+</div>
+<!-- Cabeçalho da Seção -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md mb-space-lg">
+<div class="flex flex-col gap-1">
+<h1 class="font-headline-md text-headline-md text-on-surface font-bold tracking-tight">Clube &amp; Pacotes</h1>
+<p class="font-body-md text-body-sm text-secondary">Crie e gerencie planos por assinatura recorrente e pacotes pré-pagos de sessões.</p>
+</div>
+<div class="flex items-center gap-space-sm">
+<button class="h-10 px-space-md rounded-lg bg-surface-light hover:bg-surface-2-light text-on-surface font-title-md text-body-sm flex items-center gap-2 shadow-sm transition-all">
+<span class="material-symbols-outlined text-[18px]">file_download</span>
+<span>Importar modelo</span>
+</button>
+<button class="h-10 px-space-md rounded-lg bg-primary-container hover:opacity-95 text-on-brand font-title-md text-body-sm font-bold flex items-center gap-2 shadow-sm transition-all">
+<span class="material-symbols-outlined text-[19px]">add</span>
+<span>+ Novo plano ou pacote</span>
+</button>
+</div>
+</div>
+<!-- Barra de Filtros e Busca Rápida -->
+<div class="flex flex-wrap items-center justify-between gap-space-md p-space-sm bg-surface-light rounded-xl shadow-sm mb-space-lg">
+<div class="flex items-center gap-space-xs flex-wrap" id="filter-group">
+<button class="filter-btn h-9 px-3.5 rounded-lg bg-primary-container text-on-brand font-title-md text-label-md font-bold transition-colors" data-filter="all">
+        Todos (6)
+      </button>
+<button class="filter-btn h-9 px-3.5 rounded-lg bg-surface-2-light text-secondary hover:text-on-surface font-title-md text-label-md transition-colors" data-filter="recorrente">
+        Clubes por Assinatura (3)
+      </button>
+<button class="filter-btn h-9 px-3.5 rounded-lg bg-surface-2-light text-secondary hover:text-on-surface font-title-md text-label-md transition-colors" data-filter="pacote">
+        Pacotes de Sessões (3)
+      </button>
+</div>
+<div class="flex items-center gap-space-sm">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-2-light text-on-surface font-label-md text-label-md">
+<span class="w-2 h-2 rounded-full bg-success-light"></span>
+<span class="font-bold">Status:</span>
+<span>Ativos</span>
+<span class="material-symbols-outlined text-[16px] text-secondary">expand_more</span>
+</div>
+<div class="h-5 w-px bg-line-light"></div>
+<div class="text-secondary font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">sort</span>
+<span>Mais recentes</span>
+</div>
+</div>
+</div>
+<!-- Grid com Cartões Operacionais Ricos -->
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-space-lg">
+<!-- CARD 1: Clube Mensal (Mãos Sempre Feitas) -->
+<div class="plan-card flex flex-col justify-between bg-surface-light rounded-xl p-space-lg shadow-sm hover:shadow-md transition-shadow relative overflow-hidden" data-type="recorrente">
+<div class="absolute top-0 left-0 right-0 h-1 bg-primary-container"></div>
+<div>
+<!-- Topo & Tags -->
+<div class="flex items-start justify-between gap-space-sm mb-space-md">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm font-semibold text-on-surface">
+              Clube Mensal (Recorrente)
+            </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-success-light/10 text-success-light font-label-sm text-label-sm font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-success-light"></span>
+              Ativo na Página Pública
+            </span>
+</div>
+<span class="material-symbols-outlined text-secondary hover:text-on-surface cursor-pointer text-[20px]">more_vert</span>
+</div>
+<!-- Título e Preço -->
+<div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 mb-space-md">
+<h2 class="font-headline-md text-title-lg text-on-surface font-bold tracking-tight">Mãos Sempre Feitas</h2>
+<div class="flex items-baseline gap-1">
+<span class="font-display-lg text-headline-lg font-extrabold text-on-surface tabular-nums tracking-tight">R$ 199</span>
+<span class="font-body-md text-body-sm text-secondary">/mês</span>
+</div>
+</div>
+<!-- Frequência / Subtítulo Operacional -->
+<div class="p-3 rounded-lg bg-surface-container-low mb-space-md flex items-start gap-2">
+<span class="material-symbols-outlined text-primary text-[18px] mt-0.5">event_repeat</span>
+<span class="font-title-md text-body-sm font-semibold text-on-surface leading-snug">
+            2 manutenções de fibra ou gel por mês (não cumulativas)
+          </span>
+</div>
+<!-- Detalhes de Serviços e Regras -->
+<div class="space-y-space-sm font-body-md text-body-sm text-on-surface mb-space-lg">
+<!-- Serviços Inclusos -->
+<div>
+<span class="font-label-md text-label-md text-secondary uppercase font-bold tracking-wider block mb-1.5">Serviços inclusos</span>
+<div class="flex flex-wrap gap-1.5">
+<span class="px-2.5 py-1 rounded-lg bg-surface-2-light text-on-surface font-body-md text-label-md">Manutenção Fibra de Vidro</span>
+<span class="px-2.5 py-1 rounded-lg bg-surface-2-light text-on-surface font-body-md text-label-md">Manutenção em Gel</span>
+<span class="px-2.5 py-1 rounded-lg bg-primary-fixed text-on-primary-fixed font-title-md text-label-md font-semibold">+ Esmaltação simples bônus 1x</span>
+</div>
+</div>
+<!-- Limite de Uso & Regras -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm pt-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[17px]">timelapse</span>
+<span class="text-body-sm text-on-surface">Máximo 1 sessão a cada 14 dias</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[17px]">schedule</span>
+<span class="text-body-sm text-on-surface">Reagenda com até 4h de aviso</span>
+</div>
+</div>
+<!-- Profissionais -->
+<div class="pt-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[17px]">badge</span>
+<span class="text-body-sm text-secondary">Profissionais:</span>
+<div class="flex items-center gap-1.5 font-title-md text-body-sm font-semibold text-on-surface">
+<span>Camila Rocha (Nail Designer)</span>
+<span class="text-secondary">·</span>
+<span>Paula Mendes</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Rodapé do Card -->
+<div class="pt-space-md border-t border-line-light flex items-center justify-between flex-wrap gap-space-sm">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-success-light"></span>
+<span class="font-title-md text-body-sm font-bold text-on-surface tabular-nums">42 assinantes ativos</span>
+<span class="text-secondary">·</span>
+<span class="font-body-md text-body-sm text-secondary tabular-nums">MRR <strong class="text-on-surface">R$ 8.358</strong></span>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="h-9 px-3.5 rounded-lg bg-surface-2-light hover:bg-surface-container-high text-on-surface font-title-md text-label-md font-bold transition-colors">
+            Editar
+          </button>
+<button class="h-9 w-9 rounded-lg flex items-center justify-center text-secondary hover:bg-surface-2-light transition-colors">
+<span class="material-symbols-outlined text-[19px]">share</span>
+</button>
+</div>
+</div>
+</div>
+<!-- CARD 2: Clube Mensal (Barbearia & Estética) -->
+<div class="plan-card flex flex-col justify-between bg-surface-light rounded-xl p-space-lg shadow-sm hover:shadow-md transition-shadow relative overflow-hidden" data-type="recorrente">
+<div class="absolute top-0 left-0 right-0 h-1 bg-primary"></div>
+<div>
+<!-- Topo & Tags -->
+<div class="flex items-start justify-between gap-space-sm mb-space-md">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm font-semibold text-on-surface">
+              Clube Mensal (Recorrente)
+            </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-success-light/10 text-success-light font-label-sm text-label-sm font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-success-light"></span>
+              Ativo na Página Pública
+            </span>
+</div>
+<span class="material-symbols-outlined text-secondary hover:text-on-surface cursor-pointer text-[20px]">more_vert</span>
+</div>
+<!-- Título e Preço -->
+<div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 mb-space-md">
+<h2 class="font-headline-md text-title-lg text-on-surface font-bold tracking-tight">Barba Ilimitada &amp; Tonalização</h2>
+<div class="flex items-baseline gap-1">
+<span class="font-display-lg text-headline-lg font-extrabold text-on-surface tabular-nums tracking-tight">R$ 79</span>
+<span class="font-body-md text-body-sm text-secondary">/mês</span>
+</div>
+</div>
+<!-- Frequência / Subtítulo Operacional -->
+<div class="p-3 rounded-lg bg-surface-container-low mb-space-md flex items-start gap-2">
+<span class="material-symbols-outlined text-primary text-[18px] mt-0.5">all_inclusive</span>
+<span class="font-title-md text-body-sm font-semibold text-on-surface leading-snug">
+            Uso livre (ilimitado com intervalo mínimo de 5 dias)
+          </span>
+</div>
+<!-- Detalhes de Serviços e Regras -->
+<div class="space-y-space-sm font-body-md text-body-sm text-on-surface mb-space-lg">
+<!-- Serviços Inclusos -->
+<div>
+<span class="font-label-md text-label-md text-secondary uppercase font-bold tracking-wider block mb-1.5">Serviços inclusos</span>
+<div class="flex flex-wrap gap-1.5">
+<span class="px-2.5 py-1 rounded-lg bg-surface-2-light text-on-surface font-body-md text-label-md">Alinhamento navalha e toalha quente</span>
+<span class="px-2.5 py-1 rounded-lg bg-surface-2-light text-on-surface font-body-md text-label-md">Higienização e balm</span>
+<span class="px-2.5 py-1 rounded-lg bg-surface-2-light text-on-surface font-body-md text-label-md">Tonalização rápida</span>
+</div>
+</div>
+<!-- Limite de Uso & Regras -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm pt-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[17px]">lock_reset</span>
+<span class="text-body-sm text-on-surface">Intervalo mínimo de 5 dias</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[17px]">credit_card_heart</span>
+<span class="text-body-sm text-on-surface">Cobrança automática no cartão</span>
+</div>
+</div>
+<!-- Profissionais -->
+<div class="pt-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[17px]">groups</span>
+<span class="text-body-sm text-secondary">Profissionais:</span>
+<span class="font-title-md text-body-sm font-semibold text-on-surface">Todas as profissionais habilitadas</span>
+</div>
+</div>
+</div>
+<!-- Rodapé do Card -->
+<div class="pt-space-md border-t border-line-light flex items-center justify-between flex-wrap gap-space-sm">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-success-light"></span>
+<span class="font-title-md text-body-sm font-bold text-on-surface tabular-nums">18 assinantes ativos</span>
+<span class="text-secondary">·</span>
+<span class="font-body-md text-body-sm text-secondary tabular-nums">MRR <strong class="text-on-surface">R$ 1.422</strong></span>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="h-9 px-3.5 rounded-lg bg-surface-2-light hover:bg-surface-container-high text-on-surface font-title-md text-label-md font-bold transition-colors">
+            Editar
+          </button>
+<button class="h-9 w-9 rounded-lg flex items-center justify-center text-secondary hover:bg-surface-2-light transition-colors">
+<span class="material-symbols-outlined text-[19px]">share</span>
+</button>
+</div>
+</div>
+</div>
+<!-- CARD 3: Pacote Pré-pago (Drenagem Linfática) -->
+<div class="plan-card flex flex-col justify-between bg-surface-light rounded-xl p-space-lg shadow-sm hover:shadow-md transition-shadow relative overflow-hidden" data-type="pacote">
+<div class="absolute top-0 left-0 right-0 h-1 bg-tertiary"></div>
+<div>
+<!-- Topo & Tags -->
+<div class="flex items-start justify-between gap-space-sm mb-space-md">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm font-semibold text-on-surface">
+              Pacote de Sessões (Pré-pago)
+            </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-status-confirmed/10 text-status-confirmed font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-[13px]">stars</span>
+              Mais vendido
+            </span>
+</div>
+<span class="material-symbols-outlined text-secondary hover:text-on-surface cursor-pointer text-[20px]">more_vert</span>
+</div>
+<!-- Título e Preço -->
+<div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 mb-space-md">
+<h2 class="font-headline-md text-title-lg text-on-surface font-bold tracking-tight">10 Sessões de Drenagem Linfática</h2>
+<div class="flex flex-col items-end">
+<div class="flex items-baseline gap-1">
+<span class="font-display-lg text-headline-lg font-extrabold text-on-surface tabular-nums tracking-tight">R$ 900</span>
+<span class="font-body-md text-body-sm text-secondary">em até 6x</span>
+</div>
+<span class="font-label-sm text-label-sm text-success-light font-bold">Economia de R$ 300 vs avulso</span>
+</div>
+</div>
+<!-- Limite e Validade -->
+<div class="p-3 rounded-lg bg-surface-container-low mb-space-md flex items-start gap-2">
+<span class="material-symbols-outlined text-tertiary text-[18px] mt-0.5">check_circle</span>
+<span class="font-title-md text-body-sm font-semibold text-on-surface leading-snug">
+            10 sessões · Validade de 6 meses após a 1ª sessão
+          </span>
+</div>
+<!-- Detalhes de Serviços e Regras -->
+<div class="space-y-space-sm font-body-md text-body-sm text-on-surface mb-space-lg">
+<!-- Serviços Inclusos -->
+<div>
+<span class="font-label-md text-label-md text-secondary uppercase font-bold tracking-wider block mb-1.5">Serviço incluso</span>
+<div class="flex flex-wrap gap-1.5">
+<span class="px-2.5 py-1 rounded-lg bg-surface-2-light text-on-surface font-body-md text-label-md">Drenagem Corporal Método Renata França 50 min</span>
+</div>
+</div>
+<!-- Regra No-Show & Operação -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm pt-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[17px]">warning</span>
+<span class="text-body-sm text-on-surface">No-show sem 24h debita sessão</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[17px]">pin</span>
+<span class="text-body-sm text-on-surface">Check-in digital por QR code</span>
+</div>
+</div>
+<!-- Profissionais -->
+<div class="pt-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[17px]">badge</span>
+<span class="text-body-sm text-secondary">Profissional exclusiva:</span>
+<span class="font-title-md text-body-sm font-semibold text-on-surface">Bruna Lima (Estética Avançada)</span>
+</div>
+</div>
+</div>
+<!-- Rodapé do Card -->
+<div class="pt-space-md border-t border-line-light flex items-center justify-between flex-wrap gap-space-sm">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-status-confirmed"></span>
+<span class="font-title-md text-body-sm font-bold text-on-surface tabular-nums">14 pacotes em andamento</span>
+<span class="text-secondary">·</span>
+<span class="font-body-md text-body-sm text-secondary tabular-nums">Receita: <strong class="text-on-surface">R$ 12.600</strong></span>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="h-9 px-3.5 rounded-lg bg-surface-2-light hover:bg-surface-container-high text-on-surface font-title-md text-label-md font-bold transition-colors">
+            Editar
+          </button>
+<button class="h-9 w-9 rounded-lg flex items-center justify-center text-secondary hover:bg-surface-2-light transition-colors">
+<span class="material-symbols-outlined text-[19px]">share</span>
+</button>
+</div>
+</div>
+</div>
+<!-- CARD 4: Pacote Pré-pago (Combo Lash Lover) -->
+<div class="plan-card flex flex-col justify-between bg-surface-light rounded-xl p-space-lg shadow-sm hover:shadow-md transition-shadow relative overflow-hidden" data-type="pacote">
+<div class="absolute top-0 left-0 right-0 h-1 bg-outline"></div>
+<div>
+<!-- Topo & Tags -->
+<div class="flex items-start justify-between gap-space-sm mb-space-md">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="px-2.5 py-1 rounded-full bg-surface-container font-label-sm text-label-sm font-semibold text-on-surface">
+              Pacote de Sessões (Pré-pago)
+            </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-2-light text-secondary font-label-sm text-label-sm font-bold">
+              Página interna &amp; Balcão
+            </span>
+</div>
+<span class="material-symbols-outlined text-secondary hover:text-on-surface cursor-pointer text-[20px]">more_vert</span>
+</div>
+<!-- Título e Preço -->
+<div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 mb-space-md">
+<h2 class="font-headline-md text-title-lg text-on-surface font-bold tracking-tight">Combo Lash Lover (5 Manutenções)</h2>
+<div class="flex flex-col items-end">
+<div class="flex items-baseline gap-1">
+<span class="font-display-lg text-headline-lg font-extrabold text-on-surface tabular-nums tracking-tight">R$ 480</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">R$ 96/sessão vs R$ 120 avulso</span>
+</div>
+</div>
+<!-- Limite e Validade -->
+<div class="p-3 rounded-lg bg-surface-container-low mb-space-md flex items-start gap-2">
+<span class="material-symbols-outlined text-primary text-[18px] mt-0.5">timelapse</span>
+<span class="font-title-md text-body-sm font-semibold text-on-surface leading-snug">
+            5 manutenções · Validade de 4 meses
+          </span>
+</div>
+<!-- Detalhes de Serviços e Regras -->
+<div class="space-y-space-sm font-body-md text-body-sm text-on-surface mb-space-lg">
+<!-- Serviços Inclusos -->
+<div>
+<span class="font-label-md text-label-md text-secondary uppercase font-bold tracking-wider block mb-1.5">Serviços inclusos</span>
+<div class="flex flex-wrap gap-1.5">
+<span class="px-2.5 py-1 rounded-lg bg-surface-2-light text-on-surface font-body-md text-label-md">Manutenção Extensão Volume Russo</span>
+<span class="px-2.5 py-1 rounded-lg bg-surface-2-light text-on-surface font-body-md text-label-md">Volume Brasileiro</span>
+</div>
+</div>
+<!-- Regras -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm pt-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[17px]">calendar_today</span>
+<span class="text-body-sm text-on-surface">Agendamento online priorizado</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[17px]">event_available</span>
+<span class="text-body-sm text-on-surface">Sem restrição de dias na semana</span>
+</div>
+</div>
+<!-- Profissionais -->
+<div class="pt-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[17px]">badge</span>
+<span class="text-body-sm text-secondary">Profissional:</span>
+<span class="font-title-md text-body-sm font-semibold text-on-surface">Bruna Lima</span>
+</div>
+</div>
+</div>
+<!-- Rodapé do Card -->
+<div class="pt-space-md border-t border-line-light flex items-center justify-between flex-wrap gap-space-sm">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-title-md text-body-sm font-bold text-on-surface tabular-nums">8 pacotes em andamento</span>
+<span class="text-secondary">·</span>
+<span class="font-body-md text-body-sm text-secondary tabular-nums">Emissão: <strong class="text-on-surface">R$ 3.840</strong></span>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="h-9 px-3.5 rounded-lg bg-surface-2-light hover:bg-surface-container-high text-on-surface font-title-md text-label-md font-bold transition-colors">
+            Editar
+          </button>
+<button class="h-9 w-9 rounded-lg flex items-center justify-center text-secondary hover:bg-surface-2-light transition-colors">
+<span class="material-symbols-outlined text-[19px]">share</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Micro-interações de filtro -->
+<script>
+    document.querySelectorAll('#filter-group .filter-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        // Estilos dos botões
+        document.querySelectorAll('#filter-group .filter-btn').forEach(btn => {
+          btn.className = 'filter-btn h-9 px-3.5 rounded-lg bg-surface-2-light text-secondary hover:text-on-surface font-title-md text-label-md transition-colors';
+        });
+        button.className = 'filter-btn h-9 px-3.5 rounded-lg bg-primary-container text-on-brand font-title-md text-label-md font-bold transition-colors';
+
+        // Filtragem visual dos cards
+        const filterType = button.getAttribute('data-filter');
+        const cards = document.querySelectorAll('.plan-card');
+
+        cards.forEach(card => {
+          if (filterType === 'all' || card.getAttribute('data-type') === filterType) {
+            card.style.display = 'flex';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      });
+    });
+  </script>
+</div></main></div></body></html>

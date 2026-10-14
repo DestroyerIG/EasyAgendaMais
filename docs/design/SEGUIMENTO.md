@@ -19,26 +19,20 @@ Nenhum aberto. Resolvidos no branch `fix/bloqueadores-venda` (2026-10-13):
 3. **Verde do WhatsApp com texto branco** fica em 4,36:1 de contraste, um pouco abaixo do mínimo recomendado para texto pequeno. A cor vem do DESIGN.md.
 4. **Blocos alimentados por `conteudoDemo.ts` precisam virar dado real ou sair da tela** antes de publicar para clientes reais — hoje várias telas reconstruídas (Clientes, WhatsApp, entre outras) misturam dado real com exemplo fixo de `conteudoDemo.ts` para preencher seções que o backend ainda não alimenta.
 5. **As três áreas "em breve"** (referentes a Clube e pacotes, Relatórios e Minha página, conforme o estado atual do painel) esperam os sub-projetos D a I para virarem funcionalidade real.
-6. **Três cores da legenda da Agenda** (aguardando, em atendimento, faltou) ficam inertes enquanto a API tiver só três status possíveis; a coluna `status` é `varchar` livre no Prisma, então nada impede os valores extras — é preciso decidir o conjunto final de status antes de a legenda fazer sentido.
-7. **Decidir se a tela Hoje mostra centavos** nos valores monetários — pendente de definição visual.
-8. **A paleta por tela (decisão 2, "cada tela usa a paleta do seu próprio arquivo") não foi aplicada.** Os tokens `surface-m3`/`brand-text-m3` (`frontend/src/styles/globals.css:63-64,91-92`) existem e estão documentados no `DESIGN.md`, mas `grep -rnE "(bg|text|border)-(surface-m3|brand-text-m3)" frontend/src` não encontra nenhum uso — as telas usam `text-brand-text` uniforme em vez da cor `text-primary` que os sete arquivos de referência Material 3 usam 44 vezes. Decida na conferência visual se aplica os tokens tela a tela ou se remove os dois do DESIGN.md.
+6. **Decidir se a tela Hoje mostra centavos** nos valores monetários — pendente de definição visual.
+7. **A paleta por tela (decisão 2, "cada tela usa a paleta do seu próprio arquivo") não foi aplicada.** Os tokens `surface-m3`/`brand-text-m3` (`frontend/src/styles/globals.css:63-64,91-92`) existem e estão documentados no `DESIGN.md`, mas `grep -rnE "(bg|text|border)-(surface-m3|brand-text-m3)" frontend/src` não encontra nenhum uso — as telas usam `text-brand-text` uniforme em vez da cor `text-primary` que os sete arquivos de referência Material 3 usam 44 vezes. Decida na conferência visual se aplica os tokens tela a tela ou se remove os dois do DESIGN.md.
+8. **O Stitch mostra "Retenção casa R$ 55" na comanda de exemplo**, o que só fecha se a gorjeta sair da casa; o sistema segue a decisão de que gorjeta não é faturamento (retenção R$ 75 no mesmo exemplo).
 
 ## Dívida técnica e itens parados (não são bloqueadores, não afirmam fato falso)
 
 Da tarefa 6 (painel de detalhes do agendamento):
 - No computador, a tela pinta um quadro como folha inferior (mobile) por um instante antes de `useEffect` decidir que a largura é de computador — falha visual de primeiro quadro, não de dado.
-- `faixaDoAtendimento('23:30', 150)` não faz a volta da meia-noite (mostra "23:30 às 26:00" em vez de "23:30 às 01:30").
-- Uma linha em negrito fica vazia quando `service_name` está ausente no agendamento.
-- Tocar no corpo de um cartão já arrastado (swipe) abre o painel em vez de desfazer o swipe — conflito entre os dois gestos.
 
 Da tarefa 7 (lista de clientes):
 - Cobertura de teclado/acessibilidade do formulário mobile não foi testada nesse breakpoint específico; fica parado, sem teste, não é regressão desta entrega.
 
 Da geometria de agendamento (dado que falta na API):
-- `service.durationMinutes` não existe no DTO de `/appointments`. Toda a geometria da linha do tempo da Agenda — altura dos blocos, o "60 min" do cartão, ocupação e tamanho das vagas livres — descansa sobre o valor de exemplo `60`.
-- `client_phone` deixou de aparecer no cartão de agendamento.
 - `ownerName` não está na sessão: a saudação da tela Hoje mostra o nome do negócio, e a pílula do celular perdeu o nome por causa disso.
-- Falta pré-preencher o formulário de novo agendamento a partir de um horário livre clicado — hoje o rótulo foi corrigido justamente porque prometia isso e o formulário abria vazio.
 - Se alguma tarefa desta entrega deixou rótulo divergente entre a tela de Caixa e o PDF gerado, não foi identificado um caso específico nesta varredura; sinalizar se aparecer.
 
 Da rodada de correção final (revisão do branch inteiro, não corrigidos por instrução — só registrados):
@@ -69,3 +63,4 @@ Falta de teste automatizado em telas com lógica nova (tarefas 9 e 11):
 - Dois tokens novos, `success-text` e `warning-text`, porque `success` e `warning` não têm contraste suficiente como texto no tema claro.
 - Quatro tokens novos das telas reconstruídas a partir da referência Stitch (tarefas 6-11): `surface-m3`, `brand-text-m3`, `tertiary` e `tertiary-container`, registrados no DESIGN.md.
 - Ícones do produto padronizados em Material Symbols Outlined (decisão de 2026-09-23), registrado no DESIGN.md.
+- Sub-projeto 2A: comanda com produtos, desconto, gorjeta e repasse; caixa do dia com abertura, sangria e fechamento; status em atendimento e faltou; intervalo de almoço; referências do Stitch completas em `docs/design/stitch/projeto/`.

@@ -226,7 +226,7 @@ describe('LinhaDoTempo', () => {
   const props = {
     duracaoPadraoMinutos: 60,
     actionLoading: null,
-    onStatusChange: vi.fn(),
+    onAcao: vi.fn(),
     onNovoAgendamento: vi.fn(),
   };
 
@@ -250,11 +250,11 @@ describe('LinhaDoTempo', () => {
 
   it('clicar no bloco abre o painel de detalhes, e as ações rápidas continuam as suas', async () => {
     const onAbrirDetalhes = vi.fn();
-    const onStatusChange = vi.fn();
+    const onAcao = vi.fn();
     render(
       <LinhaDoTempo
         {...props}
-        onStatusChange={onStatusChange}
+        onAcao={onAcao}
         onAbrirDetalhes={onAbrirDetalhes}
         agendamentos={[agendamento({ id: 'a1', time: '09:00:00' })]}
       />,
@@ -264,10 +264,10 @@ describe('LinhaDoTempo', () => {
       screen.getByRole('button', { name: 'Ver detalhes do agendamento de Mariana Souza' }),
     );
     expect(onAbrirDetalhes).toHaveBeenCalledWith(expect.objectContaining({ id: 'a1' }));
-    expect(onStatusChange).not.toHaveBeenCalled();
+    expect(onAcao).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getByRole('button', { name: 'Concluir atendimento de Mariana Souza' }));
-    expect(onStatusChange).toHaveBeenCalledWith('a1', 'concluido');
+    expect(onAcao).toHaveBeenCalledWith(expect.objectContaining({ id: 'a1' }), 'concluir');
     expect(onAbrirDetalhes).toHaveBeenCalledTimes(1);
   });
 
@@ -374,17 +374,28 @@ describe('LinhaDoTempo', () => {
     expect(screen.getByText('Confirmado')).toBeInTheDocument();
   });
 
-  it('oferece concluir e cancelar em botão de verdade no bloco confirmado', async () => {
-    const onStatusChange = vi.fn();
+  it('no bloco confirmado oferece iniciar, concluir e cliente faltou; cancelar fica no painel de detalhes', async () => {
+    const onAcao = vi.fn();
     render(
-      <LinhaDoTempo {...props} onStatusChange={onStatusChange} agendamentos={[agendamento({ id: 'a1', time: '09:00:00' })]} />,
+      <LinhaDoTempo {...props} onAcao={onAcao} agendamentos={[agendamento({ id: 'a1', time: '09:00:00' })]} />,
     );
 
+    await userEvent.click(screen.getByRole('button', { name: 'Iniciar atendimento de Mariana Souza' }));
+    expect(onAcao).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'a1' }), 'iniciar');
     await userEvent.click(screen.getByRole('button', { name: 'Concluir atendimento de Mariana Souza' }));
-    expect(onStatusChange).toHaveBeenCalledWith('a1', 'concluido');
+    expect(onAcao).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'a1' }), 'concluir');
+    await userEvent.click(screen.getByRole('button', { name: 'Cliente faltou de Mariana Souza' }));
+    expect(onAcao).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'a1' }), 'faltou');
+    expect(screen.queryByRole('button', { name: /^Cancelar/ })).not.toBeInTheDocument();
+  });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Cancelar agendamento de Mariana Souza' }));
-    expect(onStatusChange).toHaveBeenCalledWith('a1', 'cancelado');
+  it('em atendimento, o bloco só oferece concluir (voltar e cancelar ficam no painel)', () => {
+    render(
+      <LinhaDoTempo {...props} agendamentos={[agendamento({ id: 'a1', time: '09:00:00', status: 'em_atendimento' })]} />,
+    );
+    expect(screen.getByRole('button', { name: 'Concluir atendimento de Mariana Souza' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Iniciar atendimento/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Voltar para confirmado/ })).not.toBeInTheDocument();
   });
 
   it('não oferece ação em agendamento concluído', () => {
@@ -404,10 +415,10 @@ describe('LinhaDoTempo', () => {
       />,
     );
 
-    // O formulário abre vazio, então o rótulo não pode prometer "agendar às 09:00".
     expect(screen.queryByRole('button', { name: /Agendar no horário livre/ })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Novo agendamento: 09:00, 11h livre' }));
-    expect(onNovoAgendamento).toHaveBeenCalled();
+    // O clique leva a profissional da coluna, a data do dia e o horário da vaga.
+    expect(onNovoAgendamento).toHaveBeenCalledWith({ professionalId: 'p1', date: '2026-09-17', time: '09:00' });
     expect(screen.getByText('Clique para agendar')).toBeInTheDocument();
   });
 
@@ -451,5 +462,49 @@ describe('LinhaDoTempo', () => {
     expect(screen.getByText('Corte')).toHaveClass('text-[11px]');
     expect(screen.getByText('R$ 110')).toHaveClass('text-[11px]');
     expect(screen.getByText('R$ 110')).not.toHaveClass('font-bold');
+  });
+});
+
+describe('vagas livres respeitam duração real e almoço', () => {
+  const faixa = { inicioMinutos: 9 * 60, fimMinutos: 15 * 60 } as const;
+
+  it('a vaga começa quando o atendimento de 150 min termina', () => {
+    const vagas = calcularVagasLivres([agendamento({ id: 'a1', time: '09:00:00', service_duration_minutes: 150 })], faixa as never, 30);
+    expect(vagas[0]).toEqual({ inicioMinutos: 11 * 60 + 30, duracaoMinutos: 210 });
+  });
+
+  it('o almoço conta como ocupado', () => {
+    const vagas = calcularVagasLivres(
+      [agendamento({ id: 'a1', time: '09:00:00', service_duration_minutes: 60 })],
+      faixa as never, 30, undefined, [{ inicio: 12 * 60, fim: 13 * 60 }],
+    );
+    expect(vagas).toEqual([
+      { inicioMinutos: 10 * 60, duracaoMinutos: 120 },
+      { inicioMinutos: 13 * 60, duracaoMinutos: 120 },
+    ]);
+  });
+});
+
+// O brief pedia '23:30 às 02:00', mas faixaHorariaTexto escreve com o travessão do Stitch
+// (44833f: "13:30 – 15:00"); o que muda aqui é só a volta para 00h depois da meia-noite.
+it('faixa horária que passa da meia-noite volta para 00h', () => {
+  expect(faixaHorariaTexto(23 * 60 + 30, 150)).toBe('23:30 – 02:00');
+});
+
+describe('LinhaDoTempo: almoço da profissional', () => {
+  it('desenha o almoço e não oferece horário livre em cima dele', () => {
+    render(
+      <LinhaDoTempo
+        duracaoPadraoMinutos={30}
+        actionLoading={null}
+        onAcao={vi.fn()}
+        onNovoAgendamento={vi.fn()}
+        intervalos={{ p1: { inicio: '12:00', fim: '13:00' } }}
+        agendamentos={[agendamento({ id: 'a1', time: '08:00:00', service_duration_minutes: 60 })]}
+      />,
+    );
+    expect(screen.getByText('Almoço')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Novo agendamento: 09:00, 3h livre' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Novo agendamento: 13:00, 7h livre' })).toBeInTheDocument();
   });
 });

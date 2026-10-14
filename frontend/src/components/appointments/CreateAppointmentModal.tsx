@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Plus, Search, AlertCircle, XCircle, Loader2 } from 'lucide-react';
 import { formatCurrency, formatDurationExtenso } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
@@ -17,6 +17,13 @@ interface CreateAppointmentModalProps {
   slotsLoading: boolean;
   onLoadSlots: (professionalId: string, date: string, serviceId: string) => void;
   onSubmit: (data: AppointmentFormData) => Promise<void>;
+  /**
+   * Pré-preenchimento: profissional, data e horário de um clique em horário livre da
+   * Agenda; ao remarcar, também a cliente e o serviço do agendamento.
+   */
+  inicial?: { professionalId?: string; date?: string; time?: string; clientId?: string; serviceId?: string };
+  /** Remarcando um agendamento existente: muda o título e o botão (quem salva é o pai, com PUT). */
+  editandoId?: string;
 }
 
 export interface AppointmentFormData {
@@ -29,7 +36,7 @@ export interface AppointmentFormData {
 
 export function CreateAppointmentModal({
   isOpen, onClose, clients, professionals, services,
-  availableSlots, slotsLoading, onLoadSlots, onSubmit
+  availableSlots, slotsLoading, onLoadSlots, onSubmit, inicial, editandoId
 }: CreateAppointmentModalProps) {
   const today = new Date().toISOString().split('T')[0];
   const [formData, setFormData] = useState<AppointmentFormData>({
@@ -37,8 +44,41 @@ export function CreateAppointmentModal({
   });
   const [clientSearch, setClientSearch] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // Horário a manter enquanto os horários disponíveis são recarregados: o do clique no
+  // horário livre, ao abrir, ou o já escolhido, quando profissional, data ou serviço
+  // mudam. Ele volta a ser a seleção se aparecer na lista nova; se não aparecer, some.
+  const [horarioPendente, setHorarioPendente] = useState<string | null>(null);
+  // A lista de horários que estava na tela quando o recarregamento foi pedido: o pendente
+  // só é conferido contra uma lista nova, nunca contra essa, que é da busca anterior.
+  const slotsDoPedido = useRef<string[] | null>(null);
+
+  // Cada abertura começa do zero, já com o que o horário livre sabia (profissional, data).
+  useEffect(() => {
+    if (!isOpen) return;
+    const professionalId = inicial?.professionalId ?? '';
+    const date = inicial?.date ?? today;
+    const serviceId = inicial?.serviceId ?? '';
+    setFormData({ clientId: inicial?.clientId ?? '', serviceId, professionalId, date, time: '' });
+    setClientSearch('');
+    const pedirHorarios = Boolean(professionalId && date);
+    setHorarioPendente(pedirHorarios ? inicial?.time ?? null : null);
+    slotsDoPedido.current = availableSlots;
+    if (pedirHorarios) onLoadSlots(professionalId, date, serviceId);
+    // Só a abertura importa: `inicial` e `onLoadSlots` mudam de identidade a cada render do pai.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!horarioPendente || slotsLoading || availableSlots === slotsDoPedido.current) return;
+    if (availableSlots.includes(horarioPendente)) {
+      setFormData(prev => ({ ...prev, time: horarioPendente }));
+    }
+    setHorarioPendente(null);
+  }, [availableSlots, horarioPendente, slotsLoading]);
 
   const handleChange = (field: keyof AppointmentFormData, value: string) => {
+    // Escolher o horário na mão vence qualquer horário pendente.
+    if (field === 'time') setHorarioPendente(null);
     const newData = { ...formData, [field]: value };
     setFormData(newData);
 
@@ -47,6 +87,10 @@ export function CreateAppointmentModal({
       const d = field === 'date' ? value : newData.date;
       const sId = field === 'serviceId' ? value : newData.serviceId;
       if (bId && d) {
+        // Guarda o horário escolhido (ou o que ainda estava pendente) para reaplicar se
+        // ele continuar disponível na lista recarregada.
+        setHorarioPendente(formData.time || horarioPendente);
+        slotsDoPedido.current = availableSlots;
         onLoadSlots(bId, d, sId);
         setFormData(prev => ({ ...prev, [field]: value, time: '' }));
         return;
@@ -59,6 +103,8 @@ export function CreateAppointmentModal({
     try {
       await onSubmit(formData);
       onClose();
+    } catch {
+      // Quem salva (o pai) já avisou o erro; o modal fica aberto para corrigir ou tentar de novo.
     } finally {
       setSubmitting(false);
     }
@@ -75,14 +121,14 @@ export function CreateAppointmentModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Novo Agendamento"
-      icon={Plus}
+      title={editandoId ? 'Remarcar agendamento' : 'Novo agendamento'}
+      icon={editandoId ? 'edit_calendar' : Plus}
       footer={
         <ModalFooter
           onCancel={onClose}
           onSubmit={handleSubmit}
-          submitLabel="Agendar"
-          submitIcon={Plus}
+          submitLabel={editandoId ? 'Salvar' : 'Agendar'}
+          submitIcon={editandoId ? undefined : Plus}
           submitting={submitting}
           disabled={!isValid}
         />

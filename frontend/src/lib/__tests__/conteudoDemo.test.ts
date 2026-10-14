@@ -38,9 +38,9 @@ const coletarStrings = (valor: unknown, acc: string[] = []): string[] => {
 };
 
 describe('conteudoDemo', () => {
-  it('cobre as seis áreas do painel', () => {
+  it('cobre as quatro áreas do painel', () => {
     expect(Object.keys(conteudoDemo).sort()).toEqual(
-      ['agenda', 'caixa', 'clientes', 'hoje', 'plano', 'whatsapp'],
+      ['clientes', 'hoje', 'plano', 'whatsapp'],
     );
   });
 

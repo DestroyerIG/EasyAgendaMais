@@ -46,32 +46,6 @@ export interface HojeContent {
   pendencias: HojePendencia[];
 }
 
-// ─── Agenda (agenda-desktop.html, agenda-mobile.html, agendamento-detalhes.html) ─
-
-// O painel de detalhes (agendamento-detalhes.html) tira do banco tudo o que o DTO de
-// /appointments já traz — cliente, telefone, data, hora, profissional, serviço, valor,
-// status, created_at e reminder_sent — e o número do agendamento sai do id real. O que
-// sobra aqui é só o que nenhuma tabela responde ainda.
-export interface AgendaDetalhes {
-  // Sinal por Pix: o sistema não recebe sinal, mas a tela mostra o bloco. Na tela o
-  // sinal é limitado ao preço real do serviço e o valor a pagar é a diferença, para as
-  // duas linhas sempre fecharem com o total verdadeiro do atendimento.
-  sinalPago: number;
-  comprovantePix: string;
-  origem: string;
-}
-
-export interface AgendaContent {
-  // A duração de cada atendimento decide a altura do bloco na linha do tempo e o
-  // "60 min" embaixo da hora no cartão do celular (agenda-desktop.html,
-  // agenda-mobile.html, que escrevem uma duração diferente por cartão). O DTO de
-  // /appointments não devolve a duração do serviço, então toda a tela cai neste
-  // valor único. Quando o DTO passar a trazer service_duration_minutes, use-o e
-  // apague esta chave.
-  duracaoPadraoMinutos: number;
-  detalhes: AgendaDetalhes;
-}
-
 // ─── Clientes (clientes-lista.html, cliente-ficha.html) ────────────────────────
 
 /**
@@ -134,56 +108,6 @@ export interface ClientePerfilDestaque {
 export interface ClientesContent {
   exemplos: ClienteExemplo[];
   perfilDestaque: ClientePerfilDestaque;
-}
-
-// ─── Caixa (caixa.html) ─────────────────────────────────────────────────────────
-
-export interface CaixaAbertura {
-  horario: string;
-  responsavel: string;
-  saldoInicial: number;
-}
-
-export interface CaixaMetricas {
-  comandasTotal: number;
-  comandasFechadas: number;
-  comandasAbertas: number;
-  comandasFalta: number;
-}
-
-export interface CaixaFormaPagamento {
-  rotulo: string;
-  valor: number;
-  quantidade: number;
-  // Legenda de quantidade própria por forma (caixa.html: "6 no balcão", "8 antecipados",
-  // "3 transações", "1 na gaveta", "1 crédito plano") — achado da varredura de telas: a
-  // tela generalizava tudo para "N transação/transações", perdendo a variedade real.
-  quantidadeLabel: string;
-}
-
-export interface CaixaComanda {
-  hora: string;
-  cliente: string;
-  telefone: string;
-  profissional: string;
-  servico: string;
-  formaPagamento: string;
-  total: number;
-  status: 'Fechada' | 'Aberta' | 'Falta';
-}
-
-export interface CaixaConferenciaDinheiro {
-  entradasDinheiro: number;
-  saidasDinheiro: number;
-  bateCaixa: boolean;
-}
-
-export interface CaixaContent {
-  abertura: CaixaAbertura;
-  metricas: CaixaMetricas;
-  formasPagamento: CaixaFormaPagamento[];
-  comandas: CaixaComanda[];
-  conferenciaDinheiro: CaixaConferenciaDinheiro;
 }
 
 // ─── WhatsApp (whatsapp-conexao.html) ──────────────────────────────────────────
@@ -253,9 +177,7 @@ export interface PlanoContent {
 
 export interface ConteudoDemo {
   hoje: HojeContent;
-  agenda: AgendaContent;
   clientes: ClientesContent;
-  caixa: CaixaContent;
   whatsapp: WhatsappContent;
   plano: PlanoContent;
 }
@@ -300,14 +222,6 @@ export const conteudoDemo = {
         tom: 'danger',
       },
     ],
-  },
-  agenda: {
-    duracaoPadraoMinutos: 60,
-    detalhes: {
-      sinalPago: 30,
-      comprovantePix: '#PIX-99824-A1',
-      origem: 'Página Pública (Link da Bio)',
-    },
   },
   clientes: {
     exemplos: [
@@ -398,94 +312,6 @@ export const conteudoDemo = {
           descricao: 'Primeira visita e cadastro inicial pela página pública',
         },
       ],
-    },
-  },
-  caixa: {
-    abertura: {
-      horario: '07:45',
-      responsavel: 'Carla',
-      saldoInicial: 150,
-    },
-    metricas: {
-      comandasTotal: 16,
-      comandasFechadas: 13,
-      comandasAbertas: 2,
-      comandasFalta: 1,
-    },
-    formasPagamento: [
-      { rotulo: 'Pix', valor: 840, quantidade: 6, quantidadeLabel: 'no balcão' },
-      { rotulo: 'Sinais Pix', valor: 240, quantidade: 8, quantidadeLabel: 'antecipados' },
-      { rotulo: 'Débito', valor: 385, quantidade: 3, quantidadeLabel: 'transações' },
-      { rotulo: 'Crédito', valor: 260, quantidade: 2, quantidadeLabel: 'transações' },
-      { rotulo: 'Dinheiro', valor: 120, quantidade: 1, quantidadeLabel: 'na gaveta' },
-      { rotulo: 'Clube e pacotes', valor: 110, quantidade: 1, quantidadeLabel: 'crédito plano' },
-    ],
-    comandas: [
-      {
-        hora: '10:00',
-        cliente: 'Mariana Souza',
-        telefone: '(83) 98412-2201',
-        profissional: 'Camila',
-        servico: 'Manutenção Gel + Óleo',
-        formaPagamento: 'Pix no balcão',
-        total: 115,
-        status: 'Fechada',
-      },
-      {
-        hora: '10:15',
-        cliente: 'Letícia Albuquerque',
-        telefone: '(83) 97103-9944',
-        profissional: 'Bruna',
-        servico: 'Cílios Volume Russo',
-        formaPagamento: 'Crédito 1x',
-        total: 210,
-        status: 'Fechada',
-      },
-      {
-        hora: '11:30',
-        cliente: 'Beatriz Costa',
-        telefone: '(83) 99344-1299',
-        profissional: 'Camila',
-        servico: 'Manutenção Fibra Vidro',
-        formaPagamento: 'Em atendimento',
-        total: 110,
-        status: 'Aberta',
-      },
-      {
-        hora: '12:00',
-        cliente: 'Juliana Mendes',
-        telefone: '(83) 98823-1100',
-        profissional: 'Bruna',
-        servico: 'Design Sobrancelhas + Buço',
-        formaPagamento: 'Sinal Pix + débito',
-        total: 105,
-        status: 'Fechada',
-      },
-      {
-        hora: '12:30',
-        cliente: 'Camila Prado',
-        telefone: '(83) 99120-8844',
-        profissional: 'Paula',
-        servico: 'Corte Bordado + Escova',
-        formaPagamento: 'Não compareceu',
-        total: 140,
-        status: 'Falta',
-      },
-      {
-        hora: '13:15',
-        cliente: 'Renata Vasconcelos',
-        telefone: '(83) 99711-5432',
-        profissional: 'Camila',
-        servico: 'Pé & Mão Simples Tradicional',
-        formaPagamento: 'Dinheiro em espécie',
-        total: 120,
-        status: 'Fechada',
-      },
-    ],
-    conferenciaDinheiro: {
-      entradasDinheiro: 120,
-      saidasDinheiro: 0,
-      bateCaixa: true,
     },
   },
   whatsapp: {

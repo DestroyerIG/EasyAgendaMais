@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EasyAgenda+ | Painel de Gestão</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg: "#F6F5F4",
+            surface: "#FFFFFF",
+            "surface-2": "#EFEDEA",
+            line: "#E2DFDB",
+            ink: "#1A1817",
+            muted: "#66605B",
+            brand: "#FF7A00",
+            "on-brand": "#1A1817",
+            whatsapp: "#128C4A",
+            "status-confirmed": "#2563EB",
+            warning: "#D97706",
+            success: "#16A34A",
+            danger: "#DC2626"
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          borderRadius: {
+            '2xl': '16px',
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
+</head>
+<body class="bg-bg text-ink min-h-screen flex antialiased selection:bg-brand/20">
+<!-- BARRA LATERAL (Largura fixa 248px) -->
+<aside class="fixed left-0 top-0 h-full w-[248px] bg-surface border-r border-line z-50 flex flex-col justify-between">
+<div class="flex flex-col">
+<!-- Marca & Subtítulo -->
+<div class="h-20 px-6 flex flex-col justify-center border-b border-line/60">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center font-extrabold text-ink text-base shadow-sm">
+            +
+          </div>
+<span class="font-bold text-lg tracking-tight text-ink">
+            EasyAgenda<span class="text-brand">+</span>
+</span>
+</div>
+<p class="text-[11px] font-medium text-muted mt-1 ml-10 tracking-wide uppercase">Gestão de Beleza</p>
+</div>
+<!-- Navegação (9 itens estritos na ordem solicitada) -->
+<nav class="flex flex-col gap-1 px-3 py-4">
+<!-- 1. Hoje (ativo com fundo #EFEDEA) -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface-2 text-ink font-semibold text-sm transition-colors" href="#">
+<svg class="w-5 h-5 text-brand stroke-[2.2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<rect height="18" rx="2" ry="2" width="18" x="3" y="4"></rect>
+<line x1="16" x2="16" y1="2" y2="6"></line>
+<line x1="8" x2="8" y1="2" y2="6"></line>
+<line x1="3" x2="21" y1="10" y2="10"></line>
+</svg>
+<span>Hoje</span>
+</a>
+<!-- 2. Agenda -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:text-ink hover:bg-surface-2/60 font-medium text-sm transition-colors" href="#">
+<svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"></path>
+<path d="m9 16 2 2 4-4"></path>
+</svg>
+<span>Agenda</span>
+</a>
+<!-- 3. Clientes -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:text-ink hover:bg-surface-2/60 font-medium text-sm transition-colors" href="#">
+<svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+<circle cx="9" cy="7" r="4"></circle>
+<path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+<path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+</svg>
+<span>Clientes</span>
+</a>
+<!-- 4. Caixa -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:text-ink hover:bg-surface-2/60 font-medium text-sm transition-colors" href="#">
+<svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<rect height="14" rx="2" width="20" x="2" y="5"></rect>
+<line x1="2" x2="22" y1="10" y2="10"></line>
+</svg>
+<span>Caixa</span>
+</a>
+<!-- 5. Clube e pacotes -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:text-ink hover:bg-surface-2/60 font-medium text-sm transition-colors" href="#">
+<svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+<line x1="7" x2="7.01" y1="7" y2="7"></line>
+</svg>
+<span>Clube e pacotes</span>
+</a>
+<!-- 6. WhatsApp -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:text-ink hover:bg-surface-2/60 font-medium text-sm transition-colors" href="#">
+<svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+</svg>
+<span>WhatsApp</span>
+</a>
+<!-- 7. Relatórios -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:text-ink hover:bg-surface-2/60 font-medium text-sm transition-colors" href="#">
+<svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<line x1="18" x2="18" y1="20" y2="10"></line>
+<line x1="12" x2="12" y1="20" y2="4"></line>
+<line x1="6" x2="6" y1="20" y2="14"></line>
+</svg>
+<span>Relatórios</span>
+</a>
+<!-- 8. Minha página -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:text-ink hover:bg-surface-2/60 font-medium text-sm transition-colors" href="#">
+<svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+<polyline points="9 22 9 12 15 12 15 22"></polyline>
+</svg>
+<span>Minha página</span>
+</a>
+<!-- 9. Ajustes -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:text-ink hover:bg-surface-2/60 font-medium text-sm transition-colors" href="#">
+<svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+<circle cx="12" cy="12" r="3"></circle>
+</svg>
+<span>Ajustes</span>
+</a>
+</nav>
+</div>
+<!-- Rodapé da barra lateral: Studio Aurora e Plano Equipe -->
+<div class="p-3 border-t border-line/60">
+<div class="p-3 rounded-2xl bg-surface-2 border border-line flex items-center justify-between">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-8 h-8 rounded-full bg-brand/15 text-brand flex items-center justify-center font-bold text-xs shrink-0">
+            SA
+          </div>
+<div class="flex flex-col min-w-0">
+<span class="text-xs font-bold text-ink truncate leading-tight">Studio Aurora</span>
+<span class="text-[11px] font-semibold text-muted">Plano Equipe</span>
+</div>
+</div>
+<svg class="w-4 h-4 text-muted shrink-0" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M8 9l4-4 4 4m0 6l-4 4-4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+</aside>
+<!-- ÁREA PRINCIPAL -->
+<div class="pl-[248px] flex-1 flex flex-col">
+<!-- Topbar Superior -->
+<header class="h-16 bg-surface border-b border-line sticky top-0 z-40 px-8 flex items-center justify-between">
+<!-- Breadcrumb -->
+<div class="flex items-center gap-2 text-xs font-semibold">
+<span class="text-muted">Studio Aurora</span>
+<span class="text-line font-bold">/</span>
+<span class="text-ink">Painel de Gestão</span>
+</div>
+<!-- Ações da Topbar -->
+<div class="flex items-center gap-4">
+<!-- Campo de busca -->
+<div class="relative w-64">
+<svg class="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<circle cx="11" cy="11" r="8"></circle>
+<line x1="21" x2="16.65" y1="21" y2="16.65"></line>
+</svg>
+<input class="w-full bg-surface-2 text-ink placeholder-muted text-xs rounded-xl pl-9 pr-3 py-2 border border-transparent focus:border-line focus:bg-surface focus:outline-none transition-all" placeholder="Buscar no sistema..." type="text"/>
+</div>
+<!-- Sino de notificação -->
+<button class="relative w-9 h-9 rounded-xl border border-line bg-surface hover:bg-surface-2 flex items-center justify-center text-muted hover:text-ink transition-colors" type="button">
+<svg class="w-4 h-4 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+</svg>
+<span class="w-2 h-2 rounded-full bg-brand absolute top-2 right-2 border-2 border-surface"></span>
+</button>
+<div class="h-5 w-px bg-line"></div>
+<!-- Avatar do Usuário -->
+<div class="flex items-center gap-2.5 cursor-pointer">
+<div class="w-8 h-8 rounded-full bg-ink text-surface flex items-center justify-center font-bold text-xs">
+            C
+          </div>
+<div class="flex flex-col">
+<span class="text-xs font-bold text-ink leading-tight">Carla</span>
+<span class="text-[11px] font-medium text-muted">Administradora</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Conteúdo da Página -->
+<main class="p-8 max-w-7xl w-full mx-auto flex flex-col gap-6">
+<!-- Saudação e Botões de Ação Principal -->
+<section class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div>
+<h1 class="text-2xl font-bold text-ink tracking-tight">Bom dia, Carla</h1>
+<p class="text-sm font-medium text-muted mt-0.5">terça, 17 de setembro de 2026</p>
+</div>
+<div class="flex items-center gap-3">
+<!-- Botão WhatsApp -->
+<button class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface border border-line text-whatsapp hover:bg-emerald-50/50 transition-colors font-semibold text-xs shadow-sm cursor-pointer" type="button">
+<svg class="w-4 h-4 fill-current" viewbox="0 0 24 24">
+<path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.694.062-2.149-.54-1.733-.717-2.87-2.484-2.956-2.6-.086-.115-.716-.953-.716-1.815 0-.862.45-1.286.611-1.46.16-.174.349-.218.465-.218.116 0 .233.002.334.007.107.005.25.04.385.367.144.348.494 1.204.538 1.292.044.088.073.19.015.305-.058.116-.088.188-.174.29-.088.102-.185.228-.264.307-.089.088-.182.184-.078.363.104.179.462.763.992 1.236.682.608 1.258.797 1.437.885.179.088.284.074.39-.047.106-.12.454-.529.576-.711.121-.182.242-.152.406-.091.164.061 1.042.492 1.22.581.179.089.298.132.342.207.044.075.044.436-.1.841z"></path>
+</svg>
+<span>Disparos WhatsApp</span>
+</button>
+<!-- Botão Primário "Novo agendamento" -->
+<button class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-brand text-ink font-bold text-xs hover:brightness-95 transition-all shadow-sm cursor-pointer" type="button">
+<svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<line x1="12" x2="12" y1="5" y2="19"></line>
+<line x1="5" x2="19" y1="12" y2="12"></line>
+</svg>
+<span>Novo agendamento</span>
+</button>
+</div>
+</section>
+<!-- 4 CARTÕES DE MÉTRICA -->
+<section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+<!-- 1. Faturamento hoje -->
+<div class="bg-surface rounded-2xl border border-line p-5 flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between text-muted">
+<span class="text-xs font-semibold">Faturamento hoje</span>
+<svg class="w-4 h-4 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<rect height="14" rx="2" width="20" x="2" y="5"></rect>
+<line x1="2" x2="22" y1="10" y2="10"></line>
+</svg>
+</div>
+<div class="my-3">
+<span class="text-2xl font-bold text-ink tabular-nums tracking-tight">R$ 1.460</span>
+</div>
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between text-xs text-muted">
+<span>Meta R$ 1.800</span>
+<span class="font-bold text-ink tabular-nums">81%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-2 rounded-full overflow-hidden">
+<div class="h-full bg-brand rounded-full" style="width: 81%;"></div>
+</div>
+</div>
+</div>
+<!-- 2. Agendamentos hoje -->
+<div class="bg-surface rounded-2xl border border-line p-5 flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between text-muted">
+<span class="text-xs font-semibold">Agendamentos hoje</span>
+<svg class="w-4 h-4 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"></path>
+</svg>
+</div>
+<div class="my-3">
+<span class="text-2xl font-bold text-ink tabular-nums tracking-tight">16</span>
+</div>
+<div class="flex items-center gap-1.5 text-xs text-warning font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-warning"></span>
+<span>2 horários livres à tarde</span>
+</div>
+</div>
+<!-- 3. Taxa de ocupação -->
+<div class="bg-surface rounded-2xl border border-line p-5 flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between text-muted">
+<span class="text-xs font-semibold">Taxa de ocupação</span>
+<svg class="w-4 h-4 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+<path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+</svg>
+</div>
+<div class="my-3">
+<span class="text-2xl font-bold text-ink tabular-nums tracking-tight">84%</span>
+</div>
+<div class="flex items-center gap-1 text-xs text-success font-semibold">
+<svg class="w-3.5 h-3.5 stroke-[2.5]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<line x1="12" x2="12" y1="19" y2="5"></line>
+<polyline points="5 12 12 5 19 12"></polyline>
+</svg>
+<span>+6%</span>
+<span class="text-muted font-normal">vs média de terça</span>
+</div>
+</div>
+<!-- 4. Receita recuperada no mês -->
+<div class="bg-surface rounded-2xl border border-line p-5 flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between text-muted">
+<span class="text-xs font-semibold">Receita recuperada no mês</span>
+<svg class="w-4 h-4 stroke-[2] text-whatsapp" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+</svg>
+</div>
+<div class="my-3">
+<span class="text-2xl font-bold text-ink tabular-nums tracking-tight">R$ 2.980</span>
+</div>
+<div class="flex items-center gap-1.5 text-xs text-muted">
+<span class="w-1.5 h-1.5 rounded-full bg-whatsapp"></span>
+<span>via lembretes WhatsApp</span>
+</div>
+</div>
+</section>
+<!-- GRID DE 2 COLUNAS: ESQUERDA vs DIREITA -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- COLUNA ESQUERDA (7 cols) -->
+<div class="lg:col-span-7 flex flex-col gap-6">
+<!-- Bloco "Precisa de você" (4 pendências) -->
+<div class="bg-surface rounded-2xl border border-line p-5 flex flex-col gap-4 shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<h2 class="text-base font-bold text-ink">Precisa de você</h2>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-brand/15 text-ink tabular-nums">
+                  4 pendências
+                </span>
+</div>
+<span class="text-xs text-muted font-medium">Ações de um clique</span>
+</div>
+<div class="flex flex-col gap-2.5">
+<!-- Item 1 -->
+<div class="p-3.5 bg-bg rounded-xl border border-line/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-line transition-colors">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center text-brand shrink-0">
+<svg class="w-4 h-4 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<rect height="18" rx="2" ry="2" width="18" x="3" y="4"></rect>
+<line x1="16" x2="16" y1="2" y2="6"></line>
+<line x1="8" x2="8" y1="2" y2="6"></line>
+</svg>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="text-xs font-bold text-ink truncate">2 horários vagos à tarde com Bruna</span>
+<span class="text-[11px] text-muted truncate">14:30 e 16:45 sem agendamento</span>
+</div>
+</div>
+<button class="shrink-0 px-3 py-1.5 rounded-lg bg-surface border border-line text-ink font-bold text-xs hover:bg-surface-2 transition-colors cursor-pointer shadow-2xs" type="button">
+                  Oferecer à lista de espera
+                </button>
+</div>
+<!-- Item 2 -->
+<div class="p-3.5 bg-bg rounded-xl border border-line/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-line transition-colors">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center text-whatsapp shrink-0">
+<svg class="w-4 h-4 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path>
+</svg>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="text-xs font-bold text-ink truncate">9 clientes com manutenção vencendo</span>
+<span class="text-[11px] text-muted truncate">Cílios e unhas no prazo ideal de retorno</span>
+</div>
+</div>
+<button class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-whatsapp text-white font-bold text-xs hover:brightness-105 transition-all cursor-pointer shadow-2xs" type="button">
+<svg class="w-3.5 h-3.5 fill-current" viewbox="0 0 24 24">
+<path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.694.062-2.149-.54-1.733-.717-2.87-2.484-2.956-2.6-.086-.115-.716-.953-.716-1.815 0-.862.45-1.286.611-1.46.16-.174.349-.218.465-.218.116 0 .233.002.334.007.107.005.25.04.385.367.144.348.494 1.204.538 1.292.044.088.073.19.015.305-.058.116-.088.188-.174.29-.088.102-.185.228-.264.307-.089.088-.182.184-.078.363.104.179.462.763.992 1.236.682.608 1.258.797 1.437.885.179.088.284.074.39-.047.106-.12.454-.529.576-.711.121-.182.242-.152.406-.091.164.061 1.042.492 1.22.581.179.089.298.132.342.207.044.075.044.436-.1.841z"></path>
+</svg>
+<span>Disparar lembrete</span>
+</button>
+</div>
+<!-- Item 3 -->
+<div class="p-3.5 bg-bg rounded-xl border border-line/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-line transition-colors">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center text-warning shrink-0">
+<svg class="w-4 h-4 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<rect height="7" width="7" x="3" y="3"></rect>
+<rect height="7" width="7" x="14" y="3"></rect>
+<rect height="7" width="7" x="14" y="14"></rect>
+<rect height="7" width="7" x="3" y="14"></rect>
+</svg>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="text-xs font-bold text-ink truncate">3 sinais Pix aguardando pagamento</span>
+<span class="text-[11px] text-muted truncate">Expira em 30 minutos - R$ 110 pendentes</span>
+</div>
+</div>
+<button class="shrink-0 px-3 py-1.5 rounded-lg bg-surface border border-line text-warning font-bold text-xs hover:bg-surface-2 transition-colors cursor-pointer shadow-2xs" type="button">
+                  Ver pendências
+                </button>
+</div>
+<!-- Item 4 -->
+<div class="p-3.5 bg-bg rounded-xl border border-line/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-line transition-colors">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-9 h-9 rounded-xl bg-surface border border-line flex items-center justify-center text-danger shrink-0">
+<svg class="w-4 h-4 stroke-[2]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+</svg>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="text-xs font-bold text-ink truncate">1 avaliação desfavorável registrada</span>
+<span class="text-[11px] text-muted truncate">Cliente Camila Dias · Ontem às 18:30</span>
+</div>
+</div>
+<button class="shrink-0 px-3 py-1.5 rounded-lg bg-surface border border-line text-danger font-bold text-xs hover:bg-surface-2 transition-colors cursor-pointer shadow-2xs" type="button">
+                  Ver e responder
+                </button>
+</div>
+</div>
+</div>
+<!-- Bloco "Faturamento últimos 7 dias" -->
+<div class="bg-surface rounded-2xl border border-line p-5 flex flex-col gap-4 shadow-sm">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="text-base font-bold text-ink">Faturamento últimos 7 dias</h2>
+<p class="text-xs text-muted font-medium">Comparativo diário da semana</p>
+</div>
+<div class="text-right">
+<span class="text-[11px] font-semibold text-muted">Total período</span>
+<p class="text-base font-bold text-ink tabular-nums leading-tight">R$ 11.420</p>
+</div>
+</div>
+<!-- Gráfico Minimalista SVG -->
+<div class="w-full pt-3">
+<svg class="w-full h-44 overflow-visible" fill="none" viewbox="0 0 540 180">
+<!-- Linhas Guia -->
+<line stroke="#E2DFDB" stroke-dasharray="3 3" x1="30" x2="520" y1="20" y2="20"></line>
+<line stroke="#E2DFDB" stroke-dasharray="3 3" x1="30" x2="520" y1="80" y2="80"></line>
+<line stroke="#E2DFDB" x1="30" x2="520" y1="140" y2="140"></line>
+<!-- Escala Eixo Y -->
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="10" font-weight="600" x="6" y="24">2.5k</text>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="10" font-weight="600" x="6" y="84">1.5k</text>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="10" font-weight="600" x="14" y="144">0</text>
+<!-- Barras -->
+<!-- Qua: 1.250 -->
+<g class="cursor-pointer group">
+<rect class="group-hover:fill-stone-300 transition-colors" fill="#EFEDEA" height="75" rx="6" width="40" x="70" y="65"></rect>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="10" font-weight="700" text-anchor="middle" x="90" y="57">1.250</text>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="11" font-weight="600" text-anchor="middle" x="90" y="160">Qua</text>
+</g>
+<!-- Qui: 1.520 -->
+<g class="cursor-pointer group">
+<rect class="group-hover:fill-stone-300 transition-colors" fill="#EFEDEA" height="91" rx="6" width="40" x="148" y="49"></rect>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="10" font-weight="700" text-anchor="middle" x="168" y="41">1.520</text>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="11" font-weight="600" text-anchor="middle" x="168" y="160">Qui</text>
+</g>
+<!-- Sex: 2.380 -->
+<g class="cursor-pointer group">
+<rect class="group-hover:fill-stone-300 transition-colors" fill="#EFEDEA" height="112" rx="6" width="40" x="226" y="28"></rect>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="10" font-weight="700" text-anchor="middle" x="246" y="20">2.380</text>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="11" font-weight="600" text-anchor="middle" x="246" y="160">Sex</text>
+</g>
+<!-- Sáb: 2.890 -->
+<g class="cursor-pointer group">
+<rect class="group-hover:fill-stone-300 transition-colors" fill="#EFEDEA" height="125" rx="6" width="40" x="304" y="15"></rect>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="10" font-weight="700" text-anchor="middle" x="324" y="8">2.890</text>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="11" font-weight="600" text-anchor="middle" x="324" y="160">Sáb</text>
+</g>
+<!-- Seg: 1.920 -->
+<g class="cursor-pointer group">
+<rect class="group-hover:fill-stone-300 transition-colors" fill="#EFEDEA" height="102" rx="6" width="40" x="382" y="38"></rect>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="10" font-weight="700" text-anchor="middle" x="402" y="30">1.920</text>
+<text fill="#66605B" font-family="Plus Jakarta Sans" font-size="11" font-weight="600" text-anchor="middle" x="402" y="160">Seg</text>
+</g>
+<!-- Hoje (Ter): 1.460 Destacado -->
+<g class="cursor-pointer group">
+<rect class="hover:brightness-95 transition-all" fill="#FF7A00" height="87" rx="6" width="40" x="460" y="53"></rect>
+<text fill="#FF7A00" font-family="Plus Jakarta Sans" font-size="11" font-weight="800" text-anchor="middle" x="480" y="45">1.460</text>
+<text fill="#1A1817" font-family="Plus Jakarta Sans" font-size="11" font-weight="800" text-anchor="middle" x="480" y="160">Hoje</text>
+<circle cx="480" cy="172" fill="#FF7A00" r="2.5"></circle>
+</g>
+</svg>
+</div>
+</div>
+</div>
+<!-- COLUNA DIREITA (5 cols) -->
+<div class="lg:col-span-5 flex flex-col gap-6">
+<!-- Bloco "Próximas 2 horas" -->
+<div class="bg-surface rounded-2xl border border-line p-5 flex flex-col gap-4 shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<h2 class="text-base font-bold text-ink">Próximas 2 horas</h2>
+<span class="w-2 h-2 rounded-full bg-brand animate-pulse"></span>
+</div>
+<span class="text-xs font-semibold text-muted tabular-nums">4 atendimentos</span>
+</div>
+<!-- Chips de Filtro Rápido -->
+<div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+<button class="px-2.5 py-1 rounded-full font-bold bg-ink text-surface whitespace-nowrap cursor-pointer" type="button">
+                Todos
+              </button>
+<button class="px-2.5 py-1 rounded-full font-semibold bg-surface-2 text-muted hover:text-ink whitespace-nowrap transition-colors cursor-pointer" type="button">
+                Camila (unhas)
+              </button>
+<button class="px-2.5 py-1 rounded-full font-semibold bg-surface-2 text-muted hover:text-ink whitespace-nowrap transition-colors cursor-pointer" type="button">
+                Bruna (cílios)
+              </button>
+<button class="px-2.5 py-1 rounded-full font-semibold bg-surface-2 text-muted hover:text-ink whitespace-nowrap transition-colors cursor-pointer" type="button">
+                Paula (cabelo)
+              </button>
+</div>
+<!-- 4 Itens de Atendimentos -->
+<div class="flex flex-col gap-3">
+<!-- 1. Mariana Souza -->
+<div class="p-3.5 rounded-xl border border-line bg-surface hover:border-muted/50 transition-colors flex flex-col gap-1.5 relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-status-confirmed"></div>
+<div class="flex items-center justify-between pl-1">
+<span class="text-xs font-bold text-ink tabular-nums">10:00 - 11:30</span>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#2563EB]/10 text-status-confirmed">
+                    Confirmado
+                  </span>
+</div>
+<div class="flex items-baseline justify-between pl-1">
+<span class="text-sm font-bold text-ink">Mariana Souza</span>
+<span class="text-sm font-bold text-ink tabular-nums">R$ 180</span>
+</div>
+<div class="flex items-center justify-between text-xs text-muted pl-1 pt-0.5">
+<span class="truncate">Alongamento em gel · Camila</span>
+<span class="inline-flex items-center gap-1 text-[11px] font-bold text-success shrink-0">
+<svg class="w-3 h-3 stroke-[2.5]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+<polyline points="22 4 12 14.01 9 11.01"></polyline>
+</svg>
+                    Sinal pago R$ 30
+                  </span>
+</div>
+</div>
+<!-- 2. Letícia Albuquerque -->
+<div class="p-3.5 rounded-xl border border-line bg-surface hover:border-muted/50 transition-colors flex flex-col gap-1.5 relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-brand"></div>
+<div class="flex items-center justify-between pl-1">
+<span class="text-xs font-bold text-ink tabular-nums">10:15 - 11:15</span>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-brand/15 text-ink">
+                    Em atendimento
+                  </span>
+</div>
+<div class="flex items-baseline justify-between pl-1">
+<span class="text-sm font-bold text-ink">Letícia Albuquerque</span>
+<span class="text-sm font-bold text-ink tabular-nums">R$ 210</span>
+</div>
+<div class="flex items-center justify-between text-xs text-muted pl-1 pt-0.5">
+<span class="truncate">Extensão cílios volume russo · Bruna</span>
+<span class="inline-flex items-center gap-1 text-[11px] font-bold text-success shrink-0">
+<svg class="w-3 h-3 stroke-[2.5]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+<polyline points="22 4 12 14.01 9 11.01"></polyline>
+</svg>
+                    Sinal pago R$ 40
+                  </span>
+</div>
+</div>
+<!-- 3. Juliana Paes -->
+<div class="p-3.5 rounded-xl border border-line bg-surface hover:border-muted/50 transition-colors flex flex-col gap-1.5 relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-status-confirmed"></div>
+<div class="flex items-center justify-between pl-1">
+<span class="text-xs font-bold text-ink tabular-nums">10:30 - 12:00</span>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#2563EB]/10 text-status-confirmed">
+                    Confirmado
+                  </span>
+</div>
+<div class="flex items-baseline justify-between pl-1">
+<span class="text-sm font-bold text-ink">Juliana Paes</span>
+<span class="text-sm font-bold text-ink tabular-nums">R$ 160</span>
+</div>
+<div class="flex items-center justify-between text-xs text-muted pl-1 pt-0.5">
+<span class="truncate">Corte + Escova modelada · Paula</span>
+<span class="text-[11px] font-medium text-muted shrink-0">Pagar no local</span>
+</div>
+</div>
+<!-- 4. Beatriz Costa -->
+<div class="p-3.5 rounded-xl border border-line bg-surface hover:border-muted/50 transition-colors flex flex-col gap-1.5 relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-warning"></div>
+<div class="flex items-center justify-between pl-1">
+<span class="text-xs font-bold text-ink tabular-nums">11:30 - 12:30</span>
+<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#D97706]/10 text-warning">
+                    Aguardando confirmação
+                  </span>
+</div>
+<div class="flex items-baseline justify-between pl-1">
+<span class="text-sm font-bold text-ink">Beatriz Costa</span>
+<span class="text-sm font-bold text-ink tabular-nums">R$ 110</span>
+</div>
+<div class="flex items-center justify-between text-xs text-muted pl-1 pt-0.5">
+<span class="truncate">Manutenção em gel · Camila</span>
+<button class="text-[11px] font-bold text-whatsapp hover:underline inline-flex items-center gap-0.5 border-0 bg-transparent p-0 cursor-pointer" type="button">
+<span>Reenviar WhatsApp</span>
+<svg class="w-3 h-3 stroke-[2.5]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<polyline points="9 18 15 12 9 6"></polyline>
+</svg>
+</button>
+</div>
+</div>
+</div>
+<!-- Botão Inferior -->
+<a class="mt-1 inline-flex items-center justify-center gap-1.5 w-full py-2.5 px-4 rounded-xl bg-surface-2 hover:bg-line text-ink font-bold text-xs transition-colors" href="#">
+<span>Ver grade completa da agenda</span>
+<svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<line x1="5" x2="19" y1="12" y2="12"></line>
+<polyline points="12 5 19 12 12 19"></polyline>
+</svg>
+</a>
+</div>
+</div>
+</section>
+</main>
+</div>
+</body></html>

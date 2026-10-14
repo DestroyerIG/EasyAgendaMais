@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Studio Aurora - Caixa do Dia e Fechamento</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            bg: '#F6F5F4',
+            surface: '#FFFFFF',
+            'surface-2': '#EFEDEA',
+            line: '#E2DFDB',
+            ink: '#1A1817',
+            muted: '#66605B',
+            brand: '#FF7A00',
+            'on-brand': '#1A1817',
+            'brand-text': '#B34D00',
+            success: '#16A34A',
+            warning: '#D97706',
+            danger: '#DC2626',
+            'status-confirmed': '#2563EB',
+          },
+          borderRadius: {
+            'card': '16px',
+            'btn': '10px',
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #F6F5F4;
+      color: #1A1817;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background-color: #E2DFDB;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-bg text-ink min-h-screen flex">
+
+  <!-- Barra Lateral Fixa (248px) -->
+  <aside class="w-[248px] h-screen fixed left-0 top-0 bg-surface border-r border-line z-30 flex flex-col justify-between p-4 shrink-0">
+    <div class="flex flex-col gap-6">
+      <!-- Logo EasyAgenda+ -->
+      <div class="flex items-center gap-2.5 px-2 pt-1">
+        <div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center shrink-0 shadow-sm">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1817" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-extrabold text-[16px] text-ink leading-tight tracking-tight">EasyAgenda+</span>
+          <span class="text-[10px] font-bold tracking-wider text-muted uppercase">GESTÃO DE BELEZA</span>
+        </div>
+      </div>
+
+      <!-- Navegação exatamente na ordem definida no DESIGN.md -->
+      <nav class="flex flex-col gap-1">
+        <!-- 1. Hoje -->
+        <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-surface-2 hover:text-ink text-[14px] font-medium transition-colors">
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span>Hoje</span>
+        </a>
+
+        <!-- 2. Agenda -->
+        <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-surface-2 hover:text-ink text-[14px] font-medium transition-colors">
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span>Agenda</span>
+        </a>
+
+        <!-- 3. Clientes -->
+        <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-surface-2 hover:text-ink text-[14px] font-medium transition-colors">
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span>Clientes</span>
+        </a>
+
+        <!-- 4. Caixa (Ativo) -->
+        <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-surface-2 text-ink text-[14px] font-bold transition-colors">
+          <svg class="w-5 h-5 text-ink shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+            <line x1="2" y1="10" x2="22" y2="10"></line>
+            <line x1="6" y1="14" x2="8" y2="14"></line>
+            <line x1="10" y1="14" x2="14" y2="14"></line>
+          </svg>
+          <span>Caixa</span>
+        </a>
+
+        <!-- 5. Clube e pacotes -->
+        <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-surface-2 hover:text-ink text-[14px] font-medium transition-colors">
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+          <span>Clube e pacotes</span>
+        </a>
+
+        <!-- 6. WhatsApp -->
+        <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-surface-2 hover:text-ink text-[14px] font-medium transition-colors">
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+          </svg>
+          <span>WhatsApp</span>
+        </a>
+
+        <!-- 7. Relatórios -->
+        <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-surface-2 hover:text-ink text-[14px] font-medium transition-colors">
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <span>Relatórios</span>
+        </a>
+
+        <!-- 8. Minha página -->
+        <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-surface-2 hover:text-ink text-[14px] font-medium transition-colors">
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+          <span>Minha página</span>
+        </a>
+
+        <!-- 9. Ajustes -->
+        <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-surface-2 hover:text-ink text-[14px] font-medium transition-colors">
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span>Ajustes</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- Rodapé da Barra Lateral: Negócio e Plano -->
+    <div class="pt-4 border-t border-line">
+      <div class="flex items-center gap-3 p-2 rounded-xl bg-surface-2/60">
+        <div class="w-8 h-8 rounded-full bg-[#FFE5CC] flex items-center justify-center font-bold text-[12px] text-brand-text shrink-0">
+          SA
+        </div>
+        <div class="flex flex-col min-w-0">
+          <span class="text-[13px] font-bold text-ink truncate leading-tight">Studio Aurora</span>
+          <span class="text-[11px] font-medium text-muted truncate">Plano Equipe</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Conteúdo Principal (Margem à esquerda de 248px) -->
+  <main class="ml-[248px] flex-1 p-8 min-h-screen">
+    <div class="max-w-[1240px] mx-auto flex flex-col gap-6">
+
+      <!-- Barra Superior / Breadcrumb e Usuário -->
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2 text-[13px] text-muted font-medium">
+          <span>Studio Aurora</span>
+          <span>/</span>
+          <span class="text-ink font-semibold">Financeiro</span>
+          <span>/</span>
+          <span class="text-ink font-semibold">Caixa do dia</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center text-muted">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center font-bold text-[13px] text-ink border border-line">
+              C
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[13px] font-bold text-ink leading-tight">Carla</span>
+              <span class="text-[11px] text-muted">Administradora</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Título da Tela + Subtítulo + Botão Principal "Fechar caixa" -->
+      <header class="flex items-start justify-between gap-4 pb-1">
+        <div class="flex flex-col gap-1">
+          <h1 class="text-[26px] font-extrabold text-ink leading-tight tracking-tight">Caixa do dia</h1>
+          <p class="text-[14px] text-muted">
+            terça, 17 de setembro de 2026 <span class="mx-1.5 text-line">·</span> aberto às 07:45 por Carla <span class="mx-1.5 text-line">·</span> saldo inicial <span class="font-semibold text-ink tabular-nums">R$ 150,00</span>
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button class="flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-brand text-on-brand text-[14px] font-bold hover:brightness-105 transition-all shadow-sm">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <span>Fechar caixa</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- 4 Cartões de Métrica Principais -->
+      <section class="grid grid-cols-4 gap-5">
+        <!-- 1. Entradas -->
+        <div class="bg-surface rounded-card border border-line p-5 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-[13px] font-semibold text-muted">Entradas</span>
+            <div class="w-7 h-7 rounded-lg bg-emerald-50 text-success flex items-center justify-center">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="19" x2="12" y2="5"></line>
+                <polyline points="5 12 12 5 19 12"></polyline>
+              </svg>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="text-[28px] font-bold text-ink tabular-nums leading-tight">R$ 1.845,00</div>
+            <p class="text-[12px] text-muted mt-1 font-medium">14 recebimentos confirmados</p>
+          </div>
+        </div>
+
+        <!-- 2. Saídas -->
+        <div class="bg-surface rounded-card border border-line p-5 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-[13px] font-semibold text-muted">Saídas</span>
+            <div class="w-7 h-7 rounded-lg bg-rose-50 text-danger flex items-center justify-center">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <polyline points="19 12 12 19 5 12"></polyline>
+              </svg>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="text-[28px] font-bold text-ink tabular-nums leading-tight">R$ 120,00</div>
+            <p class="text-[12px] text-muted mt-1 font-medium">2 despesas operacionais</p>
+          </div>
+        </div>
+
+        <!-- 3. Saldo -->
+        <div class="bg-surface rounded-card border border-line p-5 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-[13px] font-semibold text-muted">Saldo</span>
+            <div class="w-7 h-7 rounded-lg bg-orange-50 text-brand-text flex items-center justify-center">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <line x1="2" y1="10" x2="22" y2="10"></line>
+              </svg>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="text-[28px] font-bold text-ink tabular-nums leading-tight">R$ 1.875,00</div>
+            <p class="text-[12px] text-muted mt-1 font-medium">Físico + digital apurado</p>
+          </div>
+        </div>
+
+        <!-- 4. Comandas -->
+        <div class="bg-surface rounded-card border border-line p-5 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-[13px] font-semibold text-muted">Comandas</span>
+            <div class="w-7 h-7 rounded-lg bg-surface-2 text-ink flex items-center justify-center">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="text-[28px] font-bold text-ink tabular-nums leading-tight">16</div>
+            <div class="flex items-center gap-1.5 text-[11px] font-semibold mt-1">
+              <span class="text-success">13 fechadas</span>
+              <span class="text-line">·</span>
+              <span class="text-warning">2 abertas</span>
+              <span class="text-line">·</span>
+              <span class="text-danger">1 falta</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Seção: Entradas por forma de pagamento -->
+      <section class="bg-surface rounded-card border border-line p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-[15px] font-bold text-ink">Entradas por forma de pagamento</h2>
+          <span class="text-[12px] text-muted">Total faturado: <strong class="text-ink font-semibold tabular-nums">R$ 1.845,00</strong></span>
+        </div>
+
+        <div class="grid grid-cols-6 gap-3">
+          <!-- Pix balcão -->
+          <div class="p-3.5 rounded-xl bg-surface-2/60 border border-line flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[12px] font-medium text-muted">Pix</span>
+              <span class="text-[11px] font-bold text-muted bg-surface px-1.5 py-0.5 rounded border border-line tabular-nums">45,5%</span>
+            </div>
+            <div>
+              <div class="text-[18px] font-bold text-ink tabular-nums leading-tight">R$ 840,00</div>
+              <span class="text-[11px] text-muted">6 no balcão</span>
+            </div>
+          </div>
+
+          <!-- Sinais Pix antecipados -->
+          <div class="p-3.5 rounded-xl bg-surface-2/60 border border-line flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[12px] font-medium text-muted">Sinais Pix</span>
+              <span class="text-[11px] font-bold text-muted bg-surface px-1.5 py-0.5 rounded border border-line tabular-nums">13,0%</span>
+            </div>
+            <div>
+              <div class="text-[18px] font-bold text-ink tabular-nums leading-tight">R$ 240,00</div>
+              <span class="text-[11px] text-muted">8 antecipados</span>
+            </div>
+          </div>
+
+          <!-- Débito -->
+          <div class="p-3.5 rounded-xl bg-surface-2/60 border border-line flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[12px] font-medium text-muted">Débito</span>
+              <span class="text-[11px] font-bold text-muted bg-surface px-1.5 py-0.5 rounded border border-line tabular-nums">20,9%</span>
+            </div>
+            <div>
+              <div class="text-[18px] font-bold text-ink tabular-nums leading-tight">R$ 385,00</div>
+              <span class="text-[11px] text-muted">3 transações</span>
+            </div>
+          </div>
+
+          <!-- Crédito -->
+          <div class="p-3.5 rounded-xl bg-surface-2/60 border border-line flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[12px] font-medium text-muted">Crédito</span>
+              <span class="text-[11px] font-bold text-muted bg-surface px-1.5 py-0.5 rounded border border-line tabular-nums">14,1%</span>
+            </div>
+            <div>
+              <div class="text-[18px] font-bold text-ink tabular-nums leading-tight">R$ 260,00</div>
+              <span class="text-[11px] text-muted">2 transações</span>
+            </div>
+          </div>
+
+          <!-- Dinheiro -->
+          <div class="p-3.5 rounded-xl bg-surface-2/60 border border-line flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[12px] font-medium text-muted">Dinheiro</span>
+              <span class="text-[11px] font-bold text-muted bg-surface px-1.5 py-0.5 rounded border border-line tabular-nums">6,5%</span>
+            </div>
+            <div>
+              <div class="text-[18px] font-bold text-ink tabular-nums leading-tight">R$ 120,00</div>
+              <span class="text-[11px] text-muted">1 na gaveta</span>
+            </div>
+          </div>
+
+          <!-- Clube e pacotes -->
+          <div class="p-3.5 rounded-xl bg-surface-2/60 border border-line flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[12px] font-medium text-muted">Clube e pacotes</span>
+              <span class="text-[11px] font-bold text-muted bg-surface px-1.5 py-0.5 rounded border border-line tabular-nums">6,0%</span>
+            </div>
+            <div>
+              <div class="text-[18px] font-bold text-ink tabular-nums leading-tight">R$ 110,00</div>
+              <span class="text-[11px] text-muted">1 crédito plano</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Layout em 2 Colunas: Comandas do Dia (2/3) + Blocos Financeiros Laterais (1/3) -->
+      <div class="grid grid-cols-12 gap-6 items-start">
+
+        <!-- Coluna Esquerda (8 cols): Comandas do dia -->
+        <section class="col-span-8 bg-surface rounded-card border border-line p-5">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-[16px] font-bold text-ink">Comandas do dia</h2>
+              <p class="text-[12px] text-muted">Visão consolidada dos atendimentos realizados no dia</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[12px] font-semibold text-muted">6 de 16 atendimentos</span>
+            </div>
+          </div>
+
+          <!-- Tabela com overflow interno -->
+          <div class="overflow-x-auto rounded-xl border border-line">
+            <table class="w-full text-left text-[13px] border-collapse">
+              <thead>
+                <tr class="bg-surface-2 text-muted text-[11px] font-bold tracking-wider uppercase border-b border-line">
+                  <th class="py-3 px-3.5">Hora</th>
+                  <th class="py-3 px-3.5">Cliente</th>
+                  <th class="py-3 px-3.5">Profissional</th>
+                  <th class="py-3 px-3.5">Serviços</th>
+                  <th class="py-3 px-3.5">Pagamento</th>
+                  <th class="py-3 px-3.5 text-right">Total</th>
+                  <th class="py-3 px-3.5 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-line font-medium text-ink">
+                <!-- Linha 1 -->
+                <tr class="hover:bg-surface-2/40 transition-colors">
+                  <td class="py-3.5 px-3.5 tabular-nums text-muted font-semibold">10:00</td>
+                  <td class="py-3.5 px-3.5">
+                    <div class="font-bold text-ink">Mariana Souza</div>
+                    <div class="text-[11px] text-muted tabular-nums">(83) 98412-2201</div>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px]">
+                    <span class="font-semibold text-ink">Camila Rocha</span>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px] text-muted">
+                    Manutenção Gel + Óleo
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px]">
+                    <span class="inline-flex items-center gap-1 font-medium text-ink">
+                      Pix balcão
+                    </span>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-right font-bold tabular-nums">
+                    R$ 115,00
+                  </td>
+                  <td class="py-3.5 px-3.5 text-center">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#DCFCE7] text-success">
+                      Fechada
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Linha 2 -->
+                <tr class="hover:bg-surface-2/40 transition-colors">
+                  <td class="py-3.5 px-3.5 tabular-nums text-muted font-semibold">10:15</td>
+                  <td class="py-3.5 px-3.5">
+                    <div class="font-bold text-ink">Letícia Albuquerque</div>
+                    <div class="text-[11px] text-muted tabular-nums">(83) 97103-9944</div>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px]">
+                    <span class="font-semibold text-ink">Bruna Lima</span>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px] text-muted">
+                    Cílios Volume Russo
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px]">
+                    <span class="inline-flex items-center gap-1 font-medium text-ink">
+                      Crédito 1x
+                    </span>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-right font-bold tabular-nums">
+                    R$ 210,00
+                  </td>
+                  <td class="py-3.5 px-3.5 text-center">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#DCFCE7] text-success">
+                      Fechada
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Linha 3 -->
+                <tr class="hover:bg-surface-2/40 transition-colors bg-orange-50/20">
+                  <td class="py-3.5 px-3.5 tabular-nums text-muted font-semibold">11:30</td>
+                  <td class="py-3.5 px-3.5">
+                    <div class="font-bold text-ink">Beatriz Costa</div>
+                    <div class="text-[11px] text-muted tabular-nums">(83) 99344-1299</div>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px]">
+                    <span class="font-semibold text-ink">Camila Rocha</span>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px] text-muted">
+                    Manutenção Fibra Vidro
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px]">
+                    <span class="text-warning font-semibold">Em atendimento</span>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-right font-bold tabular-nums">
+                    R$ 110,00
+                  </td>
+                  <td class="py-3.5 px-3.5 text-center">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEF3C7] text-warning">
+                      Aberta
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Linha 4 -->
+                <tr class="hover:bg-surface-2/40 transition-colors">
+                  <td class="py-3.5 px-3.5 tabular-nums text-muted font-semibold">12:00</td>
+                  <td class="py-3.5 px-3.5">
+                    <div class="font-bold text-ink">Juliana Mendes</div>
+                    <div class="text-[11px] text-muted tabular-nums">(83) 98823-1100</div>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px]">
+                    <span class="font-semibold text-ink">Bruna Lima</span>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px] text-muted">
+                    Design Sobrancelhas + Buço
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px]">
+                    <span class="inline-flex items-center gap-1 font-medium text-ink">
+                      Sinal Pix (R$ 30) + Débito
+                    </span>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-right font-bold tabular-nums">
+                    R$ 105,00
+                  </td>
+                  <td class="py-3.5 px-3.5 text-center">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#DCFCE7] text-success">
+                      Fechada
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Linha 5 -->
+                <tr class="hover:bg-surface-2/40 transition-colors">
+                  <td class="py-3.5 px-3.5 tabular-nums text-muted font-semibold">12:30</td>
+                  <td class="py-3.5 px-3.5">
+                    <div class="font-bold text-ink">Camila Prado</div>
+                    <div class="text-[11px] text-muted tabular-nums">(83) 99120-8844</div>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px]">
+                    <span class="font-semibold text-ink">Paula Mendes</span>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px] text-muted">
+                    Corte Bordado + Escova
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px]">
+                    <span class="inline-flex items-center gap-1 text-muted">
+                      Não compareceu
+                    </span>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-right font-bold tabular-nums text-muted line-through">
+                    R$ 140,00
+                  </td>
+                  <td class="py-3.5 px-3.5 text-center">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FEE2E2] text-danger">
+                      Falta
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Linha 6 -->
+                <tr class="hover:bg-surface-2/40 transition-colors">
+                  <td class="py-3.5 px-3.5 tabular-nums text-muted font-semibold">13:15</td>
+                  <td class="py-3.5 px-3.5">
+                    <div class="font-bold text-ink">Renata Vasconcelos</div>
+                    <div class="text-[11px] text-muted tabular-nums">(83) 99711-5432</div>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px]">
+                    <span class="font-semibold text-ink">Camila Rocha</span>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px] text-muted">
+                    Pé & Mão Simples Tradicional
+                  </td>
+                  <td class="py-3.5 px-3.5 text-[12px]">
+                    <span class="inline-flex items-center gap-1 font-medium text-ink">
+                      Dinheiro em espécie
+                    </span>
+                  </td>
+                  <td class="py-3.5 px-3.5 text-right font-bold tabular-nums">
+                    R$ 120,00
+                  </td>
+                  <td class="py-3.5 px-3.5 text-center">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#DCFCE7] text-success">
+                      Fechada
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="flex items-center justify-between mt-4 text-[12px] text-muted">
+            <span>Mostrando 6 de 16 comandas</span>
+            <div class="flex items-center gap-1">
+              <button class="px-2.5 py-1 rounded bg-surface-2 text-ink font-semibold border border-line">1</button>
+              <button class="px-2.5 py-1 rounded hover:bg-surface-2 text-muted transition-colors">2</button>
+              <button class="px-2.5 py-1 rounded hover:bg-surface-2 text-muted transition-colors">Próxima</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Coluna Direita (4 cols): Despesas do Dia + Conferência de Dinheiro em Espécie -->
+        <div class="col-span-4 flex flex-col gap-5">
+
+          <!-- Bloco: Despesas do dia -->
+          <section class="bg-surface rounded-card border border-line p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-danger"></div>
+                <h3 class="text-[15px] font-bold text-ink">Despesas do dia</h3>
+              </div>
+              <span class="text-[13px] font-bold text-danger tabular-nums leading-tight">- R$ 120,00</span>
+            </div>
+
+            <div class="flex flex-col gap-3">
+              <!-- Despesa 1 -->
+              <div class="p-3 rounded-xl bg-surface-2/60 border border-line flex flex-col gap-1">
+                <div class="flex items-center justify-between">
+                  <span class="text-[13px] font-bold text-ink">Distribuidora de cosméticos</span>
+                  <span class="text-[13px] font-bold text-ink tabular-nums">R$ 80,00</span>
+                </div>
+                <div class="text-[11px] text-muted">Lixas descartáveis e luvas de nitrila</div>
+                <div class="text-[10px] text-muted flex items-center justify-between pt-1 border-t border-line/50">
+                  <span>09:10 · Lançado por Carla</span>
+                  <span class="font-medium text-ink">Débito estúdio</span>
+                </div>
+              </div>
+
+              <!-- Despesa 2 -->
+              <div class="p-3 rounded-xl bg-surface-2/60 border border-line flex flex-col gap-1">
+                <div class="flex items-center justify-between">
+                  <span class="text-[13px] font-bold text-ink">Café e água</span>
+                  <span class="text-[13px] font-bold text-ink tabular-nums">R$ 40,00</span>
+                </div>
+                <div class="text-[11px] text-muted">Café expresso em grãos e galão de água</div>
+                <div class="text-[10px] text-muted flex items-center justify-between pt-1 border-t border-line/50">
+                  <span>10:45 · Lançado por Carla</span>
+                  <span class="font-medium text-ink">Pix estúdio</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Botão secundário "Nova despesa" -->
+            <button class="w-full mt-4 flex items-center justify-center gap-2 py-2.5 px-3 rounded-[10px] bg-surface-2 border border-line text-[13px] font-bold text-ink hover:bg-line/60 transition-colors">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Nova despesa</span>
+            </button>
+          </section>
+
+          <!-- Bloco: Conferência do dinheiro em espécie -->
+          <section class="bg-surface rounded-card border border-line p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-brand"></div>
+                <h3 class="text-[15px] font-bold text-ink">Conferência do dinheiro em espécie</h3>
+              </div>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#DCFCE7] text-success">
+                Bate 100%
+              </span>
+            </div>
+
+            <div class="flex flex-col gap-2.5 text-[13px]">
+              <div class="flex items-center justify-between py-1 border-b border-line/60">
+                <span class="text-muted">Fundo inicial de troco</span>
+                <span class="font-semibold text-ink tabular-nums">R$ 150,00</span>
+              </div>
+              <div class="flex items-center justify-between py-1 border-b border-line/60">
+                <span class="text-muted">(+) Entradas em dinheiro</span>
+                <span class="font-semibold text-success tabular-nums">+ R$ 120,00</span>
+              </div>
+              <div class="flex items-center justify-between py-1 border-b border-line/60">
+                <span class="text-muted">(-) Saídas em dinheiro</span>
+                <span class="font-semibold text-muted tabular-nums">- R$ 0,00</span>
+              </div>
+
+              <!-- Total esperado -->
+              <div class="flex items-center justify-between pt-2">
+                <span class="font-bold text-ink">Total esperado na gaveta</span>
+                <span class="text-[18px] font-extrabold text-ink tabular-nums">R$ 270,00</span>
+              </div>
+            </div>
+
+            <div class="mt-4 p-3 rounded-xl bg-surface-2/70 border border-line flex items-center gap-2.5 text-[11px] text-muted">
+              <svg class="w-4 h-4 text-success shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Valores conferidos na abertura e sem discrepâncias detectadas.</span>
+            </div>
+          </section>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+</body>
+</html>

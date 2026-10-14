@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;font-family:'Plus Jakarta Sans',sans-serif;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 20;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-primary": "#ffffff", "brand-text-light": "#B34D00", "line-dark": "#2E2B28", "tertiary-container": "#00a8ff", "on-primary-fixed": "#321200", "line-light": "#E2DFDB", "on-error": "#ffffff", "error": "#ba1a1a", "primary-fixed-dim": "#ffb68b", "on-surface-variant": "#584235", "on-brand": "#1A1817", "bg-light": "#F6F5F4", "bg-dark": "#0E0D0C", "primary": "#994700", "background": "#fff8f6", "surface-dim": "#dfd9d7", "surface": "#fff8f6", "on-background": "#1d1b1a", "tertiary": "#006399", "surface-variant": "#e7e1df", "outline-variant": "#e0c0af", "surface-container-high": "#ede7e5", "surface-container": "#f3edea", "tertiary-fixed": "#cde5ff", "on-secondary-fixed-variant": "#4b4641", "success-light": "#16A34A", "on-tertiary-container": "#003a5c", "warning-dark": "#FBBF24", "surface-dark": "#181615", "secondary": "#635d58", "on-error-container": "#93000a", "inverse-surface": "#32302f", "surface-container-lowest": "#ffffff", "surface-2-dark": "#211F1D", "secondary-container": "#eae1da", "tertiary-fixed-dim": "#95ccff", "primary-container": "#ff7a00", "primary-fixed": "#ffdbc8", "ink-dark": "#F3F1EF", "whatsapp-dark": "#25D366", "on-secondary-container": "#69635e", "secondary-fixed-dim": "#cdc5bf", "surface-container-highest": "#e7e1df", "surface-light": "#FFFFFF", "warning-light": "#D97706", "brand-text-dark": "#FF9A3D", "surface-2-light": "#EFEDEA", "whatsapp-light": "#128C4A", "secondary-fixed": "#eae1da", "muted-dark": "#A39D97", "on-secondary": "#ffffff", "surface-tint": "#994700", "on-tertiary-fixed": "#001d32", "on-tertiary": "#ffffff", "error-container": "#ffdad6", "muted-light": "#66605B", "on-tertiary-fixed-variant": "#004a75", "on-primary-container": "#5c2800", "on-secondary-fixed": "#1f1b17", "on-primary-fixed-variant": "#753400", "status-confirmed": "#2563EB", "surface-bright": "#fff8f6", "danger-light": "#DC2626", "inverse-on-surface": "#f6efed", "inverse-primary": "#ffb68b", "success-dark": "#4ADE80", "outline": "#8c7263", "on-surface": "#1d1b1a", "ink-light": "#1A1817", "danger-dark": "#F87171", "surface-container-low": "#f9f2f0" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-md": "1rem", "space-sm": "0.5rem", "space-xl": "2rem", "gutter": "1rem", "space-xs": "0.25rem", "margin": "1rem", "space-lg": "1.5rem" }, "fontFamily": { "label-md": ["Plus Jakarta Sans"], "display-lg": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "body-sm": ["Plus Jakarta Sans"], "title-md": ["Plus Jakarta Sans"], "headline-md": ["Plus Jakarta Sans"], "headline-lg-mobile": ["Plus Jakarta Sans"], "title-lg": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"] }, "fontSize": { "label-md": ["13px", { "lineHeight": "18px", "fontWeight": "600" }], "display-lg": ["40px", { "lineHeight": "48px", "fontWeight": "800" }], "label-sm": ["11px", { "lineHeight": "16px", "fontWeight": "600" }], "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }], "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "title-md": ["17px", { "lineHeight": "24px", "fontWeight": "600" }], "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }], "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }], "title-lg": ["20px", { "lineHeight": "28px", "fontWeight": "700" }], "body-md": ["15px", { "lineHeight": "22.5px", "fontWeight": "400" }] } } } };</script></head><body class="bg-bg-light text-on-surface min-h-screen font-body-md text-body-md"><aside class="fixed left-0 top-0 h-full w-64 bg-surface-container-low shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between"><div class="flex flex-col"><div class="h-16 px-space-lg flex items-center justify-between bg-surface-container-low"><div class="flex items-center gap-space-xs"><span class="font-title-lg text-title-lg tracking-tight text-on-surface font-extrabold">EasyAgenda<span class="text-primary-container">+</span></span><span class="bg-secondary-container text-on-secondary-fixed text-label-sm font-label-sm px-space-xs py-0.5 rounded">Ops Center</span></div></div><div class="px-space-md py-space-sm"><div class="text-label-sm font-label-sm uppercase tracking-wider text-muted-light px-space-sm mb-space-xs">Operações SaaS</div><nav class="flex flex-col gap-1" data-active-classes="bg-primary-container text-on-primary font-title-md rounded-lg"><a class="flex items-center gap-space-sm px-space-sm py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="visao-geral" href="#"><span class="material-symbols-outlined text-[20px]">grid_view</span><span class="font-label-md text-label-md">Visão Geral</span></a><a class="flex items-center gap-space-sm px-space-sm py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="negocios" href="#"><span class="material-symbols-outlined text-[20px]">domain</span><span class="font-label-md text-label-md">Negócios &amp; Assinantes</span></a><a class="flex items-center gap-space-sm px-space-sm py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="saude-de-conexoes" href="#"><span class="material-symbols-outlined text-[20px]">hub</span><span class="font-label-md text-label-md">Saúde de Conexões</span></a><a class="flex items-center gap-space-sm px-space-sm py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="financeiro-saas" href="#"><span class="material-symbols-outlined text-[20px]">payments</span><span class="font-label-md text-label-md">Financeiro SaaS</span></a><a class="flex items-center gap-space-sm px-space-sm py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="auditoria-e-logs" href="#"><span class="material-symbols-outlined text-[20px]">history</span><span class="font-label-md text-label-md">Auditoria &amp; Logs</span></a><a class="flex items-center gap-space-sm px-space-sm py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="configuracoes-da-plataforma" href="#"><span class="material-symbols-outlined text-[20px]">tune</span><span class="font-label-md text-label-md">Configurações</span></a></nav></div></div><div class="p-space-md bg-surface-container"><div class="flex items-center justify-between text-muted-light text-label-sm font-label-sm mb-space-xs"><span>SaaS Engine</span><span class="font-semibold text-on-surface">v2.8.4</span></div><a class="flex items-center gap-space-xs text-muted-light hover:text-primary font-label-sm text-label-sm transition-colors" href="#"><span class="material-symbols-outlined text-[16px]">menu_book</span><span>Docs Operacionais</span></a></div></aside><div class="pl-64"><header class="fixed top-0 left-64 right-0 h-16 bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-space-xl"><div class="flex items-center gap-space-md w-96"><div class="flex items-center w-full bg-surface-container-low rounded-lg px-space-sm py-1.5 focus-within:ring-2 focus-within:ring-primary-container"><span class="material-symbols-outlined text-muted-light text-[20px] mr-space-xs">search</span><input class="w-full bg-transparent border-none outline-none text-on-surface placeholder:text-muted-light font-body-sm text-body-sm" placeholder="Buscar assinante, tenant, e-mail, CNPJ..." type="text"/></div></div><div class="flex items-center gap-space-lg"><div class="hidden xl:flex items-center gap-space-md"><div class="flex items-center gap-space-xs px-space-sm py-1 bg-surface-container rounded-full"><span class="w-2 h-2 rounded-full bg-whatsapp-light"></span><span class="text-label-sm font-label-sm text-on-surface">Meta WhatsApp:</span><span class="text-label-sm font-label-sm text-whatsapp-light font-bold">99.98%</span></div><div class="flex items-center gap-space-xs px-space-sm py-1 bg-surface-container rounded-full"><span class="w-2 h-2 rounded-full bg-success-light"></span><span class="text-label-sm font-label-sm text-on-surface">Fila Pix:</span><span class="text-label-sm font-label-sm text-success-light font-bold">Normal</span></div></div><div class="flex items-center gap-space-sm"><button class="relative p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 bg-danger-light rounded-full"></span></button><div class="h-6 w-[1px] bg-line-light mx-space-xs"></div><div class="flex items-center gap-space-sm"><div class="text-right hidden sm:block"><div class="font-label-md text-label-md text-on-surface leading-tight">Lucas Mendes</div><div class="text-label-sm font-label-sm text-muted-light">Operações &amp; CS</div></div><div class="relative"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><span class="absolute -bottom-1 -right-1 bg-primary-container text-on-brand text-[9px] font-bold px-1 rounded-full">SA</span></div></div></div></div></header><main class="w-full pt-16 bg-bg-light px-space-xl py-space-xl min-h-screen"><div class="flex flex-col w-full">
+<!-- Breadcrumb & Top Bar -->
+<div class="flex flex-wrap items-center justify-between gap-space-sm mb-space-lg">
+<nav class="flex items-center gap-space-xs text-label-md font-label-md">
+<span class="text-muted-light">SuperAdmin</span>
+<span class="material-symbols-outlined text-[16px] text-muted-light">chevron_right</span>
+<a class="text-muted-light hover:text-primary transition-colors" href="#">Negócios</a>
+<span class="material-symbols-outlined text-[16px] text-muted-light">chevron_right</span>
+<span class="text-on-surface font-semibold">Studio Aurora</span>
+<span class="px-space-xs py-0.5 rounded bg-surface-container-high text-on-surface-variant text-label-sm font-label-sm font-mono">#SA-2041</span>
+</nav>
+<div class="flex items-center gap-space-xs text-label-sm font-label-sm text-muted-light bg-surface-container px-space-sm py-1 rounded-full">
+<span class="w-2 h-2 rounded-full bg-success-light animate-pulse"></span>
+<span>Engine v2.8.4 · Gateway Sincronizado</span>
+</div>
+</div>
+<!-- Header Card: Tenant Executive Overview -->
+<section class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm mb-space-xl">
+<div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-space-lg mb-space-lg">
+<div class="flex items-start gap-space-md">
+<div class="relative w-16 h-16 rounded-xl bg-surface-container flex items-center justify-center flex-shrink-0 text-primary">
+<span class="material-symbols-outlined text-[34px]">spa</span>
+<span class="absolute -top-1 -right-1 flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-whatsapp-light opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-whatsapp-light"></span>
+</span>
+</div>
+<div class="flex flex-col">
+<div class="flex flex-wrap items-center gap-space-sm mb-1">
+<h1 class="font-headline-md text-headline-md text-on-surface tracking-tight">Studio Aurora</h1>
+<span class="inline-flex items-center gap-1 px-space-xs py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">verified</span>
+              Cliente Verificado · Tenant #SA-2041
+            </span>
+<span class="inline-flex items-center gap-1 px-space-xs py-0.5 rounded-full bg-success-light/10 text-success-light font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-success-light"></span>
+              Ativo &amp; Saudável
+            </span>
+</div>
+<div class="flex flex-wrap items-center gap-x-space-md gap-y-1 text-body-sm font-body-sm text-muted-light">
+<span class="flex items-center gap-1 text-on-surface">
+<span class="material-symbols-outlined text-[16px] text-muted-light">person</span>
+              Carla Renata Silva
+            </span>
+<span class="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-[16px] text-muted-light">mail</span>
+              carla.silva@studioaurora.com.br
+            </span>
+<span class="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-[16px] text-muted-light">phone_iphone</span>
+              (83) 98842-1920
+            </span>
+<span class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+              João Pessoa, PB
+            </span>
+</div>
+</div>
+</div>
+<!-- Quick Operational Metrics (Pill stats) -->
+<div class="flex flex-wrap lg:flex-nowrap items-center gap-space-sm bg-surface-container-low p-space-sm rounded-lg">
+<div class="px-space-sm py-1 border-r border-transparent">
+<div class="text-label-sm font-label-sm text-muted-light uppercase tracking-wider">Plano Atual</div>
+<div class="font-title-md text-title-md text-on-surface">Plano Pro (Mensal)</div>
+<div class="text-label-sm font-label-sm text-muted-light">R$ 149,00 / mês</div>
+</div>
+<div class="h-8 w-[1px] bg-surface-container-high hidden sm:block"></div>
+<div class="px-space-sm py-1">
+<div class="text-label-sm font-label-sm text-muted-light uppercase tracking-wider">LTV Acumulado</div>
+<div class="font-title-md text-title-md text-brand-text-light font-extrabold">R$ 1.043,00</div>
+<div class="text-label-sm font-label-sm text-muted-light">7 ciclos (Desde Mar/24)</div>
+</div>
+<div class="h-8 w-[1px] bg-surface-container-high hidden sm:block"></div>
+<div class="px-space-sm py-1">
+<div class="text-label-sm font-label-sm text-muted-light uppercase tracking-wider">WhatsApp Oficial</div>
+<div class="flex items-center gap-1 font-label-md text-label-md text-whatsapp-light">
+<span class="material-symbols-outlined text-[16px]">bolt</span>
+            Conectado
+          </div>
+<div class="text-label-sm font-label-sm text-muted-light font-mono">420ms latência</div>
+</div>
+</div>
+</div>
+<!-- Admin Operations Toolbar (High Prominence) -->
+<div class="pt-space-md bg-surface-container-low/60 -mx-space-lg -mb-space-lg p-space-lg rounded-b-xl flex flex-wrap items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-xs text-label-sm font-label-sm text-muted-light">
+<span class="material-symbols-outlined text-[18px] text-primary">admin_panel_settings</span>
+<span>Ações com privilégios de Operador Nível 3 (SuperAdmin)</span>
+</div>
+<div class="flex flex-wrap items-center gap-space-sm">
+<!-- Impersonate Button -->
+<button class="flex items-center gap-1.5 px-space-md py-2 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-colors" onclick="handleImpersonate()">
+<span class="material-symbols-outlined text-[18px] text-muted-light">switch_account</span>
+<span>Login como Tenant</span>
+</button>
+<!-- Extend Trial Button -->
+<button class="flex items-center gap-1.5 px-space-md py-2 rounded-lg bg-surface-2-light text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-colors" onclick="toggleModal('modal-extend-trial')">
+<span class="material-symbols-outlined text-[18px] text-muted-light">more_time</span>
+<span>Estender Teste Grátis</span>
+</button>
+<!-- Primary Orange Action: Apply Coupon / Retention -->
+<button class="flex items-center gap-1.5 px-space-md py-2 rounded-lg bg-primary-container text-on-brand font-title-md text-title-md shadow-sm hover:brightness-105 active:scale-[0.99] transition-all" onclick="toggleModal('modal-coupon')">
+<span class="material-symbols-outlined text-[20px]">sell</span>
+<span>Aplicar Cupom / Desconto</span>
+</button>
+<!-- Danger / Block Button -->
+<button class="flex items-center gap-1.5 px-space-md py-2 rounded-lg bg-error-container text-error font-label-md text-label-md hover:bg-error hover:text-on-error transition-all" onclick="toggleModal('modal-block-tenant')">
+<span class="material-symbols-outlined text-[18px]">lock</span>
+<span>Bloquear Acesso</span>
+</button>
+</div>
+</div>
+</section>
+<!-- 2-Column Content Grid (60% / 40%) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-start">
+<!-- Left Column (60% - lg:col-span-7) -->
+<div class="lg:col-span-7 flex flex-col gap-space-xl">
+<!-- Section 1: Billing & Subscription Timeline -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+<div class="flex flex-wrap items-center justify-between gap-space-sm mb-space-lg">
+<div>
+<div class="text-label-sm font-label-sm text-primary uppercase tracking-wider">Faturamento Transparente</div>
+<h2 class="font-title-lg text-title-lg text-on-surface">Linha do Tempo de Cobrança e Assinatura</h2>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="flex items-center gap-1 px-space-sm py-1.5 rounded-lg bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high text-label-sm font-label-sm transition-colors" onclick="showToast('Sincronização com Asaas / Stripe disparada com sucesso!')" title="Forçar checagem nos webhooks Asaas/Stripe">
+<span class="material-symbols-outlined text-[16px]">sync</span>
+<span>Sincronizar Gateway</span>
+</button>
+<button class="flex items-center gap-1 px-space-sm py-1.5 rounded-lg bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high text-label-sm font-label-sm transition-colors" onclick="showToast('Link de 2ª via enviado para o WhatsApp de Carla Silva.')">
+<span class="material-symbols-outlined text-[16px]">receipt_long</span>
+<span>2ª Via Fatura</span>
+</button>
+</div>
+</div>
+<!-- Next Scheduled Invoice Highlight -->
+<div class="mb-space-lg p-space-md rounded-xl bg-tertiary-fixed/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-space-sm">
+<div class="flex items-start gap-space-sm">
+<div class="p-2 rounded-lg bg-tertiary text-on-tertiary flex-shrink-0">
+<span class="material-symbols-outlined text-[22px]">event_upcoming</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-title-md text-title-md text-on-tertiary-fixed font-bold">15/Out/2024 · Próxima Fatura</span>
+<span class="px-2 py-0.5 rounded-full bg-status-confirmed/10 text-status-confirmed text-label-sm font-label-sm font-semibold">Agendado</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-tertiary-fixed-variant mt-0.5">
+                Renovação automática do Plano Pro no valor de <strong class="text-on-tertiary-fixed">R$ 149,00</strong> via Cartão Mastercard final <span class="font-mono font-semibold">8821</span>.
+              </p>
+</div>
+</div>
+<span class="text-label-sm font-label-sm text-tertiary font-mono sm:text-right whitespace-nowrap">Em 12 dias</span>
+</div>
+<!-- Chronological Invoices Timeline -->
+<div class="relative pl-6 space-y-space-lg before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-surface-container-high">
+<!-- Item 1: 15/Set/2024 -->
+<div class="relative">
+<div class="absolute -left-6 top-1 w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center">
+<span class="w-3 h-3 rounded-full bg-success-light"></span>
+</div>
+<div class="bg-surface-container-low p-space-md rounded-xl">
+<div class="flex flex-wrap items-center justify-between gap-1 mb-1">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md text-on-surface">15/Set/2024</span>
+<span class="text-label-sm font-label-sm text-success-light bg-success-light/10 px-2 py-0.5 rounded-full font-semibold">Pago · R$ 149,00</span>
+</div>
+<span class="text-label-sm font-label-sm font-mono text-muted-light">NFS-e #2024-891</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+                Mensalidade Pro paga com sucesso via Mastercard final 8821. Autenticação 3DS Ok · Gateway Stripe ID: <code class="font-mono text-[12px] bg-surface-container px-1 py-0.5 rounded">ch_3PyK12891</code>.
+              </p>
+</div>
+</div>
+<!-- Item 2: 15/Ago/2024 -->
+<div class="relative">
+<div class="absolute -left-6 top-1 w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center">
+<span class="w-3 h-3 rounded-full bg-success-light"></span>
+</div>
+<div class="bg-surface-container-low p-space-md rounded-xl">
+<div class="flex flex-wrap items-center justify-between gap-1 mb-1">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md text-on-surface">15/Ago/2024</span>
+<span class="text-label-sm font-label-sm text-success-light bg-success-light/10 px-2 py-0.5 rounded-full font-semibold">Pago · R$ 149,00</span>
+</div>
+<span class="text-label-sm font-label-sm font-mono text-muted-light">NFS-e #2024-782</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+                Mensalidade Pro paga com sucesso via Mastercard final 8821. Recibo emitido e enviado automaticamente para a contratante.
+              </p>
+</div>
+</div>
+<!-- Item 3: 15/Jul/2024 -->
+<div class="relative">
+<div class="absolute -left-6 top-1 w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center">
+<span class="w-3 h-3 rounded-full bg-success-light"></span>
+</div>
+<div class="bg-surface-container-low p-space-md rounded-xl">
+<div class="flex flex-wrap items-center justify-between gap-1 mb-1">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md text-on-surface">15/Jul/2024</span>
+<span class="text-label-sm font-label-sm text-success-light bg-success-light/10 px-2 py-0.5 rounded-full font-semibold">Pago · R$ 149,00</span>
+</div>
+<span class="text-label-sm font-label-sm font-mono text-muted-light">Pix Itaú Aut.</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+                Liquidação instantânea de R$ 149,00 via Pix Recorrente Itaú. Conciliação automática em 8 segundos.
+              </p>
+</div>
+</div>
+<!-- Item 4: 01/Abr/2024 (Cupom) -->
+<div class="relative">
+<div class="absolute -left-6 top-1 w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center">
+<span class="w-3 h-3 rounded-full bg-primary-container"></span>
+</div>
+<div class="bg-surface-container-low p-space-md rounded-xl">
+<div class="flex flex-wrap items-center justify-between gap-1 mb-1">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md text-on-surface">01/Abr/2024</span>
+<span class="text-label-sm font-label-sm text-primary bg-primary-fixed px-2 py-0.5 rounded-full font-bold">Cupom: BEMVINDO30</span>
+</div>
+<span class="text-label-sm font-label-sm font-mono text-muted-light">R$ 104,30 liquidado</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+                Desconto promocional de boas-vindas (-30%) aplicado sobre o 1º mês completo pós-teste. Fatura quitada no cartão.
+              </p>
+</div>
+</div>
+<!-- Item 5: 15/Mar/2024 (Conversão) -->
+<div class="relative">
+<div class="absolute -left-6 top-1 w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center">
+<span class="w-3 h-3 rounded-full bg-secondary"></span>
+</div>
+<div class="bg-surface-container-low p-space-md rounded-xl">
+<div class="flex flex-wrap items-center justify-between gap-1 mb-1">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md text-on-surface">15/Mar/2024</span>
+<span class="text-label-sm font-label-sm text-muted-light bg-surface-container px-2 py-0.5 rounded-full font-semibold">Conversão de Onboarding</span>
+</div>
+<span class="text-label-sm font-label-sm text-muted-light">14 dias de Trial</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+                Encerramento do período de experimentação gratuita e contratação voluntária do Plano Pro pelo painel web.
+              </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 2: Tenant Operational Health & Footprint -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+<div class="flex items-center justify-between mb-space-md">
+<div>
+<div class="text-label-sm font-label-sm text-primary uppercase tracking-wider">Uso em Produção</div>
+<h2 class="font-title-lg text-title-lg text-on-surface">Visão Operacional do Tenant</h2>
+</div>
+<span class="material-symbols-outlined text-[20px] text-muted-light">dashboard_customize</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-space-md mb-space-lg">
+<!-- Stat 1: Professionals -->
+<div class="p-space-md rounded-xl bg-surface-container-low">
+<div class="flex items-center justify-between mb-1 text-muted-light">
+<span class="text-label-sm font-label-sm">Profissionais Ativos</span>
+<span class="material-symbols-outlined text-[18px]">badge</span>
+</div>
+<div class="font-headline-md text-headline-md text-on-surface">2 <span class="text-body-sm font-body-sm text-muted-light">/ 3 vagas</span></div>
+<div class="text-label-sm font-label-sm text-muted-light mt-1">Carla S. &amp; Bruno M.</div>
+</div>
+<!-- Stat 2: Pix Security Deposit -->
+<div class="p-space-md rounded-xl bg-surface-container-low">
+<div class="flex items-center justify-between mb-1 text-muted-light">
+<span class="text-label-sm font-label-sm">Sinal Pix Obrigatório</span>
+<span class="material-symbols-outlined text-[18px] text-whatsapp-light">payments</span>
+</div>
+<div class="font-headline-md text-headline-md text-whatsapp-light">98%</div>
+<div class="text-label-sm font-label-sm text-muted-light mt-1">Adesão nos agendamentos</div>
+</div>
+<!-- Stat 3: Total End-Clients -->
+<div class="p-space-md rounded-xl bg-surface-container-low">
+<div class="flex items-center justify-between mb-1 text-muted-light">
+<span class="text-label-sm font-label-sm">Clientes na Base</span>
+<span class="material-symbols-outlined text-[18px]">group</span>
+</div>
+<div class="font-headline-md text-headline-md text-on-surface">482</div>
+<div class="text-label-sm font-label-sm text-success-light mt-1">+28 novos este mês</div>
+</div>
+</div>
+<!-- Operational Status Rows -->
+<div class="space-y-space-sm">
+<div class="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low text-body-sm font-body-sm">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-muted-light text-[18px]">schedule</span>
+<span class="text-on-surface font-medium">Grade de Funcionamento</span>
+</div>
+<span class="text-muted-light">Terça a Sábado · 08:00 às 18:00</span>
+</div>
+<div class="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low text-body-sm font-body-sm">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-muted-light text-[18px]">chat</span>
+<span class="text-on-surface font-medium">Lembretes WhatsApp 24h &amp; 2h antes</span>
+</div>
+<span class="text-whatsapp-light font-semibold">Ativado (99.4% entregues)</span>
+</div>
+<div class="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low text-body-sm font-body-sm">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-muted-light text-[18px]">link</span>
+<span class="text-on-surface font-medium">Subdomínio Público</span>
+</div>
+<a class="text-primary hover:underline font-mono text-[13px] flex items-center gap-1" href="https://studioaurora.easyagenda.com.br" target="_blank">
+              studioaurora.easyagenda.com.br
+              <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column (40% - lg:col-span-5) -->
+<div class="lg:col-span-5 flex flex-col gap-space-xl">
+<!-- Section 3: Audit Logs & Platform Governance -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+<div class="flex items-start justify-between gap-space-sm mb-space-sm">
+<div>
+<div class="text-label-sm font-label-sm text-primary uppercase tracking-wider">Governança &amp; Rastreio</div>
+<h2 class="font-title-lg text-title-lg text-on-surface">Logs de Auditoria</h2>
+</div>
+<span class="material-symbols-outlined text-[20px] text-muted-light">security</span>
+</div>
+<p class="text-body-sm font-body-sm text-muted-light mb-space-md">
+          Eventos imutáveis registrados via stream distribuído para fins de compliance e suporte.
+        </p>
+<!-- Log Filter Pills -->
+<div class="flex flex-wrap items-center gap-1.5 mb-space-md" id="log-filters">
+<button class="log-filter-btn px- space-sm py-1 rounded-full text-label-sm font-label-sm bg-primary-container text-on-brand font-semibold" onclick="filterLogs('all')">Todos</button>
+<button class="log-filter-btn px-space-sm py-1 rounded-full text-label-sm font-label-sm bg-surface-container text-muted-light hover:text-on-surface" onclick="filterLogs('financeiro')">Financeiro</button>
+<button class="log-filter-btn px-space-sm py-1 rounded-full text-label-sm font-label-sm bg-surface-container text-muted-light hover:text-on-surface" onclick="filterLogs('sistema')">Sistema</button>
+<button class="log-filter-btn px-space-sm py-1 rounded-full text-label-sm font-label-sm bg-surface-container text-muted-light hover:text-on-surface" onclick="filterLogs('admin')">Operador Admin</button>
+</div>
+<!-- Audit Log List -->
+<div class="space-y-space-md" id="audit-log-container">
+<!-- Event 1: Admin Operator View -->
+<div class="audit-item admin p-space-sm rounded-xl bg-surface-container-low transition-all hover:bg-surface-container">
+<div class="flex items-center justify-between gap-2 mb-1">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span class="font-label-sm text-label-sm font-bold text-on-surface">Hoje, 14:32</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-surface-container text-[11px] font-mono text-muted-light font-semibold">IP 177.18.29.10</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface">
+<strong class="text-primary font-semibold">Operador Admin Lucas M.</strong> visualizou a ficha cadastral do tenant.
+            </p>
+<div class="mt-1 text-label-sm font-label-sm text-muted-light flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">visibility</span> Sessão administrativa autenticada via 2FA
+            </div>
+</div>
+<!-- Event 2: Tenant altered schedule -->
+<div class="audit-item sistema p-space-sm rounded-xl bg-surface-container-low transition-all hover:bg-surface-container">
+<div class="flex items-center justify-between gap-2 mb-1">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="font-label-sm text-label-sm font-bold text-on-surface">Ontem, 19:40</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-tertiary-fixed text-[11px] font-mono text-on-tertiary-fixed-variant">Ação do Usuário</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface">
+<strong>Carla Silva</strong> alterou horário de funcionamento de sábado (08:00 às 16:00 para 08:00 às 18:00).
+            </p>
+<div class="mt-1 text-label-sm font-label-sm text-muted-light flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">edit_calendar</span> Módulo Agenda · Origem App Web Mobile
+            </div>
+</div>
+<!-- Event 3: WhatsApp Webhook -->
+<div class="audit-item sistema p-space-sm rounded-xl bg-surface-container-low transition-all hover:bg-surface-container">
+<div class="flex items-center justify-between gap-2 mb-1">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-whatsapp-light"></span>
+<span class="font-label-sm text-label-sm font-bold text-on-surface">22/Set, 10:15</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-success-light/10 text-success-light text-[11px] font-mono font-semibold">Meta API</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface">
+              Webhook de WhatsApp Meta reconectado com sucesso após renovação de token OAuth.
+            </p>
+<div class="mt-1 text-label-sm font-label-sm text-muted-light flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Nenhuma mensagem enfileirada foi perdida
+            </div>
+</div>
+<!-- Event 4: Invoice Settled -->
+<div class="audit-item financeiro p-space-sm rounded-xl bg-surface-container-low transition-all hover:bg-surface-container">
+<div class="flex items-center justify-between gap-2 mb-1">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-success-light"></span>
+<span class="font-label-sm text-label-sm font-bold text-on-surface">15/Set, 00:04</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-surface-container text-[11px] font-mono text-on-surface font-semibold">#INV-9921</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface">
+              Gateway de pagamento confirmou liquidação da fatura mensal no valor de <strong>R$ 149,00</strong>.
+            </p>
+<div class="mt-1 text-label-sm font-label-sm text-muted-light flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">credit_card</span> Cartão Mastercard final 8821
+            </div>
+</div>
+<!-- Event 5: Catalog Update -->
+<div class="audit-item sistema p-space-sm rounded-xl bg-surface-container-low transition-all hover:bg-surface-container">
+<div class="flex items-center justify-between gap-2 mb-1">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-label-sm text-label-sm font-bold text-on-surface">10/Set, 16:20</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-surface-container text-[11px] font-mono text-muted-light">Catálogo</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface">
+              Adicionou novo serviço no catálogo: <span class="font-semibold text-primary">"Manutenção Fibra de Vidro (R$ 110,00)"</span>. Duração: 90 min.
+            </p>
+</div>
+<!-- Event 6: Admin Support Courtesy -->
+<div class="audit-item admin financeiro p-space-sm rounded-xl bg-surface-container-low transition-all hover:bg-surface-container">
+<div class="flex items-center justify-between gap-2 mb-1">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-brand-text-light"></span>
+<span class="font-label-sm text-label-sm font-bold text-on-surface">01/Set, 09:12</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-primary-fixed text-[11px] font-mono text-primary font-bold">Cortesia CS</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface">
+              Suporte Interno estendeu 3 dias de cortesia durante migração de servidor de banco de dados.
+            </p>
+<div class="mt-1 text-label-sm font-label-sm text-muted-light flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">support_agent</span> Protocolo EasyHelp #77412
+            </div>
+</div>
+</div>
+<button class="w-full mt-space-md py-2.5 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-colors flex items-center justify-center gap-1.5" onclick="showToast('Exportando relatório criptografado de auditoria (CSV/JSON)...')">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span>Exportar Trilha de Auditoria (.CSV)</span>
+</button>
+</div>
+<!-- Quick Safety & Security Card -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex items-center gap-space-sm mb-space-xs text-on-surface font-title-md text-title-md">
+<span class="material-symbols-outlined text-primary text-[20px]">encrypted</span>
+<span>Segurança de Dados &amp; LGPD</span>
+</div>
+<p class="text-body-sm font-body-sm text-muted-light">
+          Dados do titular anonimizados para agentes sem credencial N3. Armazenamento redundante com backup diário em região São Paulo (AWS sa-east-1).
+        </p>
+<div class="mt-space-sm pt-space-sm flex items-center justify-between text-label-sm font-label-sm text-muted-light">
+<span>Último snapshot de banco:</span>
+<span class="font-mono text-on-surface">Hoje às 04:00 (Ok)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- MODAL: Aplicar Cupom / Desconto -->
+<div class="fixed inset-0 bg-ink-light/60 backdrop-blur-sm z-50 hidden items-center justify-center p-space-md" id="modal-coupon">
+<div class="bg-surface-container-lowest rounded-xl max-w-md w-full p-space-lg shadow-xl relative animate-in fade-in zoom-in duration-150">
+<div class="flex items-center justify-between mb-space-md">
+<div class="flex items-center gap-space-xs">
+<div class="w-8 h-8 rounded-lg bg-primary-container/20 text-brand-text-light flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">sell</span>
+</div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Aplicar Cupom / Desconto</h3>
+</div>
+<button class="text-muted-light hover:text-on-surface p-1 rounded-lg" onclick="toggleModal('modal-coupon')">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<p class="text-body-sm font-body-sm text-muted-light mb-space-md">
+        Conceda desconto de retenção ou benefício de parceria para <strong class="text-on-surface">Studio Aurora (#SA-2041)</strong>. O valor será deduzido na próxima fatura.
+      </p>
+<div class="space-y-space-md mb-space-lg">
+<div>
+<label class="block text-label-sm font-label-sm text-muted-light uppercase tracking-wider mb-1">Selecione o Cupom Padrão</label>
+<select class="w-full h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-sm text-body-sm outline-none focus:ring-2 focus:ring-primary-container" id="coupon-select" onchange="handleCouponPreset(this.value)">
+<option value="">Selecione ou digite abaixo...</option>
+<option value="RETENCAO20">RETENCAO20 — 20% OFF por 3 faturas (Retenção)</option>
+<option value="PARCEIRO50">PARCEIRO50 — 50% OFF por 6 faturas (Embaixador)</option>
+<option value="CORTESIA100">CORTESIA100 — 100% OFF na próxima mensalidade</option>
+<option value="CUSTOM">Outro código personalizado...</option>
+</select>
+</div>
+<div>
+<label class="block text-label-sm font-label-sm text-muted-light uppercase tracking-wider mb-1">Código do Cupom</label>
+<input class="w-full h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-mono text-body-sm outline-none focus:ring-2 focus:ring-primary-container uppercase" id="coupon-code-input" placeholder="Ex: RETENCAO20" type="text" value="RETENCAO20"/>
+</div>
+<div>
+<label class="block text-label-sm font-label-sm text-muted-light uppercase tracking-wider mb-1">Motivo Interno / Justificativa</label>
+<textarea class="w-full p-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-sm text-body-sm outline-none focus:ring-2 focus:ring-primary-container" id="coupon-reason" placeholder="Descreva brevemente o motivo para fins de auditoria interna..." rows="2">Negociação preventiva de cancelamento pelo CS.</textarea>
+</div>
+</div>
+<div class="flex items-center justify-end gap-space-sm">
+<button class="px-space-md py-2 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-colors" onclick="toggleModal('modal-coupon')">Cancelar</button>
+<button class="px-space-md py-2 rounded-lg bg-primary-container text-on-brand font-title-md text-title-md hover:brightness-105 transition-all" onclick="submitCoupon()">Confirmar Desconto</button>
+</div>
+</div>
+</div>
+<!-- MODAL: Estender Teste Grátis -->
+<div class="fixed inset-0 bg-ink-light/60 backdrop-blur-sm z-50 hidden items-center justify-center p-space-md" id="modal-extend-trial">
+<div class="bg-surface-container-lowest rounded-xl max-w-md w-full p-space-lg shadow-xl relative animate-in fade-in zoom-in duration-150">
+<div class="flex items-center justify-between mb-space-md">
+<div class="flex items-center gap-space-xs">
+<div class="w-8 h-8 rounded-lg bg-tertiary-fixed text-on-tertiary-fixed-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">more_time</span>
+</div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Estender Teste Grátis</h3>
+</div>
+<button class="text-muted-light hover:text-on-surface p-1 rounded-lg" onclick="toggleModal('modal-extend-trial')">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<p class="text-body-sm font-body-sm text-muted-light mb-space-md">
+        Adicione dias extras de degustação sem disparo de cobrança ou bloqueio operacional para Carla Silva.
+      </p>
+<div class="space-y-space-md mb-space-lg">
+<div>
+<label class="block text-label-sm font-label-sm text-muted-light uppercase tracking-wider mb-2">Prazo adicional</label>
+<div class="grid grid-cols-3 gap-space-sm">
+<button class="trial-days-btn py-2.5 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md hover:bg-surface-container-high text-center" onclick="selectTrialDays(7)" type="button">+7 Dias</button>
+<button class="trial-days-btn py-2.5 rounded-lg bg-primary-container text-on-brand font-label-md text-label-md text-center font-bold" onclick="selectTrialDays(14)" type="button">+14 Dias</button>
+<button class="trial-days-btn py-2.5 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md hover:bg-surface-container-high text-center" onclick="selectTrialDays(30)" type="button">+30 Dias</button>
+</div>
+</div>
+<div>
+<label class="block text-label-sm font-label-sm text-muted-light uppercase tracking-wider mb-1">Justificativa da Extensão</label>
+<input class="w-full h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-sm text-body-sm outline-none focus:ring-2 focus:ring-primary-container" id="trial-note" type="text" value="Período de adaptação da equipe de 3 profissionais ao app."/>
+</div>
+</div>
+<div class="flex items-center justify-end gap-space-sm">
+<button class="px-space-md py-2 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-colors" onclick="toggleModal('modal-extend-trial')">Cancelar</button>
+<button class="px-space-md py-2 rounded-lg bg-primary-container text-on-brand font-title-md text-title-md hover:brightness-105 transition-all" onclick="submitTrialExtension()">Aplicar Extensão</button>
+</div>
+</div>
+</div>
+<!-- MODAL: Bloquear Acesso (Perigoso) -->
+<div class="fixed inset-0 bg-ink-light/60 backdrop-blur-sm z-50 hidden items-center justify-center p-space-md" id="modal-block-tenant">
+<div class="bg-surface-container-lowest rounded-xl max-w-md w-full p-space-lg shadow-xl relative animate-in fade-in zoom-in duration-150">
+<div class="flex items-center justify-between mb-space-md">
+<div class="flex items-center gap-space-xs">
+<div class="w-8 h-8 rounded-lg bg-error-container text-error flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">warning</span>
+</div>
+<h3 class="font-title-lg text-title-lg text-error">Bloquear Conta do Tenant</h3>
+</div>
+<button class="text-muted-light hover:text-on-surface p-1 rounded-lg" onclick="toggleModal('modal-block-tenant')">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant mb-space-md">
+<strong>Atenção:</strong> Esta ação suspende imediatamente a página pública de agendamento e o acesso de Carla Silva e seus colaboradores ao painel EasyAgenda+.
+      </p>
+<div class="space-y-space-md mb-space-lg">
+<div>
+<label class="block text-label-sm font-label-sm text-muted-light uppercase tracking-wider mb-1">Motivo Regulatório / Administrativo</label>
+<select class="w-full h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-body-sm text-body-sm outline-none focus:ring-2 focus:ring-error" id="block-reason-select">
+<option value="inadimplencia">Inadimplência recorrente (&gt; 15 dias de atraso)</option>
+<option value="fraude">Suspeita de Fraude / Chargebacks elevados</option>
+<option value="judicial">Determinação Judicial / Solicitação Policial</option>
+<option value="termos">Violação direta dos Termos de Uso do EasyAgenda+</option>
+</select>
+</div>
+<div>
+<label class="block text-label-sm font-label-sm text-muted-light uppercase tracking-wider mb-1">Confirmação de Segurança</label>
+<p class="text-label-sm font-label-sm text-muted-light mb-1">Digite <strong class="font-mono text-error">BLOQUEAR-AURORA</strong> para autorizar:</p>
+<input class="w-full h-11 px-space-sm rounded-lg bg-surface-container-low text-on-surface font-mono text-body-sm outline-none focus:ring-2 focus:ring-error uppercase" id="block-confirm-input" placeholder="BLOQUEAR-AURORA" type="text"/>
+</div>
+</div>
+<div class="flex items-center justify-end gap-space-sm">
+<button class="px-space-md py-2 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-colors" onclick="toggleModal('modal-block-tenant')">Cancelar</button>
+<button class="px-space-md py-2 rounded-lg bg-error text-on-error font-title-md text-title-md hover:brightness-110 transition-all" onclick="submitBlockTenant()">Confirmar Bloqueio</button>
+</div>
+</div>
+</div>
+<!-- Toast Notification Overlay -->
+<div class="fixed bottom-6 right-6 z-50 hidden items-center gap-space-sm px-space-md py-3 rounded-xl bg-ink-light text-on-primary shadow-xl animate-in slide-in-from-bottom-4 duration-200" id="action-toast">
+<span class="material-symbols-outlined text-whatsapp-dark text-[20px]">check_circle</span>
+<span class="text-body-sm font-body-sm" id="toast-message">Ação executada com sucesso.</span>
+</div>
+</div>
+<script>
+  function toggleModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    if (modal.classList.contains('hidden')) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    } else {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
+  function showToast(message) {
+    const toast = document.getElementById('action-toast');
+    const toastMsg = document.getElementById('toast-message');
+    toastMsg.textContent = message;
+    toast.classList.remove('hidden');
+    toast.classList.add('flex');
+    setTimeout(() => {
+      toast.classList.add('hidden');
+      toast.classList.remove('flex');
+    }, 4500);
+  }
+
+  function handleImpersonate() {
+    const confirmAction = confirm('ATENÇÃO: Você será redirecionado para a conta do Studio Aurora com privilégios de Carla Silva. Esta sessão será auditada. Deseja continuar?');
+    if (confirmAction) {
+      showToast('Autenticando token de impersonação... Redirecionando para Studio Aurora.');
+      setTimeout(() => {
+        // Redirecionamento simulado
+        window.open('#impersonate-session-SA-2041', '_blank');
+      }, 1000);
+    }
+  }
+
+  function handleCouponPreset(val) {
+    const codeInput = document.getElementById('coupon-code-input');
+    if (val && val !== 'CUSTOM') {
+      codeInput.value = val;
+    } else if (val === 'CUSTOM') {
+      codeInput.value = '';
+      codeInput.focus();
+    }
+  }
+
+  function submitCoupon() {
+    const code = document.getElementById('coupon-code-input').value.trim();
+    if (!code) {
+      alert('Por favor, informe o código do cupom.');
+      return;
+    }
+    toggleModal('modal-coupon');
+    showToast(`Cupom ${code} aplicado com sucesso na assinatura #SA-2041.`);
+  }
+
+  let selectedDays = 14;
+  function selectTrialDays(days) {
+    selectedDays = days;
+    const buttons = document.querySelectorAll('.trial-days-btn');
+    buttons.forEach(btn => {
+      btn.classList.remove('bg-primary-container', 'text-on-brand', 'font-bold');
+      btn.classList.add('bg-surface-container', 'text-on-surface');
+      if (btn.textContent.includes(days.toString())) {
+        btn.classList.add('bg-primary-container', 'text-on-brand', 'font-bold');
+        btn.classList.remove('bg-surface-container', 'text-on-surface');
+      }
+    });
+  }
+
+  function submitTrialExtension() {
+    toggleModal('modal-extend-trial');
+    showToast(`Período de teste estendido em +${selectedDays} dias para Carla Silva.`);
+  }
+
+  function submitBlockTenant() {
+    const input = document.getElementById('block-confirm-input').value.trim();
+    if (input !== 'BLOQUEAR-AURORA') {
+      alert('Frase de confirmação incorreta. O tenant NÃO foi bloqueado.');
+      return;
+    }
+    toggleModal('modal-block-tenant');
+    showToast('A conta do Studio Aurora (#SA-2041) foi SUSPENSA imediatamente.');
+  }
+
+  function filterLogs(category) {
+    const buttons = document.querySelectorAll('.log-filter-btn');
+    buttons.forEach(b => {
+      b.classList.remove('bg-primary-container', 'text-on-brand', 'font-semibold');
+      b.classList.add('bg-surface-container', 'text-muted-light');
+    });
+
+    event.currentTarget.classList.add('bg-primary-container', 'text-on-brand', 'font-semibold');
+    event.currentTarget.classList.remove('bg-surface-container', 'text-muted-light');
+
+    const items = document.querySelectorAll('.audit-item');
+    items.forEach(item => {
+      if (category === 'all') {
+        item.style.display = 'block';
+      } else {
+        if (item.classList.contains(category)) {
+          item.style.display = 'block';
+        } else {
+          item.style.display = 'none';
+        }
+      }
+    });
+  }
+</script></main></div></body></html>
