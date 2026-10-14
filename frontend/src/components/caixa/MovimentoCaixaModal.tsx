@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Modal, Button, Field, Input, Icon } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { cn } from '@/lib/cn';
+import { parseValorBR } from '@/lib/formatters';
 import { registrarMovimento, type CashDay } from '@/lib/caixa';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 
@@ -31,11 +32,11 @@ export function MovimentoCaixaModal({ isOpen, onClose, onSalvo }: MovimentoCaixa
     if (isOpen) { setTipo('sangria'); setValor(''); setDescricao(''); }
   }, [isOpen]);
 
-  const numero = Number(valor.replace(',', '.'));
-  const valido = Number.isFinite(numero) && numero > 0;
+  const numero = parseValorBR(valor);
+  const valido = numero !== null && numero > 0;
 
   const salvar = async () => {
-    if (!valido) return;
+    if (numero === null || !valido) return;
     setSalvando(true);
     try {
       const dia = await registrarMovimento({ kind: tipo, amount: numero, description: descricao.trim() });

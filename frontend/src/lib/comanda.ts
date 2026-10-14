@@ -105,6 +105,12 @@ export const buscarRegraComissao = async () => (await api.get<CommissionSettings
 export const salvarRegraComissao = async (r: CommissionSettings) =>
   (await api.put<CommissionSettings>('/comandas/settings', r)).data;
 
-export const ehCaixaFechado = (error: unknown): boolean =>
-  error instanceof AxiosError && error.response?.status === 409 &&
-  (error.response.data as { errorCode?: string } | undefined)?.errorCode === 'CASH_CLOSED';
+const codigoConflito = (error: unknown): string | undefined =>
+  error instanceof AxiosError && error.response?.status === 409
+    ? (error.response.data as { errorCode?: string } | undefined)?.errorCode
+    : undefined;
+
+/** O caixa de hoje ainda não foi aberto. */
+export const ehCaixaFechado = (error: unknown): boolean => codigoConflito(error) === 'CASH_CLOSED';
+/** O caixa de hoje já foi aberto e fechado. */
+export const ehCaixaJaFechado = (error: unknown): boolean => codigoConflito(error) === 'CASH_ALREADY_CLOSED';

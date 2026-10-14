@@ -32,6 +32,9 @@ export interface Appointment {
     comanda_id?: string | null;
     comanda_status?: 'rascunho' | 'fechada' | null;
     comanda_number?: number | null;
+    /** Gravados no fechamento da comanda; null enquanto não fechada. */
+    comanda_total_charged?: number | null;
+    comanda_deposit_applied?: number | null;
     reminder_sent: boolean;
     created_at: string;
     client_name?: string;

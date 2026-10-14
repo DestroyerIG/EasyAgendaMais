@@ -207,6 +207,8 @@ function ReenviarComprovante({ comandaId }: { comandaId: string }) {
   );
 }
 
+const STATUS_COM_SINAL_PAGO: string[] = ['confirmado', 'em_atendimento', 'concluido', 'faltou'];
+
 export interface ConteudoDetalhesProps {
   agendamento: Appointment;
 }
@@ -222,9 +224,15 @@ export function ConteudoDetalhesAgendamento({ agendamento }: ConteudoDetalhesPro
     ? `${faixaDoAtendimento(agendamento.time, duracao)} (${formatarDuracao(duracao)})`
     : agendamento.time.slice(0, 5);
   const preco = Math.max(0, Number(agendamento.service_price || 0));
-  const sinal = agendamento.status !== 'aguardando_pagamento' ? Math.max(0, Number(agendamento.deposit_amount || 0)) : 0;
+  // Sinal só conta como pago em status que passaram pelo pagamento (reserva expirada fica cancelada sem pagar).
+  const sinal = STATUS_COM_SINAL_PAGO.includes(agendamento.status) ? Math.max(0, Number(agendamento.deposit_amount || 0)) : 0;
   const restante = Math.max(0, preco - sinal);
   const comandaFechada = agendamento.comanda_status === 'fechada' && agendamento.comanda_id;
+  // Comanda fechada: o valor real pago (cobrado no balcão + sinal aplicado), não o preço de catálogo.
+  const pago = comandaFechada
+    ? Number(agendamento.comanda_total_charged ?? 0) + Number(agendamento.comanda_deposit_applied ?? 0)
+    : null;
+  const semRestante = agendamento.status === 'faltou' || agendamento.status === 'cancelado';
   const recorrente = estado.fase === 'pronto' && estado.dados.client_stats.is_recurring;
 
   return (
@@ -331,13 +339,20 @@ export function ConteudoDetalhesAgendamento({ agendamento }: ConteudoDetalhesPro
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-3 pt-1">
-          <div className="flex flex-col">
-            <span className="text-[13px] font-bold text-ink">Restante no balcão:</span>
-            <span className="text-[11px] text-muted">Cartão, dinheiro ou Pix na saída</span>
+        {pago !== null ? (
+          <div className="flex items-center justify-between gap-3 pt-1">
+            <span className="text-[13px] font-bold text-ink">Pago:</span>
+            <span className="shrink-0 text-[20px] font-extrabold tabular-nums text-success-text">{formatCurrency(Math.round(pago * 100) / 100)}</span>
           </div>
-          <span className="shrink-0 text-[20px] font-extrabold tabular-nums text-brand-text">{formatCurrency(restante)}</span>
-        </div>
+        ) : semRestante ? null : (
+          <div className="flex items-center justify-between gap-3 pt-1">
+            <div className="flex flex-col">
+              <span className="text-[13px] font-bold text-ink">Restante no balcão:</span>
+              <span className="text-[11px] text-muted">Cartão, dinheiro ou Pix na saída</span>
+            </div>
+            <span className="shrink-0 text-[20px] font-extrabold tabular-nums text-brand-text">{formatCurrency(restante)}</span>
+          </div>
+        )}
 
         {comandaFechada && (
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">

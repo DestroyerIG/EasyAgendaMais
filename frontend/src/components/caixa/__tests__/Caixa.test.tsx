@@ -10,7 +10,7 @@ vi.mock('@/lib/api', () => ({ default: { get: vi.fn().mockImplementation((url: s
   if (url === '/finance/summary') return Promise.resolve({ data: { today: { earnings: 0, expenses: 0 }, month: { earnings: 0, expenses: 0 } } });
   return Promise.resolve({ data: [] });
 }), post: vi.fn(), put: vi.fn(), delete: vi.fn() } }));
-vi.mock('@/lib/caixa', async (orig) => ({ ...(await orig<typeof import('@/lib/caixa')>()), buscarCaixa: vi.fn(), abrirCaixa: vi.fn(), fecharCaixa: vi.fn(), registrarMovimento: vi.fn() }));
+vi.mock('@/lib/caixa', async (orig) => ({ ...(await orig<typeof import('@/lib/caixa')>()), buscarCaixa: vi.fn(), abrirCaixa: vi.fn(), fecharCaixa: vi.fn(), reabrirCaixa: vi.fn(), registrarMovimento: vi.fn() }));
 
 const acesso = { allowed: true } as never;
 const dia = (over: Partial<caixa.CashDay> = {}): caixa.CashDay => ({
@@ -68,12 +68,61 @@ describe('Caixa com dado real', () => {
     expect(await screen.findByText('Bate 100%')).toBeInTheDocument();
   });
 
-  it('dia passado é somente leitura', async () => {
-    vi.mocked(caixa.buscarCaixa).mockResolvedValue(dia({ isToday: false }));
+  it('dia passado já fechado é somente leitura', async () => {
+    const fechada = { ...dia().session!, closedAt: '2026-10-12T22:00:00Z', countedBalance: 180, expectedBalance: 180, difference: 0 };
+    vi.mocked(caixa.buscarCaixa).mockResolvedValue(dia({ date: '2026-10-12', isToday: false, session: fechada }));
     abrir();
     await screen.findByText(/por Carla/);
     expect(screen.queryByRole('button', { name: 'Fechar caixa' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reabrir caixa' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /sangria/i })).not.toBeInTheDocument();
+  });
+
+  it('caixa de dia passado esquecido aberto pode ser fechado (com a data daquele dia)', async () => {
+    const user = userEvent.setup();
+    vi.mocked(caixa.buscarCaixa).mockResolvedValue(dia({ date: '2026-10-12', isToday: false }));
+    vi.mocked(caixa.fecharCaixa).mockResolvedValue(dia({ date: '2026-10-12', isToday: false }));
+    abrir();
+    await user.click(await screen.findByRole('button', { name: 'Fechar caixa' }));
+    expect(screen.queryByRole('button', { name: /sangria/i })).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText('Valor contado na gaveta'), '180');
+    await user.click(screen.getByRole('button', { name: 'Confirmar fechamento' }));
+    await waitFor(() => expect(caixa.fecharCaixa).toHaveBeenCalledWith({ countedBalance: 180, notes: '', date: '2026-10-12' }));
+  });
+
+  it('caixa de hoje fechado oferece reabrir', async () => {
+    const user = userEvent.setup();
+    const fechada = { ...dia().session!, closedAt: '2026-10-13T22:00:00Z', countedBalance: 180, expectedBalance: 180, difference: 0 };
+    vi.mocked(caixa.buscarCaixa).mockResolvedValue(dia({ session: fechada }));
+    vi.mocked(caixa.reabrirCaixa).mockResolvedValue(dia());
+    abrir();
+    await user.click(await screen.findByRole('button', { name: 'Reabrir caixa' }));
+    await waitFor(() => expect(caixa.reabrirCaixa).toHaveBeenCalled());
+    expect(await screen.findByRole('button', { name: 'Fechar caixa' })).toBeInTheDocument();
+  });
+
+  it('valor contado com milhar no padrão brasileiro: "1.250,00" vira 1250', async () => {
+    const user = userEvent.setup();
+    vi.mocked(caixa.buscarCaixa).mockResolvedValue(dia());
+    vi.mocked(caixa.fecharCaixa).mockResolvedValue(dia());
+    abrir();
+    await user.click(await screen.findByRole('button', { name: 'Fechar caixa' }));
+    await user.type(screen.getByLabelText('Valor contado na gaveta'), '1.250,00');
+    expect(screen.getByText('Diferença: R$ 1.070,00')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Confirmar fechamento' }));
+    await waitFor(() => expect(caixa.fecharCaixa).toHaveBeenCalledWith({ countedBalance: 1250, notes: '', date: '2026-10-13' }));
+  });
+
+  it('sangria com milhar: "1.250" vira 1250, não 1,25', async () => {
+    const user = userEvent.setup();
+    vi.mocked(caixa.buscarCaixa).mockResolvedValue(dia());
+    vi.mocked(caixa.registrarMovimento).mockResolvedValue(dia());
+    abrir();
+    await user.click(await screen.findByRole('button', { name: 'Registrar sangria/suprimento' }));
+    await user.type(screen.getByLabelText('Valor'), '1.250');
+    await user.type(screen.getByLabelText('Descrição'), 'Cofre');
+    await user.click(screen.getByRole('button', { name: 'Registrar' }));
+    await waitFor(() => expect(caixa.registrarMovimento).toHaveBeenCalledWith({ kind: 'sangria', amount: 1250, description: 'Cofre' }));
   });
 
   it('registra suprimento pelo modal de movimento', async () => {

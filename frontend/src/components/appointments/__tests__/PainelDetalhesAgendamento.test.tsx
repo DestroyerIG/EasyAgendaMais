@@ -196,6 +196,31 @@ describe('PainelDetalhesAgendamento', () => {
     expect(screen.queryByText(/Sinal pago/)).not.toBeInTheDocument();
   });
 
+  it('reserva cancelada por expirar não afirma sinal pago nem restante', async () => {
+    abrir({ status: 'cancelado', deposit_amount: 30, source: 'publico' });
+    await screen.findByText('21');
+    expect(screen.queryByText(/Sinal pago/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Restante no balcão/)).not.toBeInTheDocument();
+  });
+
+  it('cliente faltou: sinal retido aparece, restante no balcão some', async () => {
+    abrir({ status: 'faltou', deposit_amount: 30, source: 'publico' });
+    expect(await screen.findByText(/Sinal pago R\$ 30,00 via Pix/)).toBeInTheDocument();
+    expect(screen.queryByText(/Restante no balcão/)).not.toBeInTheDocument();
+  });
+
+  it('comanda fechada mostra o valor real pago, não o restante do catálogo', async () => {
+    abrir({
+      status: 'concluido', deposit_amount: 30, source: 'publico', service_price: 180,
+      comanda_id: 'k1', comanda_status: 'fechada', comanda_number: 1042,
+      comanda_total_charged: 175, comanda_deposit_applied: 30,
+    });
+    expect(await screen.findByText('Comanda #1042 fechada')).toBeInTheDocument();
+    expect(screen.queryByText(/Restante no balcão/)).not.toBeInTheDocument();
+    expect(screen.getByText('Pago:')).toBeInTheDocument();
+    expect(screen.getByText('R$ 205,00')).toBeInTheDocument();
+  });
+
   it('botões dependem do status', async () => {
     vi.mocked(buscarDetalhesAgendamento).mockResolvedValue(detalhes());
     const { onAcao } = abrir({ status: 'confirmado' });

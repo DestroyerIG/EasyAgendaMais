@@ -4,19 +4,20 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { cn } from '@/lib/cn';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, parseValorBR } from '@/lib/formatters';
+import { getToday } from '@/lib/dateUtils';
 import { Modal, Button, Avatar, Skeleton, Icon, Input } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { formatarDuracao } from '@/components/appointments/LinhaDoTempo';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { listarProdutos, type Produto } from '@/lib/produtos';
-import { abrirCaixa } from '@/lib/caixa';
+import { abrirCaixa, reabrirCaixa } from '@/lib/caixa';
 import {
-  abrirComanda, salvarComanda, fecharComanda, buscarAtalhos, calcularComanda, ehCaixaFechado, ROTULO_PAGAMENTO,
+  abrirComanda, salvarComanda, fecharComanda, buscarAtalhos, calcularComanda, ehCaixaFechado, ehCaixaJaFechado, ROTULO_PAGAMENTO,
   type ComandaDetail, type ComandaShortcut, type PaymentMethod, type SalvarComandaInput,
 } from '@/lib/comanda';
 import type { Service } from '@/types';
-import { AbrirCaixaInline } from './AbrirCaixaInline';
+import { AbrirCaixaInline, ReabrirCaixaInline } from './AbrirCaixaInline';
 
 interface Extra { kind: 'servico' | 'produto'; refId: string; name: string; legenda: string | null; unitPrice: number; quantity: number }
 interface Opcao { kind: 'servico' | 'produto'; id: string; name: string; price: number; legenda?: string | null }
@@ -24,7 +25,9 @@ interface Opcao { kind: 'servico' | 'produto'; id: string; name: string; price: 
 const GORJETAS = [5, 10, 15] as const;
 const semAcento = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const round2 = (v: number) => Math.round(v * 100) / 100;
-const numero = (s: string) => { const v = Number(s.replace(',', '.')); return Number.isFinite(v) && v > 0 ? v : 0; };
+const numero = (s: string) => { const v = parseValorBR(s); return v !== null && v > 0 ? v : 0; };
+// Dia local (AAAA-MM-DD) de um instante ISO, para saber se a comanda foi fechada hoje.
+const diaLocal = (iso: string) => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 // Preço curto dos atalhos e resultados da busca, como no Stitch: "R$ 30", "R$ 12,50".
 const precoCurto = (v: number) => `R$ ${Number.isInteger(v) ? v : v.toFixed(2).replace('.', ',')}`;
 // Valor em texto de botão: espaço comum no lugar do espaço inseparável do Intl, para o nome acessível.
@@ -60,12 +63,13 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
   const [gorjetaTexto, setGorjetaTexto] = useState('');
   const [forma, setForma] = useState<PaymentMethod | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const [pedirCaixa, setPedirCaixa] = useState(false);
+  // Por que o fechamento parou no caixa: ainda não aberto hoje, ou já fechado hoje.
+  const [pedirCaixa, setPedirCaixa] = useState<'abrir' | 'reabrir' | null>(null);
 
   useEffect(() => {
     if (!appointmentId) return;
     let ativo = true;
-    setDto(null); setPedirCaixa(false); setBusca('');
+    setDto(null); setPedirCaixa(null); setBusca('');
     setMostrarDesconto(false); setDescontoModo('reais'); setDescontoTexto('');
     setGorjeta(0); setGorjetaOutro(false); setGorjetaTexto('');
     Promise.all([
@@ -169,7 +173,8 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
       onAtualizada();
       onClose();
     } catch (e) {
-      if (ehCaixaFechado(e)) setPedirCaixa(true);
+      if (ehCaixaFechado(e)) setPedirCaixa('abrir');
+      else if (ehCaixaJaFechado(e)) setPedirCaixa('reabrir');
       else showToast(getApiErrorMessage(e, 'Erro ao fechar a comanda'), 'error');
     } finally { setEnviando(false); }
   };
@@ -178,9 +183,22 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
     setEnviando(true);
     try {
       await abrirCaixa(saldo);
-      setPedirCaixa(false);
+      setPedirCaixa(null);
     } catch (e) {
       showToast(getApiErrorMessage(e, 'Erro ao abrir o caixa'), 'error');
+      setEnviando(false);
+      return;
+    }
+    await fechar();
+  };
+
+  const reabrirCaixaEFechar = async () => {
+    setEnviando(true);
+    try {
+      await reabrirCaixa();
+      setPedirCaixa(null);
+    } catch (e) {
+      showToast(getApiErrorMessage(e, 'Erro ao reabrir o caixa'), 'error');
       setEnviando(false);
       return;
     }
@@ -195,6 +213,9 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
   const qtdItens = (principal ? 1 : 0) + extras.length;
   const semComissao = dto ? dto.commission.servicePct === 0 && dto.commission.productPct === 0 : false;
   const faltaForma = !!calc && calc.totalCharged > 0 && !forma;
+  // Cartões do rodapé só afirmam o que é verdade para esta comanda.
+  const mostrarComprovante = !!dto?.whatsappConnected && (!somenteLeitura || !!dto.receiptSentAt);
+  const mostrarLancamento = !!dto && (!somenteLeitura || (!!dto.closedAt && diaLocal(dto.closedAt) === getToday()));
   const rotuloFechar = dto?.whatsappConnected
     ? `Fechar comanda e enviar WhatsApp (${brl(calc?.totalCharged ?? 0)})`
     : `Fechar comanda (${brl(calc?.totalCharged ?? 0)})`;
@@ -600,12 +621,16 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
             </fieldset>
 
             {/* Cartões informativos */}
-            <div className="grid grid-cols-1 gap-4 px-6 pb-6 md:grid-cols-2 lg:px-8">
-              {dto.whatsappConnected ? (
-                <CartaoInfo icone="chat" tom="whatsapp" titulo="Comprovante instantâneo" texto="Enviado pelo WhatsApp da cliente" />
-              ) : null}
-              <CartaoInfo icone="account_balance_wallet" tom="success" titulo="Lançamento em caixa" texto="Entrada no caixa de hoje" />
-            </div>
+            {mostrarComprovante || mostrarLancamento ? (
+              <div className="grid grid-cols-1 gap-4 px-6 pb-6 md:grid-cols-2 lg:px-8">
+                {mostrarComprovante ? (
+                  <CartaoInfo icone="chat" tom="whatsapp" titulo="Comprovante instantâneo" texto="Enviado pelo WhatsApp da cliente" />
+                ) : null}
+                {mostrarLancamento ? (
+                  <CartaoInfo icone="account_balance_wallet" tom="success" titulo="Lançamento em caixa" texto="Entrada no caixa de hoje" />
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           {/* Rodapé */}
@@ -620,7 +645,9 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
                   Fechar
                 </Button>
               </>
-            ) : pedirCaixa ? (
+            ) : pedirCaixa === 'reabrir' ? (
+              <ReabrirCaixaInline carregando={enviando} onReabrir={reabrirCaixaEFechar} />
+            ) : pedirCaixa === 'abrir' ? (
               <AbrirCaixaInline carregando={enviando} rotuloBotao="Abrir caixa e fechar comanda" onAbrir={abrirCaixaEFechar} />
             ) : (
               <>

@@ -39,7 +39,7 @@ import { FecharCaixaModal } from '@/components/caixa/FecharCaixaModal';
 import type { FeatureAccessDecision } from '@/lib/subscriptionAccess';
 import type { Expense, ExpenseFormData, MonthlyReportDay } from '@/types';
 import { getApiErrorMessage } from '@/utils/handleApiError';
-import { buscarCaixa, abrirCaixa, ROTULO_FORMA_CAIXA, type CashDay } from '@/lib/caixa';
+import { buscarCaixa, abrirCaixa, reabrirCaixa, ROTULO_FORMA_CAIXA, type CashDay } from '@/lib/caixa';
 import { addDays, format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -252,6 +252,19 @@ export const FinanceModule = ({
     }
   };
 
+  const handleReabrirCaixa = async () => {
+    setAbrindoCaixa(true);
+    try {
+      const reaberto = await reabrirCaixa();
+      setDia(reaberto);
+      showToast('Caixa reaberto', 'success');
+    } catch (error) {
+      showToast(getApiErrorMessage(error, 'Não foi possível reabrir o caixa'), 'error');
+    } finally {
+      setAbrindoCaixa(false);
+    }
+  };
+
   const exportToPDF = async () => {
     const monthSummary = {
       earnings: summary?.month.earnings || 0,
@@ -406,16 +419,23 @@ export const FinanceModule = ({
             </Button>
           )}
           {ehHoje && caixaAberto && (
-            <>
-              <Button variant="secondary" onClick={() => setMovimentoAberto(true)}>
-                <Icon name="remove_circle_outline" size={16} />
-                Registrar sangria/suprimento
-              </Button>
-              <Button onClick={() => setFecharAberto(true)}>
-                <Icon name="lock" size={16} />
-                Fechar caixa
-              </Button>
-            </>
+            <Button variant="secondary" onClick={() => setMovimentoAberto(true)}>
+              <Icon name="remove_circle_outline" size={16} />
+              Registrar sangria/suprimento
+            </Button>
+          )}
+          {/* Caixa de um dia passado esquecido aberto também pode ser fechado daqui. */}
+          {caixaAberto && (
+            <Button onClick={() => setFecharAberto(true)}>
+              <Icon name="lock" size={16} />
+              Fechar caixa
+            </Button>
+          )}
+          {ehHoje && caixaFechado && (
+            <Button variant="secondary" onClick={handleReabrirCaixa} loading={abrindoCaixa} disabled={abrindoCaixa}>
+              {abrindoCaixa ? null : <Icon name="lock_open" size={16} />}
+              Reabrir caixa
+            </Button>
           )}
         </div>
       </header>

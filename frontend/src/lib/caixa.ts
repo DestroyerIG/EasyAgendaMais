@@ -35,5 +35,6 @@ export const buscarCaixa = async (date?: string) => (await api.get<CashDay>('/ca
 export const abrirCaixa = async (openingBalance: number) => (await api.post<CashDay>('/cash/open', { openingBalance })).data;
 export const registrarMovimento = async (m: { kind: 'sangria' | 'suprimento'; amount: number; description: string }) =>
   (await api.post<CashDay>('/cash/movements', m)).data;
+export const reabrirCaixa = async () => (await api.post<CashDay>('/cash/reopen')).data;
 export const fecharCaixa = async (d: { countedBalance: number; notes?: string; date?: string }) =>
   (await api.post<CashDay>('/cash/close', d)).data;

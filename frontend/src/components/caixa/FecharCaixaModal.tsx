@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Modal, Button, Field, Input, Textarea, Icon } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { cn } from '@/lib/cn';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, parseValorBR } from '@/lib/formatters';
 import { fecharCaixa, type CashDay } from '@/lib/caixa';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 
@@ -28,12 +28,12 @@ export function FecharCaixaModal({ isOpen, dia, onClose, onFechado }: FecharCaix
   }, [isOpen]);
 
   const esperado = dia.gaveta.esperado;
-  const numero = Number(contado.replace(',', '.'));
-  const valido = contado.trim() !== '' && Number.isFinite(numero) && numero >= 0;
-  const diferenca = valido ? round2(numero - esperado) : null;
+  const numero = parseValorBR(contado);
+  const valido = numero !== null;
+  const diferenca = numero !== null ? round2(numero - esperado) : null;
 
   const confirmar = async () => {
-    if (!valido) return;
+    if (numero === null) return;
     setSalvando(true);
     try {
       const fechado = await fecharCaixa({ countedBalance: numero, notes: notas.trim(), date: dia.date });

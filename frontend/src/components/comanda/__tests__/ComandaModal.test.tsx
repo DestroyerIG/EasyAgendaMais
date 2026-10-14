@@ -14,7 +14,7 @@ vi.mock('@/lib/api', () => ({ default: { get: vi.fn().mockResolvedValue({ data: 
 vi.mock('@/lib/produtos', () => ({ listarProdutos: vi.fn().mockResolvedValue([
   { id: 'pr1', name: 'Óleo Hidratante de Cutícula 10ml', description: 'Produto Home Care', price: 25, active: true },
 ]) }));
-vi.mock('@/lib/caixa', async (orig) => ({ ...(await orig<typeof import('@/lib/caixa')>()), abrirCaixa: vi.fn() }));
+vi.mock('@/lib/caixa', async (orig) => ({ ...(await orig<typeof import('@/lib/caixa')>()), abrirCaixa: vi.fn(), reabrirCaixa: vi.fn() }));
 vi.mock('@/lib/comanda', async (orig) => ({
   ...(await orig<typeof import('@/lib/comanda')>()),
   abrirComanda: vi.fn(), salvarComanda: vi.fn(), fecharComanda: vi.fn(), buscarAtalhos: vi.fn(),
@@ -123,6 +123,73 @@ describe('ComandaModal', () => {
     await waitFor(() => expect(comanda.fecharComanda).toHaveBeenCalledTimes(2));
     expect(onAtualizada).toHaveBeenCalled();
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('caixa de hoje já fechado: diz que foi fechado e reabre para concluir', async () => {
+    const user = userEvent.setup();
+    const erro = new AxiosError('x', '409', undefined, undefined, { status: 409, data: { errorCode: 'CASH_ALREADY_CLOSED' } } as AxiosResponse);
+    vi.mocked(comanda.fecharComanda).mockRejectedValueOnce(erro).mockResolvedValueOnce(dto({ status: 'fechada' }));
+    vi.mocked(caixa.reabrirCaixa).mockResolvedValue({} as caixa.CashDay);
+    const { onClose } = abrir();
+    await screen.findByText('Comanda #1042');
+    await user.click(within(screen.getByRole('radiogroup')).getByLabelText(/Pix/));
+    await user.click(screen.getByRole('button', { name: /Fechar comanda e enviar WhatsApp/ }));
+    expect(await screen.findByText('O caixa de hoje já foi fechado')).toBeInTheDocument();
+    expect(screen.queryByText('O caixa de hoje ainda não foi aberto')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Saldo inicial em dinheiro')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Reabrir caixa e fechar comanda' }));
+    await waitFor(() => expect(caixa.reabrirCaixa).toHaveBeenCalled());
+    await waitFor(() => expect(comanda.fecharComanda).toHaveBeenCalledTimes(2));
+    expect(caixa.abrirCaixa).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('abrir caixa aceita valor com milhar: "1.250,00" vira 1250', async () => {
+    const user = userEvent.setup();
+    const erro = new AxiosError('x', '409', undefined, undefined, { status: 409, data: { errorCode: 'CASH_CLOSED' } } as AxiosResponse);
+    vi.mocked(comanda.fecharComanda).mockRejectedValueOnce(erro).mockResolvedValueOnce(dto({ status: 'fechada' }));
+    vi.mocked(caixa.abrirCaixa).mockResolvedValue({} as caixa.CashDay);
+    abrir();
+    await screen.findByText('Comanda #1042');
+    await user.click(within(screen.getByRole('radiogroup')).getByLabelText(/Pix/));
+    await user.click(screen.getByRole('button', { name: /Fechar comanda e enviar WhatsApp/ }));
+    await user.type(await screen.findByLabelText('Saldo inicial em dinheiro'), '1.250,00');
+    await user.click(screen.getByRole('button', { name: 'Abrir caixa e fechar comanda' }));
+    await waitFor(() => expect(caixa.abrirCaixa).toHaveBeenCalledWith(1250));
+  });
+
+  describe('cartões do rodapé', () => {
+    it('rascunho com WhatsApp conectado mostra comprovante e lançamento em caixa', async () => {
+      abrir();
+      await screen.findByText('Comanda #1042');
+      expect(screen.getByText('Comprovante instantâneo')).toBeInTheDocument();
+      expect(screen.getByText('Lançamento em caixa')).toBeInTheDocument();
+    });
+
+    it('sem WhatsApp conectado não promete comprovante', async () => {
+      vi.mocked(comanda.abrirComanda).mockResolvedValue(dto({ whatsappConnected: false }));
+      abrir();
+      await screen.findByText('Comanda #1042');
+      expect(screen.queryByText('Comprovante instantâneo')).not.toBeInTheDocument();
+    });
+
+    it('fechada hoje sem comprovante enviado: só o lançamento em caixa', async () => {
+      vi.mocked(comanda.abrirComanda).mockResolvedValue(dto({ status: 'fechada', closedAt: new Date().toISOString(), receiptSentAt: null }));
+      abrir();
+      await screen.findByText('Comanda #1042');
+      expect(screen.queryByText('Comprovante instantâneo')).not.toBeInTheDocument();
+      expect(screen.getByText('Lançamento em caixa')).toBeInTheDocument();
+    });
+
+    it('fechada em outro dia com comprovante enviado: não diz "caixa de hoje"', async () => {
+      vi.mocked(comanda.abrirComanda).mockResolvedValue(dto({
+        status: 'fechada', closedAt: '2026-01-05T15:00:00Z', receiptSentAt: '2026-01-05T15:00:05Z',
+      }));
+      abrir();
+      await screen.findByText('Comanda #1042');
+      expect(screen.getByText('Comprovante instantâneo')).toBeInTheDocument();
+      expect(screen.queryByText('Lançamento em caixa')).not.toBeInTheDocument();
+    });
   });
 
   it('salvar rascunho envia extras, desconto, gorjeta e forma', async () => {

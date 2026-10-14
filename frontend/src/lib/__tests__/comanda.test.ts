@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { AxiosError, type AxiosResponse } from 'axios';
-import { calcularComanda, ehCaixaFechado } from '@/lib/comanda';
+import { calcularComanda, ehCaixaFechado, ehCaixaJaFechado } from '@/lib/comanda';
 
 const base = { depositAvailable: 0, discount: 0, tip: 0, serviceCommissionPct: 50, productCommissionPct: 20 };
 
@@ -35,5 +35,15 @@ describe('ehCaixaFechado', () => {
   it('outros erros não', () => {
     const erro = new AxiosError('x', '409', undefined, undefined, { status: 409, data: { errorCode: 'CONFLICT' } } as AxiosResponse);
     expect(ehCaixaFechado(erro)).toBe(false);
+  });
+});
+
+describe('ehCaixaJaFechado', () => {
+  it('reconhece o 409 CASH_ALREADY_CLOSED e não confunde com CASH_CLOSED', () => {
+    const jaFechado = new AxiosError('x', '409', undefined, undefined, { status: 409, data: { errorCode: 'CASH_ALREADY_CLOSED' } } as AxiosResponse);
+    const naoAberto = new AxiosError('x', '409', undefined, undefined, { status: 409, data: { errorCode: 'CASH_CLOSED' } } as AxiosResponse);
+    expect(ehCaixaJaFechado(jaFechado)).toBe(true);
+    expect(ehCaixaFechado(jaFechado)).toBe(false);
+    expect(ehCaixaJaFechado(naoAberto)).toBe(false);
   });
 });
