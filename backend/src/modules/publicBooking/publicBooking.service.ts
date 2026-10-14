@@ -147,6 +147,7 @@ export const publicBookingService = {
           date: data.date,
           time: data.time,
           expiresAt,
+          depositAmount,
         }, tx);
       }
     );

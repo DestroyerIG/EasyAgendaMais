@@ -22,6 +22,30 @@ import { sendWhatsAppMessage } from '../../services/whatsapp/index.js';
 import { notificationsService } from '../notifications/notifications.service.js';
 
 export const appointmentsService = {
+  async getDetails(id: string, businessId: string) {
+    const appointment = await appointmentsPrismaRepository.findById(id, businessId);
+    if (!appointment) throw new NotFoundError('Agendamento');
+    const [visitas, notas] = await Promise.all([
+      appointmentsPrismaRepository.findClientVisits(appointment.clientId, businessId, appointment.date),
+      appointmentsPrismaRepository.findClientNotes(appointment.clientId, businessId),
+    ]);
+    const DIA = 24 * 60 * 60 * 1000;
+    const anoAtual = new Date().getFullYear();
+    const intervalos = visitas.slice(0, -1).map((v, i) => Math.round((v.date.getTime() - visitas[i + 1].date.getTime()) / DIA));
+    const ultima = visitas[0];
+    return {
+      appointment,
+      client_stats: {
+        visits_this_year: visitas.filter((v) => v.date.getUTCFullYear() === anoAtual).length,
+        average_cycle_days: intervalos.length ? Math.round(intervalos.reduce((a, b) => a + b, 0) / intervalos.length) : null,
+        last_visit_days_ago: ultima ? Math.round((appointment.date.getTime() - ultima.date.getTime()) / DIA) : null,
+        last_visit_professional: ultima?.professional.name ?? null,
+        is_recurring: visitas.length >= 2,
+      },
+      client_notes: notas,
+    };
+  },
+
   async getAll(
     businessId: string,
     filters: GetAppointmentsQuery

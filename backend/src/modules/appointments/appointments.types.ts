@@ -54,6 +54,9 @@ export interface AppointmentWithRelations {
   reminderSent: boolean;
   expiresAt?: Date | null;
   source: string;
+  depositAmount?: unknown;
+  startedAt?: Date | null;
+  comanda?: { id: string; status: string; number: number } | null;
   createdAt: Date;
   updatedAt: Date;
   client: { name: string; phone: string };

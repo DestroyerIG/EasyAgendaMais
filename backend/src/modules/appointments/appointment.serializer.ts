@@ -19,6 +19,10 @@ interface RawAppointment {
   status: string;
   reminderSent?: boolean;
   createdAt?: Date | string;
+  source?: string;
+  depositAmount?: unknown;
+  startedAt?: Date | string | null;
+  comanda?: { id: string; status: string; number: number } | null;
   client?: { name?: string; phone?: string } | null;
   professional?: { name?: string } | null;
   service?: { name?: string; price?: unknown; durationMinutes?: number } | null;
@@ -41,6 +45,12 @@ export interface AppointmentDto {
   service_name: string | null;
   service_price: number;
   service_duration_minutes: number;
+  source: string;
+  deposit_amount: number | null;
+  started_at: string | null;
+  comanda_id: string | null;
+  comanda_status: 'rascunho' | 'fechada' | null;
+  comanda_number: number | null;
 }
 
 const dateToLocalIso = (d: Date | string): string => {
@@ -84,4 +94,10 @@ export const toAppointmentDto = (a: RawAppointment): AppointmentDto => ({
   service_name: a.service?.name ?? null,
   service_price: priceToNumber(a.service?.price),
   service_duration_minutes: a.service?.durationMinutes ?? 0,
+  source: a.source ?? 'painel',
+  deposit_amount: a.depositAmount === null || a.depositAmount === undefined ? null : priceToNumber(a.depositAmount),
+  started_at: a.startedAt ? new Date(a.startedAt).toISOString() : null,
+  comanda_id: a.comanda?.id ?? null,
+  comanda_status: (a.comanda?.status as 'rascunho' | 'fechada' | undefined) ?? null,
+  comanda_number: a.comanda?.number ?? null,
 });

@@ -7,6 +7,7 @@ const APPOINTMENT_INCLUDE = {
   client: { select: { name: true, phone: true } },
   professional: { select: { name: true } },
   service: { select: { name: true, price: true, durationMinutes: true } },
+  comanda: { select: { id: true, status: true, number: true } },
 } as const;
 
 export const appointmentsPrismaRepository = {
@@ -50,6 +51,19 @@ export const appointmentsPrismaRepository = {
       where: { id, businessId },
       include: APPOINTMENT_INCLUDE,
     }) as unknown as AppointmentWithRelations | null;
+  },
+
+  findClientVisits(clientId: string, businessId: string, before: Date) {
+    return prisma.appointment.findMany({
+      where: { clientId, businessId, status: 'concluido', date: { lt: before } },
+      select: { date: true, professional: { select: { name: true } } },
+      orderBy: { date: 'desc' },
+    });
+  },
+
+  async findClientNotes(clientId: string, businessId: string): Promise<string | null> {
+    const c = await prisma.client.findFirst({ where: { id: clientId, businessId }, select: { notes: true } });
+    return c?.notes ?? null;
   },
 
   async validateOwnership(
