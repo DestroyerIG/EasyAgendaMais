@@ -38,6 +38,7 @@ import businessPublicPageRoutes from './modules/businessPublicPage/businessPubli
 import publicBookingRoutes from './modules/publicBooking/publicBooking.routes.js';
 import notificationRoutes from './modules/notifications/notifications.routes.js';
 import productRoutes from './modules/products/products.routes.js';
+import comandaRoutes from './modules/comandas/comandas.routes.js';
 
 // Route modules — stub re-exports
 // @ts-ignore
@@ -442,6 +443,7 @@ app.use(
 );
 
 app.use(`${API_V1}/products`, productRoutes);
+app.use(`${API_V1}/comandas`, comandaRoutes);
 
 app.use(
   `${API_V1}/clients`,
