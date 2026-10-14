@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Plus, Search, AlertCircle, XCircle, Loader2 } from 'lucide-react';
 import { formatCurrency, formatDurationExtenso } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
@@ -39,9 +39,13 @@ export function CreateAppointmentModal({
   });
   const [clientSearch, setClientSearch] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  // Horário pedido pelo clique no horário livre: só vira seleção quando aparece entre os
-  // horários disponíveis que chegarem para a profissional e a data pré-preenchidas.
+  // Horário a manter enquanto os horários disponíveis são recarregados: o do clique no
+  // horário livre, ao abrir, ou o já escolhido, quando profissional, data ou serviço
+  // mudam. Ele volta a ser a seleção se aparecer na lista nova; se não aparecer, some.
   const [horarioPendente, setHorarioPendente] = useState<string | null>(null);
+  // A lista de horários que estava na tela quando o recarregamento foi pedido: o pendente
+  // só é conferido contra uma lista nova, nunca contra essa, que é da busca anterior.
+  const slotsDoPedido = useRef<string[] | null>(null);
 
   // Cada abertura começa do zero, já com o que o horário livre sabia (profissional, data).
   useEffect(() => {
@@ -50,23 +54,25 @@ export function CreateAppointmentModal({
     const date = inicial?.date ?? today;
     setFormData({ clientId: '', serviceId: '', professionalId, date, time: '' });
     setClientSearch('');
-    setHorarioPendente(inicial?.time ?? null);
-    if (professionalId && date) onLoadSlots(professionalId, date, '');
+    const pedirHorarios = Boolean(professionalId && date);
+    setHorarioPendente(pedirHorarios ? inicial?.time ?? null : null);
+    slotsDoPedido.current = availableSlots;
+    if (pedirHorarios) onLoadSlots(professionalId, date, '');
     // Só a abertura importa: `inicial` e `onLoadSlots` mudam de identidade a cada render do pai.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   useEffect(() => {
-    if (!horarioPendente || slotsLoading) return;
+    if (!horarioPendente || slotsLoading || availableSlots === slotsDoPedido.current) return;
     if (availableSlots.includes(horarioPendente)) {
       setFormData(prev => ({ ...prev, time: horarioPendente }));
-      setHorarioPendente(null);
     }
+    setHorarioPendente(null);
   }, [availableSlots, horarioPendente, slotsLoading]);
 
   const handleChange = (field: keyof AppointmentFormData, value: string) => {
-    // Trocar profissional, data ou horário na mão vence o horário pedido pelo clique.
-    if (field === 'professionalId' || field === 'date' || field === 'time') setHorarioPendente(null);
+    // Escolher o horário na mão vence qualquer horário pendente.
+    if (field === 'time') setHorarioPendente(null);
     const newData = { ...formData, [field]: value };
     setFormData(newData);
 
@@ -75,6 +81,10 @@ export function CreateAppointmentModal({
       const d = field === 'date' ? value : newData.date;
       const sId = field === 'serviceId' ? value : newData.serviceId;
       if (bId && d) {
+        // Guarda o horário escolhido (ou o que ainda estava pendente) para reaplicar se
+        // ele continuar disponível na lista recarregada.
+        setHorarioPendente(formData.time || horarioPendente);
+        slotsDoPedido.current = availableSlots;
         onLoadSlots(bId, d, sId);
         setFormData(prev => ({ ...prev, [field]: value, time: '' }));
         return;

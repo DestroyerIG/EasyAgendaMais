@@ -8,10 +8,11 @@
  * data, horário de início, profissional, serviço, valor, status, duração
  * (service_duration_minutes), o momento em que foi agendado (created_at) e o lembrete de
  * WhatsApp (reminder_sent) vêm de GET /appointments; o horário de fim é o início mais a
- * duração; as ações de concluir e cancelar chamam o mesmo handler de status que a Agenda
- * já usava.
- * Dado de exemplo (conteudoDemo.agenda): duracaoPadraoMinutos só entra quando o
- * agendamento não traz duração própria, e, em conteudoDemo.agenda.detalhes, o sinal por
+ * duração (passou da meia-noite, volta para 00h); concluir abre a comanda e cancelar
+ * cancela, pelo adaptador da Agenda para a mesma `handleAcao` do bloco e do cartão. A
+ * duração recebida é a real do agendamento; a Agenda só cai num fallback técnico de 30
+ * min quando o DTO não traz service_duration_minutes, o que não deve acontecer.
+ * Dado de exemplo: em conteudoDemo.agenda.detalhes, o sinal por
  * Pix com o comprovante e a origem do agendamento. O selo "Cliente Recorrente" foi removido (era um booleano fixo em
  * conteudoDemo, sempre `true` para qualquer agendamento — contradizia a lista e a
  * ficha ao abrir o painel de uma cliente nova; achado N1 da re-revisão da rodada de

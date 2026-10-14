@@ -35,6 +35,7 @@ import {
   EmptyState,
   Icon,
   Skeleton,
+  STATUS_LABEL,
   STATUS_STRIPE_CLASS,
   Tabs,
   TabsList,
@@ -93,8 +94,8 @@ type StatusFilter = 'todos' | 'confirmado' | 'concluido' | 'cancelado';
 const STATUS_DA_LEGENDA: readonly { status: AppointmentStatus; rotulo: string }[] = [
   { status: 'confirmado', rotulo: 'Confirmado' },
   // O status real é aguardando_pagamento (reserva pública esperando o sinal Pix): o
-  // quadradinho pinta na cor do bloco dele, com as palavras do arquivo.
-  { status: 'aguardando_pagamento', rotulo: 'Aguardando confirmação' },
+  // quadradinho pinta na cor do bloco dele e o texto é o mesmo do chip e da aba.
+  { status: 'aguardando_pagamento', rotulo: STATUS_LABEL.aguardando_pagamento },
   { status: 'em_atendimento', rotulo: 'Em atendimento' },
   { status: 'concluido', rotulo: 'Concluído' },
   { status: 'faltou', rotulo: 'Faltou' },
