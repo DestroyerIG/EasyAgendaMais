@@ -4,21 +4,33 @@ import { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 import { Modal, ModalFooter, Field, Input, Select } from '@/components/ui';
 import { EXPENSE_CATEGORIES } from '@/lib/constants';
-import type { Expense } from '@/types';
+import type { Expense, ExpenseFormData } from '@/types';
+
+type FormaDespesa = NonNullable<ExpenseFormData['paymentMethod']>;
+
+const FORMAS_DESPESA: Array<{ valor: FormaDespesa; rotulo: string }> = [
+  { valor: 'dinheiro', rotulo: 'Dinheiro' },
+  { valor: 'pix', rotulo: 'Pix' },
+  { valor: 'debito', rotulo: 'Débito' },
+  { valor: 'credito', rotulo: 'Crédito' },
+];
 
 interface ExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { description: string; category: string; amount: number; date: string }) => Promise<void>;
+  onSubmit: (data: ExpenseFormData) => Promise<void>;
   editingExpense: Expense | null;
+  /** Data (yyyy-MM-dd) que uma despesa nova já traz preenchida; padrão: hoje. */
+  defaultDate?: string;
 }
 
-export function ExpenseModal({ isOpen, onClose, onSubmit, editingExpense }: ExpenseModalProps) {
-  const [formData, setFormData] = useState({
+export function ExpenseModal({ isOpen, onClose, onSubmit, editingExpense, defaultDate }: ExpenseModalProps) {
+  const [formData, setFormData] = useState<{ description: string; category: string; amount: string; date: string; paymentMethod: FormaDespesa | '' }>({
     description: '',
     category: '',
     amount: '',
-    date: new Date().toISOString().split('T')[0],
+    date: defaultDate ?? new Date().toISOString().split('T')[0],
+    paymentMethod: '',
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,16 +41,17 @@ export function ExpenseModal({ isOpen, onClose, onSubmit, editingExpense }: Expe
         category: editingExpense.category,
         amount: editingExpense.amount.toString(),
         date: editingExpense.date.split('T')[0],
+        paymentMethod: editingExpense.paymentMethod ?? editingExpense.payment_method ?? '',
       });
     } else {
-      setFormData({ description: '', category: '', amount: '', date: new Date().toISOString().split('T')[0] });
+      setFormData({ description: '', category: '', amount: '', date: defaultDate ?? new Date().toISOString().split('T')[0], paymentMethod: '' });
     }
-  }, [editingExpense, isOpen]);
+  }, [editingExpense, isOpen, defaultDate]);
 
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      await onSubmit({ ...formData, amount: parseFloat(formData.amount) });
+      await onSubmit({ ...formData, amount: parseFloat(formData.amount), paymentMethod: formData.paymentMethod || null });
       onClose();
     } finally {
       setSubmitting(false);
@@ -99,14 +112,28 @@ export function ExpenseModal({ isOpen, onClose, onSubmit, editingExpense }: Expe
           </Field>
         </div>
 
-        <Field id="expense-date" label="Data">
-          <Input
-            id="expense-date"
-            type="date"
-            value={formData.date}
-            onChange={e => setFormData({ ...formData, date: e.target.value })}
-          />
-        </Field>
+        <div className="grid grid-cols-2 gap-4">
+          <Field id="expense-date" label="Data">
+            <Input
+              id="expense-date"
+              type="date"
+              value={formData.date}
+              onChange={e => setFormData({ ...formData, date: e.target.value })}
+            />
+          </Field>
+          <Field id="expense-payment" label="Forma de pagamento">
+            <Select
+              id="expense-payment"
+              value={formData.paymentMethod}
+              onChange={e => setFormData({ ...formData, paymentMethod: e.target.value as FormaDespesa | '' })}
+            >
+              <option value="">Não informado</option>
+              {FORMAS_DESPESA.map(f => (
+                <option key={f.valor} value={f.valor}>{f.rotulo}</option>
+              ))}
+            </Select>
+          </Field>
+        </div>
       </div>
     </Modal>
   );
