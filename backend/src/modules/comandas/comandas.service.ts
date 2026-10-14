@@ -37,11 +37,26 @@ async function montarDto(c: ComandaRow): Promise<ComandaDetailDto> {
     id: i.id, kind: i.kind as 'servico' | 'produto', refId: i.serviceId ?? i.productId, name: i.name,
     unitPrice: num(i.unitPrice), quantity: i.quantity, durationMinutes: i.durationMinutes, isMain: i.isMain,
   }));
-  const depositAvailable = num(c.appointment.depositAmount);
+  const fechada = c.status === 'fechada';
+  const pctGravado = (kind: 'servico' | 'produto') =>
+    c.items.find((i) => i.kind === kind && i.commissionPct != null)?.commissionPct;
+  // Comanda fechada mostra o que foi gravado, não o que as configurações dizem hoje.
+  if (fechada) {
+    commission.servicePct = num(pctGravado('servico') ?? commission.servicePct);
+    commission.productPct = num(pctGravado('produto') ?? commission.productPct);
+  }
+  const depositAvailable = fechada && c.depositApplied != null ? num(c.depositApplied) : num(c.appointment.depositAmount);
   const calc = calcularComanda({
     items, depositAvailable, discount: num(c.discountAmount), tip: num(c.tipAmount),
     serviceCommissionPct: commission.servicePct, productCommissionPct: commission.productPct,
   });
+  if (fechada) {
+    if (c.servicesTotal != null) calc.servicesTotal = num(c.servicesTotal);
+    if (c.productsTotal != null) calc.productsTotal = num(c.productsTotal);
+    if (c.depositApplied != null) calc.depositApplied = num(c.depositApplied);
+    if (c.totalCharged != null) calc.totalCharged = num(c.totalCharged);
+    if (c.commissionTotal != null) calc.commissionTotal = num(c.commissionTotal);
+  }
   return {
     id: c.id, number: c.number, status: c.status as 'rascunho' | 'fechada',
     appointment: {
@@ -122,12 +137,12 @@ export const comandasService = {
       depositAvailable: num(c.appointment.depositAmount), discount: input.discount, tip: input.tip,
       serviceCommissionPct: commission.servicePct, productCommissionPct: commission.productPct,
     });
-    await comandasRepository.replaceExtras(id, extras);
-    await comandasRepository.updateDraftTotals(id, {
+    const gravou = await comandasRepository.saveDraft(id, businessId, extras, {
       servicesTotal: calc.servicesTotal, productsTotal: calc.productsTotal, depositApplied: calc.depositApplied,
       discountAmount: calc.discount, tipAmount: calc.tip, totalCharged: calc.totalCharged,
       commissionTotal: calc.commissionTotal, paymentMethod: input.paymentMethod,
     });
+    if (!gravou) throw new ConflictError('Esta comanda já foi fechada');
     return montarDto(await carregar(id, businessId));
   },
 
@@ -141,6 +156,9 @@ export const comandasService = {
     if (!caixa) throw new AppError('Abra o caixa de hoje para fechar a comanda', 409, 'CASH_CLOSED');
 
     const c = await carregar(id, businessId);
+    if (!['confirmado', 'em_atendimento'].includes(c.appointment.status)) {
+      throw new ConflictError('Este agendamento não pode mais ser concluído');
+    }
     // Totais calculados direto da entrada validada (não do que foi relido), para o fechamento gravar exatamente o que foi confirmado.
     const calc = calcularComanda({
       items: c.items.map((i) => ({ kind: i.kind as 'servico' | 'produto', unitPrice: num(i.unitPrice), quantity: i.quantity })),
@@ -152,7 +170,6 @@ export const comandasService = {
       appointmentId: c.appointment.id, appointmentDate: c.appointment.date,
       paymentMethod: input.paymentMethod,
       servicePct: salvo.commission.servicePct, productPct: salvo.commission.productPct, calc,
-      items: c.items.map((i) => ({ id: i.id, kind: i.kind as 'servico' | 'produto', lineTotal: num(i.unitPrice) * i.quantity })),
     });
     if (!ok) throw new ConflictError('Esta comanda já foi fechada');
 

@@ -5,8 +5,7 @@ const repo = vi.hoisted(() => ({
   findComandaByAppointment: vi.fn(),
   createComanda: vi.fn(),
   findComandaById: vi.fn(),
-  replaceExtras: vi.fn(),
-  updateDraftTotals: vi.fn(),
+  saveDraft: vi.fn(),
   findOpenCashSession: vi.fn(),
   closeComandaTx: vi.fn(),
   markReceiptSent: vi.fn(),
@@ -50,6 +49,7 @@ const comanda = (over: Record<string, unknown> = {}) => ({
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useRealTimers();
+  repo.saveDraft.mockResolvedValue(true);
   settings.get.mockResolvedValue({ serviceCommissionPct: 50, productCommissionPct: 20 });
   repo.findActiveServicesByIds.mockResolvedValue([]);
   products.findActiveByIds.mockResolvedValue([]);
@@ -88,16 +88,22 @@ describe('salvar rascunho', () => {
     repo.findComandaById.mockResolvedValue(comanda());
     products.findActiveByIds.mockResolvedValue([{ id: 'pr1', name: 'Óleo Hidratante de Cutícula 10ml', price: '25.00' }]);
     await comandasService.save('k1', 'b1', { extras: [{ kind: 'produto', id: 'pr1', quantity: 2 }], discount: 0, tip: 10, paymentMethod: 'pix' });
-    expect(repo.replaceExtras).toHaveBeenCalledWith('k1', [
+    expect(repo.saveDraft).toHaveBeenCalledWith('k1', 'b1', [
       { kind: 'produto', serviceId: null, productId: 'pr1', name: 'Óleo Hidratante de Cutícula 10ml', unitPrice: 25, quantity: 2, durationMinutes: null },
-    ]);
-    expect(repo.updateDraftTotals).toHaveBeenCalledWith('k1', expect.objectContaining({ productsTotal: 50, tipAmount: 10, paymentMethod: 'pix' }));
+    ], expect.objectContaining({ productsTotal: 50, tipAmount: 10, paymentMethod: 'pix' }));
   });
 
   it('produto inexistente ou de outro negócio é recusado', async () => {
     repo.findComandaById.mockResolvedValue(comanda());
     await expect(comandasService.save('k1', 'b1', { extras: [{ kind: 'produto', id: 'x', quantity: 1 }], discount: 0, tip: 0, paymentMethod: null }))
       .rejects.toThrow('Item não encontrado');
+  });
+
+  it('guarda transacional recusa se outra requisição fechou no meio (corrida)', async () => {
+    repo.findComandaById.mockResolvedValue(comanda());
+    repo.saveDraft.mockResolvedValue(false);
+    await expect(comandasService.save('k1', 'b1', { extras: [], discount: 0, tip: 0, paymentMethod: null }))
+      .rejects.toThrow('Esta comanda já foi fechada');
   });
 
   it('comanda fechada não aceita mais alteração', async () => {
@@ -151,6 +157,13 @@ describe('fechar comanda', () => {
     expect(receipt.sendComandaReceipt).not.toHaveBeenCalled();
   });
 
+  it('agendamento cancelado depois de abrir a comanda não pode ser concluído', async () => {
+    repo.findComandaById.mockResolvedValue(comanda({ appointment: appt('cancelado', 30) }));
+    repo.findOpenCashSession.mockResolvedValue({ id: 'cx1' });
+    await expect(comandasService.close('k1', 'b1', 'u1', entrada)).rejects.toThrow('Este agendamento não pode mais ser concluído');
+    expect(repo.closeComandaTx).not.toHaveBeenCalled();
+  });
+
   it('caixa usado é o do dia do fechamento, não o do agendamento', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-13T01:30:00-03:00'));
@@ -169,6 +182,22 @@ describe('fechar comanda', () => {
     receipt.sendComandaReceipt.mockRejectedValue(new Error('Evolution fora do ar'));
     await expect(comandasService.close('k1', 'b1', 'u1', entrada)).resolves.toMatchObject({ status: 'fechada' });
     expect(repo.markReceiptSent).not.toHaveBeenCalled();
+  });
+});
+
+describe('comanda fechada', () => {
+  it('mostra o que foi gravado, mesmo que as configurações de comissão mudem depois', async () => {
+    settings.get.mockResolvedValue({ serviceCommissionPct: 10, productCommissionPct: 10 });
+    repo.findComandaById.mockResolvedValue(comanda({
+      status: 'fechada', closedAt: new Date(), paymentMethod: 'pix',
+      servicesTotal: '110.00', productsTotal: '0.00', depositApplied: '30.00', discountAmount: '0.00', tipAmount: '10.00',
+      totalCharged: '90.00', commissionTotal: '65.00',
+      appointment: appt('concluido', 0),
+      items: [{ id: 'i1', kind: 'servico', serviceId: 's1', productId: null, name: 'X', unitPrice: '110.00', quantity: 1, durationMinutes: 90, isMain: true, commissionPct: '50.00' }],
+    }));
+    const dto = await comandasService.get('k1', 'b1');
+    expect(dto.commission).toMatchObject({ servicePct: 50 });
+    expect(dto.calc).toMatchObject({ depositApplied: 30, totalCharged: 90, commissionService: 55, commissionTotal: 65 });
   });
 });
 

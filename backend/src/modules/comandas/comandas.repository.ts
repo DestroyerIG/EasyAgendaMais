@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
+import { splitCommission } from './commissionSplit.js';
 import type { ComandaCalc } from './comandaMath.js';
 import type { NewExtraItem, PaymentMethod } from './comandas.types.js';
 
@@ -52,10 +53,11 @@ export const comandasRepository = {
       where: { id, businessId },
       select: {
         id: true, number: true, status: true, businessId: true,
-        discountAmount: true, tipAmount: true, paymentMethod: true, closedAt: true, receiptSentAt: true,
+        discountAmount: true, tipAmount: true, paymentMethod: true, closedAt: true,
+        servicesTotal: true, productsTotal: true, depositApplied: true, totalCharged: true, commissionTotal: true, receiptSentAt: true,
         appointment: { select: APPOINTMENT_SELECT },
         items: {
-          select: { id: true, kind: true, serviceId: true, productId: true, name: true, unitPrice: true, quantity: true, durationMinutes: true, isMain: true },
+          select: { id: true, kind: true, serviceId: true, productId: true, name: true, unitPrice: true, quantity: true, durationMinutes: true, isMain: true, commissionPct: true },
           orderBy: [{ isMain: 'desc' }, { createdAt: 'asc' }],
         },
       },
@@ -70,18 +72,23 @@ export const comandasRepository = {
     });
   },
 
-  replaceExtras(comandaId: string, extras: NewExtraItem[]) {
-    return prisma.$transaction([
-      prisma.comandaItem.deleteMany({ where: { comandaId, isMain: false } }),
-      prisma.comandaItem.createMany({ data: extras.map((e) => ({ ...e, comandaId, isMain: false })) }),
-    ]);
-  },
-
-  updateDraftTotals(comandaId: string, data: {
+  /**
+   * Salva o rascunho numa única transação. O updateMany condicionado a status 'rascunho' é a guarda
+   * (e toma o lock da linha): se a comanda já foi fechada, devolve false sem tocar nos itens.
+   */
+  saveDraft(comandaId: string, businessId: string, extras: NewExtraItem[], totals: {
     servicesTotal: number; productsTotal: number; depositApplied: number; discountAmount: number;
     tipAmount: number; totalCharged: number; commissionTotal: number; paymentMethod: PaymentMethod | null;
-  }) {
-    return prisma.comanda.updateMany({ where: { id: comandaId, status: 'rascunho' }, data });
+  }): Promise<boolean> {
+    return prisma.$transaction(async (tx) => {
+      const r = await tx.comanda.updateMany({ where: { id: comandaId, businessId, status: 'rascunho' }, data: totals });
+      if (r.count !== 1) return false;
+      await tx.comandaItem.deleteMany({ where: { comandaId, isMain: false } });
+      if (extras.length > 0) {
+        await tx.comandaItem.createMany({ data: extras.map((e) => ({ ...e, comandaId, isMain: false })) });
+      }
+      return true;
+    });
   },
 
   findOpenCashSession(businessId: string, date: string) {
@@ -97,7 +104,6 @@ export const comandasRepository = {
     comandaId: string; businessId: string; userId: string; cashSessionId: string;
     appointmentId: string; appointmentDate: Date; paymentMethod: PaymentMethod | null;
     servicePct: number; productPct: number; calc: ComandaCalc;
-    items: Array<{ id: string; kind: 'servico' | 'produto'; lineTotal: number }>;
   }): Promise<boolean> {
     const { calc } = args;
     return prisma.$transaction(async (tx) => {
@@ -113,15 +119,23 @@ export const comandasRepository = {
       });
       if (r.count !== 1) return false;
 
-      // Comissão por item, proporcional ao valor da linha dentro do seu tipo.
-      for (const item of args.items) {
-        const totalTipo = item.kind === 'servico' ? calc.servicesTotal : calc.productsTotal;
-        const comissaoTipo = item.kind === 'servico' ? calc.commissionService : calc.commissionProduct;
-        const parte = totalTipo > 0 ? Math.round((comissaoTipo * item.lineTotal / totalTipo) * 100) / 100 : 0;
-        await tx.comandaItem.update({
-          where: { id: item.id },
-          data: { commissionPct: item.kind === 'servico' ? args.servicePct : args.productPct, commissionAmount: parte },
-        });
+      // O updateMany acima já tomou o lock da linha: relê os itens aqui dentro, sem confiar em ids de fora.
+      const itens = await tx.comandaItem.findMany({
+        where: { comandaId: args.comandaId }, select: { id: true, kind: true, unitPrice: true, quantity: true },
+        orderBy: [{ isMain: 'desc' }, { createdAt: 'asc' }, { id: 'asc' }],
+      });
+      for (const kind of ['servico', 'produto'] as const) {
+        const doTipo = itens.filter((i) => i.kind === kind);
+        const partes = splitCommission(
+          doTipo.map((i) => Math.round(Number(i.unitPrice) * 100) * i.quantity),
+          kind === 'servico' ? calc.commissionService : calc.commissionProduct,
+        );
+        for (let n = 0; n < doTipo.length; n++) {
+          await tx.comandaItem.update({
+            where: { id: doTipo[n]!.id },
+            data: { commissionPct: kind === 'servico' ? args.servicePct : args.productPct, commissionAmount: partes[n]! },
+          });
+        }
       }
 
       await tx.appointment.updateMany({
@@ -151,7 +165,7 @@ export const comandasRepository = {
           JOIN comandas c ON c.id = i.comanda_id
           JOIN services s ON s.id = i.service_id AND s.active = true
          WHERE c.business_id = ${businessId}::uuid AND c.status = 'fechada' AND i.is_main = false
-           AND c.closed_at >= NOW() - (${dias} * INTERVAL '1 day')
+           AND c.closed_at >= NOW() - (${dias}::int * INTERVAL '1 day')
          GROUP BY s.id
         UNION ALL
         SELECT 'produto', p.id::text, p.name, p.price, COUNT(*)
@@ -159,7 +173,7 @@ export const comandasRepository = {
           JOIN comandas c ON c.id = i.comanda_id
           JOIN products p ON p.id = i.product_id AND p.active = true
          WHERE c.business_id = ${businessId}::uuid AND c.status = 'fechada' AND i.is_main = false
-           AND c.closed_at >= NOW() - (${dias} * INTERVAL '1 day')
+           AND c.closed_at >= NOW() - (${dias}::int * INTERVAL '1 day')
          GROUP BY p.id
       ) x
       ORDER BY x.usos DESC, x.name ASC
