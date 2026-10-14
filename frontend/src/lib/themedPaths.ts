@@ -51,4 +51,5 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/marketing/landing',
   'src/app/agendar',
   'src/components/publicBooking',
+  'src/components/comanda',
 ];
