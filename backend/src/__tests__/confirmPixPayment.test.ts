@@ -55,7 +55,7 @@ describe('appointmentsService.updateStatus — reserva expirada / corrida com o 
     await expect(promise).rejects.toThrow('Esta reserva já expirou ou teve seu status alterado');
 
     expect(appointmentsPrismaRepository.updateStatus).toHaveBeenCalledWith(
-      'apt-1', 'biz-1', 'confirmado', 'aguardando_pagamento'
+      'apt-1', 'biz-1', 'confirmado', 'aguardando_pagamento', {}
     );
     expect(sendWhatsAppMessage).not.toHaveBeenCalled();
   });

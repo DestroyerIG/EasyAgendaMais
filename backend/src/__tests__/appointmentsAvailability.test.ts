@@ -25,12 +25,9 @@ describe('hasConflict com aguardando_pagamento', () => {
 
     expect(result).toBe(true);
     const whereArg = (prisma.appointment.findFirst as ReturnType<typeof vi.fn>).mock.calls[0][0].where;
-    expect(whereArg.status.in).toEqual(
-      expect.arrayContaining(['confirmado', 'aguardando_pagamento'])
-    );
     // Verify the exact OR array structure to prevent regressions
     expect(whereArg.OR).toEqual([
-      { status: 'confirmado' },
+      { status: { in: ['confirmado', 'em_atendimento'] } },
       { status: 'aguardando_pagamento', expiresAt: { gt: expect.any(Date) } },
     ]);
   });
@@ -59,7 +56,7 @@ describe('getBookedSlots com aguardando_pagamento', () => {
     const whereArg = (prisma.appointment.findMany as ReturnType<typeof vi.fn>).mock.calls[0][0].where;
     // Verify the OR array contains both confirmed and non-expired pending statuses
     expect(whereArg.OR).toEqual([
-      { status: 'confirmado' },
+      { status: { in: ['confirmado', 'em_atendimento'] } },
       { status: 'aguardando_pagamento', expiresAt: { gt: expect.any(Date) } },
     ]);
   });

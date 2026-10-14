@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
+import { OCCUPYING_STATUSES } from '../../config/appointmentStatus.js';
 import type { AppointmentWithRelations, CreateAppointmentInput } from './appointments.types.js';
 
 const APPOINTMENT_INCLUDE = {
@@ -95,9 +96,8 @@ export const appointmentsPrismaRepository = {
         // 12:00, em vez do meio-dia local do processo Node (achado do usuário: horário
         // criado ia parar em outro horário quando o servidor não roda em UTC).
         time: new Date(`1970-01-01T${time}Z`),
-        status: { in: ['confirmado', 'aguardando_pagamento'] },
         OR: [
-          { status: 'confirmado' },
+          { status: { in: [...OCCUPYING_STATUSES] } },
           { status: 'aguardando_pagamento', expiresAt: { gt: now } },
         ],
         ...(excludeId ? { NOT: { id: excludeId } } : {}),
@@ -107,7 +107,7 @@ export const appointmentsPrismaRepository = {
     return existing !== null;
   },
 
-  async create(data: CreateAppointmentInput & { businessId: string }): Promise<AppointmentWithRelations> {
+  async create(data: CreateAppointmentInput & { businessId: string; source?: string }): Promise<AppointmentWithRelations> {
     return prisma.appointment.create({
       data: {
         businessId: data.businessId,
@@ -117,6 +117,7 @@ export const appointmentsPrismaRepository = {
         date: new Date(data.date),
         time: new Date(`1970-01-01T${data.time}:00Z`),
         status: 'confirmado',
+        source: data.source ?? 'painel',
       },
       include: APPOINTMENT_INCLUDE,
     }) as unknown as AppointmentWithRelations;
@@ -134,7 +135,8 @@ export const appointmentsPrismaRepository = {
     id: string,
     businessId: string,
     status: string,
-    expectedStatus: string
+    expectedStatus: string,
+    extra: { startedAt?: Date | null; finishedAt?: Date } = {}
   ): Promise<AppointmentWithRelations | null> {
     const requiresUnexpiredHold = expectedStatus === 'aguardando_pagamento' && status === 'confirmado';
     const result = await prisma.appointment.updateMany({
@@ -144,7 +146,7 @@ export const appointmentsPrismaRepository = {
         status: expectedStatus,
         ...(requiresUnexpiredHold ? { expiresAt: { gt: new Date() } } : {}),
       },
-      data: { status },
+      data: { status, ...extra },
     });
     if (result.count !== 1) return null;
 
@@ -204,7 +206,7 @@ export const appointmentsPrismaRepository = {
         professionalId,
         date: new Date(date),
         OR: [
-          { status: 'confirmado' },
+          { status: { in: [...OCCUPYING_STATUSES] } },
           { status: 'aguardando_pagamento', expiresAt: { gt: now } },
         ],
       },

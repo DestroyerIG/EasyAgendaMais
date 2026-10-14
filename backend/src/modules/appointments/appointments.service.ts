@@ -1,4 +1,3 @@
-import { prisma } from '../../config/prisma.js';
 import logger from '../../utils/logger.js';
 import {
   NotFoundError,
@@ -32,7 +31,8 @@ export const appointmentsService = {
 
   async create(
     businessId: string,
-    data: CreateAppointmentInput
+    data: CreateAppointmentInput,
+    opts: { source?: 'painel' | 'whatsapp' } = {}
   ): Promise<AppointmentWithRelations> {
     const ownership = await appointmentsPrismaRepository.validateOwnership(businessId, data);
     const errors: string[] = [];
@@ -47,7 +47,7 @@ export const appointmentsService = {
     );
     if (conflict) throw new ConflictError('Horário já ocupado para este profissional');
 
-    const result = await appointmentsPrismaRepository.create({ ...data, businessId });
+    const result = await appointmentsPrismaRepository.create({ ...data, businessId, source: opts.source ?? 'painel' });
     logger.info({ appointmentId: result.id, businessId }, 'Agendamento criado');
     return result;
   },
@@ -59,6 +59,10 @@ export const appointmentsService = {
   ): Promise<AppointmentWithRelations> {
     const appointment = await appointmentsPrismaRepository.findById(id, businessId);
     if (!appointment) throw new NotFoundError('Agendamento');
+
+    if (newStatus === 'concluido') {
+      throw new ConflictError('Feche a comanda para concluir o atendimento');
+    }
 
     const currentStatus = appointment.status;
     const allowed = TRANSITIONS[currentStatus];
@@ -76,32 +80,18 @@ export const appointmentsService = {
 
     // Compare-and-set: se o status mudou entre a leitura acima e este UPDATE (ex.: o
     // cron cancelou a reserva expirada) ou a reserva já expirou, nada é alterado.
-    const result = await appointmentsPrismaRepository.updateStatus(id, businessId, newStatus, currentStatus);
+    const extra =
+      newStatus === 'em_atendimento' ? { startedAt: new Date() }
+      : newStatus === 'confirmado' && currentStatus === 'em_atendimento' ? { startedAt: null }
+      : newStatus === 'faltou' ? { finishedAt: new Date() }
+      : {};
+    const result = await appointmentsPrismaRepository.updateStatus(id, businessId, newStatus, currentStatus, extra);
     if (!result) {
       throw new ConflictError(
         currentStatus === 'aguardando_pagamento'
           ? 'Esta reserva já expirou ou teve seu status alterado'
           : 'Este agendamento teve seu status alterado. Atualize a página e tente novamente'
       );
-    }
-
-    if (newStatus === 'concluido') {
-      const service = await appointmentsPrismaRepository.getServiceDetails(
-        appointment.serviceId,
-        businessId
-      );
-      if (service) {
-        await prisma.$transaction([
-          prisma.earning.create({
-            data: {
-              businessId,
-              appointmentId: id,
-              amount: service.price,
-              date: appointment.date,
-            },
-          }),
-        ]);
-      }
     }
 
     if (newStatus === 'confirmado' && currentStatus === 'aguardando_pagamento') {

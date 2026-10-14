@@ -280,7 +280,7 @@ describe('Appointments API — /api/v1/appointments', () => {
   });
 
   describe('PUT /api/v1/appointments/:id/status', () => {
-    it('deve atualizar status com sucesso', async () => {
+    it('recusa concluir direto: só a comanda conclui (409)', async () => {
       mockAppointmentRepo.findByIdForUpdate = vi.fn().mockResolvedValue(
         { id: '550e8400-e29b-41d4-a716-446655440001', status: 'confirmado', service_id: 's1', client_id: 'c1', date: '2026-04-15' }
       );
@@ -306,8 +306,8 @@ describe('Appointments API — /api/v1/appointments', () => {
         .set(authHeader)
         .send({ status: 'concluido' });
 
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
+      expect(res.status).toBe(409);
+      expect(res.body.success).toBe(false);
     });
 
     it('deve retornar 400 com status inválido', async () => {

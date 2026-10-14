@@ -612,7 +612,7 @@ describe('whatsappFlowService guards', () => {
       serviceId: 'service-1',
       date: '2026-04-20',
       time: '10:00',
-    });
+    }, { source: 'whatsapp' });
   });
 
   it('falha fechado quando instanceName existe mas nao tem mapeamento no banco nem no legado', async () => {
@@ -1128,7 +1128,7 @@ describe('whatsappFlowService guards', () => {
       serviceId: 'service-1',
       date: '2026-04-20',
       time: '10:00',
-    });
+    }, { source: 'whatsapp' });
     expect(mockPoolQuery).toHaveBeenCalledTimes(2);
     const directInsertCall = (mockPoolQuery.mock.calls as unknown as [string, unknown[]][]).find(
       ([query]) => typeof query === 'string' && query.includes('INSERT INTO appointments')

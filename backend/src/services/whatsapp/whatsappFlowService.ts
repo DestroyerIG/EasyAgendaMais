@@ -1409,7 +1409,10 @@ const handleChooseDateStep = async (
        WHERE business_id = ${businessId}::uuid
          AND professional_id = ${professionalId}::uuid
          AND date = ${selectedDate}::date
-         AND status != 'cancelado'
+         AND (
+           status IN ('confirmado', 'em_atendimento')
+           OR (status = 'aguardando_pagamento' AND expires_at > NOW())
+         )
     `
   );
   const bookedTimes = bookedRows.map((row) => formatTimeHm(row.time));
@@ -1567,7 +1570,7 @@ const handleChooseTimeStep = async (
 
   let createdAppointment: { id: string; status: string };
   try {
-    createdAppointment = await appointmentService.create(businessId, appointmentPayload) as { id: string; status: string };
+    createdAppointment = await appointmentService.create(businessId, appointmentPayload, { source: 'whatsapp' }) as { id: string; status: string };
   } catch (error) {
     logger.error(
       {
