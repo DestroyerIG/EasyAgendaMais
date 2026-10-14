@@ -2,11 +2,47 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
-import { ServiceProfessionalModal } from '../ServiceProfessionalModal';
+import { ServiceProfessionalModal, type ProfessionalFormData } from '../ServiceProfessionalModal';
 
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: vi.fn() }));
 
+const renderModal = (onSubmitProfessional: (d: ProfessionalFormData) => Promise<void>) =>
+  render(
+    <ToastProvider>
+      <ServiceProfessionalModal
+        isOpen
+        onClose={vi.fn()}
+        onSubmitService={vi.fn()}
+        onSubmitProfessional={onSubmitProfessional}
+        activeTab="profissionais"
+        editingItem={null}
+      />
+    </ToastProvider>,
+  );
+
 describe('ServiceProfessionalModal (profissional)', () => {
+  it('bloqueia intervalo pela metade', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    renderModal(onSubmit);
+    await user.type(screen.getByLabelText('Nome do Profissional'), 'Camila');
+    await user.type(screen.getByLabelText('Início do almoço'), '12:00');
+    await user.click(screen.getByRole('button', { name: /salvar/i }));
+    expect(await screen.findByText('Informe início e fim do intervalo')).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('bloqueia comissão fora de 0 a 100', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    renderModal(onSubmit);
+    await user.type(screen.getByLabelText('Nome do Profissional'), 'Camila');
+    await user.type(screen.getByLabelText('% sobre serviços'), '150');
+    await user.click(screen.getByRole('button', { name: /salvar/i }));
+    expect(await screen.findByText('Comissão deve ficar entre 0% e 100%')).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it('envia intervalo e comissão própria da profissional', async () => {
     const user = userEvent.setup();
     const onSubmitProfessional = vi.fn().mockResolvedValue(undefined);

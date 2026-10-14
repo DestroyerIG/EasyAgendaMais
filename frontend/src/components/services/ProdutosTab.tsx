@@ -1,11 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Edit2, Package, Plus, Save, Trash2 } from 'lucide-react';
-import { Button, Card, EmptyState, Field, IconButton, Input, Modal, ModalFooter, Skeleton } from '@/components/ui';
+import { Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, ModalFooter, Skeleton } from '@/components/ui';
+import { materialIcon } from '@/lib/materialIconAdapter';
 import { useToast } from '@/components/Toast';
 import { atualizarProduto, criarProduto, listarProdutos, removerProduto, type Produto } from '@/lib/produtos';
 import { getApiErrorMessage } from '@/utils/handleApiError';
+
+const InventoryIcon = materialIcon('inventory_2');
+const EditIcon = materialIcon('edit');
+const DeleteIcon = materialIcon('delete');
+const SaveIcon = materialIcon('save');
 
 const formatBRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -78,7 +83,7 @@ export const ProdutosTab = () => {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Button onClick={() => abrir()}>
-          <Plus className="h-4 w-4" aria-hidden="true" /> Novo produto
+          <Icon name="add" size={16} /> Novo produto
         </Button>
       </div>
 
@@ -86,7 +91,7 @@ export const ProdutosTab = () => {
         <Skeleton className="h-16 w-full" label="Carregando..." />
       ) : produtos.length === 0 ? (
         <EmptyState
-          icon={Package}
+          icon={InventoryIcon}
           title="Nenhum produto cadastrado"
           description="Cadastre os produtos que você vende no atendimento para lançá-los na comanda."
         />
@@ -100,8 +105,8 @@ export const ProdutosTab = () => {
                 <p className="mt-1 text-[15px] font-semibold text-brand-text">{formatBRL(p.price)}</p>
               </div>
               <div className="flex gap-1">
-                <IconButton icon={Edit2} label={`Editar ${p.name}`} onClick={() => abrir(p)} />
-                <IconButton icon={Trash2} label={`Remover ${p.name}`} onClick={() => remover(p)} />
+                <IconButton icon={EditIcon} label={`Editar ${p.name}`} onClick={() => abrir(p)} />
+                <IconButton icon={DeleteIcon} label={`Remover ${p.name}`} onClick={() => remover(p)} />
               </div>
             </Card>
           ))}
@@ -118,7 +123,7 @@ export const ProdutosTab = () => {
             onCancel={() => setOpen(false)}
             onSubmit={() => (document.getElementById('produto-form') as HTMLFormElement | null)?.requestSubmit()}
             submitLabel="Salvar produto"
-            submitIcon={Save}
+            submitIcon={SaveIcon}
             submitting={saving}
           />
         }

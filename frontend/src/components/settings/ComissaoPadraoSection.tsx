@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Save } from 'lucide-react';
-import { Button, Card, Field, Input, Skeleton } from '@/components/ui';
+import { Button, Card, Field, Icon, Input, Skeleton } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { buscarRegraComissao, salvarRegraComissao } from '@/lib/comanda';
 import { getApiErrorMessage } from '@/utils/handleApiError';
@@ -67,7 +66,7 @@ export function ComissaoPadraoSection() {
       )}
       <div className="flex justify-end">
         <Button onClick={salvar} loading={saving} disabled={loading}>
-          {!saving && <Save className="h-[18px] w-[18px]" aria-hidden="true" />} Salvar comissão
+          {!saving && <Icon name="save" size={18} />} Salvar comissão
         </Button>
       </div>
     </Card>

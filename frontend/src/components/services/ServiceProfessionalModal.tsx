@@ -147,6 +147,24 @@ export const ServiceProfessionalModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (activeTab === 'profissionais') {
+      const { breakStart, breakEnd } = professionalForm;
+      if (Boolean(breakStart) !== Boolean(breakEnd) || (breakStart && breakEnd && breakEnd <= breakStart)) {
+        showToast(
+          breakStart && breakEnd ? 'O fim do intervalo deve ser depois do início' : 'Informe início e fim do intervalo',
+          'error',
+        );
+        return;
+      }
+      const invalida = [professionalForm.commissionServicePct, professionalForm.commissionProductPct].some(v => {
+        const n = pctOuNull(v);
+        return n !== null && (n < 0 || n > 100);
+      });
+      if (invalida) {
+        showToast('Comissão deve ficar entre 0% e 100%', 'error');
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       if (activeTab === 'servicos') {
@@ -355,8 +373,6 @@ export const ServiceProfessionalModal = ({
                   <Input
                     id="professional-commission-service"
                     type="number"
-                    min={0}
-                    max={100}
                     step="0.01"
                     value={professionalForm.commissionServicePct}
                     onChange={e => setProfessionalForm({ ...professionalForm, commissionServicePct: e.target.value })}
@@ -366,8 +382,6 @@ export const ServiceProfessionalModal = ({
                   <Input
                     id="professional-commission-product"
                     type="number"
-                    min={0}
-                    max={100}
                     step="0.01"
                     value={professionalForm.commissionProductPct}
                     onChange={e => setProfessionalForm({ ...professionalForm, commissionProductPct: e.target.value })}
