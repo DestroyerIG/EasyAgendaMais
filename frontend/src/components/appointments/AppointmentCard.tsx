@@ -217,11 +217,15 @@ export function AppointmentCard({
   // Onde o toque começou, guardado mesmo no cartão sem ações (concluído, cancelado), que
   // não arrasta mas continua abrindo o painel.
   const toqueRef = useRef<{ x: number; y: number } | null>(null);
+  // Se o cartão já estava aberto (arrastado) quando o toque começou: nesse caso um toque
+  // parado fecha o cartão em vez de abrir o painel.
+  const abertoNoToqueRef = useRef(false);
 
   const abrirDetalhes = () => onAbrirDetalhes?.(appointment);
 
   const iniciarArraste = (evento: ReactPointerEvent<HTMLDivElement>) => {
     toqueRef.current = { x: evento.clientX, y: evento.clientY };
+    abertoNoToqueRef.current = deslocamento !== 0;
     if (!podeAgir) return;
     origemRef.current = evento.clientX - deslocamento;
     setArrastando(true);
@@ -242,9 +246,11 @@ export function AppointmentCard({
       setArrastando(false);
       setDeslocamento((atual) => encaixarArraste(atual));
     }
-    // Clique parado no corpo do cartão abre os detalhes; arrasto, não.
-    if (onAbrirDetalhes && toque && evento.type === 'pointerup') {
-      if (ehClique(evento.clientX - toque.x, evento.clientY - toque.y)) abrirDetalhes();
+    // Clique parado no corpo do cartão abre os detalhes; arrasto, não. Num cartão já
+    // arrastado, o toque parado só fecha o cartão.
+    if (toque && evento.type === 'pointerup' && ehClique(evento.clientX - toque.x, evento.clientY - toque.y)) {
+      if (abertoNoToqueRef.current) setDeslocamento(0);
+      else if (onAbrirDetalhes) abrirDetalhes();
     }
   };
 

@@ -32,7 +32,6 @@ Da tarefa 7 (lista de clientes):
 - Cobertura de teclado/acessibilidade do formulário mobile não foi testada nesse breakpoint específico; fica parado, sem teste, não é regressão desta entrega.
 
 Da geometria de agendamento (dado que falta na API):
-- `client_phone` deixou de aparecer no cartão de agendamento.
 - `ownerName` não está na sessão: a saudação da tela Hoje mostra o nome do negócio, e a pílula do celular perdeu o nome por causa disso.
 - Se alguma tarefa desta entrega deixou rótulo divergente entre a tela de Caixa e o PDF gerado, não foi identificado um caso específico nesta varredura; sinalizar se aparecer.
 

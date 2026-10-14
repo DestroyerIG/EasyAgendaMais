@@ -193,6 +193,28 @@ describe('AppointmentCard: abrir o painel de detalhes', () => {
     expect(frente.style.transform).toBe(`translateX(${ABERTURA_ARRASTE}px)`);
   });
 
+  it('toque parado num cartão já arrastado fecha o cartão e não abre o painel', () => {
+    const onAbrirDetalhes = vi.fn();
+    render(<AppointmentCard {...props} appointment={agendamento()} onAbrirDetalhes={onAbrirDetalhes} />);
+    const frente = frenteDo();
+
+    fireEvent.pointerDown(frente, { clientX: 10, clientY: 10, pointerId: 1 });
+    fireEvent.pointerMove(frente, { clientX: 90, clientY: 12, pointerId: 1 });
+    fireEvent.pointerUp(frente, { clientX: 90, clientY: 12, pointerId: 1 });
+    expect(frente.style.transform).toBe(`translateX(${ABERTURA_ARRASTE}px)`);
+
+    fireEvent.pointerDown(frente, { clientX: 50, clientY: 10, pointerId: 1 });
+    fireEvent.pointerUp(frente, { clientX: 50, clientY: 10, pointerId: 1 });
+
+    expect(frente.style.transform).toBe('translateX(0px)');
+    expect(onAbrirDetalhes).not.toHaveBeenCalled();
+
+    // Com o cartão fechado de novo, o toque parado volta a abrir o painel.
+    fireEvent.pointerDown(frente, { clientX: 50, clientY: 10, pointerId: 1 });
+    fireEvent.pointerUp(frente, { clientX: 50, clientY: 10, pointerId: 1 });
+    expect(onAbrirDetalhes).toHaveBeenCalledTimes(1);
+  });
+
   it('o cartão sem transição de status também abre o painel', () => {
     const onAbrirDetalhes = vi.fn();
     render(
