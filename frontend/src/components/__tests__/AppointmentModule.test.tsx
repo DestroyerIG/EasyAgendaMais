@@ -13,13 +13,31 @@ vi.mock('next/navigation', async (importOriginal) => ({
 }));
 
 const mockApiGet = vi.hoisted(() => vi.fn());
+const mockApiPut = vi.hoisted(() => vi.fn().mockResolvedValue({ data: {} }));
 vi.mock('@/lib/api', () => ({
   default: {
     get: (...args: unknown[]) => mockApiGet(...args),
     post: vi.fn(),
-    put: vi.fn(),
+    put: (...args: unknown[]) => mockApiPut(...args),
   },
 }));
+vi.mock('@/lib/comanda', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/comanda')>()),
+  abrirComanda: vi.fn().mockResolvedValue({
+    id: 'k1', number: 1042, status: 'rascunho',
+    appointment: { id: 'a1', date: '2026-09-17', time: '10:00', status: 'em_atendimento', source: 'painel' },
+    client: { id: 'c1', name: 'Mariana Souza', phone: '83999990000' },
+    professional: { id: 'p1', name: 'Camila Rocha' },
+    items: [{ id: 'i1', kind: 'servico', refId: 's1', name: 'Atendimento', unitPrice: 100, quantity: 1, durationMinutes: 60, isMain: true }],
+    depositAvailable: 0, discount: 0, tip: 0, paymentMethod: null,
+    commission: { servicePct: 0, productPct: 0, origem: 'negocio' },
+    calc: { servicesTotal: 100, productsTotal: 0, subtotal: 100, depositApplied: 0, discount: 0, tip: 0, totalCharged: 100, revenue: 100, commissionService: 0, commissionProduct: 0, commissionTotal: 0, houseRetention: 100, serviceBase: 100, productBase: 0 },
+    whatsappConnected: false, closedAt: null, receiptSentAt: null,
+  }),
+  buscarAtalhos: vi.fn().mockResolvedValue([]),
+  buscarDetalhesAgendamento: vi.fn().mockResolvedValue({ appointment: {}, client_stats: { visits_this_year: 0, average_cycle_days: null, last_visit_days_ago: null, last_visit_professional: null, is_recurring: false }, client_notes: null }),
+}));
+vi.mock('@/lib/produtos', () => ({ listarProdutos: vi.fn().mockResolvedValue([]) }));
 
 const { AppointmentModule } = await import('../AppointmentModule');
 
@@ -36,6 +54,9 @@ const agendamento = (partes: Partial<Appointment> & { id: string; time: string }
   professional_name: 'Camila Rocha',
   service_name: 'Atendimento',
   service_price: 100,
+  // O DTO de GET /appointments sempre traz a duração do serviço; a Agenda não tem mais
+  // duração de exemplo para cair quando ela falta.
+  service_duration_minutes: 60,
   ...partes,
 });
 
@@ -77,8 +98,9 @@ describe('AppointmentModule', () => {
       expect(mockApiGet).toHaveBeenCalledWith('/appointments', expect.anything());
     });
 
+    // /business/professionals agora é lido na montagem: o almoço de cada profissional
+    // (breakStart/breakEnd) entra na grade e nas vagas livres.
     expect(mockApiGet).not.toHaveBeenCalledWith('/clients');
-    expect(mockApiGet).not.toHaveBeenCalledWith('/business/professionals');
     expect(mockApiGet).not.toHaveBeenCalledWith('/business/services');
   });
 });
@@ -647,5 +669,54 @@ describe('AppointmentModule: painel de detalhes do agendamento', () => {
 
     await screen.findAllByText('Mariana Souza');
     expect(screen.queryByText('Detalhes da Sessão')).not.toBeInTheDocument();
+  });
+});
+
+describe('AppointmentModule: ações de status', () => {
+  beforeEach(() => {
+    mockSearch.value = '';
+    mockApiGet.mockReset();
+    mockApiPut.mockClear();
+  });
+
+  it('concluir abre a comanda em vez de mudar o status direto', async () => {
+    const user = userEvent.setup();
+    responder([agendamento({ id: 'a1', time: '10:00:00', service_duration_minutes: 60 })]);
+    render(<AppointmentModule />);
+    const [botao] = await screen.findAllByRole('button', { name: 'Concluir atendimento de Mariana Souza' });
+    await user.click(botao);
+    expect(await screen.findByText('Comanda #1042')).toBeInTheDocument();
+    expect(mockApiPut).not.toHaveBeenCalledWith('/appointments/a1/status', { status: 'concluido' });
+  });
+
+  it('iniciar atendimento envia em_atendimento', async () => {
+    const user = userEvent.setup();
+    responder([agendamento({ id: 'a1', time: '10:00:00', service_duration_minutes: 60 })]);
+    render(<AppointmentModule />);
+    const [botao] = await screen.findAllByRole('button', { name: 'Iniciar atendimento de Mariana Souza' });
+    await user.click(botao);
+    await waitFor(() => expect(mockApiPut).toHaveBeenCalledWith('/appointments/a1/status', { status: 'em_atendimento' }));
+  });
+
+  it('clicar num horário livre abre o novo agendamento com profissional e data', async () => {
+    const user = userEvent.setup();
+    responder([agendamento({ id: 'a1', time: '09:00:00', service_duration_minutes: 60 })]);
+    render(<AppointmentModule />);
+    const [vaga] = await screen.findAllByRole('button', { name: /Novo agendamento: 10:00/ });
+    await user.click(vaga);
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith('/appointments/available-slots', { params: expect.objectContaining({ professionalId: 'p1', date: '2026-09-17' }) }));
+  });
+
+  it('o almoço da profissional vem de /business/professionals e aparece na grade', async () => {
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === '/appointments') return Promise.resolve({ data: [agendamento({ id: 'a1', time: '09:00:00' })] });
+      if (url === '/business/professionals') {
+        return Promise.resolve({ data: [{ id: 'p1', name: 'Camila Rocha', business_id: 'b1', photo: null, active: true, created_at: '', breakStart: '12:00', breakEnd: '13:00' }] });
+      }
+      if (url === '/business/settings') return Promise.reject(new Error('sem acesso'));
+      return Promise.resolve({ data: [] });
+    });
+    render(<AppointmentModule />);
+    expect(await screen.findByText('Almoço')).toBeInTheDocument();
   });
 });

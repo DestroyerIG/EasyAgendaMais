@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, Search, AlertCircle, XCircle, Loader2 } from 'lucide-react';
 import { formatCurrency, formatDurationExtenso } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
@@ -17,6 +17,8 @@ interface CreateAppointmentModalProps {
   slotsLoading: boolean;
   onLoadSlots: (professionalId: string, date: string, serviceId: string) => void;
   onSubmit: (data: AppointmentFormData) => Promise<void>;
+  /** Pré-preenchimento vindo de um clique em horário livre da Agenda. */
+  inicial?: { professionalId?: string; date?: string; time?: string };
 }
 
 export interface AppointmentFormData {
@@ -29,7 +31,7 @@ export interface AppointmentFormData {
 
 export function CreateAppointmentModal({
   isOpen, onClose, clients, professionals, services,
-  availableSlots, slotsLoading, onLoadSlots, onSubmit
+  availableSlots, slotsLoading, onLoadSlots, onSubmit, inicial
 }: CreateAppointmentModalProps) {
   const today = new Date().toISOString().split('T')[0];
   const [formData, setFormData] = useState<AppointmentFormData>({
@@ -37,8 +39,34 @@ export function CreateAppointmentModal({
   });
   const [clientSearch, setClientSearch] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // Horário pedido pelo clique no horário livre: só vira seleção quando aparece entre os
+  // horários disponíveis que chegarem para a profissional e a data pré-preenchidas.
+  const [horarioPendente, setHorarioPendente] = useState<string | null>(null);
+
+  // Cada abertura começa do zero, já com o que o horário livre sabia (profissional, data).
+  useEffect(() => {
+    if (!isOpen) return;
+    const professionalId = inicial?.professionalId ?? '';
+    const date = inicial?.date ?? today;
+    setFormData({ clientId: '', serviceId: '', professionalId, date, time: '' });
+    setClientSearch('');
+    setHorarioPendente(inicial?.time ?? null);
+    if (professionalId && date) onLoadSlots(professionalId, date, '');
+    // Só a abertura importa: `inicial` e `onLoadSlots` mudam de identidade a cada render do pai.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!horarioPendente || slotsLoading) return;
+    if (availableSlots.includes(horarioPendente)) {
+      setFormData(prev => ({ ...prev, time: horarioPendente }));
+      setHorarioPendente(null);
+    }
+  }, [availableSlots, horarioPendente, slotsLoading]);
 
   const handleChange = (field: keyof AppointmentFormData, value: string) => {
+    // Trocar profissional, data ou horário na mão vence o horário pedido pelo clique.
+    if (field === 'professionalId' || field === 'date' || field === 'time') setHorarioPendente(null);
     const newData = { ...formData, [field]: value };
     setFormData(newData);
 

@@ -4,12 +4,11 @@
  * Cartão de agendamento da Agenda no celular (agenda-mobile.html).
  *
  * Dado real: horário, cliente, valor, serviço, profissional e status vêm de
- * GET /appointments; as duas ações do gesto chamam o mesmo handler de mudança de
- * status que a tela já usava. Um toque parado no corpo do cartão abre o painel de
- * detalhes (agendamento-detalhes.html) — arrastar não abre.
+ * GET /appointments; as duas ações do gesto saem de ACOES_DO_GESTO e chamam o mesmo
+ * `onAcao` da linha do tempo e do painel. Um toque parado no corpo do cartão abre o
+ * painel de detalhes (agendamento-detalhes.html) — arrastar não abre.
  * Dado real: a duração embaixo do horário é a do serviço (service_duration_minutes,
- * GET /appointments); duracaoPadraoMinutos (conteudoDemo.agenda) só entra quando o
- * agendamento não traz duração própria.
+ * GET /appointments), sem duração de exemplo.
  * Fora da tela: o "encaixe rápido" e a ação de cobrar sinal por Pix do arquivo de
  * referência, que dependem de funções que não existem.
  *
@@ -21,10 +20,8 @@
  * ProfessionalAgenda.tsx poder desligar os três e voltar exatamente a esse estado, sem
  * mudar as telas que estão dentro do escopo desta migração (correção I9).
  *
- * O arquivo de referência escreve "Marcar Falta" na ação vermelha. O sistema só tem
- * os status confirmado, concluído e cancelado — não existe falta — então a ação leva
- * o nome da transição que ela realmente faz, "Cancelar", para o cartão não prometer
- * um estado que o registro nunca vai ter.
+ * A ação vermelha do arquivo de referência ("Marcar Falta") agora existe de verdade: o
+ * status `faltou` é aceito por PUT /appointments/:id/status.
  */
 
 import {
@@ -39,6 +36,30 @@ import { linkWhatsapp } from '@/lib/whatsapp';
 import { Icon, StatusChip, STATUS_STRIPE_CLASS } from '@/components/ui';
 import { formatarDuracao, formatarMinutos, paraMinutos, paraHoraTexto } from './LinhaDoTempo';
 import type { Appointment } from '@/types';
+import { ROTULO_ACAO, type AcaoAgendamento } from './acoes';
+
+interface AcaoDoGesto {
+  acao: AcaoAgendamento;
+  /** Texto curto que cabe na abertura do gesto. */
+  texto: string;
+  classe: string;
+}
+
+/**
+ * As duas ações do gesto por status. Confirmado: iniciar (esquerda) e cliente faltou
+ * (direita). Em atendimento: concluir, que abre a comanda (esquerda), e voltar para
+ * confirmado (direita). Cancelar fica no painel de detalhes.
+ */
+export const ACOES_DO_GESTO: Partial<Record<Appointment['status'], { esquerda: AcaoDoGesto; direita: AcaoDoGesto }>> = {
+  confirmado: {
+    esquerda: { acao: 'iniciar', texto: 'Iniciar', classe: 'bg-brand text-on-brand' },
+    direita: { acao: 'faltou', texto: 'Faltou', classe: 'bg-danger text-surface' },
+  },
+  em_atendimento: {
+    esquerda: { acao: 'concluir', texto: 'Concluir', classe: 'bg-success text-surface' },
+    direita: { acao: 'desfazer_inicio', texto: 'Voltar', classe: 'bg-surface-2 text-ink' },
+  },
+};
 
 /** Arrasto máximo e ponto de virada do gesto, em pixels (agenda-mobile.html). */
 export const LIMITE_ARRASTE = 120;
@@ -168,7 +189,7 @@ interface AppointmentCardProps {
   appointment: Appointment;
   actionLoading: string | null;
   duracaoMinutos: number;
-  onStatusChange: (id: string, status: 'concluido' | 'cancelado') => void;
+  onAcao: (agendamento: Appointment, acao: AcaoAgendamento) => void;
   /**
    * Abre o painel de detalhes (agendamento-detalhes.html). Só dispara quando o ponteiro
    * praticamente não andou: o corpo do cartão também é a área do gesto de arrastar.
@@ -180,12 +201,14 @@ export function AppointmentCard({
   appointment,
   actionLoading,
   duracaoMinutos,
-  onStatusChange,
+  onAcao,
   onAbrirDetalhes,
 }: AppointmentCardProps) {
   const isLoading = actionLoading === appointment.id;
-  // Só o agendamento confirmado tem transição de status; nos outros não há o que revelar.
-  const podeAgir = appointment.status === 'confirmado';
+  // Só confirmado e em atendimento têm as duas ações do gesto; nos outros não há o que
+  // revelar (cancelar fica no painel de detalhes).
+  const gesto = ACOES_DO_GESTO[appointment.status];
+  const podeAgir = gesto !== undefined;
   const cliente = appointment.client_name || 'Cliente';
 
   const [deslocamento, setDeslocamento] = useState(0);
@@ -225,41 +248,48 @@ export function AppointmentCard({
     }
   };
 
-  const agir = (status: 'concluido' | 'cancelado') => {
+  const agir = (acao: AcaoAgendamento) => {
     setDeslocamento(0);
-    onStatusChange(appointment.id, status);
+    onAcao(appointment, acao);
   };
 
   return (
     <div className="relative overflow-hidden rounded-card border border-line bg-surface">
-      {podeAgir && (
+      {gesto && (
         // Camada de ações do gesto. Os dois botões são de verdade e recebem foco pelo
         // teclado; ao receber foco, o cartão desliza para o lado de quem está em foco,
-        // que é a alternativa acessível ao arrasto.
+        // que é a alternativa acessível ao arrasto. O texto visível é curto porque a
+        // abertura do gesto é de 80px; o nome completo fica no aria-label.
         <div className="absolute inset-0 flex items-stretch justify-between">
           <button
             type="button"
             disabled={isLoading}
             onFocus={() => setDeslocamento(ABERTURA_ARRASTE)}
             onBlur={() => setDeslocamento(0)}
-            onClick={() => agir('concluido')}
-            aria-label={`Concluir atendimento de ${cliente}`}
-            className="flex items-center gap-2 bg-success px-5 text-[13px] font-semibold text-surface focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand disabled:opacity-50"
+            onClick={() => agir(gesto.esquerda.acao)}
+            aria-label={`${ROTULO_ACAO[gesto.esquerda.acao].texto} de ${cliente}`}
+            className={cn(
+              'flex items-center gap-2 px-5 text-[13px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand disabled:opacity-50',
+              gesto.esquerda.classe,
+            )}
           >
-            <Icon name="check_circle" size={22} />
-            Concluir
+            <Icon name={ROTULO_ACAO[gesto.esquerda.acao].icone} size={22} />
+            {gesto.esquerda.texto}
           </button>
           <button
             type="button"
             disabled={isLoading}
             onFocus={() => setDeslocamento(-ABERTURA_ARRASTE)}
             onBlur={() => setDeslocamento(0)}
-            onClick={() => agir('cancelado')}
-            aria-label={`Cancelar agendamento de ${cliente}`}
-            className="flex items-center gap-2 bg-danger px-5 text-[13px] font-semibold text-surface focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand disabled:opacity-50"
+            onClick={() => agir(gesto.direita.acao)}
+            aria-label={`${ROTULO_ACAO[gesto.direita.acao].texto} de ${cliente}`}
+            className={cn(
+              'flex items-center gap-2 px-5 text-[13px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand disabled:opacity-50',
+              gesto.direita.classe,
+            )}
           >
-            Cancelar
-            <Icon name="cancel" size={22} />
+            {gesto.direita.texto}
+            <Icon name={ROTULO_ACAO[gesto.direita.acao].icone} size={22} />
           </button>
         </div>
       )}

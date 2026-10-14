@@ -11,11 +11,14 @@
  * desocupa horário. É a duração real de cada atendimento que define a altura do bloco
  * dele — usar uma duração fixa para todos sobrepunha o bloco de um serviço mais curto no
  * do atendimento marcado logo em seguida (achado do usuário).
- * Dado de exemplo: duracaoPadraoMinutos (conteudoDemo.agenda) só entra quando um
- * agendamento não traz duração própria. Clicar no bloco abre o painel de detalhes
- * (agendamento-detalhes.html); os botões rápidos do bloco continuam como eram.
- * Fora da tela: "encaixe inteligente"/"encaixe rápido", bloco de almoço e faixa de
- * "ação química" do arquivo de referência, que dependem de dados e funções que não existem.
+ * duracaoPadraoMinutos é só fallback técnico para um agendamento sem duração própria (o
+ * DTO sempre traz service_duration_minutes). Clicar no bloco abre o painel de detalhes
+ * (agendamento-detalhes.html); os botões rápidos do bloco são as ações do status dele
+ * (ACOES_POR_STATUS), menos cancelar e voltar para confirmado, que ficam no painel.
+ * O almoço de cada profissional (breakStart/breakEnd de GET /business/professionals) é
+ * desenhado na coluna dela e conta como horário ocupado nas vagas livres.
+ * Fora da tela: "encaixe inteligente"/"encaixe rápido" e faixa de "ação química" do
+ * arquivo de referência, que dependem de dados e funções que não existem.
  *
  * A referência desenha os blocos em pixels fixos; aqui a posição é sempre calculada:
  * top = (minutos desde o início da faixa / 60) × alturaHora e
@@ -37,6 +40,31 @@ import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/formatters';
 import { Avatar, Icon, StatusChip, STATUS_STRIPE_CLASS } from '@/components/ui';
 import type { Appointment } from '@/types';
+import { ACOES_POR_STATUS, ROTULO_ACAO, type AcaoAgendamento } from './acoes';
+
+/** O que um clique num horário livre já sabe do novo agendamento. */
+export interface InicialNovoAgendamento {
+  professionalId?: string;
+  date?: string;
+  time?: string;
+}
+
+/** Almoço de cada profissional, por id, em "HH:MM". */
+export type IntervalosPorProfissional = Record<string, { inicio: string; fim: string } | undefined>;
+
+/** Horário ocupado que não é atendimento (almoço), em minutos desde a meia-noite. */
+export interface Bloqueio {
+  inicio: number;
+  fim: number;
+}
+
+/** "12:00"–"13:00" → { inicio: 720, fim: 780 }; sem intervalo ou com fim antes do início, nada. */
+export const bloqueioDoIntervalo = (intervalo?: { inicio: string; fim: string }): Bloqueio | null => {
+  if (!intervalo) return null;
+  const inicio = paraMinutos(intervalo.inicio);
+  const fim = paraMinutos(intervalo.fim);
+  return fim > inicio ? { inicio, fim } : null;
+};
 
 /** Altura de uma hora na grade quando nenhum atendimento do dia precisa de mais espaço — o valor do arquivo de referência. */
 export const ALTURA_HORA = 80;
@@ -72,8 +100,15 @@ export const VAGA_MINIMA_MINUTOS = 30;
 /** Ícone do canto do bloco por status (agenda-desktop.html). */
 const ICONE_STATUS: Record<string, string> = {
   confirmado: 'verified',
+  em_atendimento: 'content_cut',
   concluido: 'check_circle',
+  faltou: 'person_off',
+  aguardando_pagamento: 'hourglass_top',
 };
+
+/** Ações que o bloco oferece no hover; cancelar e voltar para confirmado ficam no painel. */
+const acoesDoBloco = (status: Appointment['status']): AcaoAgendamento[] =>
+  (ACOES_POR_STATUS[status] ?? []).filter((acao) => acao !== 'cancelar' && acao !== 'desfazer_inicio');
 
 /**
  * Um tom por profissional, na ordem da referência: laranja da marca, azul `tertiary`
@@ -135,9 +170,9 @@ export const formatarDuracao = (minutos: number): string => {
   return `${h}h${String(m).padStart(2, '0')}`;
 };
 
-/** "08:30 – 10:00", com o travessão do arquivo de referência. */
+/** "08:30 – 10:00", com o travessão do arquivo de referência. Passou da meia-noite, volta para 00h. */
 export const faixaHorariaTexto = (inicioMinutos: number, duracaoMinutos: number): string =>
-  `${paraHoraTexto(inicioMinutos)} – ${paraHoraTexto(inicioMinutos + duracaoMinutos)}`;
+  `${paraHoraTexto(inicioMinutos)} – ${paraHoraTexto((inicioMinutos + duracaoMinutos) % (24 * 60))}`;
 
 export interface FaixaHoras {
   horaInicio: number;
@@ -207,32 +242,38 @@ export interface VagaLivre {
 
 /**
  * Buracos de pelo menos 30 minutos entre os atendimentos de um profissional, dentro
- * da faixa desenhada. Cancelado não ocupa horário, então o intervalo dele conta como livre.
+ * da faixa desenhada. Cancelado não ocupa horário, então o intervalo dele conta como livre;
+ * os `bloqueios` (almoço) ocupam como um atendimento.
  *
  * `apenasEntreAtendimentos` deixa de fora o buraco antes do primeiro e depois do último
  * atendimento: é o que a lista do celular mostra (agenda-mobile.html tem uma linha de
- * horário livre no meio da lista, nenhuma nas pontas).
+ * horário livre no meio da lista, nenhuma nas pontas). As pontas são as dos atendimentos,
+ * não as do almoço: um almoço antes do primeiro atendimento não abre vaga na ponta.
  */
 export function calcularVagasLivres(
   agendamentos: Appointment[],
   faixa: FaixaHoras,
   duracaoPadraoMinutos: number,
   opcoes?: { apenasEntreAtendimentos?: boolean },
+  bloqueios: Bloqueio[] = [],
 ): VagaLivre[] {
   const apenasEntre = opcoes?.apenasEntreAtendimentos ?? false;
-  const ocupados = agendamentos
+  const atendimentos = agendamentos
     .filter((agendamento) => agendamento.status !== 'cancelado')
     .map((agendamento) => {
       const inicio = paraMinutos(agendamento.time);
       return { inicio, fim: inicio + duracaoReal(agendamento, duracaoPadraoMinutos) };
-    })
-    .sort((a, b) => a.inicio - b.inicio);
+    });
+  const primeiroInicio = Math.min(...atendimentos.map((a) => a.inicio));
+  const ultimoFim = Math.max(...atendimentos.map((a) => a.fim));
+  const ocupados = [...atendimentos, ...bloqueios].sort((a, b) => a.inicio - b.inicio);
 
   const vagas: VagaLivre[] = [];
   let cursor = faixa.inicioMinutos;
 
-  ocupados.forEach(({ inicio, fim }, indice) => {
-    const naPonta = apenasEntre && indice === 0;
+  ocupados.forEach(({ inicio, fim }) => {
+    // Na lista do celular só vale buraco que tem atendimento dos dois lados.
+    const naPonta = apenasEntre && (cursor < primeiroInicio || inicio > ultimoFim);
     if (!naPonta && inicio - cursor >= VAGA_MINIMA_MINUTOS) {
       vagas.push({ inicioMinutos: cursor, duracaoMinutos: inicio - cursor });
     }
@@ -291,7 +332,7 @@ interface BlocoAgendamentoProps {
   faixaInicioMinutos: number;
   alturaHora: number;
   actionLoading: string | null;
-  onStatusChange: (id: string, status: 'concluido' | 'cancelado') => void;
+  onAcao: (agendamento: Appointment, acao: AcaoAgendamento) => void;
   /** Abre o painel de detalhes (agendamento-detalhes.html). Sem ela o bloco só informa. */
   onAbrirDetalhes?: (agendamento: Appointment) => void;
 }
@@ -302,13 +343,13 @@ function BlocoAgendamento({
   faixaInicioMinutos,
   alturaHora,
   actionLoading,
-  onStatusChange,
+  onAcao,
   onAbrirDetalhes,
 }: BlocoAgendamentoProps) {
   const inicioMinutos = paraMinutos(agendamento.time);
   const { top, altura } = posicaoDoBloco(inicioMinutos, duracaoMinutos, faixaInicioMinutos, alturaHora);
   const cancelado = agendamento.status === 'cancelado';
-  const podeAgir = agendamento.status === 'confirmado';
+  const acoes = acoesDoBloco(agendamento.status);
   const carregando = actionLoading === agendamento.id;
   const cliente = agendamento.client_name || 'Cliente';
 
@@ -378,28 +419,29 @@ function BlocoAgendamento({
           {!cancelado && <StatusChip status={agendamento.status} className="px-2 text-[11px]" />}
         </div>
 
-        {/* As mesmas ações do cartão do celular: aparecem no ponteiro e ao receber foco
-            pelo teclado, e ficam sem alvo de clique enquanto invisíveis. */}
-        {podeAgir && (
+        {/* Ações do status (ACOES_POR_STATUS, menos cancelar e voltar, que ficam no
+            painel): aparecem no ponteiro e ao receber foco pelo teclado, e ficam sem alvo
+            de clique enquanto invisíveis. */}
+        {acoes.length > 0 && (
           <div className="pointer-events-none absolute right-1.5 top-1.5 z-10 flex gap-1 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
-            <button
-              type="button"
-              aria-label={`Concluir atendimento de ${cliente}`}
-              disabled={carregando}
-              onClick={() => onStatusChange(agendamento.id, 'concluido')}
-              className="inline-flex h-6 w-6 items-center justify-center rounded border border-line bg-surface text-success transition-colors hover:bg-success/12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50"
-            >
-              <Icon name="check_circle" size={16} />
-            </button>
-            <button
-              type="button"
-              aria-label={`Cancelar agendamento de ${cliente}`}
-              disabled={carregando}
-              onClick={() => onStatusChange(agendamento.id, 'cancelado')}
-              className="inline-flex h-6 w-6 items-center justify-center rounded border border-line bg-surface text-danger transition-colors hover:bg-danger/12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50"
-            >
-              <Icon name="cancel" size={16} />
-            </button>
+            {acoes.map((acao) => (
+              <button
+                key={acao}
+                type="button"
+                aria-label={`${ROTULO_ACAO[acao].texto} de ${cliente}`}
+                title={ROTULO_ACAO[acao].texto}
+                disabled={carregando}
+                onClick={() => onAcao(agendamento, acao)}
+                className={cn(
+                  'inline-flex h-6 w-6 items-center justify-center rounded border border-line bg-surface transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50',
+                  acao === 'iniciar' && 'text-brand-text hover:bg-brand/12',
+                  acao === 'concluir' && 'text-success hover:bg-success/12',
+                  acao === 'faltou' && 'text-danger hover:bg-danger/12',
+                )}
+              >
+                <Icon name={ROTULO_ACAO[acao].icone} size={16} />
+              </button>
+            ))}
           </div>
         )}
       </div>
@@ -411,20 +453,31 @@ interface BlocoVagaLivreProps {
   vaga: VagaLivre;
   faixaInicioMinutos: number;
   alturaHora: number;
-  onNovoAgendamento: () => void;
+  /** Profissional da coluna e data do dia, que vão preenchidas no formulário. */
+  professionalId?: string;
+  data?: string;
+  onNovoAgendamento: (inicial?: InicialNovoAgendamento) => void;
 }
 
-function BlocoVagaLivre({ vaga, faixaInicioMinutos, alturaHora, onNovoAgendamento }: BlocoVagaLivreProps) {
+function BlocoVagaLivre({
+  vaga,
+  faixaInicioMinutos,
+  alturaHora,
+  professionalId,
+  data,
+  onNovoAgendamento,
+}: BlocoVagaLivreProps) {
   const { top, altura } = posicaoDoBloco(vaga.inicioMinutos, vaga.duracaoMinutos, faixaInicioMinutos, alturaHora);
   const compacto = vaga.duracaoMinutos < 60;
   const duracao = formatarDuracao(vaga.duracaoMinutos);
 
-  // O clique abre o formulário vazio, então o rótulo começa pelo que acontece de fato e
-  // deixa o horário como contexto, em vez de prometer um horário já preenchido.
+  // O clique abre o formulário com a profissional da coluna, a data do dia e o horário
+  // da vaga (selecionado quando ele está entre os horários disponíveis). O rótulo começa
+  // pelo que acontece de fato e deixa o horário como contexto.
   return (
     <button
       type="button"
-      onClick={onNovoAgendamento}
+      onClick={() => onNovoAgendamento({ professionalId, date: data, time: paraHoraTexto(vaga.inicioMinutos) })}
       aria-label={`Novo agendamento: ${paraHoraTexto(vaga.inicioMinutos)}, ${duracao} livre`}
       className="group/vaga absolute left-1.5 right-1.5 flex flex-col items-center justify-center gap-0.5 rounded-control border border-dashed border-line text-muted transition-colors hover:bg-surface-2 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       style={{ top: top + 2, height: Math.max(altura - 4, 28) }}
@@ -468,8 +521,10 @@ export interface LinhaDoTempoProps {
   actionLoading: string | null;
   /** Só o dia de hoje mostra a linha "Agora". */
   mostrarAgora?: boolean;
-  onStatusChange: (id: string, status: 'concluido' | 'cancelado') => void;
-  onNovoAgendamento: () => void;
+  onAcao: (agendamento: Appointment, acao: AcaoAgendamento) => void;
+  onNovoAgendamento: (inicial?: InicialNovoAgendamento) => void;
+  /** Almoço de cada profissional, por id: desenhado na coluna e ocupado nas vagas. */
+  intervalos?: IntervalosPorProfissional;
   /** Clique no bloco abre o painel de detalhes (agendamento-detalhes.html). */
   onAbrirDetalhes?: (agendamento: Appointment) => void;
   className?: string;
@@ -483,8 +538,9 @@ export function LinhaDoTempo({
   horarioFuncionamento,
   actionLoading,
   mostrarAgora = false,
-  onStatusChange,
+  onAcao,
   onNovoAgendamento,
+  intervalos,
   onAbrirDetalhes,
   className,
 }: LinhaDoTempoProps) {
@@ -590,17 +646,43 @@ export function LinhaDoTempo({
           ))}
         </div>
 
-        {colunas.map((coluna, indice) => (
+        {colunas.map((coluna, indice) => {
+          const almoco = bloqueioDoIntervalo(intervalos?.[coluna.id]);
+          const posicaoAlmoco = almoco
+            ? posicaoDoBloco(almoco.inicio, almoco.fim - almoco.inicio, faixa.inicioMinutos, alturaHora)
+            : null;
+          return (
           <div
             key={coluna.id}
             className={cn('relative p-1', indice < colunas.length - 1 && 'border-r border-line/70')}
           >
-            {calcularVagasLivres(coluna.agendamentos, faixa, duracaoPadraoMinutos).map((vaga) => (
+            {posicaoAlmoco && (
+              // Almoço da profissional (agenda-desktop.html: bloco listrado com "Almoço").
+              // O listrado do arquivo é cor fixa; aqui fica o tracejado com tokens.
+              <div
+                className="absolute left-1 right-1 flex items-center justify-center overflow-hidden rounded-control border border-dashed border-line bg-surface-2"
+                style={{ top: posicaoAlmoco.top, height: posicaoAlmoco.altura }}
+              >
+                <span className="flex items-center gap-1.5 rounded-md border border-line bg-surface px-3 py-1 text-[12px] font-semibold text-muted">
+                  <Icon name="restaurant" size={16} />
+                  Almoço
+                </span>
+              </div>
+            )}
+            {calcularVagasLivres(
+              coluna.agendamentos,
+              faixa,
+              duracaoPadraoMinutos,
+              undefined,
+              almoco ? [almoco] : [],
+            ).map((vaga) => (
               <BlocoVagaLivre
                 key={`vaga-${vaga.inicioMinutos}`}
                 vaga={vaga}
                 faixaInicioMinutos={faixa.inicioMinutos}
                 alturaHora={alturaHora}
+                professionalId={coluna.agendamentos[0]?.professional_id || undefined}
+                data={coluna.agendamentos[0]?.date.substring(0, 10)}
                 onNovoAgendamento={onNovoAgendamento}
               />
             ))}
@@ -612,12 +694,13 @@ export function LinhaDoTempo({
                 faixaInicioMinutos={faixa.inicioMinutos}
                 alturaHora={alturaHora}
                 actionLoading={actionLoading}
-                onStatusChange={onStatusChange}
+                onAcao={onAcao}
                 onAbrirDetalhes={onAbrirDetalhes}
               />
             ))}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

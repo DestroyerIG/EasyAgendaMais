@@ -12,13 +12,16 @@
  * e status e a criação de agendamento seguem exatamente como eram, e o filtro por
  * profissional é peneira local na lista já carregada (nenhuma chamada nova, nenhum
  * handler novo).
- * Dado de exemplo: duracaoPadraoMinutos (conteudoDemo.agenda) só entra quando um
- * agendamento não traz duração própria (registro antigo, anterior a este campo).
+ * O almoço de cada profissional (breakStart/breakEnd de GET /business/professionals,
+ * lido na montagem) é desenhado na grade e ocupa horário nas vagas livres.
  * O painel de detalhes abre sobre a agenda ao clicar no bloco da linha do tempo ou no
- * corpo do cartão, e as ações dele chamam o mesmo handleStatusChange desta tela.
- * Fora da tela: "encaixe inteligente"/"encaixe rápido", bloco de almoço, faixa de
- * "ação química", cobrança de sinal por Pix e aviso de chegada prevista, todos do
- * arquivo de referência e todos sem função que os sustente.
+ * corpo do cartão. Bloco, cartão e painel disparam a mesma `handleAcao`: iniciar,
+ * faltou, cancelar e voltar para confirmado mudam o status; concluir abre a comanda
+ * (ComandaModal), que é quem conclui ao ser fechada. Clicar num horário livre abre o
+ * novo agendamento com a profissional, a data e o horário da vaga.
+ * Fora da tela: "encaixe inteligente"/"encaixe rápido", faixa de "ação química",
+ * cobrança de sinal por Pix e aviso de chegada prevista, todos do arquivo de referência
+ * e todos sem função que os sustente.
  */
 
 import { useEffect, useState, useCallback } from 'react';
@@ -28,7 +31,6 @@ import { getToday } from '@/lib/dateUtils';
 import { formatDate } from '@/lib/dateUtils';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
-import { conteudoDemo } from '@/lib/conteudoDemo';
 import {
   EmptyState,
   Icon,
@@ -51,6 +53,7 @@ import {
   LinhaDoTempo,
   agruparPorProfissional,
   calcularFaixaHoras,
+  bloqueioDoIntervalo,
   calcularVagasLivres,
   chaveProfissional,
   duracaoReal,
@@ -59,10 +62,15 @@ import {
   paraHoraTexto,
   paraMinutos,
   tomDoProfissional,
+  type Bloqueio,
   type FaixaHoras,
   type HorarioFuncionamento,
+  type InicialNovoAgendamento,
+  type IntervalosPorProfissional,
   type VagaLivre,
 } from '@/components/appointments/LinhaDoTempo';
+import type { AcaoAgendamento } from '@/components/appointments/acoes';
+import { ComandaModal } from '@/components/comanda/ComandaModal';
 import { PainelDetalhesAgendamento } from '@/components/appointments/PainelDetalhesAgendamento';
 import { PendingPaymentList } from '@/components/appointments/PendingPaymentList';
 import { CreateAppointmentModal } from '@/components/appointments/CreateAppointmentModal';
@@ -70,7 +78,7 @@ import type { AppointmentFormData } from '@/components/appointments/CreateAppoin
 import { useNewAppointmentParam } from '@/hooks/useNewAppointmentParam';
 import { calcularOcupacaoPercentual } from '@/lib/agendaMetrics';
 import { materialIcon } from '@/lib/materialIconAdapter';
-import type { Appointment, Client, Professional, Service } from '@/types';
+import type { Appointment, AppointmentStatus as StatusDoAgendamento, Client, Professional, Service } from '@/types';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 
 // M1 da revisão final: Material Symbols no lugar dos dois ícones lucide restantes deste
@@ -84,7 +92,9 @@ type StatusFilter = 'todos' | 'confirmado' | 'concluido' | 'cancelado';
 /** Legenda de status, com os seis itens e as palavras de agenda-desktop.html. */
 const STATUS_DA_LEGENDA: readonly { status: AppointmentStatus; rotulo: string }[] = [
   { status: 'confirmado', rotulo: 'Confirmado' },
-  { status: 'aguardando', rotulo: 'Aguardando confirmação' },
+  // O status real é aguardando_pagamento (reserva pública esperando o sinal Pix): o
+  // quadradinho pinta na cor do bloco dele, com as palavras do arquivo.
+  { status: 'aguardando_pagamento', rotulo: 'Aguardando confirmação' },
   { status: 'em_atendimento', rotulo: 'Em atendimento' },
   { status: 'concluido', rotulo: 'Concluído' },
   { status: 'faltou', rotulo: 'Faltou' },
@@ -103,7 +113,28 @@ const lerHorarioFuncionamento = (dados: unknown): HorarioFuncionamento | null =>
 
 type ItemDoDia =
   | { tipo: 'agendamento'; chave: string; inicioMinutos: number; agendamento: Appointment }
-  | { tipo: 'vaga'; chave: string; inicioMinutos: number; vaga: VagaLivre; profissional: string };
+  | {
+      tipo: 'vaga';
+      chave: string;
+      inicioMinutos: number;
+      vaga: VagaLivre;
+      profissional: string;
+      professionalId?: string;
+      data?: string;
+    };
+
+/** Almoço da coluna (por id de profissional) como bloqueio das vagas livres. */
+const bloqueiosDe = (intervalos: IntervalosPorProfissional | undefined, id: string): Bloqueio[] => {
+  const almoco = bloqueioDoIntervalo(intervalos?.[id]);
+  return almoco ? [almoco] : [];
+};
+
+const STATUS_DA_ACAO: Record<Exclude<AcaoAgendamento, 'concluir'>, StatusDoAgendamento> = {
+  iniciar: 'em_atendimento', faltou: 'faltou', cancelar: 'cancelado', desfazer_inicio: 'confirmado',
+};
+const MENSAGEM_DA_ACAO: Record<Exclude<AcaoAgendamento, 'concluir'>, string> = {
+  iniciar: 'Atendimento iniciado', faltou: 'Falta registrada', cancelar: 'Agendamento cancelado', desfazer_inicio: 'Atendimento voltou para confirmado',
+};
 
 /**
  * Lista do celular: os atendimentos do dia e, entre eles, as linhas de horário livre
@@ -122,6 +153,7 @@ export function montarItensDoDia(
   faixa: FaixaHoras,
   duracaoMinutos: number,
   comVagas: boolean,
+  intervalos?: IntervalosPorProfissional,
 ): ItemDoDia[] {
   const itens: ItemDoDia[] = agendamentos.map((agendamento) => ({
     tipo: 'agendamento',
@@ -132,15 +164,21 @@ export function montarItensDoDia(
 
   if (comVagas) {
     agruparPorProfissional(doDia).forEach((coluna) => {
-      calcularVagasLivres(coluna.agendamentos, faixa, duracaoMinutos, {
-        apenasEntreAtendimentos: true,
-      }).forEach((vaga) => {
+      calcularVagasLivres(
+        coluna.agendamentos,
+        faixa,
+        duracaoMinutos,
+        { apenasEntreAtendimentos: true },
+        bloqueiosDe(intervalos, coluna.id),
+      ).forEach((vaga) => {
         itens.push({
           tipo: 'vaga',
           chave: `vaga-${coluna.id}-${vaga.inicioMinutos}`,
           inicioMinutos: vaga.inicioMinutos,
           vaga,
           profissional: coluna.nome,
+          professionalId: coluna.agendamentos[0]?.professional_id || undefined,
+          data: coluna.agendamentos[0]?.date.substring(0, 10),
         });
       });
     });
@@ -166,6 +204,10 @@ export function AppointmentModule() {
   // painel na mesma hora e o painel nunca fica afirmando um status que a lista já mudou.
   const [detalhesId, setDetalhesId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  // Comanda aberta pelo "Concluir" (id do agendamento) e o pré-preenchimento do novo
+  // agendamento vindo de um clique em horário livre.
+  const [comandaDe, setComandaDe] = useState<string | null>(null);
+  const [inicialNovo, setInicialNovo] = useState<InicialNovoAgendamento | undefined>();
   const { showToast } = useToast();
   const newAppointment = useNewAppointmentParam();
 
@@ -221,7 +263,23 @@ export function AppointmentModule() {
     };
   }, []);
 
-  const openModal = async () => {
+  // Profissionais na montagem: o almoço (breakStart/breakEnd) de cada uma entra na grade
+  // e nas vagas livres. Sem acesso, a agenda segue sem almoço desenhado.
+  useEffect(() => {
+    let cancelado = false;
+    api
+      .get('/business/professionals')
+      .then((response) => {
+        if (!cancelado && Array.isArray(response?.data)) setProfessionals(response.data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  const openModal = async (inicial?: InicialNovoAgendamento) => {
+    setInicialNovo(inicial);
     setShowModal(true);
     setAvailableSlots([]);
     try {
@@ -264,24 +322,41 @@ export function AppointmentModule() {
     loadAppointments();
   };
 
-  // ✅ CORRIGIDO: usa URL dinâmica /appointments/${id}/status
-  const handleStatusChange = async (id: string, status: 'confirmado' | 'concluido' | 'cancelado') => {
+  const handleAcao = async (agendamento: Appointment, acao: AcaoAgendamento) => {
+    if (acao === 'concluir') { setDetalhesId(null); setComandaDe(agendamento.id); return; }
     try {
-      setActionLoading(id);
-      await api.put(`/appointments/${id}/status`, { status });
-      const mensagens: Record<typeof status, string> = {
-        confirmado: 'Pagamento confirmado!',
-        concluido: 'Atendimento concluído!',
-        cancelado: 'Agendamento cancelado',
-      };
-      showToast(mensagens[status], status === 'cancelado' ? 'info' : 'success');
+      setActionLoading(agendamento.id);
+      await api.put(`/appointments/${agendamento.id}/status`, { status: STATUS_DA_ACAO[acao] });
+      showToast(MENSAGEM_DA_ACAO[acao], acao === 'cancelar' ? 'info' : 'success');
       loadAppointments();
     } catch (error: unknown) {
-      const message = getApiErrorMessage(error, 'Erro ao atualizar status');
-      showToast(message, 'error');
+      showToast(getApiErrorMessage(error, 'Erro ao atualizar status'), 'error');
     } finally {
       setActionLoading(null);
     }
+  };
+
+  // Confirmar o Pix de uma reserva pelo painel de detalhes (aguardando_pagamento →
+  // confirmado). Não é uma AcaoAgendamento; a aba "Aguardando Pix" faz o mesmo.
+  const confirmarPagamento = async (id: string) => {
+    try {
+      setActionLoading(id);
+      await api.put(`/appointments/${id}/status`, { status: 'confirmado' });
+      showToast('Pagamento confirmado!', 'success');
+      loadAppointments();
+    } catch (error: unknown) {
+      showToast(getApiErrorMessage(error, 'Erro ao atualizar status'), 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // O rodapé atual do painel ainda fala em status (a Tarefa 13 o troca pelas ações):
+  // concluir vira a ação que abre a comanda e cancelar vira a ação de cancelar.
+  const handleStatusDoPainel = (id: string, status: 'confirmado' | 'concluido' | 'cancelado') => {
+    if (status === 'confirmado') { confirmarPagamento(id); return; }
+    const agendamento = appointments.find(a => a.id === id);
+    if (agendamento) handleAcao(agendamento, status === 'concluido' ? 'concluir' : 'cancelar');
   };
 
   const agendamentoDetalhado = detalhesId
@@ -290,6 +365,7 @@ export function AppointmentModule() {
 
   const closeModal = () => {
     setShowModal(false);
+    setInicialNovo(undefined);
     newAppointment.clear();
   };
 
@@ -338,7 +414,15 @@ export function AppointmentModule() {
   // inteiro. Ocupação e vagas livres são afirmações sobre o dia do salão: seguem o filtro
   // de profissional ("o dia da Camila está 84% ocupado" é verdade e é útil) e não o de
   // status, que é só controle de visualização — clicar em "Concluído" não desocupa o dia.
-  const duracaoMinutos = conteudoDemo.agenda.duracaoPadraoMinutos;
+  // Fallback técnico: o DTO sempre traz service_duration_minutes (HorarioFuncionamento não
+  // tem intervalo de grade para servir de fallback).
+  const duracaoMinutos = 30;
+  // Almoço por profissional, para a grade e para as vagas livres.
+  const intervalos: IntervalosPorProfissional = Object.fromEntries(
+    professionals
+      .filter(p => p.breakStart && p.breakEnd)
+      .map(p => [p.id, { inicio: p.breakStart!, fim: p.breakEnd! }]),
+  );
   const ehDia = viewMode === 'day';
   const naoCancelados = filteredAppointments.filter(a => a.status !== 'cancelado');
   const confirmados = filteredAppointments.filter(a => a.status === 'confirmado').length;
@@ -364,13 +448,19 @@ export function AppointmentModule() {
   // não desenha as pontas, então a linha dela conta pela mesma chamada, sobre o mesmo
   // conjunto, que a lista faz — os dois números são iguais por construção.
   const vagasLivres = ehDia
-    ? colunas.flatMap(coluna => calcularVagasLivres(coluna.agendamentos, faixa, duracaoMinutos))
+    ? colunas.flatMap(coluna =>
+        calcularVagasLivres(coluna.agendamentos, faixa, duracaoMinutos, undefined, bloqueiosDe(intervalos, coluna.id)),
+      )
     : [];
   const vagasDaLista = ehDia
     ? colunas.flatMap(coluna =>
-        calcularVagasLivres(coluna.agendamentos, faixa, duracaoMinutos, {
-          apenasEntreAtendimentos: true,
-        }),
+        calcularVagasLivres(
+          coluna.agendamentos,
+          faixa,
+          duracaoMinutos,
+          { apenasEntreAtendimentos: true },
+          bloqueiosDe(intervalos, coluna.id),
+        ),
       )
     : [];
   const ocupacao = calcularOcupacaoPercentual(doDia, faixa, duracaoMinutos, colunas.length);
@@ -380,7 +470,7 @@ export function AppointmentModule() {
       date,
       [...dayAppointments].sort((a, b) => a.time.localeCompare(b.time)),
     ] as const);
-  const temConfirmado = filteredAppointments.some(a => a.status === 'confirmado');
+  const temGesto = filteredAppointments.some(a => a.status === 'confirmado' || a.status === 'em_atendimento');
 
   return (
     <div className="flex flex-col gap-4 lg:gap-5">
@@ -405,7 +495,7 @@ export function AppointmentModule() {
             onViewModeChange={setViewMode}
             onStatusFilterChange={setStatusFilter}
             onProfissionalFiltroChange={setProfissionalFiltro}
-            onNovoAgendamento={openModal}
+            onNovoAgendamento={() => openModal()}
           />
         )}
 
@@ -514,17 +604,17 @@ export function AppointmentModule() {
                 ? `Nenhum agendamento com este status neste período.`
                 : 'Não há agendamentos para este período. Crie um novo agendamento para começar!'
             }
-            action={{ label: 'Criar Agendamento', icon: ICONE_ADICIONAR, onClick: openModal }}
+            action={{ label: 'Criar agendamento', icon: ICONE_ADICIONAR, onClick: () => openModal() }}
             actionVariant="secondary"
           />
         ) : (
           <>
             {/* Celular: lista de cartões com gesto (agenda-mobile.html) */}
             <div className="flex flex-col gap-3 lg:hidden">
-              {temConfirmado && (
+              {temGesto && (
                 <div className="flex items-center justify-center gap-1.5 self-center rounded-full bg-surface-2 px-3 py-1.5 text-[11px] font-semibold text-muted">
                   <Icon name="swipe" size={16} className="text-brand" />
-                  <span>Deslize o cartão para concluir ou cancelar</span>
+                  <span>Deslize o cartão para ver as ações</span>
                 </div>
               )}
               {grupos.map(([date, dayAppointments]) => (
@@ -541,6 +631,7 @@ export function AppointmentModule() {
                     faixa,
                     duracaoMinutos,
                     ehDia,
+                    intervalos,
                   ).map(item =>
                     item.tipo === 'agendamento' ? (
                       <AppointmentCard
@@ -548,14 +639,20 @@ export function AppointmentModule() {
                         appointment={item.agendamento}
                         actionLoading={actionLoading}
                         duracaoMinutos={duracaoReal(item.agendamento, duracaoMinutos)}
-                        onStatusChange={handleStatusChange}
+                        onAcao={handleAcao}
                         onAbrirDetalhes={a => setDetalhesId(a.id)}
                       />
                     ) : (
                       <button
                         key={item.chave}
                         type="button"
-                        onClick={openModal}
+                        onClick={() =>
+                          openModal({
+                            professionalId: item.professionalId,
+                            date: item.data,
+                            time: paraHoraTexto(item.inicioMinutos),
+                          })
+                        }
                         aria-label={`Novo agendamento: ${paraHoraTexto(item.inicioMinutos)} com ${primeiroNome(item.profissional)}, ${formatarDuracao(item.vaga.duracaoMinutos)} livre`}
                         className="flex w-full items-center justify-between gap-3 rounded-card bg-surface-2 p-4 text-left transition-transform active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                       >
@@ -621,8 +718,9 @@ export function AppointmentModule() {
                     horarioFuncionamento={horarioFuncionamento}
                     actionLoading={actionLoading}
                     mostrarAgora={date === getToday()}
-                    onStatusChange={handleStatusChange}
+                    onAcao={handleAcao}
                     onNovoAgendamento={openModal}
+                    intervalos={intervalos}
                     onAbrirDetalhes={a => setDetalhesId(a.id)}
                   />
                 </div>
@@ -642,7 +740,7 @@ export function AppointmentModule() {
         duracaoMinutos={agendamentoDetalhado ? duracaoReal(agendamentoDetalhado, duracaoMinutos) : duracaoMinutos}
         actionLoading={actionLoading}
         onFechar={() => setDetalhesId(null)}
-        onStatusChange={handleStatusChange}
+        onStatusChange={handleStatusDoPainel}
       />
 
       <CreateAppointmentModal
@@ -655,7 +753,10 @@ export function AppointmentModule() {
         slotsLoading={slotsLoading}
         onLoadSlots={loadAvailableSlots}
         onSubmit={handleSubmit}
+        inicial={inicialNovo}
       />
+
+      <ComandaModal appointmentId={comandaDe} onClose={() => setComandaDe(null)} onAtualizada={loadAppointments} />
     </div>
   );
 }

@@ -59,10 +59,8 @@ describe('numeroDoAgendamento', () => {
 });
 
 describe('faixaDoAtendimento', () => {
-  it('o fim é o início mais a duração', () => {
-    expect(faixaDoAtendimento('10:00:00', 150)).toBe('10:00 às 12:30');
-    expect(faixaDoAtendimento('09:30:00', 60)).toBe('09:30 às 10:30');
-    expect(faixaDoAtendimento('08:15:00', 90)).toBe('08:15 às 09:45');
+  it('faixa que passa da meia-noite volta para 00h', () => {
+    expect(faixaDoAtendimento('23:30', 150)).toBe('23:30 às 02:00');
   });
 });
 

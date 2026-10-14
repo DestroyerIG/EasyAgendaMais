@@ -30,7 +30,7 @@ const agendamento = (partes: Partial<Appointment> = {}): Appointment => ({
   ...partes,
 });
 
-const props = { actionLoading: null, duracaoMinutos: 60, onStatusChange: vi.fn() };
+const props = { actionLoading: null, duracaoMinutos: 60, onAcao: vi.fn() };
 
 describe('encaixarArraste', () => {
   it('passando da virada, prende aberto no lado do gesto', () => {
@@ -58,15 +58,27 @@ describe('AppointmentCard', () => {
     expect(screen.getByText('Confirmado')).toBeInTheDocument();
   });
 
-  it('as duas ações do gesto são botões de verdade e chamam o handler existente', async () => {
-    const onStatusChange = vi.fn();
-    render(<AppointmentCard {...props} onStatusChange={onStatusChange} appointment={agendamento()} />);
+  it('confirmado: o gesto oferece iniciar atendimento e cliente faltou', async () => {
+    const onAcao = vi.fn();
+    render(<AppointmentCard {...props} onAcao={onAcao} appointment={agendamento()} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Iniciar atendimento de Mariana Souza' }));
+    expect(onAcao).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'a1' }), 'iniciar');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cliente faltou de Mariana Souza' }));
+    expect(onAcao).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'a1' }), 'faltou');
+    expect(screen.queryByRole('button', { name: /^Cancelar/ })).not.toBeInTheDocument();
+  });
+
+  it('em atendimento: o gesto oferece concluir (abre a comanda) e voltar para confirmado', async () => {
+    const onAcao = vi.fn();
+    render(<AppointmentCard {...props} onAcao={onAcao} appointment={agendamento({ status: 'em_atendimento' })} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Concluir atendimento de Mariana Souza' }));
-    expect(onStatusChange).toHaveBeenCalledWith('a1', 'concluido');
+    expect(onAcao).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'a1' }), 'concluir');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Cancelar agendamento de Mariana Souza' }));
-    expect(onStatusChange).toHaveBeenCalledWith('a1', 'cancelado');
+    await userEvent.click(screen.getByRole('button', { name: 'Voltar para confirmado de Mariana Souza' }));
+    expect(onAcao).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'a1' }), 'desfazer_inicio');
   });
 
   it('foco no teclado abre o cartão do lado da ação em foco', async () => {
@@ -75,11 +87,11 @@ describe('AppointmentCard', () => {
     expect(frente.style.transform).toBe('translateX(0px)');
 
     await userEvent.tab();
-    expect(screen.getByRole('button', { name: /Concluir atendimento/ })).toHaveFocus();
+    expect(screen.getByRole('button', { name: /Iniciar atendimento/ })).toHaveFocus();
     expect(frente.style.transform).toBe(`translateX(${ABERTURA_ARRASTE}px)`);
 
     await userEvent.tab();
-    expect(screen.getByRole('button', { name: /Cancelar agendamento/ })).toHaveFocus();
+    expect(screen.getByRole('button', { name: /Cliente faltou/ })).toHaveFocus();
     expect(frente.style.transform).toBe(`translateX(${-ABERTURA_ARRASTE}px)`);
   });
 
@@ -140,8 +152,8 @@ describe('AppointmentCard', () => {
 
   it('desabilita as ações enquanto a mudança de status está em voo', () => {
     render(<AppointmentCard {...props} actionLoading="a1" appointment={agendamento()} />);
-    expect(screen.getByRole('button', { name: /Concluir atendimento/ })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /Cancelar agendamento/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Iniciar atendimento/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Cliente faltou/ })).toBeDisabled();
   });
 });
 

@@ -39,7 +39,8 @@ import { formatCurrency, formatPhone } from '@/lib/formatters';
 import { useToast } from '@/components/Toast';
 import { AVISO_RECURSO_A_CAMINHO, Avatar, Icon, SidePanel, StatusChip } from '@/components/ui';
 import { formatarDataAgenda } from './DateNavigationBar';
-import { formatarDuracao, paraHoraTexto, paraMinutos } from './LinhaDoTempo';
+import { formatarDuracao } from './LinhaDoTempo';
+import { ACOES_POR_STATUS } from './acoes';
 import { linkWhatsapp } from '@/lib/whatsapp';
 import type { Appointment } from '@/types';
 
@@ -56,10 +57,13 @@ export const MEDIA_COMPUTADOR = '(min-width: 1024px)';
  */
 export const numeroDoAgendamento = (id: string): string => (id || '').slice(-4).toUpperCase();
 
-/** "10:00 às 12:30": o fim é o início mais a duração do atendimento. */
+/** "10:00 às 12:30": o fim é o início mais a duração; passou da meia-noite, volta para 00h. */
 export const faixaDoAtendimento = (hora: string, duracaoMinutos: number): string => {
-  const inicio = paraMinutos(hora);
-  return `${paraHoraTexto(inicio)} às ${paraHoraTexto(inicio + duracaoMinutos)}`;
+  const [h, m] = hora.split(':').map(Number);
+  const inicio = h * 60 + m;
+  const fim = (inicio + duracaoMinutos) % (24 * 60);
+  const fmt = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+  return `${fmt(inicio)} às ${fmt(fim)}`;
 };
 
 /**
@@ -271,8 +275,10 @@ export interface AcoesDetalhesProps {
 export function AcoesDetalhesAgendamento({ agendamento, actionLoading, onStatusChange }: AcoesDetalhesProps) {
   const { showToast } = useToast();
   const aguardandoPagamento = agendamento.status === 'aguardando_pagamento';
-  const podeConcluir = agendamento.status === 'confirmado';
-  const podeCancelar = podeConcluir || aguardandoPagamento;
+  // Concluir aqui abre a comanda (a Agenda traduz 'concluido' para a ação 'concluir').
+  // A Tarefa 13 troca este rodapé pelas ações de ACOES_POR_STATUS.
+  const podeConcluir = ACOES_POR_STATUS[agendamento.status]?.includes('concluir') ?? false;
+  const podeCancelar = ACOES_POR_STATUS[agendamento.status]?.includes('cancelar') ?? false;
   const carregando = actionLoading === agendamento.id;
   const bloqueado = !podeConcluir || carregando;
   const confirmarBloqueado = !aguardandoPagamento || carregando;
