@@ -34,5 +34,16 @@ CREATE TABLE IF NOT EXISTS public.pending_registrations (
     CHECK (cpf_cnpj IS NULL OR cpf_cnpj ~ '^([0-9]{11}|[0-9]{14})$')
 );
 
-CREATE INDEX IF NOT EXISTS idx_pending_registrations_status_email
-  ON public.pending_registrations (status, email);
+-- Bancos antigos têm a tabela num formato anterior, sem a coluna `status` (o código
+-- de cadastro tem fallback para esse formato). Só cria o índice quando a coluna existe.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'pending_registrations' AND column_name = 'status'
+  ) THEN
+    CREATE INDEX IF NOT EXISTS idx_pending_registrations_status_email
+      ON public.pending_registrations (status, email);
+  END IF;
+END
+$$;
