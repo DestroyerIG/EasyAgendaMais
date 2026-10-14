@@ -103,6 +103,8 @@ export function CreateAppointmentModal({
     try {
       await onSubmit(formData);
       onClose();
+    } catch {
+      // Quem salva (o pai) já avisou o erro; o modal fica aberto para corrigir ou tentar de novo.
     } finally {
       setSubmitting(false);
     }
@@ -119,14 +121,14 @@ export function CreateAppointmentModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={editandoId ? 'Remarcar agendamento' : 'Novo Agendamento'}
-      icon={Plus}
+      title={editandoId ? 'Remarcar agendamento' : 'Novo agendamento'}
+      icon={editandoId ? 'edit_calendar' : Plus}
       footer={
         <ModalFooter
           onCancel={onClose}
           onSubmit={handleSubmit}
           submitLabel={editandoId ? 'Salvar' : 'Agendar'}
-          submitIcon={Plus}
+          submitIcon={editandoId ? undefined : Plus}
           submitting={submitting}
           disabled={!isValid}
         />

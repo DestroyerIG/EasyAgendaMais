@@ -216,6 +216,28 @@ describe('PainelDetalhesAgendamento', () => {
     await screen.findByText('21');
   });
 
+  it('confirmado: iniciar atendimento dispara a ação iniciar', async () => {
+    const { onAcao } = abrir({ status: 'confirmado' });
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Iniciar atendimento' }));
+    expect(onAcao).toHaveBeenCalledWith(expect.objectContaining({ id: '3f1c9a2b-7d40-4e11-9b8c-000000ab12cd' }), 'iniciar');
+    expect(screen.getByRole('button', { name: 'Concluir atendimento e receber' })).toBeInTheDocument();
+    await screen.findByText('21');
+  });
+
+  it('remarcar e iniciar só existem em confirmado', async () => {
+    abrir({ status: 'em_atendimento' });
+    expect(screen.queryByRole('button', { name: 'Remarcar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Iniciar atendimento' })).not.toBeInTheDocument();
+    await screen.findByText('21');
+  });
+
+  it('aguardando pagamento não oferece remarcar', async () => {
+    abrir({ status: 'aguardando_pagamento' });
+    expect(screen.queryByRole('button', { name: 'Remarcar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Iniciar atendimento' })).not.toBeInTheDocument();
+    await screen.findByText('21');
+  });
+
   it('comanda em rascunho vira "Continuar comanda"', async () => {
     vi.mocked(buscarDetalhesAgendamento).mockResolvedValue(detalhes());
     abrir({ status: 'em_atendimento', comanda_id: 'k1', comanda_status: 'rascunho', comanda_number: 1042 });

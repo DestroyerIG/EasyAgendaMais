@@ -8,6 +8,7 @@ import { useForcedDarkClass } from '@/components/theme/ForcedDark';
 import { useForcedLightClass } from '@/components/theme/ForcedLight';
 import { Button } from './Button';
 import { IconButton } from './IconButton';
+import { Icon as MaterialIcon } from './Icon';
 
 const SIZE_CLASS = {
   sm: 'max-w-sm',
@@ -21,7 +22,8 @@ interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  icon?: LucideIcon;
+  /** Ícone do cabeçalho: um componente lucide ou o nome de um Material Symbol. */
+  icon?: LucideIcon | string;
   description?: string;
   size?: keyof typeof SIZE_CLASS;
   children: ReactNode;
@@ -52,7 +54,11 @@ export function Modal({ isOpen, onClose, title, icon: Icon, description, size = 
               <Dialog.Title className="sr-only">{title}</Dialog.Title>
             ) : (
               <header className="flex items-center gap-3 border-b border-line px-5 py-4">
-                {Icon ? <Icon className="h-5 w-5 text-brand-text" aria-hidden="true" /> : null}
+                {typeof Icon === 'string' ? (
+                  <MaterialIcon name={Icon} size={20} className="text-brand-text" />
+                ) : Icon ? (
+                  <Icon className="h-5 w-5 text-brand-text" aria-hidden="true" />
+                ) : null}
                 <Dialog.Title className="flex-1 text-lg font-bold">{title}</Dialog.Title>
                 <Dialog.Close asChild>
                   <IconButton icon={X} label="Fechar" />

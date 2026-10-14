@@ -325,12 +325,18 @@ export function AppointmentModule() {
   };
 
   const handleSubmit = async (formData: AppointmentFormData) => {
-    if (remarcandoId) {
-      await api.put(`/appointments/${remarcandoId}`, formData);
-      showToast('Agendamento remarcado!', 'success');
-    } else {
-      await api.post('/appointments', formData);
-      showToast('Agendamento criado com sucesso!', 'success');
+    try {
+      if (remarcandoId) {
+        await api.put(`/appointments/${remarcandoId}`, formData);
+        showToast('Agendamento remarcado!', 'success');
+      } else {
+        await api.post('/appointments', formData);
+        showToast('Agendamento criado com sucesso!', 'success');
+      }
+    } catch (error: unknown) {
+      showToast(getApiErrorMessage(error, remarcandoId ? 'Erro ao remarcar' : 'Erro ao criar agendamento'), 'error');
+      // Relança para o modal continuar aberto (ele só fecha quando salvar dá certo).
+      throw error;
     }
     loadAppointments();
   };

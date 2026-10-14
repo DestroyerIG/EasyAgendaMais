@@ -686,6 +686,39 @@ describe('AppointmentModule: painel de detalhes do agendamento', () => {
     await waitFor(() => expect(mockApiPut).toHaveBeenCalledWith('/appointments/a1', expect.objectContaining({ clientId: 'c1', serviceId: 's1', professionalId: 'p1', date: '2026-09-17', time: '11:00' })));
   });
 
+  it('remarcar recusado pelo backend (409) avisa o erro e mantém o modal aberto', async () => {
+    const user = userEvent.setup();
+    const { AxiosError } = await import('axios');
+    mockApiPut.mockImplementation((url: string) =>
+      url === '/appointments/a1'
+        ? Promise.reject(new AxiosError('conflito', 'ERR_BAD_REQUEST', undefined, undefined, { status: 409, data: { error: 'Horário indisponível' } } as never))
+        : Promise.resolve({ data: {} }),
+    );
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === '/appointments') return Promise.resolve({ data: [agendamento({ id: 'a1', time: '10:00:00' })] });
+      if (url === '/business/settings') return Promise.reject(new Error('sem acesso'));
+      if (url === '/appointments/available-slots') return Promise.resolve({ data: ['11:00'] });
+      if (url === '/clients') return Promise.resolve({ data: [{ id: 'c1', name: 'Mariana Souza', phone: '83999990000' }] });
+      return Promise.resolve({ data: [] });
+    });
+    const { ToastProvider } = await import('@/components/Toast');
+    try {
+      render(<ToastProvider><AppointmentModule /></ToastProvider>);
+      const [alvo] = await screen.findAllByRole('button', { name: 'Ver detalhes do agendamento de Mariana Souza' });
+      await user.click(alvo);
+      await user.click(await screen.findByRole('button', { name: 'Remarcar' }));
+      await user.click(await screen.findByRole('button', { name: '11:00' }));
+      await user.click(screen.getByRole('button', { name: /Salvar/ }));
+
+      expect(await screen.findByText('Horário indisponível')).toBeInTheDocument();
+      expect(screen.getByText('Remarcar agendamento')).toBeInTheDocument();
+      expect(screen.queryByText('Agendamento remarcado!')).not.toBeInTheDocument();
+    } finally {
+      mockApiPut.mockReset();
+      mockApiPut.mockResolvedValue({ data: {} });
+    }
+  });
+
   it('reserva aguardando o Pix: o painel confirma o Pix recebido', async () => {
     const user = userEvent.setup();
     mockApiPut.mockClear();

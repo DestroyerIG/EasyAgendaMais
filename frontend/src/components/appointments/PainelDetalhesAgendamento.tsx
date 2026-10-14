@@ -21,7 +21,9 @@
  * Ações: as de ACOES_POR_STATUS, disparadas pela mesma `onAcao` do bloco e do cartão.
  * "Concluir" abre a comanda (é a comanda que conclui); com comanda em rascunho o botão vira
  * "Continuar comanda #N". Numa reserva aguardando o Pix, o botão principal é confirmar o
- * Pix recebido (`onConfirmarPix`), que não é uma AcaoAgendamento. Status final: sem ações.
+ * Pix recebido (`onConfirmarPix`), que não é uma AcaoAgendamento. "Iniciar atendimento"
+ * aparece acima do botão principal quando a ação existe; "Remarcar" só em `confirmado`,
+ * o único status que o backend aceita editar. Status final: sem ações.
  *
  * Fora da tela: as fotos de cliente e profissional (o DTO só traz nomes, então entram as
  * iniciais do Avatar).
@@ -325,7 +327,7 @@ export function ConteudoDetalhesAgendamento({ agendamento }: ConteudoDetalhesPro
               <Icon name="check_circle" size={18} className="shrink-0 text-success-text" />
               <span className="text-[13px] font-bold tabular-nums text-success-text">Sinal pago {formatCurrency(sinal)} via Pix</span>
             </div>
-            <span className="shrink-0 rounded bg-success px-2 py-0.5 text-[10px] font-bold text-surface">CONFIRMADO</span>
+            <span className="shrink-0 rounded-full bg-success px-2 py-0.5 text-[10px] font-bold uppercase text-surface">Confirmado</span>
           </div>
         )}
 
@@ -374,6 +376,8 @@ export interface AcoesDetalhesProps {
 const SECUNDARIO =
   'flex h-10 items-center justify-center gap-1.5 rounded-control border border-line/60 bg-surface-2 text-[13px] font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50';
 
+const COLUNAS: Record<number, string> = { 1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3' };
+
 /** Rodapé de ações: só o que ACOES_POR_STATUS permite para o status atual. */
 export function AcoesDetalhesAgendamento({ agendamento, actionLoading, onAcao, onRemarcar, onConfirmarPix }: AcoesDetalhesProps) {
   if (STATUS_FINAL.has(agendamento.status)) return null;
@@ -384,9 +388,11 @@ export function AcoesDetalhesAgendamento({ agendamento, actionLoading, onAcao, o
   const rascunho = agendamento.comanda_status === 'rascunho' && agendamento.comanda_number != null;
   const textoPrincipal = rascunho ? `Continuar comanda #${agendamento.comanda_number}` : 'Concluir atendimento e receber';
 
-  const secundarios: Array<{ chave: string; texto: string; icone: string; cor: string; onClick: () => void }> = [
-    { chave: 'remarcar', texto: 'Remarcar', icone: 'edit_calendar', cor: 'text-ink hover:bg-line', onClick: () => onRemarcar(agendamento) },
-  ];
+  // O backend só edita (PUT /appointments/:id) agendamentos confirmados.
+  const secundarios: Array<{ chave: string; texto: string; icone: string; cor: string; onClick: () => void }> = [];
+  if (agendamento.status === 'confirmado') {
+    secundarios.push({ chave: 'remarcar', texto: 'Remarcar', icone: 'edit_calendar', cor: 'text-ink hover:bg-line', onClick: () => onRemarcar(agendamento) });
+  }
   if (acoes.includes('faltou')) {
     secundarios.push({ chave: 'faltou', texto: ROTULO_ACAO.faltou.texto, icone: ROTULO_ACAO.faltou.icone, cor: 'text-danger hover:bg-danger/10', onClick: () => onAcao(agendamento, 'faltou') });
   }
@@ -398,6 +404,17 @@ export function AcoesDetalhesAgendamento({ agendamento, actionLoading, onAcao, o
 
   return (
     <div className="space-y-3">
+      {acoes.includes('iniciar') && (
+        <button
+          type="button"
+          disabled={carregando}
+          onClick={() => onAcao(agendamento, 'iniciar')}
+          className={cn(SECUNDARIO, 'w-full text-brand-text hover:bg-line')}
+        >
+          <Icon name={ROTULO_ACAO.iniciar.icone} size={18} />
+          <span>{ROTULO_ACAO.iniciar.texto}</span>
+        </button>
+      )}
       {acoes.includes('concluir') && (
         <button type="button" disabled={carregando} onClick={() => onAcao(agendamento, 'concluir')} className={principal}>
           <Icon name={rascunho ? 'receipt_long' : 'task_alt'} size={20} />
@@ -411,14 +428,16 @@ export function AcoesDetalhesAgendamento({ agendamento, actionLoading, onAcao, o
         </button>
       )}
 
-      <div className={cn('grid gap-2', secundarios.length === 3 ? 'grid-cols-3' : secundarios.length === 2 ? 'grid-cols-2' : 'grid-cols-1')}>
-        {secundarios.map((b) => (
-          <button key={b.chave} type="button" disabled={carregando} onClick={b.onClick} className={cn(SECUNDARIO, b.cor)}>
-            <Icon name={b.icone} size={17} />
-            <span>{b.texto}</span>
-          </button>
-        ))}
-      </div>
+      {secundarios.length > 0 && (
+        <div className={cn('grid gap-2', COLUNAS[secundarios.length] ?? 'grid-cols-1')}>
+          {secundarios.map((b) => (
+            <button key={b.chave} type="button" disabled={carregando} onClick={b.onClick} className={cn(SECUNDARIO, b.cor)}>
+              <Icon name={b.icone} size={17} />
+              <span>{b.texto}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {acoes.includes('desfazer_inicio') && (
         <div className="flex justify-center">
