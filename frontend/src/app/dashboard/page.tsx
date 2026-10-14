@@ -25,6 +25,8 @@ import type { Appointment, DashboardData } from '@/types';
 
 /** Vagas livres a partir do meio-dia — mesmo recorte que DashboardCards usa na legenda. */
 const INICIO_TARDE_MINUTOS = 12 * 60;
+// Reserva técnica: só vale para agendamento sem duração própria (service_duration_minutes).
+const DURACAO_FALLBACK_MINUTOS = 30;
 
 const PIX_STORAGE_KEY = 'easyagenda:pixCheckout';
 
@@ -74,7 +76,7 @@ export default function DashboardPage() {
     () =>
       agendamentosHoje === null
         ? null
-        : calcularMetricasAgendaDoDia(agendamentosHoje, conteudoDemo.agenda.duracaoPadraoMinutos),
+        : calcularMetricasAgendaDoDia(agendamentosHoje, DURACAO_FALLBACK_MINUTOS),
     [agendamentosHoje],
   );
 
