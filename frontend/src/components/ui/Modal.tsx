@@ -8,21 +8,32 @@ import { useForcedDarkClass } from '@/components/theme/ForcedDark';
 import { useForcedLightClass } from '@/components/theme/ForcedLight';
 import { Button } from './Button';
 import { IconButton } from './IconButton';
+import { Icon as MaterialIcon } from './Icon';
 
-const SIZE_CLASS = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl' } as const;
+const SIZE_CLASS = {
+  sm: 'max-w-sm',
+  md: 'max-w-lg',
+  lg: 'max-w-2xl',
+  // Telas de trabalho largas (comanda): grande no desktop, tela cheia no celular.
+  xl: 'max-w-5xl max-sm:h-dvh max-sm:max-h-none max-sm:w-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0',
+} as const;
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  icon?: LucideIcon;
+  /** Ícone do cabeçalho: um componente lucide ou o nome de um Material Symbol. */
+  icon?: LucideIcon | string;
   description?: string;
   size?: keyof typeof SIZE_CLASS;
   children: ReactNode;
   footer?: ReactNode;
+  // Sem o cabeçalho padrão: a tela desenha o próprio cabeçalho (e o próprio botão de fechar).
+  // O título continua no Dialog.Title, só que visível apenas para leitores de tela.
+  headerless?: boolean;
 }
 
-export function Modal({ isOpen, onClose, title, icon: Icon, description, size = 'md', children, footer }: ModalProps) {
+export function Modal({ isOpen, onClose, title, icon: Icon, description, size = 'md', children, footer, headerless = false }: ModalProps) {
   const forcedDark = useForcedDarkClass();
   const forcedLight = useForcedLightClass();
   const themeClass = forcedDark || forcedLight;
@@ -39,17 +50,27 @@ export function Modal({ isOpen, onClose, title, icon: Icon, description, size = 
               SIZE_CLASS[size],
             )}
           >
-            <header className="flex items-center gap-3 border-b border-line px-5 py-4">
-              {Icon ? <Icon className="h-5 w-5 text-brand-text" aria-hidden="true" /> : null}
-              <Dialog.Title className="flex-1 text-lg font-bold">{title}</Dialog.Title>
-              <Dialog.Close asChild>
-                <IconButton icon={X} label="Fechar" />
-              </Dialog.Close>
-            </header>
+            {headerless ? (
+              <Dialog.Title className="sr-only">{title}</Dialog.Title>
+            ) : (
+              <header className="flex items-center gap-3 border-b border-line px-5 py-4">
+                {typeof Icon === 'string' ? (
+                  <MaterialIcon name={Icon} size={20} className="text-brand-text" />
+                ) : Icon ? (
+                  <Icon className="h-5 w-5 text-brand-text" aria-hidden="true" />
+                ) : null}
+                <Dialog.Title className="flex-1 text-lg font-bold">{title}</Dialog.Title>
+                <Dialog.Close asChild>
+                  <IconButton icon={X} label="Fechar" />
+                </Dialog.Close>
+              </header>
+            )}
             {description ? (
               <Dialog.Description className="px-5 pt-4 text-[15px] text-muted">{description}</Dialog.Description>
             ) : null}
-            <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
+            <div className={headerless ? 'flex min-h-0 flex-1 flex-col' : 'flex-1 overflow-y-auto px-5 py-4'}>
+              {children}
+            </div>
             {footer ? (
               <footer className="flex flex-col-reverse gap-2 border-t border-line px-5 py-4 sm:flex-row sm:justify-end">
                 {footer}

@@ -1,0 +1,564 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base { html, body { margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "primary-fixed-dim": "#ffb68b", "surface": "#fff8f6", "ink-light": "#1A1817", "on-secondary-fixed": "#1f1b17", "on-tertiary-fixed-variant": "#004a75", "brand-text-dark": "#FF9A3D", "surface-tint": "#994700", "danger-light": "#DC2626", "on-primary-fixed": "#321200", "on-error-container": "#93000a", "warning-dark": "#FBBF24", "primary-fixed": "#ffdbc8", "surface-dim": "#dfd9d7", "whatsapp-light": "#128C4A", "surface-2-light": "#EFEDEA", "bg-light": "#F6F5F4", "outline-variant": "#e0c0af", "status-confirmed": "#2563EB", "on-brand": "#1A1817", "secondary-container": "#eae1da", "outline": "#8c7263", "background": "#fff8f6", "on-secondary-fixed-variant": "#4b4641", "on-primary": "#ffffff", "muted-dark": "#A39D97", "inverse-primary": "#ffb68b", "line-light": "#E2DFDB", "error": "#ba1a1a", "brand-text-light": "#B34D00", "on-error": "#ffffff", "ink-dark": "#F3F1EF", "surface-container": "#f3edea", "danger-dark": "#F87171", "surface-container-high": "#ede7e5", "secondary": "#635d58", "surface-container-lowest": "#ffffff", "on-background": "#1d1b1a", "tertiary-fixed-dim": "#95ccff", "bg-dark": "#0E0D0C", "on-secondary-container": "#69635e", "tertiary": "#006399", "tertiary-fixed": "#cde5ff", "surface-light": "#FFFFFF", "surface-container-highest": "#e7e1df", "secondary-fixed": "#eae1da", "on-tertiary-container": "#003a5c", "error-container": "#ffdad6", "on-tertiary": "#ffffff", "line-dark": "#2E2B28", "primary": "#994700", "on-primary-fixed-variant": "#753400", "on-surface": "#1d1b1a", "warning-light": "#D97706", "surface-variant": "#e7e1df", "muted-light": "#66605B", "surface-2-dark": "#211F1D", "on-secondary": "#ffffff", "tertiary-container": "#00a8ff", "surface-dark": "#181615", "surface-bright": "#fff8f6", "on-surface-variant": "#584235", "on-tertiary-fixed": "#001d32", "success-light": "#16A34A", "whatsapp-dark": "#25D366", "secondary-fixed-dim": "#cdc5bf", "surface-container-low": "#f9f2f0", "success-dark": "#4ADE80", "on-primary-container": "#5c2800", "inverse-on-surface": "#f6efed", "inverse-surface": "#32302f", "primary-container": "#ff7a00" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-lg": "1.5rem", "space-sm": "0.5rem", "space-md": "1rem", "margin": "1rem", "space-xs": "0.25rem", "space-xl": "2rem", "gutter": "1rem" }, "fontFamily": { "body-md": ["Plus Jakarta Sans"], "title-md": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "label-md": ["Plus Jakarta Sans"], "headline-md": ["Plus Jakarta Sans"], "title-lg": ["Plus Jakarta Sans"], "headline-lg-mobile": ["Plus Jakarta Sans"], "body-sm": ["Plus Jakarta Sans"], "display-lg": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"] }, "fontSize": { "body-md": ["15px", { "lineHeight": "22.5px", "fontWeight": "400" }], "title-md": ["17px", { "lineHeight": "24px", "fontWeight": "600" }], "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }], "label-md": ["13px", { "lineHeight": "18px", "fontWeight": "600" }], "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }], "title-lg": ["20px", { "lineHeight": "28px", "fontWeight": "700" }], "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }], "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "display-lg": ["40px", { "lineHeight": "48px", "fontWeight": "800" }], "label-sm": ["11px", { "lineHeight": "16px", "fontWeight": "600" }] } } } };</script></head><body class="bg-bg-light text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-[248px] bg-surface-light shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between select-none"><div class="flex flex-col"><div class="h-16 px-space-md flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-on-primary-container text-[20px]">calendar_today</span></div><div class="flex flex-col"><span class="font-title-md text-title-md text-ink-light leading-none tracking-tight">EasyAgenda<span class="text-primary-container font-headline-md">+</span></span></div></div></div><nav class="px-space-sm mt-space-sm flex flex-col gap-1" data-active-classes="bg-primary-container text-on-primary-container font-label-md rounded-lg"><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="hoje" href="#"><span class="material-symbols-outlined text-[20px]">today</span>Hoje</a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="agenda" href="#"><span class="material-symbols-outlined text-[20px]">event_upcoming</span>Agenda</a><a aria-current="page" class="flex items-center gap-space-sm px-space-md py-2.5 transition-all bg-primary-container text-on-primary-container font-label-md rounded-lg" data-path="clientes" href="#"><span class="material-symbols-outlined text-[20px]">group</span>Clientes</a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="caixa" href="#"><span class="material-symbols-outlined text-[20px]">point_of_sale</span>Caixa</a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="clube-e-pacotes" href="#"><span class="material-symbols-outlined text-[20px]">loyalty</span>Clube e pacotes</a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="whatsapp" href="#"><span class="material-symbols-outlined text-[20px]">chat</span>WhatsApp</a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="relatorios" href="#"><span class="material-symbols-outlined text-[20px]">bar_chart</span>Relatórios</a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="minha-pagina" href="#"><span class="material-symbols-outlined text-[20px]">storefront</span>Minha página</a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="ajustes" href="#"><span class="material-symbols-outlined text-[20px]">settings</span>Ajustes</a></nav></div><div class="p-space-md m-space-sm bg-surface-2-light rounded-xl flex items-center justify-between"><div class="flex flex-col"><span class="font-title-md text-label-md text-ink-light leading-tight">Studio Aurora</span><span class="font-label-sm text-label-sm text-muted-light mt-0.5">Plano Equipe</span></div></div></aside><div class="pl-[248px]"><header class="fixed top-0 left-[248px] right-0 h-16 bg-surface-light/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-space-lg flex items-center justify-between"><div class="w-full max-w-md"><div class="relative flex items-center w-full"><span class="material-symbols-outlined absolute left-3 text-muted-light text-[20px] pointer-events-none">search</span><input class="w-full h-10 pl-10 pr-space-md bg-surface-2-light text-ink-light placeholder-muted-light font-body-sm text-body-sm rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary-container transition-all" placeholder="Buscar cliente, agendamento ou telefone..." type="text"></div></div><div class="flex items-center gap-space-md"><button class="w-9 h-9 rounded-lg flex items-center justify-center text-muted-light hover:bg-surface-2-light hover:text-ink-light transition-colors relative" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary-container"></span></button><div class="flex items-center gap-space-sm pl-space-sm"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="hidden md:flex flex-col text-left"><span class="font-label-md text-label-md text-ink-light leading-none">Carla</span><span class="font-label-sm text-label-sm text-muted-light mt-0.5">Administradora</span></div></div></div></header><main class="relative pt-16 w-full min-h-screen bg-bg-light px-space-lg py-space-lg"><div class="flex flex-col w-full">
+<!-- SCRIPT PARA ATIVAR O ITEM CLIENTES NA SIDEBAR DO SHELL -->
+<script>
+    (function () {
+      const currentActive = document.querySelector('nav [data-path="hoje"]');
+      const clientsNav = document.querySelector('nav [data-path="clientes"]');
+      if (currentActive && clientsNav) {
+        currentActive.className = "flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all";
+        clientsNav.className = "flex items-center gap-space-sm px-space-md py-2.5 rounded-lg bg-primary-container text-on-brand font-label-md text-label-md shadow-sm";
+      }
+    })();
+  </script>
+<!-- CABEÇALHO DA ÁREA OPERACIONAL -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+<div>
+<div class="flex items-center gap-3">
+<h1 class="font-headline-md text-headline-md text-ink-light tracking-tight">Clientes</h1>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-label-sm font-label-sm bg-surface-2-light text-muted-light">
+          Studio Aurora
+        </span>
+</div>
+<p class="font-body-sm text-body-sm text-muted-light mt-1">
+        248 clientes cadastradas · <span class="text-ink-light font-semibold">18 ativas este mês</span>
+</p>
+</div>
+<!-- AÇÕES DE TOPO: VIEW TOGGLE & NOVO CLIENTE -->
+<div class="flex items-center gap-3 self-start md:self-auto">
+<!-- ALTERNADOR LISTA / FASES (KANBAN) -->
+<div class="inline-flex p-1 bg-surface-2-light rounded-xl" role="tablist">
+<button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-light text-ink-light font-label-md text-label-md shadow-sm transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">format_list_bulleted</span>
+          Lista
+        </button>
+<a class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-muted-light hover:text-ink-light font-label-md text-label-md transition-colors" data-path="pipeline-de-clientes" href="#">
+<span class="material-symbols-outlined text-[18px]">view_kanban</span>
+          Fases
+        </a>
+</div>
+<!-- BOTÃO PRIMÁRIO: NOVA CLIENTE -->
+<button class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary-container text-on-brand font-label-md text-label-md hover:brightness-95 transition-all shadow-sm active:scale-[0.98]" type="button">
+<span class="material-symbols-outlined text-[20px]">person_add</span>
+<span>Nova cliente</span>
+</button>
+</div>
+</div>
+<!-- BARRA DE CONTROLE, BUSCA E FILTROS -->
+<div class="bg-surface-light rounded-xl p-4 shadow-sm mb-6 flex flex-col gap-4">
+<!-- LINHA 1: BUSCA RÁPIDA + EXPORTAR + ORDENAÇÃO -->
+<div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+<!-- CAMPO DE BUSCA DESTACADO COM ATALHO '/' -->
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-light text-[20px] pointer-events-none">search</span>
+<input class="w-full h-11 pl-11 pr-14 bg-surface-2-light text-ink-light placeholder-muted-light font-body-sm text-body-sm rounded-lg focus:bg-surface-light focus:outline-none focus:ring-2 focus:ring-primary-container transition-all" id="clientSearchInput" placeholder="Buscar por nome, telefone, CPF ou etiqueta..." type="text">
+<kbd class="hidden sm:inline-flex absolute right-3 top-1/2 -translate-y-1/2 h-6 px-1.5 items-center justify-center font-label-sm text-label-sm text-muted-light bg-surface-light rounded border-0 shadow-xs select-none">
+          /
+        </kbd>
+</div>
+<!-- ORDENAÇÃO E EXPORTAÇÃO -->
+<div class="flex items-center gap-2 shrink-0">
+<div class="relative">
+<select class="appearance-none h-11 pl-3.5 pr-8 bg-surface-2-light text-ink-light font-label-md text-label-md rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-container cursor-pointer transition-all">
+<option>Última visita (mais recente)</option>
+<option>Ciclo de retorno (mais urgente)</option>
+<option>Maior LTV (gasto acumulado)</option>
+<option>Ordem alfabética (A-Z)</option>
+</select>
+<span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-light text-[18px] pointer-events-none">expand_more</span>
+</div>
+<button class="h-11 px-3.5 inline-flex items-center gap-1.5 bg-surface-2-light hover:bg-surface-container-high text-ink-light font-label-md text-label-md rounded-lg transition-colors" title="Exportar dados" type="button">
+<span class="material-symbols-outlined text-[18px] text-muted-light">download</span>
+<span class="hidden md:inline">Exportar</span>
+</button>
+</div>
+</div>
+<!-- LINHA 2: CHIPS DE FASE DO CLIENTE + FILTROS SECUNDÁRIOS -->
+<div class="flex flex-wrap items-center justify-between gap-3 pt-3 bg-surface-container-low/40 -mx-4 -mb-4 px-4 py-3 rounded-b-xl">
+<!-- CHIPS DE SEGMENTAÇÃO / FASES CRM COM CONTADORES -->
+<div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+<button class="px-3 py-1 rounded-full bg-ink-light text-surface-light font-label-md text-label-md whitespace-nowrap shadow-xs" type="button">
+          Todas <span class="ml-1 opacity-70 font-normal">248</span>
+</button>
+<button class="px-3 py-1 rounded-full bg-surface-2-light hover:bg-surface-container-high text-on-surface-variant font-label-md text-label-md whitespace-nowrap transition-colors" type="button">
+          Novo <span class="ml-1 font-normal text-muted-light">24</span>
+</button>
+<button class="px-3 py-1 rounded-full bg-surface-2-light hover:bg-surface-container-high text-on-surface-variant font-label-md text-label-md whitespace-nowrap transition-colors" type="button">
+          Recorrente <span class="ml-1 font-normal text-muted-light">88</span>
+</button>
+<button class="px-3 py-1 rounded-full bg-surface-2-light hover:bg-surface-container-high text-on-surface-variant font-label-md text-label-md whitespace-nowrap transition-colors" type="button">
+          Fiel <span class="ml-1 font-normal text-muted-light">65</span>
+</button>
+<button class="px-3 py-1 rounded-full bg-surface-2-light hover:bg-surface-container-high text-on-surface-variant font-label-md text-label-md whitespace-nowrap transition-colors" type="button">
+          Em risco <span class="ml-1 font-normal text-muted-light">42</span>
+</button>
+<button class="px-3 py-1 rounded-full bg-surface-2-light hover:bg-surface-container-high text-on-surface-variant font-label-md text-label-md whitespace-nowrap transition-colors" type="button">
+          Perdido <span class="ml-1 font-normal text-muted-light">29</span>
+</button>
+</div>
+<!-- SELECTS SECUNDÁRIOS: ETIQUETAS E PROFISSIONAL -->
+<div class="flex items-center gap-2">
+<div class="relative">
+<select class="appearance-none h-8 pl-2.5 pr-7 bg-surface-light text-ink-light font-label-sm text-label-sm rounded-lg focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer shadow-xs">
+<option>Etiquetas (Todas)</option>
+<option>Clube VIP</option>
+<option>Fidelidade</option>
+<option>Aniversário no mês</option>
+<option>Resgatável</option>
+</select>
+<span class="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-light text-[16px] pointer-events-none">expand_more</span>
+</div>
+<div class="relative">
+<select class="appearance-none h-8 pl-2.5 pr-7 bg-surface-light text-ink-light font-label-sm text-label-sm rounded-lg focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer shadow-xs">
+<option>Profissional (Todas)</option>
+<option>Camila</option>
+<option>Bruna</option>
+<option>Paula</option>
+</select>
+<span class="material-symbols-outlined absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-light text-[16px] pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+</div>
+<!-- TABELA RICA DE CLIENTES -->
+<div class="bg-surface-light rounded-xl shadow-sm overflow-hidden flex flex-col">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-muted-light font-label-sm text-label-sm tracking-wider uppercase select-none">
+<th class="py-3.5 pl-5 pr-3 font-semibold">Cliente</th>
+<th class="py-3.5 px-3 font-semibold">Fase CRM</th>
+<th class="py-3.5 px-3 font-semibold">Última Visita</th>
+<th class="py-3.5 px-3 font-semibold">Ciclo Médio</th>
+<th class="py-3.5 px-3 font-semibold">Retorno Previsto</th>
+<th class="py-3.5 px-3 font-semibold">LTV Acumulado</th>
+<th class="py-3.5 pr-5 pl-3 font-semibold text-right">Ações Rápidas</th>
+</tr>
+</thead>
+<tbody class="divide-y-0">
+<!-- LINHA 1: Mariana Souza (Fiel) -->
+<tr class="hover:bg-surface-2-light/60 transition-colors group">
+<td class="py-3.5 pl-5 pr-3">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-full bg-secondary-container text-on-secondary-fixed font-title-md text-label-md flex items-center justify-center font-bold shrink-0">
+                  MS
+                </div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-title-md text-body-md font-bold text-ink-light truncate group-hover:text-primary transition-colors">Mariana Souza</span>
+</div>
+<span class="font-body-sm text-label-sm text-muted-light tabular-nums">(11) 98741-2039</span>
+<div class="flex items-center gap-1.5 mt-1">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-surface-2-light text-on-surface-variant tracking-tight">
+                      Clube VIP
+                    </span>
+<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary-fixed text-on-primary-fixed-variant">
+<span class="material-symbols-outlined text-[11px]">cake</span>
+                      20/09
+                    </span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-label-sm text-label-sm bg-amber-50 text-amber-700">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                Fiel
+              </span>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-title-md text-label-md text-ink-light tabular-nums">12 set <span class="font-normal text-muted-light text-label-sm">(há 5 dias)</span></span>
+<span class="font-body-sm text-label-sm text-muted-light truncate">Alongamento em gel · Camila</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-label-md text-ink-light tabular-nums font-bold">21 dias</span>
+<span class="material-symbols-outlined text-success-light text-[16px]" title="Retornos pontuais">check_circle</span>
+</div>
+<span class="font-label-sm text-[11px] text-muted-light">Muito pontual</span>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-title-md text-label-md text-ink-light tabular-nums">03 de out</span>
+<span class="font-body-sm text-label-sm text-muted-light">em 16 dias</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-title-md text-label-md font-bold text-ink-light tabular-nums">R$ 1.820,00</span>
+<span class="font-body-sm text-label-sm text-muted-light tabular-nums">14 atendimentos</span>
+</div>
+</td>
+<td class="py-3.5 pr-5 pl-3 text-right">
+<div class="inline-flex items-center gap-1">
+<a class="w-8 h-8 rounded-lg flex items-center justify-center bg-whatsapp-light/10 text-whatsapp-light hover:bg-whatsapp-light hover:text-white transition-all" href="https://wa.me/5511987412039" rel="noopener" target="_blank" title="Conversar no WhatsApp">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+</a>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center bg-surface-2-light text-ink-light hover:bg-primary-container hover:text-on-brand transition-all" title="Novo agendamento" type="button">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+</button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-muted-light hover:bg-surface-2-light hover:text-ink-light transition-colors" title="Mais opções" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- LINHA 2: Rafaela Diniz (Recorrente) -->
+<tr class="hover:bg-surface-2-light/60 transition-colors group bg-surface-container-low/20">
+<td class="py-3.5 pl-5 pr-3">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-full bg-secondary-container text-on-secondary-fixed font-title-md text-label-md flex items-center justify-center font-bold shrink-0">
+                  RD
+                </div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-body-md font-bold text-ink-light truncate group-hover:text-primary transition-colors">Rafaela Diniz</span>
+<span class="font-body-sm text-label-sm text-muted-light tabular-nums">(11) 97120-4491</span>
+<div class="flex items-center gap-1.5 mt-1">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-surface-2-light text-on-surface-variant">
+                      Fidelidade
+                    </span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-label-sm text-label-sm bg-green-50 text-green-700">
+<span class="w-1.5 h-1.5 rounded-full bg-green-600"></span>
+                Recorrente
+              </span>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-title-md text-label-md text-ink-light tabular-nums">17 set <span class="font-normal text-muted-light text-label-sm">(hoje)</span></span>
+<span class="font-body-sm text-label-sm text-muted-light truncate">Manutenção Fibra · Camila</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-label-md text-ink-light tabular-nums font-bold">20 dias</span>
+<span class="material-symbols-outlined text-success-light text-[16px]">check_circle</span>
+</div>
+<span class="font-label-sm text-[11px] text-muted-light">Padrão regular</span>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-title-md text-label-md text-ink-light tabular-nums">07 de out</span>
+<span class="font-body-sm text-label-sm text-muted-light">em 20 dias</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-title-md text-label-md font-bold text-ink-light tabular-nums">R$ 1.120,00</span>
+<span class="font-body-sm text-label-sm text-muted-light tabular-nums">9 atendimentos</span>
+</div>
+</td>
+<td class="py-3.5 pr-5 pl-3 text-right">
+<div class="inline-flex items-center gap-1">
+<a class="w-8 h-8 rounded-lg flex items-center justify-center bg-whatsapp-light/10 text-whatsapp-light hover:bg-whatsapp-light hover:text-white transition-all" href="https://wa.me/5511971204491" rel="noopener" target="_blank" title="Conversar no WhatsApp">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+</a>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center bg-surface-2-light text-ink-light hover:bg-primary-container hover:text-on-brand transition-all" title="Novo agendamento" type="button">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+</button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-muted-light hover:bg-surface-2-light hover:text-ink-light transition-colors" title="Mais opções" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- LINHA 3: Beatriz Costa (Em risco) -->
+<tr class="hover:bg-surface-2-light/60 transition-colors group">
+<td class="py-3.5 pl-5 pr-3">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-full bg-secondary-container text-on-secondary-fixed font-title-md text-label-md flex items-center justify-center font-bold shrink-0">
+                  BC
+                </div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-body-md font-bold text-ink-light truncate group-hover:text-primary transition-colors">Beatriz Costa</span>
+<span class="font-body-sm text-label-sm text-muted-light tabular-nums">(11) 96328-1190</span>
+<div class="flex items-center gap-1.5 mt-1">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-orange-50 text-orange-700">
+                      Resgatável
+                    </span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-label-sm text-label-sm bg-orange-50 text-orange-700">
+<span class="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                Em risco
+              </span>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-title-md text-label-md text-ink-light tabular-nums">05 ago <span class="font-normal text-danger-light text-label-sm">(há 43 dias)</span></span>
+<span class="font-body-sm text-label-sm text-muted-light truncate">Manutenção Fibra · Camila</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-label-md text-ink-light tabular-nums font-bold">21 dias</span>
+</div>
+<span class="font-label-sm text-[11px] text-danger-light">Ciclo estourado</span>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="inline-flex items-center gap-1 font-title-md text-label-md text-danger-light font-bold">
+<span class="material-symbols-outlined text-[16px]">warning</span>
+                  Venceu há 22 dias
+                </span>
+<span class="font-body-sm text-label-sm text-muted-light">Sem agendamento</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-title-md text-label-md font-bold text-ink-light tabular-nums">R$ 890,00</span>
+<span class="font-body-sm text-label-sm text-muted-light tabular-nums">7 atendimentos</span>
+</div>
+</td>
+<td class="py-3.5 pr-5 pl-3 text-right">
+<div class="inline-flex items-center gap-1">
+<a class="w-8 h-8 rounded-lg flex items-center justify-center bg-whatsapp-light/10 text-whatsapp-light hover:bg-whatsapp-light hover:text-white transition-all" href="https://wa.me/5511963281190" rel="noopener" target="_blank" title="Mandar lembrete WhatsApp">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+</a>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center bg-surface-2-light text-ink-light hover:bg-primary-container hover:text-on-brand transition-all" title="Novo agendamento" type="button">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+</button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-muted-light hover:bg-surface-2-light hover:text-ink-light transition-colors" title="Mais opções" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- LINHA 4: Letícia Albuquerque (Fiel) -->
+<tr class="hover:bg-surface-2-light/60 transition-colors group bg-surface-container-low/20">
+<td class="py-3.5 pl-5 pr-3">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-full bg-secondary-container text-on-secondary-fixed font-title-md text-label-md flex items-center justify-center font-bold shrink-0">
+                  LA
+                </div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-body-md font-bold text-ink-light truncate group-hover:text-primary transition-colors">Letícia Albuquerque</span>
+<span class="font-body-sm text-label-sm text-muted-light tabular-nums">(11) 99812-7801</span>
+<div class="flex items-center gap-1.5 mt-1">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-surface-2-light text-on-surface-variant">
+                      VIP Cílios
+                    </span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-label-sm text-label-sm bg-amber-50 text-amber-700">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                Fiel
+              </span>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-title-md text-label-md text-ink-light tabular-nums">17 set <span class="font-normal text-muted-light text-label-sm">(hoje)</span></span>
+<span class="font-body-sm text-label-sm text-muted-light truncate">Volume Russo · Bruna</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-label-md text-ink-light tabular-nums font-bold">28 dias</span>
+<span class="material-symbols-outlined text-success-light text-[16px]">check_circle</span>
+</div>
+<span class="font-label-sm text-[11px] text-muted-light">Ciclo exato</span>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-title-md text-label-md text-ink-light tabular-nums">15 de out</span>
+<span class="font-body-sm text-label-sm text-muted-light">em 28 dias</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-title-md text-label-md font-bold text-ink-light tabular-nums">R$ 2.340,00</span>
+<span class="font-body-sm text-label-sm text-muted-light tabular-nums">12 atendimentos</span>
+</div>
+</td>
+<td class="py-3.5 pr-5 pl-3 text-right">
+<div class="inline-flex items-center gap-1">
+<a class="w-8 h-8 rounded-lg flex items-center justify-center bg-whatsapp-light/10 text-whatsapp-light hover:bg-whatsapp-light hover:text-white transition-all" href="https://wa.me/5511998127801" rel="noopener" target="_blank" title="Conversar no WhatsApp">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+</a>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center bg-surface-2-light text-ink-light hover:bg-primary-container hover:text-on-brand transition-all" title="Novo agendamento" type="button">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+</button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-muted-light hover:bg-surface-2-light hover:text-ink-light transition-colors" title="Mais opções" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- LINHA 5: Carla Silveira (Perdido) -->
+<tr class="hover:bg-surface-2-light/60 transition-colors group">
+<td class="py-3.5 pl-5 pr-3">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-full bg-surface-container-high text-muted-light font-title-md text-label-md flex items-center justify-center font-bold shrink-0">
+                  CS
+                </div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-body-md font-bold text-ink-light truncate group-hover:text-primary transition-colors">Carla Silveira</span>
+<span class="font-body-sm text-label-sm text-muted-light tabular-nums">(11) 95530-9921</span>
+<div class="flex items-center gap-1.5 mt-1">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-danger-light/10 text-danger-light">
+                      Não retornou
+                    </span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-label-sm text-label-sm bg-red-50 text-red-700">
+<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                Perdido
+              </span>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-title-md text-label-md text-ink-light tabular-nums">14 mai <span class="font-normal text-muted-light text-label-sm">(há 126 dias)</span></span>
+<span class="font-body-sm text-label-sm text-muted-light truncate">Pé e Mão · Paula</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-label-md text-muted-light tabular-nums font-bold">30 dias</span>
+</div>
+<span class="font-label-sm text-[11px] text-muted-light">Inativo há 4 ciclos</span>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-title-md text-label-md text-muted-light">Inativa</span>
+<span class="font-body-sm text-label-sm text-muted-light">Campanha de resgate</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-title-md text-label-md font-bold text-ink-light tabular-nums">R$ 420,00</span>
+<span class="font-body-sm text-label-sm text-muted-light tabular-nums">3 atendimentos</span>
+</div>
+</td>
+<td class="py-3.5 pr-5 pl-3 text-right">
+<div class="inline-flex items-center gap-1">
+<a class="w-8 h-8 rounded-lg flex items-center justify-center bg-whatsapp-light/10 text-whatsapp-light hover:bg-whatsapp-light hover:text-white transition-all" href="https://wa.me/5511955309921" rel="noopener" target="_blank" title="Mensagem de retorno WhatsApp">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+</a>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center bg-surface-2-light text-ink-light hover:bg-primary-container hover:text-on-brand transition-all" title="Novo agendamento" type="button">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+</button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-muted-light hover:bg-surface-2-light hover:text-ink-light transition-colors" title="Mais opções" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- LINHA 6: Juliana Paes (Novo) -->
+<tr class="hover:bg-surface-2-light/60 transition-colors group bg-surface-container-low/20">
+<td class="py-3.5 pl-5 pr-3">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-full bg-secondary-container text-on-secondary-fixed font-title-md text-label-md flex items-center justify-center font-bold shrink-0">
+                  JP
+                </div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-body-md font-bold text-ink-light truncate group-hover:text-primary transition-colors">Juliana Paes</span>
+<span class="font-body-sm text-label-sm text-muted-light tabular-nums">(11) 94451-8819</span>
+<div class="flex items-center gap-1.5 mt-1">
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700">
+                      Primeira vez
+                    </span>
+</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-label-sm text-label-sm bg-blue-50 text-blue-700">
+<span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                Novo
+              </span>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-title-md text-label-md text-ink-light tabular-nums">17 set <span class="font-normal text-muted-light text-label-sm">(hoje)</span></span>
+<span class="font-body-sm text-label-sm text-muted-light truncate">Corte e Escova · Paula</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-label-md text-muted-light tabular-nums font-bold">1ª visita</span>
+</div>
+<span class="font-label-sm text-[11px] text-muted-light">Histórico em formação</span>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-title-md text-label-md text-ink-light">Sugerir retorno</span>
+<span class="font-body-sm text-label-sm text-muted-light">em ~45 dias</span>
+</div>
+</td>
+<td class="py-3.5 px-3">
+<div class="flex flex-col">
+<span class="font-title-md text-label-md font-bold text-ink-light tabular-nums">R$ 160,00</span>
+<span class="font-body-sm text-label-sm text-muted-light tabular-nums">1 atendimento</span>
+</div>
+</td>
+<td class="py-3.5 pr-5 pl-3 text-right">
+<div class="inline-flex items-center gap-1">
+<a class="w-8 h-8 rounded-lg flex items-center justify-center bg-whatsapp-light/10 text-whatsapp-light hover:bg-whatsapp-light hover:text-white transition-all" href="https://wa.me/5511944518819" rel="noopener" target="_blank" title="Enviar agradecimento WhatsApp">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+</a>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center bg-surface-2-light text-ink-light hover:bg-primary-container hover:text-on-brand transition-all" title="Novo agendamento" type="button">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+</button>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-muted-light hover:bg-surface-2-light hover:text-ink-light transition-colors" title="Mais opções" type="button">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- RODAPÉ & PAGINAÇÃO LIMPA -->
+<div class="px-5 py-3.5 bg-surface-light border-t-0 flex flex-col sm:flex-row items-center justify-between gap-3 text-label-md font-label-md text-muted-light">
+<div class="flex items-center gap-2">
+<span>Mostrando <span class="font-semibold text-ink-light">1–10</span> de <span class="font-semibold text-ink-light">248</span> clientes</span>
+</div>
+<div class="flex items-center gap-1.5">
+<button class="px-3 py-1.5 rounded-lg bg-surface-2-light text-muted-light opacity-50 cursor-not-allowed font-label-md text-label-md" disabled="" type="button">
+          Anterior
+        </button>
+<button class="w-8 h-8 rounded-lg bg-ink-light text-surface-light font-label-md text-label-md flex items-center justify-center" type="button">
+          1
+        </button>
+<button class="w-8 h-8 rounded-lg hover:bg-surface-2-light text-ink-light font-label-md text-label-md flex items-center justify-center transition-colors" type="button">
+          2
+        </button>
+<button class="w-8 h-8 rounded-lg hover:bg-surface-2-light text-ink-light font-label-md text-label-md flex items-center justify-center transition-colors" type="button">
+          3
+        </button>
+<span class="px-1 text-muted-light">…</span>
+<button class="w-8 h-8 rounded-lg hover:bg-surface-2-light text-ink-light font-label-md text-label-md flex items-center justify-center transition-colors" type="button">
+          25
+        </button>
+<button class="px-3 py-1.5 rounded-lg bg-surface-2-light hover:bg-surface-container-high text-ink-light font-label-md text-label-md transition-colors" type="button">
+          Próxima
+        </button>
+</div>
+</div>
+</div>
+<!-- MICROINTERAÇÃO: ATALHO TECLADO '/' PARA FOCAR BUSCA -->
+<script>
+    window.addEventListener('keydown', function(e) {
+      if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        const searchInput = document.getElementById('clientSearchInput');
+        if (searchInput) searchInput.focus();
+      }
+    });
+  </script>
+</div></main></div></body></html>

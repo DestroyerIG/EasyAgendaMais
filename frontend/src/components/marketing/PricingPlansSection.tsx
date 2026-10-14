@@ -144,7 +144,7 @@ interface PricingPlansSectionProps {
 export function PricingPlansSection({
   sectionId = 'planos',
   title = 'Planos para cada fase do seu negócio',
-  subtitle = 'Teste 14 dias grátis com acesso completo ao plano Profissional — sem cartão, sem compromisso. Assine quando quiser para continuar.',
+  subtitle = 'Teste 14 dias grátis com acesso completo ao plano Equipe — sem cartão, sem compromisso. Assine quando quiser para continuar.',
   currentPlan,
   subscriptionStatus,
   showHeader = true,

@@ -1,0 +1,473 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>EasyAgenda+ | Gestão de Beleza</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+    @layer base {
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #E2DFDB;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #cdc5bf;
+    }
+  </style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface": "#FFFFFF",
+            "surface-2": "#EFEDEA",
+            "surface-container": "#F4F3F2",
+            "bg": "#F6F5F4",
+            "line": "#E2DFDB",
+            "ink": "#1A1817",
+            "muted": "#66605B",
+            "brand": "#FF7A00",
+            "brand-text": "#B34D00",
+            "whatsapp": "#128C4A",
+            "danger": "#DC2626",
+            "success": "#16A34A",
+            "warning": "#D97706"
+          },
+          fontFamily: {
+            sans: ["Plus Jakarta Sans", "sans-serif"]
+          },
+          borderRadius: {
+            "card": "16px",
+            "btn": "12px"
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-bg font-sans text-ink antialiased h-screen w-screen overflow-hidden select-none tabular-nums">
+<!-- APP WRAPPER (100vh / Full Viewport) -->
+<div class="flex h-screen w-full relative overflow-hidden bg-bg">
+<!-- 1. BARRA LATERAL ESQUERDA (248px fixa/estática) -->
+<aside class="w-[248px] shrink-0 h-full bg-surface border-r border-line z-20 flex flex-col justify-between">
+<div class="flex flex-col">
+<!-- Logo Header -->
+<div class="h-16 px-5 flex items-center gap-2.5 border-b border-line">
+<div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center text-white shadow-sm">
+<span class="material-symbols-outlined text-[20px]">event_available</span>
+</div>
+<div class="flex flex-col">
+<span class="font-bold text-[18px] text-ink leading-tight tracking-tight">EasyAgenda<span class="text-brand font-extrabold">+</span></span>
+<span class="text-[11px] text-muted font-medium leading-none">Gestão de Beleza</span>
+</div>
+</div>
+<!-- Navigation Menu -->
+<nav class="flex flex-col gap-1 px-3 py-4">
+<!-- Hoje -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-surface-2 hover:text-ink transition-colors font-medium text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">today</span>
+<span>Hoje</span>
+</a>
+<!-- Agenda (Ativo) -->
+<a aria-current="page" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-surface-2 text-brand font-bold text-[14px] transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">calendar_month</span>
+<span>Agenda</span>
+</a>
+<!-- Clientes -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-surface-2 hover:text-ink transition-colors font-medium text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">group</span>
+<span>Clientes</span>
+</a>
+<!-- Caixa -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-surface-2 hover:text-ink transition-colors font-medium text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+<span>Caixa</span>
+</a>
+<!-- Clube e pacotes -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-surface-2 hover:text-ink transition-colors font-medium text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">loyalty</span>
+<span>Clube e pacotes</span>
+</a>
+<!-- WhatsApp -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-surface-2 hover:text-ink transition-colors font-medium text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">chat</span>
+<span>WhatsApp</span>
+</a>
+<!-- Relatórios -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-surface-2 hover:text-ink transition-colors font-medium text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">bar_chart</span>
+<span>Relatórios</span>
+</a>
+<!-- Minha página -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-surface-2 hover:text-ink transition-colors font-medium text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">storefront</span>
+<span>Minha página</span>
+</a>
+<!-- Ajustes -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:bg-surface-2 hover:text-ink transition-colors font-medium text-[14px]" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span>Ajustes</span>
+</a>
+</nav>
+</div>
+<!-- Rodapé da sidebar -->
+<div class="p-3 border-t border-line">
+<div class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-surface-2">
+<div class="w-8 h-8 rounded-lg bg-surface border border-line flex items-center justify-center text-muted">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="text-[13px] font-bold text-ink truncate leading-tight">Studio Aurora</span>
+<span class="text-[11px] text-muted truncate font-medium">Plano Equipe</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- 2. CONTEÚDO PRINCIPAL (DESKTOP AGENDA AO FUNDO) -->
+<div class="flex-1 flex flex-col h-full overflow-hidden relative">
+<!-- Top Header Nav -->
+<header class="h-16 px-6 bg-surface border-b border-line flex items-center justify-between shrink-0">
+<div class="flex items-center gap-2 text-[13px] text-muted font-medium">
+<span>Studio Aurora</span>
+<span class="material-symbols-outlined text-[15px]">chevron_right</span>
+<span class="text-ink font-semibold">Painel de Gestão</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-muted text-[18px]">search</span>
+<input class="h-9 pl-9 pr-4 w-64 rounded-xl bg-surface-2 border border-line text-ink text-[13px] placeholder:text-muted focus:outline-none" placeholder="Buscar agendamento ou cliente..." readonly="" type="text">
+</div>
+<button class="relative w-9 h-9 flex items-center justify-center rounded-xl hover:bg-surface-2 text-muted">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-brand"></span>
+</button>
+<div class="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center text-[14px] font-bold">SA</div>
+</div>
+</header>
+<!-- Calendar Content Surface -->
+<div class="flex-1 overflow-y-auto p-6 space-y-6">
+<!-- Date Bar -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="flex items-center bg-surface border border-line rounded-xl p-1 shadow-sm">
+<button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-2 text-ink">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<span class="text-[15px] font-bold px-3 text-ink">terça, 17 de setembro de 2026</span>
+<button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-2 text-ink">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+<button class="px-3.5 py-1.5 rounded-xl bg-surface border border-line text-ink text-[13px] font-bold shadow-sm">Hoje</button>
+<span class="text-[12px] text-muted flex items-center gap-1.5 ml-2">
+<span class="w-2 h-2 rounded-full bg-success"></span>
+              Studio aberto (08:00 - 19:30)
+            </span>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center bg-surface-2 p-1 rounded-xl gap-1 text-[13px] font-semibold">
+<span class="px-3 py-1 rounded-lg bg-surface text-ink shadow-sm">Dia</span>
+<span class="px-3 py-1 text-muted">Semana</span>
+<span class="px-3 py-1 text-muted">Mês</span>
+</div>
+<button class="px-4 py-2 rounded-xl bg-brand text-ink font-bold text-[13px] flex items-center gap-2 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+              Novo Agendamento
+            </button>
+</div>
+</div>
+<!-- Schedule Grid Mockup -->
+<div class="bg-surface rounded-card border border-line p-5 shadow-sm space-y-4">
+<div class="grid grid-cols-[80px_repeat(3,1fr)] gap-4 pb-3 border-b border-line text-[13px]">
+<span class="text-muted font-bold text-right pr-4">Horário</span>
+<div class="flex items-center gap-2.5 p-2 bg-surface-2 rounded-xl">
+<div class="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center font-bold text-brand text-[12px]">CR</div>
+<div>
+<p class="font-bold text-ink leading-tight text-[13px]">Camila Rocha</p>
+<p class="text-[11px] text-muted">Nail Designer · 5 slots</p>
+</div>
+</div>
+<div class="flex items-center gap-2.5 p-2 bg-surface-2 rounded-xl">
+<div class="w-8 h-8 rounded-full bg-surface border border-line flex items-center justify-center font-bold text-muted text-[12px]">BL</div>
+<div>
+<p class="font-bold text-ink leading-tight text-[13px]">Beatriz Lima</p>
+<p class="text-[11px] text-muted">Lash &amp; Brow · 4 slots</p>
+</div>
+</div>
+<div class="flex items-center gap-2.5 p-2 bg-surface-2 rounded-xl">
+<div class="w-8 h-8 rounded-full bg-surface border border-line flex items-center justify-center font-bold text-muted text-[12px]">JP</div>
+<div>
+<p class="font-bold text-ink leading-tight text-[13px]">Juliana Prado</p>
+<p class="text-[11px] text-muted">Hair Care · 3 slots</p>
+</div>
+</div>
+</div>
+<!-- 08:30 Row -->
+<div class="grid grid-cols-[80px_repeat(3,1fr)] gap-4 items-start min-h-[64px]">
+<span class="text-right pr-4 pt-2 font-bold text-[13px] text-muted">08:30</span>
+<div class="bg-surface-2 border border-line/60 rounded-xl p-3 opacity-80">
+<div class="flex justify-between items-center text-[12px]">
+<span class="font-bold text-ink">Mariana Costa</span>
+<span class="text-[10px] px-2 py-0.5 rounded-full bg-line text-muted font-bold">Finalizado</span>
+</div>
+<span class="text-[11px] text-muted">Esmaltação em Gel · R$ 90,00</span>
+</div>
+<div class="bg-surface-2 border border-line/60 rounded-xl p-3 opacity-80">
+<div class="flex justify-between items-center text-[12px]">
+<span class="font-bold text-ink">Carla Silveira</span>
+<span class="text-[10px] px-2 py-0.5 rounded-full bg-line text-muted font-bold">Finalizado</span>
+</div>
+<span class="text-[11px] text-muted">Design de Sobrancelha · R$ 65,00</span>
+</div>
+<div class="h-14 rounded-xl border border-dashed border-line flex items-center justify-center text-[12px] text-muted">
+              Disponível
+            </div>
+</div>
+<!-- 10:00 Row (Target active appointment) -->
+<div class="grid grid-cols-[80px_repeat(3,1fr)] gap-4 items-start min-h-[110px]">
+<span class="text-right pr-4 pt-2 font-bold text-[13px] text-brand">10:00</span>
+<div class="bg-[#FFF8F3] border-2 border-brand rounded-xl p-3.5 shadow-sm">
+<div class="flex justify-between items-start">
+<div>
+<div class="flex items-center gap-2">
+<span class="font-bold text-ink text-[14px]">Rafaela Diniz</span>
+<span class="px-2 py-0.5 rounded-full bg-brand/15 text-brand-text text-[11px] font-bold">Em atendimento</span>
+</div>
+<p class="text-[12px] text-ink font-medium mt-1">Alongamento em gel · R$ 180,00</p>
+<div class="flex items-center gap-2 mt-2">
+<span class="text-[11px] text-success font-semibold flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-line">
+<span class="material-symbols-outlined text-[13px]">check_circle</span> Sinal R$ 30,00 pago
+                    </span>
+<span class="text-[11px] text-muted bg-white px-2 py-0.5 rounded border border-line">Link da Bio</span>
+</div>
+</div>
+<span class="text-[11px] font-bold text-muted">10:00 - 12:30</span>
+</div>
+</div>
+<div class="bg-surface-2 border border-line rounded-xl p-3">
+<div class="flex justify-between text-[12px]">
+<span class="font-bold text-ink">Vanessa Souza</span>
+<span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold">Confirmado</span>
+</div>
+<span class="text-[11px] text-muted block mt-1">Volume Russo (Manutenção)</span>
+<span class="text-[11px] text-muted block mt-2">10:15 - 11:45 · R$ 140,00</span>
+</div>
+<div class="bg-surface-2 border border-line rounded-xl p-3">
+<div class="flex justify-between text-[12px]">
+<span class="font-bold text-ink">Fernanda M.</span>
+<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">Aguardando</span>
+</div>
+<span class="text-[11px] text-muted block mt-1">Terapia Capilar + Escova</span>
+<span class="text-[11px] text-muted block mt-2">10:30 - 12:00 · R$ 220,00</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 3. OVERLAY ESCURO COM BLUR COBRINDO 100% DA JANELA -->
+<div class="fixed inset-0 bg-ink/40 backdrop-blur-[3px] z-40 transition-opacity" id="drawer-backdrop"></div>
+<!-- 4. PAINEL LATERAL (DRAWER) À DIREITA (OCUPANDO ALTURA TOTAL DA JANELA 100vh / top-0 bottom-0 right-0) -->
+<aside aria-label="Detalhes do Agendamento" class="fixed top-0 bottom-0 right-0 h-screen w-[480px] max-w-full bg-surface border-l border-line shadow-2xl z-50 flex flex-col justify-between overflow-hidden" id="appointment-drawer">
+<!-- CABEÇALHO FIXO NO TOPO (px-6 py-5 border-b border-line) -->
+<div class="px-6 py-5 border-b border-line bg-surface shrink-0 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<!-- Botão Fechar Circular com 'X' -->
+<button class="w-8 h-8 rounded-full bg-surface-2 hover:bg-line text-ink flex items-center justify-center transition-colors shrink-0" id="close-drawer-btn" title="Fechar painel">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+<div class="flex flex-col">
+<span class="text-[12px] font-bold text-muted tracking-tight">Agendamento #4892</span>
+<h2 class="text-[17px] font-bold text-ink leading-tight">Detalhes da sessão</h2>
+</div>
+</div>
+<!-- Chip de status: Em atendimento -->
+<div class="px-3 py-1 rounded-full bg-[#FFF3EB] border border-[#FFD8BD] text-brand-text text-[12px] font-bold flex items-center gap-1.5 shrink-0">
+<span class="w-2 h-2 rounded-full bg-brand animate-pulse"></span>
+<span>Em atendimento</span>
+</div>
+</div>
+<!-- CORPO CENTRAL COM ROLAGEM INTERNA (flex-1 overflow-y-auto p-6 space-y-4) -->
+<div class="flex-1 overflow-y-auto p-6 space-y-4">
+<!-- Card Cliente -->
+<div class="bg-surface rounded-card border border-line p-4 space-y-3.5 shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<!-- Avatar circular 48px -->
+<img alt="Rafaela Diniz" class="w-12 h-12 rounded-full object-cover border border-line shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7R4im0DV2lpttMgX0xuEtwU1wlCb9Y_tFNQKRDe9ogC2kOSkKg2VVLBw34aq3ESaLw_PGB6cfz6KRz350x8VC0Ui7mWCe0t-gTxBHPHgvXakz-rqBlQuTRyiaRIelGC7eNOOd13ApsbC-4_3pMHtOd8KFp8pgbC2TMUpOp3_drZYMyKZvUr-ZqAFyJ0-sJRukjnklvBrOr8QQS9Jq0VoPacH31-qdbYs46iAvhTU4XvQ60GUCjDrKAQ">
+<div class="flex flex-col">
+<span class="text-[16px] font-bold text-ink leading-tight">Rafaela Diniz</span>
+<span class="text-[13px] text-muted font-medium mt-0.5">(83) 99654-2210</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<!-- Chip Cliente Recorrente -->
+<span class="px-2.5 py-1 rounded-full bg-surface-2 text-ink text-[11px] font-bold flex items-center gap-1 border border-line">
+<span class="material-symbols-outlined text-[14px] text-brand">repeat</span>
+                Cliente recorrente
+              </span>
+<!-- Botão quadrado WhatsApp (#128C4A com ícone de WhatsApp) -->
+<a class="w-8 h-8 rounded-btn bg-whatsapp text-white flex items-center justify-center hover:opacity-90 transition-opacity shadow-sm shrink-0" href="https://wa.me/5583996542210" target="_blank" title="Conversar no WhatsApp">
+<span class="material-symbols-outlined text-[18px]">chat</span>
+</a>
+</div>
+</div>
+<!-- Indicadores lado a lado -->
+<div class="grid grid-cols-2 gap-2.5 pt-1">
+<div class="bg-bg border border-line rounded-btn p-3 flex flex-col justify-between">
+<span class="text-[11px] font-semibold text-muted uppercase tracking-wider">Ciclo médio</span>
+<div class="flex items-baseline gap-1 mt-1">
+<span class="text-[22px] font-bold text-ink">21</span>
+<span class="text-[12px] text-muted font-medium">dias</span>
+</div>
+<span class="text-[11px] font-semibold text-success flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[13px]">verified</span>
+                Ideal para o serviço
+              </span>
+</div>
+<div class="bg-bg border border-line rounded-btn p-3 flex flex-col justify-between">
+<span class="text-[11px] font-semibold text-muted uppercase tracking-wider">Total de visitas</span>
+<div class="flex items-baseline gap-1 mt-1">
+<span class="text-[22px] font-bold text-ink">8</span>
+<span class="text-[12px] text-muted font-medium">em 2026</span>
+</div>
+<span class="text-[11px] font-medium text-muted mt-1 truncate">
+                Última há 19 dias com Camila
+              </span>
+</div>
+</div>
+</div>
+<!-- Bloco Serviço e horário (card com borda 1px #E2DFDB e fundo #FFFFFF) -->
+<div class="bg-surface rounded-card border border-line p-4 space-y-3 shadow-sm">
+<div class="flex items-center justify-between border-b border-line pb-2.5">
+<span class="text-[12px] font-bold uppercase tracking-wide text-muted">Serviço e horário</span>
+<!-- Tag de canal/origem pública -->
+<span class="px-2.5 py-0.5 rounded-full bg-surface-2 text-brand-text text-[11px] font-bold flex items-center gap-1 border border-line">
+<span class="material-symbols-outlined text-[13px]">link</span>
+              Origem: Página pública (link da bio)
+            </span>
+</div>
+<div class="space-y-2.5">
+<!-- Serviço -->
+<div class="flex items-center justify-between">
+<span class="text-[13px] text-muted">Serviço:</span>
+<span class="text-[14px] font-bold text-ink">Alongamento em gel</span>
+</div>
+<!-- Profissional -->
+<div class="flex items-center justify-between">
+<span class="text-[13px] text-muted">Profissional:</span>
+<span class="text-[14px] font-bold text-ink flex items-center gap-1.5">
+<span class="w-5 h-5 rounded-full bg-brand/20 text-brand text-[10px] flex items-center justify-center font-bold">CR</span>
+                Camila Rocha
+              </span>
+</div>
+<!-- Data e Horário -->
+<div class="flex items-start justify-between">
+<span class="text-[13px] text-muted">Data e horário:</span>
+<span class="text-[13px] font-bold text-ink text-right max-w-[270px]">
+                quinta, 17 de setembro de 2026 · 10:00 às 12:30 (2h30)
+              </span>
+</div>
+</div>
+</div>
+<!-- Bloco Pagamento -->
+<div class="bg-surface rounded-card border border-line p-4 space-y-3 shadow-sm">
+<div class="flex items-center justify-between">
+<span class="text-[12px] font-bold uppercase tracking-wide text-muted">Pagamento</span>
+<div class="text-right">
+<span class="text-[11px] text-muted mr-1">Valor total:</span>
+<span class="text-[16px] font-bold text-ink">R$ 180,00</span>
+</div>
+</div>
+<!-- Sinal pago via Pix -->
+<div class="flex items-center justify-between p-2.5 rounded-btn bg-[#F0FDF4] border border-[#BBF7D0]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-success">check_circle</span>
+<span class="text-[13px] font-bold text-success">Sinal pago R$ 30,00 via Pix</span>
+</div>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-success text-white">CONFIRMADO</span>
+</div>
+<!-- Restante no balcão -->
+<div class="flex items-center justify-between pt-1">
+<div class="flex flex-col">
+<span class="text-[13px] font-bold text-ink">Restante no balcão:</span>
+<span class="text-[11px] text-muted">Cartão, Dinheiro ou Pix na saída</span>
+</div>
+<span class="text-[20px] font-extrabold text-brand">R$ 150,00</span>
+</div>
+</div>
+<!-- Campo Observações da ficha técnica (aviso sensível a primer ácido) -->
+<div class="bg-[#FFFBEB] border border-[#FDE68A] rounded-card p-3.5 flex items-start gap-2.5">
+<span class="material-symbols-outlined text-[20px] text-warning shrink-0 mt-0.5">warning</span>
+<div class="flex flex-col">
+<span class="text-[12px] font-bold uppercase tracking-wider text-[#92400E]">Observações da ficha técnica</span>
+<p class="text-[13px] text-ink font-semibold mt-0.5">
+              Sensível a primer ácido (usar primer não ácido / bonder suave).
+            </p>
+</div>
+</div>
+</div>
+<!-- RODAPÉ FIXO DO DRAWER (p-6 border-t border-line bg-surface space-y-3 shrink-0) -->
+<div class="p-6 border-t border-line bg-surface space-y-3 shrink-0">
+<!-- Botão principal em linha única: Concluir atendimento e receber -->
+<button class="w-full py-3.5 px-4 rounded-btn bg-brand hover:brightness-105 active:scale-[0.99] text-ink font-bold text-[15px] flex items-center justify-center gap-2 shadow-sm transition-all">
+<span class="material-symbols-outlined text-[20px]">task_alt</span>
+<span>Concluir atendimento e receber</span>
+</button>
+<!-- Linha inferior com 3 botões secundários lado a lado -->
+<div class="grid grid-cols-3 gap-2">
+<!-- Remarcar -->
+<button class="h-10 rounded-btn bg-surface-2 hover:bg-line text-ink font-bold text-[13px] flex items-center justify-center gap-1.5 transition-colors border border-line/60">
+<span class="material-symbols-outlined text-[17px]">edit_calendar</span>
+<span>Remarcar</span>
+</button>
+<!-- Cliente faltou -->
+<button class="h-10 rounded-btn bg-surface-2 hover:bg-red-50 text-danger font-bold text-[13px] flex items-center justify-center gap-1 transition-colors border border-line/60">
+<span class="material-symbols-outlined text-[17px]">person_off</span>
+<span>Cliente faltou</span>
+</button>
+<!-- Cancelar -->
+<button class="h-10 rounded-btn bg-surface-2 hover:bg-line text-muted hover:text-ink font-bold text-[13px] flex items-center justify-center gap-1 transition-colors border border-line/60">
+<span class="material-symbols-outlined text-[17px]">cancel</span>
+<span>Cancelar</span>
+</button>
+</div>
+</div>
+</aside>
+</div>
+<!-- Interactive script for drawer toggle -->
+<script>
+    (function() {
+      const backdrop = document.getElementById('drawer-backdrop');
+      const drawer = document.getElementById('appointment-drawer');
+      const closeBtn = document.getElementById('close-drawer-btn');
+
+      function closeDrawer() {
+        if (!drawer || !backdrop) return;
+        drawer.style.display = 'none';
+        backdrop.style.display = 'none';
+      }
+
+      if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+      if (backdrop) backdrop.addEventListener('click', closeDrawer);
+    })();
+  </script>
+</body></html>

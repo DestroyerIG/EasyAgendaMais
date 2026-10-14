@@ -4,8 +4,8 @@
  * Tela Ajustes › Plano e Cobrança (ajustes-plano.html).
  *
  * Dado real: nome, preço e ciclo do plano atual vêm de PLAN_MAP a partir do plano do
- * usuário logado (o mesmo dado que a tela já usava); o nome exibido usa o rótulo curto
- * Solo/Equipe/Salão do rodapé da barra lateral, nunca o nome comercial nem "Pro". Status
+ * usuário logado (o mesmo dado que a tela já usava); o nome exibido é Solo/Equipe/Salão,
+ * o mesmo da barra lateral e das páginas de preço, nunca "Pro". Status
  * da assinatura e "Gerenciar assinatura"/"Gerar nova cobrança Pix" continuam vindo de
  * useDashboardBilling, com o mesmo handler de sempre. Quando o backend informa
  * subscriptionCurrentPeriodEnd (TrialBanner já usa o mesmo campo), a data e os dias da
@@ -231,7 +231,7 @@ export default function PlanosPage() {
           <div className="relative flex flex-wrap items-start justify-between gap-4 border-b border-line pb-6">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-3">
-                <h3 className="text-xl font-bold text-ink">Plano {nomeExibicao} (Mensal)</h3>
+                <h3 className="text-xl font-bold text-ink">Plano {nomeExibicao}</h3>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-success/12 px-3 py-1 text-[13px] font-bold text-success-text">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" aria-hidden="true" />
                   {statusRotulo}
@@ -375,7 +375,7 @@ export default function PlanosPage() {
           </div>
           <Button variant="secondary" size="sm" onClick={aCaminho}>
             <Icon name="filter_list" size={16} />
-            Filtrar por ano (2026)
+            Filtrar por ano ({new Date().getFullYear()})
           </Button>
         </div>
 
@@ -462,7 +462,7 @@ export default function PlanosPage() {
           <div className="flex items-center justify-between bg-surface-2 p-4 text-[13px] text-muted">
             <span>Exibindo os últimos {faturas.length} lançamentos</span>
             <button type="button" onClick={aCaminho} className="font-semibold text-brand-text hover:underline">
-              Carregar histórico completo (2026)
+              Carregar histórico completo ({new Date().getFullYear()})
             </button>
           </div>
         )}

@@ -429,9 +429,8 @@ export const WhatsAppModule = () => {
           <div className="space-y-2">
             <h2 className="text-2xl font-bold text-ink">Recurso não disponível no seu plano</h2>
             <p className="max-w-md text-muted">
-              Seu plano atual não inclui integração com WhatsApp. Faça upgrade para o plano{' '}
-              <span className="font-semibold text-ink">Profissional</span> ou{' '}
-              <span className="font-semibold text-ink">Premium</span> para automatizar seus agendamentos e lembretes via WhatsApp.
+              Seu plano atual não inclui integração com WhatsApp. Escolha um plano para automatizar
+              seus agendamentos e lembretes via WhatsApp.
             </p>
           </div>
           <a href="/planos" className={cn(buttonVariants({ variant: 'primary' }), 'gap-2')}>

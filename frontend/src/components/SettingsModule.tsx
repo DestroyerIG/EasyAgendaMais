@@ -15,6 +15,7 @@ import { ScheduleSection } from '@/components/settings/ScheduleSection';
 import { RemindersSection } from '@/components/settings/RemindersSection';
 import { IntegrationsSection } from '@/components/settings/IntegrationsSection';
 import { AppearanceSection } from '@/components/settings/AppearanceSection';
+import { ComissaoPadraoSection } from '@/components/settings/ComissaoPadraoSection';
 import {
   DIAS_SEMANA,
   normalizePhoneDigits,
@@ -511,6 +512,8 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
           className="lg:col-span-2"
         />
       </div>
+
+      <ComissaoPadraoSection />
 
       <AppearanceSection />
 

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { width: 100vw; margin: 0; padding: 0; } body { overscroll-behavior: none; } .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); } .pt-safe { padding-top: env(safe-area-inset-top, 0px); } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { colors: { "surface-light": "#FFFFFF", "on-primary": "#ffffff", "error-container": "#ffdad6", "outline-variant": "#e0c0af", "on-secondary-fixed-variant": "#4b4641", "tertiary-fixed": "#cde5ff", "inverse-on-surface": "#f6efed", "brand-text-light": "#B34D00", "bg-light": "#F6F5F4", "danger-light": "#DC2626", "on-tertiary-fixed": "#001d32", "on-primary-fixed": "#321200", "secondary": "#635d58", "warning-light": "#D97706", "muted-dark": "#A39D97", "on-tertiary-fixed-variant": "#004a75", "inverse-surface": "#32302f", "error": "#ba1a1a", "secondary-fixed": "#eae1da", "whatsapp-dark": "#25D366", "on-background": "#1d1b1a", "warning-dark": "#FBBF24", "status-confirmed": "#2563EB", "background": "#fff8f6", "success-dark": "#4ADE80", "whatsapp-light": "#128C4A", "surface-tint": "#994700", "on-surface": "#1d1b1a", "surface-bright": "#fff8f6", "bg-dark": "#0E0D0C", "surface": "#fff8f6", "surface-container-highest": "#e7e1df", "inverse-primary": "#ffb68b", "on-tertiary": "#ffffff", "on-error-container": "#93000a", "tertiary": "#006399", "primary": "#994700", "surface-2-dark": "#211F1D", "success-light": "#16A34A", "secondary-container": "#eae1da", "on-error": "#ffffff", "on-tertiary-container": "#003a5c", "muted-light": "#66605B", "primary-container": "#ff7a00", "primary-fixed": "#ffdbc8", "on-primary-container": "#5c2800", "secondary-fixed-dim": "#cdc5bf", "on-secondary": "#ffffff", "tertiary-fixed-dim": "#95ccff", "surface-dim": "#dfd9d7", "on-secondary-container": "#69635e", "on-brand": "#1A1817", "surface-container-lowest": "#ffffff", "surface-2-light": "#EFEDEA", "on-secondary-fixed": "#1f1b17", "ink-dark": "#F3F1EF", "surface-container-high": "#ede7e5", "brand-text-dark": "#FF9A3D", "line-dark": "#2E2B28", "surface-container": "#f3edea", "surface-dark": "#181615", "line-light": "#E2DFDB", "on-surface-variant": "#584235", "primary-fixed-dim": "#ffb68b", "outline": "#8c7263", "tertiary-container": "#00a8ff", "surface-variant": "#e7e1df", "surface-container-low": "#f9f2f0", "ink-light": "#1A1817", "danger-dark": "#F87171", "on-primary-fixed-variant": "#753400" }, borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, spacing: { "gutter": "1rem", "space-sm": "0.5rem", "space-md": "1rem", "margin": "1rem", "space-xs": "0.25rem", "space-lg": "1.5rem", "space-xl": "2rem" }, fontFamily: { "headline-lg-mobile": ["Plus Jakarta Sans"], "body-sm": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "display-lg": ["Plus Jakarta Sans"], "title-lg": ["Plus Jakarta Sans"], "label-md": ["Plus Jakarta Sans"], "title-md": ["Plus Jakarta Sans"], "headline-md": ["Plus Jakarta Sans"], "body-md": ["Plus Jakarta Sans"] }, fontSize: { "headline-lg-mobile": ["28px", { lineHeight: "36px", fontWeight: "700" }], "body-sm": ["14px", { lineHeight: "20px", fontWeight: "400" }], "label-sm": ["11px", { lineHeight: "16px", fontWeight: "600" }], "headline-lg": ["32px", { lineHeight: "40px", fontWeight: "700" }], "display-lg": ["40px", { lineHeight: "48px", fontWeight: "800" }], "title-lg": ["20px", { lineHeight: "28px", fontWeight: "700" }], "label-md": ["13px", { lineHeight: "18px", fontWeight: "600" }], "title-md": ["17px", { lineHeight: "24px", fontWeight: "600" }], "headline-md": ["24px", { lineHeight: "32px", fontWeight: "700" }], "body-md": ["15px", { lineHeight: "22.5px", fontWeight: "400" }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-background font-body-md text-on-surface antialiased min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-gutter flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="flex flex-col"><span class="font-title-md text-title-md text-on-surface tracking-tight leading-none">Studio Aurora</span><div class="flex items-center gap-1.5 mt-0.5"><span class="w-2 h-2 rounded-full bg-success-light animate-pulse"></span><span class="font-label-sm text-label-sm text-muted-light">Em atendimento</span></div></div></div><div class="flex items-center gap-space-sm"><div class="flex flex-col items-end hidden sm:flex"><span class="font-label-md text-label-md text-on-surface leading-tight">Camila Rocha</span><span class="font-label-sm text-label-sm text-muted-light">Master Stylist</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 pb-24 bg-surface"><div class="flex flex-col w-full">
+<!-- Top Flow Header / Context Context Banner -->
+<div class="px-gutter pt-space-md pb-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<a class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">arrow_back</span>
+</a>
+<div>
+<span class="font-label-sm text-label-sm text-primary font-bold uppercase tracking-wider">Checkout Rápido</span>
+<h1 class="font-headline-md text-headline-md text-on-surface leading-tight">Fechar Atendimento</h1>
+</div>
+</div>
+<div class="w-9 h-9 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed shadow-sm">
+<span class="material-symbols-outlined text-[20px]">receipt_long</span>
+</div>
+</div>
+<!-- Client Identification Card -->
+<div class="mt-space-md bg-surface-container-low rounded-xl p-space-md flex items-center gap-space-md shadow-sm">
+<div class="relative w-12 h-12 rounded-full overflow-hidden bg-surface-container shrink-0">
+<img class="w-full h-full object-cover" data-alt="Client portrait of Mariana Souza, smiling Brazilian woman with clean natural makeup and well-groomed nails in a bright modern beauty salon setting with warm amber lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfZ9u2N3zoP6QUP9mD_fdApYdfczuuBGEP1qVyYxPOlVCkSqc4ibJQsAg6lU1w8YneZVX7_6LyTlG4Wsbm89Xk7w-97l6SbUQAA6Ial00xAxpXduSGN1qv7hM5rnPhttoNijpGHTUUjhZeaf0jwyGXcaBJOpWR5EqN3ZvNBJvQ42AyVGgYVO1Gy4vK9LpoX9bI6sNYHGabWnXo-H3XbyuPWGaz9MnMAhLrOkjwT_ax9jyi6f7k-c_3fQ"/>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center gap-2">
+<span class="font-title-md text-title-md text-on-surface truncate">Mariana Souza</span>
+<span class="px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm">Clube Aurora</span>
+</div>
+<div class="flex items-center gap-1.5 mt-0.5 text-secondary">
+<span class="material-symbols-outlined text-[15px]">schedule</span>
+<span class="font-body-sm text-body-sm">14:00 às 15:30 • Duração: 1h30</span>
+</div>
+</div>
+</div>
+</div>
+<div class="px-gutter flex flex-col gap-space-lg mt-space-xs">
+<!-- 1. RESUMO DE SERVIÇOS PRESTADOS -->
+<section class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant tracking-wide uppercase">Serviços Realizados</span>
+<span class="font-label-sm text-label-sm text-muted-light">2 itens</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-space-md flex flex-col gap-space-md shadow-sm">
+<!-- Item 1 -->
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-start gap-space-sm min-w-0">
+<span class="material-symbols-outlined text-primary text-[20px] mt-0.5">spa</span>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md text-on-surface leading-snug">Manutenção Fibra de Vidro</span>
+<span class="font-body-sm text-body-sm text-secondary">Nail shaping • Top coat premium</span>
+</div>
+</div>
+<span class="font-title-md text-title-md text-on-surface tabular-nums shrink-0">R$ 110,00</span>
+</div>
+<div class="w-full h-[1px] bg-surface-container"></div>
+<!-- Item 2 -->
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-start gap-space-sm min-w-0">
+<span class="material-symbols-outlined text-tertiary text-[20px] mt-0.5">verified</span>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md text-on-surface leading-snug">Esmaltação em Gel Nude</span>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">Cortesia Clube Aurora</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end shrink-0">
+<span class="font-title-md text-title-md text-success-light tabular-nums font-bold">Grátis</span>
+<span class="font-label-sm text-label-sm text-muted-light line-through tabular-nums">R$ 45,00</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 2. DEDUÇÃO DO SINAL PAGO -->
+<section class="bg-surface-container-lowest rounded-xl p-space-md flex flex-col gap-space-xs shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-success-light/10 flex items-center justify-center text-success-light">
+<span class="material-symbols-outlined text-[18px]">verified_user</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md text-on-surface">Sinal Pago na Reserva</span>
+<span class="font-label-sm text-label-sm text-muted-light">Pix antecipado • 08/Nov • ID: #PX-9821</span>
+</div>
+</div>
+<div class="flex items-center gap-1 text-success-light">
+<span class="font-title-md text-title-md font-bold tabular-nums">- R$ 30,00</span>
+</div>
+</div>
+<div class="mt-space-xs px-space-sm py-1.5 rounded-lg bg-surface-container flex items-center justify-between text-muted-light">
+<span class="font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">receipt</span> Comprovante validado automaticamente
+        </span>
+<span class="material-symbols-outlined text-[16px] text-success-light">check_circle</span>
+</div>
+</section>
+<!-- 3. PRODUTOS VENDIDOS NO BALCÃO / HOMECARE -->
+<section class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant tracking-wide uppercase">Produtos de Homecare (Balcão)</span>
+<span class="font-label-sm text-label-sm text-primary font-bold">Comissão 20%</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-space-md flex flex-col gap-space-md shadow-sm">
+<div class="flex items-center gap-space-md">
+<div class="w-14 h-14 rounded-lg overflow-hidden bg-surface-container shrink-0">
+<img class="w-full h-full object-cover" data-alt="Minimalist cuticle oil pen dispenser on a clean marble surface in a high-end beauty salon with golden serum and soft natural daylight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBG8aMo4qCIDaBeKA5qVqu7XKwPfMihRPJToHS0jMglKj7uzX-UBl6k_XSlQ_DL6TingKl-KCL_7ejI6egnah0BCvKA_7no-ln_Rocji6o6GUdY--WpQ_xYu3O2skD89m9KFlrHaQt2eOLrIxcXzxKUlkr6n0Ny4enj2W-EnQ0DyvLFjMna__ft9bCyVtLGKKFoZzoGUF3KtJobTc2ODoSskQss6JTlonMsSUypSC77fLyygPkM0N9fw"/>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<span class="font-title-md text-title-md text-on-surface truncate">Óleo de Cutícula Caneta</span>
+<span class="font-body-sm text-body-sm text-secondary">Hidratação intensa • 1 unidade</span>
+<div class="flex items-center gap-1.5 mt-1">
+<span class="px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-bold">+ R$ 5,00 sua comissão</span>
+</div>
+</div>
+<div class="flex flex-col items-end shrink-0">
+<span class="font-title-md text-title-md text-on-surface tabular-nums font-bold">R$ 25,00</span>
+<button class="mt-1 w-6 h-6 rounded-full bg-surface-container text-muted-light hover:text-error flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+</div>
+<button class="w-full h-11 rounded-lg bg-surface-container flex items-center justify-center gap-space-sm text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px] text-primary">add_circle</span>
+          Adicionar outro produto homecare
+        </button>
+</div>
+</section>
+<!-- 4. FOTOGRAFAR RESULTADO FINAL (PORTFOLIO & FICHA TÉCNICA) -->
+<section class="bg-surface-container-lowest rounded-xl p-space-md flex flex-col gap-space-md shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">photo_camera</span>
+<span class="font-label-md text-label-md text-on-surface-variant tracking-wide uppercase">Registro do Trabalho</span>
+</div>
+<span class="font-label-sm text-label-sm text-muted-light">Portfólio Studio Aurora</span>
+</div>
+<!-- Live Photo Trigger Card -->
+<div class="relative w-full h-36 rounded-xl bg-surface-container overflow-hidden flex flex-col items-center justify-center cursor-pointer group hover:bg-surface-container-high transition-all" id="photo-box">
+<img class="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity" data-alt="Close up aesthetic shot of freshly manicured nude almond gel nails with sleek shine held gently by elegant fingers in a warm studio environment" id="photo-preview" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6r3FfKhrKKw3SzRNInY2598HpJQO4kUgOL3Ry7ux5AfHOtRxUyfX9P_OGsE4_MW33A9w396pBnTmu_M3JchbhUSXnhsAFFnib1Xx1dnloGc-ZJhar5KuNcGSmtQ8nhhCwiqJTOB5k25jeoJRNrbnLPEL6UHEQyCRnTYyZPDgjbGT9Y1JKCTMC5bYj2Y7Tofca7qZ8_bJmG3H1C6VW8ziF2z_5xy3xSwCGtrEKnf3a5NYGgyNAVBqvbg"/>
+<div class="relative z-10 flex flex-col items-center gap-1.5">
+<div class="w-12 h-12 rounded-full bg-surface-lowest shadow-md flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[24px]">camera_alt</span>
+</div>
+<span class="font-title-md text-title-md text-on-surface font-bold text-center">Fotografar unhas prontas</span>
+<span class="font-label-sm text-label-sm text-muted-light text-center">Toque para abrir a câmera do celular</span>
+</div>
+</div>
+<!-- Toggles / Micro-permissions -->
+<div class="flex flex-col gap-space-sm pt-space-xs">
+<!-- Toggle 1 -->
+<label class="flex items-center justify-between cursor-pointer p-space-xs rounded-lg hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-space-sm min-w-0 pr-space-sm">
+<span class="material-symbols-outlined text-secondary text-[20px]">folder_shared</span>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md text-on-surface leading-tight">Salvar na ficha técnica da Mariana</span>
+<span class="font-body-sm text-body-sm text-muted-light">Histórico visual para as próximas manutenções</span>
+</div>
+</div>
+<input checked="" class="w-5 h-5 accent-primary-container rounded cursor-pointer shrink-0" type="checkbox"/>
+</label>
+<!-- Toggle 2 -->
+<label class="flex items-center justify-between cursor-pointer p-space-xs rounded-lg hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-space-sm min-w-0 pr-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">auto_awesome</span>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md text-on-surface leading-tight">Autorização de postagem no Instagram</span>
+<span class="font-body-sm text-body-sm text-muted-light">Mariana concedeu uso de imagem no estúdio</span>
+</div>
+</div>
+<input checked="" class="w-5 h-5 accent-primary-container rounded cursor-pointer shrink-0" type="checkbox"/>
+</label>
+</div>
+</section>
+<!-- 5. CÁLCULO FINAL AUDITÁVEL -->
+<section class="bg-surface-container rounded-xl p-space-md flex flex-col gap-space-sm shadow-sm">
+<span class="font-label-md text-label-md text-on-surface-variant tracking-wide uppercase">Demonstrativo Financeiro</span>
+<div class="flex flex-col gap-space-xs pt-space-xs">
+<div class="flex justify-between items-center text-on-surface">
+<span class="font-body-md text-body-md text-secondary">Serviços executados</span>
+<span class="font-title-md text-title-md tabular-nums">R$ 110,00</span>
+</div>
+<div class="flex justify-between items-center text-on-surface">
+<span class="font-body-md text-body-md text-secondary">Produtos homecare</span>
+<span class="font-title-md text-title-md tabular-nums">R$ 25,00</span>
+</div>
+<div class="flex justify-between items-center text-success-light font-bold">
+<span class="font-body-md text-body-md">(-) Sinal Pix antecipado</span>
+<span class="font-title-md text-title-md tabular-nums">- R$ 30,00</span>
+</div>
+<div class="w-full h-[1px] bg-outline-variant/40 my-space-xs"></div>
+<!-- Big Highlight Payable -->
+<div class="flex justify-between items-baseline pt-space-xs">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-muted-light uppercase tracking-wider">Saldo a cobrar agora</span>
+<span class="font-headline-lg-mobile text-headline-lg-mobile font-extrabold text-on-surface tracking-tight">R$ 105,00</span>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-primary-fixed text-on-primary-fixed font-label-md text-label-md font-bold">Pendente</span>
+</div>
+</div>
+<!-- Stylist Commission Callout -->
+<div class="mt-space-sm p-space-md rounded-xl bg-surface-container-lowest flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed shrink-0">
+<span class="material-symbols-outlined text-[20px]">monetization_on</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-sm text-label-sm text-muted-light">Sua comissão estimada deste atendimento:</span>
+<span class="font-title-lg text-title-lg text-primary font-bold tabular-nums">R$ 60,00</span>
+<span class="font-label-sm text-label-sm text-secondary">50% serviços (R$ 55,00) + 20% produtos (R$ 5,00)</span>
+</div>
+</div>
+</section>
+<!-- 6. FORMAS DE PAGAMENTO DO SALDO -->
+<section class="flex flex-col gap-space-sm pb-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant tracking-wide uppercase">Forma de Pagamento (R$ 105,00)</span>
+<span class="font-label-sm text-label-sm text-muted-light">Toque para alternar</span>
+</div>
+<div class="grid grid-cols-3 gap-space-sm">
+<!-- Option 1: Pix (Selected) -->
+<button class="pay-method-btn flex flex-col items-center justify-center p-space-md rounded-xl bg-surface-container-lowest shadow-sm hover:bg-surface-container-high transition-all text-center relative group active:scale-[0.98]" data-method="pix" type="button">
+<div class="absolute top-2 right-2 w-4 h-4 rounded-full bg-primary-container flex items-center justify-center text-on-brand shadow-sm">
+<span class="material-symbols-outlined text-[12px] font-bold">check</span>
+</div>
+<div class="w-10 h-10 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center mb-1.5">
+<span class="material-symbols-outlined text-[20px]">qr_code_2</span>
+</div>
+<span class="font-title-md text-title-md text-on-surface font-bold">Pix Balcão</span>
+<span class="font-label-sm text-label-sm text-muted-light mt-0.5">QR Code rápido</span>
+</button>
+<!-- Option 2: Card -->
+<button class="pay-method-btn flex flex-col items-center justify-center p-space-md rounded-xl bg-surface-container-lowest shadow-sm hover:bg-surface-container-high transition-all text-center relative group active:scale-[0.98] opacity-75" data-method="card" type="button">
+<div class="w-10 h-10 rounded-full bg-surface-container text-on-surface flex items-center justify-center mb-1.5">
+<span class="material-symbols-outlined text-[20px]">point_of_sale</span>
+</div>
+<span class="font-title-md text-title-md text-on-surface font-bold">Maquininha</span>
+<span class="font-label-sm text-label-sm text-muted-light mt-0.5">Débito / Crédito</span>
+</button>
+<!-- Option 3: Cash -->
+<button class="pay-method-btn flex flex-col items-center justify-center p-space-md rounded-xl bg-surface-container-lowest shadow-sm hover:bg-surface-container-high transition-all text-center relative group active:scale-[0.98] opacity-75" data-method="cash" type="button">
+<div class="w-10 h-10 rounded-full bg-surface-container text-on-surface flex items-center justify-center mb-1.5">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+</div>
+<span class="font-title-md text-title-md text-on-surface font-bold">Dinheiro</span>
+<span class="font-label-sm text-label-sm text-muted-light mt-0.5">Troco exato</span>
+</button>
+</div>
+<!-- Interactive QR Code Flyout for Pix (Visible when Pix is chosen) -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md flex flex-col items-center text-center gap-space-sm shadow-sm" id="pix-container">
+<div class="flex items-center gap-2 text-on-surface font-label-md text-label-md">
+<span class="material-symbols-outlined text-primary text-[18px]">cell_tower</span>
+<span>Apresente o QR Code dinâmico para a Mariana</span>
+</div>
+<div class="w-40 h-40 bg-surface-container rounded-xl flex items-center justify-center p-2 shadow-inner">
+<svg class="w-full h-full text-on-surface" fill="currentColor" viewbox="0 0 100 100">
+<rect fill="currentColor" height="25" rx="3" width="25" x="10" y="10"></rect>
+<rect fill="#fff" height="15" width="15" x="15" y="15"></rect>
+<rect fill="currentColor" height="7" width="7" x="19" y="19"></rect>
+<rect fill="currentColor" height="25" rx="3" width="25" x="65" y="10"></rect>
+<rect fill="#fff" height="15" width="15" x="70" y="15"></rect>
+<rect fill="currentColor" height="7" width="7" x="74" y="19"></rect>
+<rect fill="currentColor" height="25" rx="3" width="25" x="10" y="65"></rect>
+<rect fill="#fff" height="15" width="15" x="15" y="70"></rect>
+<rect fill="currentColor" height="7" width="7" x="19" y="74"></rect>
+<rect fill="currentColor" height="6" width="16" x="42" y="10"></rect>
+<rect fill="currentColor" height="14" width="6" x="42" y="22"></rect>
+<rect fill="currentColor" height="24" width="6" x="52" y="22"></rect>
+<rect fill="currentColor" height="6" width="16" x="42" y="52"></rect>
+<rect fill="currentColor" height="25" width="6" x="42" y="65"></rect>
+<rect fill="currentColor" height="18" width="6" x="52" y="72"></rect>
+<rect fill="currentColor" height="6" width="25" x="65" y="42"></rect>
+<rect fill="currentColor" height="18" width="8" x="72" y="52"></rect>
+<rect fill="currentColor" height="38" width="5" x="85" y="52"></rect>
+<rect fill="currentColor" height="12" width="14" x="65" y="78"></rect>
+</svg>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm text-muted-light">Chave Copia e Cola:</span>
+<span class="font-label-sm text-label-sm text-primary font-bold">pix.aurora@studio.br</span>
+<button class="w-7 h-7 rounded-full bg-surface-container flex items-center justify-center text-on-surface hover:bg-surface-container-high" title="Copiar chave" type="button">
+<span class="material-symbols-outlined text-[14px]">content_copy</span>
+</button>
+</div>
+</div>
+</section>
+<!-- 7. BOTÃO FINAL ERGONÔMICO (ONE-HAND READY) -->
+<div class="pt-space-xs pb-space-lg flex flex-col gap-space-sm">
+<button class="w-full h-[54px] rounded-xl bg-primary-container text-on-brand font-title-lg text-title-lg font-bold flex items-center justify-center gap-space-sm shadow-md hover:brightness-105 active:scale-[0.99] transition-all" id="btn-concluir" type="button">
+<span class="material-symbols-outlined text-[24px]">send</span>
+<span>Concluir e Enviar Recibo no WhatsApp</span>
+</button>
+<div class="flex items-center justify-center gap-1.5 text-muted-light font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[15px] text-whatsapp-light">check_circle</span>
+<span>Notificação instantânea configurada para +55 11 98842-1920</span>
+</div>
+</div>
+</div>
+</div>
+<script>
+  (function() {
+    // Payment method selector micro-interaction
+    const methodButtons = document.querySelectorAll('.pay-method-btn');
+    const pixContainer = document.getElementById('pix-container');
+
+    methodButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        methodButtons.forEach(b => {
+          b.classList.remove('ring-2', 'ring-primary-container', 'opacity-100');
+          b.classList.add('opacity-75');
+          const badge = b.querySelector('.absolute');
+          if (badge) badge.remove();
+        });
+
+        btn.classList.remove('opacity-75');
+        btn.classList.add('opacity-100');
+        
+        const newBadge = document.createElement('div');
+        newBadge.className = 'absolute top-2 right-2 w-4 h-4 rounded-full bg-primary-container flex items-center justify-center text-on-brand shadow-sm';
+        newBadge.innerHTML = '<span class="material-symbols-outlined text-[12px] font-bold">check</span>';
+        btn.appendChild(newBadge);
+
+        if (btn.dataset.method === 'pix') {
+          pixContainer.style.display = 'flex';
+        } else {
+          pixContainer.style.display = 'none';
+        }
+      });
+    });
+
+    // Concluir button micro-feedback
+    const btnConcluir = document.getElementById('btn-concluir');
+    btnConcluir.addEventListener('click', () => {
+      const originalContent = btnConcluir.innerHTML;
+      btnConcluir.innerHTML = '<span class="material-symbols-outlined animate-spin text-[24px]">sync</span><span>Finalizando e gerando recibo...</span>';
+      btnConcluir.disabled = true;
+
+      setTimeout(() => {
+        btnConcluir.innerHTML = '<span class="material-symbols-outlined text-[24px]">check</span><span>Atendimento Finalizado!</span>';
+        btnConcluir.classList.remove('bg-primary-container', 'text-on-brand');
+        btnConcluir.classList.add('bg-whatsapp-light', 'text-on-primary');
+      }, 1200);
+    });
+  })();
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]" data-active-classes="text-primary-container font-bold"><div class="grid grid-cols-4 items-center h-16 px-space-xs"><a class="flex flex-col items-center justify-center min-h-[48px] min-w-[48px] py-1 text-on-surface-variant hover:text-on-surface transition-colors" data-path="minha-agenda" href="#"><span class="material-symbols-outlined text-[24px]">calendar_today</span><span class="font-label-sm text-label-sm mt-0.5">Agenda</span></a><a class="flex flex-col items-center justify-center min-h-[48px] min-w-[48px] py-1 text-on-surface-variant hover:text-on-surface transition-colors" data-path="clientes" href="#"><span class="material-symbols-outlined text-[24px]">person_check</span><span class="font-label-sm text-label-sm mt-0.5">Clientes</span></a><a aria-current="page" class="flex flex-col items-center justify-center min-h-[48px] min-w-[48px] py-1 transition-colors text-primary-container font-bold" data-path="atendimento" href="#"><span class="material-symbols-outlined text-[24px]">receipt_long</span><span class="font-label-sm text-label-sm mt-0.5">Atendimento</span></a><a class="flex flex-col items-center justify-center min-h-[48px] min-w-[48px] py-1 text-on-surface-variant hover:text-on-surface transition-colors" data-path="meus-numeros" href="#"><span class="material-symbols-outlined text-[24px]">trending_up</span><span class="font-label-sm text-label-sm mt-0.5">Números</span></a></div></nav></body></html>

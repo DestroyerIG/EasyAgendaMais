@@ -7,7 +7,6 @@ import type { Appointment, Professional } from '@/types';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, Avatar, IconButton, Button, EmptyState, Skeleton } from '@/components/ui';
 import { CorpoCartaoAgendamento } from '@/components/appointments/AppointmentCard';
-import { conteudoDemo } from '@/lib/conteudoDemo';
 
 interface ProfessionalAgendaProps {
     professional: Professional;
@@ -113,7 +112,7 @@ export function ProfessionalAgenda({ professional }: ProfessionalAgendaProps) {
                                 e selo de status, sem duração/preço/profissional (correção I9). */}
                             <CorpoCartaoAgendamento
                                 appointment={appointment}
-                                duracaoMinutos={conteudoDemo.agenda.duracaoPadraoMinutos}
+                                duracaoMinutos={appointment.service_duration_minutes ?? 0}
                                 mostrarDuracaoEPreco={false}
                                 mostrarNomeProfissional={false}
                                 mostrarWhatsapp={false}

@@ -1,0 +1,565 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>EasyAgenda+ · CRM de Clientes</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+    @layer base {
+      html, body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #F6F5F4;
+        color: #1A1817;
+      }
+    }
+    /* Scrollbar sutil para navegação horizontal do funil */
+    .kanban-scroll::-webkit-scrollbar {
+      height: 6px;
+    }
+    .kanban-scroll::-webkit-scrollbar-track {
+      background: #E2DFDB;
+      border-radius: 9999px;
+    }
+    .kanban-scroll::-webkit-scrollbar-thumb {
+      background: #C4BFB9;
+      border-radius: 9999px;
+    }
+  </style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            brand: "#FF7A00",
+            "brand-text": "#B34D00",
+            ink: "#1A1817",
+            muted: "#66605B",
+            line: "#E2DFDB",
+            bg: "#F6F5F4",
+            surface: "#FFFFFF",
+            "surface-2": "#EFEDEA",
+            whatsapp: "#128C4A",
+            success: "#16A34A",
+            warning: "#D97706",
+            danger: "#DC2626",
+            "status-confirmed": "#2563EB"
+          },
+          borderRadius: {
+            xl: "0.75rem",
+            "2xl": "1rem",
+            full: "9999px"
+          },
+          fontFamily: {
+            sans: ["Plus Jakarta Sans", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-bg text-ink antialiased min-h-screen">
+<!-- BARRA LATERAL (248px fixos, 9 itens canônicos) -->
+<aside class="fixed left-0 top-0 h-full w-[248px] bg-surface border-r border-line z-50 flex flex-col justify-between select-none">
+<div class="flex flex-col">
+<!-- Logo -->
+<div class="h-16 px-5 flex items-center border-b border-line">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-lg bg-brand flex items-center justify-center text-ink shadow-sm">
+<span class="material-symbols-outlined text-[20px] font-bold">calendar_today</span>
+</div>
+<span class="text-[19px] font-bold text-ink tracking-tight">EasyAgenda<span class="text-brand font-extrabold">+</span></span>
+</div>
+</div>
+<!-- Navegação Oficial: 9 itens estritos -->
+<nav class="p-3 flex flex-col gap-1">
+<!-- 1. Hoje -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] font-semibold text-muted hover:bg-surface-2 hover:text-ink transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">today</span>
+<span>Hoje</span>
+</a>
+<!-- 2. Agenda -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] font-semibold text-muted hover:bg-surface-2 hover:text-ink transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">event_upcoming</span>
+<span>Agenda</span>
+</a>
+<!-- 3. Clientes (ATIVO) -->
+<a aria-current="page" class="flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] font-bold bg-brand text-ink shadow-sm" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">group</span>
+<span>Clientes</span>
+</a>
+<!-- 4. Caixa -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] font-semibold text-muted hover:bg-surface-2 hover:text-ink transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">point_of_sale</span>
+<span>Caixa</span>
+</a>
+<!-- 5. Clube e pacotes -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] font-semibold text-muted hover:bg-surface-2 hover:text-ink transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">loyalty</span>
+<span>Clube e pacotes</span>
+</a>
+<!-- 6. WhatsApp -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] font-semibold text-muted hover:bg-surface-2 hover:text-ink transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">chat</span>
+<span>WhatsApp</span>
+</a>
+<!-- 7. Relatórios -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] font-semibold text-muted hover:bg-surface-2 hover:text-ink transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">bar_chart</span>
+<span>Relatórios</span>
+</a>
+<!-- 8. Minha página -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] font-semibold text-muted hover:bg-surface-2 hover:text-ink transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">storefront</span>
+<span>Minha página</span>
+</a>
+<!-- 9. Ajustes -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] font-semibold text-muted hover:bg-surface-2 hover:text-ink transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span>Ajustes</span>
+</a>
+</nav>
+</div>
+<!-- Rodapé da barra -->
+<div class="p-3 border-t border-line">
+<div class="p-3 bg-surface-2 rounded-xl border border-line/60 flex items-center justify-between">
+<div class="flex flex-col min-w-0">
+<span class="text-[13px] font-bold text-ink truncate leading-tight">Studio Aurora</span>
+<span class="text-[11px] font-medium text-muted">Plano Equipe</span>
+</div>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-brand text-ink uppercase tracking-wider">Ativo</span>
+</div>
+</div>
+</aside>
+<!-- CONTEÚDO PRINCIPAL -->
+<div class="pl-[248px] flex flex-col min-h-screen">
+<!-- Header Superior -->
+<header class="fixed top-0 left-[248px] right-0 h-16 bg-surface/95 backdrop-blur-md border-b border-line z-40 px-6 flex items-center justify-between">
+<div class="w-full max-w-md">
+<div class="relative flex items-center w-full">
+<span class="material-symbols-outlined absolute left-3 text-muted text-[20px] pointer-events-none">search</span>
+<input class="w-full h-10 pl-10 pr-4 bg-surface-2 text-ink placeholder-muted text-[13px] rounded-xl border border-line focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand transition-all" placeholder="Buscar cliente, telefone ou serviço..." type="text">
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button aria-label="Notificações" class="w-9 h-9 rounded-xl border border-line flex items-center justify-center text-muted hover:bg-surface-2 hover:text-ink transition-colors relative" type="button">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brand"></span>
+</button>
+<div class="flex items-center gap-2 pl-2 border-l border-line">
+<div class="w-8 h-8 rounded-full bg-brand text-ink font-bold flex items-center justify-center text-[13px]">
+            C
+          </div>
+<div class="flex flex-col text-left">
+<span class="text-[13px] font-bold text-ink leading-tight">Carla</span>
+<span class="text-[11px] font-medium text-muted">Administradora</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Área de Conteúdo -->
+<main class="pt-20 px-6 pb-8 flex-1 flex flex-col gap-6">
+<!-- Cabeçalho da Página -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+<div class="flex flex-wrap items-center gap-4">
+<div class="flex items-center gap-2.5">
+<h1 class="text-[26px] font-bold text-ink tracking-tight">Clientes</h1>
+<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand/15 text-brand-text uppercase tracking-wider">CRM de Relacionamento</span>
+</div>
+<!-- Segmented Control: Lista / Fases -->
+<div class="inline-flex p-1 rounded-xl bg-surface-2 border border-line">
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-muted text-[13px] font-semibold hover:text-ink transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">format_list_bulleted</span>
+<span>Lista</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface text-ink text-[13px] font-bold shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px] text-brand" style="font-variation-settings: 'FILL' 1;">view_kanban</span>
+<span>Fases</span>
+</button>
+</div>
+</div>
+<!-- Ações do Topo -->
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-1.5 px-3.5 h-10 rounded-xl bg-surface border border-line text-ink text-[13px] font-semibold shadow-sm hover:bg-surface-2 transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px] text-muted">tune</span>
+<span>Filtros rápidos (Profissional, Período)</span>
+<span class="material-symbols-outlined text-[16px] text-muted">expand_more</span>
+</button>
+<button class="flex items-center gap-1.5 px-4 h-10 rounded-xl bg-brand text-ink text-[13px] font-bold shadow-sm hover:opacity-95 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[20px] font-bold">add</span>
+<span>Nova cliente</span>
+</button>
+</div>
+</div>
+<!-- 3 Indicadores de Métricas do Topo -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Indicador 1 -->
+<div class="p-5 rounded-2xl bg-surface border border-line shadow-sm flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-[13px] font-medium text-muted">Total de clientes ativas</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-[32px] font-bold text-ink tracking-tight tabular-nums">248</span>
+<span class="text-[12px] font-bold text-success flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span>+12 este mês
+              </span>
+</div>
+</div>
+<div class="w-11 h-11 rounded-xl bg-surface-2 border border-line flex items-center justify-center text-ink">
+<span class="material-symbols-outlined text-[22px]">group</span>
+</div>
+</div>
+<!-- Indicador 2 -->
+<div class="p-5 rounded-2xl bg-surface border border-line shadow-sm flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-[13px] font-medium text-muted">LTV médio da carteira</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-[32px] font-bold text-ink tracking-tight tabular-nums">R$ 860<span class="text-[20px] text-muted font-normal">,00</span></span>
+<span class="text-[12px] font-bold text-success flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>+5,4%
+              </span>
+</div>
+</div>
+<div class="w-11 h-11 rounded-xl bg-surface-2 border border-line flex items-center justify-center text-ink">
+<span class="material-symbols-outlined text-[22px]">payments</span>
+</div>
+</div>
+<!-- Indicador 3 -->
+<div class="p-5 rounded-2xl bg-surface border border-line shadow-sm flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-[13px] font-medium text-muted">Taxa de retenção</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="text-[32px] font-bold text-ink tracking-tight tabular-nums">74<span class="text-[20px] text-muted font-normal">%</span></span>
+<span class="text-[12px] font-medium text-muted">meta 80%</span>
+</div>
+</div>
+<div class="w-11 h-11 rounded-xl bg-surface-2 border border-line flex items-center justify-center text-ink">
+<span class="material-symbols-outlined text-[22px]">published_with_changes</span>
+</div>
+</div>
+</section>
+<!-- Grade/Flex Kanban das 5 Colunas (sem sobreposição, sem position absolute, layout fluido) -->
+<section class="kanban-scroll flex gap-4 overflow-x-auto pb-4 items-start w-full">
+<!-- COLUNA 1: NOVO -->
+<div class="flex-1 min-w-[280px] max-w-[340px] bg-surface rounded-2xl border border-line p-4 flex flex-col gap-3 shadow-sm">
+<!-- Cabeçalho -->
+<div class="flex flex-col gap-1 pb-3 border-b border-line">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-status-confirmed"></span>
+<span class="text-[16px] font-bold text-ink">Novo</span>
+</div>
+<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-surface-2 text-ink">18</span>
+</div>
+<span class="text-[12px] font-semibold text-ink tabular-nums">18 clientes · R$ 2.450,00</span>
+<span class="text-[11px] text-muted leading-snug">Primeira visita há menos de 30 dias</span>
+</div>
+<!-- Cartões da Coluna -->
+<div class="flex flex-col gap-3">
+<!-- Cartão 1 -->
+<div class="bg-surface rounded-xl border border-line p-3.5 flex flex-col gap-2.5 shadow-sm hover:shadow transition-shadow break-words">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<span class="text-[14px] font-bold text-ink leading-tight">Juliana Paes</span>
+<span class="text-[12px] text-muted mt-0.5 tabular-nums">(83) 98122-4590</span>
+</div>
+<span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-surface-2 text-muted">Há 2 dias</span>
+</div>
+<div class="text-[12px] text-muted bg-surface-2 p-2.5 rounded-lg flex flex-col gap-1">
+<div class="text-ink font-semibold">Corte e Escova · Paula Mendes</div>
+<div class="flex justify-between text-[11px] pt-0.5 border-t border-line/60">
+<span>Ticket: <strong class="text-ink font-bold tabular-nums">R$ 140,00</strong></span>
+<span class="text-status-confirmed font-semibold">1ª visita</span>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-whatsapp text-white text-[12px] font-bold hover:opacity-90 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+<span>Pós-atendimento WhatsApp</span>
+</button>
+</div>
+<!-- Cartão 2 -->
+<div class="bg-surface rounded-xl border border-line p-3.5 flex flex-col gap-2.5 shadow-sm hover:shadow transition-shadow break-words">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<span class="text-[14px] font-bold text-ink leading-tight">Fernanda Torres</span>
+<span class="text-[12px] text-muted mt-0.5 tabular-nums">(83) 97341-9011</span>
+</div>
+<span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-surface-2 text-muted">Há 5 dias</span>
+</div>
+<div class="text-[12px] text-muted bg-surface-2 p-2.5 rounded-lg flex flex-col gap-1">
+<div class="text-ink font-semibold">Design de Sobrancelha · Bruna Lima</div>
+<div class="flex justify-between text-[11px] pt-0.5 border-t border-line/60">
+<span>Ticket: <strong class="text-ink font-bold tabular-nums">R$ 95,00</strong></span>
+<span class="text-status-confirmed font-semibold">1ª visita</span>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-whatsapp text-white text-[12px] font-bold hover:opacity-90 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+<span>Pós-atendimento WhatsApp</span>
+</button>
+</div>
+</div>
+</div>
+<!-- COLUNA 2: RECORRENTE -->
+<div class="flex-1 min-w-[280px] max-w-[340px] bg-surface rounded-2xl border border-line p-4 flex flex-col gap-3 shadow-sm">
+<!-- Cabeçalho -->
+<div class="flex flex-col gap-1 pb-3 border-b border-line">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-status-confirmed"></span>
+<span class="text-[16px] font-bold text-ink">Recorrente</span>
+</div>
+<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-surface-2 text-ink">84</span>
+</div>
+<span class="text-[12px] font-semibold text-ink tabular-nums">84 clientes · R$ 14.820,00</span>
+<span class="text-[11px] text-muted leading-snug">2 a 5 atendimentos com ciclo regular</span>
+</div>
+<!-- Cartões da Coluna -->
+<div class="flex flex-col gap-3">
+<!-- Cartão 1 -->
+<div class="bg-surface rounded-xl border border-line p-3.5 flex flex-col gap-2.5 shadow-sm hover:shadow transition-shadow break-words">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<span class="text-[14px] font-bold text-ink leading-tight">Rafaela Diniz</span>
+<span class="text-[12px] text-muted mt-0.5 tabular-nums">(83) 99654-2210</span>
+</div>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-status-confirmed/10 text-status-confirmed">Ciclo 20d</span>
+</div>
+<div class="text-[12px] text-muted bg-surface-2 p-2.5 rounded-lg flex flex-col gap-1">
+<div class="text-ink font-semibold">Alongamento em gel · Camila Rocha</div>
+<div class="flex items-center justify-between text-[11px] pt-1 border-t border-line/60">
+<span>LTV Total: <strong class="text-ink font-bold tabular-nums">R$ 980,00</strong></span>
+<span class="text-success font-bold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]">event</span> 07/10
+                  </span>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-whatsapp text-whatsapp text-[12px] font-bold hover:bg-whatsapp/5 transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+<span>Confirmar no WhatsApp</span>
+</button>
+</div>
+<!-- Cartão 2 -->
+<div class="bg-surface rounded-xl border border-line p-3.5 flex flex-col gap-2.5 shadow-sm hover:shadow transition-shadow break-words">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<span class="text-[14px] font-bold text-ink leading-tight">Vanessa Alves</span>
+<span class="text-[12px] text-muted mt-0.5 tabular-nums">(83) 98844-3120</span>
+</div>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-surface-2 text-ink">Ciclo 25d</span>
+</div>
+<div class="text-[12px] text-muted bg-surface-2 p-2.5 rounded-lg flex flex-col gap-1">
+<div class="text-ink font-semibold">Corte e Escova · Paula Mendes</div>
+<div class="flex items-center justify-between text-[11px] pt-1 border-t border-line/60">
+<span>LTV: <strong class="text-ink font-bold tabular-nums">R$ 740,00</strong></span>
+<span class="text-muted">Retorno: <strong class="text-ink font-semibold">17/10</strong></span>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-line text-ink text-[12px] font-semibold hover:bg-surface-2 transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-muted">schedule</span>
+<span>Agendar Retorno</span>
+</button>
+</div>
+</div>
+</div>
+<!-- COLUNA 3: FIEL / VIP -->
+<div class="flex-1 min-w-[280px] max-w-[340px] bg-surface rounded-2xl border border-line p-4 flex flex-col gap-3 shadow-sm">
+<!-- Cabeçalho -->
+<div class="flex flex-col gap-1 pb-3 border-b border-line">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-warning"></span>
+<span class="text-[16px] font-bold text-ink">Fiel / VIP</span>
+</div>
+<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-surface-2 text-ink">62</span>
+</div>
+<span class="text-[12px] font-semibold text-ink tabular-nums">62 clientes · R$ 18.640,00</span>
+<span class="text-[11px] text-muted leading-snug">+6 atendimentos com alto ticket</span>
+</div>
+<!-- Cartões da Coluna -->
+<div class="flex flex-col gap-3">
+<!-- Cartão 1 -->
+<div class="bg-surface rounded-xl border border-line p-3.5 flex flex-col gap-2.5 shadow-sm hover:shadow transition-shadow break-words">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="text-[14px] font-bold text-ink leading-tight">Mariana Souza</span>
+<span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-warning/15 text-warning">VIP</span>
+</div>
+<span class="text-[12px] text-muted mt-0.5 tabular-nums">(83) 99112-4410</span>
+</div>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand/15 text-brand-text">Aniversário!</span>
+</div>
+<div class="text-[12px] text-muted bg-surface-2 p-2.5 rounded-lg flex flex-col gap-1">
+<div class="text-ink font-semibold">Alongamento em gel · Camila Rocha</div>
+<div class="grid grid-cols-2 gap-1 text-[11px] pt-1 border-t border-line/60">
+<span>Ticket: <strong class="text-ink font-bold tabular-nums">R$ 130,00</strong></span>
+<span>Gasto: <strong class="text-ink font-bold tabular-nums">R$ 1.820,00</strong></span>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-surface-2 border border-line text-ink text-[12px] font-bold hover:bg-line/40 transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-brand">cake</span>
+<span>Enviar mimo no WhatsApp</span>
+</button>
+</div>
+<!-- Cartão 2 -->
+<div class="bg-surface rounded-xl border border-line p-3.5 flex flex-col gap-2.5 shadow-sm hover:shadow transition-shadow break-words">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="text-[14px] font-bold text-ink leading-tight">Letícia Albuquerque</span>
+<span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-warning/15 text-warning">VIP</span>
+</div>
+<span class="text-[12px] text-muted mt-0.5 tabular-nums">(83) 98765-1199</span>
+</div>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-success/10 text-success">Clube Ouro</span>
+</div>
+<div class="text-[12px] text-muted bg-surface-2 p-2.5 rounded-lg flex flex-col gap-1">
+<div class="text-ink font-semibold">Design de Sobrancelha · Bruna Lima</div>
+<div class="grid grid-cols-2 gap-1 text-[11px] pt-1 border-t border-line/60">
+<span>Ticket: <strong class="text-ink font-bold tabular-nums">R$ 195,00</strong></span>
+<span>Gasto: <strong class="text-ink font-bold tabular-nums">R$ 2.340,00</strong></span>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-whatsapp text-whatsapp text-[12px] font-bold hover:bg-whatsapp/5 transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+<span>Contato VIP WhatsApp</span>
+</button>
+</div>
+</div>
+</div>
+<!-- COLUNA 4: EM RISCO (com botão de ação integrado no cabeçalho, sem sobreposição) -->
+<div class="flex-1 min-w-[280px] max-w-[340px] bg-surface rounded-2xl border border-danger/30 p-4 flex flex-col gap-3 shadow-sm">
+<!-- Cabeçalho Em Risco -->
+<div class="flex flex-col gap-2 pb-3 border-b border-line">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-danger"></span>
+<span class="text-[16px] font-bold text-ink">Em risco</span>
+</div>
+<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-danger/10 text-danger">42</span>
+</div>
+<span class="text-[12px] font-semibold text-danger tabular-nums">42 clientes · R$ 6.380,00</span>
+<span class="text-[11px] text-muted leading-snug">Ciclo ultrapassado há mais de 10 dias</span>
+<!-- Botão Embutido Diretamente no Cabeçalho (nunca flutua sobre os cartões) -->
+<button class="w-full mt-1.5 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-brand text-ink text-[13px] font-bold shadow-sm hover:opacity-95 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+<span>Convidar para voltar (42)</span>
+</button>
+</div>
+<!-- Cartões da Coluna -->
+<div class="flex flex-col gap-3">
+<!-- Cartão 1 -->
+<div class="bg-surface rounded-xl border border-line p-3.5 flex flex-col gap-2.5 shadow-sm hover:shadow transition-shadow break-words">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<span class="text-[14px] font-bold text-ink leading-tight">Beatriz Costa</span>
+<span class="text-[12px] text-muted mt-0.5 tabular-nums">(83) 98521-8843</span>
+</div>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-danger/10 text-danger flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]">warning</span>22d atraso
+                </span>
+</div>
+<div class="text-[12px] text-muted bg-surface-2 p-2.5 rounded-lg flex flex-col gap-1">
+<div class="text-ink font-semibold">Alongamento em gel · Camila Rocha</div>
+<div class="flex items-center justify-between text-[11px] pt-1 border-t border-line/60">
+<span>Valor em risco:</span>
+<strong class="text-danger font-bold tabular-nums">R$ 890,00</strong>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-whatsapp text-white text-[12px] font-bold hover:opacity-90 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+<span>Reativar no WhatsApp</span>
+</button>
+</div>
+<!-- Cartão 2 -->
+<div class="bg-surface rounded-xl border border-line p-3.5 flex flex-col gap-2.5 shadow-sm hover:shadow transition-shadow break-words">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<span class="text-[14px] font-bold text-ink leading-tight">Patrícia Novaes</span>
+<span class="text-[12px] text-muted mt-0.5 tabular-nums">(83) 99710-3329</span>
+</div>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-danger/10 text-danger flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]">warning</span>15d atraso
+                </span>
+</div>
+<div class="text-[12px] text-muted bg-surface-2 p-2.5 rounded-lg flex flex-col gap-1">
+<div class="text-ink font-semibold">Design de Sobrancelha · Bruna Lima</div>
+<div class="flex items-center justify-between text-[11px] pt-1 border-t border-line/60">
+<span>Valor em risco:</span>
+<strong class="text-danger font-bold tabular-nums">R$ 480,00</strong>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-whatsapp text-white text-[12px] font-bold hover:opacity-90 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+<span>Reativar no WhatsApp</span>
+</button>
+</div>
+</div>
+</div>
+<!-- COLUNA 5: PERDIDO -->
+<div class="flex-1 min-w-[280px] max-w-[340px] bg-surface rounded-2xl border border-line p-4 flex flex-col gap-3 shadow-sm">
+<!-- Cabeçalho -->
+<div class="flex flex-col gap-1 pb-3 border-b border-line">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-muted"></span>
+<span class="text-[16px] font-bold text-ink">Perdido</span>
+</div>
+<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-surface-2 text-muted">42</span>
+</div>
+<span class="text-[12px] font-semibold text-muted tabular-nums">42 clientes · R$ 5.920,00</span>
+<span class="text-[11px] text-muted leading-snug">Sem visitas há mais de 90 dias</span>
+</div>
+<!-- Cartões da Coluna -->
+<div class="flex flex-col gap-3">
+<!-- Cartão 1 -->
+<div class="bg-surface rounded-xl border border-line p-3.5 flex flex-col gap-2.5 shadow-sm hover:shadow transition-shadow break-words opacity-95">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<span class="text-[14px] font-bold text-ink leading-tight">Carla Silveira</span>
+<span class="text-[12px] text-muted mt-0.5 tabular-nums">(83) 99112-4410</span>
+</div>
+<span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-surface-2 text-muted">Há 4 meses</span>
+</div>
+<div class="text-[12px] text-muted bg-surface-2 p-2.5 rounded-lg flex flex-col gap-1">
+<div class="text-ink font-semibold">Corte e Escova · Paula Mendes</div>
+<div class="flex items-center justify-between text-[11px] pt-1 border-t border-line/60">
+<span>Total gasto:</span>
+<strong class="text-ink font-bold tabular-nums">R$ 520,00</strong>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-line text-ink text-[12px] font-bold hover:bg-surface-2 transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-brand">campaign</span>
+<span>Campanha de resgate</span>
+</button>
+</div>
+<!-- Cartão 2 -->
+<div class="bg-surface rounded-xl border border-line p-3.5 flex flex-col gap-2.5 shadow-sm hover:shadow transition-shadow break-words opacity-95">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<span class="text-[14px] font-bold text-ink leading-tight">Aline Meireles</span>
+<span class="text-[12px] text-muted mt-0.5 tabular-nums">(83) 98115-7732</span>
+</div>
+<span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-surface-2 text-muted">Há 6 meses</span>
+</div>
+<div class="text-[12px] text-muted bg-surface-2 p-2.5 rounded-lg flex flex-col gap-1">
+<div class="text-ink font-semibold">Alongamento em gel · Camila Rocha</div>
+<div class="flex items-center justify-between text-[11px] pt-1 border-t border-line/60">
+<span>Total gasto:</span>
+<strong class="text-ink font-bold tabular-nums">R$ 290,00</strong>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-line text-ink text-[12px] font-bold hover:bg-surface-2 transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-brand">campaign</span>
+<span>Campanha de resgate</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+</body></html>

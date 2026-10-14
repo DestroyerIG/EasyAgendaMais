@@ -40,7 +40,7 @@ export const financeRepository = {
     );
   },
 
-  async createExpense(businessId: string, data: { description: string; category: string; amount: number; date: string }) {
+  async createExpense(businessId: string, data: { description: string; category: string; amount: number; date: string; paymentMethod?: string | null }) {
     return prisma.expense.create({
       data: {
         businessId,
@@ -48,11 +48,12 @@ export const financeRepository = {
         category: data.category,
         amount: data.amount,
         date: new Date(data.date),
+        paymentMethod: data.paymentMethod ?? null,
       },
     });
   },
 
-  async updateExpense(id: string, businessId: string, data: { description?: string; category?: string; amount?: number; date?: string }) {
+  async updateExpense(id: string, businessId: string, data: { description?: string; category?: string; amount?: number; date?: string; paymentMethod?: string | null }) {
     const existing = await prisma.expense.findFirst({ where: { id, businessId }, select: { id: true } });
     if (!existing) return null;
     return prisma.expense.update({
@@ -62,6 +63,7 @@ export const financeRepository = {
         ...(data.category !== undefined && { category: data.category }),
         ...(data.amount !== undefined && { amount: data.amount }),
         ...(data.date !== undefined && { date: new Date(data.date) }),
+        ...(data.paymentMethod !== undefined && { paymentMethod: data.paymentMethod }),
       },
     });
   },

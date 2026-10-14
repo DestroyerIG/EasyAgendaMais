@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "primary-fixed-dim": "#ffb68b", "surface": "#fff8f6", "ink-light": "#1A1817", "on-secondary-fixed": "#1f1b17", "on-tertiary-fixed-variant": "#004a75", "brand-text-dark": "#FF9A3D", "surface-tint": "#994700", "danger-light": "#DC2626", "on-primary-fixed": "#321200", "on-error-container": "#93000a", "warning-dark": "#FBBF24", "primary-fixed": "#ffdbc8", "surface-dim": "#dfd9d7", "whatsapp-light": "#128C4A", "surface-2-light": "#EFEDEA", "bg-light": "#F6F5F4", "outline-variant": "#e0c0af", "status-confirmed": "#2563EB", "on-brand": "#1A1817", "secondary-container": "#eae1da", "outline": "#8c7263", "background": "#fff8f6", "on-secondary-fixed-variant": "#4b4641", "on-primary": "#ffffff", "muted-dark": "#A39D97", "inverse-primary": "#ffb68b", "line-light": "#E2DFDB", "error": "#ba1a1a", "brand-text-light": "#B34D00", "on-error": "#ffffff", "ink-dark": "#F3F1EF", "surface-container": "#f3edea", "danger-dark": "#F87171", "surface-container-high": "#ede7e5", "secondary": "#635d58", "surface-container-lowest": "#ffffff", "on-background": "#1d1b1a", "tertiary-fixed-dim": "#95ccff", "bg-dark": "#0E0D0C", "on-secondary-container": "#69635e", "tertiary": "#006399", "tertiary-fixed": "#cde5ff", "surface-light": "#FFFFFF", "surface-container-highest": "#e7e1df", "secondary-fixed": "#eae1da", "on-tertiary-container": "#003a5c", "error-container": "#ffdad6", "on-tertiary": "#ffffff", "line-dark": "#2E2B28", "primary": "#994700", "on-primary-fixed-variant": "#753400", "on-surface": "#1d1b1a", "warning-light": "#D97706", "surface-variant": "#e7e1df", "muted-light": "#66605B", "surface-2-dark": "#211F1D", "on-secondary": "#ffffff", "tertiary-container": "#00a8ff", "surface-dark": "#181615", "surface-bright": "#fff8f6", "on-surface-variant": "#584235", "on-tertiary-fixed": "#001d32", "success-light": "#16A34A", "whatsapp-dark": "#25D366", "secondary-fixed-dim": "#cdc5bf", "surface-container-low": "#f9f2f0", "success-dark": "#4ADE80", "on-primary-container": "#5c2800", "inverse-on-surface": "#f6efed", "inverse-surface": "#32302f", "primary-container": "#ff7a00" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-lg": "1.5rem", "space-sm": "0.5rem", "space-md": "1rem", "margin": "1rem", "space-xs": "0.25rem", "space-xl": "2rem", "gutter": "1rem" }, "fontFamily": { "body-md": ["Plus Jakarta Sans"], "title-md": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "label-md": ["Plus Jakarta Sans"], "headline-md": ["Plus Jakarta Sans"], "title-lg": ["Plus Jakarta Sans"], "headline-lg-mobile": ["Plus Jakarta Sans"], "body-sm": ["Plus Jakarta Sans"], "display-lg": ["Plus Jakarta Sans"], "label-sm": ["Plus Jakarta Sans"] }, "fontSize": { "body-md": ["15px", { "lineHeight": "22.5px", "fontWeight": "400" }], "title-md": ["17px", { "lineHeight": "24px", "fontWeight": "600" }], "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }], "label-md": ["13px", { "lineHeight": "18px", "fontWeight": "600" }], "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }], "title-lg": ["20px", { "lineHeight": "28px", "fontWeight": "700" }], "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }], "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "display-lg": ["40px", { "lineHeight": "48px", "fontWeight": "800" }], "label-sm": ["11px", { "lineHeight": "16px", "fontWeight": "600" }] } } } };</script></head><body class="bg-bg-light text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-[248px] bg-surface-light shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-50 flex flex-col justify-between select-none"><div class="flex flex-col"><div class="h-16 px-space-md flex items-center justify-between"><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-on-primary-container text-[20px]">calendar_today</span></div><div class="flex flex-col"><span class="font-title-md text-title-md text-ink-light leading-none tracking-tight">EasyAgenda<span class="text-primary-container font-headline-md">+</span></span></div></div></div><nav class="px-space-sm mt-space-sm flex flex-col gap-1" data-active-classes="bg-primary-container text-on-primary-container font-label-md rounded-lg"><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="hoje" href="#"><span class="material-symbols-outlined text-[20px]">today</span>Hoje</a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="agenda" href="#"><span class="material-symbols-outlined text-[20px]">event_upcoming</span>Agenda</a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="clientes" href="#"><span class="material-symbols-outlined text-[20px]">group</span>Clientes</a><a aria-current="page" class="flex items-center gap-space-sm px-space-md py-2.5 transition-all bg-primary-container text-on-primary-container font-label-md rounded-lg" data-path="pipeline-de-clientes" href="#"><span class="material-symbols-outlined text-[20px]">view_kanban</span>Funil CRM</a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="caixa" href="#"><span class="material-symbols-outlined text-[20px]">point_of_sale</span>Caixa</a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="clube-e-pacotes" href="#"><span class="material-symbols-outlined text-[20px]">loyalty</span>Clube e pacotes</a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="whatsapp" href="#"><span class="material-symbols-outlined text-[20px]">chat</span>WhatsApp</a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="relatorios" href="#"><span class="material-symbols-outlined text-[20px]">bar_chart</span>Relatórios</a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="minha-pagina" href="#"><span class="material-symbols-outlined text-[20px]">storefront</span>Minha página</a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="ajustes" href="#"><span class="material-symbols-outlined text-[20px]">settings</span>Ajustes</a></nav></div><div class="p-space-md m-space-sm bg-surface-2-light rounded-xl flex items-center justify-between"><div class="flex flex-col"><span class="font-title-md text-label-md text-ink-light leading-tight">Studio Aurora</span><span class="font-label-sm text-label-sm text-muted-light mt-0.5">Plano Pro</span></div><span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary-container text-on-primary-container tracking-wider uppercase">Ativo</span></div></aside><div class="pl-[248px]"><header class="fixed top-0 left-[248px] right-0 h-16 bg-surface-light/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-space-lg flex items-center justify-between"><div class="w-full max-w-md"><div class="relative flex items-center w-full"><span class="material-symbols-outlined absolute left-3 text-muted-light text-[20px] pointer-events-none">search</span><input class="w-full h-10 pl-10 pr-space-md bg-surface-2-light text-ink-light placeholder-muted-light font-body-sm text-body-sm rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary-container transition-all" placeholder="Buscar cliente, agendamento ou telefone..." type="text"/></div></div><div class="flex items-center gap-space-md"><button class="w-9 h-9 rounded-lg flex items-center justify-center text-muted-light hover:bg-surface-2-light hover:text-ink-light transition-colors relative" type="button"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary-container"></span></button><div class="flex items-center gap-space-sm pl-space-sm"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="hidden md:flex flex-col text-left"><span class="font-label-md text-label-md text-ink-light leading-none">Carla</span><span class="font-label-sm text-label-sm text-muted-light mt-0.5">Administradora</span></div></div></div></header><main class="relative pt-16 w-full min-h-screen bg-bg-light px-space-lg py-space-lg"><div class="flex flex-col w-full">
+<div class="flex flex-col gap-space-lg w-full">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md w-full">
+<div class="flex flex-wrap items-center gap-space-md">
+<div class="flex items-center gap-space-sm">
+<span class="font-headline-lg text-headline-lg text-ink-light tracking-tight">Clientes</span>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-primary-container/15 text-primary font-bold uppercase tracking-wider">CRM de Relacionamento</span>
+</div>
+<div class="inline-flex p-1 rounded-xl bg-surface-2-light">
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-muted-light font-label-md text-label-md hover:text-ink-light transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">format_list_bulleted</span>
+<span>Lista</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-light text-ink-light font-label-md text-label-md shadow-sm" type="button">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: 'FILL' 1;">view_kanban</span>
+<span>Fases</span>
+<span class="w-1.5 h-1.5 rounded-full bg-primary ml-0.5"></span>
+</button>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<button class="flex items-center gap-space-xs px-space-md h-10 rounded-lg bg-surface-light text-ink-light font-label-md text-label-md shadow-sm hover:bg-surface-2-light transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px] text-muted-light">tune</span>
+<span>Filtros rápidos (Profissional, Período)</span>
+<span class="material-symbols-outlined text-[16px] text-muted-light">expand_more</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-md h-10 rounded-lg bg-primary text-on-primary font-label-md text-label-md shadow-sm hover:opacity-95 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[20px]">add</span>
+<span>Nova cliente</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md p-space-md rounded-2xl bg-surface-light shadow-sm">
+<div class="flex items-center justify-between p-space-md rounded-xl bg-surface-container-low">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-muted-light">Total de clientes ativas</span>
+<div class="flex items-baseline gap-space-xs mt-1">
+<span class="font-display-lg text-display-lg text-ink-light tracking-tight">248</span>
+<span class="font-label-sm text-label-sm text-success-light flex items-center font-bold">
+<span class="material-symbols-outlined text-[16px]">arrow_upward</span>+12 este mês
+            </span>
+</div>
+</div>
+<div class="w-10 h-10 rounded-xl bg-surface-light flex items-center justify-center text-primary shadow-sm">
+<span class="material-symbols-outlined text-[22px]">group</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-space-md rounded-xl bg-surface-container-low">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-muted-light">LTV médio da carteira</span>
+<div class="flex items-baseline gap-space-xs mt-1">
+<span class="font-display-lg text-display-lg text-ink-light tracking-tight">R$ 860<span class="font-title-md text-title-md text-muted-light">,00</span></span>
+<span class="font-label-sm text-label-sm text-success-light flex items-center font-bold">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>+5,4%
+            </span>
+</div>
+</div>
+<div class="w-10 h-10 rounded-xl bg-surface-light flex items-center justify-center text-primary shadow-sm">
+<span class="material-symbols-outlined text-[22px]">payments</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-space-md rounded-xl bg-surface-container-low">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-muted-light">Taxa de retenção</span>
+<div class="flex items-baseline gap-space-xs mt-1">
+<span class="font-display-lg text-display-lg text-ink-light tracking-tight">74<span class="font-title-md text-title-md text-muted-light">%</span></span>
+<span class="font-label-sm text-label-sm text-muted-light ml-1 font-body-sm">meta 80%</span>
+</div>
+</div>
+<div class="w-10 h-10 rounded-xl bg-surface-light flex items-center justify-center text-primary shadow-sm">
+<span class="material-symbols-outlined text-[22px]">published_with_changes</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-space-md items-start w-full overflow-x-auto pb-space-lg">
+<div class="flex flex-col gap-space-sm p-3 rounded-2xl bg-surface-container-low min-w-[270px]">
+<div class="flex flex-col gap-1 p-space-sm rounded-xl bg-surface-light shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-status-confirmed"></span>
+<span class="font-title-md text-title-md text-ink-light">Novo</span>
+</div>
+<span class="font-label-md text-label-md px-2 py-0.5 rounded-full bg-surface-2-light text-ink-light font-bold">24</span>
+</div>
+<div class="flex items-center justify-between mt-1 pt-1.5 border-t border-line-light/50">
+<span class="font-label-sm text-label-sm text-muted-light">Acumulado</span>
+<span class="font-label-md text-label-md text-ink-light font-bold">R$ 3.840</span>
+</div>
+<p class="font-body-sm text-body-sm text-muted-light text-[12px] leading-tight mt-0.5">Primeira visita há menos de 30 dias</p>
+</div>
+<div class="flex flex-col gap-2.5">
+<div class="p-space-sm rounded-xl bg-surface-light shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md text-ink-light truncate">Juliana Paes</span>
+<span class="font-body-sm text-body-sm text-muted-light text-[12px]">(11) 98122-4590</span>
+</div>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-2-light text-ink-light">Há 2 dias</span>
+</div>
+<div class="flex flex-col gap-1 text-[13px] font-body-sm text-muted-light bg-surface-2-light/60 p-2 rounded-lg">
+<div class="flex items-center justify-between">
+<span>Serviço:</span>
+<span class="font-label-md text-ink-light">Corte e Escova</span>
+</div>
+<div class="flex items-center justify-between">
+<span>Profissional:</span>
+<span class="font-label-md text-ink-light">Paula</span>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-2 px-space-sm rounded-lg bg-whatsapp-light text-on-primary font-label-md text-label-md hover:opacity-90 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+<span>Pós-atendimento WhatsApp</span>
+</button>
+</div>
+<div class="p-space-sm rounded-xl bg-surface-light shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md text-ink-light truncate">Fernanda Torres</span>
+<span class="font-body-sm text-body-sm text-muted-light text-[12px]">(11) 97341-9011</span>
+</div>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-2-light text-ink-light">Há 5 dias</span>
+</div>
+<div class="flex flex-col gap-1 text-[13px] font-body-sm text-muted-light bg-surface-2-light/60 p-2 rounded-lg">
+<div class="flex items-center justify-between">
+<span>Serviço:</span>
+<span class="font-label-md text-ink-light">Design Sobrancelha</span>
+</div>
+<div class="flex items-center justify-between">
+<span>Profissional:</span>
+<span class="font-label-md text-ink-light">Bruna</span>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-2 px-space-sm rounded-lg bg-whatsapp-light text-on-primary font-label-md text-label-md hover:opacity-90 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+<span>Pós-atendimento WhatsApp</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-space-sm p-3 rounded-2xl bg-surface-container-low min-w-[270px]">
+<div class="flex flex-col gap-1 p-space-sm rounded-xl bg-surface-light shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
+<span class="font-title-md text-title-md text-ink-light">Recorrente</span>
+</div>
+<span class="font-label-md text-label-md px-2 py-0.5 rounded-full bg-surface-2-light text-ink-light font-bold">88</span>
+</div>
+<div class="flex items-center justify-between mt-1 pt-1.5 border-t border-line-light/50">
+<span class="font-label-sm text-label-sm text-muted-light">Acumulado</span>
+<span class="font-label-md text-label-md text-ink-light font-bold">R$ 78.400</span>
+</div>
+<p class="font-body-sm text-body-sm text-muted-light text-[12px] leading-tight mt-0.5">2 a 5 atendimentos com ciclo regular</p>
+</div>
+<div class="flex flex-col gap-2.5">
+<div class="p-space-sm rounded-xl bg-surface-light shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md text-ink-light truncate">Rafaela Diniz</span>
+<span class="font-body-sm text-body-sm text-muted-light text-[12px]">9 visitas concluídas</span>
+</div>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded-full bg-status-confirmed/15 text-status-confirmed font-bold">Ciclo 20d</span>
+</div>
+<div class="flex flex-col gap-1 text-[12px] font-body-sm bg-surface-2-light/60 p-2 rounded-lg">
+<div class="flex items-center justify-between">
+<span class="text-muted-light">Última:</span>
+<span class="font-label-md text-ink-light">17/09 (Unhas Gel)</span>
+</div>
+<div class="flex items-center justify-between text-success-light font-bold">
+<span>Próxima:</span>
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">event</span>
+                  07/10 às 14:00
+                </span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="font-label-sm text-label-sm text-muted-light">Prof. Amanda</span>
+<span class="font-label-md text-label-md text-ink-light">R$ 980 total</span>
+</div>
+</div>
+<div class="p-space-sm rounded-xl bg-surface-light shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md text-ink-light truncate">Vanessa Alves</span>
+<span class="font-body-sm text-body-sm text-muted-light text-[12px]">5 visitas concluídas</span>
+</div>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-bold">Ciclo 25d</span>
+</div>
+<div class="flex flex-col gap-1 text-[12px] font-body-sm bg-surface-2-light/60 p-2 rounded-lg">
+<div class="flex items-center justify-between">
+<span class="text-muted-light">Última:</span>
+<span class="font-label-md text-ink-light">22/09 (Mechas)</span>
+</div>
+<div class="flex items-center justify-between text-muted-light">
+<span>Previsão retorno:</span>
+<span class="font-label-md text-ink-light">17/10</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="font-label-sm text-label-sm text-muted-light">Prof. Carla</span>
+<span class="font-label-md text-label-md text-ink-light">R$ 740 total</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-space-sm p-3 rounded-2xl bg-surface-container-low min-w-[270px]">
+<div class="flex flex-col gap-1 p-space-sm rounded-xl bg-surface-light shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-warning-light"></span>
+<span class="font-title-md text-title-md text-ink-light">Fiel / VIP</span>
+</div>
+<span class="font-label-md text-label-md px-2 py-0.5 rounded-full bg-surface-2-light text-ink-light font-bold">65</span>
+</div>
+<div class="flex items-center justify-between mt-1 pt-1.5 border-t border-line-light/50">
+<span class="font-label-sm text-label-sm text-muted-light">LTV Total</span>
+<span class="font-label-md text-label-md text-ink-light font-bold">R$ 112.300</span>
+</div>
+<p class="font-body-sm text-body-sm text-muted-light text-[12px] leading-tight mt-0.5">+6 atendimentos com alto ticket</p>
+</div>
+<div class="flex flex-col gap-2.5">
+<div class="p-space-sm rounded-xl bg-surface-light shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow relative">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-title-md text-ink-light truncate">Mariana Souza</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.2 rounded bg-warning-light/20 text-warning-light font-bold">VIP</span>
+</div>
+<span class="font-body-sm text-body-sm text-muted-light text-[12px]">14 visitas</span>
+</div>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded-full bg-primary-container/15 text-primary font-bold">Aniversário!</span>
+</div>
+<div class="flex flex-col gap-1 text-[12px] font-body-sm bg-surface-2-light/60 p-2 rounded-lg">
+<div class="flex items-center justify-between">
+<span class="text-muted-light">Ticket Médio:</span>
+<span class="font-label-md text-ink-light font-bold">R$ 130,00</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-muted-light">Gasto Total:</span>
+<span class="font-label-md text-ink-light font-bold">R$ 1.820,00</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-muted-light">Próxima prevista:</span>
+<span class="font-label-md text-ink-light">12/10</span>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-1 py-1.5 px-space-sm rounded-lg bg-surface-2-light text-ink-light font-label-md text-label-md hover:bg-surface-container-high transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-primary">cake</span>
+<span>Enviar mimo de aniversário</span>
+</button>
+</div>
+<div class="p-space-sm rounded-xl bg-surface-light shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-title-md text-ink-light truncate">Letícia Albuquerque</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.2 rounded bg-warning-light/20 text-warning-light font-bold">VIP</span>
+</div>
+<span class="font-body-sm text-body-sm text-muted-light text-[12px]">12 visitas</span>
+</div>
+</div>
+<div class="flex flex-col gap-1 text-[12px] font-body-sm bg-surface-2-light/60 p-2 rounded-lg">
+<div class="flex items-center justify-between">
+<span class="text-muted-light">Ticket Médio:</span>
+<span class="font-label-md text-ink-light font-bold">R$ 195,00</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-muted-light">Gasto Total:</span>
+<span class="font-label-md text-ink-light font-bold">R$ 2.340,00</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-muted-light">Plano:</span>
+<span class="font-label-md text-primary">Clube Aurora Ouro</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="font-label-sm text-label-sm text-muted-light">Última em 28/09</span>
+<span class="font-label-sm text-label-sm text-success-light font-bold">Ciclo ativo</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-space-sm p-3 rounded-2xl bg-error-container/40 min-w-[270px]">
+<div class="flex flex-col gap-1 p-space-sm rounded-xl bg-surface-light shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-danger-light animate-pulse"></span>
+<span class="font-title-md text-title-md text-ink-light">Em risco</span>
+</div>
+<span class="font-label-md text-label-md px-2 py-0.5 rounded-full bg-danger-light/15 text-danger-light font-bold">42</span>
+</div>
+<div class="flex items-center justify-between mt-1 pt-1.5 border-t border-line-light/50">
+<span class="font-label-sm text-label-sm text-muted-light">Em risco</span>
+<span class="font-label-md text-label-md text-danger-light font-bold">R$ 36.120</span>
+</div>
+<p class="font-body-sm text-body-sm text-muted-light text-[12px] leading-tight mt-0.5">Ciclo ultrapassado há mais de 10 dias</p>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-primary text-on-primary font-label-md text-label-md shadow-sm hover:opacity-95 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+<span>Convidar para voltar (42)</span>
+</button>
+<div class="flex flex-col gap-2.5">
+<div class="p-space-sm rounded-xl bg-surface-light shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md text-ink-light truncate">Beatriz Costa</span>
+<span class="font-body-sm text-body-sm text-muted-light text-[12px]">(11) 96521-8843</span>
+</div>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-error-container text-on-error-container font-bold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]">warning</span>22d atraso
+              </span>
+</div>
+<div class="flex flex-col gap-1 text-[12px] font-body-sm bg-surface-2-light/60 p-2 rounded-lg">
+<div class="flex items-center justify-between">
+<span class="text-muted-light">Procedimento:</span>
+<span class="font-label-md text-ink-light">Fibra de Vidro</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-muted-light">Profissional:</span>
+<span class="font-label-md text-ink-light">Camila</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-muted-light">Valor em risco:</span>
+<span class="font-label-md text-danger-light font-bold">R$ 890 acumulados</span>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-2 px-space-sm rounded-lg bg-whatsapp-light text-on-primary font-label-md text-label-md hover:opacity-90 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+<span>Reativar no WhatsApp</span>
+</button>
+</div>
+<div class="p-space-sm rounded-xl bg-surface-light shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md text-ink-light truncate">Patrícia Novaes</span>
+<span class="font-body-sm text-body-sm text-muted-light text-[12px]">(11) 97110-3329</span>
+</div>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-error-container text-on-error-container font-bold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]">warning</span>15d atraso
+              </span>
+</div>
+<div class="flex flex-col gap-1 text-[12px] font-body-sm bg-surface-2-light/60 p-2 rounded-lg">
+<div class="flex items-center justify-between">
+<span class="text-muted-light">Procedimento:</span>
+<span class="font-label-md text-ink-light">Banho de Gel</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-muted-light">Profissional:</span>
+<span class="font-label-md text-ink-light">Camila</span>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-1.5 py-2 px-space-sm rounded-lg bg-whatsapp-light text-on-primary font-label-md text-label-md hover:opacity-90 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+<span>Reativar no WhatsApp</span>
+</button>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-space-sm p-3 rounded-2xl bg-surface-container-low min-w-[270px] opacity-85">
+<div class="flex flex-col gap-1 p-space-sm rounded-xl bg-surface-light shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-muted-light"></span>
+<span class="font-title-md text-title-md text-ink-light">Perdido</span>
+</div>
+<span class="font-label-md text-label-md px-2 py-0.5 rounded-full bg-surface-2-light text-muted-light font-bold">29</span>
+</div>
+<div class="flex items-center justify-between mt-1 pt-1.5 border-t border-line-light/50">
+<span class="font-label-sm text-label-sm text-muted-light">Perdido</span>
+<span class="font-label-md text-label-md text-muted-light font-bold">R$ 14.500</span>
+</div>
+<p class="font-body-sm text-body-sm text-muted-light text-[12px] leading-tight mt-0.5">Sem visitas há mais de 90 dias</p>
+</div>
+<div class="flex flex-col gap-2.5">
+<div class="p-space-sm rounded-xl bg-surface-light/90 shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md text-muted-light truncate">Carla Silveira</span>
+<span class="font-body-sm text-body-sm text-muted-light text-[12px]">Última há 4 meses</span>
+</div>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-2-light text-muted-light">Sem contato</span>
+</div>
+<div class="flex flex-col gap-1 text-[12px] font-body-sm bg-surface-2-light/40 p-2 rounded-lg text-muted-light">
+<div class="flex items-center justify-between">
+<span>Histórico:</span>
+<span class="font-label-md text-ink-light">4 atendimentos</span>
+</div>
+<div class="flex items-center justify-between">
+<span>Total gasto:</span>
+<span class="font-label-md text-ink-light">R$ 520,00</span>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-1 py-1.5 px-space-sm rounded-lg bg-surface-2-light text-ink-light font-label-md text-label-md hover:bg-surface-container-high transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-muted-light">campaign</span>
+<span>Campanha de resgate</span>
+</button>
+</div>
+<div class="p-space-sm rounded-xl bg-surface-light/90 shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between gap-1">
+<div class="flex flex-col min-w-0">
+<span class="font-title-md text-title-md text-muted-light truncate">Aline Meireles</span>
+<span class="font-body-sm text-body-sm text-muted-light text-[12px]">Última há 6 meses</span>
+</div>
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-surface-2-light text-muted-light">Mudou de cidade</span>
+</div>
+<div class="flex flex-col gap-1 text-[12px] font-body-sm bg-surface-2-light/40 p-2 rounded-lg text-muted-light">
+<div class="flex items-center justify-between">
+<span>Histórico:</span>
+<span class="font-label-md text-ink-light">2 atendimentos</span>
+</div>
+<div class="flex items-center justify-between">
+<span>Total gasto:</span>
+<span class="font-label-md text-ink-light">R$ 290,00</span>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-1 py-1.5 px-space-sm rounded-lg bg-surface-2-light text-ink-light font-label-md text-label-md hover:bg-surface-container-high transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-muted-light">campaign</span>
+<span>Campanha de resgate</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div></main></div></body></html>

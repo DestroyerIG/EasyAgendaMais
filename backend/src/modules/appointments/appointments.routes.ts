@@ -18,7 +18,9 @@ import {
   deleteAppointment,
   getAvailableSlots,
   getPendingPayment,
+  getAppointmentDetails,
 } from './appointments.controller.js';
+import { openComanda } from '../comandas/comandas.controller.js';
 
 const router = express.Router();
 const guard = [authMiddleware, requireTenantRoles, requireFeature('appointments')];
@@ -26,9 +28,11 @@ const guard = [authMiddleware, requireTenantRoles, requireFeature('appointments'
 router.get('/',           ...guard, validate({ query: GetAppointmentsQuerySchema }), getAppointments);
 router.get('/pending-payment', ...guard, getPendingPayment);
 router.get('/available-slots', ...guard, validate({ query: GetAvailableSlotsQuerySchema }), getAvailableSlots);
+router.get('/:id/details', ...guard, getAppointmentDetails);
 router.post('/',          ...guard, validate({ body: CreateAppointmentSchema }), createAppointment);
 router.put('/:id',        ...guard, validate({ body: UpdateAppointmentSchema }), updateAppointment);
 router.put('/:id/status', ...guard, validate({ body: UpdateStatusSchema }), updateAppointmentStatus);
 router.delete('/:id',     ...guard, deleteAppointment);
+router.post('/:id/comanda', authMiddleware, requireTenantRoles, requireFeature('finance'), openComanda);
 
 export default router;

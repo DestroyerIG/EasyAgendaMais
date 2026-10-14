@@ -19,6 +19,10 @@ interface RawAppointment {
   status: string;
   reminderSent?: boolean;
   createdAt?: Date | string;
+  source?: string;
+  depositAmount?: unknown;
+  startedAt?: Date | string | null;
+  comanda?: { id: string; status: string; number: number; totalCharged?: unknown; depositApplied?: unknown } | null;
   client?: { name?: string; phone?: string } | null;
   professional?: { name?: string } | null;
   service?: { name?: string; price?: unknown; durationMinutes?: number } | null;
@@ -41,6 +45,15 @@ export interface AppointmentDto {
   service_name: string | null;
   service_price: number;
   service_duration_minutes: number;
+  source: string;
+  deposit_amount: number | null;
+  started_at: string | null;
+  comanda_id: string | null;
+  comanda_status: 'rascunho' | 'fechada' | null;
+  comanda_number: number | null;
+  /** Gravados no fechamento (null enquanto a comanda é rascunho ou não existe). */
+  comanda_total_charged: number | null;
+  comanda_deposit_applied: number | null;
 }
 
 const dateToLocalIso = (d: Date | string): string => {
@@ -67,6 +80,8 @@ const priceToNumber = (p: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
+const nullablePrice = (p: unknown): number | null => (p === null || p === undefined ? null : priceToNumber(p));
+
 export const toAppointmentDto = (a: RawAppointment): AppointmentDto => ({
   id: a.id,
   business_id: a.businessId,
@@ -84,4 +99,12 @@ export const toAppointmentDto = (a: RawAppointment): AppointmentDto => ({
   service_name: a.service?.name ?? null,
   service_price: priceToNumber(a.service?.price),
   service_duration_minutes: a.service?.durationMinutes ?? 0,
+  source: a.source ?? 'painel',
+  deposit_amount: a.depositAmount === null || a.depositAmount === undefined ? null : priceToNumber(a.depositAmount),
+  started_at: a.startedAt ? new Date(a.startedAt).toISOString() : null,
+  comanda_id: a.comanda?.id ?? null,
+  comanda_status: (a.comanda?.status as 'rascunho' | 'fechada' | undefined) ?? null,
+  comanda_number: a.comanda?.number ?? null,
+  comanda_total_charged: a.comanda?.status === 'fechada' ? nullablePrice(a.comanda.totalCharged) : null,
+  comanda_deposit_applied: a.comanda?.status === 'fechada' ? nullablePrice(a.comanda.depositApplied) : null,
 });

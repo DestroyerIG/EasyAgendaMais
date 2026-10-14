@@ -17,7 +17,27 @@ export interface ServiceFormData {
 export interface ProfessionalFormData {
   name: string;
   photo: string;
+  breakStart: string | null;
+  breakEnd: string | null;
+  commissionServicePct: number | null;
+  commissionProductPct: number | null;
 }
+
+// Estado do formulário: os campos novos ficam como texto até o envio.
+interface ProfessionalFormState {
+  name: string;
+  photo: string;
+  breakStart: string;
+  breakEnd: string;
+  commissionServicePct: string;
+  commissionProductPct: string;
+}
+
+const EMPTY_PROFESSIONAL: ProfessionalFormState = {
+  name: '', photo: '', breakStart: '', breakEnd: '', commissionServicePct: '', commissionProductPct: '',
+};
+
+const pctOuNull = (v: string) => (v.trim() === '' || Number.isNaN(parseFloat(v)) ? null : parseFloat(v));
 
 interface ServiceProfessionalModalProps {
   isOpen: boolean;
@@ -39,7 +59,7 @@ export const ServiceProfessionalModal = ({
   editingItem,
 }: ServiceProfessionalModalProps) => {
   const [serviceForm, setServiceForm] = useState<ServiceFormData>({ name: '', price: '', duration_minutes: '', deposit_percentage: '' });
-  const [professionalForm, setProfessionalForm] = useState<ProfessionalFormData>({ name: '', photo: '' });
+  const [professionalForm, setProfessionalForm] = useState<ProfessionalFormState>(EMPTY_PROFESSIONAL);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>('');
   const [uploading, setUploading] = useState(false);
@@ -65,10 +85,18 @@ export const ServiceProfessionalModal = ({
     } else {
       if (editingItem && 'photo' in editingItem) {
         const existingPhoto = (editingItem as Professional).photo || '';
-        setProfessionalForm({ name: editingItem.name, photo: existingPhoto });
+        const prof = editingItem as Professional;
+        setProfessionalForm({
+          name: editingItem.name,
+          photo: existingPhoto,
+          breakStart: prof.breakStart ?? '',
+          breakEnd: prof.breakEnd ?? '',
+          commissionServicePct: prof.commissionServicePct != null ? String(prof.commissionServicePct) : '',
+          commissionProductPct: prof.commissionProductPct != null ? String(prof.commissionProductPct) : '',
+        });
         setPhotoPreview(existingPhoto);
       } else {
-        setProfessionalForm({ name: '', photo: '' });
+        setProfessionalForm(EMPTY_PROFESSIONAL);
       }
     }
   }, [isOpen, editingItem, activeTab]);
@@ -119,6 +147,24 @@ export const ServiceProfessionalModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (activeTab === 'profissionais') {
+      const { breakStart, breakEnd } = professionalForm;
+      if (Boolean(breakStart) !== Boolean(breakEnd) || (breakStart && breakEnd && breakEnd <= breakStart)) {
+        showToast(
+          breakStart && breakEnd ? 'O fim do intervalo deve ser depois do início' : 'Informe início e fim do intervalo',
+          'error',
+        );
+        return;
+      }
+      const invalida = [professionalForm.commissionServicePct, professionalForm.commissionProductPct].some(v => {
+        const n = pctOuNull(v);
+        return n !== null && (n < 0 || n > 100);
+      });
+      if (invalida) {
+        showToast('Comissão deve ficar entre 0% e 100%', 'error');
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       if (activeTab === 'servicos') {
@@ -136,7 +182,14 @@ export const ServiceProfessionalModal = ({
           }
         }
 
-        await onSubmitProfessional({ ...professionalForm, photo: photoUrl });
+        await onSubmitProfessional({
+          name: professionalForm.name,
+          photo: photoUrl,
+          breakStart: professionalForm.breakStart || null,
+          breakEnd: professionalForm.breakEnd || null,
+          commissionServicePct: pctOuNull(professionalForm.commissionServicePct),
+          commissionProductPct: pctOuNull(professionalForm.commissionProductPct),
+        });
       }
       onClose();
     } finally {
@@ -282,6 +335,61 @@ export const ServiceProfessionalModal = ({
                 </button>
               )}
             </Field>
+
+            <fieldset className="space-y-3">
+              <legend className="text-[13px] font-semibold text-ink">Intervalo</legend>
+              <div className="grid grid-cols-2 gap-4">
+                <Field id="professional-break-start" label="Início do almoço">
+                  <Input
+                    id="professional-break-start"
+                    type="time"
+                    value={professionalForm.breakStart}
+                    onChange={e => setProfessionalForm({ ...professionalForm, breakStart: e.target.value })}
+                  />
+                </Field>
+                <Field id="professional-break-end" label="Fim do almoço">
+                  <Input
+                    id="professional-break-end"
+                    type="time"
+                    value={professionalForm.breakEnd}
+                    onChange={e => setProfessionalForm({ ...professionalForm, breakEnd: e.target.value })}
+                  />
+                </Field>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setProfessionalForm({ ...professionalForm, breakStart: '', breakEnd: '' })}
+              >
+                Sem intervalo
+              </Button>
+            </fieldset>
+
+            <fieldset className="space-y-3">
+              <legend className="text-[13px] font-semibold text-ink">Comissão própria</legend>
+              <div className="grid grid-cols-2 gap-4">
+                <Field id="professional-commission-service" label="% sobre serviços">
+                  <Input
+                    id="professional-commission-service"
+                    type="number"
+                    step="0.01"
+                    value={professionalForm.commissionServicePct}
+                    onChange={e => setProfessionalForm({ ...professionalForm, commissionServicePct: e.target.value })}
+                  />
+                </Field>
+                <Field id="professional-commission-product" label="% sobre produtos">
+                  <Input
+                    id="professional-commission-product"
+                    type="number"
+                    step="0.01"
+                    value={professionalForm.commissionProductPct}
+                    onChange={e => setProfessionalForm({ ...professionalForm, commissionProductPct: e.target.value })}
+                  />
+                </Field>
+              </div>
+              <p className="text-[13px] text-muted">Deixe em branco para usar a comissão padrão de Ajustes</p>
+            </fieldset>
           </>
         )}
       </form>

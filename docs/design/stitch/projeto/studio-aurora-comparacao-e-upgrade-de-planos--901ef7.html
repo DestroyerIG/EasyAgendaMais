@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"secondary-fixed-dim":"#cdc5bf","surface-container-high":"#ede7e5","inverse-on-surface":"#f6efed","surface-dark":"#181615","on-primary":"#ffffff","tertiary-container":"#00a8ff","on-secondary-fixed":"#1f1b17","error-container":"#ffdad6","status-confirmed":"#2563EB","primary-fixed-dim":"#ffb68b","on-error-container":"#93000a","bg-dark":"#0E0D0C","secondary-fixed":"#eae1da","ink-dark":"#F3F1EF","warning-light":"#D97706","on-tertiary-fixed":"#001d32","outline-variant":"#e0c0af","on-primary-fixed-variant":"#753400","tertiary":"#006399","surface":"#fff8f6","primary-fixed":"#ffdbc8","inverse-surface":"#32302f","surface-bright":"#fff8f6","on-secondary-container":"#69635e","surface-light":"#FFFFFF","surface-2-dark":"#211F1D","line-dark":"#2E2B28","whatsapp-dark":"#25D366","on-tertiary-container":"#003a5c","secondary-container":"#eae1da","ink-light":"#1A1817","primary-container":"#ff7a00","tertiary-fixed-dim":"#95ccff","danger-dark":"#F87171","on-surface-variant":"#584235","on-secondary-fixed-variant":"#4b4641","muted-dark":"#A39D97","surface-container":"#f3edea","on-background":"#1d1b1a","danger-light":"#DC2626","error":"#ba1a1a","surface-variant":"#e7e1df","on-tertiary":"#ffffff","success-dark":"#4ADE80","brand-text-light":"#B34D00","outline":"#8c7263","surface-container-lowest":"#ffffff","surface-container-highest":"#e7e1df","on-secondary":"#ffffff","on-primary-fixed":"#321200","inverse-primary":"#ffb68b","warning-dark":"#FBBF24","secondary":"#635d58","background":"#fff8f6","primary":"#994700","on-error":"#ffffff","tertiary-fixed":"#cde5ff","surface-tint":"#994700","on-primary-container":"#5c2800","muted-light":"#66605B","surface-2-light":"#EFEDEA","on-brand":"#1A1817","whatsapp-light":"#128C4A","on-tertiary-fixed-variant":"#004a75","brand-text-dark":"#FF9A3D","on-surface":"#1d1b1a","success-light":"#16A34A","surface-container-low":"#f9f2f0","line-light":"#E2DFDB","surface-dim":"#dfd9d7","bg-light":"#F6F5F4"},borderRadius:{DEFAULT:"0.25rem",lg:"0.5rem",xl:"0.75rem",full:"9999px"},spacing:{"space-sm":"0.5rem","space-lg":"1.5rem",margin:"1rem","space-md":"1rem","space-xl":"2rem",gutter:"1rem","space-xs":"0.25rem"},fontFamily:{"headline-md":["Plus Jakarta Sans"],"display-lg":["Plus Jakarta Sans"],"title-lg":["Plus Jakarta Sans"],"headline-lg-mobile":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"label-md":["Plus Jakarta Sans"],"label-sm":["Plus Jakarta Sans"],"title-md":["Plus Jakarta Sans"],"body-md":["Plus Jakarta Sans"],"body-sm":["Plus Jakarta Sans"]},fontSize:{"headline-md":["24px",{lineHeight:"32px",fontWeight:"700"}],"display-lg":["40px",{lineHeight:"48px",fontWeight:"800"}],"title-lg":["20px",{lineHeight:"28px",fontWeight:"700"}],"headline-lg-mobile":["28px",{lineHeight:"36px",fontWeight:"700"}],"headline-lg":["32px",{lineHeight:"40px",fontWeight:"700"}],"label-md":["13px",{lineHeight:"18px",fontWeight:"600"}],"label-sm":["11px",{lineHeight:"16px",fontWeight:"600"}],"title-md":["17px",{lineHeight:"24px",fontWeight:"600"}],"body-md":["15px",{lineHeight:"22.5px",fontWeight:"400"}],"body-sm":["14px",{lineHeight:"20px",fontWeight:"400"}]}}}};</script></head><body class="bg-surface font-body-md text-on-surface antialiased min-h-screen"><aside class="fixed left-0 top-0 h-full w-[248px] bg-surface-container-lowest z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col"><div class="px-space-lg pt-space-lg pb-space-md flex flex-col gap-space-xs"><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-on-primary-container text-[20px]">calendar_today</span></div><span class="font-title-lg text-title-lg text-on-surface tracking-tight">EasyAgenda<span class="text-primary-container">+</span></span></div><div class="inline-flex items-center self-start px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-fixed-variant font-label-sm text-label-sm">Gestão de Beleza</div></div><nav class="flex flex-col gap-1 px-3 mt-space-sm" data-active-classes="bg-secondary-container text-on-surface font-title-md font-bold rounded-lg"><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant font-body-sm text-body-sm hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="hoje" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span><span>Hoje</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant font-body-sm text-body-sm hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="agenda" href="#"><span class="material-symbols-outlined text-[20px]">calendar_month</span><span>Agenda</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant font-body-sm text-body-sm hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="clientes" href="#"><span class="material-symbols-outlined text-[20px]">group</span><span>Clientes</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant font-body-sm text-body-sm hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="caixa" href="#"><span class="material-symbols-outlined text-[20px]">point_of_sale</span><span>Caixa</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant font-body-sm text-body-sm hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="clube-e-pacotes" href="#"><span class="material-symbols-outlined text-[20px]">loyalty</span><span>Clube e pacotes</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant font-body-sm text-body-sm hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="whatsapp" href="#"><span class="material-symbols-outlined text-[20px]">chat</span><span>WhatsApp</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant font-body-sm text-body-sm hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="relatorios" href="#"><span class="material-symbols-outlined text-[20px]">analytics</span><span>Relatórios</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant font-body-sm text-body-sm hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="minha-pagina" href="#"><span class="material-symbols-outlined text-[20px]">storefront</span><span>Minha página</span></a><a aria-current="page" class="flex items-center gap-3 px-3 py-2 transition-colors bg-secondary-container text-on-surface font-title-md font-bold rounded-lg" data-path="ajustes" href="#"><span class="material-symbols-outlined text-[20px]">settings</span><span>Ajustes</span></a></nav></div><div class="p-3 mx-3 mb-space-md rounded-xl bg-surface-container-low flex items-center gap-space-sm"><div class="w-9 h-9 rounded-lg bg-primary-fixed flex items-center justify-center flex-shrink-0 text-primary"><span class="material-symbols-outlined text-[20px]">local_florist</span></div><div class="flex flex-col min-w-0"><span class="font-label-md text-label-md text-on-surface truncate">Studio Aurora</span><span class="font-label-sm text-label-sm text-brand-text-light font-bold truncate">Plano Pro</span></div></div></aside><div class="pl-[248px]"><header class="fixed top-0 left-[248px] right-0 h-16 bg-surface/80 backdrop-blur-xl z-40 px-space-lg flex items-center justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex items-center gap-space-xs font-body-sm text-body-sm text-on-surface-variant"><span class="hover:text-on-surface transition-colors">Studio Aurora</span><span class="material-symbols-outlined text-[16px] text-muted-light">chevron_right</span><span class="hover:text-on-surface transition-colors">Ajustes</span><span class="material-symbols-outlined text-[16px] text-muted-light">chevron_right</span><span class="font-title-md text-label-md text-on-surface font-semibold">Plano e cobrança</span></div><div class="flex items-center gap-space-md"><div class="relative flex items-center"><span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[18px]">search</span><input class="h-10 pl-9 pr-4 rounded-lg bg-surface-container font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary w-64 transition-all" placeholder="Buscar no sistema..." type="text"/></div><button aria-label="Notificações" class="w-10 h-10 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors relative" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary-container"></span></button><div class="flex items-center gap-space-sm pl-space-xs"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="flex flex-col"><span class="font-label-md text-label-md text-on-surface leading-tight">Carla</span><span class="font-label-sm text-label-sm text-on-surface-variant leading-tight">Administradora</span></div></div></div></header><main class="w-full pt-16 bg-surface min-h-screen px-space-lg"><div class="flex flex-col w-full pb-space-xl">
+<!-- Contextual Upgrade Banner -->
+<section class="w-full mb-space-lg">
+<div class="relative overflow-hidden rounded-xl bg-surface-container-low shadow-sm p-6 lg:p-8">
+<div class="absolute -right-16 -bottom-16 w-64 h-64 rounded-full bg-primary-container/10 pointer-events-none blur-3xl"></div>
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+<div class="flex items-start gap-4 max-w-3xl">
+<div class="w-12 h-12 rounded-xl bg-primary-fixed text-primary flex items-center justify-center flex-shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">handshake</span>
+</div>
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="px-2.5 py-0.5 rounded-full bg-primary-container text-on-primary-container font-label-sm text-label-sm tracking-wide uppercase">Recurso Exclusivo</span>
+<h1 class="font-title-lg text-title-lg text-on-surface">Comissões e Salão-Parceiro faz parte do plano Equipe</h1>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              Você tentou configurar regras personalizadas de repasse e homologação jurídica da <strong class="text-on-surface font-semibold">Lei do Salão-Parceiro (Lei 13.352)</strong>. Faça upgrade do plano <strong class="text-on-surface">Pro</strong> para o <strong class="text-on-surface">Equipe</strong> para liberar comissões ilimitadas, rateio automático e exportação contábil com segregação de cotas.
+            </p>
+<div class="inline-flex items-center gap-2 mt-2 px-3 py-1.5 rounded-lg bg-surface-container text-brand-text-light font-label-md text-label-md w-fit">
+<span class="material-symbols-outlined text-[18px]">price_change</span>
+<span>Pague apenas a diferença proporcional de <strong class="font-bold text-on-surface">R$ 90,00</strong> até a sua próxima fatura em <strong class="font-bold text-on-surface">15/Out</strong>.</span>
+</div>
+</div>
+</div>
+<div class="flex items-center lg:self-center flex-shrink-0 gap-3">
+<button class="h-11 px-6 rounded-lg bg-primary-container text-on-brand font-title-md text-label-md font-bold hover:brightness-105 transition-all shadow-sm flex items-center gap-2" onclick="document.getElementById('planos-section').scrollIntoView({ behavior: 'smooth' });" type="button">
+<span>Ver upgrade imediato</span>
+<span class="material-symbols-outlined text-[18px]">arrow_downward</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Cycle Toggle Bar -->
+<section class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-space-lg" id="planos-section">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface tracking-tight">Planos flexíveis para a escala do Studio Aurora</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Troque ou evolua seu plano a qualquer momento sem travas contratuais.</p>
+</div>
+<!-- Toggle Mensal / Anual -->
+<div class="inline-flex items-center bg-surface-container p-1 rounded-xl self-start sm:self-auto shadow-sm">
+<button class="px-4 py-2 rounded-lg font-label-md text-label-md transition-all text-on-surface-variant hover:text-on-surface" id="btn-billing-monthly" onclick="switchBillingCycle('monthly')" type="button">
+        Mensal
+      </button>
+<button class="px-4 py-2 rounded-lg font-label-md text-label-md transition-all bg-surface-container-lowest text-on-surface shadow-sm flex items-center gap-1.5 font-bold" id="btn-billing-annual" onclick="switchBillingCycle('annual')" type="button">
+<span>Anual</span>
+<span class="px-1.5 py-0.5 rounded-full bg-primary-fixed text-primary font-label-sm text-label-sm font-bold">20% OFF</span>
+</button>
+</div>
+</section>
+<!-- 3-Column Plan Grid -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-space-xl items-stretch">
+<!-- PLANO SOLO -->
+<div class="flex flex-col justify-between rounded-xl bg-surface-container-lowest p-6 shadow-sm hover:shadow-md transition-shadow">
+<div class="flex flex-col">
+<div class="flex items-center justify-between mb-4">
+<span class="px-3 py-1 rounded-full bg-surface-container text-on-secondary-container font-label-sm text-label-sm font-semibold">Autônomos</span>
+<span class="material-symbols-outlined text-muted-light text-[22px]">person</span>
+</div>
+<h3 class="font-title-lg text-title-lg text-on-surface mb-1">Solo</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-6">Para profissionais autônomas que realizam e gerenciam seus próprios atendimentos.</p>
+<div class="mb-6 flex items-baseline gap-1">
+<span class="font-title-md text-title-md text-on-surface-variant">R$</span>
+<span class="font-display-lg text-display-lg text-on-surface tracking-tight" id="price-solo">71</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" id="period-solo">/mês no anual</span>
+</div>
+<div class="w-full h-px bg-surface-container mb-6"></div>
+<div class="font-label-md text-label-md text-on-surface mb-3 uppercase tracking-wider">O que está incluso:</div>
+<ul class="flex flex-col gap-3.5 font-body-sm text-body-sm text-on-surface mb-8">
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-success-light text-[18px] flex-shrink-0 mt-0.5">check_circle</span>
+<span><strong>1 profissional</strong> com grade de horários individual</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-success-light text-[18px] flex-shrink-0 mt-0.5">check_circle</span>
+<span>Agendamento online e página pública personalizada</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-success-light text-[18px] flex-shrink-0 mt-0.5">check_circle</span>
+<span>Lembretes automáticos por WhatsApp</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-success-light text-[18px] flex-shrink-0 mt-0.5">check_circle</span>
+<span>Caixa simplificado e sinal Pix antecipado</span>
+</li>
+<li class="flex items-start gap-2.5 text-muted-light">
+<span class="material-symbols-outlined text-muted-light text-[18px] flex-shrink-0 mt-0.5">cancel</span>
+<span class="line-through">Módulo de comissões e repasses</span>
+</li>
+<li class="flex items-start gap-2.5 text-muted-light">
+<span class="material-symbols-outlined text-muted-light text-[18px] flex-shrink-0 mt-0.5">cancel</span>
+<span class="line-through">Clube de assinaturas recorrentes</span>
+</li>
+</ul>
+</div>
+<button class="w-full h-11 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high transition-colors font-title-md text-label-md font-semibold" type="button">
+        Fazer downgrade
+      </button>
+</div>
+<!-- PLANO PRO (ATUAL) -->
+<div class="relative flex flex-col justify-between rounded-xl bg-surface-container-lowest p-6 shadow-sm">
+<div class="flex flex-col">
+<div class="flex items-center justify-between mb-4">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-container text-on-secondary-fixed-variant font-label-sm text-label-sm font-bold">
+<span class="w-2 h-2 rounded-full bg-primary-container"></span>
+<span>Plano Atual</span>
+</div>
+<span class="material-symbols-outlined text-muted-light text-[22px]">diversity_3</span>
+</div>
+<h3 class="font-title-lg text-title-lg text-on-surface mb-1">Pro</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-6">Para estúdios e consultórios em crescimento com equipe enxuta.</p>
+<div class="mb-6 flex items-baseline gap-1">
+<span class="font-title-md text-title-md text-on-surface-variant">R$</span>
+<span class="font-display-lg text-display-lg text-on-surface tracking-tight" id="price-pro">119</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" id="period-pro">/mês no anual</span>
+</div>
+<div class="w-full h-px bg-surface-container mb-6"></div>
+<div class="font-label-md text-label-md text-on-surface mb-3 uppercase tracking-wider">Tudo do Solo, e mais:</div>
+<ul class="flex flex-col gap-3.5 font-body-sm text-body-sm text-on-surface mb-8">
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-success-light text-[18px] flex-shrink-0 mt-0.5">check_circle</span>
+<span><strong>Até 3 profissionais</strong> sincronizados na grade</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-success-light text-[18px] flex-shrink-0 mt-0.5">check_circle</span>
+<span>Clube de assinaturas mensais e pacotes de sessões</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-success-light text-[18px] flex-shrink-0 mt-0.5">check_circle</span>
+<span>WhatsApp automatizado e radar de campanhas de retorno</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-warning-light text-[18px] flex-shrink-0 mt-0.5">info</span>
+<span>Comissões: cálculo simples com porcentagem fixa global</span>
+</li>
+<li class="flex items-start gap-2.5 text-muted-light">
+<span class="material-symbols-outlined text-muted-light text-[18px] flex-shrink-0 mt-0.5">cancel</span>
+<span class="line-through">Homologação da Lei do Salão-Parceiro</span>
+</li>
+<li class="flex items-start gap-2.5 text-muted-light">
+<span class="material-symbols-outlined text-muted-light text-[18px] flex-shrink-0 mt-0.5">cancel</span>
+<span class="line-through">Exportação contábil para bitributação zero</span>
+</li>
+</ul>
+</div>
+<div class="w-full h-11 rounded-lg bg-surface-container-high text-on-surface-variant flex items-center justify-center font-title-md text-label-md font-semibold cursor-default">
+        Plano atual (Ativo)
+      </div>
+</div>
+<!-- PLANO EQUIPE (RECOMENDADO / UPGRADE) -->
+<div class="relative flex flex-col justify-between rounded-xl bg-surface-container-lowest p-6 shadow-md transition-all -translate-y-1">
+<!-- Glow effect and indicator tab -->
+<div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-primary-container text-on-brand font-label-sm text-label-sm font-bold tracking-wide shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px]">lock_open</span>
+<span>LIBERA RECURSO DE COMISSÕES</span>
+</div>
+<div class="flex flex-col pt-2">
+<div class="flex items-center justify-between mb-4">
+<span class="px-3 py-1 rounded-full bg-primary-fixed text-primary font-label-sm text-label-sm font-bold">Ideal para Salões</span>
+<span class="material-symbols-outlined text-primary-container text-[24px]">workspace_premium</span>
+</div>
+<h3 class="font-title-lg text-title-lg text-on-surface mb-1 flex items-center gap-2">
+<span>Equipe</span>
+<span class="material-symbols-outlined text-primary-container text-[20px]">stars</span>
+</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-6">Gestão integral com rateio de parceiros, comissões jurídicas e zero bitributação.</p>
+<div class="mb-6 flex items-baseline gap-1">
+<span class="font-title-md text-title-md text-on-surface-variant">R$</span>
+<span class="font-display-lg text-display-lg text-on-surface tracking-tight" id="price-equipe">191</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" id="period-equipe">/mês no anual</span>
+</div>
+<div class="w-full h-px bg-surface-container mb-6"></div>
+<div class="font-label-md text-label-md text-brand-text-light mb-3 uppercase tracking-wider font-bold">Tudo do Pro, mais avançados:</div>
+<ul class="flex flex-col gap-3.5 font-body-sm text-body-sm text-on-surface mb-8">
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-primary-container text-[18px] flex-shrink-0 mt-0.5">check_circle</span>
+<span><strong>Profissionais ilimitados</strong> com PWA exclusivo para cada um</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-primary-container text-[18px] flex-shrink-0 mt-0.5">check_circle</span>
+<span><strong>Módulo Lei do Salão-Parceiro (13.352)</strong> com rateio por serviço</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-primary-container text-[18px] flex-shrink-0 mt-0.5">check_circle</span>
+<span>Exportação pronta para o contador (PDF/XLS com cotas segregadas)</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-primary-container text-[18px] flex-shrink-0 mt-0.5">check_circle</span>
+<span>Pagamento em lote de comissões via Pix direto pelo painel</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-primary-container text-[18px] flex-shrink-0 mt-0.5">check_circle</span>
+<span>Mapa térmico de ocupação de salas e estações por profissional</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-primary-container text-[18px] flex-shrink-0 mt-0.5">check_circle</span>
+<span>Suporte prioritário via WhatsApp com gerente de contas</span>
+</li>
+</ul>
+</div>
+<button class="w-full h-12 rounded-lg bg-primary-container text-on-brand hover:brightness-105 transition-all font-title-md text-title-md font-bold shadow-md flex items-center justify-center gap-2" type="button">
+<span>Fazer upgrade imediato para Equipe</span>
+<span class="material-symbols-outlined text-[20px]">bolt</span>
+</button>
+</div>
+</section>
+<!-- Feature Comparison Table -->
+<section class="w-full mb-space-xl">
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+<div class="p-6 bg-surface-container-low flex items-center justify-between">
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Matriz comparativa de recursos</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Conheça exatamente as capacidades operacionais e fiscais de cada nível.</p>
+</div>
+<div class="hidden sm:flex items-center gap-2 text-on-surface-variant font-body-sm text-body-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-success-light"></span>
+<span>Incluso</span>
+<span class="w-2.5 h-2.5 rounded-full bg-surface-variant ml-3"></span>
+<span>Indisponível</span>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left font-body-sm text-body-sm">
+<thead>
+<tr class="bg-surface-container text-on-surface font-title-md text-label-md uppercase tracking-wider">
+<th class="py-4 px-6 w-2/5">Capacidades do Sistema</th>
+<th class="py-4 px-6 text-center w-1/5">Solo</th>
+<th class="py-4 px-6 text-center w-1/5 bg-surface-container-high/60">Pro <span class="font-label-sm text-brand-text-light lowercase block">(atual)</span></th>
+<th class="py-4 px-6 text-center w-1/5 bg-primary-fixed/20 text-primary font-bold">Equipe</th>
+</tr>
+</thead>
+<tbody class="text-on-surface">
+<!-- Group: Grade e Equipe -->
+<tr class="bg-surface-container-low/50 font-title-md text-label-md text-on-surface-variant">
+<td class="py-3 px-6 font-bold uppercase tracking-wide" colspan="4">1. Estrutura de Equipe e Agendas</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3.5 px-6">Profissionais na grade operacional</td>
+<td class="py-3.5 px-6 text-center">1 usuário</td>
+<td class="py-3.5 px-6 text-center bg-surface-container-high/20 font-semibold">Até 3 profissionais</td>
+<td class="py-3.5 px-6 text-center bg-primary-fixed/10 font-bold text-primary">Ilimitados</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3.5 px-6">PWA individual com visão restrita para parceiros</td>
+<td class="py-3.5 px-6 text-center text-muted-light"><span class="material-symbols-outlined text-[18px]">remove</span></td>
+<td class="py-3.5 px-6 text-center bg-surface-container-high/20 text-muted-light"><span class="material-symbols-outlined text-[18px]">remove</span></td>
+<td class="py-3.5 px-6 text-center bg-primary-fixed/10"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3.5 px-6">Controle de permissões por perfil (Recepção vs. Profissional)</td>
+<td class="py-3.5 px-6 text-center text-muted-light"><span class="material-symbols-outlined text-[18px]">remove</span></td>
+<td class="py-3.5 px-6 text-center bg-surface-container-high/20"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+<td class="py-3.5 px-6 text-center bg-primary-fixed/10"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+</tr>
+<!-- Group: Financeiro e Comissões -->
+<tr class="bg-surface-container-low/50 font-title-md text-label-md text-on-surface-variant">
+<td class="py-3 px-6 font-bold uppercase tracking-wide" colspan="4">2. Financeiro, Comissões e Jurídico</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3.5 px-6">Controle de Caixa, Sangrias e Fechamento Diário</td>
+<td class="py-3.5 px-6 text-center"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+<td class="py-3.5 px-6 text-center bg-surface-container-high/20"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+<td class="py-3.5 px-6 text-center bg-primary-fixed/10"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3.5 px-6">Cobrança de Sinais e No-show via Pix automático</td>
+<td class="py-3.5 px-6 text-center"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+<td class="py-3.5 px-6 text-center bg-surface-container-high/20"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+<td class="py-3.5 px-6 text-center bg-primary-fixed/10"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors bg-primary-container/5">
+<td class="py-3.5 px-6 font-semibold flex items-center gap-2">
+<span>Lei do Salão-Parceiro (Lei 13.352) e rateio automático</span>
+<span class="px-2 py-0.5 rounded-full bg-primary-container text-on-primary-container font-label-sm text-label-sm">Exclusivo</span>
+</td>
+<td class="py-3.5 px-6 text-center text-muted-light"><span class="material-symbols-outlined text-[18px]">remove</span></td>
+<td class="py-3.5 px-6 text-center bg-surface-container-high/20 text-muted-light"><span class="material-symbols-outlined text-[18px]">remove</span></td>
+<td class="py-3.5 px-6 text-center bg-primary-fixed/20 font-bold text-primary"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3.5 px-6">Exportação Contábil para Bitributação Zero (PDF/Excel)</td>
+<td class="py-3.5 px-6 text-center text-muted-light"><span class="material-symbols-outlined text-[18px]">remove</span></td>
+<td class="py-3.5 px-6 text-center bg-surface-container-high/20 text-muted-light"><span class="material-symbols-outlined text-[18px]">remove</span></td>
+<td class="py-3.5 px-6 text-center bg-primary-fixed/10"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3.5 px-6">Repasse em Lote de Parceiros via Pix no painel</td>
+<td class="py-3.5 px-6 text-center text-muted-light"><span class="material-symbols-outlined text-[18px]">remove</span></td>
+<td class="py-3.5 px-6 text-center bg-surface-container-high/20 text-muted-light"><span class="material-symbols-outlined text-[18px]">remove</span></td>
+<td class="py-3.5 px-6 text-center bg-primary-fixed/10"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+</tr>
+<!-- Group: Gestão & Marketing -->
+<tr class="bg-surface-container-low/50 font-title-md text-label-md text-on-surface-variant">
+<td class="py-3 px-6 font-bold uppercase tracking-wide" colspan="4">3. Fidelização e Marketing</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3.5 px-6">Lembretes ilimitados via WhatsApp oficial</td>
+<td class="py-3.5 px-6 text-center"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+<td class="py-3.5 px-6 text-center bg-surface-container-high/20"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+<td class="py-3.5 px-6 text-center bg-primary-fixed/10"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3.5 px-6">Clube de Assinaturas Recorrentes e Pacotes</td>
+<td class="py-3.5 px-6 text-center text-muted-light"><span class="material-symbols-outlined text-[18px]">remove</span></td>
+<td class="py-3.5 px-6 text-center bg-surface-container-high/20"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+<td class="py-3.5 px-6 text-center bg-primary-fixed/10"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3.5 px-6">Radar de Clientes Ausentes e Campanhas de Retorno</td>
+<td class="py-3.5 px-6 text-center text-muted-light"><span class="material-symbols-outlined text-[18px]">remove</span></td>
+<td class="py-3.5 px-6 text-center bg-surface-container-high/20"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+<td class="py-3.5 px-6 text-center bg-primary-fixed/10"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+</tr>
+<!-- Group: Suporte e Onboarding -->
+<tr class="bg-surface-container-low/50 font-title-md text-label-md text-on-surface-variant">
+<td class="py-3 px-6 font-bold uppercase tracking-wide" colspan="4">4. Atendimento e Implementação</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3.5 px-6">Canais de Suporte</td>
+<td class="py-3.5 px-6 text-center">E-mail e Central</td>
+<td class="py-3.5 px-6 text-center bg-surface-container-high/20">Chat em horário comercial</td>
+<td class="py-3.5 px-6 text-center bg-primary-fixed/10 font-bold text-primary">WhatsApp VIP com especialista</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-3.5 px-6">Configuração guiada de comissões e contrato parceiro</td>
+<td class="py-3.5 px-6 text-center text-muted-light"><span class="material-symbols-outlined text-[18px]">remove</span></td>
+<td class="py-3.5 px-6 text-center bg-surface-container-high/20 text-muted-light"><span class="material-symbols-outlined text-[18px]">remove</span></td>
+<td class="py-3.5 px-6 text-center bg-primary-fixed/10"><span class="material-symbols-outlined text-success-light text-[20px]">check_circle</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<!-- Law Guarantee Banner / Social Proof -->
+<section class="w-full mb-space-xl">
+<div class="rounded-xl bg-surface-container-high p-6 flex flex-col md:flex-row items-center gap-6 justify-between">
+<div class="flex items-center gap-4">
+<div class="w-14 h-14 rounded-full bg-surface-container-lowest text-primary flex items-center justify-center flex-shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[32px]">verified_user</span>
+</div>
+<div>
+<h4 class="font-title-md text-title-md text-on-surface">Segurança jurídica comprovada para seu Studio</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            O EasyAgenda+ gera automaticamente os recibos com a cota-parte do salão e do profissional, atendendo à Lei 13.352 e eliminando o risco de cobrança de imposto duplo pelo Simples Nacional ou Lucro Presumido.
+          </p>
+</div>
+</div>
+<div class="flex-shrink-0">
+<button class="px-5 py-2.5 rounded-lg bg-surface-container-lowest text-on-surface hover:bg-surface font-title-md text-label-md font-semibold transition-colors shadow-sm" type="button">
+          Baixar modelo de contrato parceiro
+        </button>
+</div>
+</div>
+</section>
+<!-- FAQ Section -->
+<section class="w-full mb-space-lg">
+<div class="mb-6">
+<h3 class="font-headline-md text-headline-md text-on-surface">Perguntas frequentes sobre o Upgrade</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Tudo que você precisa saber sobre a transição do seu plano.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- FAQ 1 -->
+<div class="p-6 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-start">
+<div class="flex items-center gap-2 mb-3 text-primary">
+<span class="material-symbols-outlined text-[20px]">calendar_clock</span>
+<h4 class="font-title-md text-title-md text-on-surface">Como funciona a cobrança proporcional?</h4>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+          Você só paga a diferença proporcional entre o Pro e o Equipe calculada pelos dias restantes até sua renovação em 15/Out (apenas R$ 90,00 hoje). O valor regular só virá na próxima mensalidade.
+        </p>
+</div>
+<!-- FAQ 2 -->
+<div class="p-6 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-start">
+<div class="flex items-center gap-2 mb-3 text-primary">
+<span class="material-symbols-outlined text-[20px]">speed</span>
+<h4 class="font-title-md text-title-md text-on-surface">A liberação do módulo é imediata?</h4>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+          Sim! No mesmo instante em que o upgrade for concluído no cartão ou Pix, a tela de configuração de comissões e rateio de salão parceiro é desbloqueada no painel do Studio Aurora.
+        </p>
+</div>
+<!-- FAQ 3 -->
+<div class="p-6 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-start">
+<div class="flex items-center gap-2 mb-3 text-primary">
+<span class="material-symbols-outlined text-[20px]">history</span>
+<h4 class="font-title-md text-title-md text-on-surface">Posso voltar para o Pro se precisar?</h4>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+          Sem burocracia. Você pode alterar seu plano a qualquer momento diretamente pela aba Ajustes &gt; Plano. Caso retorne ao Pro, os dados das comissões calculadas são preservados com total sigilo.
+        </p>
+</div>
+</div>
+</section>
+<!-- Sticky Bottom Quick Conversion bar for Mobile / Desktop Bottom Glance -->
+<div class="w-full mt-4 p-4 rounded-xl bg-surface-container-lowest shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-primary-fixed text-primary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[24px]">price_check</span>
+</div>
+<div>
+<div class="font-title-md text-label-md text-on-surface">Pronta para profissionalizar os repasses da sua equipe?</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Ativação instantânea com suporte prioritário na primeira configuração.</div>
+</div>
+</div>
+<div class="flex items-center gap-3 w-full sm:w-auto">
+<a class="w-full sm:w-auto h-11 px-6 rounded-lg bg-primary-container text-on-brand hover:brightness-105 font-title-md text-label-md font-bold transition-all flex items-center justify-center gap-2" href="#">
+<span>Assinar Plano Equipe</span>
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Client-side Interactive Price Switching -->
+<script>
+  function switchBillingCycle(cycle) {
+    const btnMonthly = document.getElementById('btn-billing-monthly');
+    const btnAnnual = document.getElementById('btn-billing-annual');
+    
+    const priceSolo = document.getElementById('price-solo');
+    const pricePro = document.getElementById('price-pro');
+    const priceEquipe = document.getElementById('price-equipe');
+
+    const periodSolo = document.getElementById('period-solo');
+    const periodPro = document.getElementById('period-pro');
+    const periodEquipe = document.getElementById('period-equipe');
+
+    if (cycle === 'monthly') {
+      // Classes
+      btnMonthly.className = "px-4 py-2 rounded-lg font-label-md text-label-md transition-all bg-surface-container-lowest text-on-surface shadow-sm font-bold";
+      btnAnnual.className = "px-4 py-2 rounded-lg font-label-md text-label-md transition-all text-on-surface-variant hover:text-on-surface flex items-center gap-1.5";
+      
+      // Prices (Full monthly rate)
+      priceSolo.innerText = "89";
+      pricePro.innerText = "149";
+      priceEquipe.innerText = "239";
+
+      periodSolo.innerText = "/mês";
+      periodPro.innerText = "/mês";
+      periodEquipe.innerText = "/mês";
+    } else {
+      // Annual (20% OFF)
+      btnAnnual.className = "px-4 py-2 rounded-lg font-label-md text-label-md transition-all bg-surface-container-lowest text-on-surface shadow-sm flex items-center gap-1.5 font-bold";
+      btnMonthly.className = "px-4 py-2 rounded-lg font-label-md text-label-md transition-all text-on-surface-variant hover:text-on-surface";
+      
+      priceSolo.innerText = "71";
+      pricePro.innerText = "119";
+      priceEquipe.innerText = "191";
+
+      periodSolo.innerText = "/mês no anual";
+      periodPro.innerText = "/mês no anual";
+      periodEquipe.innerText = "/mês no anual";
+    }
+  }
+</script></main></div></body></html>

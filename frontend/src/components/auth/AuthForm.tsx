@@ -406,7 +406,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
             {!isLogin && (
               <p className="text-xs text-muted">
-                Após verificar o e-mail você terá 14 dias de acesso gratuito ao plano Profissional. Assine quando quiser para continuar.
+                Após verificar o e-mail você terá 14 dias de acesso gratuito ao plano Equipe. Assine quando quiser para continuar.
               </p>
             )}
           </form>

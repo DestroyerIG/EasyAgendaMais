@@ -10,7 +10,7 @@ const baseAccess: FeatureAccessDecision = {
   allowed: false,
   reason: 'plan_upgrade_required',
   requiredPlan: 'profissional',
-  message: 'Disponível a partir do plano Profissional.',
+  message: 'Disponível a partir do plano Equipe.',
   upgradeRequired: true,
   billingActionRequired: false,
 };
@@ -24,8 +24,8 @@ describe('FeatureGate', () => {
     );
 
     expect(screen.queryByText('Conteúdo protegido')).not.toBeInTheDocument();
-    expect(screen.getByText('Disponível a partir do plano Profissional.')).toBeInTheDocument();
-    expect(screen.getByText('Plano necessário: Profissional')).toBeInTheDocument();
+    expect(screen.getByText('Disponível a partir do plano Equipe.')).toBeInTheDocument();
+    expect(screen.getByText('Plano necessário: Equipe')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ver planos' })).toBeInTheDocument();
   });
 

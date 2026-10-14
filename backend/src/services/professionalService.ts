@@ -1,5 +1,6 @@
 import { professionalRepository } from '../repositories/professionalRepository.js';
-import { NotFoundError, PlanLimitError } from '../utils/errors.js';
+import { NotFoundError, PlanLimitError, ValidationError } from '../utils/errors.js';
+import { getBusinessScheduleSettings } from './scheduleSettingsService.js';
 
 type Plan = 'basico' | 'profissional' | 'premium';
 
@@ -12,11 +13,35 @@ const PROFESSIONAL_LIMITS: Record<Plan, number> = {
 interface ProfessionalData {
   name: string;
   photo?: string | null;
+  breakStart?: string | null;
+  breakEnd?: string | null;
+  commissionServicePct?: number | null;
+  commissionProductPct?: number | null;
+}
+
+const hhmm = (t: Date | null) => (t ? t.toISOString().substring(11, 16) : null);
+const pct = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+
+async function validarIntervaloNoExpediente(businessId: string, data: ProfessionalData) {
+  if (!data.breakStart && !data.breakEnd) return;
+  const { openingTime, closingTime } = await getBusinessScheduleSettings(businessId);
+  if (
+    (data.breakStart && data.breakStart < openingTime) ||
+    (data.breakEnd && data.breakEnd > closingTime)
+  ) {
+    throw new ValidationError('O intervalo precisa ficar dentro do horário de funcionamento');
+  }
 }
 
 export const professionalService = {
   async getProfessionals(businessId: string) {
-    return professionalRepository.findAllActive(businessId);
+    return (await professionalRepository.findAllActive(businessId)).map((p) => ({
+      ...p,
+      breakStart: hhmm(p.breakStart),
+      breakEnd: hhmm(p.breakEnd),
+      commissionServicePct: pct(p.commissionServicePct),
+      commissionProductPct: pct(p.commissionProductPct),
+    }));
   },
 
   async createProfessional(businessId: string, plan: string, data: ProfessionalData) {
@@ -29,22 +54,23 @@ export const professionalService = {
       );
     }
 
-    return (professionalRepository as unknown as {
-      create(data: { business_id: string; name: string; photo: string | null }): Promise<unknown>;
-    }).create({
+    await validarIntervaloNoExpediente(businessId, data);
+
+    return professionalRepository.create({
       business_id: businessId,
       name: data.name,
       photo: data.photo ?? null,
+      breakStart: data.breakStart,
+      breakEnd: data.breakEnd,
+      commissionServicePct: data.commissionServicePct,
+      commissionProductPct: data.commissionProductPct,
     });
   },
 
   async updateProfessional(id: string, businessId: string, data: ProfessionalData) {
-    const result = await (professionalRepository as unknown as {
-      update(id: string, businessId: string, data: { name: string; photo?: string | null }): Promise<unknown>;
-    }).update(id, businessId, {
-      name: data.name,
-      photo: data.photo,
-    });
+    await validarIntervaloNoExpediente(businessId, data);
+
+    const result = await professionalRepository.update(id, businessId, data);
     if (!result) throw new NotFoundError('Profissional');
     return result;
   },

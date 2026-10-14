@@ -612,7 +612,7 @@ describe('whatsappFlowService guards', () => {
       serviceId: 'service-1',
       date: '2026-04-20',
       time: '10:00',
-    });
+    }, { source: 'whatsapp' });
   });
 
   it('falha fechado quando instanceName existe mas nao tem mapeamento no banco nem no legado', async () => {
@@ -1128,12 +1128,20 @@ describe('whatsappFlowService guards', () => {
       serviceId: 'service-1',
       date: '2026-04-20',
       time: '10:00',
-    });
+    }, { source: 'whatsapp' });
     expect(mockPoolQuery).toHaveBeenCalledTimes(2);
     const directInsertCall = (mockPoolQuery.mock.calls as unknown as [string, unknown[]][]).find(
       ([query]) => typeof query === 'string' && query.includes('INSERT INTO appointments')
     );
     expect(directInsertCall).toBeUndefined();
+    // Conferência do horário usa a mesma regra de ocupação da escolha de data:
+    // reserva expirada, concluída ou falta não bloqueia o horário.
+    const conflictCall = (mockPoolQuery.mock.calls as unknown as [string, unknown[]][]).find(
+      ([query]) => typeof query === 'string' && query.includes('SELECT id FROM appointments')
+    );
+    expect(conflictCall?.[0]).toContain("status IN ('confirmado', 'em_atendimento')");
+    expect(conflictCall?.[0]).toContain("status = 'aguardando_pagamento' AND expires_at > NOW()");
+    expect(conflictCall?.[0]).not.toContain("status != 'cancelado'");
     expect(mockDeleteSession).toHaveBeenCalledWith('5511777777777', 'tenant-1');
 
     const [, sentMessage] = (mockSendWhatsAppMessage.mock.calls[0] as [string, string]);

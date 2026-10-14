@@ -1,5 +1,6 @@
 import { prisma } from '../config/prisma.js';
 import { Prisma } from '@prisma/client';
+import { BUSINESS_SCHEDULE_DEFAULTS } from '../config/scheduleDefaults.js';
 
 const mapRowToSettings = (row: Record<string, unknown>) => ({
   whatsappInstanceName: row.whatsapp_instance_name,
@@ -54,12 +55,12 @@ export const businessSettingsRepository = {
     const result = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
       SELECT
          COALESCE(NULLIF(b.whatsapp_instance_name, ''), '') AS whatsapp_instance_name,
-         COALESCE(to_char(s.opening_time, 'HH24:MI'), '09:00') AS opening_time,
-         COALESCE(to_char(s.closing_time, 'HH24:MI'), '20:00') AS closing_time,
-         COALESCE(s.slot_interval_minutes, 30) AS slot_interval_minutes,
+         COALESCE(to_char(s.opening_time, 'HH24:MI'), ${BUSINESS_SCHEDULE_DEFAULTS.openingTime}) AS opening_time,
+         COALESCE(to_char(s.closing_time, 'HH24:MI'), ${BUSINESS_SCHEDULE_DEFAULTS.closingTime}) AS closing_time,
+         COALESCE(s.slot_interval_minutes, ${BUSINESS_SCHEDULE_DEFAULTS.slotIntervalMinutes}) AS slot_interval_minutes,
          COALESCE(s.dias_abertos, ARRAY['seg','ter','qua','qui','sex']::text[]) AS dias_abertos,
-         COALESCE(s.allow_walkins, true) AS allow_walkins,
-         COALESCE(s.auto_confirm_appointments, false) AS auto_confirm_appointments,
+         COALESCE(s.allow_walkins, ${BUSINESS_SCHEDULE_DEFAULTS.allowWalkins}) AS allow_walkins,
+         COALESCE(s.auto_confirm_appointments, ${BUSINESS_SCHEDULE_DEFAULTS.autoConfirmAppointments}) AS auto_confirm_appointments,
          COALESCE(s.whatsapp_reminders, true) AS whatsapp_reminders
        FROM businesses b
        LEFT JOIN business_settings s ON s.business_id = b.id

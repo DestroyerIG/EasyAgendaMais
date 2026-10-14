@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { AppointmentStatus } from '../../types/domain.js';
+import { APPOINTMENT_STATUSES } from '../../config/appointmentStatus.js';
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -15,7 +16,7 @@ export const CreateAppointmentSchema = z.object({
 export const UpdateAppointmentSchema = CreateAppointmentSchema.partial();
 
 export const UpdateStatusSchema = z.object({
-  status: z.enum(['confirmado', 'concluido', 'cancelado', 'aguardando_pagamento']),
+  status: z.enum(APPOINTMENT_STATUSES),
 });
 
 export const GetAvailableSlotsQuerySchema = z.object({
@@ -26,7 +27,7 @@ export const GetAvailableSlotsQuerySchema = z.object({
 
 export const GetAppointmentsQuerySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  status: z.enum(['confirmado', 'concluido', 'cancelado', 'aguardando_pagamento']).optional(),
+  status: z.enum(APPOINTMENT_STATUSES).optional(),
   view: z.enum(['day', 'week']).default('day'),
   professionalId: z.string().uuid().optional(),
 });
@@ -53,6 +54,9 @@ export interface AppointmentWithRelations {
   reminderSent: boolean;
   expiresAt?: Date | null;
   source: string;
+  depositAmount?: unknown;
+  startedAt?: Date | null;
+  comanda?: { id: string; status: string; number: number; totalCharged?: unknown; depositApplied?: unknown } | null;
   createdAt: Date;
   updatedAt: Date;
   client: { name: string; phone: string };
@@ -61,8 +65,10 @@ export interface AppointmentWithRelations {
 }
 
 export const VALID_STATUS_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
-  confirmado: ['concluido', 'cancelado'],
-  concluido: [],
-  cancelado: [],
   aguardando_pagamento: ['confirmado', 'cancelado'],
+  confirmado: ['em_atendimento', 'concluido', 'faltou', 'cancelado'],
+  em_atendimento: ['concluido', 'confirmado', 'cancelado'],
+  concluido: [],
+  faltou: [],
+  cancelado: [],
 };

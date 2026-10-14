@@ -19,7 +19,8 @@ export type BillingProvider = 'stripe' | 'asaas' | 'coupon';
 
 export type PaymentMethod = 'card' | 'pix' | 'coupon';
 
-export type AppointmentStatus = 'confirmado' | 'concluido' | 'cancelado' | 'aguardando_pagamento';
+import type { AppointmentStatus } from '../config/appointmentStatus.js';
+export type { AppointmentStatus } from '../config/appointmentStatus.js';
 
 // ─── Entity Interfaces ───────────────────────────────────────────────────────
 
