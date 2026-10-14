@@ -107,9 +107,23 @@ export const cashService = {
     try {
       await cashRepository.createSession(businessId, dia, userId, openingBalance);
     } catch (error) {
-      if ((error as { code?: string }).code === 'P2002') throw new ConflictError('O caixa de hoje já está aberto');
+      if ((error as { code?: string }).code === 'P2002') {
+        const existente = await cashRepository.findSession(businessId, dia);
+        throw new ConflictError(existente?.closedAt ? 'O caixa de hoje já foi fechado' : 'O caixa de hoje já está aberto');
+      }
       throw error;
     }
+    return cashService.getDay(businessId, dia);
+  },
+
+  /** Reabre o caixa de hoje depois de fechado (ex.: cliente atrasada terminou depois do fechamento). */
+  async reopen(businessId: string) {
+    const dia = await hoje(businessId);
+    const session = await cashRepository.findSession(businessId, dia);
+    if (!session) throw new ConflictError('O caixa de hoje ainda não foi aberto');
+    if (!session.closedAt) throw new ConflictError('O caixa de hoje já está aberto');
+    const ok = await cashRepository.reopenSession(session.id);
+    if (!ok) throw new ConflictError('O caixa de hoje já está aberto');
     return cashService.getDay(businessId, dia);
   },
 

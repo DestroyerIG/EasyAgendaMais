@@ -14,6 +14,8 @@ import type { ComandaDetailDto, NewExtraItem, SaveComandaInput, PaymentMethod } 
 type ComandaRow = NonNullable<Awaited<ReturnType<typeof comandasRepository.findComandaById>>>;
 
 const num = (v: unknown) => Number(v ?? 0);
+/** Quanto o fechamento espera o comprovante antes de responder. */
+export const RECEIPT_TIMEOUT_MS = 8000;
 const isoDate = (d: Date) => d.toISOString().substring(0, 10);
 const hhmm = (d: Date) => d.toISOString().substring(11, 16);
 
@@ -152,8 +154,9 @@ export const comandasService = {
       throw new ValidationError('Escolha a forma de pagamento');
     }
     const { timezone } = await getBusinessScheduleSettings(businessId);
-    const caixa = await comandasRepository.findOpenCashSession(businessId, todayInTimezone(timezone));
+    const caixa = await comandasRepository.findCashSession(businessId, todayInTimezone(timezone));
     if (!caixa) throw new AppError('Abra o caixa de hoje para fechar a comanda', 409, 'CASH_CLOSED');
+    if (caixa.closedAt) throw new AppError('O caixa de hoje já foi fechado', 409, 'CASH_ALREADY_CLOSED');
 
     const c = await carregar(id, businessId);
     if (!['confirmado', 'em_atendimento'].includes(c.appointment.status)) {
@@ -174,11 +177,15 @@ export const comandasService = {
     if (!ok) throw new ConflictError('Esta comanda já foi fechada');
 
     if (salvo.whatsappConnected) {
-      try {
-        await enviarComprovante(businessId, id, { ...salvo, calc }, input.paymentMethod);
-      } catch (error) {
-        logger.warn({ err: error, comandaId: id }, 'Comprovante da comanda não enviado');
-      }
+      // O fechamento já foi gravado: um WhatsApp lento não pode virar "erro ao fechar".
+      // Se passar do prazo, o envio segue em segundo plano e marca receipt_sent_at quando concluir.
+      const envio = enviarComprovante(businessId, id, { ...salvo, calc }, input.paymentMethod)
+        .catch((error) => { logger.warn({ err: error, comandaId: id }, 'Comprovante da comanda não enviado'); });
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const prazo = new Promise<'prazo'>((resolve) => { timer = setTimeout(() => resolve('prazo'), RECEIPT_TIMEOUT_MS); });
+      const r = await Promise.race([envio, prazo]);
+      if (timer) clearTimeout(timer);
+      if (r === 'prazo') logger.warn({ comandaId: id }, 'Comprovante da comanda ainda enviando; fechamento respondido sem esperar');
     }
     return montarDto(await carregar(id, businessId));
   },

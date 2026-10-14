@@ -13,6 +13,9 @@ export const openCash: H = async (req, res, next) => {
 export const addCashMovement: H = async (req, res, next) => {
   try { sendSuccess(res, await cashService.addMovement(req.user.businessId!, req.user.userId, req.body)); } catch (e) { next(e); }
 };
+export const reopenCash: H = async (req, res, next) => {
+  try { sendSuccess(res, await cashService.reopen(req.user.businessId!)); } catch (e) { next(e); }
+};
 export const closeCash: H = async (req, res, next) => {
   try { sendSuccess(res, await cashService.close(req.user.businessId!, req.user.userId, req.body)); } catch (e) { next(e); }
 };

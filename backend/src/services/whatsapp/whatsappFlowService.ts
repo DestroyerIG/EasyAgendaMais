@@ -1503,7 +1503,10 @@ const handleChooseTimeStep = async (
          AND professional_id = ${professionalId}::uuid
          AND date = ${selectedDate}::date
          AND time = ${(selectedTime + ':00')}::time
-         AND status != 'cancelado'
+         AND (
+           status IN ('confirmado', 'em_atendimento')
+           OR (status = 'aguardando_pagamento' AND expires_at > NOW())
+         )
     `
   );
 
@@ -1516,7 +1519,10 @@ const handleChooseTimeStep = async (
          WHERE business_id = ${businessId}::uuid
            AND professional_id = ${professionalId}::uuid
            AND date = ${selectedDate}::date
-           AND status != 'cancelado'
+           AND (
+             status IN ('confirmado', 'em_atendimento')
+             OR (status = 'aguardando_pagamento' AND expires_at > NOW())
+           )
       `
     );
     const bookedTimes = new Set(bookedRows.map((r) => formatTimeHm(r.time)));

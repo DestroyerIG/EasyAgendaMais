@@ -23,9 +23,25 @@ describe('toAppointmentDto', () => {
     expect(dto).toMatchObject({ source: 'publico', deposit_amount: 30, started_at: '2026-10-13T13:05:00.000Z', comanda_id: 'k1', comanda_status: 'rascunho', comanda_number: 1042 });
   });
 
+  it('comanda fechada leva o total cobrado e o sinal aplicado gravados', () => {
+    const dto = toAppointmentDto({
+      id: 'a1', date: '2026-10-13', time: '10:00:00', status: 'concluido',
+      comanda: { id: 'k1', status: 'fechada', number: 1043, totalCharged: '150.00', depositApplied: '30.00' },
+    });
+    expect(dto).toMatchObject({ comanda_status: 'fechada', comanda_total_charged: 150, comanda_deposit_applied: 30 });
+  });
+
+  it('comanda rascunho não expõe totais', () => {
+    const dto = toAppointmentDto({
+      id: 'a1', date: '2026-10-13', time: '10:00:00', status: 'em_atendimento',
+      comanda: { id: 'k1', status: 'rascunho', number: 1043, totalCharged: '150.00', depositApplied: '30.00' },
+    });
+    expect(dto).toMatchObject({ comanda_total_charged: null, comanda_deposit_applied: null });
+  });
+
   it('sem sinal e sem comanda dá null', () => {
     const dto = toAppointmentDto({ id: 'a1', date: '2026-10-13', time: '10:00:00', status: 'confirmado' });
-    expect(dto).toMatchObject({ source: 'painel', deposit_amount: null, comanda_id: null, comanda_status: null, comanda_number: null, started_at: null });
+    expect(dto).toMatchObject({ source: 'painel', deposit_amount: null, comanda_id: null, comanda_status: null, comanda_number: null, comanda_total_charged: null, comanda_deposit_applied: null, started_at: null });
   });
 });
 

@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
+import { AppError, ConflictError } from '../../utils/errors.js';
 import { splitCommission } from './commissionSplit.js';
 import type { ComandaCalc } from './comandaMath.js';
 import type { NewExtraItem, PaymentMethod } from './comandas.types.js';
@@ -91,14 +92,16 @@ export const comandasRepository = {
     });
   },
 
-  findOpenCashSession(businessId: string, date: string) {
-    return prisma.cashSession.findFirst({ where: { businessId, date: new Date(date), closedAt: null }, select: { id: true } });
+  /** Sessão de caixa do dia, aberta ou já fechada (o chamador distingue pelo closedAt). */
+  findCashSession(businessId: string, date: string) {
+    return prisma.cashSession.findFirst({ where: { businessId, date: new Date(date) }, select: { id: true, closedAt: true } });
   },
 
   /**
    * Fecha numa transação: compare-and-set no status da comanda (rascunho → fechada),
    * fotografa percentuais nos itens, conclui o agendamento e grava/atualiza o earning.
-   * Devolve false se outra requisição já fechou.
+   * Devolve false se outra requisição já fechou. Lança (e desfaz tudo) se o caixa foi fechado
+   * ou o agendamento mudou de status entre a conferência e a gravação.
    */
   closeComandaTx(args: {
     comandaId: string; businessId: string; userId: string; cashSessionId: string;
@@ -119,6 +122,11 @@ export const comandasRepository = {
       });
       if (r.count !== 1) return false;
 
+      // Caixa ainda aberto, com lock compartilhado: um fechamento de caixa concorrente espera esta transação.
+      const caixa = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM cash_sessions WHERE id = ${args.cashSessionId}::uuid AND closed_at IS NULL FOR SHARE`;
+      if (caixa.length !== 1) throw new AppError('O caixa de hoje já foi fechado', 409, 'CASH_ALREADY_CLOSED');
+
       // O updateMany acima já tomou o lock da linha: relê os itens aqui dentro, sem confiar em ids de fora.
       const itens = await tx.comandaItem.findMany({
         where: { comandaId: args.comandaId }, select: { id: true, kind: true, unitPrice: true, quantity: true },
@@ -138,10 +146,11 @@ export const comandasRepository = {
         }
       }
 
-      await tx.appointment.updateMany({
+      const concluiu = await tx.appointment.updateMany({
         where: { id: args.appointmentId, status: { in: ['confirmado', 'em_atendimento'] } },
         data: { status: 'concluido', finishedAt: new Date() },
       });
+      if (concluiu.count !== 1) throw new ConflictError('Este agendamento não pode mais ser concluído');
 
       await tx.earning.upsert({
         where: { appointmentId: args.appointmentId },

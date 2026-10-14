@@ -176,12 +176,13 @@ ALTER TABLE "cash_movements" ADD CONSTRAINT "cash_movements_created_by_fkey" FOR
 
 
 -- Sinal já pago em reservas públicas antigas (antes só era calculado na hora).
+-- Só status que passaram pelo pagamento: reserva cancelada por expirar nunca pagou.
 UPDATE "appointments" a
    SET "deposit_amount" = ROUND(s."price" * s."deposit_percentage" / 100, 2)
   FROM "services" s
  WHERE a."service_id" = s."id"
    AND a."source" = 'publico'
-   AND a."status" <> 'aguardando_pagamento'
+   AND a."status" IN ('confirmado', 'em_atendimento', 'concluido', 'faltou')
    AND a."deposit_amount" IS NULL
    AND s."deposit_percentage" IS NOT NULL;
 

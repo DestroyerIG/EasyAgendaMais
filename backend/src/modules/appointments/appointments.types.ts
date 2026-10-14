@@ -56,7 +56,7 @@ export interface AppointmentWithRelations {
   source: string;
   depositAmount?: unknown;
   startedAt?: Date | null;
-  comanda?: { id: string; status: string; number: number } | null;
+  comanda?: { id: string; status: string; number: number; totalCharged?: unknown; depositApplied?: unknown } | null;
   createdAt: Date;
   updatedAt: Date;
   client: { name: string; phone: string };

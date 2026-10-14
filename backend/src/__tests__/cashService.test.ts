@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const repo = vi.hoisted(() => ({
-  findSession: vi.fn(), createSession: vi.fn(), closeSession: vi.fn(), addMovement: vi.fn(),
+  findSession: vi.fn(), createSession: vi.fn(), closeSession: vi.fn(), reopenSession: vi.fn(), addMovement: vi.fn(),
   findClosedComandas: vi.fn(), findAppointmentsByStatus: vi.fn(), findExpenses: vi.fn(),
   findMovements: vi.fn(), ownerName: vi.fn(),
 }));
@@ -43,6 +43,12 @@ describe('cashService.open', () => {
   it('abrir duas vezes no mesmo dia dá 409', async () => {
     repo.createSession.mockRejectedValue(Object.assign(new Error('unique'), { code: 'P2002' }));
     await expect(cashService.open('b1', 'u1', 150)).rejects.toThrow('O caixa de hoje já está aberto');
+  });
+
+  it('abrir de novo depois de fechado avisa que já foi fechado', async () => {
+    repo.createSession.mockRejectedValue(Object.assign(new Error('unique'), { code: 'P2002' }));
+    repo.findSession.mockResolvedValue(sessao({ closedAt: new Date() }));
+    await expect(cashService.open('b1', 'u1', 150)).rejects.toThrow('O caixa de hoje já foi fechado');
   });
 
   it('caixa de ontem esquecido aberto não impede abrir o de hoje', async () => {
@@ -156,6 +162,29 @@ describe('cashService.close', () => {
   it('fechar duas vezes dá 409', async () => {
     repo.findSession.mockResolvedValue(sessao({ closedAt: new Date() }));
     await expect(cashService.close('b1', 'u1', { countedBalance: 0 })).rejects.toThrow('Este caixa já foi fechado');
+  });
+});
+
+describe('cashService.reopen', () => {
+  it('reabre o caixa de hoje fechado e devolve o dia aberto', async () => {
+    repo.findSession.mockResolvedValueOnce(sessao({ closedAt: new Date(), countedBalance: '150', expectedBalance: '150', difference: '0' }))
+      .mockResolvedValue(sessao());
+    repo.reopenSession.mockResolvedValue(true);
+    const dia = await cashService.reopen('b1');
+    expect(repo.findSession).toHaveBeenCalledWith('b1', '2026-10-13');
+    expect(repo.reopenSession).toHaveBeenCalledWith('cx1');
+    expect(dia.session).toMatchObject({ closedAt: null, countedBalance: null, difference: null });
+  });
+
+  it('caixa ainda aberto não reabre (409)', async () => {
+    repo.findSession.mockResolvedValue(sessao());
+    await expect(cashService.reopen('b1')).rejects.toMatchObject({ statusCode: 409, message: 'O caixa de hoje já está aberto' });
+    expect(repo.reopenSession).not.toHaveBeenCalled();
+  });
+
+  it('sem caixa hoje não reabre (409)', async () => {
+    repo.findSession.mockResolvedValue(null);
+    await expect(cashService.reopen('b1')).rejects.toMatchObject({ statusCode: 409, message: 'O caixa de hoje ainda não foi aberto' });
   });
 });
 

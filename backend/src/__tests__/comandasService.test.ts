@@ -6,7 +6,7 @@ const repo = vi.hoisted(() => ({
   createComanda: vi.fn(),
   findComandaById: vi.fn(),
   saveDraft: vi.fn(),
-  findOpenCashSession: vi.fn(),
+  findCashSession: vi.fn(),
   closeComandaTx: vi.fn(),
   markReceiptSent: vi.fn(),
   topExtras: vi.fn(),
@@ -26,7 +26,7 @@ vi.mock('../modules/whatsapp/whatsapp.service.js', () => ({ whatsappService: { g
 vi.mock('../services/scheduleSettingsService.js', () => ({ getBusinessScheduleSettings: vi.fn().mockResolvedValue({ timezone: 'America/Sao_Paulo' }) }));
 vi.mock('../config/prisma.js', () => ({ prisma: { business: { findUnique: vi.fn().mockResolvedValue({ name: 'Studio Aurora' }) } } }));
 
-const { comandasService } = await import('../modules/comandas/comandas.service.js');
+const { comandasService, RECEIPT_TIMEOUT_MS } = await import('../modules/comandas/comandas.service.js');
 
 const appt = (status = 'confirmado', deposit: number | null = null) => ({
   id: 'a1', businessId: 'b1', status, date: new Date('2026-10-13'), time: new Date('1970-01-01T10:00:00Z'), source: 'painel',
@@ -118,13 +118,22 @@ describe('fechar comanda', () => {
 
   it('sem caixa aberto recusa com CASH_CLOSED', async () => {
     repo.findComandaById.mockResolvedValue(comanda());
-    repo.findOpenCashSession.mockResolvedValue(null);
+    repo.findCashSession.mockResolvedValue(null);
     await expect(comandasService.close('k1', 'b1', 'u1', entrada)).rejects.toMatchObject({ statusCode: 409, code: 'CASH_CLOSED' });
+  });
+
+  it('caixa de hoje já fechado recusa com CASH_ALREADY_CLOSED (não com "não foi aberto")', async () => {
+    repo.findComandaById.mockResolvedValue(comanda());
+    repo.findCashSession.mockResolvedValue({ id: 'cx1', closedAt: new Date() });
+    await expect(comandasService.close('k1', 'b1', 'u1', entrada)).rejects.toMatchObject({
+      statusCode: 409, code: 'CASH_ALREADY_CLOSED', message: 'O caixa de hoje já foi fechado',
+    });
+    expect(repo.closeComandaTx).not.toHaveBeenCalled();
   });
 
   it('com valor a cobrar exige forma de pagamento', async () => {
     repo.findComandaById.mockResolvedValue(comanda());
-    repo.findOpenCashSession.mockResolvedValue({ id: 'cx1' });
+    repo.findCashSession.mockResolvedValue({ id: 'cx1' });
     await expect(comandasService.close('k1', 'b1', 'u1', { ...entrada, paymentMethod: null }))
       .rejects.toThrow('Escolha a forma de pagamento');
   });
@@ -134,7 +143,7 @@ describe('fechar comanda', () => {
       .mockResolvedValueOnce(comanda())
       .mockResolvedValueOnce(comanda())
       .mockResolvedValue(comanda({ status: 'fechada', closedAt: new Date() }));
-    repo.findOpenCashSession.mockResolvedValue({ id: 'cx1' });
+    repo.findCashSession.mockResolvedValue({ id: 'cx1' });
     repo.closeComandaTx.mockResolvedValue(true);
     receipt.sendComandaReceipt.mockResolvedValue(true);
 
@@ -151,7 +160,7 @@ describe('fechar comanda', () => {
 
   it('segunda pessoa fechando a mesma comanda recebe 409 e não envia comprovante', async () => {
     repo.findComandaById.mockResolvedValue(comanda());
-    repo.findOpenCashSession.mockResolvedValue({ id: 'cx1' });
+    repo.findCashSession.mockResolvedValue({ id: 'cx1' });
     repo.closeComandaTx.mockResolvedValue(false);
     await expect(comandasService.close('k1', 'b1', 'u1', entrada)).rejects.toThrow('Esta comanda já foi fechada');
     expect(receipt.sendComandaReceipt).not.toHaveBeenCalled();
@@ -159,7 +168,7 @@ describe('fechar comanda', () => {
 
   it('agendamento cancelado depois de abrir a comanda não pode ser concluído', async () => {
     repo.findComandaById.mockResolvedValue(comanda({ appointment: appt('cancelado', 30) }));
-    repo.findOpenCashSession.mockResolvedValue({ id: 'cx1' });
+    repo.findCashSession.mockResolvedValue({ id: 'cx1' });
     await expect(comandasService.close('k1', 'b1', 'u1', entrada)).rejects.toThrow('Este agendamento não pode mais ser concluído');
     expect(repo.closeComandaTx).not.toHaveBeenCalled();
   });
@@ -168,20 +177,43 @@ describe('fechar comanda', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-13T01:30:00-03:00'));
     repo.findComandaById.mockResolvedValue(comanda({ appointment: { ...appt('em_atendimento'), date: new Date('2026-10-12') } }));
-    repo.findOpenCashSession.mockResolvedValue(null);
+    repo.findCashSession.mockResolvedValue(null);
     await expect(comandasService.close('k1', 'b1', 'u1', entrada)).rejects.toMatchObject({ code: 'CASH_CLOSED' });
-    expect(repo.findOpenCashSession).toHaveBeenCalledWith('b1', '2026-10-13');
+    expect(repo.findCashSession).toHaveBeenCalledWith('b1', '2026-10-13');
   });
 
   it('falha no comprovante não desfaz o fechamento', async () => {
     repo.findComandaById
       .mockResolvedValueOnce(comanda()).mockResolvedValueOnce(comanda())
       .mockResolvedValue(comanda({ status: 'fechada', closedAt: new Date() }));
-    repo.findOpenCashSession.mockResolvedValue({ id: 'cx1' });
+    repo.findCashSession.mockResolvedValue({ id: 'cx1' });
     repo.closeComandaTx.mockResolvedValue(true);
     receipt.sendComandaReceipt.mockRejectedValue(new Error('Evolution fora do ar'));
     await expect(comandasService.close('k1', 'b1', 'u1', entrada)).resolves.toMatchObject({ status: 'fechada' });
     expect(repo.markReceiptSent).not.toHaveBeenCalled();
+  });
+});
+
+describe('comprovante no fechamento', () => {
+  const entrada = { extras: [], discount: 0, tip: 0, paymentMethod: 'pix' as const };
+
+  it('WhatsApp travado não segura a resposta: responde após o prazo e marca o envio quando terminar', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    repo.findComandaById
+      .mockResolvedValueOnce(comanda()).mockResolvedValueOnce(comanda())
+      .mockResolvedValue(comanda({ status: 'fechada', closedAt: new Date() }));
+    repo.findCashSession.mockResolvedValue({ id: 'cx1', closedAt: null });
+    repo.closeComandaTx.mockResolvedValue(true);
+    let terminar: (v: boolean) => void = () => {};
+    receipt.sendComandaReceipt.mockReturnValue(new Promise<boolean>((r) => { terminar = r; }));
+
+    const fechamento = comandasService.close('k1', 'b1', 'u1', entrada);
+    await vi.advanceTimersByTimeAsync(RECEIPT_TIMEOUT_MS);
+    await expect(fechamento).resolves.toMatchObject({ status: 'fechada' });
+    expect(repo.markReceiptSent).not.toHaveBeenCalled();
+
+    terminar(true);
+    await vi.waitFor(() => expect(repo.markReceiptSent).toHaveBeenCalledWith('k1'));
   });
 });
 

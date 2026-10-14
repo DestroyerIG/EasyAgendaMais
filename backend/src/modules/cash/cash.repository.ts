@@ -11,6 +11,14 @@ export const cashRepository = {
     const r = await prisma.cashSession.updateMany({ where: { id, closedAt: null }, data: { ...d, closedAt: new Date(), closedBy: userId } });
     return r.count === 1;
   },
+  /** Desfaz o fechamento: volta a aceitar comandas e movimentos. Só age se estiver fechado. */
+  async reopenSession(id: string) {
+    const r = await prisma.cashSession.updateMany({
+      where: { id, closedAt: { not: null } },
+      data: { closedAt: null, closedBy: null, countedBalance: null, expectedBalance: null, difference: null },
+    });
+    return r.count === 1;
+  },
   addMovement(sessionId: string, businessId: string, userId: string, m: { kind: string; amount: number; description: string }) {
     return prisma.cashMovement.create({ data: { cashSessionId: sessionId, businessId, createdBy: userId, ...m } });
   },
