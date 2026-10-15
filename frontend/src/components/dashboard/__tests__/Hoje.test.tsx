@@ -135,7 +135,7 @@ describe('Tela Hoje com dados reais', () => {
   it('4b. sem pendências mostra "Tudo em dia por aqui"', async () => {
     await renderizar(base({ pendencias: [] }));
     expect(screen.getByText('Tudo em dia por aqui')).toBeInTheDocument();
-    expect(screen.getByText('0 pendências')).toBeInTheDocument();
+    expect(screen.queryByText(/pendências?$/)).not.toBeInTheDocument();
   });
 
   it('4c. vagas à tarde e retorno vencido com textos e ações próprias', async () => {

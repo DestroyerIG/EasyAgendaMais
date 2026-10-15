@@ -254,9 +254,11 @@ export function PainelPendencias({ pendencias, businessName, className }: Painel
           <h2 className="text-[16px] font-bold text-ink">Precisa de você</h2>
           {/* hoje-desktop.html: pílula com a palavra "pendências"; hoje-mobile.html:
               círculo vermelho só com o número — cada breakpoint com o próprio estilo. */}
-          <span className="hidden rounded-full bg-brand/15 px-2 py-0.5 text-[11px] font-bold text-ink lg:inline-flex">
-            {`${pendencias.length} ${plural(pendencias.length, 'pendência', 'pendências')}`}
-          </span>
+          {pendencias.length > 0 ? (
+            <span className="hidden rounded-full bg-brand/15 px-2 py-0.5 text-[11px] font-bold text-ink lg:inline-flex">
+              {`${pendencias.length} ${plural(pendencias.length, 'pendência', 'pendências')}`}
+            </span>
+          ) : null}
           {pendencias.length > 0 ? (
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-danger text-[11px] font-bold text-surface lg:hidden">
               {pendencias.length}
