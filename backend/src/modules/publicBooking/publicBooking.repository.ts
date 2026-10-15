@@ -105,4 +105,11 @@ export const publicBookingRepository = {
       },
     });
   },
+
+  /** Consentimento de lembretes pelo WhatsApp dado na página pública de reserva. */
+  async registrarConsentimento(data: { businessId: string; clientId: string }): Promise<void> {
+    await prisma.clientConsent.create({
+      data: { businessId: data.businessId, clientId: data.clientId, granted: true, channel: 'publico' },
+    });
+  },
 };

@@ -13,6 +13,8 @@ export const CreatePublicAppointmentSchema = z.object({
   time: z.string().regex(/^\d{2}:\d{2}$/),
   clientName: z.string().trim().min(2).max(255),
   clientPhone: z.string().trim().min(10).max(20),
+  // Caixa desmarcada por padrão na página (LGPD): só `true` grava consentimento.
+  whatsappConsent: z.boolean().optional(),
 });
 
 export type GetPublicAvailabilityQuery = z.infer<typeof GetPublicAvailabilitySchema>;

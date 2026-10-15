@@ -154,6 +154,15 @@ export const publicBookingService = {
 
     logger.info({ appointmentId: appointment.id, businessId: business.id }, 'Reserva pública criada, aguardando pagamento');
 
+    // Fora da transação da reserva: se gravar o consentimento falhar, a reserva continua valendo.
+    if (data.whatsappConsent === true) {
+      try {
+        await publicBookingRepository.registrarConsentimento({ businessId: business.id, clientId: client.id });
+      } catch (err) {
+        logger.error({ err, businessId: business.id, clientId: client.id }, 'Falha ao gravar consentimento da reserva pública');
+      }
+    }
+
     const [year, month, day] = data.date.split('-');
     await notificationsService.notify(business.id, {
       type: 'nova_reserva',
