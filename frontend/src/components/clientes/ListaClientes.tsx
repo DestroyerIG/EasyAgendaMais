@@ -730,15 +730,16 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
   );
 }
 
-interface EtiquetasClienteModalProps {
-  cliente: ClienteInsight | null;
+export interface EtiquetasClienteModalProps {
+  /** Basta id, nome e etiquetas atuais (serve para a lista e para a ficha da cliente). */
+  cliente: Pick<ClienteInsight, 'id' | 'name' | 'tags'> | null;
   etiquetas: Etiqueta[];
   onClose: () => void;
   onSalvo: () => void;
 }
 
 /** Marca/desmarca as etiquetas manuais da cliente (PUT /clients/:id/tags). */
-function EtiquetasClienteModal({ cliente, etiquetas, onClose, onSalvo }: EtiquetasClienteModalProps) {
+export function EtiquetasClienteModal({ cliente, etiquetas, onClose, onSalvo }: EtiquetasClienteModalProps) {
   const { showToast } = useToast();
   const [marcadas, setMarcadas] = useState<string[]>([]);
   const [salvando, setSalvando] = useState(false);

@@ -56,7 +56,7 @@ export interface ClienteGaleriaItem {
 export interface ClienteLinhaDoTempoItem {
   // Nenhum item guarda data: "cadastro" sempre usa client.created_at real (correção
   // C1/I2); "whatsapp" e "avaliacao" recalculam a data relativa a cada render a partir
-  // de um deslocamento fixo em dias (DIAS_ATRAS_EXEMPLO em ClientDetailPanel.tsx), nunca
+  // de um deslocamento fixo em dias (DIAS_ATRAS_EXEMPLO na antiga ClientDetailPanel.tsx, já removida), nunca
   // um texto gravado (achado da varredura de telas: a avaliação tinha ficado atrás).
   tipo: 'whatsapp' | 'avaliacao' | 'cadastro';
   descricao: string;

@@ -13,7 +13,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/app/dashboard/layout.tsx',
   'src/app/dashboard/page.tsx',
   'src/app/dashboard/agendamentos/page.tsx',
-  'src/app/dashboard/clientes/page.tsx',
+  'src/app/dashboard/clientes',
   'src/app/dashboard/financeiro/page.tsx',
   'src/app/dashboard/whatsapp/page.tsx',
   'src/app/dashboard/configuracoes/page.tsx',

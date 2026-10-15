@@ -66,3 +66,33 @@ export const parseValorBR = (texto: string): number | null => {
   const v = Number(normalizado);
   return Number.isFinite(v) ? Math.round(v * 100) / 100 : null;
 };
+
+// Fuso do salão: os instantes UTC da API (linha do tempo, consentimento, fotos, ficha
+// técnica) são mostrados no horário de Brasília, não no fuso do navegador.
+export const FUSO_NEGOCIO = 'America/Sao_Paulo';
+const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+const partesNoFuso = (iso: string) => {
+  const partes = new Intl.DateTimeFormat('en-GB', {
+    timeZone: FUSO_NEGOCIO, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date(iso));
+  const p = (tipo: Intl.DateTimeFormatPartTypes) => partes.find((x) => x.type === tipo)?.value ?? '';
+  return { ano: p('year'), mes: p('month'), dia: p('day'), hora: p('hour'), minuto: p('minute') };
+};
+
+/** Instante ISO → "12/03/2026" no fuso do salão. */
+export const formatDataNegocio = (iso: string): string => {
+  const d = partesNoFuso(iso);
+  return `${d.dia}/${d.mes}/${d.ano}`;
+};
+
+/** Instante ISO → "12 set · 10:00" no fuso do salão (com o ano quando não é o atual). */
+export const formatDataHoraNegocio = (iso: string): string => {
+  const d = partesNoFuso(iso);
+  const anoAtual = partesNoFuso(new Date().toISOString()).ano;
+  const dia = `${Number(d.dia)} ${MESES_CURTOS[Number(d.mes) - 1]}${d.ano !== anoAtual ? ` ${d.ano}` : ''}`;
+  return `${dia} · ${d.hora}:${d.minuto}`;
+};
+
+/** Ano corrente no fuso do salão. */
+export const anoAtualNegocio = (): number => Number(partesNoFuso(new Date().toISOString()).ano);
