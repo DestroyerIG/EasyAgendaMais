@@ -38,10 +38,10 @@ const coletarStrings = (valor: unknown, acc: string[] = []): string[] => {
 };
 
 describe('conteudoDemo', () => {
-  // A tela Hoje saiu daqui: ela só mostra dados reais (GET /dashboard/today).
-  it('cobre as áreas do painel que ainda têm conteúdo de exemplo, sem a tela Hoje', () => {
+  // Hoje e Clientes saíram daqui: só mostram dados reais.
+  it('cobre só as áreas do painel que ainda têm conteúdo de exemplo (WhatsApp e Plano)', () => {
     expect(Object.keys(conteudoDemo).sort()).toEqual(
-      ['clientes', 'plano', 'whatsapp'],
+      ['plano', 'whatsapp'],
     );
   });
 
