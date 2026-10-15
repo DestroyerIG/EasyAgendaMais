@@ -124,7 +124,8 @@ describe('ListaClientes', () => {
       ]),
     );
     renderizar();
-    const texto = await screen.findByText('Venceu há 22 dias');
+    const linha = await screen.findByRole('row', { name: 'Ver ficha de Beatriz Costa' });
+    const texto = within(linha).getByText('Venceu há 22 dias');
     const destaque = texto.closest('.text-danger');
     expect(destaque).not.toBeNull();
     expect(within(destaque as HTMLElement).getByText('warning')).toBeInTheDocument();
@@ -134,7 +135,9 @@ describe('ListaClientes', () => {
     mockBuscarInsights.mockResolvedValue(resposta([cliente({ id: 'c3', name: 'Sem Fone', phone: '' })]));
     renderizar();
     await screen.findAllByText('Sem Fone');
-    expect(screen.getByRole('button', { name: 'WhatsApp de Sem Fone' })).toBeDisabled();
+    const botoes = screen.getAllByRole('button', { name: 'WhatsApp de Sem Fone' });
+    expect(botoes).toHaveLength(2); // tabela e cartão
+    botoes.forEach((b) => expect(b).toBeDisabled());
   });
 
   it('WhatsApp de cliente com retorno vencido abre a mensagem de retorno', async () => {
@@ -148,7 +151,8 @@ describe('ListaClientes', () => {
       ]),
     );
     renderizar();
-    fireEvent.click(await screen.findByRole('button', { name: 'WhatsApp de Beatriz Costa' }));
+    const linha = await screen.findByRole('row', { name: 'Ver ficha de Beatriz Costa' });
+    fireEvent.click(within(linha).getByRole('button', { name: 'WhatsApp de Beatriz Costa' }));
     const dialogo = await screen.findByRole('dialog');
     expect(within(dialogo).getByRole('textbox')).toHaveValue(
       'Oi, Beatriz! Já está na hora de renovar o seu Manutenção aqui no Studio Aurora. Quer que eu veja um horário para você?',
@@ -175,7 +179,8 @@ describe('ListaClientes', () => {
 
   it('agendar leva ao novo agendamento já com a cliente', async () => {
     renderizar();
-    const link = await screen.findByRole('link', { name: 'Agendar para Mariana Souza' });
+    const linha = await screen.findByRole('row', { name: 'Ver ficha de Mariana Souza' });
+    const link = within(linha).getByRole('link', { name: 'Agendar para Mariana Souza' });
     expect(link).toHaveAttribute('href', '/agendamentos?novo=1&cliente=c1');
   });
 
@@ -227,5 +232,70 @@ describe('ListaClientes', () => {
     });
     fireEvent.change(screen.getByPlaceholderText('Buscar por nome, telefone ou e-mail'), { target: { value: 'zzz' } });
     expect(await screen.findByText('Nenhuma cliente encontrada com esses filtros')).toBeInTheDocument();
+  });
+  it('no celular mostra cartões com fase, etiquetas, visita, retorno, LTV e ações', async () => {
+    mockBuscarInsights.mockResolvedValue(
+      resposta([
+        cliente({
+          id: 'c2',
+          name: 'Beatriz Costa',
+          fase: 'em_risco',
+          tags: [{ id: 't1', name: 'Clube VIP', color: 'brand' }],
+          etiquetasAuto: ['Resgatável'],
+          retornoPrevisto: { data: '2026-08-26', venceuHa: 22, texto: 'Venceu há 22 dias' },
+        }),
+      ]),
+    );
+    renderizar();
+    const cartoes = await screen.findByTestId('cartoes-clientes');
+    const cartao = within(cartoes).getByRole('button', { name: 'Ver ficha de Beatriz Costa' });
+    expect(within(cartao).getByText('(11) 98741-2039')).toBeInTheDocument();
+    expect(within(cartao).getByText('Em risco')).toBeInTheDocument();
+    expect(within(cartao).getByText('Clube VIP')).toHaveClass('text-brand-text');
+    expect(within(cartao).getByText('Resgatável')).toHaveClass('text-muted');
+    expect(within(cartao).getByText('Manutenção · Camila')).toBeInTheDocument();
+    expect(within(cartao).getByText('Venceu há 22 dias').closest('.text-danger')).not.toBeNull();
+    expect(within(cartao).getByText('R$ 1.820,00')).toBeInTheDocument();
+    expect(within(cartao).getByText('14 atendimentos')).toBeInTheDocument();
+    expect(within(cartao).getByRole('button', { name: 'WhatsApp de Beatriz Costa' })).toBeEnabled();
+    expect(within(cartao).getByRole('link', { name: 'Agendar para Beatriz Costa' })).toHaveAttribute(
+      'href',
+      '/agendamentos?novo=1&cliente=c2',
+    );
+    expect(within(cartao).getByRole('button', { name: 'Mais opções de Beatriz Costa' })).toBeInTheDocument();
+
+    // A tabela fica escondida abaixo de lg; os cartões, a partir de lg.
+    expect(cartoes).toHaveClass('lg:hidden');
+    expect(screen.getByRole('table').parentElement).toHaveClass('hidden', 'lg:block');
+
+    fireEvent.click(cartao);
+    expect(mockPush).toHaveBeenCalledWith('/clientes/c2');
+  });
+
+  it('ignora a resposta de um pedido antigo que chega depois do novo', async () => {
+    let resolverAntigo: (v: InsightsDto) => void = () => {};
+    mockBuscarInsights.mockReset();
+    mockBuscarInsights
+      .mockImplementationOnce(() => new Promise<InsightsDto>((r) => { resolverAntigo = r; }))
+      .mockImplementationOnce(() => Promise.resolve(resposta([cliente({ id: 'n1', name: 'Nova Resposta' })])));
+    renderizar();
+    fireEvent.click(await screen.findByRole('tab', { name: /Em risco/ }));
+    await screen.findAllByText('Nova Resposta');
+
+    resolverAntigo(resposta([cliente({ id: 'v1', name: 'Velha Resposta' })]));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByText('Velha Resposta')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Nova Resposta').length).toBeGreaterThan(0);
+  });
+
+  it('erro sem dados mostra o estado de erro com "Tentar de novo"', async () => {
+    mockBuscarInsights.mockReset();
+    mockBuscarInsights.mockRejectedValueOnce(new Error('falhou'));
+    mockBuscarInsights.mockResolvedValue(resposta([cliente({ id: 'c1', name: 'Mariana Souza' })]));
+    renderizar();
+    expect(await screen.findByText('Não foi possível carregar as clientes')).toBeInTheDocument();
+    expect(screen.queryByText('Nenhuma cliente cadastrada')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }));
+    expect(await screen.findByRole('row', { name: 'Ver ficha de Mariana Souza' })).toBeInTheDocument();
   });
 });

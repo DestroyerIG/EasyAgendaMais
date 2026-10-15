@@ -46,6 +46,7 @@ const TAMANHO_PAGINA = 10;
 const ESPERA_BUSCA_MS = 300;
 const ICONE_GRUPO = materialIcon('group');
 const ICONE_FILTRO = materialIcon('filter_alt_off');
+const ICONE_ERRO = materialIcon('error');
 
 type Ordem = NonNullable<InsightsQuery['ordem']>;
 const ORDENS: Array<{ valor: Ordem; rotulo: string }> = [
@@ -146,6 +147,9 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
 
   const [dados, setDados] = useState<InsightsDto | null>(null);
   const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(false);
+  // Só a resposta do pedido mais recente vale: filtros trocados rápido não sobrescrevem dado novo.
+  const ultimoPedido = useRef(0);
   const [exportando, setExportando] = useState(false);
   const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);
@@ -165,6 +169,7 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
   }, [textoBusca]);
 
   const carregar = useCallback(async () => {
+    const pedido = ++ultimoPedido.current;
     setCarregando(true);
     try {
       const q: InsightsQuery = { page: pagina, pageSize: TAMANHO_PAGINA, ordem };
@@ -173,12 +178,16 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
       if (etiqueta) q.etiqueta = etiqueta;
       if (profissional) q.profissional = profissional;
       const r = await buscarInsights(q);
+      if (pedido !== ultimoPedido.current) return;
       setDados(r);
+      setErro(false);
       if (!busca && !etiqueta && !profissional) onTotalGeral?.(r.contagemPorFase.todas);
     } catch {
+      if (pedido !== ultimoPedido.current) return;
+      setErro(true);
       showToast('Erro ao carregar clientes', 'error');
     } finally {
-      setCarregando(false);
+      if (pedido === ultimoPedido.current) setCarregando(false);
     }
     // onTotalGeral é callback do pai; não deve disparar recarga.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -336,6 +345,16 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
         </div>
       );
     }
+    if (erro && !dados) {
+      return (
+        <EmptyState
+          icon={ICONE_ERRO}
+          title="Não foi possível carregar as clientes"
+          action={{ label: 'Tentar de novo', onClick: () => carregar() }}
+          actionVariant="secondary"
+        />
+      );
+    }
     if (itens.length === 0) {
       return temFiltro ? (
         <EmptyState icon={ICONE_FILTRO} title="Nenhuma cliente encontrada com esses filtros" />
@@ -350,7 +369,7 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
     }
     return (
       <>
-        <div className="overflow-x-auto">
+        <div className="hidden overflow-x-auto lg:block">
           <table className="w-full min-w-[960px] border-collapse text-left">
             <thead>
               <tr className="select-none bg-surface-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
@@ -444,6 +463,80 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* Celular e tablet: cartões compactos (a tabela só aparece a partir de lg). */}
+        <div data-testid="cartoes-clientes" className="flex flex-col divide-y divide-line lg:hidden">
+          {itens.map((c) => {
+            const vencido = c.retornoPrevisto.venceuHa !== null;
+            return (
+              <div
+                key={c.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`Ver ficha de ${c.name}`}
+                onClick={() => abrirFicha(c)}
+                onKeyDown={(e) => {
+                  if (e.target !== e.currentTarget) return;
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    abrirFicha(c);
+                  }
+                }}
+                className="flex cursor-pointer flex-col gap-3 p-4 transition-colors hover:bg-surface-2/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar name={c.name} size={36} />
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate font-bold text-ink">{c.name}</span>
+                      <span className="text-[12px] tabular-nums text-muted">{c.phone ? formatPhone(c.phone) : 'Sem telefone'}</span>
+                    </div>
+                  </div>
+                  {chipFase(c.fase)}
+                </div>
+                {etiquetasDaCliente(c)}
+                <div className="grid grid-cols-2 gap-3 text-[12px]">
+                  <div className="flex min-w-0 flex-col">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">Última visita</span>
+                    {c.ultimaVisita ? (
+                      <>
+                        <span className="font-semibold tabular-nums text-ink">
+                          {diaMes(c.ultimaVisita.date)}{' '}
+                          <span className="font-normal text-muted">{relativoDias(c.ultimaVisita.diasAtras)}</span>
+                        </span>
+                        <span className="truncate text-muted">
+                          {c.ultimaVisita.servico} · {c.ultimaVisita.profissional}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-muted">Sem visitas</span>
+                    )}
+                  </div>
+                  <div className="flex min-w-0 flex-col">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">Retorno previsto</span>
+                    {vencido ? (
+                      <span className="inline-flex items-center gap-1 font-bold text-danger">
+                        <Icon name="warning" size={14} />
+                        {c.retornoPrevisto.texto}
+                      </span>
+                    ) : (
+                      <span className="font-semibold tabular-nums text-ink">{c.retornoPrevisto.texto}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col">
+                    <span className="text-[13px] font-bold tabular-nums text-ink">{formatCurrency(c.ltv)}</span>
+                    <span className="text-[12px] tabular-nums text-muted">
+                      {c.atendimentos} {c.atendimentos === 1 ? 'atendimento' : 'atendimentos'}
+                    </span>
+                  </div>
+                  {acoes(c)}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <div className="flex flex-col items-center justify-between gap-3 px-5 py-3.5 text-[13px] font-semibold text-muted sm:flex-row">

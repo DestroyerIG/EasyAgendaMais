@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import type { Client } from '@/types';
 import type { ClienteInsight } from '@/lib/crm';
 
@@ -86,8 +86,8 @@ describe('ClientModule', () => {
 
   it('"Editar" no menu abre o cadastro completo (com endereço e observações)', async () => {
     render(<ClientModule />);
-    await screen.findByRole('row', { name: 'Ver ficha de Maria Silva' });
-    const menu = screen.getByRole('button', { name: 'Mais opções de Maria Silva' });
+    const linha = await screen.findByRole('row', { name: 'Ver ficha de Maria Silva' });
+    const menu = within(linha).getByRole('button', { name: 'Mais opções de Maria Silva' });
     fireEvent.pointerDown(menu, { button: 0, ctrlKey: false, pointerType: 'mouse' });
     fireEvent.click(await screen.findByRole('menuitem', { name: /Editar/ }));
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith('/clients'));
