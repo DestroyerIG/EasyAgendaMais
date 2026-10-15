@@ -125,9 +125,10 @@ describe('ListaEsperaPanel', () => {
     expect(espera.listarEspera).toHaveBeenCalledTimes(2);
   });
 
-  it('oferece a vaga com a data e a hora vindas da Hoje e abre o WhatsApp devolvido pela API', async () => {
+  it('oferece a vaga com a data e a hora vindas da Hoje e leva a janela aberta no clique para o WhatsApp da API', async () => {
     const user = userEvent.setup();
-    const abrir = vi.spyOn(window, 'open').mockReturnValue(null);
+    const janela = { opener: {} as unknown, location: { href: '' }, close: vi.fn() };
+    const abrir = vi.spyOn(window, 'open').mockReturnValue(janela as unknown as Window);
     espera.listarEspera.mockResolvedValue([item()]);
     espera.ofertarVaga.mockResolvedValue({ item: item({ status: 'oferecida' }), whatsappUrl: 'https://wa.me/5583999990000?text=Ol%C3%A1' });
     renderizar({ vagaInicial: { date: '2026-10-15', time: '14:30', professionalId: 'p1' } });
@@ -140,7 +141,86 @@ describe('ListaEsperaPanel', () => {
     await waitFor(() =>
       expect(espera.ofertarVaga).toHaveBeenCalledWith('w1', { date: '2026-10-15', time: '14:30', professionalId: 'p1' }),
     );
-    expect(abrir).toHaveBeenCalledWith('https://wa.me/5583999990000?text=Ol%C3%A1', '_blank', 'noopener,noreferrer');
+    expect(abrir).toHaveBeenCalledWith('', '_blank');
+    await waitFor(() => expect(janela.location.href).toBe('https://wa.me/5583999990000?text=Ol%C3%A1'));
+    expect(janela.opener).toBeNull();
+    expect(janela.close).not.toHaveBeenCalled();
+    // Oferta feita: o formulário fecha e a lista é relida.
+    await waitFor(() => expect(screen.queryByLabelText('Data da vaga')).not.toBeInTheDocument());
+    expect(espera.listarEspera).toHaveBeenCalledTimes(2);
+  });
+
+  it('com o pop-up bloqueado, mantém o formulário com o link da conversa e relê a lista', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'open').mockReturnValue(null);
+    espera.listarEspera.mockResolvedValueOnce([item()]).mockResolvedValue([item({ status: 'oferecida' })]);
+    espera.ofertarVaga.mockResolvedValue({ item: item({ status: 'oferecida' }), whatsappUrl: 'https://wa.me/5583999990000?text=Ol%C3%A1' });
+    renderizar({ vagaInicial: { date: '2026-10-15', time: '14:30' } });
+
+    await user.click(await screen.findByRole('button', { name: 'Oferecer vaga' }));
+    await user.click(screen.getByRole('button', { name: 'Abrir WhatsApp' }));
+
+    const link = await screen.findByRole('link', { name: 'Abrir conversa no WhatsApp' });
+    expect(link).toHaveAttribute('href', 'https://wa.me/5583999990000?text=Ol%C3%A1');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.getByLabelText('Data da vaga')).toBeInTheDocument();
+    expect(await screen.findByText('Vaga oferecida', { selector: 'span.rounded-full' })).toBeInTheDocument();
+  });
+
+  it('sem WhatsApp válido na resposta, fecha a janela aberta no clique e avisa', async () => {
+    const user = userEvent.setup();
+    const janela = { opener: {} as unknown, location: { href: '' }, close: vi.fn() };
+    vi.spyOn(window, 'open').mockReturnValue(janela as unknown as Window);
+    espera.listarEspera.mockResolvedValue([item()]);
+    espera.ofertarVaga.mockResolvedValue({ item: item({ status: 'oferecida' }), whatsappUrl: null });
+    renderizar({ vagaInicial: { date: '2026-10-15', time: '14:30' } });
+
+    await user.click(await screen.findByRole('button', { name: 'Oferecer vaga' }));
+    await user.click(screen.getByRole('button', { name: 'Abrir WhatsApp' }));
+
+    expect(await screen.findByText('Vaga marcada como oferecida, mas a cliente não tem um WhatsApp válido.')).toBeInTheDocument();
+    expect(janela.close).toHaveBeenCalled();
+  });
+
+  it('se a oferta falhar, fecha a janela e mostra o erro da API', async () => {
+    const user = userEvent.setup();
+    const janela = { opener: {} as unknown, location: { href: '' }, close: vi.fn() };
+    vi.spyOn(window, 'open').mockReturnValue(janela as unknown as Window);
+    espera.listarEspera.mockResolvedValue([item()]);
+    espera.ofertarVaga.mockRejectedValue(
+      new AxiosError('x', '409', undefined, undefined, {
+        status: 409, data: { success: false, error: 'Esta inscrição não pode mais receber ofertas' },
+      } as AxiosResponse),
+    );
+    renderizar({ vagaInicial: { date: '2026-10-15', time: '14:30' } });
+
+    await user.click(await screen.findByRole('button', { name: 'Oferecer vaga' }));
+    await user.click(screen.getByRole('button', { name: 'Abrir WhatsApp' }));
+
+    expect(await screen.findByText('Esta inscrição não pode mais receber ofertas')).toBeInTheDocument();
+    expect(janela.close).toHaveBeenCalled();
+    expect(janela.location.href).toBe('');
+  });
+
+  it('no formulário de inscrição, a falha ao carregar as clientes aparece como erro, não como lista vazia', async () => {
+    const user = userEvent.setup();
+    espera.listarEspera.mockResolvedValue([]);
+    let falhar: (e: Error) => void = () => {};
+    mockApiGet.mockImplementation((url: string) =>
+      url === '/clients'
+        ? new Promise((_, rejeitar) => { falhar = rejeitar; })
+        : Promise.resolve({ data: [] }),
+    );
+    renderizar();
+    await screen.findByText('Ninguém na lista de espera');
+
+    await user.click(screen.getByRole('button', { name: 'Inscrever' }));
+    expect(screen.getByText('Carregando clientes...')).toBeInTheDocument();
+    expect(screen.queryByText('Nenhuma cliente encontrada')).not.toBeInTheDocument();
+    falhar(new Error('Falha de rede'));
+    expect(await screen.findByText('Falha de rede')).toBeInTheDocument();
+    expect(screen.queryByText('Nenhuma cliente encontrada')).not.toBeInTheDocument();
   });
 
   it('agendar abre o novo agendamento e marca a inscrição como agendada com o id criado', async () => {

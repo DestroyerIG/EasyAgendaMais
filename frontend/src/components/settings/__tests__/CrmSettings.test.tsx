@@ -58,6 +58,24 @@ describe('CrmSettingsSection', () => {
     await waitFor(() => expect(crm.salvarCrmSettings).toHaveBeenCalledWith({ segment: 'barbearia', dailyRevenueGoal: null }));
   });
 
+  it('se a carga falhar, não mostra os campos, não deixa salvar e permite tentar de novo', async () => {
+    const user = userEvent.setup();
+    vi.mocked(crm.buscarCrmSettings)
+      .mockRejectedValueOnce(erro(500, 'Servidor indisponível'))
+      .mockResolvedValueOnce({ segment: 'cabelo', dailyRevenueGoal: 900 });
+    render(<ToastProvider><CrmSettingsSection /></ToastProvider>);
+
+    expect(await screen.findByText('Servidor indisponível')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Segmento do negócio')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Tentar de novo' }));
+    expect(await screen.findByLabelText('Segmento do negócio')).toHaveValue('cabelo');
+    expect(screen.getByLabelText('Meta de faturamento diária')).toHaveValue('900,00');
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeEnabled();
+    expect(crm.salvarCrmSettings).not.toHaveBeenCalled();
+  });
+
   it('meta inválida não salva e avisa', async () => {
     const user = userEvent.setup();
     vi.mocked(crm.buscarCrmSettings).mockResolvedValue({ segment: 'unhas', dailyRevenueGoal: null });
@@ -126,6 +144,35 @@ describe('EtiquetasSection', () => {
     await user.click(screen.getByRole('button', { name: 'Salvar etiqueta' }));
 
     await waitFor(() => expect(tags.atualizarEtiqueta).toHaveBeenCalledWith('t1', { name: 'Noivas', color: 'warning' }));
+  });
+
+  it('erro ao carregar não vira "nenhuma etiqueta" e permite tentar de novo', async () => {
+    const user = userEvent.setup();
+    vi.mocked(tags.listarEtiquetas)
+      .mockRejectedValueOnce(erro(500, 'Servidor indisponível'))
+      .mockResolvedValueOnce([{ id: 't1', name: 'Noiva', color: 'brand', clientes: 3 }]);
+    render(<ToastProvider><EtiquetasSection /></ToastProvider>);
+
+    expect(await screen.findByText('Servidor indisponível')).toBeInTheDocument();
+    expect(screen.queryByText('Nenhuma etiqueta criada ainda.')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Tentar de novo' }));
+    expect(await screen.findByRole('listitem', { name: 'Noiva' })).toBeInTheDocument();
+  });
+
+  it('o botão de apagar fica desligado enquanto a etiqueta é apagada', async () => {
+    const user = userEvent.setup();
+    vi.mocked(tags.listarEtiquetas).mockResolvedValue([{ id: 't1', name: 'Noiva', color: 'brand', clientes: 3 }]);
+    let concluir: () => void = () => {};
+    vi.mocked(tags.removerEtiqueta).mockReturnValue(new Promise<void>((r) => { concluir = r; }));
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<ToastProvider><EtiquetasSection /></ToastProvider>);
+
+    const apagar = await screen.findByRole('button', { name: 'Apagar Noiva' });
+    await user.click(apagar);
+    expect(apagar).toBeDisabled();
+    concluir();
+    await waitFor(() => expect(apagar).toBeEnabled());
+    expect(tags.removerEtiqueta).toHaveBeenCalledTimes(1);
   });
 
   it('apaga só depois de confirmar', async () => {

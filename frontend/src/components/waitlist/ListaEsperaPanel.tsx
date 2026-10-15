@@ -76,6 +76,8 @@ export interface ListaEsperaPanelProps {
   onAgendar?: (item: WaitlistItem) => Promise<{ id: string } | null>;
   /** Inscrição cujo agendamento abre sozinho assim que a lista carrega (`?espera=<id>`). */
   agendarAoAbrir?: string | null;
+  /** Chamado uma vez quando `agendarAoAbrir` é consumido (a Agenda limpa a URL). */
+  onAgendarAoAbrirConsumido?: () => void;
 }
 
 const limparFiltro = (filtro: FiltroEspera): FiltroEspera => {
@@ -103,6 +105,8 @@ function FormularioInscricao({ onInscrita, onCancelar }: { onInscrita: () => voi
   const [busca, setBusca] = useState('');
   const [form, setForm] = useState<FormInscricao>(FORM_VAZIO);
   const [salvando, setSalvando] = useState(false);
+  const [carregandoDados, setCarregandoDados] = useState(true);
+  const [erroDados, setErroDados] = useState<string | null>(null);
 
   useEffect(() => {
     let ativo = true;
@@ -114,12 +118,15 @@ function FormularioInscricao({ onInscrita, onCancelar }: { onInscrita: () => voi
         setProfissionais(Array.isArray(p?.data) ? p.data : []);
       })
       .catch((error: unknown) => {
-        if (ativo) showToast(getApiErrorMessage(error, 'Não foi possível carregar os dados do formulário.'), 'error');
+        if (ativo) setErroDados(getApiErrorMessage(error, 'Não foi possível carregar clientes, serviços e profissionais.'));
+      })
+      .finally(() => {
+        if (ativo) setCarregandoDados(false);
       });
     return () => {
       ativo = false;
     };
-  }, [showToast]);
+  }, []);
 
   const termo = busca.trim().toLowerCase();
   const filtradas = clientes.filter((c) => c.name.toLowerCase().includes(termo) || c.phone.includes(termo));
@@ -157,7 +164,16 @@ function FormularioInscricao({ onInscrita, onCancelar }: { onInscrita: () => voi
         />
       </Field>
       <div className="-mt-2 max-h-36 space-y-1 overflow-y-auto">
-        {filtradas.length === 0 ? (
+        {carregandoDados ? (
+          <div className="flex flex-col gap-1">
+            <Skeleton className="h-9 w-full" label="Carregando clientes..." />
+            <Skeleton className="h-9 w-full" />
+          </div>
+        ) : erroDados ? (
+          <Banner tone="danger" variant="inline">
+            <span className="text-[13px] text-ink">{erroDados}</span>
+          </Banner>
+        ) : filtradas.length === 0 ? (
           <p className="p-2 text-[13px] text-muted">Nenhuma cliente encontrada</p>
         ) : (
           filtradas.map((c) => (
@@ -222,32 +238,49 @@ function FormularioOferta({
   item,
   vagaInicial,
   onOfertada,
+  onRecarregar,
   onVoltar,
 }: {
   item: WaitlistItem;
   vagaInicial?: VagaOferta;
+  /** Oferta concluída e conversa aberta: fecha o formulário e recarrega a lista. */
   onOfertada: () => void;
+  /** Recarrega a lista sem fechar o formulário (pop-up bloqueado, link manual na tela). */
+  onRecarregar: () => void;
   onVoltar: () => void;
 }) {
   const { showToast } = useToast();
   const [data, setData] = useState(vagaInicial?.date ?? item.desiredDate ?? '');
   const [hora, setHora] = useState(vagaInicial?.time ?? '');
   const [enviando, setEnviando] = useState(false);
+  // Link da conversa quando o navegador bloqueou a janela: a dona abre com um toque.
+  const [linkManual, setLinkManual] = useState<string | null>(null);
 
   const ofertar = async () => {
     if (!data || !hora) return;
+    // A janela abre já no clique: aberta depois do await, o navegador (Safari do iOS,
+    // principalmente) trata como pop-up e bloqueia. A URL entra quando a API responder.
+    const janela = window.open('', '_blank');
     setEnviando(true);
+    setLinkManual(null);
     try {
       const professionalId = vagaInicial?.professionalId ?? item.profissional?.id;
       const { whatsappUrl } = await ofertarVaga(item.id, { date: data, time: hora, ...(professionalId ? { professionalId } : {}) });
-      if (whatsappUrl) {
-        window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-        showToast('Vaga oferecida. Confira a mensagem antes de enviar.', 'success');
-      } else {
+      if (!whatsappUrl) {
+        janela?.close();
         showToast('Vaga marcada como oferecida, mas a cliente não tem um WhatsApp válido.', 'info');
+        onOfertada();
+      } else if (janela) {
+        janela.opener = null;
+        janela.location.href = whatsappUrl;
+        showToast('Vaga oferecida. Confira a mensagem antes de enviar.', 'success');
+        onOfertada();
+      } else {
+        setLinkManual(whatsappUrl);
+        onRecarregar();
       }
-      onOfertada();
     } catch (error: unknown) {
+      janela?.close();
       showToast(getApiErrorMessage(error, 'Não foi possível oferecer a vaga.'), 'error');
     } finally {
       setEnviando(false);
@@ -264,6 +297,20 @@ function FormularioOferta({
           <Input id={`oferta-hora-${item.id}`} type="time" value={hora} onChange={(e) => setHora(e.target.value)} />
         </Field>
       </div>
+      {linkManual ? (
+        <Banner tone="success" variant="inline">
+          <span className="text-[13px] text-ink">Vaga oferecida. O navegador bloqueou a nova aba:</span>
+          <a
+            href={linkManual}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[13px] font-bold text-whatsapp hover:underline"
+          >
+            <Icon name="chat" size={15} />
+            Abrir conversa no WhatsApp
+          </a>
+        </Banner>
+      ) : null}
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button variant="secondary" size="sm" onClick={onVoltar} disabled={enviando}>Voltar</Button>
         <Button variant="whatsapp" size="sm" onClick={ofertar} loading={enviando} disabled={!data || !hora}>
@@ -275,7 +322,15 @@ function FormularioOferta({
   );
 }
 
-export function ListaEsperaPanel({ aberto, onFechar, filtroInicial, vagaInicial, onAgendar, agendarAoAbrir }: ListaEsperaPanelProps) {
+export function ListaEsperaPanel({
+  aberto,
+  onFechar,
+  filtroInicial,
+  vagaInicial,
+  onAgendar,
+  agendarAoAbrir,
+  onAgendarAoAbrirConsumido,
+}: ListaEsperaPanelProps) {
   const router = useRouter();
   const { showToast } = useToast();
   const periodoInicial = filtroInicial?.period;
@@ -346,10 +401,11 @@ export function ListaEsperaPanel({ aberto, onFechar, filtroInicial, vagaInicial,
   useEffect(() => {
     if (!agendarAoAbrir || agendamentoAutomaticoFeito.current || !carregada) return;
     agendamentoAutomaticoFeito.current = true;
+    onAgendarAoAbrirConsumido?.();
     const item = itens.find((i) => i.id === agendarAoAbrir);
     if (item) agendar(item);
     else showToast('Essa inscrição não está mais na lista de espera.', 'info');
-  }, [agendar, agendarAoAbrir, carregada, itens, showToast]);
+  }, [agendar, agendarAoAbrir, carregada, itens, onAgendarAoAbrirConsumido, showToast]);
 
   const cancelar = async (item: WaitlistItem) => {
     setOcupadoId(item.id);
@@ -461,6 +517,7 @@ export function ListaEsperaPanel({ aberto, onFechar, filtroInicial, vagaInicial,
                       item={item}
                       vagaInicial={vagaInicial}
                       onVoltar={() => setOfertandoId(null)}
+                      onRecarregar={carregar}
                       onOfertada={() => {
                         setOfertandoId(null);
                         carregar();

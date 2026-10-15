@@ -30,7 +30,7 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import { getToday } from '@/lib/dateUtils';
@@ -205,6 +205,7 @@ type InicialDoModal = InicialNovoAgendamento & { clientId?: string; serviceId?: 
 export function AppointmentModule() {
   // ?aba=aguardando-pix (vindo do "Ver pendências" da tela Hoje) abre direto na aba do Pix.
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<AgendaTab>(() =>
     searchParams.get('aba') === 'aguardando-pix' ? 'aguardando-pix' : 'agenda',
   );
@@ -845,6 +846,8 @@ export function AppointmentModule() {
         onFechar={() => setListaEsperaAberta(false)}
         onAgendar={agendarDaEspera}
         agendarAoAbrir={esperaParam}
+        // Consumido o ?espera=<id>, a URL volta a ser só /agendamentos (mesmo padrão do ?novo=1).
+        onAgendarAoAbrirConsumido={() => router.replace('/agendamentos', { scroll: false })}
       />
 
       <ComandaModal appointmentId={comandaDe} onClose={() => setComandaDe(null)} onAtualizada={loadAppointments} />

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Button, Card, Field, Icon, Input, Select, Skeleton } from '@/components/ui';
+import { useCallback, useEffect, useState } from 'react';
+import { Banner, Button, Card, Field, Icon, Input, Select, Skeleton } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { buscarCrmSettings, salvarCrmSettings } from '@/lib/crm';
 import { parseValorBR } from '@/lib/formatters';
@@ -19,21 +19,33 @@ export function CrmSettingsSection() {
   const [segmento, setSegmento] = useState<Segmento>('outro');
   const [meta, setMeta] = useState('');
   const [erroMeta, setErroMeta] = useState<string | undefined>();
+  // Sem os valores reais carregados, salvar gravaria os padrões por cima deles: os campos
+  // somem e o "Salvar" fica desligado até a carga dar certo.
+  const [erroCarga, setErroCarga] = useState<string | null>(null);
+
+  const carregar = useCallback(async (ativo: () => boolean = () => true) => {
+    setLoading(true);
+    setErroCarga(null);
+    try {
+      const s = await buscarCrmSettings();
+      if (!ativo()) return;
+      setSegmento(s.segment);
+      setMeta(formatarMeta(s.dailyRevenueGoal));
+    } catch (error: unknown) {
+      if (ativo()) setErroCarga(getApiErrorMessage(error, 'Não foi possível carregar os ajustes do CRM.'));
+    } finally {
+      if (ativo()) setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     let ativo = true;
-    buscarCrmSettings()
-      .then((s) => {
-        if (!ativo) return;
-        setSegmento(s.segment);
-        setMeta(formatarMeta(s.dailyRevenueGoal));
-      })
-      .catch((error: unknown) => showToast(getApiErrorMessage(error, 'Não foi possível carregar os ajustes do CRM.'), 'error'))
-      .finally(() => { if (ativo) setLoading(false); });
+    carregar(() => ativo);
     return () => { ativo = false; };
-  }, [showToast]);
+  }, [carregar]);
 
   const salvar = async () => {
+    if (erroCarga) return;
     // Vazio remove a meta; qualquer outra coisa precisa ser um valor em reais.
     const texto = meta.trim();
     const dailyRevenueGoal = texto === '' ? null : parseValorBR(texto);
@@ -65,6 +77,18 @@ export function CrmSettingsSection() {
       </div>
       {loading ? (
         <Skeleton className="h-11 w-full" label="Carregando..." />
+      ) : erroCarga ? (
+        <Banner
+          tone="danger"
+          variant="inline"
+          action={
+            <Button variant="secondary" size="sm" onClick={() => carregar()}>
+              Tentar de novo
+            </Button>
+          }
+        >
+          <span className="flex-1 text-[14px] text-ink">{erroCarga}</span>
+        </Banner>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field id="crm-segmento" label="Segmento do negócio" hint="Define os campos sugeridos da ficha técnica">
@@ -87,7 +111,7 @@ export function CrmSettingsSection() {
         </div>
       )}
       <div className="flex justify-end">
-        <Button onClick={salvar} loading={saving} disabled={loading}>
+        <Button onClick={salvar} loading={saving} disabled={loading || Boolean(erroCarga)}>
           {!saving && <Icon name="save" size={18} />} Salvar
         </Button>
       </div>

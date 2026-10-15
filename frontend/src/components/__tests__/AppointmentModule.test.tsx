@@ -832,6 +832,7 @@ describe('AppointmentModule: ações de status', () => {
       mockApiGet.mockReset();
       mockApiGet.mockImplementation(() => Promise.resolve({ data: [] }));
       mockApiPost.mockReset();
+      mockReplace.mockReset();
       Object.values(espera).forEach((fn) => fn.mockReset());
       espera.listarEspera.mockResolvedValue([]);
     });
@@ -922,6 +923,8 @@ describe('AppointmentModule: ações de status', () => {
         }),
       );
       expect(await screen.findByRole('dialog', { name: 'Novo agendamento' })).toBeInTheDocument();
+      // Consumido o ?espera, a URL volta a ser só /agendamentos.
+      expect(mockReplace).toHaveBeenCalledWith('/agendamentos', { scroll: false });
     });
   });
 });

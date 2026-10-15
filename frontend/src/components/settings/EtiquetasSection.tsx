@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { AxiosError } from 'axios';
-import { Button, Card, Field, Icon, IconButton, Input, Skeleton } from '@/components/ui';
+import { Banner, Button, Card, Field, Icon, IconButton, Input, Skeleton } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { ETIQUETA_CORES } from '@/components/clientes/ListaClientes';
 import { cn } from '@/lib/cn';
@@ -72,16 +72,25 @@ export function EtiquetasSection() {
   const [criando, setCriando] = useState(false);
   const [editando, setEditando] = useState<{ id: string; nome: string; cor: CorEtiqueta } | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [apagandoId, setApagandoId] = useState<string | null>(null);
+  const [erroCarga, setErroCarga] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     try {
       setEtiquetas(await listarEtiquetas());
+      setErroCarga(null);
     } catch (error: unknown) {
-      showToast(getApiErrorMessage(error, 'Não foi possível carregar as etiquetas.'), 'error');
+      setErroCarga(getApiErrorMessage(error, 'Não foi possível carregar as etiquetas.'));
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, []);
+
+  const tentarDeNovo = () => {
+    setLoading(true);
+    setErroCarga(null);
+    carregar();
+  };
 
   useEffect(() => {
     carregar();
@@ -122,12 +131,15 @@ export function EtiquetasSection() {
 
   const apagar = async (etiqueta: EtiquetaComContagem) => {
     if (!window.confirm('Remover a etiqueta de todas as clientes?')) return;
+    setApagandoId(etiqueta.id);
     try {
       await removerEtiqueta(etiqueta.id);
       showToast('Etiqueta apagada.', 'info');
       carregar();
     } catch (error: unknown) {
       showToast(getApiErrorMessage(error, 'Não foi possível apagar a etiqueta.'), 'error');
+    } finally {
+      setApagandoId(null);
     }
   };
 
@@ -160,6 +172,18 @@ export function EtiquetasSection() {
 
       {loading ? (
         <Skeleton className="h-11 w-full" label="Carregando..." />
+      ) : erroCarga ? (
+        <Banner
+          tone="danger"
+          variant="inline"
+          action={
+            <Button variant="secondary" size="sm" onClick={tentarDeNovo}>
+              Tentar de novo
+            </Button>
+          }
+        >
+          <span className="flex-1 text-[14px] text-ink">{erroCarga}</span>
+        </Banner>
       ) : etiquetas.length === 0 ? (
         <p className="py-4 text-center text-[14px] text-muted">Nenhuma etiqueta criada ainda.</p>
       ) : (
@@ -205,7 +229,12 @@ export function EtiquetasSection() {
                         label={`Editar ${etiqueta.name}`}
                         onClick={() => setEditando({ id: etiqueta.id, nome: etiqueta.name, cor })}
                       />
-                      <IconButton icon={ICONE_APAGAR} label={`Apagar ${etiqueta.name}`} onClick={() => apagar(etiqueta)} />
+                      <IconButton
+                        icon={ICONE_APAGAR}
+                        label={`Apagar ${etiqueta.name}`}
+                        disabled={apagandoId === etiqueta.id}
+                        onClick={() => apagar(etiqueta)}
+                      />
                     </div>
                   </div>
                 )}
