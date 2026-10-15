@@ -54,9 +54,41 @@ import { conteudoDemo } from '@/lib/conteudoDemo';
 import { formatCurrency, formatPhone } from '@/lib/formatters';
 import { useToast } from '@/components/Toast';
 import { AVISO_RECURSO_A_CAMINHO, Avatar, Icon, StatusChip } from '@/components/ui';
-import { FASE_PADRAO, FASE_TOKENS, descreverUltimaVisita, exemploParaIndice } from '@/components/ClientModule';
 import { linkWhatsapp } from '@/lib/whatsapp';
 import type { Appointment, Client } from '@/types';
+
+// Helpers que moravam em ClientModule.tsx até a lista virar CRM real (Tarefa 11); ficam
+// aqui só até a ficha nova (Tarefa 13) substituir este painel.
+const FASE_TOKENS: Record<string, { fundo: string; texto: string; ponto: string }> = {
+  Novo: { fundo: 'bg-status-confirmed/12', texto: 'text-status-confirmed', ponto: 'bg-status-confirmed' },
+  Recorrente: { fundo: 'bg-success/12', texto: 'text-success-text', ponto: 'bg-success' },
+  Fiel: { fundo: 'bg-warning/12', texto: 'text-warning-text', ponto: 'bg-warning' },
+  'Em risco': { fundo: 'bg-brand-text/12', texto: 'text-brand-text', ponto: 'bg-brand-text' },
+  Perdido: { fundo: 'bg-danger/12', texto: 'text-danger', ponto: 'bg-danger' },
+};
+const FASE_PADRAO = FASE_TOKENS.Novo;
+
+function exemploParaIndice(indice: number) {
+  const exemplos = conteudoDemo.clientes.exemplos;
+  return exemplos[indice % exemplos.length];
+}
+
+/** "12 de set" + "(hoje)"/"(ontem)"/"(há N dias)", calculado da data real. */
+function descreverUltimaVisita(
+  dateString: string | null,
+  agora: Date = new Date(),
+): { texto: string; relativo: string | null } {
+  if (!dateString) return { texto: 'Nunca visitou', relativo: null };
+  const data = new Date(dateString);
+  if (Number.isNaN(data.getTime())) return { texto: 'Nunca visitou', relativo: null };
+  const texto = data.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
+  const inicioDoDia = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const dias = Math.round((inicioDoDia(agora) - inicioDoDia(data)) / 86_400_000);
+  if (dias === 0) return { texto, relativo: '(hoje)' };
+  if (dias === 1) return { texto, relativo: '(ontem)' };
+  if (dias > 1) return { texto, relativo: `(há ${dias} dias)` };
+  return { texto, relativo: null };
+}
 
 // Reexportado para quem já importava `linkWhatsapp` daqui (M3 da revisão final).
 export { linkWhatsapp };

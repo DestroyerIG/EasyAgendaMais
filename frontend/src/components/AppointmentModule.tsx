@@ -310,7 +310,7 @@ export function AppointmentModule() {
   };
 
   useEffect(() => {
-    if (newAppointment.open) openModal();
+    if (newAppointment.open) openModal(newAppointment.clienteId ? { clientId: newAppointment.clienteId } : undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newAppointment.open]);
 

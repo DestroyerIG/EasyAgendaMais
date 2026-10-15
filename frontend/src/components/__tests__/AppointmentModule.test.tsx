@@ -90,6 +90,26 @@ describe('AppointmentModule', () => {
     });
   });
 
+  it('?novo=1&cliente=<id> abre o novo agendamento já com a cliente escolhida', async () => {
+    mockSearch.value = 'novo=1&cliente=c2';
+    mockApiGet.mockImplementation((url: string) => {
+      if (url === '/clients') {
+        return Promise.resolve({
+          data: [
+            { id: 'c1', name: 'Ana Lima', phone: '11911110000' },
+            { id: 'c2', name: 'Beatriz Costa', phone: '11922220000' },
+          ],
+        });
+      }
+      return Promise.resolve({ data: [] });
+    });
+    render(<AppointmentModule />);
+
+    const beatriz = await screen.findByRole('button', { name: /Beatriz Costa/ });
+    expect(beatriz).toHaveClass('border-brand');
+    expect(screen.getByRole('button', { name: /Ana Lima/ })).not.toHaveClass('border-brand');
+  });
+
   it('sem ?novo=1 não carrega os dados do formulário de criação', async () => {
     render(<AppointmentModule />);
 
