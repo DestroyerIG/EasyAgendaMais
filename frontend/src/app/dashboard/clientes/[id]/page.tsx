@@ -20,7 +20,7 @@ export default function FichaClientePage() {
       onManageBilling={openBillingPortal}
       title="Clientes indisponível"
     >
-      <FichaCliente clienteId={id} nomeNegocio={user?.businessName} />
+      <FichaCliente key={id} clienteId={id} nomeNegocio={user?.businessName} />
     </FeatureGate>
   );
 }

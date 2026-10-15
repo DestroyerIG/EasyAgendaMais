@@ -5,9 +5,12 @@ import { Button, Field, Icon, Input, Modal, Skeleton } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { SecaoRecolhivel } from '@/components/clientes/SecaoRecolhivel';
 import { formatDataNegocio } from '@/lib/formatters';
+import { getApiErrorMessage } from '@/utils/handleApiError';
 import { enviarFoto, listarFotos, removerFoto, TAMANHO_MAX_FOTO, type FotoCliente } from '@/lib/clientPhotos';
 
 const TIPOS_ACEITOS = 'image/jpeg,image/png,image/webp';
+// Depois de recarregar por link vencido, só aceita outra recarga passado este tempo.
+const ESPERA_NOVA_RECARGA_MS = 60_000;
 
 export interface GaleriaClienteProps {
   clienteId: string;
@@ -37,8 +40,10 @@ export function GaleriaCliente({ clienteId }: GaleriaClienteProps) {
     try {
       setFotos(await listarFotos(clienteId));
       setErro(false);
+      return true;
     } catch {
       setErro(true);
+      return false;
     }
   }, [clienteId]);
 
@@ -46,10 +51,14 @@ export function GaleriaCliente({ clienteId }: GaleriaClienteProps) {
     carregar();
   }, [carregar]);
 
-  const aoFalharImagem = () => {
+  // Link expirado: pede links novos uma vez. Depois que a nova lista chega (e as imagens
+  // têm tempo de carregar), libera de novo para o próximo vencimento — sem loop se o
+  // link novo também falhar logo em seguida.
+  const aoFalharImagem = async () => {
     if (recarregouPorFalha.current) return;
     recarregouPorFalha.current = true;
-    carregar();
+    const ok = await carregar();
+    if (ok) setTimeout(() => { recarregouPorFalha.current = false; }, ESPERA_NOVA_RECARGA_MS);
   };
 
   const aoEscolher = (e: ChangeEvent<HTMLInputElement>) => {
@@ -78,7 +87,8 @@ export function GaleriaCliente({ clienteId }: GaleriaClienteProps) {
       recarregouPorFalha.current = false;
       await carregar();
     } catch (err) {
-      showToast(err instanceof Error && err.message ? err.message : 'Erro ao anexar a foto', 'error');
+      // Mensagem do backend (Axios) ou a validação local de clientPhotos (Error comum).
+      showToast(getApiErrorMessage(err, 'Erro ao anexar a foto'), 'error');
     } finally {
       setEnviando(false);
     }

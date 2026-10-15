@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import type { ClientProfileDto, TimelineEvento } from '@/lib/crm';
 import { SEGMENTOS } from '@/lib/technicalSheetTemplates';
@@ -30,10 +30,11 @@ vi.mock('@/lib/clientPhotos', async (importOriginal) => ({
   removerFoto: vi.fn().mockResolvedValue(undefined),
 }));
 
+const mockDefinirEtiquetas = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/tags', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/tags')>()),
   listarEtiquetas: vi.fn().mockResolvedValue([{ id: 't1', name: 'Pé e mão', color: 'brand', clientes: 3 }]),
-  definirEtiquetasCliente: vi.fn().mockResolvedValue([]),
+  definirEtiquetasCliente: (...a: unknown[]) => mockDefinirEtiquetas(...a),
 }));
 
 vi.mock('@/lib/api', () => ({
@@ -82,6 +83,11 @@ describe('FichaCliente', () => {
     mockListarFotos.mockResolvedValue([]);
     mockSalvarFicha.mockImplementation(async (_id: string, f: unknown) => ({ ...perfil().fichaTecnica, ...(f as object) }));
     mockRegistrarConsentimento.mockResolvedValue({ estado: 'consentido', desde: '2026-10-15T12:00:00.000Z', canal: 'painel' });
+    mockDefinirEtiquetas.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('mostra cabeçalho com breadcrumb, fase e etiquetas', async () => {
@@ -221,5 +227,71 @@ describe('FichaCliente', () => {
     await screen.findByRole('heading', { level: 1, name: 'Mariana Souza' });
     await screen.findByText('Manutenção em gel');
     expect(document.body.textContent).not.toMatch(/Assinante Clube/i);
+  });
+
+  it('revogar pede confirmação e chama a API com false', async () => {
+    mockRegistrarConsentimento.mockResolvedValue({ estado: 'revogado', desde: '2026-10-15T12:00:00.000Z', canal: 'painel' });
+    renderizar();
+    fireEvent.click(await screen.findByRole('button', { name: 'Revogar' }));
+    const dialogo = await screen.findByRole('dialog');
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Revogar consentimento' }));
+    await waitFor(() => expect(mockRegistrarConsentimento).toHaveBeenCalledWith('c1', false));
+    expect(await screen.findByText('Consentimento revogado em 15/10/2026')).toBeInTheDocument();
+  });
+
+  it('erro do backend ao anexar foto mostra a mensagem da API', async () => {
+    mockEnviarFoto.mockRejectedValue({
+      isAxiosError: true,
+      message: 'Request failed with status code 400',
+      response: { status: 400, data: { error: 'Imagem inválida' } },
+    });
+    renderizar();
+    await screen.findByText('Nenhuma foto ainda');
+    const foto = new File(['x'], 'unha.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText('Anexar foto'), { target: { files: [foto] } });
+    const dialogo = await screen.findByRole('dialog');
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Enviar foto' }));
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith('Imagem inválida', 'error'));
+    expect(mockShowToast).not.toHaveBeenCalledWith('Request failed with status code 400', 'error');
+  });
+
+  it('aba que falha não deixa a lista da aba anterior na tela', async () => {
+    renderizar();
+    expect(await screen.findByText('Manutenção em gel')).toBeInTheDocument();
+    mockBuscarTimeline.mockRejectedValueOnce(new Error('falhou'));
+    fireEvent.click(screen.getByRole('tab', { name: 'Financeiro' }));
+    expect(await screen.findByText('Não foi possível carregar a linha do tempo')).toBeInTheDocument();
+    expect(screen.queryByText('Manutenção em gel')).not.toBeInTheDocument();
+  });
+
+  it('link de foto vencido recarrega a lista uma vez e libera de novo depois', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockListarFotos.mockResolvedValue([
+      { id: 'f1', url: 'https://assinado.example/f1', caption: 'Manutenção', serviceName: null, takenAt: '2026-09-12T13:00:00.000Z' },
+    ]);
+    renderizar();
+    fireEvent.error(await screen.findByRole('img', { name: 'Manutenção' }));
+    await waitFor(() => expect(mockListarFotos).toHaveBeenCalledTimes(2));
+    // Falha logo em seguida: não entra em laço.
+    fireEvent.error(screen.getByRole('img', { name: 'Manutenção' }));
+    expect(mockListarFotos).toHaveBeenCalledTimes(2);
+    // Próximo vencimento, mais tarde: recarrega de novo.
+    await vi.advanceTimersByTimeAsync(61_000);
+    fireEvent.error(screen.getByRole('img', { name: 'Manutenção' }));
+    await waitFor(() => expect(mockListarFotos).toHaveBeenCalledTimes(3));
+  });
+
+  it('recarregar o perfil depois de salvar etiquetas não apaga a ficha em edição', async () => {
+    renderizar();
+    await screen.findByRole('heading', { name: 'Ficha técnica — Unhas' });
+    fireEvent.change(screen.getByLabelText('Comprimento'), { target: { value: 'Tamanho 3' } });
+    mockBuscarPerfil.mockResolvedValue(perfil({ etiquetas: [{ id: 't2', name: 'Noiva', color: 'success' }] }));
+    const menu = screen.getByRole('button', { name: 'Mais opções da cliente' });
+    fireEvent.pointerDown(menu, { button: 0, ctrlKey: false, pointerType: 'mouse' });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Etiquetas' }));
+    const dialogo = await screen.findByRole('dialog');
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Salvar etiquetas' }));
+    expect(await screen.findByText('Noiva')).toBeInTheDocument();
+    expect(screen.getByLabelText('Comprimento')).toHaveValue('Tamanho 3');
   });
 });

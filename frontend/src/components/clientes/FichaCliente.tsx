@@ -76,7 +76,9 @@ export function FichaCliente({ clienteId, nomeNegocio }: FichaClienteProps) {
       if (!silencioso) setEstado('carregando');
       try {
         const p = await buscarPerfil(clienteId);
-        setPerfil(p);
+        // Recarga silenciosa (depois de etiquetas/cadastro) mantém a mesma ficha técnica,
+        // para não apagar o que está sendo editado nela sem salvar.
+        setPerfil((anterior) => (silencioso && anterior ? { ...p, fichaTecnica: anterior.fichaTecnica } : p));
         setEstado('pronto');
       } catch (e) {
         if (silencioso) {

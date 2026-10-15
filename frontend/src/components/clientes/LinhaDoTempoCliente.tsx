@@ -87,7 +87,12 @@ export function LinhaDoTempoCliente({ clienteId, className }: LinhaDoTempoClient
           type="button"
           role="tab"
           aria-selected={filtro === a.valor}
-          onClick={() => setFiltro(a.valor)}
+          onClick={() => {
+            if (a.valor === filtro) return;
+            // A lista da aba anterior não fica na tela enquanto (ou se falhar) a nova carrega.
+            setEventos(null);
+            setFiltro(a.valor);
+          }}
           className={cn(
             'min-h-9 whitespace-nowrap rounded-lg px-3 text-[12px] font-semibold transition-colors',
             filtro === a.valor ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink',
@@ -109,7 +114,7 @@ export function LinhaDoTempoCliente({ clienteId, className }: LinhaDoTempoClient
         </div>
       );
     }
-    if (erro && eventos === null) {
+    if (erro) {
       return (
         <div className="flex flex-col items-center gap-2 py-6 text-center">
           <p className="text-[13px] text-muted">Não foi possível carregar a linha do tempo</p>
