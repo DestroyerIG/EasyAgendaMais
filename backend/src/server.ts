@@ -53,6 +53,7 @@ import clientRoutes from './modules/clients/clients.routes.js';
 import crmRoutes from './modules/crm/crm.routes.js';
 import clientPhotoRoutes from './modules/clientPhotos/clientPhotos.routes.js';
 import tagRoutes from './modules/tags/tags.routes.js';
+import waitlistRoutes from './modules/waitlist/waitlist.routes.js';
 
 // @ts-ignore
 import financeRoutes from './modules/finance/finance.routes.js';
@@ -461,6 +462,7 @@ app.use(`${API_V1}/cash`, cashRoutes);
 app.use(`${API_V1}/clients`, crmRoutes);
 app.use(`${API_V1}/clients`, clientPhotoRoutes);
 app.use(`${API_V1}/tags`, tagRoutes);
+app.use(`${API_V1}/waitlist`, waitlistRoutes);
 app.use(
   `${API_V1}/clients`,
   clientRoutes
