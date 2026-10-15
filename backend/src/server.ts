@@ -50,6 +50,7 @@ import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 
 // @ts-ignore
 import clientRoutes from './modules/clients/clients.routes.js';
+import crmRoutes from './modules/crm/crm.routes.js';
 
 // @ts-ignore
 import financeRoutes from './modules/finance/finance.routes.js';
@@ -447,6 +448,7 @@ app.use(`${API_V1}/products`, productRoutes);
 app.use(`${API_V1}/comandas`, comandaRoutes);
 app.use(`${API_V1}/cash`, cashRoutes);
 
+app.use(`${API_V1}/clients`, crmRoutes);
 app.use(
   `${API_V1}/clients`,
   clientRoutes
