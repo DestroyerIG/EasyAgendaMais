@@ -3,8 +3,8 @@
 /**
  * Tela Clientes (Stitch "Ajustada", 805f33): cabeçalho, alternador Lista/Fases, "Nova
  * cliente" e o modal de cadastro/edição. A lista é o CRM real (ListaClientes, dados de
- * GET /clients/insights); a linha abre a ficha em /clientes/<id>. A visão por fases chega
- * na Tarefa 12.
+ * GET /clients/insights); a linha abre a ficha em /clientes/<id>. A visão por fases
+ * é o kanban do CRM (FasesClientes).
  */
 
 import { useCallback, useState } from 'react';
@@ -14,6 +14,7 @@ import { Icon } from '@/components/ui';
 import { ClientFormModal } from '@/components/clients/ClientFormModal';
 import type { ClientFormData } from '@/components/clients/ClientFormModal';
 import { ListaClientes } from '@/components/clientes/ListaClientes';
+import { FasesClientes } from '@/components/clientes/FasesClientes';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { cn } from '@/lib/cn';
@@ -132,7 +133,6 @@ export const ClientModule = () => {
         </div>
       </div>
 
-      {/* A visão por fases (kanban) chega na Tarefa 12. */}
       {visao === 'lista' ? (
         <ListaClientes
           nomeNegocio={user?.businessName}
@@ -141,7 +141,9 @@ export const ClientModule = () => {
           versao={versao}
           onTotalGeral={setTotalGeral}
         />
-      ) : null}
+      ) : (
+        <FasesClientes nomeNegocio={user?.businessName} versao={versao} />
+      )}
 
       <ClientFormModal
         isOpen={isModalOpen}

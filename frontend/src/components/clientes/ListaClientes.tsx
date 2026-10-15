@@ -112,7 +112,7 @@ export function construirPaginas(atual: number, total: number): Array<number | '
   return resultado;
 }
 
-const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] ?? nome;
+export const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] ?? nome;
 
 const legendaCiclo = (c: ClienteInsight): { texto: string; alerta: boolean } => {
   if (c.cicloMedio === null) return { texto: 'Histórico em formação', alerta: false };

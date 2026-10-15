@@ -27,6 +27,10 @@ const mockBuscarInsights = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/crm', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/crm')>()),
   buscarInsights: (...args: unknown[]) => mockBuscarInsights(...args),
+  buscarFases: vi.fn().mockResolvedValue({
+    colunas: ['novo', 'recorrente', 'fiel', 'em_risco', 'perdido'].map((fase) => ({ fase, rotulo: fase, contagem: 0, ltvTotal: 0, cartoes: [] })),
+    kpis: { ativas: 0, ativasNovasNoMes: 0, ltvMedio: null, retencao: null },
+  }),
 }));
 vi.mock('@/lib/tags', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/tags')>()),
@@ -111,10 +115,11 @@ describe('ClientModule', () => {
     expect(busca).toHaveFocus();
   });
 
-  it('a Fases ainda não tem conteúdo: a lista some ao alternar', async () => {
+  it('alternar para Fases troca a lista pela visão por fases', async () => {
     render(<ClientModule />);
     await screen.findByRole('row', { name: 'Ver ficha de Maria Silva' });
     fireEvent.click(screen.getByRole('tab', { name: /Fases/ }));
     await waitFor(() => expect(screen.queryByRole('row', { name: 'Ver ficha de Maria Silva' })).not.toBeInTheDocument());
+    expect(await screen.findByText('Taxa de retenção')).toBeInTheDocument();
   });
 });
