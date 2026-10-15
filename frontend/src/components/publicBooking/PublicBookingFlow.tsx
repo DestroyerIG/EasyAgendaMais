@@ -100,6 +100,8 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
   const [time, setTime] = useState<string | null>(null);
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
+  // LGPD: consentimento pré-marcado não vale — a caixa começa desmarcada.
+  const [whatsappConsent, setWhatsappConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pixResult, setPixResult] = useState<{ pixPayload: string; depositAmount: number; expiresAt: string } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -173,7 +175,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
     setError(null);
     try {
       const result = await publicBookingApi.createAppointment(slug, {
-        serviceId, professionalId, date, time, clientName, clientPhone,
+        serviceId, professionalId, date, time, clientName, clientPhone, whatsappConsent,
       });
       setPixResult({ pixPayload: result.pixPayload, depositAmount: result.depositAmount, expiresAt: result.expiresAt });
     } catch (err) {
@@ -406,6 +408,24 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                   onChange={(e) => setClientPhone(e.target.value)}
                   className="h-11 rounded-control border border-line bg-surface px-3 text-[15px] text-ink"
                 />
+              </label>
+              <label className="mt-1 flex items-start gap-3 rounded-card border border-line bg-surface-2 p-3">
+                <input
+                  type="checkbox"
+                  checked={whatsappConsent}
+                  onChange={(e) => setWhatsappConsent(e.target.checked)}
+                  aria-labelledby="consentimento-whatsapp"
+                  aria-describedby="consentimento-whatsapp-ajuda"
+                  className="mt-0.5 h-5 w-5 shrink-0 accent-brand"
+                />
+                <span className="flex flex-col gap-0.5">
+                  <span id="consentimento-whatsapp" className="text-[14px] font-semibold text-ink">
+                    Quero receber lembretes e novidades pelo WhatsApp de {storefront.name}
+                  </span>
+                  <span id="consentimento-whatsapp-ajuda" className="text-[13px] text-muted">
+                    Você pode cancelar quando quiser respondendo SAIR.
+                  </span>
+                </span>
               </label>
             </div>
           </>

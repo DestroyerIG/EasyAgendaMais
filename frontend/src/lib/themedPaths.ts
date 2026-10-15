@@ -54,4 +54,5 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/publicBooking',
   'src/components/comanda',
   'src/components/caixa',
+  'src/components/waitlist',
 ];

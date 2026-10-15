@@ -198,6 +198,7 @@ export default function DashboardPage() {
               <PainelPendencias
                 pendencias={hoje.pendencias}
                 businessName={user?.businessName || 'nosso espaço'}
+                data={hoje.saudacao.date}
                 className="order-1"
               />
               <WeeklyChart data={semana} className="order-3" />

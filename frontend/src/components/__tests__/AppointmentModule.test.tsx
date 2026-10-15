@@ -14,10 +14,11 @@ vi.mock('next/navigation', async (importOriginal) => ({
 
 const mockApiGet = vi.hoisted(() => vi.fn());
 const mockApiPut = vi.hoisted(() => vi.fn().mockResolvedValue({ data: {} }));
+const mockApiPost = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/api', () => ({
   default: {
     get: (...args: unknown[]) => mockApiGet(...args),
-    post: vi.fn(),
+    post: (...args: unknown[]) => mockApiPost(...args),
     put: (...args: unknown[]) => mockApiPut(...args),
   },
 }));
@@ -38,6 +39,14 @@ vi.mock('@/lib/comanda', async (importOriginal) => ({
   buscarDetalhesAgendamento: vi.fn().mockResolvedValue({ appointment: {}, client_stats: { visits_this_year: 0, average_cycle_days: null, last_visit_days_ago: null, last_visit_professional: null, is_recurring: false }, client_notes: null }),
 }));
 vi.mock('@/lib/produtos', () => ({ listarProdutos: vi.fn().mockResolvedValue([]) }));
+const espera = vi.hoisted(() => ({
+  listarEspera: vi.fn(),
+  inscreverEspera: vi.fn(),
+  atualizarEspera: vi.fn(),
+  ofertarVaga: vi.fn(),
+  marcarAgendada: vi.fn(),
+}));
+vi.mock('@/lib/waitlist', () => espera);
 
 const { AppointmentModule } = await import('../AppointmentModule');
 
@@ -816,5 +825,103 @@ describe('AppointmentModule: ações de status', () => {
     });
     render(<AppointmentModule />);
     expect(await screen.findByText('Almoço')).toBeInTheDocument();
+  });
+  describe('lista de espera', () => {
+    beforeEach(() => {
+      mockSearch.value = '';
+      mockApiGet.mockReset();
+      mockApiGet.mockImplementation(() => Promise.resolve({ data: [] }));
+      mockApiPost.mockReset();
+      Object.values(espera).forEach((fn) => fn.mockReset());
+      espera.listarEspera.mockResolvedValue([]);
+    });
+
+    const inscricao = {
+      id: 'w1',
+      cliente: { id: 'c1', name: 'Mariana Souza', phone: '83999990000' },
+      servico: { id: 's1', name: 'Manutenção' },
+      profissional: { id: 'p1', name: 'Camila Rocha' },
+      desiredDate: '2026-10-20',
+      period: 'tarde' as const,
+      notes: null,
+      status: 'aguardando' as const,
+      offeredAt: null,
+      createdAt: '2026-10-14T12:00:00.000Z',
+    };
+
+    const responderFormulario = () =>
+      mockApiGet.mockImplementation((url: string) => {
+        if (url === '/clients') return Promise.resolve({ data: [{ id: 'c1', name: 'Mariana Souza', phone: '83999990000' }] });
+        if (url === '/business/professionals') return Promise.resolve({ data: [{ id: 'p1', name: 'Camila Rocha' }] });
+        if (url === '/business/services') return Promise.resolve({ data: [{ id: 's1', name: 'Manutenção', price: 130, duration_minutes: 90 }] });
+        if (url === '/appointments/available-slots') return Promise.resolve({ data: ['14:00', '15:00'] });
+        if (url === '/business/settings') return Promise.reject(new Error('sem acesso'));
+        return Promise.resolve({ data: [] });
+      });
+
+    it('o botão "Lista de espera" do cabeçalho abre o painel', async () => {
+      const user = userEvent.setup();
+      render(<AppointmentModule />);
+      await user.click(await screen.findByRole('button', { name: 'Lista de espera' }));
+      expect(await screen.findByText('Ninguém na lista de espera')).toBeInTheDocument();
+    });
+
+    it('agendar pela lista abre o novo agendamento preenchido e, ao salvar, marca a inscrição com o id criado', async () => {
+      const user = userEvent.setup();
+      responderFormulario();
+      espera.listarEspera.mockResolvedValue([inscricao]);
+      espera.marcarAgendada.mockResolvedValue({ ...inscricao, status: 'agendada' });
+      mockApiPost.mockResolvedValue({ data: { id: 'a9' } });
+      render(<AppointmentModule />);
+
+      await user.click(await screen.findByRole('button', { name: 'Lista de espera' }));
+      await user.click(await screen.findByRole('button', { name: 'Agendar' }));
+
+      await waitFor(() =>
+        expect(mockApiGet).toHaveBeenCalledWith('/appointments/available-slots', {
+          params: { professionalId: 'p1', date: '2026-10-20', serviceId: 's1' },
+        }),
+      );
+      await user.click(await screen.findByRole('button', { name: '14:00' }));
+      await user.click(screen.getByRole('button', { name: 'Agendar' }));
+
+      await waitFor(() =>
+        expect(mockApiPost).toHaveBeenCalledWith('/appointments', {
+          clientId: 'c1', professionalId: 'p1', serviceId: 's1', date: '2026-10-20', time: '14:00',
+        }),
+      );
+      await waitFor(() => expect(espera.marcarAgendada).toHaveBeenCalledWith('w1', 'a9'));
+    });
+
+    it('um novo agendamento comum não marca nada na lista de espera', async () => {
+      const user = userEvent.setup();
+      mockSearch.value = 'novo=1&cliente=c1';
+      responderFormulario();
+      mockApiPost.mockResolvedValue({ data: { id: 'a10' } });
+      render(<AppointmentModule />);
+
+      await waitFor(() => expect(screen.getByRole('option', { name: 'Camila Rocha' })).toBeInTheDocument());
+      await user.selectOptions(screen.getByLabelText('Profissional'), 'p1');
+      await user.selectOptions(screen.getByLabelText('Serviço'), 's1');
+      await user.click(await screen.findByRole('button', { name: '14:00' }));
+      await user.click(screen.getByRole('button', { name: 'Agendar' }));
+
+      await waitFor(() => expect(mockApiPost).toHaveBeenCalledWith('/appointments', expect.objectContaining({ clientId: 'c1' })));
+      expect(espera.marcarAgendada).not.toHaveBeenCalled();
+    });
+
+    it('?espera=<id> (vindo da Hoje) abre a lista e o agendamento da inscrição', async () => {
+      mockSearch.value = 'espera=w1';
+      responderFormulario();
+      espera.listarEspera.mockResolvedValue([inscricao]);
+      render(<AppointmentModule />);
+
+      await waitFor(() =>
+        expect(mockApiGet).toHaveBeenCalledWith('/appointments/available-slots', {
+          params: { professionalId: 'p1', date: '2026-10-20', serviceId: 's1' },
+        }),
+      );
+      expect(await screen.findByRole('dialog', { name: 'Novo agendamento' })).toBeInTheDocument();
+    });
   });
 });

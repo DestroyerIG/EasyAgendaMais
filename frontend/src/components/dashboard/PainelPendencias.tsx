@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Button, Card, Icon, buttonVariants } from '@/components/ui';
 import { MensagemWhatsappModal } from '@/components/clientes/MensagemWhatsappModal';
+import { ListaEsperaPanel, type VagaOferta } from '@/components/waitlist/ListaEsperaPanel';
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/formatters';
 import type { Pendencia } from '@/lib/hoje';
@@ -14,6 +15,8 @@ export interface PainelPendenciasProps {
   pendencias: readonly Pendencia[];
   /** Nome do negócio, para as mensagens de WhatsApp ("… aqui no {negocio}"). */
   businessName: string;
+  /** O dia da tela ("YYYY-MM-DD", fuso do negócio): as vagas da tarde são deste dia. */
+  data: string;
   className?: string;
 }
 
@@ -89,8 +92,10 @@ function ContextoAvaliacao({ avaliacao }: { avaliacao: Avaliacao }) {
   );
 }
 
-export function PainelPendencias({ pendencias, businessName, className }: PainelPendenciasProps) {
+export function PainelPendencias({ pendencias, businessName, data, className }: PainelPendenciasProps) {
   const [mensagem, setMensagem] = useState<Mensagem | null>(null);
+  // Lista de espera filtrada pela tarde de hoje, com a primeira vaga preenchida na oferta.
+  const [vagaEspera, setVagaEspera] = useState<VagaOferta | null>(null);
   const [aberta, setAberta] = useState<'retorno_vencido' | 'avaliacao' | null>(null);
 
   const alternar = (tipo: 'retorno_vencido' | 'avaliacao') => setAberta((atual) => (atual === tipo ? null : tipo));
@@ -117,10 +122,18 @@ export function PainelPendencias({ pendencias, businessName, className }: Painel
               .map((vaga) => `${vaga.inicio} com ${vaga.profissional}`)
               .join(', ')}
             acao={
-              // Até o painel da lista de espera existir, leva para a Agenda.
-              <Link href="/agendamentos" className={buttonVariants({ variant: 'secondary', size: 'sm' })}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  const [primeira] = pendencia.vagas;
+                  setVagaEspera(
+                    primeira ? { date: data, time: primeira.inicio, professionalId: primeira.professionalId } : { date: data, time: '' },
+                  );
+                }}
+              >
                 Oferecer à lista de espera
-              </Link>
+              </Button>
             }
           />
         );
@@ -288,6 +301,13 @@ export function PainelPendencias({ pendencias, businessName, className }: Painel
         nomeCliente={mensagem?.nomeCliente ?? ''}
         mensagemInicial={mensagem?.texto ?? ''}
         contexto={mensagem?.contexto}
+      />
+
+      <ListaEsperaPanel
+        aberto={vagaEspera !== null}
+        onFechar={() => setVagaEspera(null)}
+        filtroInicial={{ period: 'tarde', date: data }}
+        vagaInicial={vagaEspera ?? undefined}
       />
     </Card>
   );

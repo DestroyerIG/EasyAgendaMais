@@ -28,6 +28,15 @@ vi.mock('@/components/WeeklyChart', () => ({
   ),
 }));
 
+const espera = vi.hoisted(() => ({
+  listarEspera: vi.fn(),
+  inscreverEspera: vi.fn(),
+  atualizarEspera: vi.fn(),
+  ofertarVaga: vi.fn(),
+  marcarAgendada: vi.fn(),
+}));
+vi.mock('@/lib/waitlist', () => espera);
+
 const { default: DashboardPage } = await import('@/app/dashboard/page');
 
 const base = (parcial: Partial<HojeDto> = {}): HojeDto => ({
@@ -161,7 +170,7 @@ describe('Tela Hoje com dados reais', () => {
     );
     expect(screen.getByText('2 horários vagos à tarde')).toBeInTheDocument();
     expect(screen.getByText('14:30 com Rita, 16:00 com Ana')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Oferecer à lista de espera' })).toHaveAttribute('href', '/agendamentos');
+    expect(screen.getByRole('button', { name: 'Oferecer à lista de espera' })).toBeInTheDocument();
 
     expect(screen.getByText('1 cliente com retorno vencido')).toBeInTheDocument();
     expect(screen.queryByText('Lúcia Prado')).not.toBeInTheDocument();
@@ -219,5 +228,37 @@ describe('Tela Hoje com dados reais', () => {
     );
     expect(screen.getByText('Marina Costa')).toBeInTheDocument();
     expect(screen.getByText('09:30')).toBeInTheDocument();
+  });
+  it('4d. "Oferecer à lista de espera" abre a lista filtrada pela tarde de hoje com a vaga preenchida na oferta', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    espera.listarEspera.mockResolvedValue([
+      {
+        id: 'w1', cliente: { id: 'c1', name: 'Lúcia Prado', phone: '83977776666' }, servico: { id: 's1', name: 'Manutenção' },
+        profissional: null, desiredDate: null, period: 'tarde', notes: null, status: 'aguardando', offeredAt: null,
+        createdAt: '2026-10-12T12:00:00.000Z',
+      },
+    ]);
+    await renderizar(
+      base({
+        pendencias: [
+          {
+            tipo: 'vagas_tarde',
+            quantidade: 2,
+            vagas: [
+              { profissional: 'Rita', professionalId: 'p1', inicio: '14:30', fim: '15:30' },
+              { profissional: 'Ana', professionalId: 'p2', inicio: '16:00', fim: '17:00' },
+            ],
+          },
+        ],
+      }),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Oferecer à lista de espera' }));
+    expect(await screen.findByText('Lúcia Prado')).toBeInTheDocument();
+    expect(espera.listarEspera).toHaveBeenCalledWith({ period: 'tarde', date: '2026-10-13' });
+
+    await user.click(screen.getByRole('button', { name: 'Oferecer vaga' }));
+    expect(screen.getByLabelText('Data da vaga')).toHaveValue('2026-10-13');
+    expect(screen.getByLabelText('Horário da vaga')).toHaveValue('14:30');
   });
 });

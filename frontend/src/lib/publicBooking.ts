@@ -31,6 +31,8 @@ export interface CreatePublicAppointmentPayload {
   time: string;
   clientName: string;
   clientPhone: string;
+  /** Caixa de consentimento de WhatsApp (começa desmarcada); true grava o consentimento com canal "publico". */
+  whatsappConsent: boolean;
 }
 
 export interface CreatePublicAppointmentResponse {
