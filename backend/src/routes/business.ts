@@ -8,6 +8,7 @@ import { requireFeature } from '../middleware/subscriptionGuard.js';
 // @ts-ignore
 import { validate } from '../middleware/validate.js';
 // @ts-ignore
+import { getCrmSettings, putCrmSettings } from '../modules/crm/crm.controller.js';
 import { getServices, createService, updateService, deleteService } from '../controllers/serviceController.js';
 // @ts-ignore
 import { getProfessionals, createProfessional, updateProfessional, deleteProfessional } from '../controllers/professionalController.js';
@@ -47,6 +48,8 @@ router.delete('/professionals/:id', authMiddleware, requireTenantRoles, requireF
 
 router.get('/settings', authMiddleware, requireTenantRoles, requireFeature('advanced_admin'), getBusinessSettings);
 router.put('/settings', authMiddleware, requireTenantRoles, requireFeature('advanced_admin'), validate({ body: updateBusinessSettingsSchema }), updateBusinessSettings);
+router.get('/crm-settings', authMiddleware, requireTenantRoles, requireFeature('advanced_admin'), getCrmSettings);
+router.put('/crm-settings', authMiddleware, requireTenantRoles, requireFeature('advanced_admin'), putCrmSettings);
 
 router.get('/profile', authMiddleware, requireTenantRoles, requireFeature('billing'), getBusinessProfile);
 router.put('/profile', authMiddleware, requireTenantRoles, requireFeature('billing'), validate({ body: updateBusinessProfileSchema }), updateBusinessProfile);

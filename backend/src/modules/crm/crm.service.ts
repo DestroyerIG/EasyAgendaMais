@@ -1,4 +1,7 @@
-import { crmRepository } from './crm.repository.js';
+import { crmRepository, type FichaRow, type AgendamentoLinha } from './crm.repository.js';
+import { SEGMENTOS, type Segmento } from './technicalSheetTemplates.js';
+import { NotFoundError, ValidationError } from '../../utils/errors.js';
+import type { ClientProfileDto, ConsentimentoDto, CrmSettings, FichaInput, FichaTecnicaDto, TimelineEvento } from './crm.types.js';
 import { resumirCliente, taxaRetencao, FASE_ROTULO, type Fase } from './crmMetrics.js';
 import type { ClienteInsight, InsightsQuery } from './crm.types.js';
 import { linhaCsv } from './csv.js';
@@ -10,7 +13,21 @@ const semAcento = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLo
 const digitos = (s: string) => s.replace(/\D/g, '');
 const br = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
 const CONSENT_ROTULO = { consentido: 'Consentido', revogado: 'Revogado', nao_informado: 'Não informado' } as const;
-const porNome = (a: ClienteInsight, b: ClienteInsight) => a.name.localeCompare(b.name, 'pt-BR');
+const brl = (v: number) => v.toFixed(2).replace('.', ',');
+const naive = (date: string, time: string) => `${date}T${time}:00.000Z`;
+const ESTADO_CONSENT = (c: { granted: boolean; revokedAt?: string | null }): ConsentimentoDto['estado'] =>
+  (c.granted && !c.revokedAt ? 'consentido' : 'revogado');
+const CANAIS = ['painel', 'publico', 'whatsapp'];
+
+function fichaDto(f: FichaRow | null, segmento: Segmento, ownerName: string): FichaTecnicaDto {
+  return {
+    allergies: f?.allergies ?? null, fields: f?.fields ?? {}, customFields: f?.customFields ?? [],
+    updatedAt: f?.updatedAt ?? null, updatedBy: f ? ownerName || null : null,
+    segmento, campos: SEGMENTOS[segmento].campos,
+  };
+}
+const segmentoValido = (s: string): Segmento => (s in SEGMENTOS ? (s as Segmento) : 'outro');
+const porNome =(a: ClienteInsight, b: ClienteInsight) => a.name.localeCompare(b.name, 'pt-BR');
 
 async function montar(businessId: string) {
   const { timezone } = await getBusinessScheduleSettings(businessId);
@@ -89,6 +106,110 @@ export const crmService = {
     const datasPorCliente = new Map<string, string[]>();
     for (const [id, v] of visitas) datasPorCliente.set(id, v.map((x) => x.date));
     return { colunas, kpis: { ativas: ativas.length, ativasNovasNoMes, ltvMedio, retencao: taxaRetencao(datasPorCliente, hoje) } };
+  },
+
+  async profile(businessId: string, clientId: string): Promise<ClientProfileDto> {
+    const c = await crmRepository.clientePerfil(businessId, clientId);
+    if (!c) throw new NotFoundError('Cliente');
+    const { timezone } = await getBusinessScheduleSettings(businessId);
+    const hoje = todayInTimezone(timezone);
+    const [visitas, agenda, ficha, dono, cfg] = await Promise.all([
+      crmRepository.visitasDoCliente(businessId, clientId), crmRepository.agendamentosDoCliente(businessId, clientId),
+      crmRepository.ficha(businessId, clientId), crmRepository.ownerName(businessId), crmRepository.configuracao(businessId),
+    ]);
+    const r = resumirCliente(visitas, hoje, c.birthDate);
+    const consent: ConsentimentoDto = c.consentimento
+      ? {
+        estado: ESTADO_CONSENT(c.consentimento), desde: c.consentimento.grantedAt,
+        canal: CANAIS.includes(c.consentimento.channel) ? (c.consentimento.channel as ConsentimentoDto['canal']) : null,
+      }
+      : { estado: 'nao_informado', desde: null, canal: null };
+    return {
+      cliente: { id: c.id, name: c.name, phone: c.phone, email: c.email, birthDate: c.birthDate, notes: c.notes, createdAt: c.createdAt },
+      fase: r.fase, etiquetas: c.tags, etiquetasAuto: r.etiquetasAuto,
+      indicadores: {
+        cicloMedio: r.cicloMedio, ticketMedio: r.ticketMedio,
+        visitasNoAno: visitas.filter((v) => v.date.startsWith(hoje.slice(0, 4))).length,
+        faltasECancelamentos: agenda.filter((a) => a.status === 'faltou' || a.status === 'cancelado').length,
+        ultimaVisita: r.ultimaVisita, retornoPrevisto: r.retornoPrevisto,
+      },
+      consentimento: consent,
+      fichaTecnica: fichaDto(ficha, segmentoValido(cfg.segment), dono),
+    };
+  },
+
+  async timeline(businessId: string, clientId: string, filtro: 'todos' | 'agendamentos' | 'financeiro'): Promise<TimelineEvento[]> {
+    const c = await crmRepository.clientePerfil(businessId, clientId);
+    if (!c) throw new NotFoundError('Cliente');
+    const agenda: AgendamentoLinha[] = await crmRepository.agendamentosDoCliente(businessId, clientId);
+    const ev: TimelineEvento[] = [];
+    for (const a of agenda) {
+      const dd = `${a.date.slice(8, 10)}/${a.date.slice(5, 7)}`;
+      ev.push({ tipo: 'agendado', data: a.createdAt, titulo: `Agendamento para ${dd} às ${a.time} · ${a.servico} com ${a.profissional}`, descricao: null, valor: null });
+      const quando = a.finishedAt ?? naive(a.date, a.time);
+      if (a.status === 'concluido') {
+        const valor = a.comanda ? Math.round((a.comanda.totalCharged + a.comanda.depositApplied) * 100) / 100 : a.servicePrice;
+        ev.push({ tipo: 'concluido', data: quando, titulo: `Atendimento concluído com ${a.profissional}`, descricao: a.comanda?.itens.join(', ') || a.servico, valor });
+      } else if (a.status === 'faltou') {
+        ev.push({ tipo: 'faltou', data: quando, titulo: 'Não compareceu', descricao: null, valor: null });
+      } else if (a.status === 'cancelado') {
+        ev.push({ tipo: 'cancelado', data: quando, titulo: 'Agendamento cancelado', descricao: null, valor: null });
+      }
+      if (a.reminderSent) {
+        const d = new Date(Date.parse(naive(a.date, a.time)) - 86_400_000).toISOString();
+        ev.push({ tipo: 'lembrete', data: d, titulo: 'Lembrete automático enviado pelo WhatsApp', descricao: null, valor: null });
+      }
+      if (a.avaliacao) {
+        ev.push({
+          tipo: 'avaliacao', data: a.avaliacao.createdAt, titulo: `Avaliação ${a.avaliacao.rating} estrelas`,
+          descricao: a.avaliacao.comment, valor: null, nota: a.avaliacao.rating,
+        });
+      }
+      if (a.source === 'publico' && a.depositAmount && ['confirmado', 'em_atendimento', 'concluido', 'faltou'].includes(a.status)) {
+        ev.push({ tipo: 'sinal_pix', data: a.createdAt, titulo: `Sinal Pix de R$ ${brl(a.depositAmount)} pago na reserva online`, descricao: null, valor: a.depositAmount });
+      }
+    }
+    ev.push({ tipo: 'cadastro', data: c.createdAt, titulo: 'Cadastro da cliente', descricao: null, valor: null });
+    const tipos = filtro === 'agendamentos' ? ['agendado', 'concluido', 'faltou', 'cancelado', 'lembrete']
+      : filtro === 'financeiro' ? ['concluido', 'sinal_pix'] : null;
+    return ev.filter((e) => !tipos || tipos.includes(e.tipo)).sort((x, y) => y.data.localeCompare(x.data));
+  },
+
+  async saveTechnicalSheet(businessId: string, userId: string, clientId: string, input: FichaInput): Promise<FichaTecnicaDto> {
+    const c = await crmRepository.clientePerfil(businessId, clientId);
+    if (!c) throw new NotFoundError('Cliente');
+    const cfg = await crmRepository.configuracao(businessId);
+    const segmento = segmentoValido(cfg.segment);
+    const modelo = new Map(SEGMENTOS[segmento].campos.map((k) => [k.key, k]));
+    for (const [key, value] of Object.entries(input.fields)) {
+      const campo = modelo.get(key);
+      if (!campo) throw new ValidationError('Campo desconhecido para o segmento');
+      if (value.length > 200) throw new ValidationError(`Valor muito longo em ${campo.label}`);
+      if (campo.type === 'opcoes' && value !== '' && !campo.options?.includes(value)) throw new ValidationError(`Opção inválida em ${campo.label}`);
+    }
+    if ((input.allergies ?? '').length > 1000) throw new ValidationError('Alergias muito longas');
+    const salvo = await crmRepository.salvarFicha({
+      businessId, clientId, allergies: input.allergies, fields: input.fields, customFields: input.customFields, updatedBy: userId,
+    });
+    return fichaDto(salvo, segmento, await crmRepository.ownerName(businessId));
+  },
+
+  async setConsent(businessId: string, userId: string, clientId: string, granted: boolean): Promise<ConsentimentoDto> {
+    const c = await crmRepository.clientePerfil(businessId, clientId);
+    if (!c) throw new NotFoundError('Cliente');
+    const r = await crmRepository.registrarConsentimento({ businessId, clientId, granted, channel: 'painel', recordedBy: userId });
+    return { estado: ESTADO_CONSENT(r), desde: r.grantedAt, canal: 'painel' };
+  },
+
+  async getSettings(businessId: string): Promise<CrmSettings> {
+    const s = await crmRepository.configuracao(businessId);
+    return { segment: segmentoValido(s.segment), dailyRevenueGoal: s.dailyRevenueGoal };
+  },
+
+  async saveSettings(businessId: string, input: CrmSettings): Promise<CrmSettings> {
+    if (input.dailyRevenueGoal !== null && !(input.dailyRevenueGoal > 0)) throw new ValidationError('A meta diária deve ser maior que zero');
+    const s = await crmRepository.salvarConfiguracao(businessId, { segment: input.segment, dailyRevenueGoal: input.dailyRevenueGoal });
+    return { segment: segmentoValido(s.segment), dailyRevenueGoal: s.dailyRevenueGoal };
   },
 
   async exportCsv(businessId: string): Promise<string> {
