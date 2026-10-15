@@ -51,6 +51,7 @@ import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 // @ts-ignore
 import clientRoutes from './modules/clients/clients.routes.js';
 import crmRoutes from './modules/crm/crm.routes.js';
+import clientPhotoRoutes from './modules/clientPhotos/clientPhotos.routes.js';
 import tagRoutes from './modules/tags/tags.routes.js';
 
 // @ts-ignore
@@ -326,6 +327,14 @@ app.use(
   })
 );
 
+// Foto de procedimento (até 5MB) em base64: limite maior só para esta rota.
+app.use(
+  `${API_V1}/clients/:id/photos`,
+  express.json({
+    limit: '7mb',
+  })
+);
+
 app.use(
   express.json({
     limit: API_JSON_BODY_LIMIT,
@@ -450,6 +459,7 @@ app.use(`${API_V1}/comandas`, comandaRoutes);
 app.use(`${API_V1}/cash`, cashRoutes);
 
 app.use(`${API_V1}/clients`, crmRoutes);
+app.use(`${API_V1}/clients`, clientPhotoRoutes);
 app.use(`${API_V1}/tags`, tagRoutes);
 app.use(
   `${API_V1}/clients`,
