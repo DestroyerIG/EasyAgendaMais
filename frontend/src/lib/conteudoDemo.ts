@@ -15,37 +15,6 @@
  * componente que o usa.
  */
 
-// ─── Hoje (hoje-desktop.html, hoje-mobile.html) ────────────────────────────────
-
-export interface HojePendencia {
-  icone: string;
-  titulo: string;
-  descricao: string;
-  rotuloBotao: string;
-  // Tom do card e do botão — preso ao conteúdo da pendência, não à posição dela na lista
-  // (a lista muda de tamanho quando a vaga real da tarde existe ou não; achado N2 da
-  // re-revisão da rodada de correção final).
-  tom: 'brand' | 'whatsapp' | 'warning' | 'danger';
-}
-
-export interface HojeContent {
-  metaFaturamentoDiaria: {
-    valorMeta: number;
-  };
-  taxaOcupacao: {
-    // Só a comparação com a média fica de exemplo; o percentual em si é calculado no
-    // componente a partir do mesmo cálculo real que a Agenda faz (correção I3).
-    variacao: string;
-    comparacaoLabel: string;
-  };
-  receitaRecuperada: {
-    valor: number;
-    origemLabel: string;
-  };
-  profissionaisAtivasHoje: number;
-  pendencias: HojePendencia[];
-}
-
 // ─── Clientes (clientes-lista.html, cliente-ficha.html) ────────────────────────
 
 /**
@@ -176,53 +145,12 @@ export interface PlanoContent {
 // ─── Módulo ─────────────────────────────────────────────────────────────────────
 
 export interface ConteudoDemo {
-  hoje: HojeContent;
   clientes: ClientesContent;
   whatsapp: WhatsappContent;
   plano: PlanoContent;
 }
 
 export const conteudoDemo = {
-  hoje: {
-    metaFaturamentoDiaria: {
-      valorMeta: 1800,
-    },
-    taxaOcupacao: {
-      variacao: '+6%',
-      comparacaoLabel: 'vs média de terça',
-    },
-    receitaRecuperada: {
-      valor: 2980,
-      origemLabel: 'via lembretes automáticos de WhatsApp',
-    },
-    profissionaisAtivasHoje: 3,
-    pendencias: [
-      {
-        // Ícone de hoje-desktop.html (`sync`) — hoje-mobile.html usa `schedule_send`
-        // para o mesmo item; título/botão já seguiam o desktop, então o ícone segue
-        // a mesma referência em vez de misturar as duas.
-        icone: 'sync',
-        titulo: '9 clientes com manutenção vencendo',
-        descricao: 'Serviços no prazo ideal de retorno',
-        rotuloBotao: 'Disparar lembrete',
-        tom: 'whatsapp',
-      },
-      {
-        icone: 'qr_code_2',
-        titulo: '3 sinais Pix aguardando pagamento',
-        descricao: 'Expira em 30 minutos (R$ 110 pendentes)',
-        rotuloBotao: 'Ver pendências',
-        tom: 'warning',
-      },
-      {
-        icone: 'star_half',
-        titulo: '1 avaliação desfavorável registrada',
-        descricao: 'Cliente Camila Dias · Ontem às 18:30',
-        rotuloBotao: 'Ver e responder',
-        tom: 'danger',
-      },
-    ],
-  },
   clientes: {
     exemplos: [
       {

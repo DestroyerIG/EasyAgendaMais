@@ -624,6 +624,16 @@ describe('AppointmentModule: aba Aguardando Pix', () => {
     expect(mockApiGet).toHaveBeenCalledWith('/appointments/pending-payment');
   });
 
+  it('abrir a Agenda com ?aba=aguardando-pix já mostra a aba "Aguardando Pix"', async () => {
+    mockSearch.value = 'aba=aguardando-pix';
+    responderComPendentes([]);
+    render(<AppointmentModule />);
+
+    expect(screen.getByRole('tab', { name: 'Aguardando Pix' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByText('Nenhuma reserva aguardando pagamento.')).toBeInTheDocument();
+    expect(mockApiGet).toHaveBeenCalledWith('/appointments/pending-payment');
+  });
+
   it('mostra o estado vazio quando não há reservas aguardando pagamento', async () => {
     responderComPendentes([]);
     render(<AppointmentModule />);

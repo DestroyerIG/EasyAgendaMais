@@ -6,47 +6,22 @@ import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
 import { linkWhatsapp } from '@/lib/whatsapp';
 import { Card, Icon, Skeleton, StatusChip, STATUS_STRIPE_CLASS } from '@/components/ui';
-import type { Appointment } from '@/types';
+import type { AgendamentoHoje } from '@/lib/hoje';
 
 export interface ProximasDuasHorasProps {
   /**
-   * Agendamentos de hoje (`GET /appointments`), buscados uma vez pela página do Hoje
-   * (DashboardPage) e compartilhados com `DashboardCards` — a mesma lista alimenta a
-   * ocupação/vagas livres reais (correção I3 da revisão final). `null` enquanto a busca
-   * ainda não respondeu.
+   * Próximos atendimentos de hoje (GET /dashboard/today → `proximas`): o servidor já
+   * recorta a janela de 2 horas (e mantém quem está em atendimento), então aqui só
+   * entra o filtro por profissional. `null` enquanto a busca ainda não respondeu.
    */
-  agendamentos: Appointment[] | null;
+  agendamentos: AgendamentoHoje[] | null;
   className?: string;
-}
-
-const JANELA_MINUTOS = 120;
-
-// "hh:mm:ss" -> minutos desde a meia-noite, sem passar por Date/timezone (o mesmo
-// valor que AppointmentCard.tsx já lê com appointment.time?.substring(0, 5)).
-const paraMinutos = (hora: string): number => {
-  const [h, m] = hora.split(':').map(Number);
-  return (h || 0) * 60 + (m || 0);
-};
-
-// Agendamentos de hoje que começam entre agora e daqui a 2 horas (hoje-desktop.html
-// / hoje-mobile.html: "Próximas 2 horas"). Cancelados não contam como "próximos".
-function filtrarProximos(agendamentos: Appointment[], agora: Date): Appointment[] {
-  const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
-  return agendamentos
-    .filter((a) => a.status !== 'cancelado')
-    .filter((a) => {
-      const minutos = paraMinutos(a.time);
-      return minutos >= minutosAgora && minutos <= minutosAgora + JANELA_MINUTOS;
-    });
 }
 
 export function ProximasDuasHoras({ agendamentos, className }: ProximasDuasHorasProps) {
   const [profissionalAtivo, setProfissionalAtivo] = useState<string | null>(null);
 
-  const proximos = useMemo(
-    () => (agendamentos ? filtrarProximos(agendamentos, new Date()) : []),
-    [agendamentos],
-  );
+  const proximos = useMemo(() => agendamentos ?? [], [agendamentos]);
 
   const profissionais = useMemo(
     () =>
@@ -123,7 +98,7 @@ export function ProximasDuasHoras({ agendamentos, className }: ProximasDuasHoras
       ) : (
         <div className="flex flex-col gap-3">
           {visiveis.map((agendamento) => {
-            const whatsapp = agendamento.status === 'confirmado' ? linkWhatsapp(agendamento.client_phone) : null;
+            const whatsapp = agendamento.status === 'confirmado' ? linkWhatsapp(agendamento.client_phone ?? undefined) : null;
             return (
               <div
                 key={agendamento.id}

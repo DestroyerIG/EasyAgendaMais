@@ -27,6 +27,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import { getToday } from '@/lib/dateUtils';
@@ -196,7 +197,11 @@ type AgendaTab = 'agenda' | 'aguardando-pix';
 type InicialDoModal = InicialNovoAgendamento & { clientId?: string; serviceId?: string };
 
 export function AppointmentModule() {
-  const [activeTab, setActiveTab] = useState<AgendaTab>('agenda');
+  // ?aba=aguardando-pix (vindo do "Ver pendências" da tela Hoje) abre direto na aba do Pix.
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<AgendaTab>(() =>
+    searchParams.get('aba') === 'aguardando-pix' ? 'aguardando-pix' : 'agenda',
+  );
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   // Inicia vazio: getToday() depende da hora local e divergiria entre SSR (UTC)

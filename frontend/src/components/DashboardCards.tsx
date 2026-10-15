@@ -1,27 +1,17 @@
 'use client';
 
+import Link from 'next/link';
 import { Icon } from '@/components/ui';
 import { cn } from '@/lib/cn';
-import { conteudoDemo } from '@/lib/conteudoDemo';
 import { formatCurrency } from '@/lib/formatters';
-import type { MetricasAgendaDoDia } from '@/lib/agendaMetrics';
-import type { DashboardData } from '@/types';
+import type { HojeDto } from '@/lib/hoje';
 
 interface DashboardCardsProps {
-    data: DashboardData;
-    /**
-     * Ocupação e vagas livres reais do dia (mesmo cálculo que a Agenda faz sobre
-     * GET /appointments) — `null` enquanto a busca de agendamentos de hoje ainda não
-     * respondeu (correção I3 da revisão final: antes eram números fixos de conteudoDemo,
-     * que podiam contradizer o que a Agenda calculava para o mesmo dia).
-     */
-    metricasAgenda: MetricasAgendaDoDia | null;
+    /** Os quatro números do dia, todos de GET /dashboard/today (uma chamada só). */
+    hoje: Pick<HojeDto, 'faturamento' | 'agendamentos' | 'ocupacao' | 'confirmadosLembrete'>;
 }
 
-const { metaFaturamentoDiaria, taxaOcupacao, receitaRecuperada } = conteudoDemo.hoje;
-
-/** Vagas livres a partir do meio-dia — é o recorte que "horários livres à tarde" descreve. */
-const INICIO_TARDE_MINUTOS = 12 * 60;
+const plural = (n: number, singular: string, pluralTexto: string) => (n === 1 ? singular : pluralTexto);
 
 // Cartão de métrica da tela Hoje (hoje-desktop.html / hoje-mobile.html): rótulo
 // 13px/600 + ícone à direita, valor 32px/700 em dígitos tabulares, rodapé variável.
@@ -56,21 +46,11 @@ function CartaoMetrica({
     );
 }
 
-export function DashboardCards({ data, metricasAgenda }: DashboardCardsProps) {
-    // % da meta: sempre calculado do faturamento real de hoje sobre a meta, nunca um
-    // número gravado (correção I3 — mesmo padrão que a Tarefa 9 já aplicou no Caixa).
-    const percentualMeta =
-        metaFaturamentoDiaria.valorMeta > 0
-            ? Math.min(100, Math.round((data.earningsToday / metaFaturamentoDiaria.valorMeta) * 100))
-            : 0;
-
-    const vagasTarde = metricasAgenda?.vagasLivres.filter((vaga) => vaga.inicioMinutos >= INICIO_TARDE_MINUTOS) ?? [];
-    const legendaVagas =
-        metricasAgenda === null
-            ? 'Calculando horários livres…'
-            : vagasTarde.length === 0
-              ? 'Nenhum horário livre à tarde'
-              : `${vagasTarde.length} horário${vagasTarde.length === 1 ? '' : 's'} livre${vagasTarde.length === 1 ? '' : 's'} à tarde`;
+export function DashboardCards({ hoje }: DashboardCardsProps) {
+    const { faturamento, agendamentos, ocupacao, confirmadosLembrete } = hoje;
+    const larguraMeta = Math.max(0, Math.min(100, faturamento.percentual ?? 0));
+    const livres = agendamentos.livresTarde;
+    const variacao = ocupacao?.variacao ?? null;
 
     return (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
@@ -78,75 +58,97 @@ export function DashboardCards({ data, metricasAgenda }: DashboardCardsProps) {
                 titulo="Faturamento hoje"
                 icone="payments"
                 iconeTom="text-brand"
-                valor={formatCurrency(data.earningsToday, { cents: false })}
+                valor={formatCurrency(faturamento.valor, { cents: false })}
             >
-                <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between text-[12px] text-muted">
-                        <span>Meta {formatCurrency(metaFaturamentoDiaria.valorMeta, { cents: false })}</span>
-                        <span className="font-bold text-ink">{percentualMeta}%</span>
+                {faturamento.meta !== null ? (
+                    <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between gap-2 text-[12px] text-muted">
+                            <span>Meta {formatCurrency(faturamento.meta)}</span>
+                            <span className="font-bold text-ink">{faturamento.percentual ?? 0}%</span>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
+                            <div className="h-full rounded-full bg-brand" style={{ width: `${larguraMeta}%` }} />
+                        </div>
                     </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
-                        <div
-                            className="h-full rounded-full bg-brand"
-                            style={{ width: `${percentualMeta}%` }}
-                        />
-                    </div>
-                </div>
+                ) : (
+                    <Link
+                        href="/configuracoes"
+                        className="inline-flex items-center gap-1 text-[12px] font-bold text-brand-text hover:underline"
+                    >
+                        <Icon name="flag" size={15} />
+                        Definir meta
+                    </Link>
+                )}
             </CartaoMetrica>
 
             <CartaoMetrica
                 titulo="Agendamentos hoje"
                 icone="event_available"
                 iconeTom="text-tertiary"
-                valor={data.appointmentsToday}
+                valor={agendamentos.total}
             >
-                {/* Sem mini-barra aqui e no cartão de receita recuperada: hoje-mobile.html
-                    pede uma nos 4 cartões, mas "agendamentos" e "receita recuperada" não
-                    têm um percentual real próprio — o único que existiria seria repetir a
-                    taxa de ocupação (cartão ao lado), o que seria confuso, não honesto. */}
-                <div className="flex items-center gap-1.5 text-[12px] font-semibold text-warning">
-                    <span className="h-2 w-2 rounded-full bg-warning" />
-                    <span>{legendaVagas}</span>
-                </div>
+                {livres > 0 ? (
+                    <div className="flex items-center gap-1.5 text-[12px] font-semibold text-warning-text">
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-warning" />
+                        <span>
+                            {livres} {plural(livres, 'horário livre', 'horários livres')} à tarde
+                        </span>
+                    </div>
+                ) : (
+                    <div className="text-[12px] text-muted">Nenhum horário livre à tarde</div>
+                )}
             </CartaoMetrica>
 
             <CartaoMetrica
                 titulo="Taxa de ocupação"
                 icone="pie_chart"
                 iconeTom="text-success"
-                valor={metricasAgenda === null ? '—' : `${metricasAgenda.ocupacaoPercentual}%`}
+                valor={ocupacao === null ? '—' : `${ocupacao.percentual}%`}
             >
-                <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center gap-1 text-[12px]">
-                        {/* hoje-mobile.html usa a cor "success"; hoje-desktop.html usa
-                            "whatsapp" para esta seta — as duas referências divergem, cada
-                            breakpoint segue a sua. */}
-                        <Icon name="arrow_upward" size={16} className="text-success lg:text-whatsapp" />
-                        <span className="font-bold text-success lg:text-whatsapp">{taxaOcupacao.variacao}</span>
-                        <span className="text-muted">{taxaOcupacao.comparacaoLabel}</span>
+                {ocupacao === null ? (
+                    <div className="text-[12px] text-muted">Sem expediente hoje</div>
+                ) : (
+                    <div className="flex flex-col gap-1.5">
+                        {variacao === null ? (
+                            <div className="text-[12px] text-muted">Sem histórico de {ocupacao.diaDaSemana} para comparar</div>
+                        ) : variacao === 0 ? (
+                            <div className="text-[12px] text-muted">Igual à média de {ocupacao.diaDaSemana}</div>
+                        ) : (
+                            <div className="flex items-center gap-1 text-[12px]">
+                                <Icon
+                                    name={variacao > 0 ? 'arrow_upward' : 'arrow_downward'}
+                                    size={16}
+                                    className={variacao > 0 ? 'text-success-text' : 'text-danger'}
+                                />
+                                <span className={cn('font-bold', variacao > 0 ? 'text-success-text' : 'text-danger')}>
+                                    {variacao > 0 ? `+${variacao}` : variacao}%
+                                </span>
+                                <span className="text-muted">vs média de {ocupacao.diaDaSemana}</span>
+                            </div>
+                        )}
+                        <div className="h-1 w-full overflow-hidden rounded-full bg-surface-2">
+                            <div
+                                className="h-full rounded-full bg-success"
+                                style={{ width: `${Math.max(0, Math.min(100, ocupacao.percentual))}%` }}
+                            />
+                        </div>
                     </div>
-                    {/* Mini-barra real (hoje-mobile.html tem nos 4 cartões; hoje-desktop.html
-                        só no de faturamento — INVENTARIO.md 150/188 registra o conflito sem
-                        decidir). Aqui dá pra ser honesto nos 4: ocupação já tem percentual
-                        real, então a barra usa esse mesmo número, não um valor à parte. */}
-                    <div className="h-1 w-full overflow-hidden rounded-full bg-surface-2">
-                        <div
-                            className="h-full rounded-full bg-success lg:bg-whatsapp"
-                            style={{ width: `${metricasAgenda === null ? 0 : metricasAgenda.ocupacaoPercentual}%` }}
-                        />
-                    </div>
-                </div>
+                )}
             </CartaoMetrica>
 
             <CartaoMetrica
-                titulo="Receita recuperada no mês"
+                titulo="Confirmados por lembrete"
                 icone="mark_chat_read"
                 iconeTom="text-whatsapp"
-                valor={formatCurrency(receitaRecuperada.valor, { cents: false })}
+                valor={formatCurrency(confirmadosLembrete.valor, { cents: false })}
             >
                 <div className="flex items-center gap-1.5 text-[12px] text-muted">
-                    <span className="h-2 w-2 rounded-full bg-whatsapp" />
-                    <span>{receitaRecuperada.origemLabel}</span>
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-whatsapp" />
+                    <span>
+                        {confirmadosLembrete.quantidade === 0
+                            ? 'Nenhum atendimento com lembrete neste mês'
+                            : `${confirmadosLembrete.quantidade} ${plural(confirmadosLembrete.quantidade, 'atendimento', 'atendimentos')} com lembrete enviado no mês`}
+                    </span>
                 </div>
             </CartaoMetrica>
         </div>

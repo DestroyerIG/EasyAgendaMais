@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import type { AppointmentStatus } from '@/types';
 
 /** Espelho de AppointmentDto (backend/src/modules/appointments/appointment.serializer.ts). */
 export interface AgendamentoHoje {
@@ -9,7 +10,7 @@ export interface AgendamentoHoje {
   service_id?: string;
   date: string;
   time: string;
-  status: string;
+  status: AppointmentStatus;
   reminder_sent?: boolean;
   created_at?: string;
   client_name: string | null;

@@ -32,6 +32,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/hooks/useNewAppointmentParam.ts',
   'src/components/ClientModule.tsx',
   'src/components/clients',
+  'src/components/clientes',
   'src/components/FinanceModule.tsx',
   'src/components/finance',
   'src/components/WhatsAppModule.tsx',
