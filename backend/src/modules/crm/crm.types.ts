@@ -29,7 +29,7 @@ export const ConsentInputSchema = z.object({ granted: z.boolean() });
 export const TimelineQuerySchema = z.object({ filtro: z.enum(['todos', 'agendamentos', 'financeiro']).default('todos') });
 export const CrmSettingsSchema = z.object({
   segment: z.enum(['unhas', 'cilios_sobrancelhas', 'cabelo', 'barbearia', 'estetica', 'outro']),
-  dailyRevenueGoal: z.number().nullable(),
+  dailyRevenueGoal: z.number().positive().max(99999999.99).multipleOf(0.01).nullable(),
 });
 export type CrmSettings = z.infer<typeof CrmSettingsSchema>;
 

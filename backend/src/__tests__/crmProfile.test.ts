@@ -117,9 +117,22 @@ describe('crmService.timeline', () => {
     const todos = await crmProfileService.timeline('b1', 'c1', 'todos');
     expect(todos.find((e) => e.tipo === 'concluido')!.valor).toBe(80);
     expect(todos.find((e) => e.tipo === 'avaliacao')).toMatchObject({ titulo: 'Avaliação 5 estrelas', descricao: 'Amei', nota: 5 });
-    expect(todos.find((e) => e.tipo === 'lembrete')).toMatchObject({ titulo: 'Lembrete automático enviado pelo WhatsApp', data: '2026-09-30T14:00:00.000Z' });
+    expect(todos.find((e) => e.tipo === 'lembrete')).toMatchObject({ titulo: 'Lembrete automático enviado pelo WhatsApp', data: '2026-09-30T17:00:00.000Z' });
     const ag = await crmProfileService.timeline('b1', 'c1', 'agendamentos');
     expect(ag.map((e) => e.tipo).sort()).toEqual(['agendado', 'concluido', 'lembrete']);
+  });
+
+  it('converte horário do agendamento para instante UTC real e ordena corretamente', async () => {
+    repo.agendamentosDoCliente.mockResolvedValue([
+      agenda({ id: 'k', status: 'cancelado', date: '2026-10-14', time: '14:00', finishedAt: null, createdAt: '2026-10-10T10:00:00.000Z' }),
+      agenda({ id: 'n', status: 'confirmado', date: '2026-10-20', time: '10:00', finishedAt: null, createdAt: '2026-10-14T16:30:00.000Z' }),
+    ]);
+    const todos = await crmProfileService.timeline('b1', 'c1', 'todos');
+    const canc = todos.find((e) => e.tipo === 'cancelado')!;
+    expect(canc.data).toBe('2026-10-14T17:00:00.000Z');
+    const reserva = todos.find((e) => e.titulo.includes('20/10'))!;
+    expect(reserva.data).toBe('2026-10-14T16:30:00.000Z');
+    expect(todos.indexOf(canc)).toBeLessThan(todos.indexOf(reserva));
   });
 
   it('sinal Pix não aparece para reserva pública cancelada', async () => {
@@ -127,6 +140,18 @@ describe('crmService.timeline', () => {
     const todos = await crmProfileService.timeline('b1', 'c1', 'todos');
     expect(todos.some((e) => e.tipo === 'sinal_pix')).toBe(false);
     expect(todos.some((e) => e.tipo === 'cancelado' && e.titulo === 'Agendamento cancelado')).toBe(true);
+  });
+});
+
+describe('crmService outro negócio', () => {
+  it('saveTechnicalSheet e setConsent lançam NotFoundError', async () => {
+    repo.clientePerfil.mockResolvedValue(null);
+    await expect(crmProfileService.saveTechnicalSheet('outro', 'u1', 'c1', { allergies: null, fields: {}, customFields: [] }))
+      .rejects.toMatchObject({ statusCode: 404, message: 'Cliente não encontrado' });
+    await expect(crmProfileService.setConsent('outro', 'u1', 'c1', true))
+      .rejects.toMatchObject({ statusCode: 404, message: 'Cliente não encontrado' });
+    expect(repo.salvarFicha).not.toHaveBeenCalled();
+    expect(repo.registrarConsentimento).not.toHaveBeenCalled();
   });
 });
 

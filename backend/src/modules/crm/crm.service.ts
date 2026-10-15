@@ -5,7 +5,7 @@ import type { ClientProfileDto, ConsentimentoDto, CrmSettings, FichaInput, Ficha
 import { resumirCliente, taxaRetencao, FASE_ROTULO, type Fase } from './crmMetrics.js';
 import type { ClienteInsight, InsightsQuery } from './crm.types.js';
 import { linhaCsv } from './csv.js';
-import { todayInTimezone } from '../../utils/businessDate.js';
+import { todayInTimezone, zonedToUtc } from '../../utils/businessDate.js';
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
 
 const FASES: Fase[] = ['novo', 'recorrente', 'fiel', 'em_risco', 'perdido'];
@@ -14,7 +14,7 @@ const digitos = (s: string) => s.replace(/\D/g, '');
 const br = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
 const CONSENT_ROTULO = { consentido: 'Consentido', revogado: 'Revogado', nao_informado: 'Não informado' } as const;
 const brl = (v: number) => v.toFixed(2).replace('.', ',');
-const naive = (date: string, time: string) => `${date}T${time}:00.000Z`;
+const instante = (date: string, time: string, tz: string) => zonedToUtc(date, time, tz);
 const ESTADO_CONSENT = (c: { granted: boolean; revokedAt?: string | null }): ConsentimentoDto['estado'] =>
   (c.granted && !c.revokedAt ? 'consentido' : 'revogado');
 const CANAIS = ['painel', 'publico', 'whatsapp'];
@@ -141,12 +141,14 @@ export const crmService = {
   async timeline(businessId: string, clientId: string, filtro: 'todos' | 'agendamentos' | 'financeiro'): Promise<TimelineEvento[]> {
     const c = await crmRepository.clientePerfil(businessId, clientId);
     if (!c) throw new NotFoundError('Cliente');
+    const { timezone } = await getBusinessScheduleSettings(businessId);
     const agenda: AgendamentoLinha[] = await crmRepository.agendamentosDoCliente(businessId, clientId);
     const ev: TimelineEvento[] = [];
     for (const a of agenda) {
       const dd = `${a.date.slice(8, 10)}/${a.date.slice(5, 7)}`;
       ev.push({ tipo: 'agendado', data: a.createdAt, titulo: `Agendamento para ${dd} às ${a.time} · ${a.servico} com ${a.profissional}`, descricao: null, valor: null });
-      const quando = a.finishedAt ?? naive(a.date, a.time);
+      const inicio = instante(a.date, a.time, timezone);
+      const quando = a.finishedAt ?? inicio.toISOString();
       if (a.status === 'concluido') {
         const valor = a.comanda ? Math.round((a.comanda.totalCharged + a.comanda.depositApplied) * 100) / 100 : a.servicePrice;
         ev.push({ tipo: 'concluido', data: quando, titulo: `Atendimento concluído com ${a.profissional}`, descricao: a.comanda?.itens.join(', ') || a.servico, valor });
@@ -156,7 +158,7 @@ export const crmService = {
         ev.push({ tipo: 'cancelado', data: quando, titulo: 'Agendamento cancelado', descricao: null, valor: null });
       }
       if (a.reminderSent) {
-        const d = new Date(Date.parse(naive(a.date, a.time)) - 86_400_000).toISOString();
+        const d = new Date(inicio.getTime() - 86_400_000).toISOString();
         ev.push({ tipo: 'lembrete', data: d, titulo: 'Lembrete automático enviado pelo WhatsApp', descricao: null, valor: null });
       }
       if (a.avaliacao) {

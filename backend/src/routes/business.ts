@@ -1,4 +1,5 @@
 import express from 'express';
+import { getCrmSettings, putCrmSettings } from '../modules/crm/crm.controller.js';
 // @ts-ignore
 import { authMiddleware } from '../middleware/auth.js';
 // @ts-ignore
@@ -8,7 +9,6 @@ import { requireFeature } from '../middleware/subscriptionGuard.js';
 // @ts-ignore
 import { validate } from '../middleware/validate.js';
 // @ts-ignore
-import { getCrmSettings, putCrmSettings } from '../modules/crm/crm.controller.js';
 import { getServices, createService, updateService, deleteService } from '../controllers/serviceController.js';
 // @ts-ignore
 import { getProfessionals, createProfessional, updateProfessional, deleteProfessional } from '../controllers/professionalController.js';
