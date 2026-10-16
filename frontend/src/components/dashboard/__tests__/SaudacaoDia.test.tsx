@@ -35,7 +35,7 @@ describe('formatarDataPorExtenso', () => {
 
 describe('SaudacaoDia (ações do computador, hoje-desktop.html)', () => {
   it('mostra "Disparos WhatsApp" e "Novo agendamento", cada um levando para uma tela real', () => {
-    render(<SaudacaoDia businessName="Studio Aurora" />);
+    render(<SaudacaoDia ownerName="Carla" businessName="Studio Aurora" />);
 
     const whatsapp = screen.getByRole('link', { name: /Disparos WhatsApp/ });
     expect(whatsapp).toHaveAttribute('href', '/whatsapp');

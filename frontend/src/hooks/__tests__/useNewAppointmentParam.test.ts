@@ -24,6 +24,18 @@ describe('useNewAppointmentParam', () => {
     expect(result.current.open).toBe(true);
   });
 
+  it('lê a cliente pré-escolhida de cliente=<id>', () => {
+    mockSearch.value = 'novo=1&cliente=c9';
+    const { result } = renderHook(() => useNewAppointmentParam());
+    expect(result.current.clienteId).toBe('c9');
+  });
+
+  it('sem cliente=<id>, clienteId é null', () => {
+    mockSearch.value = 'novo=1';
+    const { result } = renderHook(() => useNewAppointmentParam());
+    expect(result.current.clienteId).toBeNull();
+  });
+
   it('não abre sem o parâmetro', () => {
     const { result } = renderHook(() => useNewAppointmentParam());
     expect(result.current.open).toBe(false);

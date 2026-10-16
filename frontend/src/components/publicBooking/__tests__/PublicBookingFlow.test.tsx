@@ -240,4 +240,41 @@ describe('PublicBookingFlow', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Não é possível agendar em uma data que já passou');
     expect(screen.getByPlaceholderText('Seu nome')).toBeInTheDocument();
   });
+  it('a caixa de consentimento do WhatsApp começa desmarcada e, desmarcada, a reserva vai com whatsappConsent: false', async () => {
+    const user = userEvent.setup();
+    api.createAppointment.mockResolvedValue({
+      appointmentId: 'appt-1', depositAmount: 39, pixPayload: '000201PIXCODE6304ABCD', expiresAt: new Date().toISOString(),
+    });
+    await goToPagamentoStep(user);
+
+    const caixa = screen.getByRole('checkbox', { name: 'Quero receber lembretes e novidades pelo WhatsApp de Studio Aurora' });
+    expect(caixa).not.toBeChecked();
+    expect(screen.getByText('Você pode cancelar quando quiser, é só avisar o estabelecimento.')).toBeInTheDocument();
+
+    await user.type(screen.getByPlaceholderText('Seu nome'), 'Mariana');
+    await user.type(screen.getByPlaceholderText('Seu WhatsApp'), '83999990000');
+    await user.click(screen.getByRole('button', { name: /confirmar agendamento/i }));
+
+    await waitFor(() => expect(api.createAppointment).toHaveBeenCalledWith('studio-aurora', expect.objectContaining({ whatsappConsent: false })));
+  });
+
+  it('com a caixa marcada, a reserva é enviada com whatsappConsent: true', async () => {
+    const user = userEvent.setup();
+    api.createAppointment.mockResolvedValue({
+      appointmentId: 'appt-1', depositAmount: 39, pixPayload: '000201PIXCODE6304ABCD', expiresAt: new Date().toISOString(),
+    });
+    await goToPagamentoStep(user);
+
+    await user.click(screen.getByRole('checkbox', { name: /Quero receber lembretes e novidades pelo WhatsApp/ }));
+    await user.type(screen.getByPlaceholderText('Seu nome'), 'Mariana');
+    await user.type(screen.getByPlaceholderText('Seu WhatsApp'), '83999990000');
+    await user.click(screen.getByRole('button', { name: /confirmar agendamento/i }));
+
+    await waitFor(() =>
+      expect(api.createAppointment).toHaveBeenCalledWith('studio-aurora', {
+        serviceId: 'srv-1', professionalId: 'prof-1', date: '2099-10-24', time: '14:00',
+        clientName: 'Mariana', clientPhone: '83999990000', whatsappConsent: true,
+      }),
+    );
+  });
 });

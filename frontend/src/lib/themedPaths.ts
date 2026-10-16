@@ -13,7 +13,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/app/dashboard/layout.tsx',
   'src/app/dashboard/page.tsx',
   'src/app/dashboard/agendamentos/page.tsx',
-  'src/app/dashboard/clientes/page.tsx',
+  'src/app/dashboard/clientes',
   'src/app/dashboard/financeiro/page.tsx',
   'src/app/dashboard/whatsapp/page.tsx',
   'src/app/dashboard/configuracoes/page.tsx',
@@ -32,6 +32,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/hooks/useNewAppointmentParam.ts',
   'src/components/ClientModule.tsx',
   'src/components/clients',
+  'src/components/clientes',
   'src/components/FinanceModule.tsx',
   'src/components/finance',
   'src/components/WhatsAppModule.tsx',
@@ -53,4 +54,5 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/publicBooking',
   'src/components/comanda',
   'src/components/caixa',
+  'src/components/waitlist',
 ];

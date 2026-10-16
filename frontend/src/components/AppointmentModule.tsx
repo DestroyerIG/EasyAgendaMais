@@ -21,12 +21,16 @@
  * novo agendamento com a profissional, a data e o horário da vaga. Remarcar, no painel,
  * abre o mesmo modal com a profissional, a data, a cliente e o serviço do agendamento, e
  * salvar faz PUT /appointments/:id; na reserva aguardando Pix, o painel confirma o Pix.
+ * "Lista de espera", no cabeçalho, abre o painel da lista (ListaEsperaPanel); o "Agendar"
+ * dele abre este mesmo modal preenchido e devolve ao painel o agendamento criado, para
+ * marcar a inscrição como agendada. ?espera=<id> (vindo da Hoje) faz o mesmo ao abrir.
  * Fora da tela: "encaixe inteligente"/"encaixe rápido", faixa de "ação química",
  * cobrança de sinal por Pix e aviso de chegada prevista, todos do arquivo de referência
  * e todos sem função que os sustente.
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import { getToday } from '@/lib/dateUtils';
@@ -34,6 +38,7 @@ import { formatDate } from '@/lib/dateUtils';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
 import {
+  Button,
   EmptyState,
   Icon,
   Skeleton,
@@ -83,6 +88,8 @@ import { calcularOcupacaoPercentual } from '@/lib/agendaMetrics';
 import { materialIcon } from '@/lib/materialIconAdapter';
 import type { Appointment, AppointmentStatus as StatusDoAgendamento, Client, Professional, Service } from '@/types';
 import { getApiErrorMessage } from '@/utils/handleApiError';
+import { ListaEsperaPanel } from '@/components/waitlist/ListaEsperaPanel';
+import type { WaitlistItem } from '@/lib/waitlist';
 
 // M1 da revisão final: Material Symbols no lugar dos dois ícones lucide restantes deste
 // arquivo (o resto da tela já usa o mesmo conjunto via o adaptador).
@@ -196,7 +203,12 @@ type AgendaTab = 'agenda' | 'aguardando-pix';
 type InicialDoModal = InicialNovoAgendamento & { clientId?: string; serviceId?: string };
 
 export function AppointmentModule() {
-  const [activeTab, setActiveTab] = useState<AgendaTab>('agenda');
+  // ?aba=aguardando-pix (vindo do "Ver pendências" da tela Hoje) abre direto na aba do Pix.
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<AgendaTab>(() =>
+    searchParams.get('aba') === 'aguardando-pix' ? 'aguardando-pix' : 'agenda',
+  );
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   // Inicia vazio: getToday() depende da hora local e divergiria entre SSR (UTC)
@@ -218,6 +230,13 @@ export function AppointmentModule() {
   const [remarcandoId, setRemarcandoId] = useState<string | undefined>();
   const { showToast } = useToast();
   const newAppointment = useNewAppointmentParam();
+  // Lista de espera: abre pelo botão do cabeçalho ou por ?espera=<id> (o "Agendar" da
+  // lista aberta na tela Hoje), que também abre o agendamento daquela inscrição.
+  const esperaParam = searchParams.get('espera');
+  const [listaEsperaAberta, setListaEsperaAberta] = useState(() => Boolean(esperaParam));
+  // Quem pediu o agendamento pela lista de espera aguarda aqui o agendamento criado
+  // (ou null, se o modal fechar sem salvar).
+  const aguardandoAgendamento = useRef<((criado: Appointment | null) => void) | null>(null);
 
   // Modal data
   const [clients, setClients] = useState<Client[]>([]);
@@ -305,7 +324,7 @@ export function AppointmentModule() {
   };
 
   useEffect(() => {
-    if (newAppointment.open) openModal();
+    if (newAppointment.open) openModal(newAppointment.clienteId ? { clientId: newAppointment.clienteId } : undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newAppointment.open]);
 
@@ -324,13 +343,16 @@ export function AppointmentModule() {
     }
   };
 
-  const handleSubmit = async (formData: AppointmentFormData) => {
+  /** Salva o modal; devolve o agendamento criado (na remarcação, nada). */
+  const handleSubmit = async (formData: AppointmentFormData): Promise<Appointment | undefined> => {
+    let criado: Appointment | undefined;
     try {
       if (remarcandoId) {
         await api.put(`/appointments/${remarcandoId}`, formData);
         showToast('Agendamento remarcado!', 'success');
       } else {
-        await api.post('/appointments', formData);
+        const response = await api.post<Appointment>('/appointments', formData);
+        criado = response?.data;
         showToast('Agendamento criado com sucesso!', 'success');
       }
     } catch (error: unknown) {
@@ -339,7 +361,36 @@ export function AppointmentModule() {
       throw error;
     }
     loadAppointments();
+    return criado;
   };
+
+  const resolverAgendamentoDaEspera = (criado: Appointment | null) => {
+    const resolver = aguardandoAgendamento.current;
+    aguardandoAgendamento.current = null;
+    resolver?.(criado);
+  };
+
+  // O modal só sabe que salvar deu certo; quem espera o agendamento criado é a lista de espera.
+  const salvarDoModal = async (formData: AppointmentFormData) => {
+    const criado = await handleSubmit(formData);
+    if (aguardandoAgendamento.current) resolverAgendamentoDaEspera(criado?.id ? criado : null);
+  };
+
+  // "Agendar" da lista de espera: fecha o painel, abre o novo agendamento com a cliente,
+  // o serviço, a profissional e a data da inscrição e resolve com o que for criado.
+  const agendarDaEspera = (item: WaitlistItem) =>
+    new Promise<Appointment | null>((resolve) => {
+      resolverAgendamentoDaEspera(null);
+      aguardandoAgendamento.current = resolve;
+      setListaEsperaAberta(false);
+      setRemarcandoId(undefined);
+      openModal({
+        clientId: item.cliente.id,
+        serviceId: item.servico.id,
+        professionalId: item.profissional?.id,
+        date: item.desiredDate ?? undefined,
+      });
+    });
 
   // Remarcar pelo painel: o modal abre com a profissional, a data, a cliente e o serviço
   // do agendamento; a pessoa escolhe o novo horário e o salvar faz PUT /appointments/:id.
@@ -388,6 +439,7 @@ export function AppointmentModule() {
     : null;
 
   const closeModal = () => {
+    resolverAgendamentoDaEspera(null);
     setShowModal(false);
     setInicialNovo(undefined);
     setRemarcandoId(undefined);
@@ -502,10 +554,16 @@ export function AppointmentModule() {
       <h1 className="sr-only">Agenda</h1>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as AgendaTab)}>
-        <TabsList>
-          <TabsTrigger value="agenda">Agenda</TabsTrigger>
-          <TabsTrigger value="aguardando-pix">Aguardando Pix</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between gap-3">
+          <TabsList>
+            <TabsTrigger value="agenda">Agenda</TabsTrigger>
+            <TabsTrigger value="aguardando-pix">Aguardando Pix</TabsTrigger>
+          </TabsList>
+          <Button variant="secondary" size="sm" onClick={() => setListaEsperaAberta(true)}>
+            <Icon name="hourglass_top" size={18} />
+            Lista de espera
+          </Button>
+        </div>
 
         <TabsContent value="agenda" className="mt-0 flex flex-col gap-4 lg:gap-5">
         {selectedDate && (
@@ -778,9 +836,18 @@ export function AppointmentModule() {
         availableSlots={availableSlots}
         slotsLoading={slotsLoading}
         onLoadSlots={loadAvailableSlots}
-        onSubmit={handleSubmit}
+        onSubmit={salvarDoModal}
         inicial={inicialNovo}
         editandoId={remarcandoId}
+      />
+
+      <ListaEsperaPanel
+        aberto={listaEsperaAberta}
+        onFechar={() => setListaEsperaAberta(false)}
+        onAgendar={agendarDaEspera}
+        agendarAoAbrir={esperaParam}
+        // Consumido o ?espera=<id>, a URL volta a ser só /agendamentos (mesmo padrão do ?novo=1).
+        onAgendarAoAbrirConsumido={() => router.replace('/agendamentos', { scroll: false })}
       />
 
       <ComandaModal appointmentId={comandaDe} onClose={() => setComandaDe(null)} onAtualizada={loadAppointments} />

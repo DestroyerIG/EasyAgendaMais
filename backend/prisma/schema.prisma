@@ -84,6 +84,11 @@ model Business {
   products             Product[]
   comandas             Comanda[]
   cashSessions         CashSession[]
+  tags                 Tag[]
+  clientPhotos         ClientPhoto[]
+  clientConsents       ClientConsent[]
+  waitlistEntries      WaitlistEntry[]
+  technicalSheets      ClientTechnicalSheet[]
 
   @@map("businesses")
 }
@@ -118,6 +123,9 @@ model User {
   cashSessionsClosed CashSession[] @relation("CashClosedBy")
   cashMovements      CashMovement[]
   comandasClosed     Comanda[]      @relation("ComandaClosedBy")
+  technicalSheetsUpdated ClientTechnicalSheet[] @relation("SheetUpdatedBy")
+  photosCreated          ClientPhoto[]          @relation("PhotoCreatedBy")
+  consentsRecorded       ClientConsent[]        @relation("ConsentRecordedBy")
 
   @@map("users")
 }
@@ -155,6 +163,7 @@ model Professional {
   business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
   appointments Appointment[]
   comandas     Comanda[]
+  waitlistEntries WaitlistEntry[]
 
   @@map("professionals")
 }
@@ -175,6 +184,7 @@ model Service {
   business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
   appointments Appointment[]
   comandaItems ComandaItem[]
+  waitlistEntries WaitlistEntry[]
 
   @@map("services")
 }
@@ -197,6 +207,11 @@ model Client {
   business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
   appointments Appointment[]
   comandas     Comanda[]
+  tags            ClientTag[]
+  technicalSheet  ClientTechnicalSheet?
+  photos          ClientPhoto[]
+  consents        ClientConsent[]
+  waitlistEntries WaitlistEntry[]
 
   @@map("clients")
 }
@@ -228,6 +243,8 @@ model Appointment {
   earning        Earning?
   whatsappRating WhatsappRating?
   comanda        Comanda?
+  photos         ClientPhoto[]
+  waitlistEntry  WaitlistEntry?
 
   @@map("appointments")
 }
@@ -443,6 +460,8 @@ model BusinessSettings {
   whatsappReminders        Boolean  @default(true) @map("whatsapp_reminders")
   commissionServicePct     Decimal  @default(0) @map("commission_service_pct") @db.Decimal(5, 2)
   commissionProductPct     Decimal  @default(0) @map("commission_product_pct") @db.Decimal(5, 2)
+  segment                  String   @default("outro") @db.VarChar(20)
+  dailyRevenueGoal         Decimal? @map("daily_revenue_goal") @db.Decimal(10, 2)
   createdAt                DateTime @default(now()) @map("created_at")
   updatedAt                DateTime @default(now()) @updatedAt @map("updated_at")
 
@@ -587,4 +606,112 @@ model CashMovement {
 
   @@index([cashSessionId])
   @@map("cash_movements")
+}
+
+// ─── CRM, ficha técnica e lista de espera (sub-projeto 2B) ───────────────────
+
+model Tag {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
+  name       String   @db.VarChar(40)
+  color      String   @default("brand") @db.VarChar(20)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  business Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  clients  ClientTag[]
+
+  @@index([businessId])
+  @@map("tags")
+}
+
+model ClientTag {
+  clientId  String   @map("client_id") @db.Uuid
+  tagId     String   @map("tag_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([clientId, tagId])
+  @@map("client_tags")
+}
+
+model ClientTechnicalSheet {
+  clientId     String   @id @map("client_id") @db.Uuid
+  businessId   String   @map("business_id") @db.Uuid
+  allergies    String?  @db.Text
+  fields       Json     @default("{}")
+  customFields Json     @default("[]") @map("custom_fields")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+  updatedBy    String?  @map("updated_by") @db.Uuid
+
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  updatedByUser User?    @relation("SheetUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@map("client_technical_sheets")
+}
+
+model ClientPhoto {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId    String   @map("business_id") @db.Uuid
+  clientId      String   @map("client_id") @db.Uuid
+  appointmentId String?  @map("appointment_id") @db.Uuid
+  serviceName   String?  @map("service_name") @db.VarChar(255)
+  caption       String?  @db.VarChar(255)
+  storagePath   String   @map("storage_path") @db.Text
+  takenAt       DateTime @map("taken_at") @db.Date
+  createdAt     DateTime @default(now()) @map("created_at")
+  createdBy     String?  @map("created_by") @db.Uuid
+
+  business      Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  client        Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  createdByUser User?        @relation("PhotoCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([clientId, takenAt])
+  @@map("client_photos")
+}
+
+model ClientConsent {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String    @map("business_id") @db.Uuid
+  clientId   String    @map("client_id") @db.Uuid
+  kind       String    @default("whatsapp_lembretes") @db.VarChar(30)
+  granted    Boolean
+  channel    String    @db.VarChar(20)
+  grantedAt  DateTime  @default(now()) @map("granted_at")
+  revokedAt  DateTime? @map("revoked_at")
+  recordedBy String?   @map("recorded_by") @db.Uuid
+
+  business       Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  recordedByUser User?    @relation("ConsentRecordedBy", fields: [recordedBy], references: [id], onDelete: SetNull)
+
+  @@index([clientId, grantedAt])
+  @@map("client_consents")
+}
+
+model WaitlistEntry {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId     String    @map("business_id") @db.Uuid
+  clientId       String    @map("client_id") @db.Uuid
+  serviceId      String    @map("service_id") @db.Uuid
+  professionalId String?   @map("professional_id") @db.Uuid
+  desiredDate    DateTime? @map("desired_date") @db.Date
+  period         String    @default("qualquer") @db.VarChar(10)
+  notes          String?   @db.VarChar(255)
+  status         String    @default("aguardando") @db.VarChar(15)
+  offeredAt      DateTime? @map("offered_at")
+  appointmentId  String?   @unique @map("appointment_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  service      Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  professional Professional? @relation(fields: [professionalId], references: [id], onDelete: SetNull)
+  appointment  Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, status])
+  @@map("waitlist_entries")
 }

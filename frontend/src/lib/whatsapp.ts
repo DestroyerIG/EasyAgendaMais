@@ -1,5 +1,5 @@
 /**
- * Link do WhatsApp — compartilhado entre ClientModule.tsx, ClientDetailPanel.tsx e
+ * Link do WhatsApp — compartilhado entre ClientModule.tsx, a antiga ClientDetailPanel.tsx (removida) e
  * PainelDetalhesAgendamento.tsx, que antes desta correção (M3 da revisão final)
  * duplicavam a mesma função. Os três arquivos continuam reexportando `linkWhatsapp`
  * (import daqui) para não quebrar quem já importava dele.

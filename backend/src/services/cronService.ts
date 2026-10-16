@@ -60,7 +60,18 @@ export const runReminderJob = async (now: Date = new Date()): Promise<void> => {
         reminderSent: false,
       },
       include: {
-        client: { select: { phone: true, name: true } },
+        client: {
+          select: {
+            phone: true,
+            name: true,
+            consents: {
+              where: { kind: 'whatsapp_lembretes' },
+              orderBy: { grantedAt: 'desc' },
+              take: 1,
+              select: { granted: true, revokedAt: true },
+            },
+          },
+        },
         service: { select: { name: true } },
         professional: { select: { name: true } },
       },
@@ -83,6 +94,14 @@ export const runReminderJob = async (now: Date = new Date()): Promise<void> => {
     for (const appointment of appointments) {
       if (!(await remindersEnabled(appointment.businessId))) {
         logger.debug({ businessId: appointment.businessId }, 'Lembretes por WhatsApp desligados; pulando');
+        continue;
+      }
+
+      // Consentimento revogado (registro mais recente) interrompe o lembrete automático.
+      // "Não informado" segue recebendo, como antes.
+      const ultimoConsentimento = appointment.client.consents?.[0];
+      if (ultimoConsentimento && (!ultimoConsentimento.granted || ultimoConsentimento.revokedAt)) {
+        logger.debug({ appointmentId: appointment.id }, 'Cliente revogou o consentimento; lembrete não enviado');
         continue;
       }
 

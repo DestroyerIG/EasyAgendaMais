@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { conteudoDemo } from '@/lib/conteudoDemo';
 import { Icon } from '@/components/ui';
 import { NEW_APPOINTMENT_HREF, getNavItem } from '@/lib/navigation';
 
@@ -25,33 +24,44 @@ export function formatarDataPorExtenso(data: Date): string {
   return `${diaSemana}, ${dia} de ${mes} de ${ano}`;
 }
 
-export interface SaudacaoDiaProps {
-  businessName: string;
+// "YYYY-MM-DD" (dia do negócio, vindo do servidor) -> Date local ao meio-dia, sem
+// passar por UTC (new Date('2026-10-13') cairia no dia anterior no Brasil).
+export function dataDoDia(ymd: string): Date {
+  const [ano, mes, dia] = ymd.split('-').map(Number);
+  return new Date(ano, (mes || 1) - 1, dia || 1, 12);
 }
 
-// Saudação da tela Hoje: substitui o PageHeader genérico pelo cabeçalho da referência.
-// Nome e data são sempre reais. A pílula de status (só no celular, hoje-mobile.html)
-// traz a contagem de profissionais ativas de conteudoDemo — o sistema ainda não
-// calcula "profissionais ativas agora". A referência escreve "Studio Aurora · 3
-// ativas" porque lá a saudação usa o nome da pessoa; aqui a saudação já usa o nome
-// do negócio (a sessão não guarda o nome do dono), então repetir o nome na pílula
-// pareceria defeito e a palavra "profissionais" fica no lugar dele.
-export function SaudacaoDia({ businessName }: SaudacaoDiaProps) {
+export interface SaudacaoDiaProps {
+  /** Nome de quem é dona do negócio (GET /dashboard/today → saudacao.ownerName). */
+  ownerName: string;
+  /** Dia do negócio em "YYYY-MM-DD"; sem ele, usa o relógio local. */
+  data?: string;
+  /** Nome do negócio para a pílula do celular (hoje-mobile.html: "Studio Aurora · …"). */
+  businessName?: string;
+}
+
+// Saudação da tela Hoje (hoje-desktop.html / hoje-mobile.html: "Bom dia, Carla"):
+// saudação pela hora local + nome da dona; a data por extenso é a do negócio.
+// A pílula do celular traz só o nome do negócio — a referência soma "· 3 ativas",
+// número que o sistema não calcula, então ele fica de fora em vez de inventado.
+export function SaudacaoDia({ ownerName, data, businessName }: SaudacaoDiaProps) {
   const agora = new Date();
-  const { profissionaisAtivasHoje } = conteudoDemo.hoje;
+  const dia = data ? dataDoDia(data) : agora;
 
   return (
     <div className="flex items-center justify-between gap-3">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-ink">
-          {saudacaoPorHora(agora.getHours())}, {businessName}
+          {saudacaoPorHora(agora.getHours())}, {ownerName}
         </h1>
-        <p className="mt-0.5 text-[14px] font-medium text-muted">{formatarDataPorExtenso(agora)}</p>
+        <p className="mt-0.5 text-[14px] font-medium text-muted">{formatarDataPorExtenso(dia)}</p>
       </div>
-      <div className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-[11px] font-semibold text-ink lg:hidden">
-        <span className="h-2 w-2 rounded-full bg-success" />
-        <span>{profissionaisAtivasHoje} profissionais ativas</span>
-      </div>
+      {businessName ? (
+        <div className="inline-flex min-w-0 shrink items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-[11px] font-semibold text-ink lg:hidden">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-success" />
+          <span className="truncate">{businessName}</span>
+        </div>
+      ) : null}
       {/* Ações do computador (hoje-desktop.html): sem equivalente no celular, onde o
           "+" da barra inferior já cobre "Novo agendamento" e o WhatsApp mora no menu
           "Mais". Os dois levam para telas reais — nenhuma é decorativa. */}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDurationExtenso, parseValorBR } from '../formatters';
+import { formatDataPura, formatDurationExtenso, parseValorBR } from '../formatters';
 
 describe('formatDurationExtenso', () => {
   it('menos de 1 hora fica só em minutos', () => {
@@ -48,5 +48,15 @@ describe('parseValorBR', () => {
     expect(parseValorBR('12.3456')).toBeNull();
     expect(parseValorBR('-10')).toBeNull();
     expect(parseValorBR(',50')).toBeNull();
+  });
+});
+
+describe('formatDataPura', () => {
+  it('formata YYYY-MM-DD sem voltar um dia por causa do fuso', () => {
+    expect(formatDataPura('2026-10-14')).toBe('14/10/2026');
+    expect(formatDataPura('2026-01-01')).toBe('01/01/2026');
+  });
+  it('devolve o texto original quando não é data pura', () => {
+    expect(formatDataPura('texto')).toBe('texto');
   });
 });

@@ -50,6 +50,10 @@ import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 
 // @ts-ignore
 import clientRoutes from './modules/clients/clients.routes.js';
+import crmRoutes from './modules/crm/crm.routes.js';
+import clientPhotoRoutes from './modules/clientPhotos/clientPhotos.routes.js';
+import tagRoutes from './modules/tags/tags.routes.js';
+import waitlistRoutes from './modules/waitlist/waitlist.routes.js';
 
 // @ts-ignore
 import financeRoutes from './modules/finance/finance.routes.js';
@@ -324,6 +328,14 @@ app.use(
   })
 );
 
+// Foto de procedimento (até 5MB) em base64: limite maior só para esta rota.
+app.use(
+  `${API_V1}/clients/:id/photos`,
+  express.json({
+    limit: '7mb',
+  })
+);
+
 app.use(
   express.json({
     limit: API_JSON_BODY_LIMIT,
@@ -447,6 +459,10 @@ app.use(`${API_V1}/products`, productRoutes);
 app.use(`${API_V1}/comandas`, comandaRoutes);
 app.use(`${API_V1}/cash`, cashRoutes);
 
+app.use(`${API_V1}/clients`, crmRoutes);
+app.use(`${API_V1}/clients`, clientPhotoRoutes);
+app.use(`${API_V1}/tags`, tagRoutes);
+app.use(`${API_V1}/waitlist`, waitlistRoutes);
 app.use(
   `${API_V1}/clients`,
   clientRoutes
@@ -614,7 +630,12 @@ const start = async (): Promise<void> => {
       }
     );
 
-    startReminderCron();
+    // DISABLE_CRON=true desliga lembretes e expirações (uso local apontando para o banco real).
+    if (process.env['DISABLE_CRON'] === 'true') {
+      logger.warn('Cron desligado por DISABLE_CRON=true');
+    } else {
+      startReminderCron();
+    }
   } catch (error) {
     logger.fatal(
       { err: error },

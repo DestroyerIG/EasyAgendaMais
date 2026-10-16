@@ -16,6 +16,8 @@ import { RemindersSection } from '@/components/settings/RemindersSection';
 import { IntegrationsSection } from '@/components/settings/IntegrationsSection';
 import { AppearanceSection } from '@/components/settings/AppearanceSection';
 import { ComissaoPadraoSection } from '@/components/settings/ComissaoPadraoSection';
+import { CrmSettingsSection } from '@/components/settings/CrmSettingsSection';
+import { EtiquetasSection } from '@/components/settings/EtiquetasSection';
 import {
   DIAS_SEMANA,
   normalizePhoneDigits,
@@ -514,6 +516,11 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
       </div>
 
       <ComissaoPadraoSection />
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <CrmSettingsSection />
+        <EtiquetasSection />
+      </div>
 
       <AppearanceSection />
 

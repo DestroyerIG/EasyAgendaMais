@@ -43,6 +43,9 @@ export function getApiErrorMessage(error: unknown, fallback = 'Ocorreu um erro i
     if (error.response?.status === 404) return 'Recurso não encontrado.';
     if (error.code === 'ECONNABORTED') return 'Tempo de conexão esgotado.';
     if (!error.response) return 'Erro de conexão. Verifique sua internet.';
+
+    // Resposta sem mensagem no corpo (ex.: 502/504 da hospedagem): nunca expor o texto em inglês do Axios.
+    return fallback;
   }
 
   if (error instanceof Error) return error.message;

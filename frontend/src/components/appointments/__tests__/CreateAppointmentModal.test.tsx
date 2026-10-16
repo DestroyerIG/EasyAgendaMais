@@ -81,4 +81,16 @@ describe('CreateAppointmentModal', () => {
     expect(onLoadSlots).not.toHaveBeenCalled();
     expect(screen.getByLabelText(/profissional/i)).toHaveValue('');
   });
+  it('pré-seleciona inicial.clientId mesmo quando a lista de clientes chega depois de abrir', () => {
+    const props = { ...base, inicial: { clientId: 'c2' }, availableSlots: [], onLoadSlots: vi.fn() };
+    const { rerender } = render(<CreateAppointmentModal {...props} clients={[]} />);
+    expect(screen.getByText('Nenhum cliente encontrado')).toBeInTheDocument();
+    const clientes = [
+      { id: 'c1', business_id: 'b', name: 'Ana Lima', phone: '11911110000', last_visit: null, total_spent: 0, created_at: '' },
+      { id: 'c2', business_id: 'b', name: 'Beatriz Costa', phone: '11922220000', last_visit: null, total_spent: 0, created_at: '' },
+    ];
+    rerender(<CreateAppointmentModal {...props} clients={clientes} />);
+    expect(screen.getByRole('button', { name: /Beatriz Costa/ })).toHaveClass('border-brand');
+    expect(screen.getByRole('button', { name: /Ana Lima/ })).not.toHaveClass('border-brand');
+  });
 });

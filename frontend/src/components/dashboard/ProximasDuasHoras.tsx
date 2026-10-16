@@ -6,47 +6,53 @@ import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
 import { linkWhatsapp } from '@/lib/whatsapp';
 import { Card, Icon, Skeleton, StatusChip, STATUS_STRIPE_CLASS } from '@/components/ui';
-import type { Appointment } from '@/types';
+import type { AgendamentoHoje } from '@/lib/hoje';
 
 export interface ProximasDuasHorasProps {
   /**
-   * Agendamentos de hoje (`GET /appointments`), buscados uma vez pela página do Hoje
-   * (DashboardPage) e compartilhados com `DashboardCards` — a mesma lista alimenta a
-   * ocupação/vagas livres reais (correção I3 da revisão final). `null` enquanto a busca
-   * ainda não respondeu.
+   * Próximos atendimentos de hoje (GET /dashboard/today → `proximas`): o servidor já
+   * recorta a janela de 2 horas (e mantém quem está em atendimento), então aqui só
+   * entra o filtro por profissional. `null` enquanto a busca ainda não respondeu.
    */
-  agendamentos: Appointment[] | null;
+  agendamentos: AgendamentoHoje[] | null;
   className?: string;
 }
 
-const JANELA_MINUTOS = 120;
+// Status em que o sinal Pix já foi pago (a reserva só sai de aguardando_pagamento
+// quando o Pix cai). Cancelado fica de fora: não há o que afirmar sobre pagamento.
+const SINAL_PAGO_EM: ReadonlySet<AgendamentoHoje['status']> = new Set(['confirmado', 'em_atendimento', 'concluido', 'faltou']);
+const PAGA_NO_LOCAL_EM: ReadonlySet<AgendamentoHoje['status']> = new Set(['confirmado', 'em_atendimento']);
 
-// "hh:mm:ss" -> minutos desde a meia-noite, sem passar por Date/timezone (o mesmo
-// valor que AppointmentCard.tsx já lê com appointment.time?.substring(0, 5)).
-const paraMinutos = (hora: string): number => {
-  const [h, m] = hora.split(':').map(Number);
-  return (h || 0) * 60 + (m || 0);
-};
-
-// Agendamentos de hoje que começam entre agora e daqui a 2 horas (hoje-desktop.html
-// / hoje-mobile.html: "Próximas 2 horas"). Cancelados não contam como "próximos".
-function filtrarProximos(agendamentos: Appointment[], agora: Date): Appointment[] {
-  const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
-  return agendamentos
-    .filter((a) => a.status !== 'cancelado')
-    .filter((a) => {
-      const minutos = paraMinutos(a.time);
-      return minutos >= minutosAgora && minutos <= minutosAgora + JANELA_MINUTOS;
-    });
+// Situação do pagamento de cada atendimento (hoje-desktop.html: "Sinal pago R$ 30" em
+// verde WhatsApp com check_circle, ou "Pagar no local" em cinza).
+export function SituacaoPagamento({ agendamento }: { agendamento: AgendamentoHoje }) {
+  const sinal = Number(agendamento.deposit_amount ?? 0);
+  if (agendamento.status === 'aguardando_pagamento') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-warning-text">
+        <Icon name="schedule" size={13} />
+        Aguardando Pix
+      </span>
+    );
+  }
+  if (sinal > 0 && SINAL_PAGO_EM.has(agendamento.status)) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-whatsapp">
+        <Icon name="check_circle" size={13} />
+        {`Sinal pago ${formatCurrency(sinal, { cents: !Number.isInteger(sinal) })}`}
+      </span>
+    );
+  }
+  if (sinal <= 0 && PAGA_NO_LOCAL_EM.has(agendamento.status)) {
+    return <span className="text-[11px] font-medium text-muted">Pagar no local</span>;
+  }
+  return null;
 }
 
 export function ProximasDuasHoras({ agendamentos, className }: ProximasDuasHorasProps) {
   const [profissionalAtivo, setProfissionalAtivo] = useState<string | null>(null);
 
-  const proximos = useMemo(
-    () => (agendamentos ? filtrarProximos(agendamentos, new Date()) : []),
-    [agendamentos],
-  );
+  const proximos = useMemo(() => agendamentos ?? [], [agendamentos]);
 
   const profissionais = useMemo(
     () =>
@@ -123,7 +129,7 @@ export function ProximasDuasHoras({ agendamentos, className }: ProximasDuasHoras
       ) : (
         <div className="flex flex-col gap-3">
           {visiveis.map((agendamento) => {
-            const whatsapp = agendamento.status === 'confirmado' ? linkWhatsapp(agendamento.client_phone) : null;
+            const whatsapp = agendamento.status === 'confirmado' ? linkWhatsapp(agendamento.client_phone ?? undefined) : null;
             return (
               <div
                 key={agendamento.id}
@@ -148,26 +154,22 @@ export function ProximasDuasHoras({ agendamentos, className }: ProximasDuasHoras
                   <span className="truncate">
                     {[agendamento.service_name, agendamento.professional_name].filter(Boolean).join(' · ')}
                   </span>
-                  {/* O sistema nunca cobra sinal antecipado — "Pagar no local" é real para
-                      qualquer agendamento (hoje-desktop.html tem "Sinal pago R$X" por
-                      atendimento, que exigiria um valor que o DTO não tem; e "Reenviar
-                      WhatsApp", ligado ao status "aguardando confirmação" que não existe
-                      no sistema real — só confirmado/concluído/cancelado). Para os
-                      confirmados, um link real de WhatsApp substitui o texto: é a mesma
-                      ação real que a ficha do cliente já oferece, não um botão decorativo. */}
-                  {whatsapp ? (
-                    <a
-                      href={whatsapp}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex shrink-0 items-center gap-1 font-bold text-whatsapp hover:underline"
-                    >
-                      <Icon name="chat" size={13} />
-                      Abrir WhatsApp
-                    </a>
-                  ) : (
-                    <span className="shrink-0 font-medium">Pagar no local</span>
-                  )}
+                  <div className="flex shrink-0 items-center gap-2">
+                    <SituacaoPagamento agendamento={agendamento} />
+                    {/* Link real do WhatsApp para as confirmadas (a mesma ação da ficha da cliente). */}
+                    {whatsapp ? (
+                      <a
+                        href={whatsapp}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Abrir WhatsApp de ${agendamento.client_name ?? 'cliente'}`}
+                        className="inline-flex items-center gap-1 font-bold text-whatsapp hover:underline"
+                      >
+                        <Icon name="chat" size={13} />
+                        <span className="hidden sm:inline">WhatsApp</span>
+                      </a>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             );

@@ -1,4 +1,5 @@
 import express from 'express';
+import { getCrmSettings, putCrmSettings } from '../modules/crm/crm.controller.js';
 // @ts-ignore
 import { authMiddleware } from '../middleware/auth.js';
 // @ts-ignore
@@ -47,6 +48,8 @@ router.delete('/professionals/:id', authMiddleware, requireTenantRoles, requireF
 
 router.get('/settings', authMiddleware, requireTenantRoles, requireFeature('advanced_admin'), getBusinessSettings);
 router.put('/settings', authMiddleware, requireTenantRoles, requireFeature('advanced_admin'), validate({ body: updateBusinessSettingsSchema }), updateBusinessSettings);
+router.get('/crm-settings', authMiddleware, requireTenantRoles, requireFeature('advanced_admin'), getCrmSettings);
+router.put('/crm-settings', authMiddleware, requireTenantRoles, requireFeature('advanced_admin'), putCrmSettings);
 
 router.get('/profile', authMiddleware, requireTenantRoles, requireFeature('billing'), getBusinessProfile);
 router.put('/profile', authMiddleware, requireTenantRoles, requireFeature('billing'), validate({ body: updateBusinessProfileSchema }), updateBusinessProfile);
