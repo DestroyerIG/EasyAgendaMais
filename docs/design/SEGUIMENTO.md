@@ -48,6 +48,11 @@ Falta de teste automatizado em telas com lógica nova (tarefas 9 e 11):
 - `ExpensesTable.tsx` e `ExpenseModal.tsx` (tarefa 9) também ainda usam ícones `lucide-react` — não fizeram parte do escopo da tarefa 9 (o plano só listava `FinanceModule.tsx`, `FinanceChart.tsx` e `ExpensesTable.tsx`, mas a revisão confirmou que `ExpensesTable.tsx` já estava conforme aos tokens visuais e não precisou de mudança, então os ícones lucide dela não foram trocados).
 - `IconButton`, `EmptyState` e `ModalFooter` (`frontend/src/components/ui/`) ainda tipam a prop `icon` como `LucideIcon` nativamente e dependem do adaptador `materialIcon()` (`frontend/src/lib/materialIconAdapter.tsx`, nascido na correção da tarefa 10) para aceitar um nome de Material Symbol. Agora que o DESIGN.md declara Material Symbols Outlined como padrão de ícone do produto, mudar o tipo desses três componentes para aceitar Material Symbols diretamente (sem o adaptador) é limpeza futura, não desta entrega.
 
+Sub-projeto 2B (pendências conhecidas da revisão final):
+- O índice único `lower(name)` das etiquetas (`tags_business_id_lower_name_key`) existe só no SQL da migração e está fora do schema do Prisma. Toda migração nova gerada por `prisma migrate dev` vai conter um `DROP INDEX` desse índice; esse DROP deve ser removido à mão antes de aplicar, senão a unicidade das etiquetas some sem aviso.
+- O "SAIR" automático por WhatsApp (a cliente responde SAIR e o consentimento é revogado) fica para o 2C. Hoje a revogação é feita pela dona na ficha da cliente, e o lembrete automático já respeita a revogação. A página pública não promete mais o SAIR. O 2C (disparos) deve nascer respeitando o estado de consentimento: "não informado" recebe como hoje; "revogado" nunca recebe.
+- "Excluir cliente" ficou fora do 2B: não existe `DELETE /clients/:id`. Exige decisão de produto sobre histórico de atendimentos, caixa e LGPD (apagar fotos do storage, anonimizar em vez de apagar etc.).
+
 ## Melhorias técnicas pequenas
 
 - O Vitest imprime um aviso de configuração a cada execução. Silenciar exige renomear `vitest.config.ts` para `.mts` ou declarar `"type": "module"`.
