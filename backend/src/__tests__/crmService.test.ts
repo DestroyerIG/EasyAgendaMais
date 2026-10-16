@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const repo = vi.hoisted(() => ({ clientes: vi.fn(), visitas: vi.fn(), profissionaisPorCliente: vi.fn() }));
+const repo = vi.hoisted(() => ({ clientes: vi.fn(), visitasEProfissionais: vi.fn() }));
 vi.mock('../modules/crm/crm.repository.js', () => ({ crmRepository: repo }));
 vi.mock('../services/scheduleSettingsService.js', () => ({ getBusinessScheduleSettings: vi.fn().mockResolvedValue({ timezone: 'America/Sao_Paulo' }) }));
 
@@ -21,14 +21,21 @@ beforeEach(() => {
     cliente('b', 'Bia'),
     cliente('c', 'Carla'),
   ]);
-  repo.visitas.mockResolvedValue(new Map([
-    ['a', [vis('2026-09-20', 150), vis('2026-10-10', 150)]],
-    ['b', [vis('2026-05-01')]],
-  ]));
-  repo.profissionaisPorCliente.mockResolvedValue(new Map([['a', new Set(['p1'])], ['b', new Set(['p2'])]]));
+  repo.visitasEProfissionais.mockResolvedValue({
+    visitas: new Map([
+      ['a', [vis('2026-09-20', 150), vis('2026-10-10', 150)]],
+      ['b', [vis('2026-05-01')]],
+    ]),
+    profissionais: new Map([['a', new Set(['p1'])], ['b', new Set(['p2'])]]),
+  });
 });
 
 describe('crmService.insights', () => {
+  it('varre as visitas uma única vez por requisição', async () => {
+    await crmService.insights('b1', { page: 1, pageSize: 10, ordem: 'nome' } as never);
+    expect(repo.visitasEProfissionais).toHaveBeenCalledTimes(1);
+  });
+
   it('calcula fase, LTV e conta por fase', async () => {
     const r = await crmService.insights('b1', { page: 1, pageSize: 10, ordem: 'ultima_visita' } as never);
     expect(r.total).toBe(3);

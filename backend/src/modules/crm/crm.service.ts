@@ -32,8 +32,8 @@ const porNome =(a: ClienteInsight, b: ClienteInsight) => a.name.localeCompare(b.
 async function montar(businessId: string) {
   const { timezone } = await getBusinessScheduleSettings(businessId);
   const hoje = todayInTimezone(timezone);
-  const [clientes, visitas, profs] = await Promise.all([
-    crmRepository.clientes(businessId), crmRepository.visitas(businessId), crmRepository.profissionaisPorCliente(businessId),
+  const [clientes, { visitas, profissionais: profs }] = await Promise.all([
+    crmRepository.clientes(businessId), crmRepository.visitasEProfissionais(businessId),
   ]);
   const insights = clientes.map((c): ClienteInsight => {
     const r = resumirCliente(visitas.get(c.id) ?? [], hoje, c.birthDate);

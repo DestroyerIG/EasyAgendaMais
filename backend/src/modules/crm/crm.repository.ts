@@ -68,6 +68,10 @@ export const crmRepository = {
       } as ClienteBase;
     });
   },
+  /** Uma única varredura devolve visitas e profissionais por cliente. */
+  async visitasEProfissionais(businessId: string): Promise<{ visitas: Map<string, Visita[]>; profissionais: Map<string, Set<string>> }> {
+    return carregarVisitas(businessId);
+  },
   async visitas(businessId: string): Promise<Map<string, Visita[]>> {
     return (await carregarVisitas(businessId)).visitas;
   },
