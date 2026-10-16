@@ -251,6 +251,13 @@ export const WhatsAppModule = () => {
     };
   }, [fetchStatus]);
 
+  // Voltar/avançar e links internos (?aba=conexao) mudam a URL: a aba acompanha.
+  const abaParam = searchParams.get('aba');
+  useEffect(() => {
+    const daUrl = abaDaUrl(abaParam);
+    if (daUrl) setActiveTab(daUrl);
+  }, [abaParam]);
+
   useEffect(() => {
     if (activeTab !== null || statusLoading) return;
     setActiveTab(waStatus.status === 'connected' ? 'conversas' : 'conexao');
@@ -271,6 +278,7 @@ export const WhatsAppModule = () => {
   };
 
   const handleDisconnect = async () => {
+    if (!confirm('Deseja realmente desconectar a sessão do WhatsApp?')) return;
     setActionLoading(true);
     try { await api.post('/whatsapp/disconnect'); showToast('WhatsApp desconectado', 'success'); fetchStatus(); }
     catch { showToast('Erro ao desconectar', 'error'); }
@@ -293,6 +301,23 @@ export const WhatsAppModule = () => {
     }
     catch { showToast('Erro ao reconectar', 'error'); }
     finally { setActionLoading(false); }
+  };
+
+  // Teste de envio: manda uma mensagem curta para o próprio número conectado.
+  const handleTestSend = async () => {
+    if (!waStatus.connectedNumber) {
+      showToast('Não foi possível identificar o número conectado para o teste.', 'error');
+      return;
+    }
+    try {
+      await api.post('/whatsapp/test-send', {
+        phone: waStatus.connectedNumber,
+        message: 'Teste de envio do EasyAgenda+: o WhatsApp está conectado e pronto para enviar mensagens.',
+      });
+      showToast('Mensagem de teste enviada para o número conectado', 'success');
+    } catch {
+      showToast('Erro ao enviar a mensagem de teste', 'error');
+    }
   };
 
   const handleSaveConfig = async () => {
@@ -485,7 +510,11 @@ export const WhatsAppModule = () => {
               statusLoading={statusLoading}
               actionLoading={actionLoading}
               lastSyncedAt={lastSyncedAt}
+              nomeNegocio={user?.businessName || 'seu negócio'}
               onConnect={handleConnect}
+              onDisconnect={handleDisconnect}
+              onRefresh={() => { void fetchStatus(); }}
+              onTestSend={handleTestSend}
             />
           </TabsContent>
         </div>

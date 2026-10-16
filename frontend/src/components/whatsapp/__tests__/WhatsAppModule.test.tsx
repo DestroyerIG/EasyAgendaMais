@@ -10,13 +10,25 @@ vi.mock('next/navigation', () => ({
 }));
 
 const get = vi.fn();
+const post = vi.fn();
 vi.mock('@/lib/api', () => ({
-  default: { get: (...a: unknown[]) => get(...a), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  default: { get: (...a: unknown[]) => get(...a), post: (...a: unknown[]) => post(...a), put: vi.fn(), delete: vi.fn() },
 }));
 const showToast = vi.fn();
 vi.mock('@/components/Toast', () => ({ useToast: () => ({ showToast }) }));
-vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { businessId: 'b1' } }) }));
-vi.mock('@/components/whatsapp/ConnectionPanel', () => ({ ConnectionPanel: () => <div>painel-conexao</div> }));
+const usuario = { businessId: 'b1', businessName: 'Studio Aurora' };
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: usuario }) }));
+vi.mock('@/components/whatsapp/ConnectionPanel', () => ({
+  ConnectionPanel: (p: { nomeNegocio: string; onDisconnect: () => void; onTestSend: () => void; onRefresh: () => void }) => (
+    <div>
+      painel-conexao
+      <span>negocio:{p.nomeNegocio}</span>
+      <button onClick={p.onDisconnect}>acao-desconectar</button>
+      <button onClick={p.onTestSend}>acao-testar</button>
+      <button onClick={p.onRefresh}>acao-atualizar</button>
+    </div>
+  ),
+}));
 vi.mock('@/components/whatsapp/conversas/CentralConversas', () => ({ CentralConversas: () => <div>painel-conversas</div> }));
 vi.mock('@/components/whatsapp/MenuOptionsPanel', () => ({ MenuOptionsPanel: () => <div>painel-menu</div> }));
 vi.mock('@/components/whatsapp/MessageConfigPanel', () => ({ MessageConfigPanel: () => <div>painel-mensagens</div> }));
@@ -34,6 +46,8 @@ describe('WhatsAppModule', () => {
   beforeEach(() => {
     get.mockReset();
     replace.mockReset();
+    post.mockReset();
+    post.mockResolvedValue({ data: {} });
     abaNaUrl = null;
   });
 
@@ -92,5 +106,41 @@ describe('WhatsAppModule', () => {
     await waitFor(() => expect(screen.getByText('painel-mensagens')).toBeInTheDocument());
     await userEvent.click(screen.getByRole('tab', { name: 'Simulador' }));
     await waitFor(() => expect(screen.getByText('painel-simulador')).toBeInTheDocument());
+  });
+
+  it('a aba acompanha o ?aba= quando a URL muda (voltar/avançar e links internos)', async () => {
+    abaNaUrl = 'conversas';
+    responderStatus('connected');
+    const { rerender } = render(<WhatsAppModule />);
+    expect(await screen.findByText('painel-conversas')).toBeInTheDocument();
+    abaNaUrl = 'conexao';
+    rerender(<WhatsAppModule />);
+    expect(await screen.findByText(/painel-conexao/)).toBeInTheDocument();
+    expect(screen.getByText('WhatsApp / Conexão')).toBeInTheDocument();
+    abaNaUrl = 'automacoes';
+    rerender(<WhatsAppModule />);
+    expect(await screen.findByText('painel-menu')).toBeInTheDocument();
+  });
+
+  it('liga a Conexão ao negócio, à desconexão (com confirmação), ao teste de envio e à atualização', async () => {
+    abaNaUrl = 'conexao';
+    responderStatus('connected');
+    get.mockImplementation(async (url: string) =>
+      url === '/whatsapp/status' ? { data: { status: 'connected', connectedNumber: '5583981204000' } } : { data: [] });
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<WhatsAppModule />);
+    expect(await screen.findByText('negocio:Studio Aurora')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('acao-testar'));
+    await waitFor(() => expect(post).toHaveBeenCalledWith('/whatsapp/test-send', expect.objectContaining({ phone: '5583981204000' })));
+
+    await userEvent.click(screen.getByText('acao-desconectar'));
+    expect(confirmar).toHaveBeenCalled();
+    await waitFor(() => expect(post).toHaveBeenCalledWith('/whatsapp/disconnect'));
+
+    const antes = get.mock.calls.filter((c) => c[0] === '/whatsapp/status').length;
+    await userEvent.click(screen.getByText('acao-atualizar'));
+    await waitFor(() => expect(get.mock.calls.filter((c) => c[0] === '/whatsapp/status').length).toBeGreaterThan(antes));
+    confirmar.mockRestore();
   });
 });

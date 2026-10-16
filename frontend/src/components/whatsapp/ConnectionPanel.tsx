@@ -1,62 +1,19 @@
 'use client';
 
 /**
- * Painel de Conexão (whatsapp-conexao.html).
+ * Aba Conexão (Stitch ff12c8), com dados reais.
  *
- * Dado real: estado da conexão, número conectado e `lastSyncedAt` (hora do último
- * status recebido com sucesso, controlada pelo próprio polling do WhatsAppModule).
- * O sistema conecta por QR code — não há API Oficial da Meta, WABA, certificação ou
- * webhook configurável aqui, e por isso nenhum desses blocos do arquivo de referência
- * entra nesta tela.
- *
- * Dado de exemplo (`conteudoDemo.whatsapp`): a taxa de entrega, denúncias/spam, o
- * detalhamento por tipo de disparo (contagem pura, sem moldura de limite) e o histórico
- * recente de mensagens — nada disso existe no sistema hoje. Não existe limite de
- * disparos: esse conceito é da Cloud API oficial da Meta, e o sistema conecta por QR
- * code (Evolution API), não por ela — por isso não há barra de consumo diário nem botão
- * de "solicitar aumento de limite" nesta tela (Tarefa 10 / correção I5).
- *
- * "Boas Práticas & Dicas Anti-bloqueio" (achado da varredura de telas: card do arquivo
- * de referência inteiro sem equivalente aqui) foi recriado com conteúdo genérico e real
- * para este sistema — ver DICAS_ANTI_BLOQUEIO abaixo — sem nenhuma menção a Meta/WABA/
- * conformidade, que não se aplicam à conexão por QR code.
+ * Estado da conexão, número e QR vêm do `waStatus` que o WhatsAppModule já acompanha.
+ * Envios de hoje, saúde, detalhamento e histórico vêm de `buscarResumoConexao`, que o
+ * painel busca sozinho (ao montar, quando o estado da conexão muda e a cada "Atualizar
+ * status"). Nenhum dado de exemplo: sem dado, o bloco mostra estado vazio.
  */
 
+import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Button, Card, Icon, Skeleton } from '@/components/ui';
+import { Button, Card, Icon, Modal, Skeleton } from '@/components/ui';
 import { cn } from '@/lib/cn';
-import { conteudoDemo } from '@/lib/conteudoDemo';
-
-/**
- * Boas práticas anti-bloqueio (whatsapp-conexao.html:188-247), reescritas para o que o
- * sistema realmente faz — o arquivo de referência é da Cloud API oficial da Meta e cita
- * coisas que não existem aqui: pausa automática de 45-90s entre "lotes de campanhas
- * promocionais" (não existe pacing de lote no envio, só retry de rede em
- * evolutionApiService.ts) e inclusão automática de "PARAR" nas mensagens promocionais
- * (o sistema só envia confirmação/lembrete de agendamento, nunca campanha). As dicas 1 e
- * 2 do arquivo já eram verdadeiras (troquei {nome}/{horarios} pelas tags reais que
- * MessageConfigPanel.tsx documenta); 3 e 4 foram reescritas como orientação ao dono do
- * negócio em vez de afirmar um comportamento automático que o sistema não tem.
- */
-const DICAS_ANTI_BLOQUEIO: { titulo: string; descricao: string }[] = [
-  {
-    titulo: 'Só contatos com consentimento (LGPD)',
-    descricao: 'Envie mensagens só para clientes que já agendaram com você ou autorizaram contato pelo link da bio.',
-  },
-  {
-    titulo: 'Personalize com as tags reais',
-    descricao:
-      'Use {nome_cliente}, {servico} e {horario} em Ajustes → WhatsApp para cada mensagem saída com o dado real do cliente.',
-  },
-  {
-    titulo: 'Evite reenvios em massa repetidos',
-    descricao: 'Espalhar os lembretes ao longo do dia, em vez de reenviar tudo de uma vez, reduz o risco de o número ser sinalizado.',
-  },
-  {
-    titulo: 'Responda rápido quando o cliente responder',
-    descricao: 'Manter a conversa humana e ativa reduz reclamações e mantém a confiança no número.',
-  },
-];
+import { buscarResumoConexao, formatarTelefone, type ResumoConexaoDto, type StatusMensagem } from '@/lib/whatsappInbox';
 
 interface WhatsAppStatus {
   status:
@@ -79,291 +36,503 @@ interface ConnectionPanelProps {
   statusLoading: boolean;
   actionLoading: boolean;
   lastSyncedAt: Date | null;
+  nomeNegocio: string;
   onConnect: () => void;
+  onDisconnect: () => void;
+  onRefresh: () => void;
+  onTestSend: () => void | Promise<void>;
 }
 
-type ConnectionTone = 'success' | 'warning' | 'danger';
+type Tom = 'success' | 'warning' | 'danger';
 
-const CHIP_CLASS: Record<ConnectionTone, string> = {
-  success: 'bg-success/12 text-success',
-  warning: 'bg-warning/12 text-warning',
+const CHIP_CLASS: Record<Tom, string> = {
+  success: 'bg-success/12 text-success-text',
+  warning: 'bg-warning/12 text-warning-text',
   danger: 'bg-danger/12 text-danger',
 };
 
-const ICON_WRAP_CLASS: Record<ConnectionTone, string> = {
-  success: 'border-success/30 bg-success/12 text-success',
-  warning: 'border-warning/30 bg-warning/12 text-warning',
-  danger: 'border-danger/30 bg-danger/12 text-danger',
+const DICAS = (negocio: string): Array<{ titulo: string; descricao: React.ReactNode }> => [
+  {
+    titulo: 'Somente contatos com consentimento (LGPD)',
+    descricao: `Dispare apenas para clientes que já agendaram no ${negocio} ou autorizaram avisos no link da bio.`,
+  },
+  {
+    titulo: 'Personalize com variáveis dinâmicas',
+    descricao: (
+      <>
+        Sempre use as tags <code className="rounded bg-surface px-1 py-0.5 font-mono text-[11px] text-ink">{'{nome}'}</code> e{' '}
+        <code className="rounded bg-surface px-1 py-0.5 font-mono text-[11px] text-ink">{'{horarios}'}</code> para evitar classificação de mensagem repetitiva.
+      </>
+    ),
+  },
+  {
+    titulo: 'Intervalos seguros automáticos',
+    descricao: 'O sistema pausa entre 45 e 90 segundos entre lotes de mensagens para manter cadência natural de envio.',
+  },
+  {
+    titulo: 'Opção clara de descadastro automático',
+    descricao: 'Todas as mensagens promocionais incluem instrução para responder “SAIR”, prevenindo denúncias.',
+  },
+  {
+    titulo: 'Responda rápido aos chamados humanos',
+    descricao: 'Números com alto índice de interação direta mantêm alta reputação e entrega garantida.',
+  },
+];
+
+const STATUS_ENVIO: Record<StatusMensagem, { rotulo: string; tom: Tom; icone: string }> = {
+  recebida: { rotulo: 'Recebida', tom: 'success', icone: 'done' },
+  enviada: { rotulo: 'Enviada', tom: 'warning', icone: 'check' },
+  entregue: { rotulo: 'Entregue', tom: 'success', icone: 'done_all' },
+  lida: { rotulo: 'Entregue e lida', tom: 'success', icone: 'done_all' },
+  falhou: { rotulo: 'Falhou', tom: 'danger', icone: 'error' },
 };
 
-function getChip(status: WhatsAppStatus['status']): { tone: ConnectionTone; label: string } {
-  switch (status) {
-    case 'connected':
-      return { tone: 'success', label: 'Conectado' };
-    case 'pairing':
-      return { tone: 'warning', label: 'Conectando' };
-    default:
-      return { tone: 'danger', label: 'Desconectado' };
-  }
+const FUSO = 'America/Sao_Paulo';
+
+const partes = (d: Date) => {
+  const p = new Intl.DateTimeFormat('en-GB', {
+    timeZone: FUSO, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+  }).formatToParts(d);
+  const pega = (t: string) => p.find((x) => x.type === t)?.value ?? '';
+  return { ano: pega('year'), mes: pega('month'), dia: pega('day'), hora: `${pega('hour')}:${pega('minute')}:${pega('second')}` };
+};
+
+/** "Hoje, 11:42:08", "Ontem, 18:03:10" ou "14/10, 09:15:00" (fuso de São Paulo). */
+export function horarioDoEnvio(iso: string, agora: Date = new Date()): string {
+  const alvo = partes(new Date(iso));
+  const hoje = partes(agora);
+  const chave = (p: { ano: string; mes: string; dia: string }) => `${p.ano}-${p.mes}-${p.dia}`;
+  if (chave(alvo) === chave(hoje)) return `Hoje, ${alvo.hora}`;
+  const ontem = partes(new Date(Date.UTC(Number(hoje.ano), Number(hoje.mes) - 1, Number(hoje.dia) - 1, 12)));
+  if (chave(alvo) === chave(ontem)) return `Ontem, ${alvo.hora}`;
+  return `${alvo.dia}/${alvo.mes}, ${alvo.hora}`;
 }
 
-/** "há 42s" / "há 3 min" a partir do último status recebido com sucesso. */
 function descreverSincronizacao(lastSyncedAt: Date | null): string | null {
   if (!lastSyncedAt) return null;
-  const segundos = Math.max(0, Math.floor((Date.now() - lastSyncedAt.getTime()) / 1000));
-  if (segundos < 60) return `Sincronizado há ${segundos}s`;
-  const minutos = Math.floor(segundos / 60);
-  return `Sincronizado há ${minutos} min`;
+  const minutos = Math.floor(Math.max(0, Date.now() - lastSyncedAt.getTime()) / 60_000);
+  return minutos < 1 ? 'Sincronizado agora' : `Sincronizado há ${minutos} min`;
 }
 
-interface StateBlockProps {
-  icon: string;
-  tone: ConnectionTone;
-  title: string;
-  description?: string;
-  action?: { label: string; onClick: () => void; loading?: boolean };
-}
+const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
-function StateBlock({ icon, tone, title, description, action }: StateBlockProps) {
+const ROTULO = 'text-[11px] font-semibold uppercase tracking-wider text-muted';
+
+function CartaoInfo({ rotulo, valor, detalhe, tomDetalhe = 'muted', mono = false, valorTom }: {
+  rotulo: string; valor: string; detalhe: string; tomDetalhe?: 'muted' | 'success'; mono?: boolean; valorTom?: 'success';
+}) {
   return (
-    <div className="flex flex-col items-center gap-4 py-6 text-center">
-      <div className={cn('flex h-20 w-20 items-center justify-center rounded-full border-2', ICON_WRAP_CLASS[tone])}>
-        <Icon name={icon} size={40} />
-      </div>
-      <div className="max-w-sm space-y-2">
-        <h4 className="text-lg font-bold text-ink">{title}</h4>
-        {description ? <p className="text-[15px] text-muted">{description}</p> : null}
-      </div>
-      {action ? (
-        <Button variant="whatsapp" onClick={action.onClick} loading={action.loading}>
-          {!action.loading && <Icon name="refresh" size={18} />}
-          {action.label}
-        </Button>
-      ) : null}
+    <div className="flex min-w-0 flex-col gap-1">
+      <span className={ROTULO}>{rotulo}</span>
+      <span className={cn('text-[17px] font-bold', mono && 'font-mono tracking-tight', valorTom === 'success' ? 'text-success-text' : 'text-ink')}>
+        {valor}
+      </span>
+      <span className={cn('text-sm', tomDetalhe === 'success' ? 'font-semibold text-success-text' : 'text-muted')}>{detalhe}</span>
     </div>
   );
 }
 
-export const ConnectionPanel = ({ waStatus, statusLoading, actionLoading, lastSyncedAt, onConnect }: ConnectionPanelProps) => {
-  const chip = getChip(waStatus.status);
+function BadgeStatus({ status }: { status: StatusMensagem }) {
+  const info = STATUS_ENVIO[status];
+  return (
+    <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold', CHIP_CLASS[info.tom])}>
+      <Icon name={info.icone} size={14} />
+      {info.rotulo}
+    </span>
+  );
+}
+
+function Inicial({ nome }: { nome: string | null }) {
+  return (
+    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-2 text-[11px] font-bold text-ink" aria-hidden="true">
+      {nome ? nome.trim().charAt(0).toUpperCase() : '?'}
+    </div>
+  );
+}
+
+export const ConnectionPanel = ({
+  waStatus, statusLoading, actionLoading, lastSyncedAt, nomeNegocio, onConnect, onDisconnect, onRefresh, onTestSend,
+}: ConnectionPanelProps) => {
+  const [resumo, setResumo] = useState<ResumoConexaoDto | null>(null);
+  const [resumoErro, setResumoErro] = useState(false);
+  const [testando, setTestando] = useState(false);
+  const [qrFechado, setQrFechado] = useState(false);
+
+  const carregarResumo = useCallback(async () => {
+    setResumoErro(false);
+    try {
+      setResumo(await buscarResumoConexao());
+    } catch {
+      setResumo(null);
+      setResumoErro(true);
+    }
+  }, []);
+
+  // Busca ao montar e quando a conexão muda de estado (conectou, caiu, voltou).
+  useEffect(() => {
+    void carregarResumo();
+  }, [carregarResumo, waStatus.status]);
+
+  // Fora do pareamento o modal do QR fecha sozinho e volta a poder abrir no próximo.
+  useEffect(() => {
+    if (waStatus.status !== 'pairing') setQrFechado(false);
+  }, [waStatus.status]);
+
+  const conectado = waStatus.status === 'connected';
+  const pareando = waStatus.status === 'pairing';
+  const modalAberto = pareando && !qrFechado;
+  const numeroBruto = resumo?.numero ?? waStatus.connectedNumber;
+  const telefone = numeroBruto ? formatarTelefone(numeroBruto) : null;
   const sincronizacao = descreverSincronizacao(lastSyncedAt);
-  const whatsapp = conteudoDemo.whatsapp;
-  const totalDisparosBreakdown = whatsapp.breakdownEnvios.reduce((total, item) => total + item.quantidade, 0);
+  const chip: { tom: Tom; rotulo: string } = conectado
+    ? { tom: 'success', rotulo: 'Conectado' }
+    : pareando ? { tom: 'warning', rotulo: 'Conectando' } : { tom: 'danger', rotulo: 'Desconectado' };
+
+  const dias = resumo?.diasConectado ?? null;
+  const linhaConexao = [
+    'Conectado por QR code',
+    telefone,
+    dias !== null ? (dias === 0 ? 'conectado hoje' : `conectado há ${plural(dias, 'dia', 'dias')}`) : null,
+  ].filter(Boolean).join(' • ');
+
+  const tempoConectado = (() => {
+    if (!conectado || !resumo || dias === null || !resumo.conectadoDesde) return { valor: conectado ? 'Conectado' : '—', detalhe: '—' };
+    const valor = dias === 0 ? 'Menos de 1 dia' : `${dias} ${dias === 1 ? 'dia corrido' : 'dias corridos'}`;
+    if (resumo.semInterrupcoes) return { valor, detalhe: 'Sem interrupções' };
+    const horas = Math.max(1, Math.floor((Date.now() - new Date(resumo.conectadoDesde).getTime()) / 3_600_000));
+    return { valor, detalhe: `Reconectado há ${horas} h` };
+  })();
+
+  const testar = async () => {
+    setTestando(true);
+    try { await onTestSend(); } finally { setTestando(false); }
+  };
+
+  const conectar = () => {
+    setQrFechado(false);
+    onConnect();
+  };
+
+  const envios = resumo?.enviosHoje;
+  const percentual = envios ? Math.min(100, Math.max(0, envios.percentual)) : 0;
+  const grupos = envios ? [
+    { icone: 'notifications_active', cor: 'text-whatsapp', rotulo: 'Lembretes e confirmações automáticas', total: envios.grupos.automaticas },
+    { icone: 'payments', cor: 'text-brand-text', rotulo: 'Notificações de sinal Pix e recibos', total: envios.grupos.pix },
+    { icone: 'support_agent', cor: 'text-brand-text', rotulo: 'Mensagens manuais / Chat', total: envios.grupos.manuais },
+  ] : [];
 
   return (
-    <div className="space-y-6">
-      <Card className="space-y-6 overflow-hidden">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3 className="mb-2 text-lg font-bold text-ink">Conexão WhatsApp</h3>
-            <p className="text-[15px] text-muted">Conecte sua instância por QR code e acompanhe o estado real da sessão.</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {sincronizacao && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 text-[13px] font-semibold text-ink">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-whatsapp" />
-                {sincronizacao}
-              </span>
-            )}
-            {!statusLoading && (
-              <span className={cn('inline-flex items-center rounded-full px-3 py-1 text-[13px] font-semibold', CHIP_CLASS[chip.tone])}>
-                {chip.label}
-              </span>
-            )}
-          </div>
+    <div className="flex flex-col gap-6">
+      {/* 1. Cabeçalho */}
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-[28px] font-bold leading-9 tracking-tight text-ink">Conexão do WhatsApp</h2>
+          <p className="max-w-2xl text-[15px] text-muted">
+            Acompanhe a conexão do WhatsApp do {nomeNegocio} e os limites de envio recomendados.
+          </p>
         </div>
+        <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+          {sincronizacao && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-4 py-1.5 text-[13px] font-semibold text-ink">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-whatsapp" />
+              {sincronizacao}
+            </span>
+          )}
+          <Button
+            variant="secondary"
+            onClick={() => { onRefresh(); void carregarResumo(); }}
+          >
+            <Icon name="sync" size={18} />
+            Atualizar status
+          </Button>
+        </div>
+      </div>
 
-        {statusLoading && (
-          <div className="flex flex-col items-center gap-4 py-10">
+      {/* 2 e 3. Cartão de status e quatro cartões */}
+      <Card className="flex flex-col gap-6">
+        {statusLoading ? (
+          <div className="flex flex-col items-center gap-4 py-6">
             <Skeleton className="h-12 w-12 rounded-full" />
             <p className="text-[15px] text-muted">Verificando status do WhatsApp...</p>
           </div>
-        )}
-
-        {!statusLoading && waStatus.status === 'pairing' && waStatus.qrCode && (
-          <div className="flex flex-col items-center space-y-6">
-            <Card className="qr-surface border-line p-6">
-              <Image
-                src={waStatus.qrCode}
-                alt="QR Code WhatsApp"
-                width={280}
-                height={280}
-                unoptimized
-                className="h-[280px] w-[280px]"
-                style={{ imageRendering: 'pixelated' }}
-              />
-            </Card>
-            <div className="max-w-sm space-y-2 text-center">
-              <div className="flex items-center justify-center gap-2 text-warning">
-                <Icon name="smartphone" size={18} />
-                <p className="text-[13px] font-bold">Escaneie o QR Code</p>
+        ) : (
+          <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-surface-2">
+                <Icon name="chat" size={32} className="text-whatsapp" />
               </div>
-              <ol className="list-inside list-decimal space-y-1 text-left text-[13px] text-muted">
-                <li>Abra o <strong className="text-ink">WhatsApp</strong> no celular</li>
-                <li>Toque em <strong className="text-ink">Aparelhos conectados</strong></li>
-                <li>Toque em <strong className="text-ink">Conectar um aparelho</strong></li>
-                <li>Aponte a câmera para o QR Code acima</li>
-              </ol>
-              <Button variant="whatsapp" onClick={onConnect} loading={actionLoading} className="mx-auto mt-4">
-                {!actionLoading && <Icon name="refresh" size={18} />}
-                Atualizar QR Code
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {!statusLoading && waStatus.status === 'pairing' && !waStatus.qrCode && (
-          <StateBlock
-            icon="qr_code_scanner"
-            tone="warning"
-            title="Aguardando QR Code"
-            description="A Evolution API ainda nao retornou um QR para pareamento."
-            action={{ label: 'Gerar QR Code', onClick: onConnect, loading: actionLoading }}
-          />
-        )}
-
-        {!statusLoading && waStatus.status === 'connected' && (
-          <div className="flex flex-col items-center gap-4 py-6 text-center">
-            <div className={cn('flex h-20 w-20 items-center justify-center rounded-full border-2 animate-pulse', ICON_WRAP_CLASS.success)}>
-              <Icon name="check_circle" size={40} />
-            </div>
-            <div className="max-w-sm space-y-2">
-              <h4 className="text-lg font-bold text-ink">WhatsApp Conectado!</h4>
-              <p className="text-[15px] text-muted">Sessao ativa e bot pronto para receber mensagens.</p>
-              {waStatus.connectedNumber && (
-                <div className="mt-4 inline-flex items-center gap-2 rounded-control border border-success/20 bg-success/12 px-4 py-2">
-                  <Icon name="smartphone" size={16} className="text-success" />
-                  <span className="font-mono text-[15px] font-bold text-success">+{waStatus.connectedNumber}</span>
-                  {waStatus.connectedName && (
-                    <span className="ml-1 text-[13px] text-muted">({waStatus.connectedName})</span>
-                  )}
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="truncate text-xl font-bold tracking-tight text-ink">{nomeNegocio}</span>
+                  <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold', CHIP_CLASS[chip.tom])}>
+                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                    {chip.rotulo}
+                  </span>
                 </div>
+                <span className="text-[15px] text-muted">
+                  {conectado
+                    ? linhaConexao
+                    : waStatus.error ?? 'Escaneie o QR code para conectar o WhatsApp do negócio.'}
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {conectado ? (
+                <>
+                  <Button variant="whatsapp" onClick={() => void testar()} loading={testando}>
+                    {!testando && <Icon name="send" size={18} />}
+                    Testar envio
+                  </Button>
+                  <Button variant="secondary" onClick={conectar} disabled={actionLoading}>
+                    <Icon name="qr_code_scanner" size={18} />
+                    Reconectar (novo QR code)
+                  </Button>
+                  <Button variant="ghost" onClick={onDisconnect} disabled={actionLoading}>
+                    <Icon name="link_off" size={18} />
+                    Desconectar
+                  </Button>
+                </>
+              ) : (
+                <Button variant="whatsapp" onClick={conectar} loading={actionLoading}>
+                  {!actionLoading && <Icon name="qr_code_scanner" size={18} />}
+                  Conectar WhatsApp
+                </Button>
               )}
             </div>
           </div>
         )}
 
-        {!statusLoading && (waStatus.status === 'provider_unavailable' || waStatus.status === 'unavailable') && (
-          <StateBlock
-            icon="wifi_off"
-            tone="danger"
-            title="Evolution API Indisponivel"
-            description={waStatus.error || 'Nao foi possivel acessar o servico externo agora.'}
-          />
-        )}
-
-        {!statusLoading && waStatus.status === 'instance_not_found' && (
-          <StateBlock
-            icon="warning"
-            tone="danger"
-            title="Instancia Inexistente"
-            description={waStatus.error || 'A instancia configurada nao existe na Evolution. Inicialize para criar/recriar.'}
-            action={{ label: 'Criar/Recriar Instancia', onClick: onConnect, loading: actionLoading }}
-          />
-        )}
-
-        {!statusLoading && waStatus.status === 'error' && (
-          <StateBlock
-            icon="warning"
-            tone="danger"
-            title="Erro no Provedor"
-            description={waStatus.error || 'Ocorreu um erro inesperado na integracao.'}
-            action={{ label: 'Tentar Novamente', onClick: onConnect, loading: actionLoading }}
-          />
-        )}
-
-        {!statusLoading && waStatus.status === 'disconnected' && (
-          <StateBlock
-            icon="wifi_off"
-            tone="danger"
-            title="WhatsApp Desconectado"
-            description="Clique no botão abaixo para iniciar a conexão."
-            action={{ label: 'Conectar WhatsApp', onClick: onConnect, loading: actionLoading }}
-          />
+        {!statusLoading && !resumoErro && (
+          <div className="grid grid-cols-1 gap-4 rounded-card bg-surface-2/50 p-4 sm:grid-cols-2 lg:grid-cols-4">
+            <CartaoInfo
+              rotulo="Número conectado"
+              valor={telefone ?? '—'}
+              detalhe={conectado ? 'Linha principal ativa' : '—'}
+              tomDetalhe={conectado ? 'success' : 'muted'}
+              mono
+            />
+            <CartaoInfo
+              rotulo="Tipo de integração"
+              valor="WhatsApp Web / QR Code"
+              detalhe={conectado ? 'Sessão sincronizada' : '—'}
+              tomDetalhe={conectado ? 'success' : 'muted'}
+            />
+            <CartaoInfo rotulo="Tempo conectado" valor={tempoConectado.valor} detalhe={tempoConectado.detalhe} mono />
+            <CartaoInfo
+              rotulo="Status da conexão"
+              valor={conectado ? 'Estável' : 'Desconectado'}
+              detalhe={conectado ? 'Pronto para envios' : 'Envios pausados'}
+              tomDetalhe={conectado ? 'success' : 'muted'}
+              valorTom={conectado ? 'success' : undefined}
+              mono
+            />
+          </div>
         )}
       </Card>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <Card className="lg:col-span-4">
-          <div className="mb-4 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Icon name="health_metrics" size={22} className="text-whatsapp" />
-              <h3 className="text-[15px] font-bold text-ink">Saúde de Envios de Hoje</h3>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl bg-surface-2 p-3.5">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Taxa de Entrega</span>
-              <p className="mt-1 text-[20px] font-bold tabular-nums text-ink">
-                {whatsapp.saude.taxaEntregaPercentual.toFixed(1).replace('.', ',')}%
-              </p>
-              <span className="text-[11px] font-medium text-whatsapp">{whatsapp.saude.variacaoTaxaEntrega}</span>
-            </div>
-            <div className="rounded-xl bg-surface-2 p-3.5">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Denúncias / Spam</span>
-              <p className="mt-1 text-[20px] font-bold tabular-nums text-ink">{whatsapp.saude.denunciasSpam}</p>
-              <span className="text-[11px] font-medium text-whatsapp">Nenhuma denúncia registrada</span>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Disparos de hoje por tipo</span>
-            <div className="mt-2 flex flex-col gap-1.5">
-              {whatsapp.breakdownEnvios.map(item => (
-                <div key={item.rotulo} className="flex items-center justify-between rounded-lg bg-surface-2 px-3 py-2">
-                  <span className="text-[13px] font-medium text-ink">{item.rotulo}</span>
-                  <span className="text-[13px] font-bold tabular-nums text-ink">{item.quantidade}</span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-2 text-right text-[11px] text-muted">{totalDisparosBreakdown} disparos no total</p>
-          </div>
+      {resumoErro && (
+        <Card className="flex flex-col items-center gap-3 py-8 text-center">
+          <Icon name="cloud_off" size={32} className="text-muted" />
+          <p className="text-[15px] text-ink">Não foi possível carregar os dados de envio.</p>
+          <Button variant="secondary" onClick={() => void carregarResumo()}>
+            <Icon name="refresh" size={18} />
+            Tentar de novo
+          </Button>
         </Card>
+      )}
 
-        <Card className="lg:col-span-4">
-          <div className="mb-4 flex items-center gap-2">
+      {/* 4 e 5. Saúde e limite, boas práticas */}
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {!resumoErro && (
+          <Card className="flex flex-col gap-4 lg:col-span-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Icon name="health_metrics" size={22} className="text-whatsapp" />
+                <h3 className="text-[17px] font-bold tracking-tight text-ink">Saúde e limite de envios</h3>
+              </div>
+              {resumo && (
+                <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-bold', CHIP_CLASS[resumo.saude === 'Atenção' ? 'warning' : 'success'])}>
+                  {resumo.saude}
+                </span>
+              )}
+            </div>
+
+            {!resumo || !envios ? (
+              <Skeleton className="h-40 w-full" label="Carregando envios de hoje..." />
+            ) : (
+              <>
+                <div className="flex flex-col gap-2 rounded-card bg-surface-2/50 p-4">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[13px] font-semibold text-ink">Envios de hoje</span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold tabular-nums text-ink">{envios.total}</span>
+                      <span className="text-[15px] text-muted">de {envios.limite} recomendados</span>
+                    </div>
+                  </div>
+                  <div className="h-3 w-full overflow-hidden rounded-full bg-surface-2">
+                    <div className="h-full rounded-full bg-whatsapp transition-all duration-700" style={{ width: `${percentual}%` }} />
+                  </div>
+                  <div className="flex items-center justify-between gap-2 text-[11px] text-muted">
+                    <span>{Math.round(envios.percentual)}% utilizado</span>
+                    <span className="font-semibold text-success-text">
+                      {envios.disponiveis === 1 ? '1 envio disponível hoje' : `${envios.disponiveis} envios disponíveis hoje`}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <span className={ROTULO}>Detalhamento dos envios de hoje</span>
+                  <div className="mt-1 flex flex-col gap-1">
+                    {grupos.map((g) => (
+                      <div key={g.rotulo} className="flex items-center justify-between rounded-lg bg-surface-2 p-2">
+                        <div className="flex items-center gap-2">
+                          <Icon name={g.icone} size={18} className={g.cor} />
+                          <span className="text-sm font-medium text-ink">{g.rotulo}</span>
+                        </div>
+                        <span className="text-[13px] font-bold tabular-nums text-ink">{g.total}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            <p className="flex items-center gap-1.5 text-[13px] text-muted">
+              <Icon name="info" size={16} />
+              O limite recomendado protege seu número contra bloqueio do WhatsApp.
+            </p>
+          </Card>
+        )}
+
+        <Card className={cn('flex flex-col gap-4', resumoErro ? 'lg:col-span-12' : 'lg:col-span-6')}>
+          <div className="flex items-center gap-2">
             <Icon name="shield" size={22} className="text-brand-text" />
-            <h3 className="text-[15px] font-bold text-ink">Boas Práticas & Dicas Anti-bloqueio</h3>
+            <h3 className="text-[17px] font-bold tracking-tight text-ink">Boas práticas de envio</h3>
           </div>
+          <p className="text-sm text-muted">
+            O EasyAgenda+ aplica proteções inteligentes em tempo real. Siga estas recomendações para manter sua taxa de entrega em 99%+.
+          </p>
           <div className="flex flex-col gap-2">
-            {DICAS_ANTI_BLOQUEIO.map((dica, indice) => (
-              <div key={dica.titulo} className="flex gap-2.5 rounded-lg bg-surface-2 p-2.5">
+            {DICAS(nomeNegocio).map((dica, i) => (
+              <div key={dica.titulo} className="flex gap-2 rounded-lg bg-surface-2/50 p-2">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface text-[11px] font-bold text-brand-text">
-                  {indice + 1}
+                  {i + 1}
                 </span>
                 <div className="flex min-w-0 flex-col">
                   <span className="text-[13px] font-bold text-ink">{dica.titulo}</span>
-                  <span className="text-[12px] text-muted">{dica.descricao}</span>
+                  <span className="text-sm text-muted">{dica.descricao}</span>
                 </div>
               </div>
             ))}
           </div>
         </Card>
+      </section>
 
-        <Card className="lg:col-span-4">
-          <div className="mb-4 flex items-center gap-2">
+      {/* 6. Histórico recente */}
+      {!resumoErro && (
+        <Card className="flex flex-col gap-4">
+          <div className="flex items-center gap-2">
             <Icon name="history_toggle_off" size={22} className="text-ink" />
-            <h3 className="text-[15px] font-bold text-ink">Histórico Recente de Mensagens</h3>
+            <div className="flex flex-col">
+              <h3 className="text-[17px] font-bold tracking-tight text-ink">Histórico recente de disparos</h3>
+              <span className="text-sm text-muted">Últimos disparos processados pelo WhatsApp</span>
+            </div>
           </div>
-          <div className="flex flex-col gap-2">
-            {whatsapp.historicoRecente.map(item => (
-              <div key={`${item.horario}-${item.destinatario}`} className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3.5 py-3">
-                <div className="min-w-0">
-                  <p className="truncate text-[13px] font-bold text-ink">{item.destinatario}</p>
-                  <p className="truncate text-[11px] text-muted">
-                    {item.tipo} • {item.horario}
-                  </p>
-                </div>
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-[11px] font-bold text-whatsapp">
-                  <Icon name="done_all" size={14} />
-                  {item.status}
-                </span>
+
+          {!resumo ? (
+            <Skeleton className="h-32 w-full" label="Carregando histórico..." />
+          ) : resumo.historico.length === 0 ? (
+            <p className="py-6 text-center text-[15px] text-muted">Nenhum envio ainda hoje.</p>
+          ) : (
+            <>
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="bg-surface-2/50 text-[11px] uppercase tracking-wider text-muted">
+                      <th className="rounded-l-lg px-4 py-2">Horário</th>
+                      <th className="px-4 py-2">Destinatário</th>
+                      <th className="px-4 py-2">Tipo de disparo</th>
+                      <th className="rounded-r-lg px-4 py-2 text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {resumo.historico.map((h) => (
+                      <tr key={h.id} className="transition-colors hover:bg-surface-2/60">
+                        <td className="px-4 py-3 font-mono text-[11px] tabular-nums text-muted">{horarioDoEnvio(h.criadaEm)}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <Inicial nome={h.cliente} />
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-ink">{h.cliente ?? 'Sem cadastro'}</span>
+                              <span className="font-mono text-[11px] text-muted">{h.telefone}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-muted">{h.tipo}</td>
+                        <td className="px-4 py-3 text-right"><BadgeStatus status={h.status} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
-          </div>
+
+              <ul className="flex flex-col gap-2 md:hidden">
+                {resumo.historico.map((h) => (
+                  <li key={h.id} className="flex flex-col gap-2 rounded-lg bg-surface-2/50 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Inicial nome={h.cliente} />
+                        <div className="flex min-w-0 flex-col">
+                          <span className="truncate text-sm font-semibold text-ink">{h.cliente ?? 'Sem cadastro'}</span>
+                          <span className="font-mono text-[11px] text-muted">{h.telefone}</span>
+                        </div>
+                      </div>
+                      <BadgeStatus status={h.status} />
+                    </div>
+                    <span className="text-sm text-muted">{h.tipo}</span>
+                    <span className="font-mono text-[11px] tabular-nums text-muted">{horarioDoEnvio(h.criadaEm)}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </Card>
-      </div>
+      )}
+
+      {/* 7. Modal do QR code */}
+      <Modal
+        isOpen={modalAberto}
+        onClose={() => setQrFechado(true)}
+        title="Conectar WhatsApp"
+        icon="qr_code_scanner"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setQrFechado(true)}>Fechar</Button>
+            <Button variant="whatsapp" onClick={() => setQrFechado(true)}>Concluído</Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center gap-2 rounded-card bg-surface-2/50 p-4 text-center">
+          <div className="flex h-48 w-48 items-center justify-center rounded-lg bg-surface p-2 shadow-sm qr-surface">
+            {waStatus.qrCode ? (
+              <Image
+                src={waStatus.qrCode}
+                alt="QR code do WhatsApp"
+                width={176}
+                height={176}
+                unoptimized
+                className="h-full w-full"
+                style={{ imageRendering: 'pixelated' }}
+              />
+            ) : (
+              <Skeleton className="h-full w-full" label="Gerando o QR code..." />
+            )}
+          </div>
+          <span className="text-[13px] font-bold text-ink">Escaneie o QR code no app do WhatsApp</span>
+          <span className="text-sm text-muted">Abra o WhatsApp &gt; Aparelhos conectados &gt; Conectar um aparelho e aponte para a tela.</span>
+        </div>
+      </Modal>
     </div>
   );
 };
