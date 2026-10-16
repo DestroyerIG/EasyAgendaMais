@@ -66,16 +66,16 @@ const DICAS = (negocio: string): Array<{ titulo: string; descricao: React.ReactN
     ),
   },
   {
-    titulo: 'Intervalos seguros automáticos',
-    descricao: 'O sistema pausa entre 45 e 90 segundos entre lotes de mensagens para manter cadência natural de envio.',
+    titulo: 'Espace os envios',
+    descricao: 'Evite mandar muitas mensagens seguidas para clientes diferentes; envios espaçados mantêm o número com boa reputação.',
   },
   {
-    titulo: 'Opção clara de descadastro automático',
-    descricao: 'Todas as mensagens promocionais incluem instrução para responder “SAIR”, prevenindo denúncias.',
+    titulo: 'Opção clara de descadastro',
+    descricao: 'Toda cliente pode responder SAIR para parar as mensagens automáticas.',
   },
   {
     titulo: 'Responda rápido aos chamados humanos',
-    descricao: 'Números com alto índice de interação direta mantêm alta reputação e entrega garantida.',
+    descricao: 'Números com alto índice de interação direta mantêm boa reputação.',
   },
 ];
 
@@ -411,7 +411,7 @@ export const ConnectionPanel = ({
             <h3 className="text-[17px] font-bold tracking-tight text-ink">Boas práticas de envio</h3>
           </div>
           <p className="text-sm text-muted">
-            O EasyAgenda+ aplica proteções inteligentes em tempo real. Siga estas recomendações para manter sua taxa de entrega em 99%+.
+            O EasyAgenda+ aplica proteções inteligentes em tempo real. Siga estas recomendações para manter a boa reputação do seu número.
           </p>
           <div className="flex flex-col gap-2">
             {DICAS(nomeNegocio).map((dica, i) => (

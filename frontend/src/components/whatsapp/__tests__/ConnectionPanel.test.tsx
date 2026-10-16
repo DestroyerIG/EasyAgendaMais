@@ -106,7 +106,11 @@ describe('ConnectionPanel', () => {
     for (const proibido of [/Latência/, /PARAR/, /Solicitar aumento/, /Hoje, 11:42/, /Nenhuma denúncia registrada/, /^Taxa de entrega$/i, /Denúncias/]) {
       expect(screen.queryByText(proibido)).not.toBeInTheDocument();
     }
-    expect(screen.getByText(/responder “?SAIR”?/)).toBeInTheDocument();
+    expect(screen.getByText('Espace os envios')).toBeInTheDocument();
+    expect(screen.getByText('Evite mandar muitas mensagens seguidas para clientes diferentes; envios espaçados mantêm o número com boa reputação.')).toBeInTheDocument();
+    expect(screen.getByText('Toda cliente pode responder SAIR para parar as mensagens automáticas.')).toBeInTheDocument();
+    expect(screen.queryByText(/45 e 90 segundos/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/promocionais/)).not.toBeInTheDocument();
     expect(screen.getByText(/Dispare apenas para clientes que já agendaram no Studio Aurora/)).toBeInTheDocument();
     expect(screen.getByText('{nome}')).toBeInTheDocument();
     expect(screen.getByText('{horarios}')).toBeInTheDocument();
