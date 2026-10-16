@@ -7,10 +7,19 @@
 
 import logger from '../../../utils/logger.js';
 import { parseEvolutionWebhook } from '../utils/payloadParser.js';
-import { resolveAuthorPhone, isSelfMessage, canonicalizePhone } from '../utils/phoneUtils.js';
+import { resolveAuthorPhone, isSelfMessage, canonicalizePhone, extractPhoneFromJid } from '../utils/phoneUtils.js';
 import { resolveTenant } from '../tenant/tenantResolver.js';
 import { deduplicator } from '../utils/deduplication.js';
 import * as botOrchestrator from '../../../bot/botOrchestrator.js';
+import { getSession, isSessionExpired } from '../whatsappSessionService.js';
+import { sendWhatsAppMessage } from '../whatsappMessageService.js';
+import { inboxRecorder } from '../../../modules/whatsappInbox/inbox.recorder.js';
+import { detectarPalavraChave } from '../../../modules/whatsappInbox/inbox.rules.js';
+
+export const TEXTO_OPT_OUT = (negocio: string) =>
+  `Pronto, você não vai mais receber mensagens automáticas do ${negocio}. Para voltar a receber, responda VOLTAR.`;
+export const TEXTO_OPT_IN = (negocio: string) =>
+  `Tudo certo! Você voltou a receber os lembretes e avisos do ${negocio}.`;
 
 const ACTIVE_STATUSES = new Set(['active', 'trialing']);
 
@@ -53,6 +62,20 @@ export const handleMessagesUpsert = async (
       },
       'msg_handler: from_me',
     );
+    // Eco do celular: a dona respondeu direto no WhatsApp. Grava na central, sem acionar o robô.
+    const destino = parsed.remoteJid && !parsed.remoteJid.endsWith('@g.us')
+      ? extractPhoneFromJid(parsed.remoteJid)
+      : null;
+    const tenantEco = destino ? await resolveTenant(instanceName ?? parsed.instanceName) : null;
+    if (tenantEco && destino) {
+      await inboxRecorder.registrarEco({
+        businessId: tenantEco.business.id,
+        phone: destino,
+        texto: parsed.text,
+        messageType: parsed.messageType,
+        providerMessageId: parsed.messageId,
+      });
+    }
     return { ok: false, reason: 'from_me' };
   }
 
@@ -101,6 +124,33 @@ export const handleMessagesUpsert = async (
     return { ok: false, reason: 'duplicate' };
   }
   if (parsed.messageId) deduplicator.markSeen(parsed.messageId);
+
+  // ── Passo 7b: Gravar entrada, SAIR/VOLTAR e atendimento humano ──────────────
+  const phone = resolved.phone as string;
+  const businessId = tenant.business.id;
+  const sessao = await getSession(phone, businessId).catch(() => null);
+  const conversa = await inboxRecorder.registrarEntrada({
+    businessId,
+    phone,
+    texto: parsed.text,
+    messageType: parsed.messageType,
+    providerMessageId: parsed.messageId,
+    sessaoRoboAtiva: Boolean(sessao && !isSessionExpired(sessao)),
+  });
+
+  const palavra = detectarPalavraChave(parsed.text);
+  if (palavra) {
+    const resposta = palavra === 'sair' ? TEXTO_OPT_OUT(tenant.business.name) : TEXTO_OPT_IN(tenant.business.name);
+    if (palavra === 'sair') await inboxRecorder.registrarOptOut({ businessId, phone, keyword: 'sair' });
+    else await inboxRecorder.registrarOptIn({ businessId, phone });
+    await sendWhatsAppMessage(phone, resposta, { businessId, instanceName: effectiveInstance, origin: 'sistema' });
+    return { ok: true, reason: palavra === 'sair' ? 'opt_out' : 'opt_in', authorPhone: phone, businessId };
+  }
+
+  if (conversa?.handler === 'humano') {
+    logger.info({ instanceName: effectiveInstance, businessId }, 'msg_handler: human_handler');
+    return { ok: true, reason: 'human_handler', authorPhone: phone, businessId };
+  }
 
   // ── Passo 8: Verificar texto ────────────────────────────────────────────────
   if (!parsed.text?.trim()) {

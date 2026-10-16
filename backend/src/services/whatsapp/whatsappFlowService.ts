@@ -14,6 +14,7 @@ import logger from '../../utils/logger.js';
 import { prisma } from '../../config/prisma.js';
 import { Prisma } from '@prisma/client';
 import { sendWhatsAppMessage, buildWelcomeMessage } from './whatsappMessageService.js';
+import { inboxRecorder } from '../../modules/whatsappInbox/inbox.recorder.js';
 import type { SendWhatsAppMessageContext } from './whatsappMessageService.js';
 import { getWhatsAppStatus, getWhatsAppStatusByInstance, getConnectedNumberCached } from '../whatsappClient.js';
 import { getConnectedNumber as getCachedConnectedNumber } from './whatsappInstanceCache.js';
@@ -1164,6 +1165,7 @@ const handleMenuStep = async (
 
     case 'attendant':
       await sendWhatsAppMessage(phone, config.attendant_message, sendContext);
+      await inboxRecorder.pedirAtendimentoHumano(businessId, phone);
       await deleteSession(phone, businessId);
       return { ok: true };
 
