@@ -21,7 +21,7 @@ const { whatsappService } = await import('../modules/whatsapp/whatsapp.service.j
 
 const EVOLUTION = 'http://evolution.local';
 const BACKEND = 'https://easybarber-backend.onrender.com/api/v1/whatsapp/webhook';
-const MINIMAL_EVENTS = ['MESSAGES_UPSERT', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'];
+const MINIMAL_EVENTS = ['MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'CONNECTION_UPDATE', 'QRCODE_UPDATED'];
 
 type FetchCall = [string, RequestInit | undefined];
 

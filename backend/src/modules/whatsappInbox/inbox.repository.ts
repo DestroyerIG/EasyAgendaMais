@@ -50,6 +50,13 @@ export const inboxRepository = {
     }),
   reativarOptOut: (businessId: string, phoneKey: string) =>
     prisma.whatsappOptOut.updateMany({ where: { businessId, phoneKey, reactivatedAt: null }, data: { reactivatedAt: new Date() } }),
+  conversasHumanasParadas: (antesDe: Date) => prisma.whatsappConversation.findMany({
+    where: { handler: 'humano', lastMessageAt: { lt: antesDe } }, select: { id: true, businessId: true, phoneKey: true }, take: 500 }),
+  finalizarConversasDoRobo: async (antesDe: Date) => (await prisma.whatsappConversation.updateMany({
+    where: { handler: 'bot', status: { not: 'finalizada' }, lastMessageAt: { lt: antesDe } }, data: { status: 'finalizada' } })).count,
+  apagarMensagensAntigas: async (antesDe: Date) => (await prisma.whatsappMessage.deleteMany({ where: { createdAt: { lt: antesDe } } })).count,
+  apagarConversasVazias: async (antesDe: Date) => (await prisma.whatsappConversation.deleteMany({
+    where: { lastMessageAt: { lt: antesDe }, messages: { none: {} } } })).count,
   registrarConsentimento: (d: { businessId: string; clientId: string; granted: boolean }) =>
     prisma.clientConsent.create({ data: { businessId: d.businessId, clientId: d.clientId, granted: d.granted, channel: 'whatsapp' } }),
 };

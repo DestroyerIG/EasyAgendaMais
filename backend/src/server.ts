@@ -81,6 +81,7 @@ import { initBotOrchestrator } from './bot/botOrchestrator.js';
 import { createEvolutionClient } from './services/whatsapp/client/evolutionClient.js';
 
 import { startReminderCron } from './services/cronService.js';
+import { whatsappService } from './modules/whatsapp/whatsapp.service.js';
 
 // @ts-ignore
 import { getAsaasApiKeyDiagnostics } from './integrations/asaas/client.js';
@@ -635,6 +636,9 @@ const start = async (): Promise<void> => {
       logger.warn('Cron desligado por DISABLE_CRON=true');
     } else {
       startReminderCron();
+      void whatsappService.syncAllWebhooks()
+        .then((r) => logger.info({ fixed: r.fixed, failed: r.failed }, 'Webhooks do WhatsApp conferidos na subida'))
+        .catch((err) => logger.warn({ err }, 'Falha ao conferir webhooks do WhatsApp na subida'));
     }
   } catch (error) {
     logger.fatal(
