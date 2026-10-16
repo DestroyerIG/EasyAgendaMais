@@ -10,7 +10,7 @@ vi.mock('../services/whatsapp/whatsappSessionService.js', () => sessions);
 const msg = vi.hoisted(() => ({ sendWhatsAppMessage: vi.fn() }));
 vi.mock('../services/whatsapp/whatsappMessageService.js', () => msg);
 const recorder = vi.hoisted(() => ({
-  registrarEntrada: vi.fn(), registrarEco: vi.fn(), registrarOptOut: vi.fn(), registrarOptIn: vi.fn(),
+  registrarEntrada: vi.fn(), registrarEco: vi.fn(), registrarOptOut: vi.fn(), registrarOptIn: vi.fn(), estaEmOptOut: vi.fn(),
 }));
 vi.mock('../modules/whatsappInbox/inbox.recorder.js', () => ({ inboxRecorder: recorder }));
 
@@ -37,6 +37,7 @@ beforeEach(() => {
   recorder.registrarEntrada.mockResolvedValue({ id: 'cv1', handler: 'bot', status: 'aberta', clientId: 'c1' });
   bot.process.mockResolvedValue({ ok: true, responseSent: true });
   msg.sendWhatsAppMessage.mockResolvedValue(true);
+  recorder.estaEmOptOut.mockResolvedValue(false);
 });
 
 it('grava a entrada e segue para o robô', async () => {
@@ -60,11 +61,21 @@ it('SAIR: registra opt-out, responde e o robô não processa', async () => {
   expect(bot.process).not.toHaveBeenCalled();
 });
 
-it('VOLTAR: registra opt-in e o robô não processa', async () => {
+it('VOLTAR com opt-out ativo: registra opt-in e o robô não processa', async () => {
+  recorder.estaEmOptOut.mockResolvedValue(true);
   const r = await handleMessagesUpsert(payload({ text: 'voltar' }), { instanceName: 'loja_1' });
   expect(r.reason).toBe('opt_in');
+  expect(recorder.estaEmOptOut).toHaveBeenCalledWith('b1', '5583999990000');
   expect(recorder.registrarOptIn).toHaveBeenCalled();
   expect(bot.process).not.toHaveBeenCalled();
+});
+
+it('VOLTAR sem opt-out ativo segue para o robô e não grava consentimento', async () => {
+  const r = await handleMessagesUpsert(payload({ text: 'voltar' }), { instanceName: 'loja_1' });
+  expect(r.reason).not.toBe('opt_in');
+  expect(recorder.registrarOptIn).not.toHaveBeenCalled();
+  expect(msg.sendWhatsAppMessage).not.toHaveBeenCalled();
+  expect(bot.process).toHaveBeenCalled();
 });
 
 it('"não quero sair hoje" segue para o robô', async () => {

@@ -138,7 +138,9 @@ export const handleMessagesUpsert = async (
     sessaoRoboAtiva: Boolean(sessao && !isSessionExpired(sessao)),
   });
 
-  const palavra = detectarPalavraChave(parsed.text);
+  let palavra = detectarPalavraChave(parsed.text);
+  // VOLTAR só é opt-in para quem está em opt-out; fora disso é conversa com o robô.
+  if (palavra === 'voltar' && !(await inboxRecorder.estaEmOptOut(businessId, phone))) palavra = null;
   if (palavra) {
     const resposta = palavra === 'sair' ? TEXTO_OPT_OUT(tenant.business.name) : TEXTO_OPT_IN(tenant.business.name);
     if (palavra === 'sair') await inboxRecorder.registrarOptOut({ businessId, phone, keyword: 'sair' });
