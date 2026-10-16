@@ -3,6 +3,7 @@ import { todayInTimezone } from '../../utils/businessDate.js';
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
 import { sendWhatsAppMessage } from '../../services/whatsapp/whatsappMessageService.js';
 import { deleteSession } from '../../services/whatsapp/whatsappSessionService.js';
+import logger from '../../utils/logger.js';
 import { whatsappService } from '../whatsapp/whatsapp.service.js';
 import { crmRepository } from '../crm/crm.repository.js';
 import { resumirCliente } from '../crm/crmMetrics.js';
@@ -166,7 +167,11 @@ export const inboxService = {
     if (ator.role === 'employee' && c.assignedUserId !== null && c.assignedUserId !== ator.userId) throw new ForbiddenError(SEM_PERMISSAO);
     const atualizada = (await inboxRepository.atualizarConversa(c.id, { handler: 'bot', assignedUserId: null, status: 'aberta' })) as ConversaComRelacoes;
     await registrarEvento(businessId, c, 'Conversa devolvida ao robô');
-    await deleteSession(c.phone, businessId);
+    try {
+      await deleteSession(c.phone, businessId);
+    } catch (err) {
+      logger.warn({ err, businessId, conversationId: c.id }, 'inbox: não foi possível encerrar a sessão do robô na devolução');
+    }
     return resumoDe(businessId, atualizada);
   },
 

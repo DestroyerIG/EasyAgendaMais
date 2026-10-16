@@ -102,6 +102,13 @@ it('devolver: volta ao robô, registra evento e encerra sessão presa', async ()
   expect(sess.deleteSession).toHaveBeenCalledWith('5583999990000', 'b1');
 });
 
+it('devolver: falha ao encerrar a sessão não derruba a devolução', async () => {
+  repo.conversaDoNegocio.mockResolvedValue(conv({ handler: 'humano', assignedUserId: 'u-dona' }));
+  sess.deleteSession.mockRejectedValueOnce(new Error('redis fora'));
+  const r = await inboxService.devolver('b1', DONA, 'cv1');
+  expect(r.atendimento).toBe('bot');
+});
+
 it('assumir de novo a própria conversa não repete o evento', async () => {
   repo.conversaDoNegocio.mockResolvedValue(conv({ handler: 'humano', assignedUserId: 'u-dona' }));
   await inboxService.assumir('b1', DONA, 'cv1');
