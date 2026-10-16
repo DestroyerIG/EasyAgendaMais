@@ -149,7 +149,7 @@ describe('FichaCliente', () => {
   it('ficha técnica de unhas: "Formato preferido" é select e salva só as chaves do modelo', async () => {
     renderizar();
     expect(await screen.findByRole('heading', { name: 'Ficha técnica — Unhas' })).toBeInTheDocument();
-    expect(screen.getByText('Sensível a primer ácido')).toBeInTheDocument();
+    expect(await screen.findByText('Sensível a primer ácido')).toBeInTheDocument();
     const formato = screen.getByLabelText('Formato preferido');
     expect(formato.tagName).toBe('SELECT');
     expect(screen.getByLabelText('Comprimento').tagName).toBe('INPUT');

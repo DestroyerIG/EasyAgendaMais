@@ -28,10 +28,11 @@ export interface FichaTecnicaProps {
 /** Ficha técnica do segmento do salão: alergias em destaque, campos do modelo e campos livres. */
 export function FichaTecnica({ clienteId, ficha, onSalva }: FichaTecnicaProps) {
   const { showToast } = useToast();
-  const [alergias, setAlergias] = useState('');
+  // Já nasce com o que está salvo (sem piscar "Nenhuma alergia registrada" na primeira pintura).
+  const [alergias, setAlergias] = useState(() => ficha.allergies ?? '');
   const [editandoAlergias, setEditandoAlergias] = useState(false);
-  const [valores, setValores] = useState<Record<string, string>>({});
-  const [livres, setLivres] = useState<CampoPersonalizado[]>([]);
+  const [valores, setValores] = useState<Record<string, string>>(() => ({ ...ficha.fields }));
+  const [livres, setLivres] = useState<CampoPersonalizado[]>(() => ficha.customFields.map((c) => ({ ...c })));
   const [salvando, setSalvando] = useState(false);
 
   // Recomeça do que está salvo sempre que a ficha muda (carga inicial e depois de salvar).
