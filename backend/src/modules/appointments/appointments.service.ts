@@ -120,7 +120,7 @@ export const appointmentsService = {
 
     if (newStatus === 'confirmado' && currentStatus === 'aguardando_pagamento') {
       const message = `Olá ${appointment.client.name}! Seu sinal foi confirmado e seu horário está garantido. Te esperamos!`;
-      await sendWhatsAppMessage(appointment.client.phone, message, { businessId });
+      await sendWhatsAppMessage(appointment.client.phone, message, { businessId, origin: 'confirmacao' });
       await notificationsService.notify(businessId, {
         type: 'pagamento_confirmado',
         title: 'Pagamento confirmado',

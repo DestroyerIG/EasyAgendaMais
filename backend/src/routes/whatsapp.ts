@@ -2143,6 +2143,7 @@ router.post('/debug-send', ...waProtected, async (req: Request, res: Response, n
       remoteJidOriginal: normalizedRemoteJidOriginal,
       eventName: 'debug-send',
       businessId: req.user.businessId,
+      origin: 'sistema',
     });
 
     if (!sent) {

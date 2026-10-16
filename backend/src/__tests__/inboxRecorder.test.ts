@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const repo = vi.hoisted(() => ({
   clientePorTelefone: vi.fn(), conversaPorChave: vi.fn(), criarConversa: vi.fn(), atualizarConversa: vi.fn(),
-  inserirMensagem: vi.fn(), mensagemPorProvider: vi.fn(), atualizarStatusMensagem: vi.fn(),
+  inserirMensagem: vi.fn(), corrigirSaidaDoEco: vi.fn(), mensagemPorProvider: vi.fn(), atualizarStatusMensagem: vi.fn(),
   optOutAtivo: vi.fn(), gravarOptOut: vi.fn(), reativarOptOut: vi.fn(), registrarConsentimento: vi.fn(),
 }));
 vi.mock('../modules/whatsappInbox/inbox.repository.js', () => ({ inboxRepository: repo }));
@@ -72,6 +72,35 @@ describe('registrarEntrada — regra B', () => {
   it('erro do repositório não lança', async () => {
     repo.conversaPorChave.mockRejectedValue(new Error('db'));
     await expect(inboxRecorder.registrarEntrada(entrada())).resolves.toBeNull();
+  });
+});
+
+describe('registrarSaida — corrida eco x saída', () => {
+  beforeEach(() => { repo.conversaPorChave.mockResolvedValue(CONV); });
+  const saida = { businessId: B, phone: TEL, body: 'Olá real', origem: 'manual_painel' as const, providerMessageId: 'p1', status: 'enviada' as const, sentByUserId: 'u1' };
+  it('eco gravado antes: corrige para a origem real', async () => {
+    repo.inserirMensagem.mockResolvedValue(false);
+    repo.mensagemPorProvider.mockResolvedValue({ id: 'm9', status: 'enviada', origin: 'manual_celular' });
+    await inboxRecorder.registrarSaida(saida);
+    expect(repo.mensagemPorProvider).toHaveBeenCalledWith(B, 'p1');
+    expect(repo.corrigirSaidaDoEco).toHaveBeenCalledWith('m9', { origin: 'manual_painel', sentByUserId: 'u1', body: 'Olá real', status: 'enviada' });
+  });
+  it('eco já entregue: mantém o status', async () => {
+    repo.inserirMensagem.mockResolvedValue(false);
+    repo.mensagemPorProvider.mockResolvedValue({ id: 'm9', status: 'entregue', origin: 'manual_celular' });
+    await inboxRecorder.registrarSaida(saida);
+    expect(repo.corrigirSaidaDoEco).toHaveBeenCalledWith('m9', { origin: 'manual_painel', sentByUserId: 'u1', body: 'Olá real', status: 'entregue' });
+  });
+  it('existente com outra origem: nada muda', async () => {
+    repo.inserirMensagem.mockResolvedValue(false);
+    repo.mensagemPorProvider.mockResolvedValue({ id: 'm9', status: 'enviada', origin: 'bot' });
+    await inboxRecorder.registrarSaida(saida);
+    expect(repo.corrigirSaidaDoEco).not.toHaveBeenCalled();
+  });
+  it('inserção normal não consulta nem corrige', async () => {
+    await inboxRecorder.registrarSaida(saida);
+    expect(repo.mensagemPorProvider).not.toHaveBeenCalled();
+    expect(repo.corrigirSaidaDoEco).not.toHaveBeenCalled();
   });
 });
 

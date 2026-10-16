@@ -124,6 +124,7 @@ export const runReminderJob = async (now: Date = new Date()): Promise<void> => {
 
       const sent = await sendWhatsAppMessage(appointment.client.phone, message, {
         businessId: appointment.businessId,
+        origin: 'lembrete',
       });
 
       if (sent) {

@@ -4,6 +4,9 @@
 
 import { sendWhatsAppText } from '../whatsappClient.js';
 import logger from '../../utils/logger.js';
+import { inboxRecorder } from '../../modules/whatsappInbox/inbox.recorder.js';
+import { ehAutomatica } from '../../modules/whatsappInbox/inbox.rules.js';
+import type { Origem } from '../../modules/whatsappInbox/inbox.types.js';
 
 export interface SendWhatsAppMessageContext {
   remoteJidOriginal?: string | null;
@@ -14,6 +17,9 @@ export interface SendWhatsAppMessageContext {
   simulate?: boolean;
   instanceName?: string | null;
   businessId?: string | null;
+  origin?: Origem;
+  sentByUserId?: string | null;
+  onProviderResult?: (r: { providerMessageId: string | null }) => void;
   [key: string]: unknown;
 }
 
@@ -33,6 +39,29 @@ export interface MenuOption {
   label: string;
   emoji?: string;
 }
+
+const gravarSaida = async (
+  phone: string,
+  body: string,
+  context: SendWhatsAppMessageContext,
+  enviado: boolean,
+  providerMessageId: string | null,
+): Promise<void> => {
+  if (!context.businessId || context.simulate === true) return;
+  try {
+    await inboxRecorder.registrarSaida({
+      businessId: context.businessId,
+      phone,
+      body,
+      origem: (context.origin ?? 'sistema') as Origem,
+      providerMessageId,
+      status: enviado ? 'enviada' : 'falhou',
+      sentByUserId: context.sentByUserId ?? null,
+    });
+  } catch (err) {
+    logger.warn({ err }, 'inbox: gravar saída falhou');
+  }
+};
 
 /**
  * Envia mensagem via provider configurado (Evolution API).
@@ -73,10 +102,21 @@ export const sendWhatsAppMessage = async (
       return true;
     }
 
+    const origem = (context.origin ?? 'sistema') as Origem;
+    if (context.businessId && ehAutomatica(origem) && await inboxRecorder.estaEmOptOut(context.businessId, normalizedPhone)) {
+      logger.info(logContext, 'Mensagem automática não enviada: número em opt-out (SAIR)');
+      return false;
+    }
+
     logger.info(logContext, 'ENVIO DISPARADO');
     logger.debug(logContext, 'Solicitacao de envio WhatsApp ao provider');
 
-    const sent = await sendWhatsAppText(normalizedPhone, normalizedMessage, context);
+    let providerMessageId: string | null = null;
+    const sent = await sendWhatsAppText(normalizedPhone, normalizedMessage, {
+      ...context,
+      onProviderResult: (r) => { providerMessageId = r.providerMessageId; context.onProviderResult?.(r); },
+    });
+    await gravarSaida(normalizedPhone, normalizedMessage, context, Boolean(sent), providerMessageId);
 
     if (!sent) {
       logger.warn(logContext, 'Mensagem nao enviada pelo provider WhatsApp');
@@ -87,6 +127,7 @@ export const sendWhatsAppMessage = async (
     return true;
   } catch (error) {
     logger.error({ err: error, ...logContext }, 'Erro ao enviar mensagem WhatsApp');
+    await gravarSaida(normalizedPhone, normalizedMessage, context, false, null);
     return false;
   }
 };

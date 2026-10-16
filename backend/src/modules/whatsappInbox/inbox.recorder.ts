@@ -40,11 +40,21 @@ export const inboxRecorder = {
           conversa = await repo.criarConversa({ businessId: i.businessId, phone: digitosDe(i.phone), phoneKey: chave, clientId: cliente?.id ?? null });
         }
       }
-      await repo.inserirMensagem({
+      const inserida = await repo.inserirMensagem({
         businessId: i.businessId, conversationId: conversa?.id ?? null, phoneKey: chave, direction: 'out', origin: i.origem,
         body: conversa ? i.body : '', mediaType: null, providerMessageId: i.providerMessageId, status: i.status,
         sentByUserId: i.sentByUserId ?? null,
       });
+      if (!inserida && i.providerMessageId) {
+        // Corrida: o eco (fromMe) do webhook pode chegar antes desta gravação e ter sido gravado como manual_celular.
+        const existente = await repo.mensagemPorProvider(i.businessId, i.providerMessageId);
+        if (existente?.origin === 'manual_celular') {
+          await repo.corrigirSaidaDoEco(existente.id, {
+            origin: i.origem, sentByUserId: i.sentByUserId ?? null, body: conversa ? i.body : '',
+            status: existente.status === 'enviada' ? i.status : existente.status,
+          });
+        }
+      }
       if (conversa) {
         await repo.atualizarConversa(conversa.id, { lastMessageAt: new Date(), lastMessagePreview: previa(i.body) });
       }

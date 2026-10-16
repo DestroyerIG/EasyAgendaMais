@@ -79,7 +79,7 @@ describe('appointmentsService.updateStatus — confirmação de pagamento com su
     await appointmentsService.updateStatus('apt-1', 'biz-1', 'confirmado');
 
     expect(sendWhatsAppMessage).toHaveBeenCalledWith(
-      '5583999990000', expect.stringContaining('Mariana'), { businessId: 'biz-1' }
+      '5583999990000', expect.stringContaining('Mariana'), { businessId: 'biz-1', origin: 'confirmacao' }
     );
     expect(notificationsService.notify).toHaveBeenCalledWith('biz-1', {
       type: 'pagamento_confirmado',

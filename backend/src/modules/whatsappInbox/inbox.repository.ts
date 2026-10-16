@@ -36,7 +36,10 @@ export const inboxRepository = {
     catch (e) { if ((e as { code?: string }).code === 'P2002') return false; throw e; }
   },
   mensagemPorProvider: (businessId: string, providerMessageId: string) =>
-    prisma.whatsappMessage.findFirst({ where: { businessId, providerMessageId }, select: { id: true, status: true } }),
+    prisma.whatsappMessage.findFirst({ where: { businessId, providerMessageId }, select: { id: true, status: true, origin: true } }),
+  /** Eco do celular que chegou antes da saída real: passa a refletir origem, autor, texto e status da saída. */
+  corrigirSaidaDoEco: (id: string, data: { origin: string; sentByUserId: string | null; body: string; status: string }) =>
+    prisma.whatsappMessage.update({ where: { id }, data }),
   atualizarStatusMensagem: (id: string, status: string) => prisma.whatsappMessage.update({ where: { id }, data: { status } }),
   optOutAtivo: (businessId: string, phoneKey: string) =>
     prisma.whatsappOptOut.findFirst({ where: { businessId, phoneKey, reactivatedAt: null }, select: { id: true } }),

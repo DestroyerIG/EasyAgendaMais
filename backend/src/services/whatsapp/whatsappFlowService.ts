@@ -1815,6 +1815,7 @@ export const handleIncomingMessage = async (
   const isLidDirectMode = Boolean(options?.allowLidDirect) || Boolean(phoneExtraction?.allowLidDirect);
 
   const sendContext: SendWhatsAppMessageContext = {
+    origin: 'bot',
     ...(remoteJidOriginal ? { remoteJidOriginal } : {}),
     ...(effectiveLidJid ? { remoteJidOriginal: effectiveLidJid } : {}),
     ...(normalizedEventName ? { eventName: normalizedEventName } : {}),
