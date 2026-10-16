@@ -630,7 +630,12 @@ const start = async (): Promise<void> => {
       }
     );
 
-    startReminderCron();
+    // DISABLE_CRON=true desliga lembretes e expirações (uso local apontando para o banco real).
+    if (process.env['DISABLE_CRON'] === 'true') {
+      logger.warn('Cron desligado por DISABLE_CRON=true');
+    } else {
+      startReminderCron();
+    }
   } catch (error) {
     logger.fatal(
       { err: error },
