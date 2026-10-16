@@ -42,10 +42,11 @@ export const inboxRepository = {
     const chave = canonicalizePhone(phone);
     if (!chave) return null;
     const fim = chave.slice(-8);
-    // '\\D' no fonte TS chega ao Postgres como '\D' (num template o '\D' viraria 'D').
+    // '[^0-9]' e não '\D': o $queryRaw usa o texto cru do template, então '\\D' chegaria ao
+    // Postgres com as duas barras e não removeria nada (conferido no banco).
     const candidatos = await prisma.$queryRaw<Array<{ id: string; name: string; phone: string }>>`
       SELECT id, name, phone FROM clients
-       WHERE business_id = ${businessId}::uuid AND right(regexp_replace(phone, '\\D', '', 'g'), 8) = ${fim}`;
+       WHERE business_id = ${businessId}::uuid AND right(regexp_replace(phone, '[^0-9]', '', 'g'), 8) = ${fim}`;
     return candidatos.find((c) => canonicalizePhone(c.phone) === chave) ?? null;
   },
   conversaPorChave: (businessId: string, phoneKey: string) =>
