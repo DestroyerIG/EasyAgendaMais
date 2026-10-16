@@ -323,3 +323,43 @@ describe('CentralConversas - celular', () => {
     expect(screen.getByText('Escolha uma conversa para ver as mensagens.')).toBeInTheDocument();
   });
 });
+
+describe('CentralConversas - leitura automática', () => {
+  it('abrir conversa com não lidas marca como lida e zera o contador na fila', async () => {
+    montar();
+    await abrirConversa();
+    expect(inbox.marcarLidas).toHaveBeenCalledWith(['c1']);
+    expect(screen.queryByLabelText('1 não lida')).not.toBeInTheDocument();
+  });
+
+  it('erro ao marcar como lida não bloqueia a conversa', async () => {
+    inbox.marcarLidas.mockRejectedValue(new Error('x'));
+    montar();
+    await abrirConversa();
+    expect(showToast).not.toHaveBeenCalled();
+    expect(screen.getByText('Tenho às 14h!')).toBeInTheDocument();
+  });
+
+  it('mensagem nova na conversa aberta e visível é marcada como lida no polling', async () => {
+    inbox.listarConversas.mockResolvedValue(lista([conversa({ naoLidas: 0 })]));
+    montar();
+    await abrirConversa();
+    expect(inbox.marcarLidas).not.toHaveBeenCalled();
+    inbox.listarConversas.mockResolvedValue(lista([conversa({ naoLidas: 2 })]));
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
+    await waitFor(() => expect(inbox.marcarLidas).toHaveBeenCalledWith(['c1']));
+    expect(screen.queryByLabelText('2 não lidas')).not.toBeInTheDocument();
+  });
+
+  it('em segundo plano não marca como lida', async () => {
+    inbox.listarConversas.mockResolvedValue(lista([conversa({ naoLidas: 0 })]));
+    montar();
+    await abrirConversa();
+    const callsAntes = inbox.listarConversas.mock.calls.length;
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    inbox.listarConversas.mockResolvedValue(lista([conversa({ naoLidas: 2 })]));
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
+    expect(inbox.listarConversas).toHaveBeenCalledTimes(callsAntes);
+    expect(inbox.marcarLidas).not.toHaveBeenCalled();
+  });
+});

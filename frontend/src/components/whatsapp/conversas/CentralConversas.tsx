@@ -48,8 +48,14 @@ export function CentralConversas({ conectado }: CentralConversasProps) {
 
   const carregar = useCallback(async (f: FiltroConversa) => {
     try {
-      const lista = await listarConversas(f);
+      let lista = await listarConversas(f);
       if (filtroRef.current !== f) return;
+      // Mensagem nova na conversa aberta e visível: já conta como lida.
+      const abertaId = selecionadaIdRef.current;
+      if (abertaId && document.visibilityState === 'visible' && lista.itens.some((c) => c.id === abertaId && c.naoLidas > 0)) {
+        marcarLidas([abertaId]).catch(() => { /* silencioso */ });
+        lista = { ...lista, itens: lista.itens.map((c) => (c.id === abertaId ? { ...c, naoLidas: 0 } : c)) };
+      }
       setDados(lista);
       setErro(false);
       // A conversa aberta acompanha o que a fila trouxe (nome, responsável, última mensagem).
@@ -87,6 +93,11 @@ export function CentralConversas({ conectado }: CentralConversasProps) {
   }, [conectado]);
 
   const selecionar = (c: ConversaResumoDto) => {
+    if (c.naoLidas > 0) {
+      marcarLidas([c.id]).catch(() => { /* silencioso: não bloqueia a conversa */ });
+      c = { ...c, naoLidas: 0 };
+      setDados((atual) => (atual ? { ...atual, itens: atual.itens.map((i) => (i.id === c.id ? c : i)) } : atual));
+    }
     setSelecionada(c);
     setContexto(null);
     buscarConversa(c.id)
