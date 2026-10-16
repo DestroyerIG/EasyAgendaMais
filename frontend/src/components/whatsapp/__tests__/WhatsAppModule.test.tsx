@@ -55,7 +55,7 @@ describe('WhatsAppModule', () => {
     responderStatus('connected');
     render(<WhatsAppModule />);
     await screen.findByText('painel-conversas');
-    const nomes = screen.getAllByRole('tab').map((t) => (t.textContent ?? '').replace(/^(bolt|chat|smartphone)/, ''));
+    const nomes = screen.getAllByRole('tab').map((t) => (t.textContent ?? ''));
     expect(nomes).toEqual(['Automações', 'Conversas', 'Conexão']);
     expect(screen.queryByRole('tab', { name: 'Hora de voltar' })).toBeNull();
     expect(screen.queryByRole('tab', { name: 'Campanhas' })).toBeNull();
@@ -82,10 +82,15 @@ describe('WhatsAppModule', () => {
     expect(await screen.findByText('painel-conexao')).toBeInTheDocument();
   });
 
-  it('o cabeçalho mostra o caminho WhatsApp / aba', async () => {
+  it('mostra a barra de abas com a aba ativa marcada e sem o título "WhatsApp"', async () => {
     responderStatus('connected');
     render(<WhatsAppModule />);
-    expect(await screen.findByText('WhatsApp / Conversas')).toBeInTheDocument();
+    await screen.findByText('painel-conversas');
+    expect(screen.getByRole('tablist')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Conversas' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Conexão' })).toHaveAttribute('aria-selected', 'false');
+    expect(screen.queryByRole('heading', { name: 'WhatsApp' })).toBeNull();
+    expect(screen.queryByText('WhatsApp / Conversas')).toBeNull();
   });
 
   it('clicar em Automações troca a aba pela URL, sem empilhar histórico', async () => {
@@ -116,7 +121,7 @@ describe('WhatsAppModule', () => {
     abaNaUrl = 'conexao';
     rerender(<WhatsAppModule />);
     expect(await screen.findByText(/painel-conexao/)).toBeInTheDocument();
-    expect(screen.getByText('WhatsApp / Conexão')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Conexão' })).toHaveAttribute('aria-selected', 'true');
     abaNaUrl = 'automacoes';
     rerender(<WhatsAppModule />);
     expect(await screen.findByText('painel-menu')).toBeInTheDocument();

@@ -20,7 +20,6 @@ const FILTROS: Array<{ id: FiltroConversa; rotulo: string }> = [
 
 interface FilaConversasProps {
   filtro: FiltroConversa;
-  onFiltro: (filtro: FiltroConversa) => void;
   dados: ListaConversasDto | null;
   selecionadaId: string | null;
   onSelecionar: (conversa: ConversaResumoDto) => void;
@@ -107,11 +106,45 @@ function ItemConversa({ c, selecionada, onSelecionar }: { c: ConversaResumoDto; 
   );
 }
 
-export function FilaConversas({
-  filtro, onFiltro, dados, selecionadaId, onSelecionar, onMarcarLidas, onCarregarMais, erro = false, carregandoMais = false, onTentarNovamente,
-}: FilaConversasProps) {
-  const contadores = dados?.contadores;
+interface FiltrosConversaProps {
+  filtro: FiltroConversa;
+  onFiltro: (filtro: FiltroConversa) => void;
+  contadores?: ListaConversasDto['contadores'];
+}
 
+/** Pílulas de filtro do cabeçalho da Central; no celular rolam na horizontal, numa linha só. */
+export function FiltrosConversa({ filtro, onFiltro, contadores }: FiltrosConversaProps) {
+  return (
+    <div role="group" aria-label="Filtrar conversas" className="flex items-center gap-2 overflow-x-auto">
+      {FILTROS.map((f) => {
+        const ativo = f.id === filtro;
+        const n = contadores?.[f.id];
+        const mostrarN = n !== undefined && !(f.id === 'finalizadas' && n === 0);
+        return (
+          <button
+            key={f.id}
+            type="button"
+            aria-pressed={ativo}
+            onClick={() => onFiltro(f.id)}
+            className={cn(
+              'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand',
+              ativo ? 'bg-brand/15 font-bold text-brand-text' : 'bg-surface-2 text-muted hover:text-ink',
+            )}
+          >
+            {f.rotulo}
+            {mostrarN ? (
+              <span className={cn(f.id === 'aguardando' && n > 0 ? 'rounded-full bg-warning/15 px-1.5 font-bold text-warning-text' : 'opacity-70')}>{n}</span>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export function FilaConversas({
+  filtro, dados, selecionadaId, onSelecionar, onMarcarLidas, onCarregarMais, erro = false, carregandoMais = false, onTentarNovamente,
+}: FilaConversasProps) {
   const corpo = () => {
     if (!dados) {
       if (erro) {
@@ -153,30 +186,7 @@ export function FilaConversas({
   };
 
   return (
-    <section aria-label="Fila de atendimento" className="flex min-h-0 flex-col gap-3 rounded-xl bg-surface p-3 shadow-sm">
-      <div role="group" aria-label="Filtrar conversas" className="flex flex-wrap items-center gap-1 rounded-xl bg-surface-2 p-1">
-        {FILTROS.map((f) => {
-          const ativo = f.id === filtro;
-          const n = contadores?.[f.id];
-          return (
-            <button
-              key={f.id}
-              type="button"
-              aria-pressed={ativo}
-              onClick={() => onFiltro(f.id)}
-              className={cn(
-                'rounded-lg px-3 py-1.5 text-[13px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand',
-                ativo ? 'bg-surface font-bold text-brand-text shadow-sm' : 'text-muted hover:text-ink',
-              )}
-            >
-              {f.rotulo}
-              {n !== undefined ? (
-                <span className={cn('ml-1.5', f.id === 'aguardando' && n > 0 ? 'rounded-full bg-warning/15 px-1.5 font-bold text-warning-text' : 'opacity-70')}>{n}</span>
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
+    <section aria-label="Fila de atendimento" className="flex h-full min-h-0 flex-col gap-3 rounded-xl bg-surface p-3 shadow-sm">
       <div className="flex items-center justify-between px-1">
         <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Fila de atendimento</span>
         <button
@@ -187,7 +197,7 @@ export function FilaConversas({
           Marcar lidas
         </button>
       </div>
-      <div className="flex max-h-[calc(100vh-18rem)] min-h-40 flex-col gap-1 overflow-y-auto pr-1">{corpo()}</div>
+      <div className="flex min-h-40 flex-1 flex-col gap-1 overflow-y-auto pr-1">{corpo()}</div>
     </section>
   );
 }

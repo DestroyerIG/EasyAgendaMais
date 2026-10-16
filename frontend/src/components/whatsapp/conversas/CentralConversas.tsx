@@ -18,7 +18,7 @@ import {
   type FiltroConversa,
   type ListaConversasDto,
 } from '@/lib/whatsappInbox';
-import { FilaConversas } from './FilaConversas';
+import { FilaConversas, FiltrosConversa } from './FilaConversas';
 import { ConversaAberta } from './ConversaAberta';
 import { CadastroRapidoCliente, ContextoCliente } from './ContextoCliente';
 
@@ -183,27 +183,40 @@ export function CentralConversas({ conectado }: CentralConversasProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted">
-          <span className="h-2.5 w-2.5 rounded-full bg-whatsapp" aria-hidden="true" />
-          <span>Inbox operacional</span>
-          {conectado && numero ? (
-            <span className="normal-case tracking-normal text-ink">{`Instância: ${formatarTelefone(numero)}`}</span>
-          ) : null}
+      <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted">
+            <span className="h-2.5 w-2.5 rounded-full bg-whatsapp" aria-hidden="true" />
+            <span>Inbox operacional</span>
+            {conectado && numero ? (
+              <span className="normal-case tracking-normal text-ink">{`Instância: ${formatarTelefone(numero)}`}</span>
+            ) : null}
+          </div>
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-[22px] font-bold tracking-tight text-ink">Conversas do WhatsApp</h2>
+            {dados ? (
+              <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[12px] font-bold text-muted">{`${dados.contadores.todas} abertas`}</span>
+            ) : null}
+          </div>
         </div>
-        <div className="flex items-baseline gap-2">
-          <h2 className="text-[22px] font-bold tracking-tight text-ink">Conversas do WhatsApp</h2>
-          {dados ? (
-            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[12px] font-bold text-muted">{`${dados.contadores.todas} abertas`}</span>
-          ) : null}
+        <div className="flex min-w-0 items-center gap-2">
+          <FiltrosConversa filtro={filtro} onFiltro={setFiltro} contadores={dados?.contadores} />
+          <button
+            type="button"
+            aria-label="Atualizar conversas"
+            title="Atualizar conversas"
+            onClick={() => void carregar(filtroRef.current)}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-2 text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+          >
+            <Icon name="sync" size={18} />
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12">
-        <div className={`${selecionada ? 'hidden lg:block' : ''} lg:col-span-4`}>
+      <div className="flex flex-col gap-4 lg:h-[calc(100vh-15rem)] lg:min-h-[28rem] lg:flex-row">
+        <div className={`${selecionada ? 'hidden lg:block' : ''} min-h-0 lg:w-[360px] lg:shrink-0`}>
           <FilaConversas
             filtro={filtro}
-            onFiltro={setFiltro}
             dados={dados}
             erro={erro}
             selecionadaId={selecionada?.id ?? null}
@@ -215,7 +228,7 @@ export function CentralConversas({ conectado }: CentralConversasProps) {
           />
         </div>
 
-        <div className={`${selecionada ? '' : 'hidden lg:block'} lg:col-span-5`}>
+        <div className={`${selecionada ? '' : 'hidden lg:block'} min-h-0 min-w-0 lg:flex-1`}>
           {selecionada ? (
             <ConversaAberta
               conversa={selecionada}
@@ -250,23 +263,23 @@ export function CentralConversas({ conectado }: CentralConversasProps) {
               )}
             />
           ) : (
-            <div className="flex min-h-72 flex-col items-center justify-center gap-2 rounded-xl bg-surface p-6 text-center shadow-sm">
+            <div className="flex h-full min-h-72 flex-col items-center justify-center gap-2 rounded-xl bg-surface p-6 text-center shadow-sm">
               <Icon name="forum" size={32} className="text-muted" />
               <p className="text-[14px] text-muted">Escolha uma conversa para ver as mensagens.</p>
             </div>
           )}
         </div>
 
-        <div className="hidden lg:col-span-3 lg:block">
-          {selecionada ? (
+        {selecionada ? (
+          <div className="hidden min-h-0 overflow-y-auto lg:block lg:w-[300px] lg:shrink-0">
             <ContextoCliente
               contexto={contexto}
               conversa={selecionada}
               onAtualizar={atualizarContexto}
               onCadastrarCliente={() => setCadastrando(true)}
             />
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </div>
 
       {selecionada ? (

@@ -5,7 +5,7 @@ import api from '@/lib/api';
 import { useToast } from './Toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { PageHeader, Card, Icon, Tabs, TabsList, TabsTrigger, TabsContent, Skeleton, buttonVariants } from '@/components/ui';
+import { PageHeader, Card, Icon, Skeleton, buttonVariants } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { ConnectionPanel } from '@/components/whatsapp/ConnectionPanel';
 import { MessageConfigPanel, BotConfig } from '@/components/whatsapp/MessageConfigPanel';
@@ -100,10 +100,10 @@ const DEFAULT_WA_STATUS: WhatsAppStatus = {
 
 type Aba = 'automacoes' | 'conversas' | 'conexao';
 
-const ABAS: { id: Aba; label: string; icon: string }[] = [
-  { id: 'automacoes', label: 'Automações', icon: 'bolt' },
-  { id: 'conversas', label: 'Conversas', icon: 'chat' },
-  { id: 'conexao', label: 'Conexão', icon: 'smartphone' },
+const ABAS: { id: Aba; label: string }[] = [
+  { id: 'automacoes', label: 'Automações' },
+  { id: 'conversas', label: 'Conversas' },
+  { id: 'conexao', label: 'Conexão' },
 ];
 
 const abaDaUrl = (valor: string | null): Aba | null =>
@@ -452,28 +452,39 @@ export const WhatsAppModule = () => {
     );
   }
 
-  const abaAtual = ABAS.find((a) => a.id === activeTab);
-
   return (
-    <div className="space-y-8 pb-10">
-      <PageHeader
-        title="WhatsApp"
-        description={`WhatsApp / ${abaAtual?.label ?? ''}`}
-      />
-
-      <Tabs value={activeTab ?? ''} onValueChange={(value) => trocarAba(value as Aba)}>
-        <TabsList>
-          {ABAS.map(t => (
-            <TabsTrigger key={t.id} value={t.id} className="gap-2">
-              <Icon name={t.icon} size={16} />
+    <div className="flex flex-col gap-6 pb-10">
+      <div role="tablist" aria-label="Seções do WhatsApp" className="flex gap-6 overflow-x-auto border-b border-line">
+        {ABAS.map((t) => {
+          const ativa = t.id === activeTab;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              id={`aba-whatsapp-${t.id}`}
+              aria-selected={ativa}
+              aria-controls="painel-whatsapp"
+              onClick={() => trocarAba(t.id)}
+              className={cn(
+                '-mb-px shrink-0 border-b-2 px-1 pb-3 pt-1 text-[14px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand',
+                ativa ? 'border-brand font-bold text-brand-text' : 'border-transparent font-medium text-muted hover:text-ink',
+              )}
+            >
               {t.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+            </button>
+          );
+        })}
+      </div>
 
-        <div className="mt-6">
+      <div id="painel-whatsapp" role="tabpanel" aria-labelledby={activeTab ? `aba-whatsapp-${activeTab}` : undefined}>
           {activeTab === null && <Skeleton className="h-40 w-full" label="Verificando conexão..." />}
-          <TabsContent value="automacoes" className="mt-0">
+          {activeTab === 'automacoes' && (
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-1">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted">WHATSAPP / AUTOMAÇÕES</p>
+                <h2 className="text-[28px] font-bold leading-9 tracking-tight text-ink">Automações do WhatsApp</h2>
+              </div>
             <AutomacoesProvisorio
               menu={
                 <MenuOptionsPanel
@@ -500,11 +511,10 @@ export const WhatsAppModule = () => {
               }
               simulador={<ChatSimulator onSendMessage={handleSimulatorMessage} />}
             />
-          </TabsContent>
-          <TabsContent value="conversas" className="mt-0">
-            <CentralConversas conectado={waStatus.status === 'connected'} />
-          </TabsContent>
-          <TabsContent value="conexao" className="mt-0">
+            </div>
+          )}
+          {activeTab === 'conversas' && <CentralConversas conectado={waStatus.status === 'connected'} />}
+          {activeTab === 'conexao' && (
             <ConnectionPanel
               waStatus={waStatus}
               statusLoading={statusLoading}
@@ -516,9 +526,8 @@ export const WhatsAppModule = () => {
               onRefresh={() => { void fetchStatus(); }}
               onTestSend={handleTestSend}
             />
-          </TabsContent>
-        </div>
-      </Tabs>
+          )}
+      </div>
     </div>
   );
 };

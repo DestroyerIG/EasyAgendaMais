@@ -227,6 +227,9 @@ export const ConnectionPanel = ({
       {/* 1. Cabeçalho */}
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div className="flex flex-col gap-1">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted">
+            WHATSAPP / <span className="text-success-text">CONEXÃO</span>
+          </p>
           <h2 className="text-[28px] font-bold leading-9 tracking-tight text-ink">Conexão do WhatsApp</h2>
           <p className="max-w-2xl text-[15px] text-muted">
             Acompanhe a conexão do WhatsApp do {nomeNegocio} e os limites de envio recomendados.
@@ -415,7 +418,7 @@ export const ConnectionPanel = ({
           </p>
           <div className="flex flex-col gap-2">
             {DICAS(nomeNegocio).map((dica, i) => (
-              <div key={dica.titulo} className="flex gap-2 rounded-lg bg-surface-2/50 p-2">
+              <div key={dica.titulo} className="flex gap-3 rounded-lg bg-surface-2 p-3 transition-colors hover:bg-surface-2/70">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface text-[11px] font-bold text-brand-text">
                   {i + 1}
                 </span>

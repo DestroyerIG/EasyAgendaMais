@@ -230,7 +230,7 @@ export function ConversaAberta({
   }
 
   return (
-    <section aria-label="Conversa aberta" className="flex min-h-0 flex-col overflow-hidden rounded-xl bg-surface shadow-sm">
+    <section aria-label="Conversa aberta" className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl bg-surface shadow-sm">
       <header className="flex flex-col gap-3 border-b border-line p-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           {onVoltar ? (
@@ -278,7 +278,7 @@ export function ConversaAberta({
 
       {contextoMobile}
 
-      <div ref={corpoRef} className="flex min-h-72 flex-1 flex-col gap-3 overflow-y-auto bg-surface-2 p-4 lg:max-h-[calc(100vh-22rem)]">
+      <div ref={corpoRef} className="flex min-h-72 flex-1 flex-col gap-3 overflow-y-auto bg-surface-2 p-4">
         {carregando ? (
           <p className="py-10 text-center text-[13px] text-muted">Carregando mensagens…</p>
         ) : erro ? (

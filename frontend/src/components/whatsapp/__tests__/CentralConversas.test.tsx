@@ -109,6 +109,17 @@ describe('CentralConversas - fila', () => {
     expect(inbox.listarConversas).toHaveBeenCalledWith('todas');
   });
 
+  it('os filtros ficam no cabeçalho, fora da coluna da fila, e Atualizar recarrega a fila', async () => {
+    montar();
+    await screen.findByText('Mariana Souza');
+    const filtros = screen.getByRole('group', { name: 'Filtrar conversas' });
+    expect(screen.getByRole('region', { name: 'Fila de atendimento' })).not.toContainElement(filtros);
+    expect(screen.getByRole('button', { name: /Todas/ })).toHaveTextContent('14');
+    const antes = inbox.listarConversas.mock.calls.length;
+    await userEvent.click(screen.getByRole('button', { name: 'Atualizar conversas' }));
+    await waitFor(() => expect(inbox.listarConversas.mock.calls.length).toBe(antes + 1));
+  });
+
   it('clicar em Aguardando você busca o filtro', async () => {
     montar();
     await screen.findByText('Mariana Souza');
