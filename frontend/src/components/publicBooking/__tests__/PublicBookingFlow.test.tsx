@@ -249,7 +249,7 @@ describe('PublicBookingFlow', () => {
 
     const caixa = screen.getByRole('checkbox', { name: 'Quero receber lembretes e novidades pelo WhatsApp de Studio Aurora' });
     expect(caixa).not.toBeChecked();
-    expect(screen.getByText('Você pode cancelar quando quiser respondendo SAIR.')).toBeInTheDocument();
+    expect(screen.getByText('Você pode cancelar quando quiser, é só avisar o estabelecimento.')).toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText('Seu nome'), 'Mariana');
     await user.type(screen.getByPlaceholderText('Seu WhatsApp'), '83999990000');

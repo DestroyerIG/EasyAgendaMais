@@ -423,7 +423,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                     Quero receber lembretes e novidades pelo WhatsApp de {storefront.name}
                   </span>
                   <span id="consentimento-whatsapp-ajuda" className="text-[13px] text-muted">
-                    Você pode cancelar quando quiser respondendo SAIR.
+                    Você pode cancelar quando quiser, é só avisar o estabelecimento.
                   </span>
                 </span>
               </label>
