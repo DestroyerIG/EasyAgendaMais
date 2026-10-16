@@ -197,11 +197,13 @@ describe('FichaCliente', () => {
 
   it('mostra as fotos com o link assinado da API', async () => {
     mockListarFotos.mockResolvedValue([
-      { id: 'f1', url: 'https://assinado.example/f1?token=abc', caption: 'Manutenção', serviceName: null, takenAt: '2026-09-12T13:00:00.000Z' },
+      { id: 'f1', url: 'https://assinado.example/f1?token=abc', caption: 'Manutenção', serviceName: null, takenAt: '2026-09-12' },
     ]);
     renderizar();
     const img = await screen.findByRole('img', { name: 'Manutenção' });
     expect(img).toHaveAttribute('src', 'https://assinado.example/f1?token=abc');
+    // Data pura do backend: sem voltar um dia por causa do fuso.
+    expect(screen.getByText('12/09/2026')).toBeInTheDocument();
   });
 
   it('abas da linha do tempo pedem o filtro certo', async () => {
@@ -267,7 +269,7 @@ describe('FichaCliente', () => {
   it('link de foto vencido recarrega a lista uma vez e libera de novo depois', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     mockListarFotos.mockResolvedValue([
-      { id: 'f1', url: 'https://assinado.example/f1', caption: 'Manutenção', serviceName: null, takenAt: '2026-09-12T13:00:00.000Z' },
+      { id: 'f1', url: 'https://assinado.example/f1', caption: 'Manutenção', serviceName: null, takenAt: '2026-09-12' },
     ]);
     renderizar();
     fireEvent.error(await screen.findByRole('img', { name: 'Manutenção' }));

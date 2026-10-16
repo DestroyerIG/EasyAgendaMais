@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'reac
 import { Button, Field, Icon, Input, Modal, Skeleton } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { SecaoRecolhivel } from '@/components/clientes/SecaoRecolhivel';
-import { formatDataNegocio } from '@/lib/formatters';
+import { formatDataPura } from '@/lib/formatters';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { enviarFoto, listarFotos, removerFoto, TAMANHO_MAX_FOTO, type FotoCliente } from '@/lib/clientPhotos';
 
@@ -160,7 +160,7 @@ export function GaleriaCliente({ clienteId }: GaleriaClienteProps) {
             )}
             <div className="absolute inset-x-0 bottom-0 bg-surface/90 px-2 py-1.5">
               <p className="truncate text-[11px] font-bold leading-tight text-ink">{legendaDa(f)}</p>
-              <p className="text-[10px] tabular-nums text-muted">{formatDataNegocio(f.takenAt)}</p>
+              <p className="text-[10px] tabular-nums text-muted">{formatDataPura(f.takenAt)}</p>
             </div>
             <button
               type="button"

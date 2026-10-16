@@ -86,6 +86,15 @@ export const formatDataNegocio = (iso: string): string => {
   return `${d.dia}/${d.mes}/${d.ano}`;
 };
 
+/**
+ * Data pura "YYYY-MM-DD" (coluna @db.Date) → "12/03/2026", sem converter fuso:
+ * a string já é o dia do negócio. Instantes ISO continuam em `formatDataNegocio`.
+ */
+export const formatDataPura = (data: string): string => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(data);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : data;
+};
+
 /** Instante ISO → "12 set · 10:00" no fuso do salão (com o ano quando não é o atual). */
 export const formatDataHoraNegocio = (iso: string): string => {
   const d = partesNoFuso(iso);
