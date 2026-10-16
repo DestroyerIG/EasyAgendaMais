@@ -105,7 +105,9 @@ function Agendamento({ ag, onAtualizar }: { ag: AgendamentoRelacionadoDto; onAtu
         {aguardando ? (
           <>
             <p className="text-[12px] text-muted">
-              {`O bot aguarda a confirmação deste sinal Pix de ${formatCurrency(ag.sinal ?? 0)} para travar a vaga na agenda de ${ag.profissional}.`}
+              {ag.sinal != null
+                ? `O bot aguarda a confirmação deste sinal Pix de ${formatCurrency(ag.sinal)} para travar a vaga na agenda de ${ag.profissional}.`
+                : `O bot aguarda a confirmação do sinal Pix para travar a vaga na agenda de ${ag.profissional}.`}
             </p>
             <Button size="sm" loading={confirmando} onClick={() => void confirmar()}>Confirmar agendamento</Button>
           </>

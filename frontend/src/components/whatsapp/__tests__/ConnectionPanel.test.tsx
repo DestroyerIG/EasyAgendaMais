@@ -107,7 +107,7 @@ describe('ConnectionPanel', () => {
       expect(screen.queryByText(proibido)).not.toBeInTheDocument();
     }
     expect(screen.getByText('Espace os envios')).toBeInTheDocument();
-    expect(screen.getByText('Evite mandar muitas mensagens seguidas para clientes diferentes; envios espaçados mantêm o número com boa reputação.')).toBeInTheDocument();
+    expect(screen.getByText('Evite mandar muitas mensagens seguidas para clientes diferentes; envios espaçados ajudam a manter o número com boa reputação.')).toBeInTheDocument();
     expect(screen.getByText('Toda cliente pode responder SAIR para parar as mensagens automáticas.')).toBeInTheDocument();
     expect(screen.queryByText(/45 e 90 segundos/)).not.toBeInTheDocument();
     expect(screen.queryByText(/promocionais/)).not.toBeInTheDocument();

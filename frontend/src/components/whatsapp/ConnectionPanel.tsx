@@ -67,7 +67,7 @@ const DICAS = (negocio: string): Array<{ titulo: string; descricao: React.ReactN
   },
   {
     titulo: 'Espace os envios',
-    descricao: 'Evite mandar muitas mensagens seguidas para clientes diferentes; envios espaçados mantêm o número com boa reputação.',
+    descricao: 'Evite mandar muitas mensagens seguidas para clientes diferentes; envios espaçados ajudam a manter o número com boa reputação.',
   },
   {
     titulo: 'Opção clara de descadastro',
@@ -75,7 +75,7 @@ const DICAS = (negocio: string): Array<{ titulo: string; descricao: React.ReactN
   },
   {
     titulo: 'Responda rápido aos chamados humanos',
-    descricao: 'Números com alto índice de interação direta mantêm boa reputação.',
+    descricao: 'Números com alto índice de interação direta ajudam a manter boa reputação.',
   },
 ];
 

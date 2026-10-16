@@ -53,6 +53,13 @@ describe('ContextoCliente', () => {
     expect(screen.getByText('21 dias')).toBeInTheDocument();
   });
 
+  it('sem sinal não mostra valor zerado', () => {
+    const base = contexto();
+    render(<ContextoCliente contexto={contexto({ agendamento: { ...base.agendamento!, sinal: null } })} conversa={conversa()} onAtualizar={vi.fn()} />);
+    expect(screen.getByText('O bot aguarda a confirmação do sinal Pix para travar a vaga na agenda de Camila Rocha.')).toBeInTheDocument();
+    expect(screen.queryByText(/R\$\s*0,00/)).not.toBeInTheDocument();
+  });
+
   it('agendamento aguardando mostra o texto do bot e confirma o sinal', async () => {
     apiMock.put.mockResolvedValue({ data: {} });
     const onAtualizar = vi.fn();
