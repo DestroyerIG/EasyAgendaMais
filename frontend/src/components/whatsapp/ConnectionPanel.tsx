@@ -60,8 +60,8 @@ const DICAS = (negocio: string): Array<{ titulo: string; descricao: React.ReactN
     titulo: 'Personalize com variáveis dinâmicas',
     descricao: (
       <>
-        Sempre use as tags <code className="rounded bg-surface px-1 py-0.5 font-mono text-[11px] text-ink">{'{nome}'}</code> e{' '}
-        <code className="rounded bg-surface px-1 py-0.5 font-mono text-[11px] text-ink">{'{horarios}'}</code> para evitar classificação de mensagem repetitiva.
+        Sempre use as tags <code className="rounded bg-surface px-1 py-0.5 font-mono text-[11px] text-ink">{'{nome_cliente}'}</code> e{' '}
+        <code className="rounded bg-surface px-1 py-0.5 font-mono text-[11px] text-ink">{'{horario}'}</code> para evitar classificação de mensagem repetitiva.
       </>
     ),
   },
@@ -411,7 +411,7 @@ export const ConnectionPanel = ({
             <h3 className="text-[17px] font-bold tracking-tight text-ink">Boas práticas de envio</h3>
           </div>
           <p className="text-sm text-muted">
-            O EasyAgenda+ aplica proteções inteligentes em tempo real. Siga estas recomendações para manter a boa reputação do seu número.
+            Siga estas recomendações para manter a boa reputação do seu número.
           </p>
           <div className="flex flex-col gap-2">
             {DICAS(nomeNegocio).map((dica, i) => (

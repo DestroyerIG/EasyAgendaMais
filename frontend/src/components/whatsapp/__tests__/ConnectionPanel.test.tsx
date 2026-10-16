@@ -112,8 +112,11 @@ describe('ConnectionPanel', () => {
     expect(screen.queryByText(/45 e 90 segundos/)).not.toBeInTheDocument();
     expect(screen.queryByText(/promocionais/)).not.toBeInTheDocument();
     expect(screen.getByText(/Dispare apenas para clientes que já agendaram no Studio Aurora/)).toBeInTheDocument();
-    expect(screen.getByText('{nome}')).toBeInTheDocument();
-    expect(screen.getByText('{horarios}')).toBeInTheDocument();
+    expect(screen.getByText('{nome_cliente}')).toBeInTheDocument();
+    expect(screen.getByText('{horario}')).toBeInTheDocument();
+    expect(screen.queryByText('{horarios}')).not.toBeInTheDocument();
+    expect(screen.getByText('Siga estas recomendações para manter a boa reputação do seu número.')).toBeInTheDocument();
+    expect(screen.queryByText(/proteções inteligentes/)).not.toBeInTheDocument();
   });
 
   it('sem diasConectado mostra só "Conectado por QR code • telefone" e "Conectado" / "—" no cartão', async () => {
