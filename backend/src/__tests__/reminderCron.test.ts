@@ -92,4 +92,21 @@ describe('runReminderJob', () => {
     expect(mockFindSettings).toHaveBeenCalledTimes(1);
     expect(mockSendWhatsAppMessage).toHaveBeenCalledTimes(2);
   });
+
+  it('não envia para cliente cujo consentimento mais recente é revogação', async () => {
+    mockFindSettings.mockResolvedValue({ whatsappReminders: true });
+    mockFindMany.mockResolvedValue([
+      { ...appointment, client: { ...appointment.client, consents: [{ granted: false, revokedAt: new Date() }] } },
+      { ...appointment, id: 'appointment-2', client: { ...appointment.client, consents: [{ granted: true, revokedAt: new Date() }] } },
+      { ...appointment, id: 'appointment-3', client: { ...appointment.client, consents: [{ granted: true, revokedAt: null }] } },
+      { ...appointment, id: 'appointment-4', client: { ...appointment.client, consents: [] } },
+    ]);
+
+    await runReminderJob(new Date('2026-09-17T12:00:00.000Z'));
+
+    expect(mockSendWhatsAppMessage).toHaveBeenCalledTimes(2);
+    expect(mockUpdate).toHaveBeenCalledTimes(2);
+    expect(mockUpdate).not.toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'appointment-1' } }));
+    expect(mockUpdate).not.toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'appointment-2' } }));
+  });
 });
