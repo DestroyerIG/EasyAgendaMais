@@ -74,7 +74,7 @@ describe('clientPhotosService', () => {
   });
   it('DELETE de foto de outro negócio -> NotFound', async () => {
     db.clientPhoto.findFirst.mockResolvedValue(null);
-    await expect(clientPhotosService.remove('b1', C1, P1)).rejects.toMatchObject({ statusCode: 404, message: 'Foto não encontrado' });
+    await expect(clientPhotosService.remove('b1', C1, P1)).rejects.toMatchObject({ statusCode: 404, message: 'Foto não encontrada' });
   });
   it('falha do remove -> 502 e linha não apagada', async () => {
     db.clientPhoto.findFirst.mockResolvedValue({ id: P1, storagePath: 'b1/c/1.jpg' });

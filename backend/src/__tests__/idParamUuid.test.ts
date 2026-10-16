@@ -17,13 +17,13 @@ const chamar = async (h: (...a: never[]) => Promise<void>, id: string, body: unk
 
 describe(':id que não é UUID responde 404 e não chega ao serviço', () => {
   it.each([
-    ['getProfile', c.getProfile, 'Cliente não encontrado'],
-    ['getTimeline', c.getTimeline, 'Cliente não encontrado'],
-    ['putTechnicalSheet', c.putTechnicalSheet, 'Cliente não encontrado'],
-    ['postConsent', c.postConsent, 'Cliente não encontrado'],
-    ['putClientTags', t.putClientTags, 'Cliente não encontrado'],
-    ['updateTag', t.updateTag, 'Etiqueta não encontrado'],
-    ['deleteTag', t.deleteTag, 'Etiqueta não encontrado'],
+    ['getProfile', c.getProfile, 'Cliente não encontrada'],
+    ['getTimeline', c.getTimeline, 'Cliente não encontrada'],
+    ['putTechnicalSheet', c.putTechnicalSheet, 'Cliente não encontrada'],
+    ['postConsent', c.postConsent, 'Cliente não encontrada'],
+    ['putClientTags', t.putClientTags, 'Cliente não encontrada'],
+    ['updateTag', t.updateTag, 'Etiqueta não encontrada'],
+    ['deleteTag', t.deleteTag, 'Etiqueta não encontrada'],
   ])('%s', async (_n, h, msg) => {
     const next = await chamar(h as never, 'abc', { granted: true, tagIds: [], values: {} });
     expect(next).toHaveBeenCalledTimes(1);

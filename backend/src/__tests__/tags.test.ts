@@ -47,9 +47,9 @@ describe('tagsService', () => {
     await expect(tagsService.setClientTags('b1', 'c1', [T1, T2])).rejects.toMatchObject({ statusCode: 400, message: 'Etiqueta inválida' });
     expect(repo.setClientTags).not.toHaveBeenCalled();
   });
-  it('cliente de outro negócio -> Cliente não encontrado', async () => {
+  it('cliente de outro negócio -> Cliente não encontrada', async () => {
     repo.clientExists.mockResolvedValue(false);
-    await expect(tagsService.setClientTags('b1', 'c1', [T1])).rejects.toMatchObject({ statusCode: 404, message: 'Cliente não encontrado' });
+    await expect(tagsService.setClientTags('b1', 'c1', [T1])).rejects.toMatchObject({ statusCode: 404, message: 'Cliente não encontrada' });
   });
   it('define etiquetas (sem duplicar) e aceita lista vazia', async () => {
     expect(await tagsService.setClientTags('b1', 'c1', [T1, T1])).toHaveLength(1);

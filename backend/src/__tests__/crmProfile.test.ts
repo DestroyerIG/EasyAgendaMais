@@ -66,8 +66,8 @@ describe('crmService.profile', () => {
 
   it('cliente de outro negócio vira NotFoundError', async () => {
     repo.clientePerfil.mockResolvedValue(null);
-    await expect(crmProfileService.profile('outro', 'c1')).rejects.toMatchObject({ statusCode: 404, message: 'Cliente não encontrado' });
-    await expect(crmProfileService.timeline('outro', 'c1', 'todos')).rejects.toMatchObject({ statusCode: 404, message: 'Cliente não encontrado' });
+    await expect(crmProfileService.profile('outro', 'c1')).rejects.toMatchObject({ statusCode: 404, message: 'Cliente não encontrada' });
+    await expect(crmProfileService.timeline('outro', 'c1', 'todos')).rejects.toMatchObject({ statusCode: 404, message: 'Cliente não encontrada' });
   });
 });
 
@@ -147,9 +147,9 @@ describe('crmService outro negócio', () => {
   it('saveTechnicalSheet e setConsent lançam NotFoundError', async () => {
     repo.clientePerfil.mockResolvedValue(null);
     await expect(crmProfileService.saveTechnicalSheet('outro', 'u1', 'c1', { allergies: null, fields: {}, customFields: [] }))
-      .rejects.toMatchObject({ statusCode: 404, message: 'Cliente não encontrado' });
+      .rejects.toMatchObject({ statusCode: 404, message: 'Cliente não encontrada' });
     await expect(crmProfileService.setConsent('outro', 'u1', 'c1', true))
-      .rejects.toMatchObject({ statusCode: 404, message: 'Cliente não encontrado' });
+      .rejects.toMatchObject({ statusCode: 404, message: 'Cliente não encontrada' });
     expect(repo.salvarFicha).not.toHaveBeenCalled();
     expect(repo.registrarConsentimento).not.toHaveBeenCalled();
   });
