@@ -39,6 +39,18 @@ export interface ContextoClienteDto {
 }
 export interface ConversaDetalheDto { conversa: ConversaResumoDto; contexto: ContextoClienteDto | null }
 
+export interface RespostaRapidaDto {
+  chave: 'pix' | 'como_chegar' | 'horarios' | 'politica'; rotulo: string;
+  disponivel: boolean; texto: string | null; motivo: string | null;
+}
+export interface ResumoConexaoDto {
+  conectado: boolean; numero: string | null; conectadoDesde: string | null; diasConectado: number | null; semInterrupcoes: boolean;
+  enviosHoje: { total: number; falhas: number; limite: number; percentual: number; disponiveis: number;
+    grupos: { automaticas: number; pix: number; manuais: number } };
+  saude: 'Excelente' | 'Boa' | 'Atenção';
+  historico: Array<{ id: string; criadaEm: string; cliente: string | null; telefone: string; tipo: string; status: StatusMensagem }>;
+}
+
 export const ListaConversasQuery = z.object({
   filtro: z.enum(['todas', 'aguardando', 'bot', 'finalizadas']).default('todas'),
   cursor: z.string().datetime().optional(),

@@ -26,6 +26,7 @@ import { prisma } from '../config/prisma.js';
 import { Prisma } from '@prisma/client';
 import { sendSuccess, sendCreated, sendError } from '../utils/response.js';
 import logger from '../utils/logger.js';
+import { ValidationError } from '../utils/errors.js';
 import {
   normalizeWhatsAppNumber,
   normalizePhone,
@@ -2300,7 +2301,13 @@ router.put('/config', ...waProtected, async (req: Request, res: Response, next: 
       rating_confirmation_message,
       promotions_message,
       instagram_message,
+      politica_message,
     } = body;
+
+    if (politica_message !== undefined && politica_message !== null) {
+      if (typeof politica_message !== 'string') throw new ValidationError('A política deve ser um texto');
+      if (politica_message.length > 1000) throw new ValidationError('A política pode ter até 1000 caracteres');
+    }
 
     const rows = await prisma.$queryRaw<Record<string, unknown>[]>(
       Prisma.sql`INSERT INTO whatsapp_bot_config (
@@ -2310,7 +2317,7 @@ router.put('/config', ...waProtected, async (req: Request, res: Response, next: 
           no_slots_message, cancel_no_appointments_message, cancel_list_message,
           cancel_success_message, reschedule_no_appointments_message, reschedule_list_message,
           no_previous_appointments_message, rating_question_message, rating_confirmation_message,
-          promotions_message, instagram_message, updated_at
+          promotions_message, instagram_message, politica_message, updated_at
       ) VALUES (
         ${businessId}::uuid,${welcome_header ?? null},${ask_name_message ?? null},${attendant_message ?? null},
         ${confirmation_message ?? null},${reminder_message ?? null},${invalid_option_message ?? null},
@@ -2318,7 +2325,7 @@ router.put('/config', ...waProtected, async (req: Request, res: Response, next: 
         ${no_slots_message ?? null},${cancel_no_appointments_message ?? null},${cancel_list_message ?? null},
         ${cancel_success_message ?? null},${reschedule_no_appointments_message ?? null},${reschedule_list_message ?? null},
         ${no_previous_appointments_message ?? null},${rating_question_message ?? null},${rating_confirmation_message ?? null},
-        ${promotions_message ?? null},${instagram_message ?? null},CURRENT_TIMESTAMP
+        ${promotions_message ?? null},${instagram_message ?? null},${politica_message ?? null},CURRENT_TIMESTAMP
       )
       ON CONFLICT (business_id)
       DO UPDATE SET
@@ -2342,6 +2349,7 @@ router.put('/config', ...waProtected, async (req: Request, res: Response, next: 
           rating_confirmation_message = COALESCE(EXCLUDED.rating_confirmation_message, whatsapp_bot_config.rating_confirmation_message),
           promotions_message = COALESCE(EXCLUDED.promotions_message, whatsapp_bot_config.promotions_message),
           instagram_message = COALESCE(EXCLUDED.instagram_message, whatsapp_bot_config.instagram_message),
+          politica_message = COALESCE(EXCLUDED.politica_message, whatsapp_bot_config.politica_message),
           updated_at = CURRENT_TIMESTAMP
       RETURNING *`
     );

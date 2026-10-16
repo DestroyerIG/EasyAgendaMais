@@ -69,6 +69,7 @@ export interface BotConfig {
   rating_confirmation_message: string;
   promotions_message: string;
   instagram_message: string;
+  politica_message: string;
 }
 
 /**
@@ -95,6 +96,7 @@ export const DEFAULT_BOT_CONFIG: BotConfig = {
   rating_confirmation_message: '✅ Obrigado pela sua avaliação: {avaliacao}\n\nSua opinião é muito importante para melhorarmos cada vez mais!\n\n👉 O que mais podemos fazer por você?',
   promotions_message: '🎉 *Promoções e Ofertas Especiais!*\n\n✨ *Desconto de 10%* em todos os serviços para clientes frequentes!\n\n💝 *Promoção do Mês:* combo de serviços com preço especial\n(Válido até o final do mês)\n\n🎁 *Indique um amigo* e ganhe 5% em seu próximo atendimento!\n\nPara aproveitar as promoções, agende agora!',
   instagram_message: '📱 *Nos acompanhe no Instagram!*\n\n🎨 Veja nossos trabalhos, dicas de estilo e tendências!\n\n👉 {instagram_handle}\n\n📸 Siga-nos para:\n✨ Ver nossos trabalhos mais recentes\n💡 Receber dicas de beleza\n🎯 Acompanhar promoções exclusivas\n\n📲 Clique no link para nos seguir!',
+  politica_message: '',
 };
 
 /**
@@ -121,6 +123,7 @@ export const FALLBACK_BOT_CONFIG: BotConfig = {
   rating_confirmation_message: 'Obrigado pela avaliação!',
   promotions_message: 'Confira nossas promoções!',
   instagram_message: 'Siga-nos no Instagram!',
+  politica_message: '',
 };
 
 export const RATING_TEXTS: Record<number, string> = {

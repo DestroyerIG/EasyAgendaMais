@@ -22,6 +22,21 @@ const INCLUIR = {
 } as const;
 
 export const inboxRepository = {
+  dadosRespostas: async (businessId: string) => {
+    const [b, cfg] = await Promise.all([
+      prisma.business.findUnique({ where: { id: businessId }, select: { name: true, pixKey: true, pixKeyType: true, address: true } }),
+      prisma.whatsappBotConfig.findUnique({ where: { businessId }, select: { politicaMessage: true } }),
+    ]);
+    return { negocio: b?.name ?? '', pixKey: b?.pixKey ?? null, pixKeyType: b?.pixKeyType ?? null, endereco: b?.address ?? null, politica: cfg?.politicaMessage ?? null };
+  },
+  enviosDesde: async (businessId: string, desde: Date) => (await prisma.whatsappMessage.groupBy({
+    by: ['origin', 'status'], where: { businessId, direction: 'out', origin: { not: 'painel_evento' }, createdAt: { gte: desde } },
+    _count: { _all: true } })).map((g) => ({ origin: g.origin, status: g.status, n: g._count._all })),
+  historicoEnvios: (businessId: string, take = 20) => prisma.whatsappMessage.findMany({
+    where: { businessId, direction: 'out', origin: { not: 'painel_evento' } }, orderBy: { createdAt: 'desc' }, take,
+    select: { id: true, createdAt: true, origin: true, status: true, phoneKey: true,
+      conversation: { select: { phone: true, client: { select: { name: true } } } } } }),
+  dadosConexao: (businessId: string) => prisma.business.findUniqueOrThrow({ where: { id: businessId }, select: { whatsapp: true, whatsappConnectedAt: true } }),
   /** Cliente do negócio com o mesmo telefone canônico (pré-filtro pelos 8 últimos dígitos, igualdade em JS). */
   async clientePorTelefone(businessId: string, phone: string): Promise<{ id: string; name: string } | null> {
     const chave = canonicalizePhone(phone);
