@@ -1,7 +1,7 @@
 import type { Origem, StatusMensagem } from './inbox.types.js';
 
 const semAcento = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
-const PALAVRAS_SAIR = new Set(['sair', 'parar', 'cancelar', 'stop', 'descadastrar']);
+const PALAVRAS_SAIR = new Set(['sair', 'parar', 'stop', 'descadastrar']);
 
 export function detectarPalavraChave(texto: string | null | undefined): 'sair' | 'voltar' | null {
   if (!texto) return null;
@@ -64,7 +64,7 @@ export const avancaStatus = (atual: StatusMensagem, novo: 'entregue' | 'lida') =
 const ROTULOS: Record<Origem, string> = {
   cliente: 'Mensagem da cliente', bot: 'Resposta do robô', lembrete: 'Lembrete de agendamento',
   confirmacao: 'Confirmação de agendamento', pix_recibo: 'Sinal Pix e recibo', lista_espera: 'Oferta da lista de espera',
-  manual_painel: 'Resposta manual via painel', manual_celular: 'Mensagem pelo celular', sistema: 'Teste de envio',
+  manual_painel: 'Resposta manual via painel', manual_celular: 'Mensagem pelo celular', sistema: 'Aviso do sistema',
   painel_evento: 'Evento do painel',
 };
 export const rotuloOrigem = (o: Origem) => ROTULOS[o];

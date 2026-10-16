@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { detectarPalavraChave, marcadorMidia, previa, ehAutomatica, grupoEnvio, saudeEnvios,
-  mascararTelefone, statusDeEntrega, avancaStatus } from '../modules/whatsappInbox/inbox.rules.js';
+  mascararTelefone, statusDeEntrega, avancaStatus, rotuloOrigem } from '../modules/whatsappInbox/inbox.rules.js';
 
 describe('detectarPalavraChave', () => {
-  it.each(['SAIR', 'sair', ' Sair! ', 'SAÍR', 'parar', 'Cancelar.', 'stop', 'descadastrar'])('"%s" é sair', (t) =>
+  it.each(['SAIR', 'sair', ' Sair! ', 'SAÍR', 'parar', 'stop', 'descadastrar'])('"%s" é sair', (t) =>
     expect(detectarPalavraChave(t)).toBe('sair'));
   it.each(['voltar', 'VOLTAR!', ' Voltar '])('"%s" é voltar', (t) => expect(detectarPalavraChave(t)).toBe('voltar'));
-  it.each(['não quero sair hoje', 'sair amanhã', 'oi', ''])('"%s" não é palavra-chave', (t) =>
+  it.each(['não quero sair hoje', 'sair amanhã', 'oi', '', 'cancelar', 'Cancelar.'])('"%s" não é palavra-chave', (t) =>
     expect(detectarPalavraChave(t)).toBeNull());
   it('nulo e indefinido', () => {
     expect(detectarPalavraChave(null)).toBeNull();
@@ -75,3 +75,5 @@ it('status de entrega da Evolution e sem regredir', () => {
   expect(avancaStatus('lida', 'entregue')).toBe(false);
   expect(avancaStatus('falhou', 'lida')).toBe(false);
 });
+
+it('rotuloOrigem sistema é Aviso do sistema', () => expect(rotuloOrigem('sistema')).toBe('Aviso do sistema'));

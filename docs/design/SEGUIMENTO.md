@@ -75,7 +75,7 @@ Sub-projeto 2C-1 (WhatsApp: conversas e base de envio):
 - Sub-projeto 2B: Hoje e CRM reais (sem dados de exemplo), ficha técnica por segmento, fotos privadas da cliente, consentimento LGPD, etiquetas e lista de espera.
 - Sub-projeto 2C-1: central de conversas do WhatsApp e base de envio. Migração `20261016120000_whatsapp_conversas` (três tabelas: conversas, mensagens e opt-outs; `whatsapp_connected_at`; `politica_message` em `whatsapp_bot_config`). Decisões:
   - Regra B de quem entra na central: cliente cadastrada, número com conversa existente ou com sessão do robô ativa. A conversa de um número novo começa na primeira resposta do robô; o "oi" inicial dele não é gravado.
-  - SAIR descadastra e VOLTAR reativa, com sinônimos (PARAR, CANCELAR, STOP, DESCADASTRAR), texto inteiro, sem distinguir maiúsculas, acentos ou pontuação nas pontas. O SAIR automático (antes pendente do 2C) está feito.
+  - SAIR descadastra e VOLTAR reativa, com sinônimos (PARAR, STOP, DESCADASTRAR; CANCELAR ficou de fora porque colide com "Cancelar agendamento" do robô). VOLTAR só reativa quando o número está em opt-out; fora disso segue para o robô, texto inteiro, sem distinguir maiúsculas, acentos ou pontuação nas pontas. O SAIR automático (antes pendente do 2C) está feito.
   - Prazos: volta ao robô após 12 h sem mensagem numa conversa `humano`; conversa do robô finaliza após 24 h; mensagens guardadas por 180 dias.
   - Abas provisórias: Automações hospeda Menu, Mensagens e Simulador até o 2C-2.
   - Desvios do Stitch: "Latência" removida; "Solicitar aumento" virou nota; saúde da conexão calculada pela taxa de falha; "PARAR" virou "SAIR".
