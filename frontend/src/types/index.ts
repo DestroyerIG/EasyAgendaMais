@@ -97,6 +97,7 @@ export interface FinanceSummary {
 }
 
 export interface User {
+    id?: string;
     businessId?: string | null;
     email: string;
     role: string;
