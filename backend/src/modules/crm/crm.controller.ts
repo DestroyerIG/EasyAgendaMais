@@ -1,9 +1,18 @@
 import type { Request, Response, NextFunction } from 'express';
+import { z } from 'zod';
+import { NotFoundError } from '../../utils/errors.js';
 import { sendSuccess } from '../../utils/response.js';
 import { crmService } from './crm.service.js';
 import { InsightsQuerySchema, TimelineQuerySchema, FichaInputSchema, ConsentInputSchema, CrmSettingsSchema } from './crm.types.js';
 
 type H = (req: Request, res: Response, next: NextFunction) => Promise<void>;
+
+// id que não é UUID responde 404 (o Prisma devolveria 500 numa coluna uuid).
+const clientId = (req: Request): string => {
+  const r = z.string().uuid().safeParse(req.params['id']);
+  if (!r.success) throw new NotFoundError('Cliente');
+  return r.data;
+};
 
 export const getInsights: H = async (req, res, next) => {
   try {
@@ -25,24 +34,27 @@ export const exportClientsCsv: H = async (req, res, next) => {
 };
 
 export const getProfile: H = async (req, res, next) => {
-  try { sendSuccess(res, await crmService.profile(req.user.businessId!, req.params.id)); } catch (e) { next(e); }
+  try { sendSuccess(res, await crmService.profile(req.user.businessId!, clientId(req))); } catch (e) { next(e); }
 };
 export const getTimeline: H = async (req, res, next) => {
   try {
+    const id = clientId(req);
     const q = TimelineQuerySchema.parse(req.query);
-    sendSuccess(res, await crmService.timeline(req.user.businessId!, req.params.id, q.filtro));
+    sendSuccess(res, await crmService.timeline(req.user.businessId!, id, q.filtro));
   } catch (e) { next(e); }
 };
 export const putTechnicalSheet: H = async (req, res, next) => {
   try {
+    const id = clientId(req);
     const body = FichaInputSchema.parse(req.body);
-    sendSuccess(res, await crmService.saveTechnicalSheet(req.user.businessId!, req.user.userId, req.params.id, body));
+    sendSuccess(res, await crmService.saveTechnicalSheet(req.user.businessId!, req.user.userId, id, body));
   } catch (e) { next(e); }
 };
 export const postConsent: H = async (req, res, next) => {
   try {
+    const id = clientId(req);
     const { granted } = ConsentInputSchema.parse(req.body);
-    sendSuccess(res, await crmService.setConsent(req.user.businessId!, req.user.userId, req.params.id, granted));
+    sendSuccess(res, await crmService.setConsent(req.user.businessId!, req.user.userId, id, granted));
   } catch (e) { next(e); }
 };
 export const getCrmSettings: H = async (req, res, next) => {
