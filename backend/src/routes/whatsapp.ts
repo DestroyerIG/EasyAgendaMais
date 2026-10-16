@@ -2056,9 +2056,10 @@ router.post('/test-send', ...waProtected, async (req: Request, res: Response, ne
       'Executando teste isolado de envio WhatsApp'
     );
 
-    const sent = await sendWhatsAppText(normalizedPhone, normalizedMessage, {
+    const sent = await sendWhatsAppMessage(normalizedPhone, normalizedMessage, {
       remoteJidOriginal: normalizedRemoteJidOriginal,
       businessId: req.user.businessId,
+      origin: 'sistema',
     });
 
     if (!sent) {
