@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Button, Icon } from '@/components/ui';
 import { getInitials } from '@/components/ui/Avatar';
@@ -29,6 +29,8 @@ interface ConversaAbertaProps {
   onEnviado: () => void;
   onVoltar?: () => void;
   onCadastrarCliente?: () => void;
+  /** Painel recolhível do celular, logo abaixo do cabeçalho. */
+  contextoMobile?: ReactNode;
 }
 
 const FUSO = 'America/Sao_Paulo';
@@ -102,7 +104,7 @@ function Balao({ m, negocio }: { m: MensagemDto; negocio: string }) {
 }
 
 export function ConversaAberta({
-  conversa, conectado, podeResponder, motivoBloqueio, onAssumir, onDevolver, onEnviado, onVoltar, onCadastrarCliente,
+  conversa, conectado, podeResponder, motivoBloqueio, onAssumir, onDevolver, onEnviado, onVoltar, onCadastrarCliente, contextoMobile,
 }: ConversaAbertaProps) {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -273,6 +275,8 @@ export function ConversaAberta({
           )}
         </div>
       </header>
+
+      {contextoMobile}
 
       <div ref={corpoRef} className="flex min-h-72 flex-1 flex-col gap-3 overflow-y-auto bg-surface-2 p-4 lg:max-h-[calc(100vh-22rem)]">
         {carregando ? (

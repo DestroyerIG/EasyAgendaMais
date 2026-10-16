@@ -24,7 +24,7 @@ vi.mock('@/lib/whatsappInbox', async (original) => ({
   ...(await original<typeof import('@/lib/whatsappInbox')>()),
   ...inbox,
 }));
-vi.mock('../conversas/ContextoCliente', () => ({ ContextoCliente: () => null }));
+vi.mock('../conversas/ContextoCliente', () => ({ ContextoCliente: () => null, CadastroRapidoCliente: () => null }));
 
 import { CentralConversas } from '../conversas/CentralConversas';
 import type { ConversaResumoDto, ListaConversasDto, MensagemDto } from '@/lib/whatsappInbox';

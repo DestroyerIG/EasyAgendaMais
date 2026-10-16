@@ -20,7 +20,7 @@ import {
 } from '@/lib/whatsappInbox';
 import { FilaConversas } from './FilaConversas';
 import { ConversaAberta } from './ConversaAberta';
-import { ContextoCliente } from './ContextoCliente';
+import { CadastroRapidoCliente, ContextoCliente } from './ContextoCliente';
 
 interface CentralConversasProps {
   conectado: boolean;
@@ -40,6 +40,8 @@ export function CentralConversas({ conectado }: CentralConversasProps) {
   const [selecionada, setSelecionada] = useState<ConversaResumoDto | null>(null);
   const [contexto, setContexto] = useState<ContextoClienteDto | null>(null);
   const [numero, setNumero] = useState<string | null>(null);
+  const [cadastrando, setCadastrando] = useState(false);
+  const [contextoAberto, setContextoAberto] = useState(false);
 
   const filtroRef = useRef(filtro);
   filtroRef.current = filtro;
@@ -100,9 +102,26 @@ export function CentralConversas({ conectado }: CentralConversasProps) {
     }
     setSelecionada(c);
     setContexto(null);
-    buscarConversa(c.id)
-      .then((d) => { if (selecionadaIdRef.current === c.id) setContexto(d.contexto); })
-      .catch(() => { /* a coluna de contexto é opcional */ });
+    setContextoAberto(false);
+    void carregarContexto(c.id);
+  };
+
+  // O detalhe da conversa vincula a cliente recém-cadastrada pelo telefone; recarregar traz o vínculo.
+  const carregarContexto = async (id: string) => {
+    try {
+      const d = await buscarConversa(id);
+      if (selecionadaIdRef.current !== id) return;
+      setContexto(d.contexto);
+      setSelecionada((atual) => (atual && atual.id === id ? { ...atual, clientId: d.conversa.clientId, nome: d.conversa.nome, sinalPendente: d.conversa.sinalPendente } : atual));
+    } catch {
+      /* a coluna de contexto é opcional */
+    }
+  };
+
+  const atualizarContexto = () => {
+    if (!selecionada) return;
+    void carregarContexto(selecionada.id);
+    void carregar(filtroRef.current);
   };
 
   const carregarMais = async () => {
@@ -207,6 +226,28 @@ export function CentralConversas({ conectado }: CentralConversasProps) {
               onDevolver={devolver}
               onEnviado={() => void carregar(filtroRef.current)}
               onVoltar={() => setSelecionada(null)}
+              onCadastrarCliente={() => setCadastrando(true)}
+              contextoMobile={(
+                <div className="flex flex-col gap-2 border-b border-line p-3 lg:hidden">
+                  <button
+                    type="button"
+                    onClick={() => setContextoAberto((v) => !v)}
+                    aria-expanded={contextoAberto}
+                    className="flex items-center justify-between rounded-control bg-surface-2 px-3 py-2 text-[13px] font-bold text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+                  >
+                    {contextoAberto ? 'Ocultar contexto' : 'Ver contexto da cliente'}
+                    <Icon name={contextoAberto ? 'expand_less' : 'expand_more'} size={18} />
+                  </button>
+                  {contextoAberto ? (
+                    <ContextoCliente
+                      contexto={contexto}
+                      conversa={selecionada}
+                      onAtualizar={atualizarContexto}
+                      onCadastrarCliente={() => setCadastrando(true)}
+                    />
+                  ) : null}
+                </div>
+              )}
             />
           ) : (
             <div className="flex min-h-72 flex-col items-center justify-center gap-2 rounded-xl bg-surface p-6 text-center shadow-sm">
@@ -217,9 +258,25 @@ export function CentralConversas({ conectado }: CentralConversasProps) {
         </div>
 
         <div className="hidden lg:col-span-3 lg:block">
-          {selecionada ? <ContextoCliente contexto={contexto} conversa={selecionada} /> : null}
+          {selecionada ? (
+            <ContextoCliente
+              contexto={contexto}
+              conversa={selecionada}
+              onAtualizar={atualizarContexto}
+              onCadastrarCliente={() => setCadastrando(true)}
+            />
+          ) : null}
         </div>
       </div>
+
+      {selecionada ? (
+        <CadastroRapidoCliente
+          aberto={cadastrando}
+          telefone={selecionada.telefone}
+          onFechar={() => setCadastrando(false)}
+          onCadastrada={atualizarContexto}
+        />
+      ) : null}
     </div>
   );
 }
