@@ -124,7 +124,7 @@ describe('CentralConversas - fila', () => {
     const selosDe = (nome: string) => within(screen.getByText(nome).closest('button')!)
       .queryAllByText(/^(Humano|Aguardando|Bot)$/).map((e) => e.textContent);
     expect(selosDe('Ana Humano')).toEqual(['Humano']);
-    expect(selosDe('Bia Espera')).toEqual(['Aguardando']);
+    expect(selosDe('Bia Espera')).toEqual(['Humano']);
     expect(selosDe('Cris Sem Dona')).toEqual(['Aguardando']);
     expect(selosDe('Duda Robô')).toEqual(['Aguardando']);
   });

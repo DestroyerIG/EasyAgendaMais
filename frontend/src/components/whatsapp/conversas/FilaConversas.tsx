@@ -48,10 +48,10 @@ function Selo({ children, tom }: { children: string; tom: Tom }) {
   );
 }
 
-/** Um selo só por conversa: quem está com ela agora. */
+/** Um selo só por conversa: com responsável é Humano; sem responsável, humano ou aguardando é Aguardando; senão, Bot. */
 function seloDa(c: ConversaResumoDto): { rotulo: string; tom: Tom } {
-  if (c.status === 'aguardando') return { rotulo: 'Aguardando', tom: 'aviso' };
-  if (c.atendimento === 'humano') return c.responsavel ? { rotulo: 'Humano', tom: 'brand' } : { rotulo: 'Aguardando', tom: 'aviso' };
+  if (c.responsavel) return { rotulo: 'Humano', tom: 'brand' };
+  if (c.atendimento === 'humano' || c.status === 'aguardando') return { rotulo: 'Aguardando', tom: 'aviso' };
   return { rotulo: 'Bot', tom: 'neutro' };
 }
 

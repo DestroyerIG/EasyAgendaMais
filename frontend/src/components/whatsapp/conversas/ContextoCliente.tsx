@@ -30,7 +30,7 @@ const STATUS_AGENDAMENTO: Record<string, { rotulo: string; classe: string }> = {
 };
 
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-const CARTAO = 'flex flex-col gap-2 rounded-xl bg-surface p-4 shadow-sm';
+const CARTAO = 'flex min-w-0 flex-col gap-2 rounded-xl bg-surface p-4 shadow-sm';
 
 const dataParte = (iso: string) => iso.slice(0, 10).split('-').map(Number) as [number, number, number];
 const doisDigitos = (n: number) => String(n).padStart(2, '0');
@@ -97,19 +97,17 @@ function Agendamento({ ag, onAtualizar }: { ag: AgendamentoRelacionadoDto; onAtu
   return (
     <section aria-label="Agendamento relacionado" className={CARTAO}>
       <div className="flex items-start justify-between gap-2">
-        <h4 className="text-[13px] font-bold text-ink">Agendamento Relacionado</h4>
+        <h4 className="min-w-0 break-words text-[13px] font-bold text-ink">Agendamento Relacionado</h4>
         <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold', status.classe)}>{status.rotulo}</span>
       </div>
-      <div className="flex flex-col gap-1 rounded-lg bg-surface-m3-low p-2">
-        <p className="flex items-center gap-2 text-[15px] font-bold text-ink">
+      <div className="flex min-w-0 flex-col gap-1 rounded-lg bg-surface-m3-low p-2">
+        <p className="flex min-w-0 items-center gap-2 break-words text-[15px] font-bold text-ink">
           <Icon name="calendar_month" size={18} className="shrink-0 text-brand-text" />
           {dataDoAgendamento(ag.data, ag.hora)}
         </p>
-        <p className="flex items-start justify-between gap-2 pl-6 text-[13px] text-muted">
-          <span>{ag.servico}</span>
-          <span className="shrink-0 font-mono font-bold">{formatCurrency(ag.valor)}</span>
-        </p>
-        <p className="flex flex-wrap items-center justify-between gap-x-2 pl-6 text-[11px] text-muted">
+        <p className="min-w-0 break-words pl-6 text-[13px] text-muted">{ag.servico}</p>
+        <p className="pl-6 font-mono text-[13px] font-bold text-muted">{formatCurrency(ag.valor)}</p>
+        <p className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 break-words pl-6 text-[11px] text-muted">
           <span>{`Profissional: ${ag.profissional}`}</span>
           {ag.sinal != null ? <span>{`Sinal: ${formatCurrency(ag.sinal)}`}</span> : null}
         </p>
@@ -165,7 +163,7 @@ export function ContextoCliente({ contexto, conversa, onAtualizar, onCadastrarCl
   const visitas = contexto.ultimasVisitas.slice(0, 2);
 
   return (
-    <aside aria-label="Contexto da cliente" className="flex flex-col gap-4 bg-surface-m3-low p-4">
+    <aside aria-label="Contexto da cliente" className="flex min-w-0 flex-col gap-4 bg-surface-m3-low p-4">
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-[13px] font-bold leading-5 text-ink">Contexto da Cliente</h3>
         {cores ? (
@@ -187,13 +185,13 @@ export function ContextoCliente({ contexto, conversa, onAtualizar, onCadastrarCl
           </div>
         </div>
         <dl className="grid grid-cols-2 gap-2 pt-1">
-          <div className="flex flex-col rounded-lg bg-surface-m3-low p-2">
+          <div className="flex min-w-0 flex-col rounded-lg bg-surface-m3-low p-2">
             <dt className="text-[11px] text-muted">LTV Acumulado</dt>
-            <dd className="font-mono text-[16px] font-bold text-ink">{formatCurrency(contexto.ltv, { cents: false })}</dd>
+            <dd className="break-words font-mono text-[14px] font-bold text-ink">{formatCurrency(contexto.ltv, { cents: false })}</dd>
           </div>
-          <div className="flex flex-col rounded-lg bg-surface-m3-low p-2">
+          <div className="flex min-w-0 flex-col rounded-lg bg-surface-m3-low p-2">
             <dt className="text-[11px] text-muted">Ciclo Médio</dt>
-            <dd className="font-mono text-[16px] font-bold text-ink">{contexto.cicloMedio != null ? `${contexto.cicloMedio} dias` : '—'}</dd>
+            <dd className="break-words font-mono text-[14px] font-bold text-ink">{contexto.cicloMedio != null ? `${contexto.cicloMedio} dias` : '—'}</dd>
           </div>
         </dl>
       </div>
@@ -209,8 +207,8 @@ export function ContextoCliente({ contexto, conversa, onAtualizar, onCadastrarCl
             {visitas.map((v) => {
               const [, m, d] = dataParte(v.data);
               return (
-                <li key={`${v.data}-${v.servico}`} className="flex items-start justify-between gap-2 text-muted">
-                  <span>{`${doisDigitos(d)}/${MESES[m - 1]} • ${v.servico}`}</span>
+                <li key={`${v.data}-${v.servico}`} className="flex min-w-0 flex-wrap items-start justify-between gap-x-2 text-muted">
+                  <span className="min-w-0 break-words">{`${doisDigitos(d)}/${MESES[m - 1]} • ${v.servico}`}</span>
                   <span className="shrink-0 font-mono font-bold text-success-text">{`${formatCurrency(v.valor, { cents: false })} (Pago)`}</span>
                 </li>
               );

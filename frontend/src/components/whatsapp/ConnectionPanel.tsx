@@ -312,7 +312,7 @@ export const ConnectionPanel = ({
         )}
 
         {!statusLoading && !resumoErro && (
-          <div className="grid grid-cols-1 gap-4 rounded-card bg-surface-2/50 p-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 rounded-card bg-surface-m3-low p-4 sm:grid-cols-2 lg:grid-cols-4">
             <CartaoInfo
               rotulo="Número conectado"
               valor={telefone ?? '—'}
