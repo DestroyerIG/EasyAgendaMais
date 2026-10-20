@@ -9,7 +9,7 @@ import { useToast } from '@/components/Toast';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { formatarTelefone } from '@/lib/whatsappInbox';
 import { buscarRetorno, enviarConvites, testarConvite, type OportunidadeDto, type RetornoDto } from '@/lib/whatsappRetorno';
-import { CartaoOportunidade, convidadaRecentemente, diasDesdeConvite } from './CartaoOportunidade';
+import { CartaoOportunidade, convidadaRecentemente, DIAS_ENTRE_CONVITES, diasDesdeConvite } from './CartaoOportunidade';
 import { PreviaConvite } from './PreviaConvite';
 import { TextoConviteModal } from './TextoConviteModal';
 
@@ -18,6 +18,8 @@ interface HoraDeVoltarProps {
 }
 
 type FiltroAtraso = 'todos' | 'encaixe';
+
+const emFilaOuEnviando = (i: OportunidadeDto) => i.envio?.status === 'na_fila' || i.envio?.status === 'enviando';
 
 const CAMPO = 'rounded-lg bg-surface-m3-low px-3 py-2 text-[13px] font-semibold text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand';
 
@@ -38,6 +40,7 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
   const [enviando, setEnviando] = useState(false);
   const [testando, setTestando] = useState(false);
   const [textoDe, setTextoDe] = useState<OportunidadeDto | null>(null);
+  const enviandoRef = useRef(false);
   const pedido = useRef(0);
   const temDados = useRef(false);
 
@@ -73,7 +76,7 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
   useEffect(() => { void carregar(); }, [carregar]);
 
   const itens = useMemo(() => dados?.itens ?? [], [dados]);
-  const elegiveis = useMemo(() => itens.filter((i) => i.podeReceber && !convidadaRecentemente(i)), [itens]);
+  const elegiveis = useMemo(() => itens.filter((i) => i.podeReceber && !convidadaRecentemente(i) && !emFilaOuEnviando(i)), [itens]);
   const marcadas = useMemo(() => itens.filter((i) => selecionadas.has(i.cliente.id) && i.podeReceber), [itens, selecionadas]);
   const escolhida = itens.find((i) => i.cliente.id === escolhidaId) ?? itens[0] ?? null;
   const todasMarcadas = elegiveis.length > 0 && elegiveis.every((i) => selecionadas.has(i.cliente.id));
@@ -89,7 +92,8 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
     ? marcadas.reduce((soma, i) => soma + i.valorUltimaVisita, 0)
     : (dados?.resumo.recuperacaoEstimada ?? 0);
   const enviar = async (lista: Array<{ clientId: string; texto?: string }>) => {
-    if (enviando || lista.length === 0) return;
+    if (enviandoRef.current || lista.length === 0) return;
+    enviandoRef.current = true;
     setEnviando(true);
     try {
       const r = await enviarConvites(lista, incluirLink);
@@ -108,6 +112,7 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
     } catch (e) {
       showToast(getApiErrorMessage(e, 'Não foi possível enviar os convites.'), 'error');
     } finally {
+      enviandoRef.current = false;
       setEnviando(false);
     }
   };
@@ -123,7 +128,11 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
     void enviar([{ clientId: item.cliente.id, ...(texto !== undefined ? { texto } : {}) }]);
   };
 
-  const enviarLote = () => void enviar(marcadas.map((i) => ({ clientId: i.cliente.id })));
+  const enviarLote = () => {
+    const recentes = marcadas.filter(convidadaRecentemente).length;
+    if (recentes > 0 && !window.confirm(`${recentes} delas já receberam convite nos últimos ${DIAS_ENTRE_CONVITES} dias. Enviar mesmo assim?`)) return;
+    void enviar(marcadas.map((i) => ({ clientId: i.cliente.id })));
+  };
 
   const testar = async () => {
     if (!escolhida || testando) return;
@@ -320,7 +329,7 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
           isOpen
           nome={textoDe.cliente.nome}
           textoInicial={textoDe.texto}
-          podeEnviar={conectado && textoDe.podeReceber && !enviando}
+          podeEnviar={conectado && textoDe.podeReceber && !enviando && !emFilaOuEnviando(itens.find((i) => i.cliente.id === textoDe.cliente.id) ?? textoDe)}
           onClose={() => setTextoDe(null)}
           onEnviar={(texto) => enviarUma(textoDe, texto)}
         />

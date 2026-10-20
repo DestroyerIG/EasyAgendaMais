@@ -6,6 +6,8 @@ export interface EnvioDto {
   id: string; clientId: string | null;
   status: 'na_fila' | 'enviando' | 'enviado' | 'falhou' | 'pulado' | 'cancelado';
   motivo: string | null; agendadoPara: string; enviadoEm: string | null;
+  /** "HH:MM" no fuso do negócio, calculado pelo servidor para quem está na fila. */
+  previstoHora: string | null;
 }
 
 export interface OportunidadeDto {

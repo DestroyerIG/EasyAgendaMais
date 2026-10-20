@@ -21,9 +21,6 @@ export const convidadaRecentemente = (item: OportunidadeDto) => {
   return dias !== null && dias < DIAS_ENTRE_CONVITES;
 };
 
-const horaDoDia = (iso: string) =>
-  new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
-
 type Tom = 'neutro' | 'brand' | 'sucesso' | 'aviso' | 'perigo';
 
 function Selo({ tom, icone, children }: { tom: Tom; icone?: string; children: string }) {
@@ -60,7 +57,7 @@ function SelosDeEstado({ item }: { item: OportunidadeDto }) {
       {item.podeReceber && dias !== null && dias < DIAS_ENTRE_CONVITES ? (
         <Selo tom="aviso" icone="history">{dias === 0 ? 'Convite enviado hoje' : `Convite enviado há ${dias} ${dias === 1 ? 'dia' : 'dias'}`}</Selo>
       ) : null}
-      {envio?.status === 'na_fila' ? <Selo tom="brand" icone="schedule">{`Na fila (envio previsto ~${horaDoDia(envio.agendadoPara)})`}</Selo> : null}
+      {envio?.status === 'na_fila' ? <Selo tom="brand" icone="schedule">{envio.previstoHora ? `Na fila (envio previsto ~${envio.previstoHora})` : 'Na fila'}</Selo> : null}
       {envio?.status === 'enviando' ? <Selo tom="brand" icone="schedule">Enviando agora</Selo> : null}
       {envio?.status === 'enviado' ? <Selo tom="sucesso" icone="done_all">Enviado</Selo> : null}
       {envio && (envio.status === 'falhou' || envio.status === 'pulado')

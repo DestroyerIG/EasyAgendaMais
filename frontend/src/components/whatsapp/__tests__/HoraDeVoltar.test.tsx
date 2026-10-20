@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 const usuario = { businessId: 'b1', businessName: 'Studio Aurora' };
@@ -154,9 +154,9 @@ describe('HoraDeVoltar', () => {
   it('mostra o estado do envio no cartão', async () => {
     const agendadoPara = new Date('2026-10-20T17:42:00.000Z').toISOString();
     retorno.buscarRetorno.mockResolvedValue(dto([
-      op({ id: 'a', nome: 'Ana Fila', envio: { id: 'e1', clientId: 'a', status: 'na_fila', motivo: null, agendadoPara, enviadoEm: null } }),
-      op({ id: 'b', nome: 'Bia Enviada', envio: { id: 'e2', clientId: 'b', status: 'enviado', motivo: null, agendadoPara, enviadoEm: agendadoPara } }),
-      op({ id: 'c', nome: 'Cris Falhou', envio: { id: 'e3', clientId: 'c', status: 'pulado', motivo: 'Pediu para não receber mensagens', agendadoPara, enviadoEm: null } }),
+      op({ id: 'a', nome: 'Ana Fila', envio: { id: 'e1', clientId: 'a', status: 'na_fila', motivo: null, agendadoPara, enviadoEm: null, previstoHora: '14:42' } }),
+      op({ id: 'b', nome: 'Bia Enviada', envio: { id: 'e2', clientId: 'b', status: 'enviado', motivo: null, agendadoPara, enviadoEm: agendadoPara, previstoHora: null } }),
+      op({ id: 'c', nome: 'Cris Falhou', envio: { id: 'e3', clientId: 'c', status: 'pulado', motivo: 'Pediu para não receber mensagens', agendadoPara, enviadoEm: null, previstoHora: null } }),
     ]));
     render(<HoraDeVoltar conectado />);
     expect(await screen.findByText('Na fila (envio previsto ~14:42)')).toBeInTheDocument();
@@ -188,7 +188,7 @@ describe('HoraDeVoltar', () => {
     expect(await screen.findByText('18 dias atrasada')).toBeInTheDocument();
   });
 
-  const envioNaFila = (clientId: string) => ({ id: `e-${clientId}`, clientId, status: 'na_fila' as const, motivo: null, agendadoPara: new Date().toISOString(), enviadoEm: null });
+  const envioNaFila = (clientId: string) => ({ id: `e-${clientId}`, clientId, status: 'na_fila' as const, motivo: null, agendadoPara: new Date().toISOString(), enviadoEm: null, previstoHora: '14:42' });
   const cartaoDe = (nome: string) => screen.getByRole('group', { name: `Oportunidade de ${nome}` });
 
   it('Enviar do cartão enfileira com o link atual, avisa e mostra "Na fila"', async () => {
@@ -234,6 +234,86 @@ describe('HoraDeVoltar', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Enviar este texto' }));
     await waitFor(() => expect(retorno.enviarConvites).toHaveBeenCalledWith([{ clientId: 'c1', texto: 'Oi Bia, vamos voltar?' }], true));
     await waitFor(() => expect(screen.queryByLabelText('Texto do convite')).toBeNull());
+  });
+
+  it('"Selecionar todas" ignora quem já está na fila ou sendo enviada', async () => {
+    retorno.buscarRetorno.mockResolvedValue(dto([
+      op({ id: 'a', nome: 'Ana Fila', envio: { ...envioNaFila('a') } }),
+      op({ id: 'b', nome: 'Bia Enviando', envio: { ...envioNaFila('b'), status: 'enviando' as const } }),
+      op({ id: 'd', nome: 'Duda Livre' }),
+    ]));
+    render(<HoraDeVoltar conectado />);
+    await screen.findByText('Duda Livre');
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Selecionar todas (1)' }));
+    expect(screen.getByRole('checkbox', { name: 'Selecionar Duda Livre' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Selecionar Ana Fila' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Selecionar Bia Enviando' })).not.toBeChecked();
+  });
+
+  it('o horário previsto vem do servidor; sem ele mostra só "Na fila"', async () => {
+    retorno.buscarRetorno.mockResolvedValue(dto([
+      op({ id: 'a', nome: 'Ana Fila', envio: { ...envioNaFila('a'), agendadoPara: '2026-10-20T03:00:00.000Z', previstoHora: '08:35' } }),
+      op({ id: 'b', nome: 'Bia Sem', envio: { ...envioNaFila('b'), previstoHora: null } }),
+    ]));
+    render(<HoraDeVoltar conectado />);
+    expect(await screen.findByText('Na fila (envio previsto ~08:35)')).toBeInTheDocument();
+    expect(screen.getByText('Na fila')).toBeInTheDocument();
+  });
+
+  it('lote com convidada recente marcada à mão pede confirmação e cancelar não envia', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    render(<HoraDeVoltar conectado />);
+    await screen.findByText('18 dias atrasada');
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Selecionar Carla Silveira' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Selecionar Patricia Novaes' }));
+    await userEvent.click(screen.getByRole('button', { name: /Enviar convites no WhatsApp \(2\)/ }));
+    expect(confirmar).toHaveBeenCalledWith('1 delas já receberam convite nos últimos 7 dias. Enviar mesmo assim?');
+    expect(retorno.enviarConvites).not.toHaveBeenCalled();
+    confirmar.mockRestore();
+  });
+
+  it('lote com convidada recente envia depois de confirmar', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    retorno.enviarConvites.mockResolvedValue({ envios: [envioNaFila('c3')], recusados: [] });
+    render(<HoraDeVoltar conectado />);
+    await screen.findByText('18 dias atrasada');
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Selecionar Carla Silveira' }));
+    await userEvent.click(screen.getByRole('button', { name: /Enviar convites no WhatsApp \(1\)/ }));
+    await waitFor(() => expect(retorno.enviarConvites).toHaveBeenCalledTimes(1));
+    expect(confirmar).toHaveBeenCalledTimes(1);
+    confirmar.mockRestore();
+  });
+
+  it('lote sem convidadas recentes não pergunta nada', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    retorno.enviarConvites.mockResolvedValue({ envios: [envioNaFila('c4')], recusados: [] });
+    render(<HoraDeVoltar conectado />);
+    await screen.findByText('18 dias atrasada');
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Selecionar Patricia Novaes' }));
+    await userEvent.click(screen.getByRole('button', { name: /Enviar convites no WhatsApp \(1\)/ }));
+    await waitFor(() => expect(retorno.enviarConvites).toHaveBeenCalledTimes(1));
+    expect(confirmar).not.toHaveBeenCalled();
+    confirmar.mockRestore();
+  });
+
+  it('"Ver texto" de quem está na fila não permite enviar', async () => {
+    retorno.buscarRetorno.mockResolvedValue(dto([op({ id: 'a', nome: 'Ana Fila', envio: envioNaFila('a') })]));
+    render(<HoraDeVoltar conectado />);
+    await screen.findByRole('group', { name: 'Oportunidade de Ana Fila' });
+    await userEvent.click(within(cartaoDe('Ana Fila')).getByRole('button', { name: 'Ver texto' }));
+    await screen.findByLabelText('Texto do convite');
+    expect(screen.getByRole('button', { name: 'Enviar este texto' })).toBeDisabled();
+  });
+
+  it('clique duplo no Enviar manda um único pedido', async () => {
+    let resolver: (v: unknown) => void = () => {};
+    retorno.enviarConvites.mockImplementation(() => new Promise((r) => { resolver = r; }));
+    render(<HoraDeVoltar conectado />);
+    await screen.findByText('18 dias atrasada');
+    const botao = within(cartaoDe('Patricia Novaes')).getByRole('button', { name: 'Enviar' });
+    act(() => { fireEvent.click(botao); fireEvent.click(botao); });
+    expect(retorno.enviarConvites).toHaveBeenCalledTimes(1);
+    await act(async () => { resolver({ envios: [envioNaFila('c4')], recusados: [] }); });
   });
 
   it('lote com recusado avisa quantos não foram enviados, limpa a seleção e recarrega', async () => {
