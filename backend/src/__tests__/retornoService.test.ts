@@ -2,12 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const crm = vi.hoisted(() => ({ clientes: vi.fn(), visitas: vi.fn() }));
 const today = vi.hoisted(() => ({ clientesComAgendamentoFuturo: vi.fn(), profissionaisAtivas: vi.fn(), agendamentosNasDatas: vi.fn() }));
-const fila = vi.hoisted(() => ({ ultimosPorCliente: vi.fn(), ultimosEnviadosPorCliente: vi.fn() }));
+const fila = vi.hoisted(() => ({ ultimosPorCliente: vi.fn(), ultimosEnviadosPorCliente: vi.fn(), enfileirar: vi.fn() }));
+const zap = vi.hoisted(() => ({ getStatus: vi.fn(), send: vi.fn() }));
 const inbox = vi.hoisted(() => ({ estaEmOptOut: vi.fn() }));
 const neg = vi.hoisted(() => ({ negocio: vi.fn() }));
 vi.mock('../modules/crm/crm.repository.js', () => ({ crmRepository: crm }));
 vi.mock('../modules/dashboard/today.repository.js', () => ({ todayRepository: today }));
 vi.mock('../modules/whatsappFila/fila.service.js', async (orig) => ({ ...(await orig<object>()), filaEnvios: fila }));
+vi.mock('../modules/whatsapp/whatsapp.service.js', () => ({ whatsappService: { getStatus: zap.getStatus } }));
+vi.mock('../services/whatsapp/whatsappMessageService.js', () => ({ sendWhatsAppMessage: zap.send }));
 vi.mock('../modules/whatsappInbox/inbox.recorder.js', () => ({ inboxRecorder: inbox }));
 vi.mock('../modules/whatsappRetorno/retorno.repository.js', () => ({ retornoRepository: neg }));
 vi.mock('../services/scheduleSettingsService.js', () => ({ getBusinessScheduleSettings: vi.fn(async () => ({
@@ -53,6 +56,10 @@ beforeEach(() => {
   fila.ultimosEnviadosPorCliente.mockResolvedValue(new Map());
   inbox.estaEmOptOut.mockResolvedValue(false);
   neg.negocio.mockResolvedValue({ nome: 'Studio Aurora', slug: 'aurora', whatsapp: '83988887777' });
+  fila.enfileirar.mockImplementation(async (itens: Array<{ clientId: string }>) =>
+    itens.map((i) => ({ id: `e-${i.clientId}`, clientId: i.clientId, status: 'na_fila', motivo: null, agendadoPara: AGORA.toISOString(), enviadoEm: null })));
+  zap.getStatus.mockResolvedValue({ status: 'connected' });
+  zap.send.mockResolvedValue(true);
   process.env.FRONTEND_URL = 'https://x';
 });
 
@@ -169,5 +176,82 @@ describe('link', () => {
     const r = await listar();
     expect(r.linkAgendamento).toBeNull();
     expect(r.itens[0].texto).not.toContain('Se preferir, agende');
+  });
+});
+
+describe('enviar', () => {
+  const tres = () => {
+    clientes = [cli('c1', 'Ana'), cli('c2', 'Bia', { consentimento: 'revogado' }), cli('c3', 'Cris')];
+    vis = new Map([['c1', visitas(39)], ['c2', visitas(40)], ['c3', visitas(41)]]);
+  };
+  const enviar = (input: Record<string, unknown>) =>
+    retornoService.enviar('b1', { incluirLink: true, ...input } as never, AGORA);
+
+  it('lote de 3 com 1 revogada: 2 na fila com o mesmo loteId e 1 recusado', async () => {
+    tres();
+    const r = await enviar({ itens: [{ clientId: 'c1' }, { clientId: 'c2' }, { clientId: 'c3' }] });
+    const enviados = fila.enfileirar.mock.calls[0][0];
+    expect(enviados.map((i: { clientId: string }) => i.clientId)).toEqual(['c1', 'c3']);
+    expect(enviados[0].loteId).toBeTruthy();
+    expect(enviados[0].loteId).toBe(enviados[1].loteId);
+    expect(enviados.every((i: { origin: string }) => i.origin === 'retorno')).toBe(true);
+    expect(r.envios).toHaveLength(2);
+    expect(r.recusados).toEqual([{ clientId: 'c2', motivo: 'Consentimento revogado' }]);
+  });
+  it('cliente fora da lista é recusada', async () => {
+    const r = await enviar({ itens: [{ clientId: 'zzz' }] });
+    expect(fila.enfileirar).not.toHaveBeenCalled();
+    expect(r.recusados).toEqual([{ clientId: 'zzz', motivo: 'Cliente fora da lista' }]);
+  });
+  it('texto editado chega à fila; sem edição usa o montado; 1 item agenda para agora sem lote', async () => {
+    const montado = (await listar()).itens[0].texto;
+    await enviar({ itens: [{ clientId: 'c1', texto: 'Oi, volta!' }] });
+    const um = fila.enfileirar.mock.calls[0][0][0];
+    expect(um.body).toBe('Oi, volta!');
+    expect(um.agendadoPara).toEqual(AGORA);
+    expect(um.loteId).toBeNull();
+    expect(um.phone).toBe('83999990000');
+    await enviar({ itens: [{ clientId: 'c1' }] });
+    expect(fila.enfileirar.mock.calls[1][0][0].body).toBe(montado);
+  });
+  it('mesma cliente duas vezes gera 1 envio', async () => {
+    await enviar({ itens: [{ clientId: 'c1' }, { clientId: 'c1' }] });
+    expect(fila.enfileirar.mock.calls[0][0]).toHaveLength(1);
+  });
+});
+
+describe('testar', () => {
+  it('desconectado: 409 com a mensagem', async () => {
+    zap.getStatus.mockResolvedValue({ status: 'disconnected' });
+    await expect(retornoService.testar('b1', { clientId: 'c1', incluirLink: true }, AGORA))
+      .rejects.toMatchObject({ statusCode: 409, message: 'WhatsApp desconectado. Reconecte na aba Conexão.' });
+  });
+  it('sem número do negócio: erro de validação', async () => {
+    neg.negocio.mockResolvedValue({ nome: 'Studio Aurora', slug: 'aurora', whatsapp: null });
+    await expect(retornoService.testar('b1', { clientId: 'c1', incluirLink: true }, AGORA))
+      .rejects.toMatchObject({ message: 'Cadastre o número do negócio' });
+  });
+  it('ok: envia o texto montado para o número do negócio', async () => {
+    const texto = (await listar()).itens[0].texto;
+    const r = await retornoService.testar('b1', { clientId: 'c1', incluirLink: true }, AGORA);
+    expect(r).toEqual({ enviado: true, para: '83988887777' });
+    expect(zap.send).toHaveBeenCalledWith('83988887777', texto, { businessId: 'b1', origin: 'sistema' });
+  });
+  it('falha no envio: 502', async () => {
+    zap.send.mockResolvedValue(false);
+    await expect(retornoService.testar('b1', { clientId: 'c1', incluirLink: true }, AGORA))
+      .rejects.toMatchObject({ statusCode: 502, message: 'Não foi possível enviar o teste. Tente de novo.' });
+  });
+});
+
+describe('schemas', () => {
+  it('somenteComEncaixe "true"/"false" e incluirLink padrão', async () => {
+    const { FiltrosRetorno, EnviarRetornoSchema } = await import('../modules/whatsappRetorno/retorno.types.js');
+    expect(FiltrosRetorno.parse({ somenteComEncaixe: 'true' }).somenteComEncaixe).toBe(true);
+    expect(FiltrosRetorno.parse({ somenteComEncaixe: 'false' }).somenteComEncaixe).toBe(false);
+    const id = '3f0c6a52-6a0e-4a52-9d7e-0d3a4b1f2c11';
+    expect(EnviarRetornoSchema.parse({ itens: [{ clientId: id }] }).incluirLink).toBe(true);
+    expect(EnviarRetornoSchema.parse({ itens: [{ clientId: id, texto: '  Oi  ' }] }).itens[0].texto).toBe('Oi');
+    expect(EnviarRetornoSchema.safeParse({ itens: [] }).success).toBe(false);
   });
 });

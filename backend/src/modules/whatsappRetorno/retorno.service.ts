@@ -1,15 +1,19 @@
+import { randomUUID } from 'node:crypto';
 import { crmRepository } from '../crm/crm.repository.js';
 import { resumirCliente, diasEntre } from '../crm/crmMetrics.js';
 import { todayRepository } from '../dashboard/today.repository.js';
 import { carregarAgendaSemana, vagasDaSemana } from '../dashboard/today.service.js';
 import type { EnvioDto } from '../whatsappFila/fila.service.js';
 import { filaEnvios, MOTIVO_OPT_OUT, MOTIVO_REVOGADO } from '../whatsappFila/fila.service.js';
+import { whatsappService } from '../whatsapp/whatsapp.service.js';
 import { inboxRecorder } from '../whatsappInbox/inbox.recorder.js';
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
+import { sendWhatsAppMessage } from '../../services/whatsapp/whatsappMessageService.js';
+import { AppError, ConflictError, ValidationError } from '../../utils/errors.js';
 import { todayInTimezone } from '../../utils/businessDate.js';
 import { formatarEncaixe, montarMensagemRetorno } from './retorno.rules.js';
 import { retornoRepository } from './retorno.repository.js';
-import type { OportunidadeDto, RetornoDto } from './retorno.types.js';
+import type { EnviarRetornoInput, OportunidadeDto, RetornoDto, TestarRetornoInput } from './retorno.types.js';
 
 const LIMITE_DIAS = 120;
 const MAX_ENCAIXES = 2;
@@ -86,5 +90,43 @@ export const retornoService = {
       resumo: { recuperacaoEstimada: centavos / 100, oportunidades: itens.length },
       linkAgendamento, numeroNegocio: negocio.whatsapp, itens,
     };
+  },
+
+  async enviar(
+    businessId: string,
+    input: EnviarRetornoInput,
+    agora: Date = new Date(),
+  ): Promise<{ envios: EnvioDto[]; recusados: Array<{ clientId: string; motivo: string }> }> {
+    const lista = await this.listar(businessId, {}, agora, input.incluirLink);
+    const porCliente = new Map(lista.itens.map((i) => [i.cliente.id, i]));
+    const recusados: Array<{ clientId: string; motivo: string }> = [];
+    const aceitos: Array<{ clientId: string; phone: string; body: string }> = [];
+    const vistos = new Set<string>();
+    for (const { clientId, texto } of input.itens) {
+      if (vistos.has(clientId)) continue;
+      vistos.add(clientId);
+      const item = porCliente.get(clientId);
+      if (!item) { recusados.push({ clientId, motivo: 'Cliente fora da lista' }); continue; }
+      if (!item.podeReceber) { recusados.push({ clientId, motivo: item.motivoBloqueio ?? 'Não pode receber' }); continue; }
+      aceitos.push({ clientId, phone: item.cliente.telefone, body: texto ?? item.texto });
+    }
+    if (aceitos.length === 0) return { envios: [], recusados };
+    const loteId = aceitos.length > 1 ? randomUUID() : null;
+    const envios = await filaEnvios.enfileirar(aceitos.map((a) => ({
+      businessId, ...a, origin: 'retorno' as const, loteId, ...(aceitos.length === 1 ? { agendadoPara: agora } : {}),
+    })));
+    return { envios, recusados };
+  },
+
+  async testar(businessId: string, input: TestarRetornoInput, agora: Date = new Date()): Promise<{ enviado: true; para: string }> {
+    const conexao = await whatsappService.getStatus(businessId);
+    if (conexao?.status !== 'connected') throw new ConflictError('WhatsApp desconectado. Reconecte na aba Conexão.');
+    const lista = await this.listar(businessId, {}, agora, input.incluirLink);
+    if (!lista.numeroNegocio) throw new ValidationError('Cadastre o número do negócio');
+    const item = lista.itens.find((i) => i.cliente.id === input.clientId);
+    if (!item) throw new ValidationError('Cliente fora da lista');
+    const ok = await sendWhatsAppMessage(lista.numeroNegocio, item.texto, { businessId, origin: 'sistema' }).catch(() => false);
+    if (!ok) throw new AppError('Não foi possível enviar o teste. Tente de novo.', 502);
+    return { enviado: true, para: lista.numeroNegocio };
   },
 };

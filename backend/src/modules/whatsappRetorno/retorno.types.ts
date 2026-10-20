@@ -19,3 +19,12 @@ export const FiltrosRetorno = z.object({
   professionalId: z.string().uuid().optional(),
   somenteComEncaixe: booleano.optional(),
 });
+
+export const ListarRetornoQuery = FiltrosRetorno.extend({ incluirLink: booleano.default(true) });
+export const EnviarRetornoSchema = z.object({
+  itens: z.array(z.object({ clientId: z.string().uuid(), texto: z.string().trim().min(1).max(4096).optional() })).min(1).max(200),
+  incluirLink: z.boolean().default(true),
+});
+export const TestarRetornoSchema = z.object({ clientId: z.string().uuid(), incluirLink: z.boolean().default(true) });
+export type EnviarRetornoInput = z.infer<typeof EnviarRetornoSchema>;
+export type TestarRetornoInput = z.infer<typeof TestarRetornoSchema>;
