@@ -229,6 +229,7 @@ describe('HoraDeVoltar', () => {
     await userEvent.click(within(cartaoDe('Beatriz Costa')).getByRole('button', { name: 'Ver texto' }));
     const campo = await screen.findByLabelText('Texto do convite');
     expect(campo).toHaveValue(camila.texto);
+    expect(screen.getByText('Dica: *texto entre asteriscos* aparece em negrito no WhatsApp.')).toBeInTheDocument();
     await userEvent.clear(campo);
     await userEvent.type(campo, 'Oi Bia, vamos voltar?');
     await userEvent.click(screen.getByRole('button', { name: 'Enviar este texto' }));

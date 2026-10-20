@@ -57,7 +57,10 @@ export function TextoConviteModal({ isOpen, nome, textoInicial, podeEnviar, onCl
         rows={12}
         className="w-full resize-y rounded-xl bg-surface-m3-low p-3 text-[14px] leading-relaxed text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
       />
-      <p className="mt-1 text-right text-[11px] font-semibold text-muted">{`${texto.length}/${LIMITE_TEXTO}`}</p>
+      <div className="mt-1 flex items-start justify-between gap-3 text-[11px] text-muted">
+        <p>Dica: *texto entre asteriscos* aparece em negrito no WhatsApp.</p>
+        <p className="shrink-0 font-semibold">{`${texto.length}/${LIMITE_TEXTO}`}</p>
+      </div>
     </Modal>
   );
 }
