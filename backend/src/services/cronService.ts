@@ -7,6 +7,7 @@ import { businessSettingsRepository } from '../repositories/businessSettingsRepo
 // @ts-ignore — sendWhatsAppMessage is a legacy JS service not yet typed
 import { sendWhatsAppMessage } from './whatsapp/index.js';
 import { inboxCron } from '../modules/whatsappInbox/inbox.cron.js';
+import { filaEnvios } from '../modules/whatsappFila/fila.service.js';
 import { notificationsService } from '../modules/notifications/notifications.service.js';
 
 // Agendamentos gravam `time`/`date` no relógio local do negócio (BR), não UTC.
@@ -176,6 +177,14 @@ export const expirePendingAppointments = async (now: Date = new Date()): Promise
 };
 
 export const startReminderCron = (): void => {
+  cron.schedule('* * * * *', async () => {
+    try {
+      await filaEnvios.processar();
+    } catch (err) {
+      logger.warn({ err }, 'Falha ao processar a fila de envios do WhatsApp');
+    }
+  });
+
   cron.schedule('*/10 * * * *', () => {
     void runReminderJob();
   });

@@ -42,6 +42,9 @@ it('automáticas e grupos', () => {
   for (const o of ['bot', 'pix_recibo', 'manual_painel', 'manual_celular', 'sistema'] as const) expect(ehAutomatica(o)).toBe(false);
   expect(grupoEnvio('lembrete')).toBe('automaticas');
   expect(grupoEnvio('lista_espera')).toBe('automaticas');
+  expect(ehAutomatica('retorno')).toBe(true);
+  expect(grupoEnvio('retorno')).toBe('automaticas');
+  expect(rotuloOrigem('retorno')).toBe('Convite Hora de voltar');
   expect(grupoEnvio('pix_recibo')).toBe('pix');
   expect(grupoEnvio('bot')).toBe('manuais');
   expect(grupoEnvio('manual_celular')).toBe('manuais');

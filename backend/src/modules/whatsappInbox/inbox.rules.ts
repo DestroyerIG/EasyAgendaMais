@@ -24,11 +24,11 @@ export const marcadorMidia = (t: string | null | undefined) => (t && MIDIAS[t]) 
 
 export const previa = (texto: string) => texto.replace(/\s+/g, ' ').trim().slice(0, 160);
 
-const AUTOMATICAS = new Set<Origem>(['lembrete', 'confirmacao', 'lista_espera']);
+const AUTOMATICAS = new Set<Origem>(['lembrete', 'confirmacao', 'lista_espera', 'retorno']);
 export const ehAutomatica = (o: Origem) => AUTOMATICAS.has(o);
 
 export function grupoEnvio(o: Origem): 'automaticas' | 'pix' | 'manuais' | null {
-  if (o === 'lembrete' || o === 'confirmacao' || o === 'lista_espera') return 'automaticas';
+  if (o === 'lembrete' || o === 'confirmacao' || o === 'lista_espera' || o === 'retorno') return 'automaticas';
   if (o === 'pix_recibo') return 'pix';
   if (o === 'manual_painel' || o === 'manual_celular' || o === 'bot') return 'manuais';
   return null;
@@ -65,6 +65,6 @@ const ROTULOS: Record<Origem, string> = {
   cliente: 'Mensagem da cliente', bot: 'Resposta do robô', lembrete: 'Lembrete de agendamento',
   confirmacao: 'Confirmação de agendamento', pix_recibo: 'Sinal Pix e recibo', lista_espera: 'Oferta da lista de espera',
   manual_painel: 'Resposta manual via painel', manual_celular: 'Mensagem pelo celular', sistema: 'Aviso do sistema',
-  painel_evento: 'Evento do painel',
+  painel_evento: 'Evento do painel', retorno: 'Convite Hora de voltar',
 };
 export const rotuloOrigem = (o: Origem) => ROTULOS[o];
