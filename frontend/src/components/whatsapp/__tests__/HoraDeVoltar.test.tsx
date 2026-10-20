@@ -5,7 +5,8 @@ import userEvent from '@testing-library/user-event';
 const usuario = { businessId: 'b1', businessName: 'Studio Aurora' };
 const authApi = { user: usuario };
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => authApi }));
-const toastApi = { showToast: vi.fn() };
+const showToast = vi.fn();
+const toastApi = { showToast };
 vi.mock('@/components/Toast', () => ({ useToast: () => toastApi }));
 
 const retorno = vi.hoisted(() => ({ buscarRetorno: vi.fn(), enviarConvites: vi.fn(), testarConvite: vi.fn() }));
@@ -51,6 +52,9 @@ describe('HoraDeVoltar', () => {
   beforeEach(() => {
     retorno.buscarRetorno.mockReset();
     retorno.buscarRetorno.mockResolvedValue(padrao());
+    retorno.enviarConvites.mockReset();
+    retorno.testarConvite.mockReset();
+    showToast.mockReset();
   });
 
   it('mostra o cabeçalho com a recuperação estimada e as oportunidades', async () => {
@@ -182,5 +186,123 @@ describe('HoraDeVoltar', () => {
     render(<HoraDeVoltar conectado />);
     await userEvent.click(await screen.findByRole('button', { name: 'Tentar novamente' }));
     expect(await screen.findByText('18 dias atrasada')).toBeInTheDocument();
+  });
+
+  const envioNaFila = (clientId: string) => ({ id: `e-${clientId}`, clientId, status: 'na_fila' as const, motivo: null, agendadoPara: new Date().toISOString(), enviadoEm: null });
+  const cartaoDe = (nome: string) => screen.getByRole('group', { name: `Oportunidade de ${nome}` });
+
+  it('Enviar do cartão enfileira com o link atual, avisa e mostra "Na fila"', async () => {
+    retorno.enviarConvites.mockResolvedValue({ envios: [envioNaFila('c4')], recusados: [] });
+    render(<HoraDeVoltar conectado />);
+    await screen.findByText('18 dias atrasada');
+    retorno.buscarRetorno.mockResolvedValue(dto([camila, bloqueada, convidada, { ...livre, envio: envioNaFila('c4') }]));
+    await userEvent.click(within(cartaoDe('Patricia Novaes')).getByRole('button', { name: 'Enviar' }));
+    await waitFor(() => expect(retorno.enviarConvites).toHaveBeenCalledWith([{ clientId: 'c4' }], true));
+    expect(showToast).toHaveBeenCalledWith('1 convite na fila. Envio espaçado para proteger seu número.', 'success');
+    expect(await screen.findByText(/^Na fila \(envio previsto/)).toBeInTheDocument();
+  });
+
+  it('convidada há menos de 7 dias pede confirmação e cancelar não envia', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    render(<HoraDeVoltar conectado />);
+    await screen.findByText('18 dias atrasada');
+    await userEvent.click(within(cartaoDe('Carla Silveira')).getByRole('button', { name: 'Enviar' }));
+    expect(confirmar).toHaveBeenCalledWith('Ela já recebeu um convite há 3 dias. Enviar de novo?');
+    expect(retorno.enviarConvites).not.toHaveBeenCalled();
+    confirmar.mockRestore();
+  });
+
+  it('convidada recente envia depois de confirmar', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    retorno.enviarConvites.mockResolvedValue({ envios: [envioNaFila('c3')], recusados: [] });
+    render(<HoraDeVoltar conectado />);
+    await screen.findByText('18 dias atrasada');
+    await userEvent.click(within(cartaoDe('Carla Silveira')).getByRole('button', { name: 'Enviar' }));
+    await waitFor(() => expect(retorno.enviarConvites).toHaveBeenCalledWith([{ clientId: 'c3' }], true));
+    confirmar.mockRestore();
+  });
+
+  it('"Ver texto" abre o modal, permite editar e envia o texto editado', async () => {
+    retorno.enviarConvites.mockResolvedValue({ envios: [envioNaFila('c1')], recusados: [] });
+    render(<HoraDeVoltar conectado />);
+    await screen.findByText('18 dias atrasada');
+    await userEvent.click(within(cartaoDe('Beatriz Costa')).getByRole('button', { name: 'Ver texto' }));
+    const campo = await screen.findByLabelText('Texto do convite');
+    expect(campo).toHaveValue(camila.texto);
+    await userEvent.clear(campo);
+    await userEvent.type(campo, 'Oi Bia, vamos voltar?');
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar este texto' }));
+    await waitFor(() => expect(retorno.enviarConvites).toHaveBeenCalledWith([{ clientId: 'c1', texto: 'Oi Bia, vamos voltar?' }], true));
+    await waitFor(() => expect(screen.queryByLabelText('Texto do convite')).toBeNull());
+  });
+
+  it('lote com recusado avisa quantos não foram enviados, limpa a seleção e recarrega', async () => {
+    retorno.enviarConvites.mockResolvedValue({ envios: [envioNaFila('c1')], recusados: [{ clientId: 'c4', motivo: 'Cliente fora da lista' }] });
+    render(<HoraDeVoltar conectado />);
+    await screen.findByText('18 dias atrasada');
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Selecionar todas (2)' }));
+    const antes = retorno.buscarRetorno.mock.calls.length;
+    await userEvent.click(screen.getByRole('button', { name: /Enviar convites no WhatsApp \(2\)/ }));
+    await waitFor(() => expect(retorno.enviarConvites).toHaveBeenCalledWith([{ clientId: 'c1' }, { clientId: 'c4' }], true));
+    await waitFor(() => expect(showToast).toHaveBeenCalledWith('1 convite na fila. Envio espaçado para proteger seu número. 1 não enviado.', 'success'));
+    await waitFor(() => expect(retorno.buscarRetorno.mock.calls.length).toBeGreaterThan(antes));
+    expect(screen.getByText('0 selecionadas')).toBeInTheDocument();
+  });
+
+  it('falha ao recarregar com dados na tela avisa e mantém a lista', async () => {
+    retorno.enviarConvites.mockResolvedValue({ envios: [envioNaFila('c4')], recusados: [] });
+    render(<HoraDeVoltar conectado />);
+    await screen.findByText('18 dias atrasada');
+    retorno.buscarRetorno.mockRejectedValue(new Error('x'));
+    await userEvent.click(within(cartaoDe('Patricia Novaes')).getByRole('button', { name: 'Enviar' }));
+    await waitFor(() => expect(showToast).toHaveBeenCalledWith('Não foi possível atualizar a lista.', 'error'));
+    expect(screen.getByText('18 dias atrasada')).toBeInTheDocument();
+  });
+
+  it('mostra um indicador discreto enquanto refaz a busca', async () => {
+    render(<HoraDeVoltar conectado />);
+    await screen.findByText('18 dias atrasada');
+    let resolver: (v: RetornoDto) => void = () => {};
+    retorno.buscarRetorno.mockReturnValue(new Promise<RetornoDto>((r) => { resolver = r; }));
+    await userEvent.click(screen.getByRole('button', { name: 'Camila Rocha' }));
+    expect(await screen.findByRole('status', { name: 'Atualizando a lista' })).toBeInTheDocument();
+    resolver(padrao());
+    await waitFor(() => expect(screen.queryByRole('status', { name: 'Atualizando a lista' })).toBeNull());
+  });
+
+  it('a dica da recuperação muda quando o valor é das selecionadas', async () => {
+    render(<HoraDeVoltar conectado />);
+    await screen.findByText('18 dias atrasada');
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Selecionar Beatriz Costa' }));
+    expect(screen.getByText('R$ 140,00')).toBeInTheDocument();
+    expect(screen.getByText('Recuperação Estimada').closest('[title]')).toHaveAttribute('title', 'Soma do valor da última visita das clientes selecionadas');
+  });
+
+  it('testar envio avisa o sucesso com o número', async () => {
+    retorno.testarConvite.mockResolvedValue({});
+    render(<HoraDeVoltar conectado />);
+    await userEvent.click(await screen.findByRole('button', { name: /Testar envio no meu número/ }));
+    await waitFor(() => expect(retorno.testarConvite).toHaveBeenCalledWith('c1', true));
+    expect(showToast).toHaveBeenCalledWith('Teste enviado para +55 (83) 98842-1209', 'success');
+  });
+
+  it('testar envio com erro mostra a mensagem', async () => {
+    retorno.testarConvite.mockRejectedValue(new Error('WhatsApp desconectado. Reconecte na aba Conexão.'));
+    render(<HoraDeVoltar conectado />);
+    await userEvent.click(await screen.findByRole('button', { name: /Testar envio no meu número/ }));
+    await waitFor(() => expect(showToast).toHaveBeenCalledWith('WhatsApp desconectado. Reconecte na aba Conexão.', 'error'));
+  });
+
+  it('no celular a prévia some e a barra fixa aparece quando há seleção', async () => {
+    render(<HoraDeVoltar conectado />);
+    await screen.findByText('18 dias atrasada');
+    expect(screen.getByLabelText('Prévia do convite').parentElement).toHaveClass('hidden', 'lg:block');
+    expect(screen.queryByRole('region', { name: 'Enviar convites selecionados' })).toBeNull();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Selecionar todas (2)' }));
+    const barra = screen.getByRole('region', { name: 'Enviar convites selecionados' });
+    expect(barra).toHaveClass('fixed', 'lg:hidden');
+    retorno.enviarConvites.mockResolvedValue({ envios: [envioNaFila('c1'), envioNaFila('c4')], recusados: [] });
+    await userEvent.click(within(barra).getByRole('button', { name: 'Enviar convites (2)' }));
+    await waitFor(() => expect(retorno.enviarConvites).toHaveBeenCalledWith([{ clientId: 'c1' }, { clientId: 'c4' }], true));
   });
 });

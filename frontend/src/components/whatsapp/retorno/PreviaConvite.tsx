@@ -12,14 +12,15 @@ interface PreviaConviteProps {
   linkDisponivel: boolean;
   numeroNegocio: string | null;
   conectado: boolean;
+  testando?: boolean;
   onAlternarLink: () => void;
   onTestar: () => void;
 }
 
 export function PreviaConvite({
-  escolhida, nomeNegocio, incluirLink, linkDisponivel, numeroNegocio, conectado, onAlternarLink, onTestar,
+  escolhida, nomeNegocio, incluirLink, linkDisponivel, numeroNegocio, conectado, testando = false, onAlternarLink, onTestar,
 }: PreviaConviteProps) {
-  const podeTestar = conectado && !!escolhida && !!numeroNegocio;
+  const podeTestar = conectado && !testando && !!escolhida && !!numeroNegocio;
   const linkLigado = linkDisponivel && incluirLink;
   return (
     <aside aria-label="Prévia do convite" className="flex flex-col gap-4 lg:sticky lg:top-6">

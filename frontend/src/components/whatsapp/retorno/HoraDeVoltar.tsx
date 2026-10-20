@@ -5,9 +5,13 @@ import { Icon, Skeleton } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/formatters';
-import { buscarRetorno, type RetornoDto } from '@/lib/whatsappRetorno';
-import { CartaoOportunidade, convidadaRecentemente } from './CartaoOportunidade';
+import { useToast } from '@/components/Toast';
+import { getApiErrorMessage } from '@/utils/handleApiError';
+import { formatarTelefone } from '@/lib/whatsappInbox';
+import { buscarRetorno, enviarConvites, testarConvite, type OportunidadeDto, type RetornoDto } from '@/lib/whatsappRetorno';
+import { CartaoOportunidade, convidadaRecentemente, diasDesdeConvite } from './CartaoOportunidade';
 import { PreviaConvite } from './PreviaConvite';
+import { TextoConviteModal } from './TextoConviteModal';
 
 interface HoraDeVoltarProps {
   conectado: boolean;
@@ -15,13 +19,13 @@ interface HoraDeVoltarProps {
 
 type FiltroAtraso = 'todos' | 'encaixe';
 
-// O envio, o modal "Ver texto" e o teste entram na tarefa seguinte; até lá os botões existem sem ação.
-const semAcao = () => { /* sem ação */ };
-
 const CAMPO = 'rounded-lg bg-surface-m3-low px-3 py-2 text-[13px] font-semibold text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand';
 
 export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
   const { user } = useAuth();
+  const { showToast } = useToast();
+  const showToastRef = useRef(showToast);
+  showToastRef.current = showToast;
   const [professionalId, setProfessionalId] = useState<string | null>(null);
   const [atraso, setAtraso] = useState<FiltroAtraso>('todos');
   const [incluirLink, setIncluirLink] = useState(true);
@@ -30,10 +34,16 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
   const [profissionais, setProfissionais] = useState<Array<{ id: string; nome: string }>>([]);
   const [selecionadas, setSelecionadas] = useState<ReadonlySet<string>>(new Set());
   const [escolhidaId, setEscolhidaId] = useState<string | null>(null);
+  const [atualizando, setAtualizando] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [testando, setTestando] = useState(false);
+  const [textoDe, setTextoDe] = useState<OportunidadeDto | null>(null);
   const pedido = useRef(0);
+  const temDados = useRef(false);
 
   const carregar = useCallback(async () => {
     const numero = ++pedido.current;
+    setAtualizando(true);
     try {
       const r = await buscarRetorno({
         ...(professionalId ? { professionalId } : {}),
@@ -42,6 +52,7 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
       });
       if (numero !== pedido.current) return;
       setDados(r);
+      temDados.current = true;
       setErro(false);
       // As profissionais vêm da própria lista; ao filtrar, as já conhecidas continuam disponíveis.
       setProfissionais((atuais) => {
@@ -50,7 +61,12 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
         return [...mapa].map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
       });
     } catch {
-      if (numero === pedido.current) setErro(true);
+      if (numero !== pedido.current) return;
+      // Com a lista já na tela, mantém o que há e avisa; sem dados, mostra o estado de erro.
+      if (temDados.current) showToastRef.current('Não foi possível atualizar a lista.', 'error');
+      else setErro(true);
+    } finally {
+      if (numero === pedido.current) setAtualizando(false);
     }
   }, [professionalId, atraso, incluirLink]);
 
@@ -72,10 +88,60 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
   const recuperacao = marcadas.length > 0
     ? marcadas.reduce((soma, i) => soma + i.valorUltimaVisita, 0)
     : (dados?.resumo.recuperacaoEstimada ?? 0);
+  const enviar = async (lista: Array<{ clientId: string; texto?: string }>) => {
+    if (enviando || lista.length === 0) return;
+    setEnviando(true);
+    try {
+      const r = await enviarConvites(lista, incluirLink);
+      const n = r.envios.length;
+      const m = r.recusados.length;
+      const naoEnviados = m > 0 ? ` ${m} não enviado${m > 1 ? 's' : ''}.` : '';
+      if (n > 0) {
+        showToast(`${n} ${n === 1 ? 'convite na fila' : 'convites na fila'}. Envio espaçado para proteger seu número.${naoEnviados}`, 'success');
+      } else {
+        showToast(`Nenhum convite foi para a fila.${naoEnviados} ${r.recusados[0]?.motivo ?? ''}`.trim(), 'error');
+      }
+      const enviadas = new Set(lista.map((i) => i.clientId));
+      setSelecionadas((atual) => new Set([...atual].filter((id) => !enviadas.has(id))));
+      setTextoDe(null);
+      await carregar();
+    } catch (e) {
+      showToast(getApiErrorMessage(e, 'Não foi possível enviar os convites.'), 'error');
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const confirmarReenvio = (item: OportunidadeDto) => {
+    if (!convidadaRecentemente(item)) return true;
+    const dias = diasDesdeConvite(item) ?? 0;
+    return window.confirm(`Ela já recebeu um convite há ${dias} ${dias === 1 ? 'dia' : 'dias'}. Enviar de novo?`);
+  };
+
+  const enviarUma = (item: OportunidadeDto, texto?: string) => {
+    if (!confirmarReenvio(item)) return;
+    void enviar([{ clientId: item.cliente.id, ...(texto !== undefined ? { texto } : {}) }]);
+  };
+
+  const enviarLote = () => void enviar(marcadas.map((i) => ({ clientId: i.cliente.id })));
+
+  const testar = async () => {
+    if (!escolhida || testando) return;
+    setTestando(true);
+    try {
+      await testarConvite(escolhida.cliente.id, incluirLink);
+      showToast(`Teste enviado para ${dados?.numeroNegocio ? formatarTelefone(dados.numeroNegocio) : 'o seu número'}`, 'success');
+    } catch (e) {
+      showToast(getApiErrorMessage(e, 'Não foi possível enviar o teste.'), 'error');
+    } finally {
+      setTestando(false);
+    }
+  };
+
   const filtrando = professionalId !== null || atraso !== 'todos';
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={cn('flex flex-col gap-6', marcadas.length > 0 && 'pb-20 lg:pb-0')}>
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted">
@@ -93,7 +159,7 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
           <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface text-whatsapp shadow-sm">
             <Icon name="trending_up" size={24} />
           </span>
-          <div className="flex flex-col pr-4" title="Soma do valor da última visita de cada cliente">
+          <div className="flex flex-col pr-4" title={marcadas.length > 0 ? 'Soma do valor da última visita das clientes selecionadas' : 'Soma do valor da última visita de cada cliente'}>
             <span className="text-[11px] font-semibold leading-none text-muted">Recuperação Estimada</span>
             <span className="mt-1 text-[20px] font-extrabold leading-7 text-ink">{formatCurrency(recuperacao)}</span>
           </div>
@@ -154,13 +220,18 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {atualizando && dados ? (
+            <span role="status" aria-label="Atualizando a lista" className="text-muted">
+              <Icon name="sync" size={18} className="animate-spin" />
+            </span>
+          ) : null}
           <span className="hidden text-[11px] font-semibold text-muted sm:inline">
             {`${marcadas.length} ${marcadas.length === 1 ? 'selecionada' : 'selecionadas'}`}
           </span>
           <button
             type="button"
-            disabled={!conectado || marcadas.length === 0}
-            onClick={semAcao}
+            disabled={!conectado || enviando || marcadas.length === 0}
+            onClick={enviarLote}
             className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-whatsapp px-6 py-2.5 text-[13px] font-bold text-surface shadow-sm transition-colors hover:bg-whatsapp/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Icon name="send" size={20} />
@@ -217,11 +288,11 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
                     item={item}
                     selecionada={selecionadas.has(item.cliente.id)}
                     escolhida={escolhida?.cliente.id === item.cliente.id}
-                    envioDesabilitado={!conectado}
+                    envioDesabilitado={!conectado || enviando}
                     onAlternarSelecao={() => alternar(item.cliente.id)}
                     onEscolher={() => setEscolhidaId(item.cliente.id)}
-                    onVerTexto={semAcao}
-                    onEnviar={semAcao}
+                    onVerTexto={() => setTextoDe(item)}
+                    onEnviar={() => enviarUma(item)}
                   />
                 ))}
               </div>
@@ -236,12 +307,41 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
               linkDisponivel={!!dados.linkAgendamento}
               numeroNegocio={dados.numeroNegocio}
               conectado={conectado}
+              testando={testando}
               onAlternarLink={() => setIncluirLink((v) => !v)}
-              onTestar={semAcao}
+              onTestar={() => void testar()}
             />
           </div>
         </div>
       )}
+
+      {textoDe ? (
+        <TextoConviteModal
+          isOpen
+          nome={textoDe.cliente.nome}
+          textoInicial={textoDe.texto}
+          podeEnviar={conectado && textoDe.podeReceber && !enviando}
+          onClose={() => setTextoDe(null)}
+          onEnviar={(texto) => enviarUma(textoDe, texto)}
+        />
+      ) : null}
+
+      {marcadas.length > 0 ? (
+        <section
+          aria-label="Enviar convites selecionados"
+          className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-surface p-3 shadow-md lg:hidden"
+        >
+          <button
+            type="button"
+            disabled={!conectado || enviando}
+            onClick={enviarLote}
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-whatsapp px-4 py-2.5 text-[13px] font-bold text-surface shadow-sm hover:bg-whatsapp/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Icon name="send" size={20} />
+            {`Enviar convites (${marcadas.length})`}
+          </button>
+        </section>
+      ) : null}
     </div>
   );
 }
