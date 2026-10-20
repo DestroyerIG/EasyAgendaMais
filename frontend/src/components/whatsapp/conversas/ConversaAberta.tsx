@@ -276,7 +276,13 @@ export function ConversaAberta({
             </button>
           ) : null}
           {conversa.nome || conversa.avatarUrl ? (
-            <Avatar name={conversa.nome ?? telefone} src={conversa.avatarUrl} size={40} className="text-[14px] font-bold text-muted" />
+            <Avatar
+              name={conversa.nome ?? telefone}
+              src={conversa.avatarUrl}
+              size={40}
+              className="text-[14px] font-bold text-muted"
+              fallback={conversa.nome ? undefined : <Icon name="person" size={20} className="text-muted" />}
+            />
           ) : (
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-2">
               <Icon name="person" size={20} className="text-muted" />

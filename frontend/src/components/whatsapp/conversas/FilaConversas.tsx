@@ -86,7 +86,13 @@ function ItemConversa({ c, selecionada, onSelecionar }: { c: ConversaResumoDto; 
       <span className="flex items-start justify-between gap-2">
         <span className="flex min-w-0 items-center gap-3">
           {c.nome || c.avatarUrl ? (
-            <Avatar name={c.nome ?? telefone} src={c.avatarUrl} size={48} className="text-[15px] font-bold text-muted" />
+            <Avatar
+              name={c.nome ?? telefone}
+              src={c.avatarUrl}
+              size={48}
+              className="text-[15px] font-bold text-muted"
+              fallback={c.nome ? undefined : <Icon name="person" size={22} className="text-muted" />}
+            />
           ) : (
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface-2">
               <Icon name="person" size={22} className="text-muted" />

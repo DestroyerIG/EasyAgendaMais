@@ -24,6 +24,13 @@ describe('Avatar', () => {
     expect(depois).toHaveTextContent('CR');
   });
 
+  it('com fallback, mostra-o no lugar das iniciais quando a imagem falha', () => {
+    render(<Avatar name="83999990000" src="https://cdn.exemplo/x.jpg" fallback={<i data-testid="pessoa" />} />);
+    fireEvent.error(screen.getByRole('img', { name: '83999990000' }));
+    expect(screen.getByTestId('pessoa')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '83999990000' })).not.toHaveTextContent('83');
+  });
+
   it('um novo endereço volta a tentar a imagem', () => {
     const { rerender } = render(<Avatar name="Camila Rocha" src="https://cdn.exemplo/a.jpg" />);
     fireEvent.error(screen.getByRole('img', { name: 'Camila Rocha' }));
