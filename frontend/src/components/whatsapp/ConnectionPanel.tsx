@@ -119,13 +119,13 @@ const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um :
 
 const ROTULO = 'text-[11px] font-semibold uppercase tracking-wider text-muted';
 
-function CartaoInfo({ rotulo, valor, detalhe, tomDetalhe = 'muted', mono = false, valorTom }: {
-  rotulo: string; valor: string; detalhe: string; tomDetalhe?: 'muted' | 'success'; mono?: boolean; valorTom?: 'success';
+function CartaoInfo({ rotulo, valor, detalhe, tomDetalhe = 'muted', valorTom }: {
+  rotulo: string; valor: string; detalhe: string; tomDetalhe?: 'muted' | 'success'; valorTom?: 'success';
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-1">
       <span className={ROTULO}>{rotulo}</span>
-      <span className={cn('text-[17px] font-bold', mono && 'font-mono tracking-tight', valorTom === 'success' ? 'text-success-text' : 'text-ink')}>
+      <span className={cn('text-[17px] font-bold tracking-tight', valorTom === 'success' ? 'text-success-text' : 'text-ink')}>
         {valor}
       </span>
       <span className={cn('text-sm', tomDetalhe === 'success' ? 'font-semibold text-success-text' : 'text-muted')}>{detalhe}</span>
@@ -291,7 +291,12 @@ export const ConnectionPanel = ({
                     <Icon name="qr_code_scanner" size={18} />
                     Reconectar (novo QR code)
                   </Button>
-                  <Button variant="ghost" onClick={onDisconnect} disabled={actionLoading}>
+                  <Button
+                    variant="ghost"
+                    onClick={onDisconnect}
+                    disabled={actionLoading}
+                    className="bg-surface-m3-low text-muted hover:bg-surface-2 hover:text-ink"
+                  >
                     <Icon name="link_off" size={18} />
                     Desconectar
                   </Button>
@@ -313,7 +318,6 @@ export const ConnectionPanel = ({
               valor={telefone ?? '—'}
               detalhe={conectado ? 'Linha principal ativa' : '—'}
               tomDetalhe={conectado ? 'success' : 'muted'}
-              mono
             />
             <CartaoInfo
               rotulo="Tipo de integração"
@@ -321,14 +325,13 @@ export const ConnectionPanel = ({
               detalhe={conectado ? 'Sessão sincronizada' : '—'}
               tomDetalhe={conectado ? 'success' : 'muted'}
             />
-            <CartaoInfo rotulo="Tempo conectado" valor={tempoConectado.valor} detalhe={tempoConectado.detalhe} mono />
+            <CartaoInfo rotulo="Tempo conectado" valor={tempoConectado.valor} detalhe={tempoConectado.detalhe} />
             <CartaoInfo
               rotulo="Status da conexão"
               valor={conectado ? 'Estável' : 'Desconectado'}
               detalhe={conectado ? 'Pronto para envios' : 'Envios pausados'}
               tomDetalhe={conectado ? 'success' : 'muted'}
               valorTom={conectado ? 'success' : undefined}
-              mono
             />
           </div>
         )}
@@ -365,7 +368,7 @@ export const ConnectionPanel = ({
               <Skeleton className="h-40 w-full" label="Carregando envios de hoje..." />
             ) : (
               <>
-                <div className="flex flex-col gap-2 rounded-card bg-surface-2/50 p-4">
+                <div className="flex flex-col gap-2 rounded-card bg-surface-m3-low p-4">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="text-[13px] font-semibold text-ink">Envios de hoje</span>
                     <div className="flex items-baseline gap-1">
@@ -388,7 +391,7 @@ export const ConnectionPanel = ({
                   <span className={ROTULO}>Detalhamento dos envios de hoje</span>
                   <div className="mt-1 flex flex-col gap-1">
                     {grupos.map((g) => (
-                      <div key={g.rotulo} className="flex items-center justify-between rounded-lg bg-surface-2 p-2">
+                      <div key={g.rotulo} className="flex items-center justify-between rounded-lg bg-surface-m3-low p-2">
                         <div className="flex items-center gap-2">
                           <Icon name={g.icone} size={18} className={g.cor} />
                           <span className="text-sm font-medium text-ink">{g.rotulo}</span>
@@ -418,7 +421,7 @@ export const ConnectionPanel = ({
           </p>
           <div className="flex flex-col gap-2">
             {DICAS(nomeNegocio).map((dica, i) => (
-              <div key={dica.titulo} className="flex gap-3 rounded-lg bg-surface-2 p-3 transition-colors hover:bg-surface-2/70">
+              <div key={dica.titulo} className="flex gap-3 rounded-lg bg-surface-m3-low p-3 transition-colors hover:bg-surface-2">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface text-[11px] font-bold text-brand-text">
                   {i + 1}
                 </span>
