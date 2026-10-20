@@ -96,8 +96,8 @@ function Agendamento({ ag, onAtualizar }: { ag: AgendamentoRelacionadoDto; onAtu
 
   return (
     <section aria-label="Agendamento relacionado" className={CARTAO}>
-      <div className="flex items-start justify-between gap-2">
-        <h4 className="min-w-0 break-words text-[13px] font-bold text-ink">Agendamento Relacionado</h4>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <h4 className="min-w-0 text-[13px] font-bold text-ink">Agendamento Relacionado</h4>
         <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold', status.classe)}>{status.rotulo}</span>
       </div>
       <div className="flex min-w-0 flex-col gap-1 rounded-lg bg-surface-m3-low p-2">
