@@ -32,7 +32,7 @@ export function RespostasRapidas({ conversaId, desabilitado = false, onInserir }
   if (itens.length === 0) return null;
 
   return (
-    <div className="flex items-center gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Respostas rápidas">
+    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Respostas rápidas">
       {itens.map((r) => {
         const indisponivel = !r.disponivel || !r.texto;
         return (

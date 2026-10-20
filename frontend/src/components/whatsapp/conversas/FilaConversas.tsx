@@ -138,7 +138,7 @@ interface FiltrosConversaProps {
 /** Filtros segmentados do cabeçalho da Central; no celular rolam na horizontal, numa linha só. */
 export function FiltrosConversa({ filtro, onFiltro, contadores }: FiltrosConversaProps) {
   return (
-    <div role="group" aria-label="Filtrar conversas" className="flex min-w-0 items-center gap-1 overflow-x-auto rounded-xl border border-line bg-surface p-1 shadow-sm">
+    <div role="group" aria-label="Filtrar conversas" className="flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-xl border border-line bg-surface p-1 shadow-sm">
       {FILTROS.map((f) => {
         const ativo = f.id === filtro;
         const n = contadores?.[f.id];

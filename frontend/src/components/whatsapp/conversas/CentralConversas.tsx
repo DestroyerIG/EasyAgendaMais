@@ -27,11 +27,26 @@ interface CentralConversasProps {
 }
 
 const INTERVALO_MS = 15000;
+const MEDIA_COMPUTADOR = '(min-width: 1024px)';
+
+/** Largura de computador (lg)? Lido só depois da montagem; no celular a conversa aberta ocupa a tela. */
+function useLarguraDeComputador(): boolean {
+  const [computador, setComputador] = useState(false);
+  useEffect(() => {
+    const consulta = window.matchMedia(MEDIA_COMPUTADOR);
+    const aplicar = () => setComputador(consulta.matches);
+    aplicar();
+    consulta.addEventListener?.('change', aplicar);
+    return () => consulta.removeEventListener?.('change', aplicar);
+  }, []);
+  return computador;
+}
 const SEM_PERMISSAO = 'Esta conversa está com outra pessoa';
 
 export function CentralConversas({ conectado }: CentralConversasProps) {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const computador = useLarguraDeComputador();
 
   const [filtro, setFiltro] = useState<FiltroConversa>('todas');
   const [dados, setDados] = useState<ListaConversasDto | null>(null);
@@ -183,35 +198,38 @@ export function CentralConversas({ conectado }: CentralConversasProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted">
-            <span className="h-2.5 w-2.5 rounded-full bg-whatsapp" aria-hidden="true" />
-            <span>Inbox operacional</span>
-            {conectado && numero ? (
-              <span className="normal-case tracking-normal text-ink">{`Instância: ${formatarTelefone(numero)}`}</span>
-            ) : null}
+      {/* No celular, com conversa aberta, o cabeçalho da aba some: a conversa ocupa a tela. */}
+      {selecionada && !computador ? null : (
+        <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted">
+              <span className="h-2.5 w-2.5 rounded-full bg-whatsapp" aria-hidden="true" />
+              <span>Inbox operacional</span>
+              {conectado && numero ? (
+                <span className="normal-case tracking-normal text-ink">{`Instância: ${formatarTelefone(numero)}`}</span>
+              ) : null}
+            </div>
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-[22px] font-bold tracking-tight text-ink">Conversas do WhatsApp</h2>
+              {dados ? (
+                <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[12px] font-bold text-muted">{`${dados.contadores.todas} abertas`}</span>
+              ) : null}
+            </div>
           </div>
-          <div className="flex items-baseline gap-2">
-            <h2 className="text-[22px] font-bold tracking-tight text-ink">Conversas do WhatsApp</h2>
-            {dados ? (
-              <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[12px] font-bold text-muted">{`${dados.contadores.todas} abertas`}</span>
-            ) : null}
+          <div className="flex min-w-0 items-center gap-2">
+            <FiltrosConversa filtro={filtro} onFiltro={setFiltro} contadores={dados?.contadores} />
+            <button
+              type="button"
+              aria-label="Atualizar conversas"
+              title="Atualizar conversas"
+              onClick={() => void carregar(filtroRef.current)}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-muted shadow-sm hover:bg-surface-2 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+            >
+              <Icon name="sync" size={20} />
+            </button>
           </div>
         </div>
-        <div className="flex min-w-0 items-center gap-2">
-          <FiltrosConversa filtro={filtro} onFiltro={setFiltro} contadores={dados?.contadores} />
-          <button
-            type="button"
-            aria-label="Atualizar conversas"
-            title="Atualizar conversas"
-            onClick={() => void carregar(filtroRef.current)}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-muted shadow-sm hover:bg-surface-2 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
-          >
-            <Icon name="sync" size={20} />
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Desktop: cartão da fila + cartão único (conversa e contexto), na altura da área visível. */}
       <div className="flex flex-col gap-4 lg:h-[calc(100vh-15rem)] lg:min-h-[32rem] lg:flex-row">
@@ -229,7 +247,9 @@ export function CentralConversas({ conectado }: CentralConversasProps) {
           />
         </div>
 
-        <div className={`${selecionada ? 'flex' : 'hidden lg:flex'} min-h-0 min-w-0 overflow-hidden rounded-xl bg-surface shadow-sm lg:flex-1`}>
+        <div
+          className={`${selecionada ? 'flex h-[calc(100dvh-14rem)] min-h-[24rem]' : 'hidden'} min-w-0 overflow-hidden rounded-xl bg-surface shadow-sm lg:flex lg:h-auto lg:min-h-0 lg:flex-1`}
+        >
           {selecionada ? (
             <>
               <div className="flex min-h-0 min-w-0 flex-1 flex-col">

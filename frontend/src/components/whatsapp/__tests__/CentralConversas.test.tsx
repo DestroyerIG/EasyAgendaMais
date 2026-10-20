@@ -413,6 +413,35 @@ describe('CentralConversas - celular', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Voltar para conversas' }));
     expect(screen.getByText('Escolha uma conversa para ver as mensagens.')).toBeInTheDocument();
   });
+
+  it('no celular a conversa aberta ocupa a tela: some o cabeçalho da aba e volta ao fechar', async () => {
+    // O setup global responde matchMedia com matches: false (largura de celular).
+    montar();
+    expect(await screen.findByText('Conversas do WhatsApp')).toBeInTheDocument();
+    await abrirConversa();
+    expect(screen.queryByText('Conversas do WhatsApp')).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Filtrar conversas' })).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Mensagem' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Voltar para conversas' }));
+    expect(screen.getByText('Conversas do WhatsApp')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Filtrar conversas' })).toBeInTheDocument();
+  });
+
+  it('no computador o cabeçalho da aba continua com a conversa aberta', async () => {
+    const original = window.matchMedia;
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(min-width: 1024px)', media: query, onchange: null,
+      addListener: vi.fn(), removeListener: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+    }));
+    try {
+      montar();
+      await abrirConversa();
+      expect(screen.getByText('Conversas do WhatsApp')).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: 'Mensagem' })).toBeInTheDocument();
+    } finally {
+      window.matchMedia = original;
+    }
+  });
 });
 
 describe('CentralConversas - leitura automática', () => {

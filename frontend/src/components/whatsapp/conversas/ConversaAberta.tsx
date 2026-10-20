@@ -313,7 +313,7 @@ export function ConversaAberta({
 
       {contextoMobile}
 
-      <div ref={corpoRef} className="flex min-h-72 flex-1 flex-col gap-4 overflow-y-auto bg-surface p-4 lg:min-h-0">
+      <div ref={corpoRef} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto bg-surface p-4">
         {carregando ? (
           <p className="py-10 text-center text-[13px] text-muted">Carregando mensagens…</p>
         ) : erro ? (
