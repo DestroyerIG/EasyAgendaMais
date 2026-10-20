@@ -227,3 +227,31 @@ export const todayService = {
     };
   },
 };
+
+/** Próximas vagas livres (>= 30 min) dos próximos 7 dias a partir de `agora`, por data e início. */
+export async function proximasVagas(businessId: string, agora: Date, limite = 3): Promise<Array<{ data: string; inicio: string; profissional: string }>> {
+  const cfg = await getBusinessScheduleSettings(businessId);
+  const tz = cfg.timezone || 'America/Sao_Paulo';
+  const hoje = todayInTimezone(tz, agora);
+  const datas = Array.from({ length: 7 }, (_, i) => somarDias(hoje, i));
+  const abertura = paraMinutos(cfg.openingTime);
+  const fechamento = paraMinutos(cfg.closingTime);
+  const [profs, ags] = await Promise.all([
+    todayRepository.profissionaisAtivas(businessId),
+    todayRepository.agendamentosNasDatas(businessId, datas),
+  ]);
+  const vagas: Array<{ data: string; inicio: string; profissional: string }> = [];
+  for (const data of datas) {
+    if (cfg.diasAbertos[CHAVES_DIA[diaDaSemana(data)]] !== true) continue;
+    const inicio = data === hoje ? Math.max(abertura, minutosAgora(tz, agora)) : abertura;
+    const doDia = ags.filter((a) => ymdDe(a.date) === data && ocupa(a, agora));
+    const doDiaVagas: typeof vagas = [];
+    for (const p of profs) {
+      const dela = doDia.filter((a) => a.professionalId === p.id).map(ocupante);
+      for (const v of vagasLivres(inicio, fechamento, p.almoco, dela)) doDiaVagas.push({ data, inicio: v.inicio, profissional: p.name });
+    }
+    vagas.push(...doDiaVagas.sort((a, b) => a.inicio.localeCompare(b.inicio)));
+    if (vagas.length >= limite) break;
+  }
+  return vagas.slice(0, limite);
+}

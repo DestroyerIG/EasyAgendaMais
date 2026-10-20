@@ -32,5 +32,5 @@ export function montarComprovante(d: DadosComprovante): string {
 }
 
 export async function sendComandaReceipt(businessId: string, phone: string, dados: DadosComprovante): Promise<boolean> {
-  return Boolean(await sendWhatsAppMessage(phone, montarComprovante(dados), { businessId }));
+  return Boolean(await sendWhatsAppMessage(phone, montarComprovante(dados), { businessId, origin: 'pix_recibo' }));
 }

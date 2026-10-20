@@ -3,6 +3,7 @@ import express from 'express';
 
 const mockHandleIncomingMessage = vi.hoisted(() => vi.fn());
 const mockPoolQuery = vi.hoisted(() => vi.fn());
+const mockSendWhatsAppMessage = vi.hoisted(() => vi.fn());
 
 let mockAuthenticatedUser: {
   userId: string;
@@ -20,7 +21,7 @@ let mockAuthenticatedUser: {
 
 vi.mock('../services/whatsapp/index.js', () => ({
   handleIncomingMessage: mockHandleIncomingMessage,
-  sendWhatsAppMessage: vi.fn(),
+  sendWhatsAppMessage: mockSendWhatsAppMessage,
 }));
 
 vi.mock('../services/whatsappClient.js', () => ({
@@ -102,6 +103,20 @@ app.use((err: { statusCode?: number; code?: string; message?: string }, _req: ex
 });
 
 const request = supertest(app);
+
+describe('POST /api/v1/whatsapp/test-send', () => {
+  it('envia por sendWhatsAppMessage com origem sistema para ser gravado', async () => {
+    mockSendWhatsAppMessage.mockResolvedValue(true);
+    const response = await request.post('/api/v1/whatsapp/test-send').send({ phone: '5583999990000', message: 'teste' });
+    expect(response.status).toBe(200);
+    expect(response.body.data.sent).toBe(true);
+    expect(mockSendWhatsAppMessage).toHaveBeenCalledWith(
+      expect.any(String),
+      'teste',
+      expect.objectContaining({ businessId: 'tenant-1', origin: 'sistema' }),
+    );
+  });
+});
 
 describe('POST /api/v1/whatsapp/simulator/message', () => {
   beforeEach(() => {

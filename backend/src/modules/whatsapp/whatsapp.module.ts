@@ -59,7 +59,7 @@ router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
   const event = normalizeEventName(body['event'] ?? body['eventType'] ?? body['type']);
   const instanceName = extractInstanceFromBody(body);
 
-  logger.info(
+  logger[event === 'messages-update' ? 'debug' : 'info'](
     {
       route: '/webhook',
       method: 'POST',
@@ -95,7 +95,7 @@ router.post('/webhook/:event', async (req: Request, res: Response): Promise<void
   const body = (req.body ?? {}) as Record<string, unknown>;
   const instanceName = extractInstanceFromBody(body);
 
-  logger.info(
+  logger[event === 'messages-update' ? 'debug' : 'info'](
     {
       route: `/webhook/${event}`,
       method: 'POST',

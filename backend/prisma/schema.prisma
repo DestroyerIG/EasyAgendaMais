@@ -17,6 +17,7 @@ model Business {
   email                        String    @unique @db.VarChar(255)
   whatsapp                     String    @db.VarChar(20)
   whatsappInstanceName         String?   @map("whatsapp_instance_name") @db.VarChar(255)
+  whatsappConnectedAt          DateTime? @map("whatsapp_connected_at") @db.Timestamptz(6)
   cpfCnpj                      String?   @map("cpf_cnpj") @db.VarChar(20)
 
   // Plano e assinatura
@@ -89,6 +90,9 @@ model Business {
   clientConsents       ClientConsent[]
   waitlistEntries      WaitlistEntry[]
   technicalSheets      ClientTechnicalSheet[]
+  whatsappConversations WhatsappConversation[]
+  whatsappMessages      WhatsappMessage[]
+  whatsappOptOuts       WhatsappOptOut[]
 
   @@map("businesses")
 }
@@ -126,6 +130,8 @@ model User {
   technicalSheetsUpdated ClientTechnicalSheet[] @relation("SheetUpdatedBy")
   photosCreated          ClientPhoto[]          @relation("PhotoCreatedBy")
   consentsRecorded       ClientConsent[]        @relation("ConsentRecordedBy")
+  whatsappConversationsAssigned WhatsappConversation[] @relation("ConversationAssignee")
+  whatsappMessagesSent          WhatsappMessage[]      @relation("MessageSender")
 
   @@map("users")
 }
@@ -212,6 +218,7 @@ model Client {
   photos          ClientPhoto[]
   consents        ClientConsent[]
   waitlistEntries WaitlistEntry[]
+  whatsappConversations WhatsappConversation[]
 
   @@map("clients")
 }
@@ -422,6 +429,7 @@ model WhatsappBotConfig {
   ratingConfirmationMessage        String?  @map("rating_confirmation_message") @db.Text
   promotionsMessage                String?  @map("promotions_message") @db.Text
   instagramMessage                 String?  @map("instagram_message") @db.Text
+  politicaMessage                  String?  @map("politica_message") @db.Text
   createdAt                        DateTime @default(now()) @map("created_at")
   updatedAt                        DateTime @default(now()) @updatedAt @map("updated_at")
 
@@ -714,4 +722,70 @@ model WaitlistEntry {
 
   @@index([businessId, status])
   @@map("waitlist_entries")
+}
+
+// ─── WhatsApp: central de conversas (2C-1) ──────────────────────────────────
+
+model WhatsappConversation {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId         String    @map("business_id") @db.Uuid
+  phone              String    @db.VarChar(20)
+  phoneKey           String    @map("phone_key") @db.VarChar(20)
+  clientId           String?   @map("client_id") @db.Uuid
+  handler            String    @default("bot") @db.VarChar(10)
+  assignedUserId     String?   @map("assigned_user_id") @db.Uuid
+  status             String    @default("aberta") @db.VarChar(12)
+  lastMessageAt      DateTime  @default(now()) @map("last_message_at") @db.Timestamptz(6)
+  lastMessagePreview String    @default("") @map("last_message_preview") @db.VarChar(160)
+  lastInboundAt      DateTime? @map("last_inbound_at") @db.Timestamptz(6)
+  unreadCount        Int       @default(0) @map("unread_count")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business     Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  client       Client?           @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  assignedUser User?             @relation("ConversationAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  messages     WhatsappMessage[]
+
+  @@unique([businessId, phoneKey])
+  @@index([businessId, status, lastMessageAt(sort: Desc)])
+  @@map("whatsapp_conversations")
+}
+
+model WhatsappMessage {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId        String    @map("business_id") @db.Uuid
+  conversationId    String?   @map("conversation_id") @db.Uuid
+  phoneKey          String    @map("phone_key") @db.VarChar(20)
+  direction         String    @db.VarChar(3)
+  origin            String    @db.VarChar(20)
+  body              String    @default("") @db.Text
+  mediaType         String?   @map("media_type") @db.VarChar(12)
+  providerMessageId String?   @map("provider_message_id") @db.VarChar(128)
+  status            String    @db.VarChar(10)
+  sentByUserId      String?   @map("sent_by_user_id") @db.Uuid
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  business     Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  conversation WhatsappConversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sentByUser   User?                 @relation("MessageSender", fields: [sentByUserId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, createdAt])
+  @@index([businessId, direction, createdAt])
+  @@map("whatsapp_messages")
+}
+
+model WhatsappOptOut {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId    String    @map("business_id") @db.Uuid
+  phoneKey      String    @map("phone_key") @db.VarChar(20)
+  clientId      String?   @map("client_id") @db.Uuid
+  keyword       String    @db.VarChar(20)
+  optedOutAt    DateTime  @default(now()) @map("opted_out_at") @db.Timestamptz(6)
+  reactivatedAt DateTime? @map("reactivated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, phoneKey])
+  @@map("whatsapp_opt_outs")
 }

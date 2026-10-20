@@ -52,6 +52,7 @@ export const getBotConfig = async (businessId: string): Promise<BotConfig> => {
         rating_confirmation_message:       dbConfig.ratingConfirmationMessage       ?? DEFAULT_BOT_CONFIG.rating_confirmation_message,
         promotions_message:                dbConfig.promotionsMessage               ?? DEFAULT_BOT_CONFIG.promotions_message,
         instagram_message:                 dbConfig.instagramMessage                ?? DEFAULT_BOT_CONFIG.instagram_message,
+        politica_message:                  dbConfig.politicaMessage                 ?? DEFAULT_BOT_CONFIG.politica_message,
       };
     }
 

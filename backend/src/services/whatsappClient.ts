@@ -78,6 +78,7 @@ interface SendWhatsAppTextContext {
   instanceName?: string | null;
   businessId?: string | null;
   knownInstanceNumbers?: string[];
+  onProviderResult?: (r: { providerMessageId: string | null }) => void;
   [key: string]: unknown;
 }
 
@@ -1333,6 +1334,9 @@ export const sendWhatsAppText = async (
     });
 
     const sendResultData = sendResult as Record<string, unknown> | null;
+    const sendPayload = sendResultData?.payload as { key?: { id?: unknown } } | null | undefined;
+    const providerMessageId = typeof sendPayload?.key?.id === 'string' ? sendPayload.key.id : null;
+    context.onProviderResult?.({ providerMessageId });
     const endpointUsed = (sendResultData?.meta as Record<string, unknown>)?.endpoint || endpoint;
 
     const currentState = getWhatsAppStatusByInstance(resolvedInstanceName);

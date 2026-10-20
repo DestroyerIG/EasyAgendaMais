@@ -73,6 +73,18 @@ const updateConnectedNumber = async (instanceName: string, phone: string): Promi
   }
 };
 
+const setConnectedAt = async (instanceName: string, conectado: boolean): Promise<void> => {
+  const nome = instanceName.trim().toLowerCase();
+  const query = conectado
+    ? Prisma.sql`UPDATE businesses SET whatsapp_connected_at = now()
+         WHERE lower(btrim(whatsapp_instance_name)) = ${nome}
+           AND whatsapp_connected_at IS NULL`
+    : Prisma.sql`UPDATE businesses SET whatsapp_connected_at = NULL
+         WHERE lower(btrim(whatsapp_instance_name)) = ${nome}`;
+  await prisma.$executeRaw(query).catch((err) =>
+    logger.warn({ err, instanceName }, 'connectionUpdateHandler: connected_at falhou'));
+};
+
 // ── Handler principal ─────────────────────────────────────────────────────────
 
 export interface ConnectionUpdateResult {
@@ -112,11 +124,13 @@ export const handleConnectionUpdate = async (rawPayload: unknown): Promise<Conne
     if (state === 'close' || state === 'logout') {
       invalidateTenant(instanceName);
       updateInstanceDirect(instanceName, { status: state });
+      await setConnectedAt(instanceName, false);
       logger.info({ instanceName, state }, 'connectionUpdateHandler: tenant cache invalidated');
     }
 
     if (state === 'open') {
       updateInstanceDirect(instanceName, { status: 'open' });
+      await setConnectedAt(instanceName, true);
       const phone = extractConnectedPhone(rawPayload);
       if (phone) {
         await updateConnectedNumber(instanceName, phone);

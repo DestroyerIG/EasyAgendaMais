@@ -50,6 +50,7 @@ describe('whatsappMessageService simulator mode', () => {
     expect(mockSendWhatsAppText).toHaveBeenCalledWith('5511999999999', 'Mensagem real', {
       simulate: false,
       captureCollector: expect.any(Function),
+      onProviderResult: expect.any(Function),
     });
   });
 });

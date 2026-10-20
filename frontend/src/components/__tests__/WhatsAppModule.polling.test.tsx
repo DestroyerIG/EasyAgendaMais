@@ -28,6 +28,25 @@ vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ user: { businessId: 'b1' } }),
 }));
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+// Este teste cobre só o polling de status: as chamadas da central de conversas e do resumo da
+// conexão ficam fora (devolvem listas vazias) para não depender do formato delas.
+vi.mock('@/lib/whatsappInbox', () => ({
+  listarConversas: () => Promise.resolve({
+    itens: [], proximoCursor: null,
+    contadores: { todas: 0, aguardando: 0, bot: 0, finalizadas: 0 },
+  }),
+  buscarResumoConexao: () => new Promise(() => {}),
+  buscarConversa: () => new Promise(() => {}),
+  listarMensagens: () => Promise.resolve({ itens: [], temMais: false }),
+  buscarRespostasRapidas: () => Promise.resolve([]),
+  marcarLidas: () => Promise.resolve({ atualizadas: 0 }),
+}));
+
 const { WhatsAppModule } = await import('../WhatsAppModule');
 
 function disconnectedStatusResponse() {

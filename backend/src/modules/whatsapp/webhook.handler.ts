@@ -1,5 +1,6 @@
 import logger from '../../utils/logger.js';
 import { handleMessagesUpsert } from '../../services/whatsapp/handlers/messagesUpsertHandler.js';
+import { handleMessagesUpdate } from '../../services/whatsapp/handlers/messagesUpdateHandler.js';
 import { handleConnectionUpdate } from '../../services/whatsapp/handlers/connectionUpdateHandler.js';
 import { handleQrcodeUpdated } from '../../services/whatsapp/handlers/qrcodeUpdatedHandler.js';
 
@@ -42,6 +43,10 @@ export async function handleWebhookEvent(
   switch (event) {
     case 'messages-upsert':
       await handleMessagesUpsert(body, { instanceName });
+      break;
+
+    case 'messages-update':
+      await handleMessagesUpdate(body, { instanceName });
       break;
 
     case 'connection-update':

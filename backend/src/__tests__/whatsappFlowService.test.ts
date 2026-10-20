@@ -100,6 +100,11 @@ vi.mock('../config/prisma.js', () => {
   };
 });
 
+const mockPedirHumano = vi.hoisted(() => vi.fn());
+vi.mock('../modules/whatsappInbox/inbox.recorder.js', () => ({
+  inboxRecorder: { pedirAtendimentoHumano: mockPedirHumano },
+}));
+
 vi.mock('../utils/logger.js', () => ({
   default: {
     info: vi.fn(),
@@ -1086,6 +1091,27 @@ describe('whatsappFlowService guards', () => {
       expect.any(String),
       expect.any(Object)
     );
+    expect(mockDeleteSession).toHaveBeenCalledWith('5511777777777', 'tenant-1');
+  });
+
+  it('opcao "Falar com um humano" pede atendimento humano para o negocio e o telefone', async () => {
+    process.env.WHATSAPP_DEFAULT_BUSINESS_ID = 'tenant-1';
+    mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
+    mockIsWithinBusinessHours.mockReturnValue(true);
+    mockGetSession.mockResolvedValue({ step: 'menu', data: {} });
+    mockIsSessionExpired.mockReturnValue(false);
+    mockPoolQuery.mockImplementation(async (query: unknown) => {
+      if (typeof query === 'string' && query.includes('FROM whatsapp_menu_options')) {
+        return { rows: [{ handler: 'attendant', type: 'system', response_message: null }] };
+      }
+      return { rows: [] };
+    });
+
+    await handleIncomingMessage('5511777777777', '8', {
+      now: new Date('2026-04-18T10:00:00-03:00'),
+    });
+
+    expect(mockPedirHumano).toHaveBeenCalledWith('tenant-1', '5511777777777');
     expect(mockDeleteSession).toHaveBeenCalledWith('5511777777777', 'tenant-1');
   });
 

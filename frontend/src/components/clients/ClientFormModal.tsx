@@ -10,6 +10,8 @@ interface ClientFormModalProps {
   onClose: () => void;
   onSubmit: (data: ClientFormData) => Promise<void>;
   editingClient: Client | null;
+  /** Telefone sugerido num cadastro novo (ignorado ao editar). */
+  initialPhone?: string;
 }
 
 export interface ClientFormData {
@@ -21,7 +23,7 @@ export interface ClientFormData {
   notes: string;
 }
 
-export function ClientFormModal({ isOpen, onClose, onSubmit, editingClient }: ClientFormModalProps) {
+export function ClientFormModal({ isOpen, onClose, onSubmit, editingClient, initialPhone }: ClientFormModalProps) {
   const [formData, setFormData] = useState<ClientFormData>({
     name: '', phone: '', email: '', birthDate: '', address: '', notes: '',
   });
@@ -38,9 +40,9 @@ export function ClientFormModal({ isOpen, onClose, onSubmit, editingClient }: Cl
         notes: editingClient.notes || '',
       });
     } else {
-      setFormData({ name: '', phone: '', email: '', birthDate: '', address: '', notes: '' });
+      setFormData({ name: '', phone: initialPhone ?? '', email: '', birthDate: '', address: '', notes: '' });
     }
-  }, [editingClient, isOpen]);
+  }, [editingClient, isOpen, initialPhone]);
 
   const handleSubmit = async () => {
     setSubmitting(true);

@@ -24,6 +24,7 @@ export interface BotConfig {
   rating_confirmation_message: string;
   promotions_message: string;
   instagram_message: string;
+  politica_message: string;
 }
 
 interface MessageConfigPanelProps {
@@ -40,6 +41,7 @@ interface FieldDef {
   label: string;
   rows: number;
   hint?: string;
+  maxLength?: number;
   category: string;
 }
 
@@ -62,6 +64,7 @@ const FIELDS: FieldDef[] = [
   { key: 'cancel_no_appointments_message', label: 'Sem Agendamentos para Cancelar', rows: 3, category: 'Cancelamento' },
   { key: 'cancel_list_message', label: 'Lista de Agendamentos (Cancelar)', rows: 4, hint: 'Disponível: {lista_agendamentos}', category: 'Cancelamento' },
   { key: 'cancel_success_message', label: 'Cancelamento Confirmado', rows: 3, category: 'Cancelamento' },
+  { key: 'politica_message', label: 'Política de cancelamento e sinal', rows: 4, maxLength: 1000, hint: 'Usado na resposta rápida "Política" da central de conversas.', category: 'Cancelamento' },
 
   // Reagendamento
   { key: 'reschedule_no_appointments_message', label: 'Sem Agendamentos para Reagendar', rows: 3, category: 'Reagendamento' },
@@ -122,13 +125,19 @@ export const MessageConfigPanel = ({
                 {category}
               </h4>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                {categoryFields.map(({ key, label, rows, hint }) => (
-                  <Field key={key} id={`bot-config-${key}`} label={label} hint={hint}>
+                {categoryFields.map(({ key, label, rows, hint, maxLength }) => (
+                  <Field
+                    key={key}
+                    id={`bot-config-${key}`}
+                    label={label}
+                    hint={maxLength ? `${hint} ${(botConfig[key] || '').length}/${maxLength}` : hint}
+                  >
                     <Textarea
                       id={`bot-config-${key}`}
                       value={botConfig[key] || ''}
                       onChange={e => onChange({ ...botConfig, [key]: e.target.value })}
                       rows={rows}
+                      maxLength={maxLength}
                     />
                   </Field>
                 ))}

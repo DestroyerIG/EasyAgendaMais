@@ -6,6 +6,7 @@ import { businessSettingsRepository } from '../repositories/businessSettingsRepo
 
 // @ts-ignore — sendWhatsAppMessage is a legacy JS service not yet typed
 import { sendWhatsAppMessage } from './whatsapp/index.js';
+import { inboxCron } from '../modules/whatsappInbox/inbox.cron.js';
 import { notificationsService } from '../modules/notifications/notifications.service.js';
 
 // Agendamentos gravam `time`/`date` no relógio local do negócio (BR), não UTC.
@@ -124,6 +125,7 @@ export const runReminderJob = async (now: Date = new Date()): Promise<void> => {
 
       const sent = await sendWhatsAppMessage(appointment.client.phone, message, {
         businessId: appointment.businessId,
+        origin: 'lembrete',
       });
 
       if (sent) {
@@ -216,6 +218,21 @@ export const startReminderCron = (): void => {
       }
     } catch (error) {
       logger.error({ err: error }, 'Erro ao expirar reservas públicas pendentes');
+    }
+  });
+
+  cron.schedule('*/15 * * * *', async () => {
+    const voltaram = await inboxCron.voltarAoRoboPorInatividade();
+    const finalizadas = await inboxCron.finalizarConversasDoRobo();
+    if (voltaram > 0 || finalizadas > 0) {
+      logger.info({ voltaram, finalizadas }, 'Central de conversas: rotina de atendimento executada');
+    }
+  });
+
+  cron.schedule('30 3 * * *', async () => {
+    const r = await inboxCron.limparAntigas();
+    if (r.mensagens > 0 || r.conversas > 0) {
+      logger.info(r, 'Central de conversas: mensagens antigas apagadas');
     }
   });
 

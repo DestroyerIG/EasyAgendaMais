@@ -1603,6 +1603,7 @@ export const authService = {
 
     return {
       user: {
+        id: user.id as string,
         businessId: businessId || (user.business_id as string) || null,
         email: user.email as string,
         role: normalizedRole,

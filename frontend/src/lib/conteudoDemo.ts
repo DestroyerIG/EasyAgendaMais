@@ -3,7 +3,7 @@
  *
  * NADA AQUI VEM DO BANCO. São os valores que as telas de referência do Stitch
  * mostram, usados nos blocos cujas funções ainda não existem (sub-projetos D a I:
- * clube e pacotes, relatórios, página pública, sinal Pix, automações de WhatsApp).
+ * clube e pacotes, relatórios, página pública, sinal Pix).
  *
  * Quando a função correspondente existir, troque o uso deste módulo pelo dado real
  * e apague a chave. Antes de publicar para clientes, decida bloco a bloco: ou o dado
@@ -14,32 +14,6 @@
  * (percentual, total, saldo) não fica gravado como número fixo — vira cálculo no
  * componente que o usa.
  */
-
-// ─── WhatsApp (whatsapp-conexao.html) ──────────────────────────────────────────
-
-export interface WhatsappSaude {
-  taxaEntregaPercentual: number;
-  variacaoTaxaEntrega: string;
-  denunciasSpam: number;
-}
-
-export interface WhatsappBreakdownItem {
-  rotulo: string;
-  quantidade: number;
-}
-
-export interface WhatsappHistoricoItem {
-  horario: string;
-  destinatario: string;
-  tipo: string;
-  status: string;
-}
-
-export interface WhatsappContent {
-  saude: WhatsappSaude;
-  breakdownEnvios: WhatsappBreakdownItem[];
-  historicoRecente: WhatsappHistoricoItem[];
-}
 
 // ─── Plano (ajustes-plano.html) ────────────────────────────────────────────────
 
@@ -81,43 +55,10 @@ export interface PlanoContent {
 // ─── Módulo ─────────────────────────────────────────────────────────────────────
 
 export interface ConteudoDemo {
-  whatsapp: WhatsappContent;
   plano: PlanoContent;
 }
 
 export const conteudoDemo = {
-  whatsapp: {
-    saude: {
-      taxaEntregaPercentual: 99.4,
-      variacaoTaxaEntrega: '+0,2% comparado a ontem',
-      denunciasSpam: 0,
-    },
-    breakdownEnvios: [
-      { rotulo: 'Lembretes e confirmações automáticas', quantidade: 42 },
-      { rotulo: 'Notificações de sinal Pix e recibos', quantidade: 16 },
-      { rotulo: 'Mensagens manuais (chat humano)', quantidade: 10 },
-    ],
-    historicoRecente: [
-      {
-        horario: 'Hoje, 11:42',
-        destinatario: 'Juliana Mendes',
-        tipo: 'Lembrete de atendimento (2h antes)',
-        status: 'Entregue e lido',
-      },
-      {
-        horario: 'Hoje, 11:38',
-        destinatario: 'Camila Rocha',
-        tipo: 'Comprovante de sinal Pix',
-        status: 'Entregue e lido',
-      },
-      {
-        horario: 'Hoje, 11:15',
-        destinatario: 'Beatriz Silveira',
-        tipo: 'Confirmação de agendamento',
-        status: 'Entregue e lido',
-      },
-    ],
-  },
   plano: {
     atual: {
       proximaCobranca: {

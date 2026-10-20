@@ -17,7 +17,7 @@ vi.mock('../modules/dashboard/today.repository.js', () => ({ todayRepository: re
 vi.mock('../modules/crm/crm.repository.js', () => ({ crmRepository: crm }));
 vi.mock('../services/scheduleSettingsService.js', () => settings);
 
-const { todayService, minutosOcupados, minutosExpediente, vagasLivres } = await import('../modules/dashboard/today.service.js');
+const { todayService, minutosOcupados, minutosExpediente, vagasLivres, proximasVagas } = await import('../modules/dashboard/today.service.js');
 
 const TZ = 'America/Sao_Paulo';
 const DIAS = { seg: true, ter: true, qua: true, qui: true, sex: true, sab: false, dom: false };
@@ -211,5 +211,37 @@ describe('todayService.resumo', () => {
     const r = await todayService.resumo('b1');
     expect(r.proximas.map((a) => a.time)).toEqual(['12:30:00', '13:30:00', '14:00:00']);
     expect(r.proximas[1]).toMatchObject({ professional_name: 'Camila', service_duration_minutes: 60, date: '2026-10-14T00:00:00' });
+  });
+});
+
+describe('proximasVagas', () => {
+  const ABERTO = { openingTime: '09:00', closingTime: '18:00', slotIntervalMinutes: 30, timezone: TZ,
+    diasAbertos: { dom: true, seg: true, ter: true, qua: true, qui: true, sex: true, sab: true } };
+  beforeEach(() => {
+    settings.getBusinessScheduleSettings.mockResolvedValue({ ...ABERTO });
+    repo.profissionaisAtivas.mockResolvedValue([{ id: 'p1', name: 'Camila', almoco: null }]);
+    agendamentos = [ag('2026-10-14', '10:00', 60)];
+  });
+  const AGORA = new Date('2026-10-14T09:30:00-03:00');
+
+  it('lista as primeiras vagas a partir de agora, por data e início', async () => {
+    const r = await proximasVagas('b1', AGORA, 3);
+    expect(r).toEqual([
+      { data: '2026-10-14', inicio: '09:30', profissional: 'Camila' },
+      { data: '2026-10-14', inicio: '11:00', profissional: 'Camila' },
+      { data: '2026-10-15', inicio: '09:00', profissional: 'Camila' },
+    ]);
+    expect(repo.agendamentosNasDatas).toHaveBeenCalledWith('b1',
+      ['2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17', '2026-10-18', '2026-10-19', '2026-10-20']);
+  });
+
+  it('hoje fechado: a primeira vaga é de amanhã', async () => {
+    settings.getBusinessScheduleSettings.mockResolvedValue({ ...ABERTO, diasAbertos: { ...ABERTO.diasAbertos, qua: false } });
+    const r = await proximasVagas('b1', AGORA, 3);
+    expect(r[0]).toEqual({ data: '2026-10-15', inicio: '09:00', profissional: 'Camila' });
+  });
+
+  it('respeita o limite', async () => {
+    expect(await proximasVagas('b1', AGORA, 1)).toHaveLength(1);
   });
 });

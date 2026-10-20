@@ -23,6 +23,22 @@ vi.mock('../bot/botOrchestrator.js', () => ({
   initBotOrchestrator: vi.fn(),
 }));
 
+vi.mock('../services/whatsapp/whatsappSessionService.js', () => ({
+  getSession: vi.fn().mockResolvedValue(null),
+  isSessionExpired: vi.fn().mockReturnValue(false),
+}));
+vi.mock('../services/whatsapp/whatsappMessageService.js', () => ({
+  sendWhatsAppMessage: vi.fn().mockResolvedValue(true),
+}));
+vi.mock('../modules/whatsappInbox/inbox.recorder.js', () => ({
+  inboxRecorder: {
+    registrarEntrada: vi.fn().mockResolvedValue(null),
+    registrarEco: vi.fn(),
+    registrarOptOut: vi.fn(),
+    registrarOptIn: vi.fn(),
+  },
+}));
+
 const { handleMessagesUpsert } = await import(
   '../services/whatsapp/handlers/messagesUpsertHandler.js'
 );
@@ -98,7 +114,8 @@ describe('handleMessagesUpsert', () => {
       };
       const r = await handleMessagesUpsert(payload, { instanceName: INSTANCE });
       expect(r).toMatchObject({ ok: false, reason: 'from_me' });
-      expect(mockResolveTenant).not.toHaveBeenCalled();
+      // O tenant é resolvido só para gravar o eco na central; o robô não roda.
+      expect(mockBotProcess).not.toHaveBeenCalled();
     });
   });
 
