@@ -113,10 +113,27 @@ describe('processar', () => {
     expect(repo.gravar).not.toHaveBeenCalled();
   });
 
-  it('erro da Evolution grava null sem lançar', async () => {
+  it('erro da Evolution não grava nada, não lança e volta a agendar na próxima listagem', async () => {
     evo.evolutionApi.fetchProfilePictureUrl.mockRejectedValue(new Error('boom'));
     await avatares.urlsPara('b1', ['83999990000'], AGORA);
-    await expect(avatares.processar(AGORA)).resolves.toEqual({ buscados: 1 });
-    expect(repo.gravar).toHaveBeenCalledWith('b1', '8399990000', null, AGORA);
+    await expect(avatares.processar(AGORA)).resolves.toEqual({ buscados: 0 });
+    expect(repo.gravar).not.toHaveBeenCalled();
+    // Sem nova listagem, a fila está vazia.
+    await avatares.processar(AGORA);
+    expect(evo.evolutionApi.fetchProfilePictureUrl).toHaveBeenCalledTimes(1);
+    // A próxima listagem (cache ainda vencido) agenda de novo.
+    evo.evolutionApi.fetchProfilePictureUrl.mockResolvedValue('https://pps/ok.jpg');
+    await avatares.urlsPara('b1', ['83999990000'], AGORA);
+    await avatares.processar(AGORA);
+    expect(repo.gravar).toHaveBeenCalledWith('b1', '8399990000', 'https://pps/ok.jpg', AGORA);
+  });
+
+  it('negócio desconectado tem as pendências descartadas (não consulta o status de novo)', async () => {
+    wa.whatsappService.getStatus.mockResolvedValue({ status: 'disconnected', instanceName: 'inst-b1' });
+    await avatares.urlsPara('b1', ['83999990000'], AGORA);
+    await avatares.processar(AGORA);
+    expect(wa.whatsappService.getStatus).toHaveBeenCalledTimes(1);
+    await avatares.processar(AGORA);
+    expect(wa.whatsappService.getStatus).toHaveBeenCalledTimes(1);
   });
 });

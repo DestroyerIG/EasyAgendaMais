@@ -25,6 +25,12 @@ describe('primeiroNome', () => {
 });
 
 describe('montarMensagemRetorno', () => {
+  it('apara espaços do nome do negócio e da profissional dentro do negrito', () => {
+    const t = montarMensagemRetorno({ ...base, negocio: '  Studio Aurora  ', profissional: ' Camila ', encaixes: [], link: null });
+    expect(t).toContain('*Studio Aurora*');
+    expect(t).toContain('com *Camila* e');
+  });
+
   it('2 encaixes com link', () => {
     const t = montarMensagemRetorno({ ...base, encaixes: [enc('2026-10-21', '14:30'), enc('2026-10-22', '10:00')], link: 'https://x/agendar/aurora' });
     expect(t).toBe([

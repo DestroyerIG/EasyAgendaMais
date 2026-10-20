@@ -72,14 +72,20 @@ export const avatares = {
       if (fila.size === 0) { pendentes.delete(businessId); continue; }
       try {
         const conexao = await whatsappService.getStatus(businessId);
-        if (conexao?.status !== 'connected' || !conexao.instanceName) continue;
+        if (conexao?.status !== 'connected' || !conexao.instanceName) {
+          // Sem conexão: descarta as pendências (a próxima listagem agenda de novo).
+          pendentes.delete(businessId);
+          continue;
+        }
         for (const [key, phone] of [...fila].slice(0, LOTE_POR_NEGOCIO)) {
           fila.delete(key);
-          let url: string | null = null;
+          let url: string | null;
           try {
             url = await evolutionApi.fetchProfilePictureUrl(conexao.instanceName, numeroEvolution(phone));
           } catch (err) {
-            logger.warn({ err, businessId }, 'avatares: Evolution falhou; gravando sem foto');
+            // Falha da Evolution não grava nada: mantém url e buscado_em anteriores; volta a ser agendado na próxima listagem.
+            logger.warn({ err, businessId }, 'avatares: Evolution falhou; nada gravado');
+            continue;
           }
           try {
             await repo.gravar(businessId, key, url, agora);

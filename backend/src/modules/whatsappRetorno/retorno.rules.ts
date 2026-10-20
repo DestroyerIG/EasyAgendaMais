@@ -27,7 +27,7 @@ export function montarMensagemRetorno(d: {
   const encaixes = d.encaixes.slice(0, 2);
   // Parágrafos separados por linha em branco; *trecho* é negrito no WhatsApp.
   const paragrafos = [
-    `Oi, ${primeiroNome(d.nome)}! 💕 Aqui é da equipe do *${d.negocio}*.`,
+    `Oi, ${primeiroNome(d.nome)}! 💕 Aqui é da equipe do *${d.negocio.trim()}*.`,
     `Notamos que já faz *${d.dias}* dias desde o seu último atendimento de ${d.servico} com *${primeiroNome(d.profissional)}* e você deve estar precisando daquele cuidado especial ✨`,
   ];
   if (encaixes.length === 0) {
