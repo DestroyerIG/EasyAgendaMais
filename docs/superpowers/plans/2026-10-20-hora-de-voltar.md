@@ -253,3 +253,41 @@ testar(businessId: string, input: z.infer<typeof TestarRetornoSchema>): Promise<
 - [ ] **Step 2:** verificação completa: backend `npx tsc --noEmit` + `npx vitest run`; frontend `npx tsc --noEmit` + `npx vitest run --testTimeout=30000` + `npx next build` (um build por vez, sem apagar `.next`).
 - [ ] **Step 3: Commit** — `chore(2C-2a): seguimento e verificação final`.
 - [ ] **Step 4 (controller):** pedir ao dono autorização para aplicar `20261020120000_whatsapp_envios` em produção; conferir a tela lado a lado com o ab3e69 (servidor de exemplo local) e no celular.
+
+---
+
+### Task 8: Fotos de perfil do WhatsApp (backend)
+
+**Files:**
+- Modify: `backend/prisma/schema.prisma` e `backend/prisma/migrations/20261020120000_whatsapp_envios/migration.sql` (tabela nova no fim, antes do RLS, + RLS dela)
+- Modify: `backend/src/modules/whatsapp/evolution-api.service.ts` (`fetchProfilePictureUrl(instanceName, number): Promise<string | null>`)
+- Create: `backend/src/modules/whatsappAvatar/avatar.repository.ts`, `avatar.service.ts`
+- Modify: DTOs e serviços que listam pessoas: `inbox.types.ts`/`inbox.service.ts` (`ConversaResumoDto.avatarUrl`), `retorno.types.ts`/`retorno.service.ts` (`OportunidadeDto.cliente.avatarUrl`), `crm.types.ts`/`crm.service.ts` (`ClienteInsight.avatarUrl`, `ClientProfileDto.cliente.avatarUrl`); `backend/src/services/cronService.ts` (rotina por minuto `avatares.processar()` com `noOverlap`)
+- Test: `backend/src/__tests__/avatarService.test.ts` (+ ajustes de asserts por igualdade exata nos testes dos serviços tocados)
+
+**Interfaces:**
+- Modelo `WhatsappAvatar` (`whatsapp_avatares`): `id`, `businessId` (FK cascade), `phoneKey` (`phone_key` varchar(20)), `url?` (text), `fetchedAt` (`buscado_em` timestamptz); único (`business_id`, `phone_key`).
+```ts
+export const VALIDADE_FOTO_DIAS = 3, NOVA_TENTATIVA_SEM_FOTO_DIAS = 7, LOTE_POR_NEGOCIO = 10;
+export const avatares: {
+  urlsPara(businessId: string, phones: string[], agora?: Date): Promise<Map<string, string | null>>; // chave = canonicalizePhone; devolve o que há (mesmo vencido) e agenda os faltantes/vencidos
+  processar(agora?: Date): Promise<{ buscados: number }>;                                          // até 10 por negócio conectado, por tick
+};
+```
+- Os serviços chamam `urlsPara` uma vez por lista (nunca por item) e preenchem `avatarUrl` (null quando não há).
+
+- [ ] **Step 1: Testes** (`avatarService.test.ts`, repositório/Evolution/status mockados): sem registro → `null` e agendado; registro com url de 1 dia → devolve a url e não agenda; url de 4 dias → devolve a url antiga e agenda; sem foto há 2 dias → não agenda; sem foto há 8 dias → agenda; `processar` busca no máximo 10 por negócio, grava url ou null, ignora negócio desconectado, erro da Evolution grava null sem lançar; telefones com e sem 9/55 caem na mesma chave.
+- [ ] **Step 2: Rodar e ver falhar.** · **Step 3: Implementar** (migração editada com `prisma migrate diff` a partir do schema de 3ce1867, mantendo o índice parcial e os RLS; `prisma generate`). · **Step 4:** suíte do backend + `tsc` → PASS.
+- [ ] **Step 5: Commit** — `feat(whatsapp): fotos de perfil do WhatsApp com cache e atualização em segundo plano`.
+
+---
+
+### Task 9: Fotos de perfil no frontend
+
+**Files:**
+- Modify: `frontend/src/components/ui/Avatar.tsx` (imagem que falha cai para as iniciais; `referrerPolicy="no-referrer"`), tipos em `frontend/src/lib/whatsappInbox.ts`, `frontend/src/lib/whatsappRetorno.ts`, `frontend/src/lib/crm.ts`; componentes `whatsapp/conversas/{FilaConversas,ConversaAberta,ContextoCliente}.tsx`, `whatsapp/retorno/CartaoOportunidade.tsx`, `clientes/{ListaClientes,FasesClientes,FichaCliente}.tsx` passam a usar `<Avatar name src={avatarUrl} />` no lugar das iniciais próprias.
+- Test: `frontend/src/components/ui/__tests__/Avatar.test.tsx` + ajustes nos testes dos componentes.
+
+- [ ] **Step 1: Testes:** `Avatar` com `src` mostra a imagem; disparar `error` na imagem mostra as iniciais; sem `src` mostra iniciais; cada tela mostra a foto quando o DTO traz `avatarUrl` e as iniciais quando é `null`.
+- [ ] **Step 2: Rodar e ver falhar.** · **Step 3: Implementar.** · **Step 4:** `npx vitest run src/components --testTimeout=30000` + `tsc` → PASS.
+- [ ] **Step 5: Commit** — `feat(whatsapp): fotos de perfil nas conversas, na Hora de voltar e em Clientes`.

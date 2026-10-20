@@ -89,3 +89,11 @@ Se preferir, agende sozinha por aqui: {link}
 ## Testes
 Backend: regra de quem aparece (ativa, 120 dias, vencido, sem futuro), quem pode receber (revogado/opt-out), intervalo de 7 dias, encaixes por profissional e duração, montagem da mensagem (0/1/2 encaixes, com/sem link), recuperação estimada, fila (cadência 45–90 s, 25/h, janela 08–20 h no fuso, opt-out/revogado na hora do envio → pulado, desconectado → espera), não duplicar `na_fila`, isolamento.
 Frontend: lista/filtros/seleção/contadores, prévia muda ao escolher cliente, "Ver texto" editável, envio individual e em lote (estados de fila), bloqueadas sem seleção, testar envio, vazio, desconectado, celular.
+
+## Acréscimo (2026-10-20): fotos de perfil do WhatsApp
+Pedido do dono: "conseguimos puxar as fotos de perfil dos usuários do WhatsApp igual realmente é em um CRM estilo a Kommo" → "Inclua as fotos agora neste branch".
+- **Fonte:** Evolution API `POST /chat/fetchProfilePictureUrl/{instance}` `{ number }` → `{ profilePictureUrl }` (URL pública do CDN do WhatsApp, que expira). Só vem foto de quem deixa a foto visível; sem foto → iniciais.
+- **Guarda (decisão do Claude):** tabela `whatsapp_avatares` (negócio + `phone_key` único): `url` (nula quando não há foto), `buscado_em`. Guarda **só o endereço**, não baixa a imagem (LGPD: mostra dentro do painel do negócio o que o WhatsApp já mostra a ele).
+- **Atualização (decisão do Claude):** endereço vale **3 dias**; sem foto, tenta de novo em **7 dias**. Ao montar uma lista, telefones sem registro ou vencidos entram numa fila em memória; uma rotina por minuto busca no máximo **10 por negócio** (só com WhatsApp conectado). Erro da Evolution → grava `buscado_em` com `url` nula e tenta de novo depois do prazo.
+- **Onde aparece:** Conversas (fila, cabeçalho, contexto), Hora de voltar (cartões), Clientes (lista, fases e ficha). Campo `avatarUrl: string | null` nos DTOs. Imagem que falhar ao carregar (endereço expirado) cai para as iniciais na hora.
+- **Migração:** a tabela entra na mesma migração `20261020120000_whatsapp_envios` (ainda não aplicada).
