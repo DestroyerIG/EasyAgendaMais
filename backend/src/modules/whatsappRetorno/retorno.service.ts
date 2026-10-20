@@ -1,7 +1,8 @@
 import { crmRepository } from '../crm/crm.repository.js';
 import { resumirCliente, diasEntre } from '../crm/crmMetrics.js';
 import { todayRepository } from '../dashboard/today.repository.js';
-import { proximasVagas } from '../dashboard/today.service.js';
+import { carregarAgendaSemana, vagasDaSemana } from '../dashboard/today.service.js';
+import type { EnvioDto } from '../whatsappFila/fila.service.js';
 import { filaEnvios, MOTIVO_OPT_OUT, MOTIVO_REVOGADO } from '../whatsappFila/fila.service.js';
 import { inboxRecorder } from '../whatsappInbox/inbox.recorder.js';
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
@@ -22,14 +23,14 @@ export const retornoService = {
   ): Promise<RetornoDto> {
     const tz = (await getBusinessScheduleSettings(businessId)).timezone || 'America/Sao_Paulo';
     const hoje = todayInTimezone(tz, agora);
-    const [clientes, visitas, futuros, profs, negocio] = await Promise.all([
+    const [clientes, visitas, futuros, semana, negocio] = await Promise.all([
       crmRepository.clientes(businessId),
       crmRepository.visitas(businessId),
       todayRepository.clientesComAgendamentoFuturo(businessId, hoje, agora),
-      todayRepository.profissionaisAtivas(businessId),
+      carregarAgendaSemana(businessId, agora),
       retornoRepository.negocio(businessId),
     ]);
-    const ativas = new Set(profs.map((p) => p.id));
+    const ativas = new Set(semana.profs.map((p) => p.id));
     const base = process.env.FRONTEND_URL ?? '';
     const linkAgendamento = negocio.slug ? `${base}/agendar/${negocio.slug}` : null;
 
@@ -44,12 +45,17 @@ export const retornoService = {
       .sort((a, b) => b.atraso - a.atraso || a.c.name.localeCompare(b.c.name, 'pt-BR'));
 
     const ids = candidatas.map((x) => x.c.id);
-    const ultimosEnvios = ids.length ? await filaEnvios.ultimosPorCliente(businessId, 'retorno', ids) : new Map();
+    const [ultimosEnvios, ultimosEnviados] = ids.length
+      ? await Promise.all([
+        filaEnvios.ultimosPorCliente(businessId, 'retorno', ids),
+        filaEnvios.ultimosEnviadosPorCliente(businessId, 'retorno', ids),
+      ])
+      : [new Map<string, EnvioDto>(), new Map<string, Date>()];
 
     const itens: OportunidadeDto[] = [];
     for (const { c, ultima, atraso, ciclo } of candidatas) {
       const professionalId = ultima.professionalId ?? '';
-      const vagas = await proximasVagas(businessId, agora, MAX_ENCAIXES, {
+      const vagas = vagasDaSemana(semana, MAX_ENCAIXES, {
         professionalId: ativas.has(professionalId) ? professionalId : undefined,
         duracaoMinima: ultima.duracao,
       });
@@ -66,8 +72,7 @@ export const retornoService = {
         atrasoDias: atraso, servico: ultima.servico, profissional: ultima.profissional, professionalId,
         ultimaVisitaHaDias: ultima.diasAtras, cicloDias: ciclo, valorUltimaVisita: ultima.receita, encaixes,
         podeReceber: motivoBloqueio === null, motivoBloqueio,
-        // enviadoEm também é preenchido na reserva (enviando/falhou): só o status enviado conta como convite.
-        ultimoConviteEm: envio && envio.status === 'enviado' ? envio.enviadoEm : null,
+        ultimoConviteEm: ultimosEnviados.get(c.id)?.toISOString() ?? null,
         envio,
         texto: montarMensagemRetorno({
           nome: c.name, negocio: negocio.nome, servico: ultima.servico, profissional: ultima.profissional,

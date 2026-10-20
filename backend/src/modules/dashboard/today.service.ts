@@ -228,29 +228,42 @@ export const todayService = {
   },
 };
 
-/** Próximas vagas livres (>= 30 min, ou `duracaoMinima`) dos próximos 7 dias a partir de `agora`, por data e início. */
-export async function proximasVagas(
-  businessId: string, agora: Date, limite = 3,
-  opcoes: { professionalId?: string; duracaoMinima?: number } = {},
-): Promise<Array<{ data: string; inicio: string; profissional: string; professionalId: string }>> {
+export interface Vaga { data: string; inicio: string; profissional: string; professionalId: string }
+export interface AgendaSemana {
+  tz: string; hoje: string; datas: string[]; agora: Date;
+  abertura: number; fechamento: number; diasAbertos: Record<string, boolean>;
+  profs: ProfissionalAtiva[]; ags: AgendamentoDia[];
+}
+
+/** Carrega uma vez as profissionais ativas e os agendamentos dos próximos 7 dias (a partir de `agora`). */
+export async function carregarAgendaSemana(businessId: string, agora: Date): Promise<AgendaSemana> {
   const cfg = await getBusinessScheduleSettings(businessId);
   const tz = cfg.timezone || 'America/Sao_Paulo';
   const hoje = todayInTimezone(tz, agora);
   const datas = Array.from({ length: 7 }, (_, i) => somarDias(hoje, i));
-  const abertura = paraMinutos(cfg.openingTime);
-  const fechamento = paraMinutos(cfg.closingTime);
-  const [todas, ags] = await Promise.all([
+  const [profs, ags] = await Promise.all([
     todayRepository.profissionaisAtivas(businessId),
     todayRepository.agendamentosNasDatas(businessId, datas),
   ]);
-  const profs = opcoes.professionalId ? todas.filter((p) => p.id === opcoes.professionalId) : todas;
+  return {
+    tz, hoje, datas, agora, abertura: paraMinutos(cfg.openingTime), fechamento: paraMinutos(cfg.closingTime),
+    diasAbertos: cfg.diasAbertos as Record<string, boolean>, profs, ags,
+  };
+}
+
+/** Função pura: primeiras vagas livres (>= 30 min, ou `duracaoMinima`) da semana já carregada. */
+export function vagasDaSemana(
+  semana: AgendaSemana, limite = 3, opcoes: { professionalId?: string; duracaoMinima?: number } = {},
+): Vaga[] {
+  const { tz, hoje, datas, agora, abertura, fechamento, diasAbertos, ags } = semana;
+  const profs = opcoes.professionalId ? semana.profs.filter((p) => p.id === opcoes.professionalId) : semana.profs;
   const minima = opcoes.duracaoMinima ?? 0;
-  const vagas: Array<{ data: string; inicio: string; profissional: string; professionalId: string }> = [];
+  const vagas: Vaga[] = [];
   for (const data of datas) {
-    if (cfg.diasAbertos[CHAVES_DIA[diaDaSemana(data)]] !== true) continue;
+    if (diasAbertos[CHAVES_DIA[diaDaSemana(data)]] !== true) continue;
     const inicio = data === hoje ? Math.max(abertura, minutosAgora(tz, agora)) : abertura;
     const doDia = ags.filter((a) => ymdDe(a.date) === data && ocupa(a, agora));
-    const doDiaVagas: typeof vagas = [];
+    const doDiaVagas: Vaga[] = [];
     for (const p of profs) {
       const dela = doDia.filter((a) => a.professionalId === p.id).map(ocupante);
       for (const v of vagasLivres(inicio, fechamento, p.almoco, dela)) {
@@ -262,4 +275,12 @@ export async function proximasVagas(
     if (vagas.length >= limite) break;
   }
   return vagas.slice(0, limite);
+}
+
+/** Próximas vagas livres dos próximos 7 dias a partir de `agora`, por data e início. */
+export async function proximasVagas(
+  businessId: string, agora: Date, limite = 3,
+  opcoes: { professionalId?: string; duracaoMinima?: number } = {},
+): Promise<Vaga[]> {
+  return vagasDaSemana(await carregarAgendaSemana(businessId, agora), limite, opcoes);
 }

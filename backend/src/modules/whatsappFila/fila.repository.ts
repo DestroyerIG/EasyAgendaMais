@@ -87,4 +87,13 @@ export const filaRepository = {
       orderBy: { createdAt: 'desc' },
     });
   },
+
+  /** Envios com status `enviado` (mais recentes primeiro), para achar o último convite realmente enviado. */
+  enviadosPorCliente(businessId: string, origin: string, clientIds: string[]): Promise<EnvioRow[]> {
+    if (!clientIds.length) return Promise.resolve([]);
+    return prisma.whatsappEnvio.findMany({
+      where: { businessId, origin, status: 'enviado', clientId: { in: clientIds } },
+      orderBy: { sentAt: 'desc' },
+    });
+  },
 };

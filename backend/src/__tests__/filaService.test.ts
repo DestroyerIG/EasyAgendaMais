@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const repo = vi.hoisted(() => ({
   naFilaDoCliente: vi.fn(), criar: vi.fn(), negociosComVencidos: vi.fn(), ultimoEnviado: vi.fn(),
   contarEnviadosDesde: vi.fn(), proximoVencido: vi.fn(), reservar: vi.fn(), atualizar: vi.fn(),
-  consentimentoRevogado: vi.fn(), interromper: vi.fn(), recentesPorCliente: vi.fn(),
+  consentimentoRevogado: vi.fn(), interromper: vi.fn(), recentesPorCliente: vi.fn(), enviadosPorCliente: vi.fn(),
 }));
 vi.mock('../modules/whatsappFila/fila.repository.js', () => ({ filaRepository: repo }));
 const envio = vi.hoisted(() => ({ sendWhatsAppMessage: vi.fn() }));
@@ -162,5 +162,19 @@ describe('ultimosPorCliente', () => {
     const m = await filaEnvios.ultimosPorCliente('b1', 'retorno', ['c1', 'c2']);
     expect(m.get('c1')?.id).toBe('n');
     expect(m.get('c2')?.enviadoEm).toBe('2026-10-19T13:00:00.000Z');
+  });
+});
+
+describe('ultimosEnviadosPorCliente', () => {
+  it('devolve a data do último enviado de cada cliente', async () => {
+    repo.enviadosPorCliente.mockResolvedValue([
+      linha({ id: 'a', clientId: 'c1', status: 'enviado', sentAt: new Date('2026-10-18T13:00:00Z') }),
+      linha({ id: 'b', clientId: 'c1', status: 'enviado', sentAt: new Date('2026-10-10T13:00:00Z') }),
+      linha({ id: 'c', clientId: 'c2', status: 'enviado', sentAt: new Date('2026-10-12T13:00:00Z') }),
+    ]);
+    const m = await filaEnvios.ultimosEnviadosPorCliente('b1', 'retorno', ['c1', 'c2', 'c3']);
+    expect(m.get('c1')?.toISOString()).toBe('2026-10-18T13:00:00.000Z');
+    expect(m.get('c2')?.toISOString()).toBe('2026-10-12T13:00:00.000Z');
+    expect(m.has('c3')).toBe(false);
   });
 });

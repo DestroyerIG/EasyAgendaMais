@@ -142,4 +142,16 @@ export const filaEnvios = {
     }
     return mapa;
   },
+
+  /** Data do último envio com status `enviado` de cada cliente (ignora falhas e pulos posteriores). */
+  async ultimosEnviadosPorCliente(businessId: string, origin: Origem, clientIds: string[]): Promise<Map<string, Date>> {
+    const rows = await repo.enviadosPorCliente(businessId, origin, clientIds);
+    const mapa = new Map<string, Date>();
+    for (const r of rows) {
+      if (!r.clientId || !r.sentAt) continue;
+      const atual = mapa.get(r.clientId);
+      if (!atual || r.sentAt > atual) mapa.set(r.clientId, r.sentAt);
+    }
+    return mapa;
+  },
 };

@@ -1,18 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const crm = vi.hoisted(() => ({ clientes: vi.fn(), visitas: vi.fn() }));
-const today = vi.hoisted(() => ({ clientesComAgendamentoFuturo: vi.fn(), profissionaisAtivas: vi.fn() }));
-const vagas = vi.hoisted(() => ({ proximasVagas: vi.fn() }));
-const fila = vi.hoisted(() => ({ ultimosPorCliente: vi.fn() }));
+const today = vi.hoisted(() => ({ clientesComAgendamentoFuturo: vi.fn(), profissionaisAtivas: vi.fn(), agendamentosNasDatas: vi.fn() }));
+const fila = vi.hoisted(() => ({ ultimosPorCliente: vi.fn(), ultimosEnviadosPorCliente: vi.fn() }));
 const inbox = vi.hoisted(() => ({ estaEmOptOut: vi.fn() }));
 const neg = vi.hoisted(() => ({ negocio: vi.fn() }));
 vi.mock('../modules/crm/crm.repository.js', () => ({ crmRepository: crm }));
 vi.mock('../modules/dashboard/today.repository.js', () => ({ todayRepository: today }));
-vi.mock('../modules/dashboard/today.service.js', () => vagas);
 vi.mock('../modules/whatsappFila/fila.service.js', async (orig) => ({ ...(await orig<object>()), filaEnvios: fila }));
 vi.mock('../modules/whatsappInbox/inbox.recorder.js', () => ({ inboxRecorder: inbox }));
 vi.mock('../modules/whatsappRetorno/retorno.repository.js', () => ({ retornoRepository: neg }));
-vi.mock('../services/scheduleSettingsService.js', () => ({ getBusinessScheduleSettings: vi.fn(async () => ({ timezone: 'America/Sao_Paulo' })) }));
+vi.mock('../services/scheduleSettingsService.js', () => ({ getBusinessScheduleSettings: vi.fn(async () => ({
+  timezone: 'America/Sao_Paulo', openingTime: '09:00', closingTime: '18:00',
+  diasAbertos: { dom: true, seg: true, ter: true, qua: true, qui: true, sex: true, sab: true },
+})) }));
 
 const { retornoService } = await import('../modules/whatsappRetorno/retorno.service.js');
 
@@ -28,6 +29,15 @@ const cli = (id: string, name: string, over: Record<string, unknown> = {}) =>
 
 let clientes: ReturnType<typeof cli>[];
 let vis: Map<string, unknown[]>;
+let agenda: unknown[];
+/** Agendamento (quarta 21/10 é o dia em jogo) ocupando [hh:mm, +dur) da profissional. */
+const SEMANA = ['2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24', '2026-10-25', '2026-10-26'];
+const ocupa = (data: string, time: string, dur: number, professionalId = 'p1') => ({
+  id: `a${data}${time}${professionalId}`, professionalId, status: 'confirmado', expiresAt: null,
+  date: new Date(`${data}T00:00:00Z`), time: new Date(`1970-01-01T${time}:00Z`), service: { durationMinutes: dur },
+});
+/** Tira o expediente inteiro (09-18) de uma profissional em todos os dias menos nos dados abaixo. */
+const fechar = (professionalId: string, dias: string[]) => dias.map((d) => ocupa(d, '09:00', 540, professionalId));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -37,10 +47,10 @@ beforeEach(() => {
   crm.visitas.mockImplementation(async () => vis);
   today.clientesComAgendamentoFuturo.mockResolvedValue(new Set());
   today.profissionaisAtivas.mockResolvedValue([{ id: 'p1', name: 'Camila', almoco: null }]);
-  vagas.proximasVagas.mockResolvedValue([
-    { data: '2026-10-21', inicio: '14:30', profissional: 'Camila', professionalId: 'p1' },
-  ]);
+  agenda = [];
+  today.agendamentosNasDatas.mockImplementation(async () => agenda);
   fila.ultimosPorCliente.mockResolvedValue(new Map());
+  fila.ultimosEnviadosPorCliente.mockResolvedValue(new Map());
   inbox.estaEmOptOut.mockResolvedValue(false);
   neg.negocio.mockResolvedValue({ nome: 'Studio Aurora', slug: 'aurora', whatsapp: '83988887777' });
   process.env.FRONTEND_URL = 'https://x';
@@ -56,7 +66,8 @@ describe('quem aparece', () => {
       cliente: { id: 'c1', nome: 'Beatriz Lima' }, atrasoDias: 18, ultimaVisitaHaDias: 39, cicloDias: 21,
       servico: 'Gel', profissional: 'Camila', professionalId: 'p1', valorUltimaVisita: 150, podeReceber: true, motivoBloqueio: null,
     });
-    expect(r.itens[0].encaixes).toEqual([expect.objectContaining({ curto: 'Qua 14:30', inicio: '2026-10-21T17:30:00.000Z' })]);
+    expect(r.itens[0].encaixes.map((e) => e.curto)).toEqual(['Ter 10:00', 'Qua 09:00']);
+    expect(r.itens[0].encaixes[1].inicio).toBe('2026-10-21T12:00:00.000Z');
     expect(r.itens[0].texto).toContain('já completou 39 dias');
   });
   it('não entra: inativa, >120 dias, não vencido, com agendamento futuro', async () => {
@@ -84,29 +95,41 @@ describe('quem pode receber', () => {
 });
 
 describe('fila', () => {
-  it('ultimoConviteEm só do último enviado; envio é o último de qualquer status', async () => {
-    const enviado = { id: 'e1', clientId: 'c1', status: 'enviado', motivo: null, agendadoPara: '2026-10-15T12:00:00.000Z', enviadoEm: '2026-10-15T12:01:00.000Z' };
+  it('envio é o último de qualquer status; ultimoConviteEm é o último enviado', async () => {
     const falhou = { id: 'e2', clientId: 'c1', status: 'falhou', motivo: 'x', agendadoPara: '2026-10-19T12:00:00.000Z', enviadoEm: '2026-10-19T12:01:00.000Z' };
     fila.ultimosPorCliente.mockImplementation(async () => new Map([['c1', falhou]]));
-    let r = await listar();
+    fila.ultimosEnviadosPorCliente.mockImplementation(async () => new Map([['c1', new Date('2026-10-15T12:01:00.000Z')]]));
+    const r = await listar();
     expect(r.itens[0].envio).toEqual(falhou);
-    expect(r.itens[0].ultimoConviteEm).toBeNull();
-    fila.ultimosPorCliente.mockImplementation(async () => new Map([['c1', enviado]]));
-    r = await listar();
     expect(r.itens[0].ultimoConviteEm).toBe('2026-10-15T12:01:00.000Z');
-    expect(fila.ultimosPorCliente).toHaveBeenCalledWith('b1', 'retorno', ['c1']);
+    expect(fila.ultimosEnviadosPorCliente).toHaveBeenCalledWith('b1', 'retorno', ['c1']);
+  });
+  it('sem enviado: ultimoConviteEm null', async () => {
+    expect((await listar()).itens[0].ultimoConviteEm).toBeNull();
   });
 });
 
 describe('encaixes', () => {
-  it('pede vagas da profissional da última visita com a duração do serviço', async () => {
-    await listar();
-    expect(vagas.proximasVagas).toHaveBeenCalledWith('b1', AGORA, 2, { professionalId: 'p1', duracaoMinima: 60 });
+  it('só vagas da profissional da última visita, com duração suficiente', async () => {
+    today.profissionaisAtivas.mockResolvedValue([{ id: 'p1', name: 'Camila', almoco: null }, { id: 'p2', name: 'Bruna', almoco: null }]);
+    // p1: hoje só sobram 30 min (10:00-10:30) antes de um bloco até o fim; amanhã livre
+    agenda = [ocupa('2026-10-20', '10:30', 450)];
+    const r = await listar();
+    // duração do serviço = 60: a janela de 30 min de hoje não serve
+    expect(r.itens[0].encaixes.map((e) => e.curto)).toEqual(['Qua 09:00', 'Qui 09:00']);
   });
   it('profissional inativa: qualquer uma', async () => {
     today.profissionaisAtivas.mockResolvedValue([{ id: 'p9', name: 'Outra', almoco: null }]);
-    await listar();
-    expect(vagas.proximasVagas).toHaveBeenCalledWith('b1', AGORA, 2, { professionalId: undefined, duracaoMinima: 60 });
+    const r = await listar();
+    expect(r.itens[0].encaixes.map((e) => e.curto)).toEqual(['Ter 10:00', 'Qua 09:00']);
+  });
+  it('carrega profissionais e agendamentos uma vez só, para 3 clientes', async () => {
+    clientes = [cli('a', 'Ana'), cli('bb', 'Bia'), cli('ccc', 'Cris')];
+    vis = new Map([['a', visitas(39)], ['bb', visitas(40)], ['ccc', visitas(41)]]);
+    const r = await listar();
+    expect(r.itens).toHaveLength(3);
+    expect(today.profissionaisAtivas).toHaveBeenCalledTimes(1);
+    expect(today.agendamentosNasDatas).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -121,8 +144,7 @@ describe('filtros e resumo', () => {
     expect(r.itens.map((i) => i.cliente.id)).toEqual(['bb']);
   });
   it('somenteComEncaixe remove quem não tem encaixe', async () => {
-    vagas.proximasVagas.mockImplementation(async (_b: string, _a: Date, _l: number, o: { professionalId?: string }) =>
-      o.professionalId === 'p1' ? [{ data: '2026-10-21', inicio: '14:30', profissional: 'Camila', professionalId: 'p1' }] : []);
+    agenda = fechar('p2', SEMANA); // Bruna sem nenhuma vaga na semana
     const r = await listar({ somenteComEncaixe: true });
     expect(r.itens.map((i) => i.cliente.id)).toEqual(['a']);
     expect(r.resumo).toEqual({ recuperacaoEstimada: 150, oportunidades: 1 });
