@@ -89,7 +89,7 @@ Sub-projeto 2C-2a (WhatsApp: Hora de voltar), pendências conhecidas:
   - Boas práticas da aba Conexão reescritas para afirmar só o que o sistema faz (sem "proteções inteligentes", sem cadência de 45 a 90 s, sem rodapé automático; variáveis reais `{nome_cliente}`/`{horario}`).
   - Aviso de sinal Pix confirmado é `pix_recibo` (transacional, não bloqueado pelo SAIR).
   - Abrir uma conversa a marca como lida.
-- Sub-projeto 2C-2a: aba "Hora de voltar" do WhatsApp (convites de retorno). Migração `20261020120000_whatsapp_envios` (ainda não aplicada em produção; depende de autorização do dono). Decisões (marcadas como "decisão do Claude" no spec `docs/superpowers/specs/2026-10-20-hora-de-voltar-design.md`):
+- Sub-projeto 2C-2a: aba "Hora de voltar" do WhatsApp (convites de retorno). Migração `20261020120000_whatsapp_envios` (aplicada em produção em 2026-10-20, com autorização do dono; inclui a tabela `whatsapp_avatares` das fotos de perfil). Decisões (marcadas como "decisão do Claude" no spec `docs/superpowers/specs/2026-10-20-hora-de-voltar-design.md`):
   - Quem aparece: cliente ativa, última visita há no máximo 120 dias, retorno vencido (`venceuHa > 0`), sem agendamento futuro que ocupe a agenda; ordem por maior atraso, depois nome.
   - Quem pode receber: todas, exceto consentimento revogado ou opt-out (SAIR). Convite há menos de 7 dias fica fora de "Selecionar todas" e o envio pede confirmação.
   - Fila cadenciada: 1 envio por vez por negócio, intervalo aleatório de 45 a 90 s, no máximo 25 por hora, só entre 08:00 e 20:00 no fuso do negócio; reconfere opt-out/revogado/conexão na hora e espera se desconectado.
