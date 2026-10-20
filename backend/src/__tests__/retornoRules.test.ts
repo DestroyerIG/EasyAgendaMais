@@ -28,19 +28,23 @@ describe('montarMensagemRetorno', () => {
   it('2 encaixes com link', () => {
     const t = montarMensagemRetorno({ ...base, encaixes: [enc('2026-10-21', '14:30'), enc('2026-10-22', '10:00')], link: 'https://x/agendar/aurora' });
     expect(t).toBe([
-      'Oi, Beatriz! 💕 Aqui é da equipe do Studio Aurora.',
-      'Notamos que seu Manutenção Fibra de Vidro com Camila já completou 39 dias e deve estar precisando daquele cuidado especial ✨',
+      'Oi, Beatriz! 💕 Aqui é da equipe do *Studio Aurora*.',
+      '',
+      'Notamos que seu Manutenção Fibra de Vidro com *Camila* já completou *39* dias e deve estar precisando daquele cuidado especial ✨',
+      '',
       'Temos 2 opções para você nesta semana:',
-      '1️⃣ Quarta-feira (21/out) às 14:30',
-      '2️⃣ Quinta-feira (22/out) às 10:00',
+      '1️⃣ *Quarta-feira (21/out) às 14:30*',
+      '2️⃣ *Quinta-feira (22/out) às 10:00*',
+      '',
       'Posso garantir seu horário em algum desses? Se preferir outro dia, é só me avisar!',
+      '',
       'Se preferir, agende sozinha por aqui: https://x/agendar/aurora',
     ].join('\n'));
   });
   it('1 encaixe, sem link', () => {
     const t = montarMensagemRetorno({ ...base, encaixes: [enc('2026-10-21', '14:30')], link: null });
     expect(t).toContain('Temos uma opção para você nesta semana:');
-    expect(t).toContain('1️⃣ Quarta-feira (21/out) às 14:30');
+    expect(t).toContain('1️⃣ *Quarta-feira (21/out) às 14:30*');
     expect(t).not.toContain('2️⃣');
     expect(t).not.toContain('Se preferir, agende');
   });

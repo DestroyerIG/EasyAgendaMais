@@ -25,17 +25,20 @@ export function montarMensagemRetorno(d: {
   nome: string; negocio: string; servico: string; profissional: string; dias: number; encaixes: Encaixe[]; link: string | null;
 }): string {
   const encaixes = d.encaixes.slice(0, 2);
-  const linhas = [
-    `Oi, ${primeiroNome(d.nome)}! 💕 Aqui é da equipe do ${d.negocio}.`,
-    `Notamos que seu ${d.servico} com ${d.profissional} já completou ${d.dias} dias e deve estar precisando daquele cuidado especial ✨`,
+  // Parágrafos separados por linha em branco; *trecho* é negrito no WhatsApp.
+  const paragrafos = [
+    `Oi, ${primeiroNome(d.nome)}! 💕 Aqui é da equipe do *${d.negocio}*.`,
+    `Notamos que seu ${d.servico} com *${primeiroNome(d.profissional)}* já completou *${d.dias}* dias e deve estar precisando daquele cuidado especial ✨`,
   ];
   if (encaixes.length === 0) {
-    linhas.push('Me conta o melhor dia para você que eu encontro um horário!');
+    paragrafos.push('Me conta o melhor dia para você que eu encontro um horário!');
   } else {
-    linhas.push(encaixes.length === 1 ? 'Temos uma opção para você nesta semana:' : `Temos ${encaixes.length} opções para você nesta semana:`);
-    encaixes.forEach((e, i) => linhas.push(`${NUMEROS[i]} ${e.longo}`));
-    linhas.push('Posso garantir seu horário em algum desses? Se preferir outro dia, é só me avisar!');
+    paragrafos.push([
+      encaixes.length === 1 ? 'Temos uma opção para você nesta semana:' : `Temos ${encaixes.length} opções para você nesta semana:`,
+      ...encaixes.map((e, i) => `${NUMEROS[i]} *${e.longo}*`),
+    ].join('\n'));
+    paragrafos.push('Posso garantir seu horário em algum desses? Se preferir outro dia, é só me avisar!');
   }
-  if (d.link) linhas.push(`Se preferir, agende sozinha por aqui: ${d.link}`);
-  return linhas.join('\n');
+  if (d.link) paragrafos.push(`Se preferir, agende sozinha por aqui: ${d.link}`);
+  return paragrafos.join('\n\n');
 }

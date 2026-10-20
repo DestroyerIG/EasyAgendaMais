@@ -41,16 +41,21 @@ Referência visual: `docs/design/stitch/projeto/studio-aurora-whatsapp-hora-de-v
 
 **Mensagem (decisão do Claude, adaptada do Stitch para qualquer segmento):**
 ```
-Oi, {primeiro_nome}! 💕 Aqui é da equipe do {negocio}.
-Notamos que seu {servico} com {profissional} já completou {dias} dias e deve estar precisando daquele cuidado especial ✨
+Oi, {primeiro_nome}! 💕 Aqui é da equipe do *{negocio}*.
+
+Notamos que seu {servico} com *{profissional}* já completou *{dias}* dias e deve estar precisando daquele cuidado especial ✨
+
 Temos {qtd} opções para você nesta semana:
-1️⃣ {encaixe_1}
-2️⃣ {encaixe_2}
+1️⃣ *{encaixe_1}*
+2️⃣ *{encaixe_2}*
+
 Posso garantir seu horário em algum desses? Se preferir outro dia, é só me avisar!
+
+Se preferir, agende sozinha por aqui: {link}
 ```
 - Sem encaixes: a parte dos horários vira "Me conta o melhor dia para você que eu encontro um horário!".
 - Com 1 encaixe: "Temos uma opção para você nesta semana:" e só a linha 1️⃣.
-- Link de auto-agendamento (chave "Link de auto-agendamento", ligada por padrão quando o negócio tem página pública): acrescenta a linha final "Se preferir, agende sozinha por aqui: {link}" com `{FRONTEND_URL}/agendar/{slug}`. Sem página pública, a chave fica desabilitada com a dica "Publique sua página em Minha página".
+- Link de auto-agendamento (chave "Link de auto-agendamento", ligada por padrão quando o negócio tem página pública): acrescenta o parágrafo final (negrito `*…*` do WhatsApp nos destaques; `{profissional}` é o primeiro nome) com a linha "Se preferir, agende sozinha por aqui: {link}" com `{FRONTEND_URL}/agendar/{slug}`. Sem página pública, a chave fica desabilitada com a dica "Publique sua página em Minha página".
 - "Ver texto" abre um modal com o texto daquela cliente **editável** antes de enviar (não salva modelo).
 - A prévia (coluna da direita) mostra o texto da cliente escolhida (a primeira da lista por padrão; clicar num cartão escolhe), em balão estilo WhatsApp com o nome do negócio e "HOJE".
 

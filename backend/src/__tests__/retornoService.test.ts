@@ -76,7 +76,7 @@ describe('quem aparece', () => {
     });
     expect(r.itens[0].encaixes.map((e) => e.curto)).toEqual(['Ter 10:00', 'Qua 09:00']);
     expect(r.itens[0].encaixes[1].inicio).toBe('2026-10-21T12:00:00.000Z');
-    expect(r.itens[0].texto).toContain('já completou 39 dias');
+    expect(r.itens[0].texto).toContain('já completou *39* dias');
   });
   it('não entra: inativa, >120 dias, não vencido, com agendamento futuro', async () => {
     clientes = [cli('a', 'A', { active: false }), cli('bb', 'B'), cli('ccc', 'C'), cli('dddd', 'D')];
