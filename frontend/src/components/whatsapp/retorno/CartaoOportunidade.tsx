@@ -2,7 +2,7 @@
 
 import type { KeyboardEvent } from 'react';
 import { Icon } from '@/components/ui';
-import { getInitials } from '@/components/ui/Avatar';
+import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/cn';
 import type { OportunidadeDto } from '@/lib/whatsappRetorno';
 
@@ -121,9 +121,7 @@ export function CartaoOportunidade({
           ) : (
             <span className="mt-1 h-4 w-4 shrink-0 sm:mt-0 sm:self-center" aria-hidden="true" />
           )}
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface-2 text-[15px] font-bold text-muted">
-            {getInitials(cliente.nome)}
-          </span>
+          <Avatar name={cliente.nome} src={cliente.avatarUrl} size={48} className="text-[15px] font-bold text-muted" />
           <div className="flex min-w-0 flex-col">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="break-words text-[17px] font-bold leading-6 text-ink">{cliente.nome}</span>

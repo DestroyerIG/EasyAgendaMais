@@ -18,6 +18,7 @@ export interface ClienteInsight {
   consentimento: 'consentido' | 'revogado' | 'nao_informado';
   fase: Fase; etiquetasAuto: string[]; ultimaVisita: UltimaVisita | null;
   cicloMedio: number | null; retornoPrevisto: RetornoPrevisto; ltv: number; atendimentos: number;
+  avatarUrl: string | null;
 }
 
 export interface InsightsQuery {
@@ -44,7 +45,7 @@ export type FichaInput = Pick<FichaTecnicaDto, 'allergies' | 'fields' | 'customF
 export interface ConsentimentoDto { estado: 'consentido' | 'revogado' | 'nao_informado'; desde: string | null; canal: 'painel' | 'publico' | 'whatsapp' | null }
 
 export interface ClientProfileDto {
-  cliente: { id: string; name: string; phone: string; email: string | null; birthDate: string | null; notes: string | null; createdAt: string };
+  cliente: { id: string; name: string; phone: string; email: string | null; birthDate: string | null; notes: string | null; createdAt: string; avatarUrl: string | null };
   fase: Fase; etiquetas: EtiquetaResumo[]; etiquetasAuto: string[];
   indicadores: {
     cicloMedio: number | null; ticketMedio: number | null; visitasNoAno: number; faltasECancelamentos: number;

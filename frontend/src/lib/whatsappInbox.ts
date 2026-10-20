@@ -12,6 +12,7 @@ export interface ConversaResumoDto {
   id: string; telefone: string; nome: string | null; clientId: string | null;
   atendimento: Atendimento; status: StatusConversa; responsavel: { id: string; nome: string } | null;
   ultimaMensagemEm: string; previa: string; naoLidas: number; sinalPendente: boolean;
+  avatarUrl: string | null;
 }
 export interface ListaConversasDto {
   itens: ConversaResumoDto[];

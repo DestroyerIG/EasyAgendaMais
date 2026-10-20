@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/cn';
 
 export function getInitials(name: string): string {
@@ -17,10 +20,22 @@ export interface AvatarProps {
 
 export function Avatar({ name, src, size = 32, className }: AvatarProps) {
   const style = { width: size, height: size };
+  const [falhou, setFalhou] = useState(false);
+  // Endereço novo (ex.: foto renovada) volta a tentar a imagem.
+  useEffect(() => { setFalhou(false); }, [src]);
 
-  if (src) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt={name} style={style} className={cn('shrink-0 rounded-full object-cover', className)} />;
+  if (src && !falhou) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={name}
+        style={style}
+        referrerPolicy="no-referrer"
+        onError={() => setFalhou(true)}
+        className={cn('shrink-0 rounded-full object-cover', className)}
+      />
+    );
   }
 
   return (

@@ -291,7 +291,7 @@ export function FichaCliente({ clienteId, nomeNegocio }: FichaClienteProps) {
       <section className="mb-6 rounded-2xl bg-surface p-4 shadow-sm sm:p-6">
         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
           <div className="flex items-start gap-4 md:items-center">
-            <Avatar name={cliente.name} size={64} className="text-[22px]" />
+            <Avatar name={cliente.name} src={cliente.avatarUrl} size={64} className="text-[22px]" />
             <div className="flex min-w-0 flex-col gap-1">
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-[24px] font-bold tracking-tight text-ink">{cliente.name}</h1>

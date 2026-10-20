@@ -11,7 +11,7 @@ import { FASE_ROTULO, type Fase } from '@/lib/crm';
 import { formatCurrency } from '@/lib/formatters';
 import { formatarTelefone, type AgendamentoRelacionadoDto, type ContextoClienteDto, type ConversaResumoDto } from '@/lib/whatsappInbox';
 import { getApiErrorMessage } from '@/utils/handleApiError';
-import { getInitials } from '@/components/ui/Avatar';
+import { Avatar } from '@/components/ui/Avatar';
 
 interface ContextoClienteProps {
   contexto: ContextoClienteDto | null;
@@ -176,9 +176,7 @@ export function ContextoCliente({ contexto, conversa, onAtualizar, onCadastrarCl
 
       <div className={CARTAO}>
         <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface-2 text-[15px] font-bold text-muted">
-            {getInitials(contexto.cliente.nome)}
-          </span>
+          <Avatar name={contexto.cliente.nome} src={conversa.avatarUrl} size={48} className="text-[15px] font-bold text-muted" />
           <div className="flex min-w-0 flex-col">
             <p className="break-words text-[16px] font-bold leading-5 text-ink">{contexto.cliente.nome}</p>
             <p className="font-mono text-[11px] text-muted">{cadastradaHa(contexto.cliente.desde)}</p>

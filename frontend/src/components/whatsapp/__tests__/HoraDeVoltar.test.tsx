@@ -20,7 +20,7 @@ const diasAtras = (n: number) => new Date(Date.now() - n * 86_400_000).toISOStri
 const op = (o: Partial<OportunidadeDto> & { id: string; nome: string }): OportunidadeDto => {
   const { id, nome, ...resto } = o;
   return {
-    cliente: { id, nome, telefone: '5583999990000' },
+    cliente: { id, nome, telefone: '5583999990000', avatarUrl: null },
     atrasoDias: 10, servico: 'Esmaltação em Gel', profissional: 'Bruna Lima', professionalId: 'p2',
     ultimaVisitaHaDias: 28, cicloDias: 18, valorUltimaVisita: 100, encaixes: [],
     podeReceber: true, motivoBloqueio: null, ultimoConviteEm: null, envio: null,
@@ -430,5 +430,17 @@ describe('HoraDeVoltar', () => {
     expect(screen.queryByText('0')).toBeNull();
     resolver(padrao());
     expect(await screen.findByTestId('recuperacao')).toHaveTextContent('R$ 1.180,00');
+  });
+
+  it('o cartão mostra a foto da cliente ou, sem ela, as iniciais', async () => {
+    retorno.buscarRetorno.mockResolvedValue(dto([
+      { ...camila, cliente: { ...camila.cliente, avatarUrl: 'https://cdn.exemplo/bia.jpg' } },
+      livre,
+    ]));
+    render(<HoraDeVoltar conectado />);
+    const cartaoBia = await screen.findByRole('group', { name: 'Oportunidade de Beatriz Costa' });
+    expect(within(cartaoBia).getByRole('img', { name: 'Beatriz Costa' })).toHaveAttribute('src', 'https://cdn.exemplo/bia.jpg');
+    const cartaoPati = screen.getByRole('group', { name: 'Oportunidade de Patricia Novaes' });
+    expect(within(cartaoPati).getByRole('img', { name: 'Patricia Novaes' })).toHaveTextContent('PN');
   });
 });
