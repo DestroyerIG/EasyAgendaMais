@@ -63,6 +63,8 @@
     /* Família Material 3 dos exports Stitch: tokens sem equivalente exato no conjunto acima. */
     --color-surface-m3: 255 248 246;
     --color-surface-m3-low: 249 242 240;
+    --color-whatsapp-chat: 239 234 226;
+    --color-whatsapp-bubble: 217 253 211;
     --color-brand-text-m3: 153 71 0;
     --color-tertiary: 0 99 153;
     --color-tertiary-container: 0 168 255;
@@ -91,6 +93,8 @@
        reaproveita-se o token existente de papel mais próximo (ver relatório da Tarefa 1). */
     --color-surface-m3: 24 22 21;
     --color-surface-m3-low: 38 34 32;
+    --color-whatsapp-chat: 28 26 24;
+    --color-whatsapp-bubble: 26 70 48;
     --color-brand-text-m3: 255 154 61;
     /* tertiary e tertiary-container são o azul do export que não é o status-confirmed
        (agenda-desktop.html: avatar e faixa da segunda profissional). No escuro guardam
@@ -128,6 +132,8 @@
     --color-scrim: 14 13 12;
     --color-surface-m3: 255 248 246;
     --color-surface-m3-low: 249 242 240;
+    --color-whatsapp-chat: 239 234 226;
+    --color-whatsapp-bubble: 217 253 211;
     --color-brand-text-m3: 153 71 0;
     --color-tertiary: 0 99 153;
     --color-tertiary-container: 0 168 255;

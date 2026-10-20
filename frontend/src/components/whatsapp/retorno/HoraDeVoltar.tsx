@@ -17,11 +17,7 @@ interface HoraDeVoltarProps {
   conectado: boolean;
 }
 
-type FiltroAtraso = 'todos' | 'encaixe';
-
 const emFilaOuEnviando = (i: OportunidadeDto) => i.envio?.status === 'na_fila' || i.envio?.status === 'enviando';
-
-const CAMPO = 'rounded-lg bg-surface-m3-low px-3 py-2 text-[13px] font-semibold text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand';
 
 export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
   const { user } = useAuth();
@@ -29,7 +25,7 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
   const showToastRef = useRef(showToast);
   showToastRef.current = showToast;
   const [professionalId, setProfessionalId] = useState<string | null>(null);
-  const [atraso, setAtraso] = useState<FiltroAtraso>('todos');
+  const [somenteComEncaixe, setSomenteComEncaixe] = useState(false);
   const [incluirLink, setIncluirLink] = useState(true);
   const [dados, setDados] = useState<RetornoDto | null>(null);
   const [erro, setErro] = useState(false);
@@ -50,7 +46,7 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
     try {
       const r = await buscarRetorno({
         ...(professionalId ? { professionalId } : {}),
-        ...(atraso === 'encaixe' ? { somenteComEncaixe: true } : {}),
+        ...(somenteComEncaixe ? { somenteComEncaixe: true } : {}),
         incluirLink,
       });
       if (numero !== pedido.current) return;
@@ -71,7 +67,7 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
     } finally {
       if (numero === pedido.current) setAtualizando(false);
     }
-  }, [professionalId, atraso, incluirLink]);
+  }, [professionalId, somenteComEncaixe, incluirLink]);
 
   useEffect(() => { void carregar(); }, [carregar]);
 
@@ -147,7 +143,11 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
     }
   };
 
-  const filtrando = professionalId !== null || atraso !== 'todos';
+  const valorTexto = formatCurrency(recuperacao);
+  const posVirgula = valorTexto.lastIndexOf(',');
+  const reais = posVirgula >= 0 ? valorTexto.slice(0, posVirgula) : valorTexto;
+  const centavos = posVirgula >= 0 ? valorTexto.slice(posVirgula) : '';
+  const filtrando = professionalId !== null || somenteComEncaixe;
 
   return (
     <div className={cn('flex flex-col gap-6', marcadas.length > 0 && 'pb-20 lg:pb-0')}>
@@ -170,7 +170,7 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
           </span>
           <div className="flex flex-col pr-4" title={marcadas.length > 0 ? 'Soma do valor da última visita das clientes selecionadas' : 'Soma do valor da última visita de cada cliente'}>
             <span className="text-[11px] font-semibold leading-none text-muted">Recuperação Estimada</span>
-            <span className="mt-1 text-[20px] font-extrabold leading-7 text-ink">{formatCurrency(recuperacao)}</span>
+            <span className="mt-1 text-[20px] font-extrabold leading-7 text-ink"><span data-testid="recuperacao">{reais}<span className="text-[13px] font-normal text-muted">{centavos}</span></span></span>
           </div>
           <div className="mx-1 h-8 w-px bg-line" aria-hidden="true" />
           <div className="flex flex-col pl-1 pr-2">
@@ -214,19 +214,15 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
               })}
             </div>
           </div>
-          <div className="flex items-center gap-1 rounded-lg bg-surface-m3-low px-2">
-            <Icon name="tune" size={18} className="text-muted" />
-            <label htmlFor="filtro-atraso" className="text-[13px] font-semibold text-muted">Atraso:</label>
-            <select
-              id="filtro-atraso"
-              value={atraso}
-              onChange={(e) => setAtraso(e.target.value as FiltroAtraso)}
-              className={cn(CAMPO, 'bg-transparent px-1')}
-            >
-              <option value="todos">Todos os níveis</option>
-              <option value="encaixe">Apenas com encaixe ideal</option>
-            </select>
-          </div>
+          <label className="flex min-h-9 cursor-pointer items-center gap-2 rounded-lg bg-surface-m3-low px-3 py-2 text-[11px] font-semibold text-ink">
+            <input
+              type="checkbox"
+              checked={somenteComEncaixe}
+              onChange={(e) => setSomenteComEncaixe(e.target.checked)}
+              className="h-4 w-4 cursor-pointer rounded accent-brand"
+            />
+            Apenas com encaixe ideal
+          </label>
         </div>
         <div className="flex items-center gap-2">
           {atualizando && dados ? (

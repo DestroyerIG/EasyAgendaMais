@@ -145,8 +145,8 @@ export function CartaoOportunidade({
             {item.encaixes.length > 0 ? (
               <>
                 <span className="mr-1 text-[11px] font-bold uppercase text-muted">Encaixes:</span>
-                {item.encaixes.map((e) => (
-                  <span key={e.inicio} className="rounded-lg bg-surface-m3-low px-2.5 py-1 text-[11px] font-semibold text-ink">{e.curto}</span>
+                {item.encaixes.map((e, i) => (
+                  <span key={`${i}-${e.inicio}`} className="rounded-lg bg-surface-m3-low px-2.5 py-1 text-[11px] font-semibold text-ink">{e.curto}</span>
                 ))}
               </>
             ) : (

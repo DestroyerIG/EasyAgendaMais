@@ -61,7 +61,7 @@ describe('HoraDeVoltar', () => {
     render(<HoraDeVoltar conectado />);
     expect(await screen.findByRole('heading', { name: 'Hora de voltar' })).toBeInTheDocument();
     expect(screen.getByText(/RETENÇÃO ATIVA/i)).toBeInTheDocument();
-    expect(await screen.findByText('R$ 1.180,00')).toBeInTheDocument();
+    expect(await screen.findByTestId('recuperacao')).toHaveTextContent('R$ 1.180,00');
     expect(screen.getByText('9')).toBeInTheDocument();
     expect(screen.getByText('Recuperação Estimada').closest('[title]')).toHaveAttribute('title', 'Soma do valor da última visita de cada cliente');
   });
@@ -108,7 +108,7 @@ describe('HoraDeVoltar', () => {
   it('"Apenas com encaixe ideal" refaz a busca com somenteComEncaixe', async () => {
     render(<HoraDeVoltar conectado />);
     await screen.findByText('18 dias atrasada');
-    await userEvent.selectOptions(screen.getByLabelText('Atraso:'), 'encaixe');
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Apenas com encaixe ideal' }));
     await waitFor(() => expect(retorno.buscarRetorno).toHaveBeenLastCalledWith(expect.objectContaining({ somenteComEncaixe: true })));
   });
 
@@ -354,7 +354,7 @@ describe('HoraDeVoltar', () => {
     render(<HoraDeVoltar conectado />);
     await screen.findByText('18 dias atrasada');
     await userEvent.click(screen.getByRole('checkbox', { name: 'Selecionar Beatriz Costa' }));
-    expect(screen.getByText('R$ 140,00')).toBeInTheDocument();
+    expect(screen.getByTestId('recuperacao')).toHaveTextContent('R$ 140,00');
     expect(screen.getByText('Recuperação Estimada').closest('[title]')).toHaveAttribute('title', 'Soma do valor da última visita das clientes selecionadas');
   });
 
@@ -384,5 +384,39 @@ describe('HoraDeVoltar', () => {
     retorno.enviarConvites.mockResolvedValue({ envios: [envioNaFila('c1'), envioNaFila('c4')], recusados: [] });
     await userEvent.click(within(barra).getByRole('button', { name: 'Enviar convites (2)' }));
     await waitFor(() => expect(retorno.enviarConvites).toHaveBeenCalledWith([{ clientId: 'c1' }, { clientId: 'c4' }], true));
+  });
+
+  it('os centavos da recuperação ficam menores e em tom neutro', async () => {
+    render(<HoraDeVoltar conectado />);
+    const valor = await screen.findByTestId('recuperacao');
+    const centavos = within(valor).getByText(',00');
+    expect(centavos).toHaveClass('text-muted');
+  });
+
+  it('a prévia põe *trecho* em negrito, preserva linhas em branco e separa o link num cartão', async () => {
+    const link = 'https://app.easy.com/agendar/studio-aurora';
+    retorno.buscarRetorno.mockResolvedValue(dto([
+      op({ id: 'c1', nome: 'Beatriz Costa', texto: `Oi, Bia! Aqui é do *Studio Aurora*.\n\nPosso garantir?\n\nSe preferir, agende sozinha por aqui: ${link}` }),
+    ]));
+    render(<HoraDeVoltar conectado />);
+    await screen.findByText('Prévia do WhatsApp');
+    const forte = await screen.findByText('Studio Aurora', { selector: 'strong' });
+    expect(forte).toBeInTheDocument();
+    const balao = forte.closest('p') as HTMLElement;
+    expect(balao.textContent).toContain('\n\nPosso garantir?');
+    expect(balao.textContent).not.toContain('Se preferir, agende');
+    expect(balao.textContent).not.toContain('*');
+    const cartao = screen.getByText('Auto-agendamento rápido').closest('div[data-cartao-link]') as HTMLElement;
+    expect(cartao).toHaveTextContent('app.easy.com/agendar/studio-aurora');
+  });
+
+  it('os chips de encaixe com o mesmo horário não geram aviso de chave duplicada', async () => {
+    const erro = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const igual = { inicio: '2026-10-21T17:30:00.000Z', curto: 'Qua 14:30', longo: 'Quarta-feira (21/out) às 14:30' };
+    retorno.buscarRetorno.mockResolvedValue(dto([op({ id: 'z', nome: 'Zeca Dobro', encaixes: [igual, igual] })]));
+    render(<HoraDeVoltar conectado />);
+    await screen.findByRole('group', { name: 'Oportunidade de Zeca Dobro' });
+    expect(erro).not.toHaveBeenCalled();
+    erro.mockRestore();
   });
 });

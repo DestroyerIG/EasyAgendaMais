@@ -39,6 +39,8 @@ module.exports = {
         // Família Material 3 dos exports Stitch (ver globals.css).
         'surface-m3': token('surface-m3'),
         'surface-m3-low': token('surface-m3-low'),
+        'whatsapp-chat': token('whatsapp-chat'),
+        'whatsapp-bubble': token('whatsapp-bubble'),
         'brand-text-m3': token('brand-text-m3'),
         tertiary: token('tertiary'),
         'tertiary-container': token('tertiary-container'),
