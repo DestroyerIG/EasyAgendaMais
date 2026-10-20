@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+vi.mock('../modules/whatsappAvatar/avatar.service.js', () => ({ avatares: { urlsPara: vi.fn().mockResolvedValue(new Map()), processar: vi.fn().mockResolvedValue({ buscados: 0 }) } }));
 
 const repo = vi.hoisted(() => ({
   clientePerfil: vi.fn(), visitasDoCliente: vi.fn(), agendamentosDoCliente: vi.fn(), ficha: vi.fn(), salvarFicha: vi.fn(),
