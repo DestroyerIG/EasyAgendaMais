@@ -21,9 +21,11 @@ export interface EnvioDto {
 export const MOTIVO_OPT_OUT = 'Pediu para não receber mensagens';
 export const MOTIVO_REVOGADO = 'Consentimento revogado';
 export const MOTIVO_TELEFONE = 'Telefone inválido';
+export const MOTIVO_INTERROMPIDO = 'Envio interrompido; confira na conversa antes de reenviar';
 export const MOTIVO_FALHA = 'O WhatsApp não aceitou o envio';
 
 const HORA_MS = 3_600_000;
+const RESERVA_MAX_MS = 10 * 60_000;
 
 const paraDto = (r: EnvioRow): EnvioDto => ({
   id: r.id,
@@ -54,16 +56,29 @@ async function processarNegocio(businessId: string, agora: Date): Promise<Result
 
   const item = await repo.proximoVencido(businessId, agora);
   if (!item) return 'nada';
-  if (!(await repo.reservar(businessId, item.id))) return 'nada';
+  if (!(await repo.reservar(businessId, item.id, agora))) return 'nada';
 
   const pular = async (motivo: string): Promise<Resultado> => {
-    await repo.atualizar(item.id, { status: 'pulado', reason: motivo });
+    await repo.atualizar(businessId, item.id, { status: 'pulado', reason: motivo, sentAt: null });
     return 'pulado';
   };
 
-  if (!canonicalizePhone(item.phone)) return pular(MOTIVO_TELEFONE);
-  if (await inboxRecorder.estaEmOptOut(businessId, item.phone)) return pular(MOTIVO_OPT_OUT);
-  if (item.clientId && await repo.consentimentoRevogado(businessId, item.clientId)) return pular(MOTIVO_REVOGADO);
+  // Nada foi enviado ainda: se uma checagem lançar, devolve a linha para a fila.
+  let decisao: Resultado | null = null;
+  try {
+    if (!canonicalizePhone(item.phone)) decisao = await pular(MOTIVO_TELEFONE);
+    else if (await inboxRecorder.estaEmOptOut(businessId, item.phone)) decisao = await pular(MOTIVO_OPT_OUT);
+    else if (item.clientId && await repo.consentimentoRevogado(businessId, item.clientId)) decisao = await pular(MOTIVO_REVOGADO);
+  } catch (err) {
+    logger.warn({ err, businessId, envioId: item.id }, 'fila: checagem pré-envio falhou; item volta para a fila');
+    try {
+      await repo.atualizar(businessId, item.id, { status: 'na_fila', reason: null, sentAt: null });
+    } catch (err2) {
+      logger.warn({ err: err2, businessId, envioId: item.id }, 'fila: não consegui devolver o item para a fila');
+    }
+    return 'nada';
+  }
+  if (decisao) return decisao;
 
   let enviou = false;
   try {
@@ -72,10 +87,10 @@ async function processarNegocio(businessId: string, agora: Date): Promise<Result
     logger.warn({ err, businessId, envioId: item.id }, 'fila: erro ao enviar');
   }
   if (!enviou) {
-    await repo.atualizar(item.id, { status: 'falhou', reason: MOTIVO_FALHA });
+    await repo.atualizar(businessId, item.id, { status: 'falhou', reason: MOTIVO_FALHA });
     return 'falhou';
   }
-  await repo.atualizar(item.id, { status: 'enviado', sentAt: agora, intervalAfterS: sortearIntervalo() });
+  await repo.atualizar(businessId, item.id, { status: 'enviado', sentAt: agora, intervalAfterS: sortearIntervalo() });
   return 'enviado';
 }
 
@@ -99,6 +114,12 @@ export const filaEnvios = {
   /** Um envio por negócio a cada chamada (a rotina roda a cada minuto). */
   async processar(agora: Date = new Date()): Promise<{ enviados: number; pulados: number; falhas: number }> {
     const total = { enviados: 0, pulados: 0, falhas: 0 };
+    try {
+      const n = await repo.interromper(new Date(agora.getTime() - RESERVA_MAX_MS), MOTIVO_INTERROMPIDO);
+      if (n > 0) logger.warn({ n }, 'fila: envios interrompidos marcados como falhou');
+    } catch (err) {
+      logger.warn({ err }, 'fila: reaper falhou');
+    }
     const negocios = await repo.negociosComVencidos(agora);
     for (const businessId of negocios) {
       try {

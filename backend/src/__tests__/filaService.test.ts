@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const repo = vi.hoisted(() => ({
   naFilaDoCliente: vi.fn(), criar: vi.fn(), negociosComVencidos: vi.fn(), ultimoEnviado: vi.fn(),
   contarEnviadosDesde: vi.fn(), proximoVencido: vi.fn(), reservar: vi.fn(), atualizar: vi.fn(),
-  consentimentoRevogado: vi.fn(), recentesPorCliente: vi.fn(),
+  consentimentoRevogado: vi.fn(), interromper: vi.fn(), recentesPorCliente: vi.fn(),
 }));
 vi.mock('../modules/whatsappFila/fila.repository.js', () => ({ filaRepository: repo }));
 const envio = vi.hoisted(() => ({ sendWhatsAppMessage: vi.fn() }));
@@ -31,6 +31,7 @@ beforeEach(() => {
   repo.proximoVencido.mockResolvedValue(linha());
   repo.reservar.mockResolvedValue(true);
   repo.atualizar.mockResolvedValue(undefined);
+  repo.interromper.mockResolvedValue(0);
   repo.consentimentoRevogado.mockResolvedValue(false);
   rec.inboxRecorder.estaEmOptOut.mockResolvedValue(false);
   wa.whatsappService.getStatus.mockResolvedValue({ status: 'connected' });
@@ -57,7 +58,7 @@ describe('processar', () => {
     expect(r).toEqual({ enviados: 1, pulados: 0, falhas: 0 });
     expect(repo.proximoVencido).toHaveBeenCalledTimes(1);
     expect(envio.sendWhatsAppMessage).toHaveBeenCalledWith('5583999990000', 'Oi', { businessId: 'b1', origin: 'retorno' });
-    const [id, dados] = repo.atualizar.mock.calls[0];
+    const [, id, dados] = repo.atualizar.mock.calls[0];
     expect(id).toBe('e1');
     expect(dados.status).toBe('enviado');
     expect(dados.sentAt).toEqual(AGORA);
@@ -77,7 +78,7 @@ describe('processar', () => {
     const r = await filaEnvios.processar(AGORA);
     expect(r.pulados).toBe(1);
     expect(envio.sendWhatsAppMessage).not.toHaveBeenCalled();
-    expect(repo.atualizar).toHaveBeenCalledWith('e1', { status: 'pulado', reason: 'Pediu para não receber mensagens' });
+    expect(repo.atualizar).toHaveBeenCalledWith('b1', 'e1', { status: 'pulado', reason: 'Pediu para não receber mensagens', sentAt: null });
   });
 
   it('consentimento revogado pula', async () => {
@@ -85,14 +86,14 @@ describe('processar', () => {
     const r = await filaEnvios.processar(AGORA);
     expect(r.pulados).toBe(1);
     expect(envio.sendWhatsAppMessage).not.toHaveBeenCalled();
-    expect(repo.atualizar).toHaveBeenCalledWith('e1', { status: 'pulado', reason: 'Consentimento revogado' });
+    expect(repo.atualizar).toHaveBeenCalledWith('b1', 'e1', { status: 'pulado', reason: 'Consentimento revogado', sentAt: null });
   });
 
   it('telefone inválido pula', async () => {
     repo.proximoVencido.mockResolvedValue(linha({ phone: 'abc' }));
     const r = await filaEnvios.processar(AGORA);
     expect(r.pulados).toBe(1);
-    expect(repo.atualizar).toHaveBeenCalledWith('e1', { status: 'pulado', reason: 'Telefone inválido' });
+    expect(repo.atualizar).toHaveBeenCalledWith('b1', 'e1', { status: 'pulado', reason: 'Telefone inválido', sentAt: null });
   });
 
   it('desconectado: nada muda', async () => {
@@ -107,7 +108,21 @@ describe('processar', () => {
     envio.sendWhatsAppMessage.mockResolvedValue(false);
     const r = await filaEnvios.processar(AGORA);
     expect(r.falhas).toBe(1);
-    expect(repo.atualizar).toHaveBeenCalledWith('e1', { status: 'falhou', reason: 'O WhatsApp não aceitou o envio' });
+    expect(repo.atualizar).toHaveBeenCalledWith('b1', 'e1', { status: 'falhou', reason: 'O WhatsApp não aceitou o envio' });
+  });
+
+  it('checagem pré-envio lança após a reserva: volta para na_fila e nada é enviado', async () => {
+    rec.inboxRecorder.estaEmOptOut.mockRejectedValue(new Error('banco fora'));
+    const r = await filaEnvios.processar(AGORA);
+    expect(r).toEqual({ enviados: 0, pulados: 0, falhas: 0 });
+    expect(envio.sendWhatsAppMessage).not.toHaveBeenCalled();
+    expect(repo.atualizar).toHaveBeenCalledWith('b1', 'e1', { status: 'na_fila', reason: null, sentAt: null });
+  });
+
+  it('reaper: só reservas com mais de 10 min viram falhou (nunca voltam para a fila)', async () => {
+    repo.negociosComVencidos.mockResolvedValue([]);
+    await filaEnvios.processar(AGORA);
+    expect(repo.interromper).toHaveBeenCalledWith(new Date(AGORA.getTime() - 600_000), 'Envio interrompido; confira na conversa antes de reenviar');
   });
 
   it('fora da janela: nada sai', async () => {

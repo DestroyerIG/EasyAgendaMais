@@ -45,16 +45,29 @@ export const filaRepository = {
   },
 
   /** Reserva atômica na_fila -> enviando; false se outra rotina pegou a linha. */
-  async reservar(businessId: string, id: string): Promise<boolean> {
+  async reservar(businessId: string, id: string, agora: Date): Promise<boolean> {
+    // sentAt guarda o instante da reserva enquanto 'enviando' (usado pelo reaper).
     const r = await prisma.whatsappEnvio.updateMany({
       where: { id, businessId, status: 'na_fila' },
-      data: { status: 'enviando' },
+      data: { status: 'enviando', sentAt: agora },
     });
     return r.count === 1;
   },
 
-  async atualizar(id: string, data: { status: string; reason?: string | null; sentAt?: Date; intervalAfterS?: number }): Promise<void> {
-    await prisma.whatsappEnvio.update({ where: { id }, data });
+  async atualizar(
+    businessId: string, id: string,
+    data: { status: string; reason?: string | null; sentAt?: Date | null; intervalAfterS?: number },
+  ): Promise<void> {
+    await prisma.whatsappEnvio.updateMany({ where: { id, businessId }, data });
+  },
+
+  /** Linhas 'enviando' reservadas antes de `limite` (processo caiu ou a gravação final falhou). */
+  async interromper(limite: Date, motivo: string): Promise<number> {
+    const r = await prisma.whatsappEnvio.updateMany({
+      where: { status: 'enviando', sentAt: { lt: limite } },
+      data: { status: 'falhou', reason: motivo },
+    });
+    return r.count;
   },
 
   /** Último consentimento de lembretes da cliente: revogado (mesma regra do lembrete do cron). */
