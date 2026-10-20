@@ -155,7 +155,7 @@ describe('todayService.resumo', () => {
       { id: 'c3', name: 'Cris', phone: '837', active: true }, // tem agendamento futuro
       { id: 'c4', name: 'Duda', phone: '836', active: false }, // inativa
     ]);
-    const v = (date: string) => ({ date, receita: 100, servico: 'Manutenção', profissional: 'Camila' });
+    const v = (date: string) => ({ date, receita: 100, servico: 'Manutenção', profissional: 'Camila', professionalId: 'p1' });
     crm.visitas.mockResolvedValue(new Map([
       ['c1', [v('2026-08-20'), v('2026-09-10')]], // ciclo 21 → previsto 01/10 → venceu há 13
       ['c2', [v('2026-09-01'), v('2026-09-29')]], // ciclo 28 → previsto 27/10 → não venceu
@@ -227,9 +227,9 @@ describe('proximasVagas', () => {
   it('lista as primeiras vagas a partir de agora, por data e início', async () => {
     const r = await proximasVagas('b1', AGORA, 3);
     expect(r).toEqual([
-      { data: '2026-10-14', inicio: '09:30', profissional: 'Camila' },
-      { data: '2026-10-14', inicio: '11:00', profissional: 'Camila' },
-      { data: '2026-10-15', inicio: '09:00', profissional: 'Camila' },
+      { data: '2026-10-14', inicio: '09:30', profissional: 'Camila', professionalId: 'p1' },
+      { data: '2026-10-14', inicio: '11:00', profissional: 'Camila', professionalId: 'p1' },
+      { data: '2026-10-15', inicio: '09:00', profissional: 'Camila', professionalId: 'p1' },
     ]);
     expect(repo.agendamentosNasDatas).toHaveBeenCalledWith('b1',
       ['2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17', '2026-10-18', '2026-10-19', '2026-10-20']);
@@ -238,10 +238,29 @@ describe('proximasVagas', () => {
   it('hoje fechado: a primeira vaga é de amanhã', async () => {
     settings.getBusinessScheduleSettings.mockResolvedValue({ ...ABERTO, diasAbertos: { ...ABERTO.diasAbertos, qua: false } });
     const r = await proximasVagas('b1', AGORA, 3);
-    expect(r[0]).toEqual({ data: '2026-10-15', inicio: '09:00', profissional: 'Camila' });
+    expect(r[0]).toEqual({ data: '2026-10-15', inicio: '09:00', profissional: 'Camila', professionalId: 'p1' });
   });
 
   it('respeita o limite', async () => {
     expect(await proximasVagas('b1', AGORA, 1)).toHaveLength(1);
+  });
+
+  it('professionalId só devolve vagas dela', async () => {
+    repo.profissionaisAtivas.mockResolvedValue([
+      { id: 'p1', name: 'Camila', almoco: null }, { id: 'p2', name: 'Bruna', almoco: null },
+    ]);
+    const r = await proximasVagas('b1', AGORA, 20, { professionalId: 'p2' });
+    expect(r.length).toBeGreaterThan(0);
+    expect(r.every((v) => v.professionalId === 'p2' && v.profissional === 'Bruna')).toBe(true);
+  });
+
+  it('duracaoMinima ignora janelas menores', async () => {
+    // p1 ocupada 10:00-11:00 e 11:30-18:00 em 14/10: sobram 09:30-10:00 e 11:00-11:30 (30 min cada)
+    agendamentos = [ag('2026-10-14', '10:00', 60), ag('2026-10-14', '11:30', 390)];
+    const todas = await proximasVagas('b1', AGORA, 2);
+    expect(todas.map((v) => [v.data, v.inicio])).toEqual([['2026-10-14', '09:30'], ['2026-10-14', '11:00']]);
+    const longas = await proximasVagas('b1', AGORA, 2, { duracaoMinima: 60 });
+    expect(longas.every((v) => v.data !== '2026-10-14')).toBe(true);
+    expect(longas[0]).toEqual({ data: '2026-10-15', inicio: '09:00', profissional: 'Camila', professionalId: 'p1' });
   });
 });
