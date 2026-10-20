@@ -1,10 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { Button, Icon, Skeleton } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { getInitials } from '@/components/ui/Avatar';
 import {
-  formatarTelefone,
+  formatarTelefoneLocal,
   horaCurta,
   type ConversaResumoDto,
   type FiltroConversa,
@@ -30,11 +31,13 @@ interface FilaConversasProps {
   onTentarNovamente?: () => void;
 }
 
-function Selo({ children, tom }: { children: string; tom: 'brand' | 'aviso' | 'neutro' }) {
+type Tom = 'brand' | 'aviso' | 'neutro';
+
+function Selo({ children, tom }: { children: string; tom: Tom }) {
   return (
     <span
       className={cn(
-        'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold',
+        'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold',
         tom === 'brand' && 'bg-brand/15 text-brand-text',
         tom === 'aviso' && 'bg-warning/15 text-warning-text',
         tom === 'neutro' && 'bg-surface-2 text-muted',
@@ -45,57 +48,77 @@ function Selo({ children, tom }: { children: string; tom: 'brand' | 'aviso' | 'n
   );
 }
 
+/** Um selo só por conversa: quem está com ela agora. */
+function seloDa(c: ConversaResumoDto): { rotulo: string; tom: Tom } {
+  if (c.status === 'aguardando') return { rotulo: 'Aguardando', tom: 'aviso' };
+  if (c.atendimento === 'humano') return c.responsavel ? { rotulo: 'Humano', tom: 'brand' } : { rotulo: 'Aguardando', tom: 'aviso' };
+  return { rotulo: 'Bot', tom: 'neutro' };
+}
+
+const semAcento = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+/** Busca local nos itens já carregados: nome, prévia e, quando o termo é um número, o telefone. */
+export function filtrarPorBusca(itens: ConversaResumoDto[], busca: string): ConversaResumoDto[] {
+  const termo = semAcento(busca.trim());
+  if (!termo) return itens;
+  const digitos = /^[\d\s()+-]+$/.test(termo) ? termo.replace(/\D/g, '') : '';
+  return itens.filter((c) => (
+    semAcento(c.nome ?? '').includes(termo)
+    || semAcento(c.previa).includes(termo)
+    || (digitos !== '' && c.telefone.replace(/\D/g, '').includes(digitos))
+  ));
+}
+
 function ItemConversa({ c, selecionada, onSelecionar }: { c: ConversaResumoDto; selecionada: boolean; onSelecionar: () => void }) {
-  const telefone = formatarTelefone(c.telefone);
+  const telefone = formatarTelefoneLocal(c.telefone);
+  const selo = seloDa(c);
   return (
     <button
       type="button"
       onClick={onSelecionar}
       aria-current={selecionada ? 'true' : undefined}
       className={cn(
-        'relative flex w-full flex-col gap-2 rounded-xl p-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand',
-        selecionada ? 'bg-surface-2' : 'hover:bg-surface-2/60',
+        'relative flex w-full shrink-0 flex-col gap-2 rounded-xl p-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand',
+        selecionada ? 'bg-surface-m3-low' : 'hover:bg-surface-m3-low/60',
       )}
     >
       {selecionada ? <span className="absolute bottom-3 left-0 top-3 w-1 rounded-r bg-brand" aria-hidden="true" /> : null}
       <span className="flex items-start justify-between gap-2">
         <span className="flex min-w-0 items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2 text-[15px] font-bold text-brand-text">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface-2 text-[15px] font-bold text-muted">
             {c.nome ? getInitials(c.nome) : <Icon name="person" size={22} className="text-muted" />}
           </span>
-          <span className="flex min-w-0 flex-col">
-            <span className="flex items-center gap-1.5">
-              <span className="truncate text-[15px] font-bold text-ink">{c.nome ?? telefone}</span>
-              {c.atendimento === 'humano' && c.responsavel ? <Selo tom="brand">Humano</Selo> : null}
-              {c.status === 'aguardando' ? <Selo tom="aviso">Aguardando</Selo> : null}
-              {c.atendimento === 'bot' ? <Selo tom="neutro">Bot</Selo> : null}
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+              <span className="break-words text-[15px] font-bold leading-5 text-ink">{c.nome ?? telefone}</span>
+              <Selo tom={selo.tom}>{selo.rotulo}</Selo>
             </span>
-            <span className="font-mono text-[12px] text-muted">{telefone}</span>
+            <span className="font-mono text-[11px] text-muted">{telefone}</span>
           </span>
         </span>
         <span className="flex shrink-0 flex-col items-end gap-1">
-          <span className="font-mono text-[12px] font-bold text-brand-text">{horaCurta(c.ultimaMensagemEm)}</span>
+          <span className="font-mono text-[11px] font-bold text-brand-text">{horaCurta(c.ultimaMensagemEm)}</span>
           {c.naoLidas > 0 ? (
             <span
               aria-label={`${c.naoLidas} não lida${c.naoLidas > 1 ? 's' : ''}`}
-              className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[11px] font-bold text-on-brand"
+              className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[11px] font-bold text-on-brand shadow-sm"
             >
               {c.naoLidas}
             </span>
           ) : null}
         </span>
       </span>
-      <span className={cn('line-clamp-1 pl-1 text-[13px]', c.naoLidas > 0 ? 'font-semibold text-ink' : 'text-muted')}>{c.previa}</span>
+      <span className={cn('line-clamp-2 pl-1 text-[14px] leading-5', c.naoLidas > 0 ? 'font-semibold text-ink' : 'text-muted')}>{c.previa}</span>
       {c.responsavel || c.sinalPendente ? (
-        <span className="flex items-center justify-between gap-2 text-[12px] text-muted">
+        <span className="flex items-center justify-between gap-2 pt-0.5 text-[11px] font-semibold text-muted">
           {c.responsavel ? (
-            <span className="flex items-center gap-1">
+            <span className="flex min-w-0 items-center gap-1">
               <Icon name="face" size={14} />
               {`Atendente: ${c.responsavel.nome}`}
             </span>
           ) : <span />}
           {c.sinalPendente ? (
-            <span className="flex items-center gap-0.5 font-bold text-brand-text">
+            <span className="flex shrink-0 items-center gap-0.5 font-bold text-brand-text">
               Sinal pendente
               <Icon name="payments" size={13} />
             </span>
@@ -112,10 +135,10 @@ interface FiltrosConversaProps {
   contadores?: ListaConversasDto['contadores'];
 }
 
-/** Pílulas de filtro do cabeçalho da Central; no celular rolam na horizontal, numa linha só. */
+/** Filtros segmentados do cabeçalho da Central; no celular rolam na horizontal, numa linha só. */
 export function FiltrosConversa({ filtro, onFiltro, contadores }: FiltrosConversaProps) {
   return (
-    <div role="group" aria-label="Filtrar conversas" className="flex items-center gap-2 overflow-x-auto">
+    <div role="group" aria-label="Filtrar conversas" className="flex min-w-0 items-center gap-1 overflow-x-auto rounded-xl border border-line bg-surface p-1 shadow-sm">
       {FILTROS.map((f) => {
         const ativo = f.id === filtro;
         const n = contadores?.[f.id];
@@ -127,8 +150,8 @@ export function FiltrosConversa({ filtro, onFiltro, contadores }: FiltrosConvers
             aria-pressed={ativo}
             onClick={() => onFiltro(f.id)}
             className={cn(
-              'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand',
-              ativo ? 'bg-brand/15 font-bold text-brand-text' : 'bg-surface-2 text-muted hover:text-ink',
+              'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-1.5 text-[13px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand',
+              ativo ? 'bg-surface-2 font-bold text-brand-text' : 'text-muted hover:bg-surface-m3-low hover:text-ink',
             )}
           >
             {f.rotulo}
@@ -145,6 +168,7 @@ export function FiltrosConversa({ filtro, onFiltro, contadores }: FiltrosConvers
 export function FilaConversas({
   filtro, dados, selecionadaId, onSelecionar, onMarcarLidas, onCarregarMais, erro = false, carregandoMais = false, onTentarNovamente,
 }: FilaConversasProps) {
+  const [busca, setBusca] = useState('');
   const corpo = () => {
     if (!dados) {
       if (erro) {
@@ -171,9 +195,13 @@ export function FilaConversas({
         </p>
       );
     }
+    const itens = filtrarPorBusca(dados.itens, busca);
+    if (itens.length === 0) {
+      return <p className="px-4 py-10 text-center text-[14px] text-muted">Nenhuma conversa encontrada.</p>;
+    }
     return (
       <>
-        {dados.itens.map((c) => (
+        {itens.map((c) => (
           <ItemConversa key={c.id} c={c} selecionada={c.id === selecionadaId} onSelecionar={() => onSelecionar(c)} />
         ))}
         {dados.proximoCursor ? (
@@ -187,6 +215,17 @@ export function FilaConversas({
 
   return (
     <section aria-label="Fila de atendimento" className="flex h-full min-h-0 flex-col gap-3 rounded-xl bg-surface p-3 shadow-sm">
+      <label className="flex items-center gap-2 rounded-lg bg-surface-m3-low px-3 py-2 focus-within:outline focus-within:outline-2 focus-within:outline-brand">
+        <Icon name="search" size={18} className="text-muted" />
+        <input
+          type="search"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Buscar cliente ou mensagem..."
+          aria-label="Buscar cliente ou mensagem"
+          className="w-full bg-transparent text-[14px] text-ink placeholder:text-muted focus:outline-none"
+        />
+      </label>
       <div className="flex items-center justify-between px-1">
         <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Fila de atendimento</span>
         <button
@@ -197,7 +236,7 @@ export function FilaConversas({
           Marcar lidas
         </button>
       </div>
-      <div className="flex min-h-40 flex-1 flex-col gap-1 overflow-y-auto pr-1">{corpo()}</div>
+      <div className="flex min-h-40 flex-1 flex-col gap-1 overflow-y-auto pr-1 lg:min-h-0">{corpo()}</div>
     </section>
   );
 }

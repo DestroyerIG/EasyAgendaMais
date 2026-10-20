@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const get = vi.fn();
 vi.mock('@/lib/api', () => ({ default: { get: (...a: unknown[]) => get(...a), post: vi.fn() } }));
 
-import { horaCurta, formatarTelefone, listarConversas } from '../whatsappInbox';
+import { horaCurta, formatarTelefone, formatarTelefoneLocal, listarConversas } from '../whatsappInbox';
 
 describe('horaCurta', () => {
   // 16/10/2026 15:00 UTC = 12:00 em São Paulo
@@ -32,6 +32,15 @@ describe('formatarTelefone', () => {
   });
   it('formata fixo/8 dígitos sem 55', () => {
     expect(formatarTelefone('8398765432')).toBe('+55 (83) 9876-5432');
+  });
+});
+
+describe('formatarTelefoneLocal', () => {
+  it('tira o +55', () => {
+    expect(formatarTelefoneLocal('5583998765432')).toBe('(83) 99876-5432');
+  });
+  it('número fora do padrão volta como veio', () => {
+    expect(formatarTelefoneLocal('123')).toBe('123');
   });
 });
 

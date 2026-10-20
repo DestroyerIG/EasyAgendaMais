@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 const showToast = vi.fn();
@@ -104,9 +104,55 @@ describe('CentralConversas - fila', () => {
     expect(screen.getByText('Sinal pendente')).toBeInTheDocument();
     expect(screen.getByLabelText('1 não lida')).toBeInTheDocument();
     expect(screen.getByText('Atendente: Carla')).toBeInTheDocument();
-    expect(screen.getByText('+55 (83) 98711-2290', { selector: 'span.font-bold' })).toBeInTheDocument();
+    // Telefone sem o +55, no formato curto da fila.
+    expect(screen.getByText('(83) 98711-2290', { selector: 'span.font-bold' })).toBeInTheDocument();
+    expect(screen.getAllByText('(83) 99876-5432', { selector: 'span.font-mono' }).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/\+55 \(83\) 99876/)).not.toBeInTheDocument();
     expect(screen.getByText('MS')).toBeInTheDocument();
     expect(inbox.listarConversas).toHaveBeenCalledWith('todas');
+  });
+
+  it('cada conversa mostra um selo só', async () => {
+    inbox.listarConversas.mockResolvedValue(lista([
+      conversa({ id: 'a', nome: 'Ana Humano' }),
+      conversa({ id: 'b', nome: 'Bia Espera', status: 'aguardando', responsavel: { id: 'u-carla', nome: 'Carla' } }),
+      conversa({ id: 'c', nome: 'Cris Sem Dona', responsavel: null, naoLidas: 0 }),
+      conversa({ id: 'd', nome: 'Duda Robô', atendimento: 'bot', status: 'aguardando', responsavel: null, naoLidas: 0 }),
+    ]));
+    montar();
+    await screen.findByText('Ana Humano');
+    const selosDe = (nome: string) => within(screen.getByText(nome).closest('button')!)
+      .queryAllByText(/^(Humano|Aguardando|Bot)$/).map((e) => e.textContent);
+    expect(selosDe('Ana Humano')).toEqual(['Humano']);
+    expect(selosDe('Bia Espera')).toEqual(['Aguardando']);
+    expect(selosDe('Cris Sem Dona')).toEqual(['Aguardando']);
+    expect(selosDe('Duda Robô')).toEqual(['Aguardando']);
+  });
+
+  it('a busca filtra localmente por nome, telefone e prévia', async () => {
+    montar();
+    await screen.findByText('Mariana Souza');
+    const chamadas = inbox.listarConversas.mock.calls.length;
+    const busca = screen.getByPlaceholderText('Buscar cliente ou mensagem...');
+
+    await userEvent.type(busca, 'rafa');
+    expect(screen.getByText('Rafa Diniz')).toBeInTheDocument();
+    expect(screen.queryByText('Mariana Souza')).not.toBeInTheDocument();
+
+    await userEvent.clear(busca);
+    await userEvent.type(busca, '98711');
+    expect(screen.getByText('(83) 98711-2290', { selector: 'span.font-bold' })).toBeInTheDocument();
+    expect(screen.queryByText('Rafa Diniz')).not.toBeInTheDocument();
+
+    await userEvent.clear(busca);
+    await userEvent.type(busca, 'QUINTA');
+    expect(screen.getByText('Mariana Souza')).toBeInTheDocument();
+    expect(screen.queryByText('Rafa Diniz')).not.toBeInTheDocument();
+
+    await userEvent.clear(busca);
+    await userEvent.type(busca, 'ninguém');
+    expect(screen.getByText('Nenhuma conversa encontrada.')).toBeInTheDocument();
+    expect(inbox.listarConversas.mock.calls.length).toBe(chamadas);
   });
 
   it('os filtros ficam no cabeçalho, fora da coluna da fila, e Atualizar recarrega a fila', async () => {
@@ -213,6 +259,40 @@ describe('CentralConversas - conversa aberta', () => {
     expect(screen.getByRole('link', { name: /Ver ficha CRM/ })).toHaveAttribute('href', '/clientes/cli1');
   });
 
+  it('mensagens do negócio ficam à esquerda com o rótulo dentro do balão; as da cliente à direita', async () => {
+    montar();
+    await abrirConversa();
+    const lado = (texto: string) => screen.getByText(texto).closest('[data-lado]')?.getAttribute('data-lado');
+    expect(lado('Oi, tem horário quinta?')).toBe('cliente');
+    expect(lado('Tenho às 14h!')).toBe('negocio');
+    expect(lado('Posso confirmar?')).toBe('negocio');
+    expect(lado('Bot EasyAgenda+')).toBe('negocio');
+    expect(lado('Carla (Studio Aurora)')).toBe('negocio');
+  });
+
+  it('o rodapé com respostas rápidas, campo e Enviar fica dentro da conversa', async () => {
+    montar();
+    await abrirConversa();
+    const conversaAberta = screen.getByRole('region', { name: 'Conversa aberta' });
+    expect(within(conversaAberta).getByRole('textbox', { name: 'Mensagem' })).toBeInTheDocument();
+    expect(within(conversaAberta).getByRole('button', { name: 'Enviar mensagem' })).toBeInTheDocument();
+    expect(await within(conversaAberta).findByRole('group', { name: 'Respostas rápidas' })).toBeInTheDocument();
+  });
+
+  it('Assumir some quando a conversa já é de quem está usando e aparece quando é de outra pessoa', async () => {
+    inbox.listarConversas.mockResolvedValue(lista([conversa({ responsavel: { id: 'u-dona', nome: 'Dona' } })]));
+    const { unmount } = montar();
+    await abrirConversa();
+    expect(screen.queryByRole('button', { name: 'Assumir' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Devolver ao Bot' })).toBeInTheDocument();
+    unmount();
+
+    inbox.listarConversas.mockResolvedValue(lista([conversa()]));
+    montar();
+    await abrirConversa();
+    expect(screen.getByRole('button', { name: 'Assumir' })).toBeInTheDocument();
+  });
+
   it('mostra mídia com aviso e mensagem que falhou', async () => {
     inbox.listarMensagens.mockResolvedValue({
       itens: [
@@ -239,7 +319,7 @@ describe('CentralConversas - conversa aberta', () => {
   it('Enter envia e limpa; Shift+Enter não envia', async () => {
     montar();
     await abrirConversa();
-    const campo = screen.getByPlaceholderText('Escreva uma mensagem…');
+    const campo = screen.getByPlaceholderText('Escreva uma mensagem para Mariana…');
     await userEvent.type(campo, 'Olá{Shift>}{Enter}{/Shift}tudo bem');
     expect(inbox.enviarMensagem).not.toHaveBeenCalled();
     expect(campo).toHaveValue('Olá\ntudo bem');
@@ -253,7 +333,7 @@ describe('CentralConversas - conversa aberta', () => {
     inbox.enviarMensagem.mockRejectedValueOnce({});
     montar();
     await abrirConversa();
-    const campo = screen.getByPlaceholderText('Escreva uma mensagem…');
+    const campo = screen.getByPlaceholderText('Escreva uma mensagem para Mariana…');
     await userEvent.type(campo, 'Oi{Enter}');
     await waitFor(() => expect(showToast).toHaveBeenCalledWith('Não foi possível enviar a mensagem.', 'error'));
     expect(campo).toHaveValue('Oi');
@@ -263,7 +343,7 @@ describe('CentralConversas - conversa aberta', () => {
     montar();
     await abrirConversa();
     await userEvent.click(await screen.findByRole('button', { name: 'Chave Pix' }));
-    expect(screen.getByPlaceholderText('Escreva uma mensagem…')).toHaveValue('Nossa chave Pix: 123');
+    expect(screen.getByPlaceholderText('Escreva uma mensagem para Mariana…')).toHaveValue('Nossa chave Pix: 123');
     expect(inbox.enviarMensagem).not.toHaveBeenCalled();
     const politica = screen.getByRole('button', { name: 'Política' });
     expect(politica).toBeDisabled();
@@ -294,7 +374,7 @@ describe('CentralConversas - conversa aberta', () => {
     inbox.listarConversas.mockResolvedValue(lista([conversa({ clientId: null, nome: null })]));
     inbox.buscarConversa.mockResolvedValue({ conversa: conversa({ clientId: null, nome: null }), contexto: null });
     montar();
-    await userEvent.click(await screen.findByText('+55 (83) 99876-5432', { selector: 'span.font-bold' }));
+    await userEvent.click(await screen.findByText('(83) 99876-5432', { selector: 'span.font-bold' }));
     expect(await screen.findByRole('button', { name: 'Cadastrar cliente' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Ver ficha CRM/ })).not.toBeInTheDocument();
   });
@@ -306,7 +386,7 @@ describe('CentralConversas - bloqueios', () => {
     await abrirConversa();
     expect(screen.getByText(/WhatsApp desconectado\. Reconecte na aba/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Conexão' })).toHaveAttribute('href', '?aba=conexao');
-    expect(screen.getByPlaceholderText('Escreva uma mensagem…')).toBeDisabled();
+    expect(screen.getByPlaceholderText('Escreva uma mensagem para Mariana…')).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Enviar mensagem' })).toBeDisabled();
   });
 
@@ -322,7 +402,7 @@ describe('CentralConversas - bloqueios', () => {
     usuario = { id: 'u-carla', role: 'employee', businessName: 'Studio Aurora' };
     montar();
     await abrirConversa();
-    expect(screen.getByPlaceholderText('Escreva uma mensagem…')).toBeEnabled();
+    expect(screen.getByPlaceholderText('Escreva uma mensagem para Mariana…')).toBeEnabled();
   });
 });
 

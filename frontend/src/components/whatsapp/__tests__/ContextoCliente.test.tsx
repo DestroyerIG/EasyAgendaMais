@@ -91,8 +91,8 @@ describe('ContextoCliente', () => {
 
   it('histórico mostra as visitas pagas; vazio mostra aviso', () => {
     const { unmount } = render(<ContextoCliente contexto={contexto()} conversa={conversa()} onAtualizar={vi.fn()} />);
-    expect(screen.getByText('28/08 • Manutenção gel')).toBeInTheDocument();
-    expect(screen.getByText('07/08 • Esmaltação')).toBeInTheDocument();
+    expect(screen.getByText('28/Ago • Manutenção gel')).toBeInTheDocument();
+    expect(screen.getByText('07/Ago • Esmaltação')).toBeInTheDocument();
     expect(screen.getAllByText(/\(Pago\)/)).toHaveLength(2);
     unmount();
     render(<ContextoCliente contexto={contexto({ ultimasVisitas: [], agendamento: null, cicloMedio: null })} conversa={conversa()} onAtualizar={vi.fn()} />);

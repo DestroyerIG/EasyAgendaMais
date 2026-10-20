@@ -206,15 +206,16 @@ export function CentralConversas({ conectado }: CentralConversasProps) {
             aria-label="Atualizar conversas"
             title="Atualizar conversas"
             onClick={() => void carregar(filtroRef.current)}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-2 text-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-muted shadow-sm hover:bg-surface-2 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
           >
-            <Icon name="sync" size={18} />
+            <Icon name="sync" size={20} />
           </button>
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 lg:h-[calc(100vh-15rem)] lg:min-h-[28rem] lg:flex-row">
-        <div className={`${selecionada ? 'hidden lg:block' : ''} min-h-0 lg:w-[360px] lg:shrink-0`}>
+      {/* Desktop: cartão da fila + cartão único (conversa e contexto), na altura da área visível. */}
+      <div className="flex flex-col gap-4 lg:h-[calc(100vh-15rem)] lg:min-h-[32rem] lg:flex-row">
+        <div className={`${selecionada ? 'hidden lg:block' : ''} min-h-0 lg:w-[300px] lg:shrink-0 2xl:w-[320px]`}>
           <FilaConversas
             filtro={filtro}
             dados={dados}
@@ -228,58 +229,61 @@ export function CentralConversas({ conectado }: CentralConversasProps) {
           />
         </div>
 
-        <div className={`${selecionada ? '' : 'hidden lg:block'} min-h-0 min-w-0 lg:flex-1`}>
+        <div className={`${selecionada ? 'flex' : 'hidden lg:flex'} min-h-0 min-w-0 overflow-hidden rounded-xl bg-surface shadow-sm lg:flex-1`}>
           {selecionada ? (
-            <ConversaAberta
-              conversa={selecionada}
-              conectado={conectado}
-              podeResponder={podeResponder}
-              motivoBloqueio={SEM_PERMISSAO}
-              onAssumir={assumir}
-              onDevolver={devolver}
-              onEnviado={() => void carregar(filtroRef.current)}
-              onVoltar={() => setSelecionada(null)}
-              onCadastrarCliente={() => setCadastrando(true)}
-              contextoMobile={(
-                <div className="flex flex-col gap-2 border-b border-line p-3 lg:hidden">
-                  <button
-                    type="button"
-                    onClick={() => setContextoAberto((v) => !v)}
-                    aria-expanded={contextoAberto}
-                    className="flex items-center justify-between rounded-control bg-surface-2 px-3 py-2 text-[13px] font-bold text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
-                  >
-                    {contextoAberto ? 'Ocultar contexto' : 'Ver contexto da cliente'}
-                    <Icon name={contextoAberto ? 'expand_less' : 'expand_more'} size={18} />
-                  </button>
-                  {contextoAberto ? (
-                    <ContextoCliente
-                      contexto={contexto}
-                      conversa={selecionada}
-                      onAtualizar={atualizarContexto}
-                      onCadastrarCliente={() => setCadastrando(true)}
-                    />
-                  ) : null}
-                </div>
-              )}
-            />
+            <>
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                <ConversaAberta
+                  conversa={selecionada}
+                  conectado={conectado}
+                  podeResponder={podeResponder}
+                  motivoBloqueio={SEM_PERMISSAO}
+                  onAssumir={assumir}
+                  onDevolver={devolver}
+                  onEnviado={() => void carregar(filtroRef.current)}
+                  onVoltar={() => setSelecionada(null)}
+                  onCadastrarCliente={() => setCadastrando(true)}
+                  contextoMobile={(
+                    <div className="flex max-h-[50%] shrink-0 flex-col gap-2 overflow-y-auto border-b border-line p-3 xl:hidden">
+                      <button
+                        type="button"
+                        onClick={() => setContextoAberto((v) => !v)}
+                        aria-expanded={contextoAberto}
+                        className="flex items-center justify-between rounded-control bg-surface-m3-low px-3 py-2 text-[13px] font-bold text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+                      >
+                        {contextoAberto ? 'Ocultar contexto' : 'Ver contexto da cliente'}
+                        <Icon name={contextoAberto ? 'expand_less' : 'expand_more'} size={18} />
+                      </button>
+                      {contextoAberto ? (
+                        <div className="overflow-hidden rounded-xl">
+                          <ContextoCliente
+                            contexto={contexto}
+                            conversa={selecionada}
+                            onAtualizar={atualizarContexto}
+                            onCadastrarCliente={() => setCadastrando(true)}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                />
+              </div>
+              <div className="hidden min-h-0 w-[240px] shrink-0 overflow-y-auto border-l border-line bg-surface-m3-low xl:block">
+                <ContextoCliente
+                  contexto={contexto}
+                  conversa={selecionada}
+                  onAtualizar={atualizarContexto}
+                  onCadastrarCliente={() => setCadastrando(true)}
+                />
+              </div>
+            </>
           ) : (
-            <div className="flex h-full min-h-72 flex-col items-center justify-center gap-2 rounded-xl bg-surface p-6 text-center shadow-sm">
+            <div className="flex min-h-72 flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
               <Icon name="forum" size={32} className="text-muted" />
               <p className="text-[14px] text-muted">Escolha uma conversa para ver as mensagens.</p>
             </div>
           )}
         </div>
-
-        {selecionada ? (
-          <div className="hidden min-h-0 overflow-y-auto lg:block lg:w-[300px] lg:shrink-0">
-            <ContextoCliente
-              contexto={contexto}
-              conversa={selecionada}
-              onAtualizar={atualizarContexto}
-              onCadastrarCliente={() => setCadastrando(true)}
-            />
-          </div>
-        ) : null}
       </div>
 
       {selecionada ? (

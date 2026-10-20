@@ -11,6 +11,7 @@ import { FASE_ROTULO, type Fase } from '@/lib/crm';
 import { formatCurrency } from '@/lib/formatters';
 import { formatarTelefone, type AgendamentoRelacionadoDto, type ContextoClienteDto, type ConversaResumoDto } from '@/lib/whatsappInbox';
 import { getApiErrorMessage } from '@/utils/handleApiError';
+import { getInitials } from '@/components/ui/Avatar';
 
 interface ContextoClienteProps {
   contexto: ContextoClienteDto | null;
@@ -27,6 +28,9 @@ const STATUS_AGENDAMENTO: Record<string, { rotulo: string; classe: string }> = {
   confirmado: { rotulo: 'Confirmado', classe: 'bg-success/12 text-success-text' },
   em_atendimento: { rotulo: 'Em atendimento', classe: 'bg-brand/12 text-brand-text' },
 };
+
+const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+const CARTAO = 'flex flex-col gap-2 rounded-xl bg-surface p-4 shadow-sm';
 
 const dataParte = (iso: string) => iso.slice(0, 10).split('-').map(Number) as [number, number, number];
 const doisDigitos = (n: number) => String(n).padStart(2, '0');
@@ -91,28 +95,41 @@ function Agendamento({ ag, onAtualizar }: { ag: AgendamentoRelacionadoDto; onAtu
   };
 
   return (
-    <section aria-label="Agendamento relacionado" className="flex flex-col gap-2">
-      <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted">Agendamento relacionado</h4>
-      <div className="flex flex-col gap-2 rounded-xl bg-surface-2 p-3">
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-[14px] font-bold text-ink">{ag.servico}</p>
-          <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold', status.classe)}>{status.rotulo}</span>
-        </div>
-        <p className="text-[13px] text-ink">{dataDoAgendamento(ag.data, ag.hora)}</p>
-        <p className="text-[13px] text-muted">{formatCurrency(ag.valor)}</p>
-        <p className="text-[13px] text-muted">{`Profissional: ${ag.profissional}`}</p>
-        {ag.sinal != null ? <p className="text-[13px] text-muted">{`Sinal: ${formatCurrency(ag.sinal)}`}</p> : null}
-        {aguardando ? (
-          <>
-            <p className="text-[12px] text-muted">
+    <section aria-label="Agendamento relacionado" className={CARTAO}>
+      <div className="flex items-start justify-between gap-2">
+        <h4 className="text-[13px] font-bold text-ink">Agendamento Relacionado</h4>
+        <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold', status.classe)}>{status.rotulo}</span>
+      </div>
+      <div className="flex flex-col gap-1 rounded-lg bg-surface-m3-low p-2">
+        <p className="flex items-center gap-2 text-[15px] font-bold text-ink">
+          <Icon name="calendar_month" size={18} className="shrink-0 text-brand-text" />
+          {dataDoAgendamento(ag.data, ag.hora)}
+        </p>
+        <p className="flex items-start justify-between gap-2 pl-6 text-[13px] text-muted">
+          <span>{ag.servico}</span>
+          <span className="shrink-0 font-mono font-bold">{formatCurrency(ag.valor)}</span>
+        </p>
+        <p className="flex flex-wrap items-center justify-between gap-x-2 pl-6 text-[11px] text-muted">
+          <span>{`Profissional: ${ag.profissional}`}</span>
+          {ag.sinal != null ? <span>{`Sinal: ${formatCurrency(ag.sinal)}`}</span> : null}
+        </p>
+      </div>
+      {aguardando ? (
+        <>
+          <p className="flex items-start gap-2 rounded-lg bg-warning/10 p-2.5 text-[11px] leading-snug text-muted">
+            <Icon name="info" size={16} className="mt-0.5 shrink-0 text-warning-text" />
+            <span>
               {ag.sinal != null
                 ? `O bot aguarda a confirmação deste sinal Pix de ${formatCurrency(ag.sinal)} para travar a vaga na agenda de ${ag.profissional}.`
                 : `O bot aguarda a confirmação do sinal Pix para travar a vaga na agenda de ${ag.profissional}.`}
-            </p>
-            <Button size="sm" loading={confirmando} onClick={() => void confirmar()}>Confirmar agendamento</Button>
-          </>
-        ) : null}
-      </div>
+            </span>
+          </p>
+          <Button fullWidth loading={confirmando} onClick={() => void confirmar()} className="gap-2">
+            {!confirmando ? <Icon name="verified" size={18} /> : null}
+            Confirmar agendamento
+          </Button>
+        </>
+      ) : null}
     </section>
   );
 }
@@ -125,12 +142,12 @@ export function ContextoCliente({ contexto, conversa, onAtualizar, onCadastrarCl
     if (conversa.clientId) return null; // contexto ainda carregando
     const abrir = onCadastrarCliente ?? (() => setCadastrando(true));
     return (
-      <aside aria-label="Contexto da cliente" className="flex flex-col gap-3 rounded-xl bg-surface p-4 shadow-sm">
-        <div className="flex flex-col gap-1">
+      <aside aria-label="Contexto da cliente" className="flex flex-col gap-3 bg-surface-m3-low p-4">
+        <div className={CARTAO}>
           <h3 className="text-[14px] font-bold text-ink">Contato sem cadastro</h3>
           <p className="font-mono text-[12px] text-muted">{formatarTelefone(conversa.telefone)}</p>
+          <Button size="sm" variant="secondary" onClick={abrir}>Cadastrar cliente</Button>
         </div>
-        <Button size="sm" variant="secondary" onClick={abrir}>Cadastrar cliente</Button>
         {onCadastrarCliente ? null : (
           <CadastroRapidoCliente
             aberto={cadastrando}
@@ -148,46 +165,53 @@ export function ContextoCliente({ contexto, conversa, onAtualizar, onCadastrarCl
   const visitas = contexto.ultimasVisitas.slice(0, 2);
 
   return (
-    <aside aria-label="Contexto da cliente" className="flex flex-col gap-4 rounded-xl bg-surface p-4 shadow-sm">
-      <div className="flex flex-col gap-2">
+    <aside aria-label="Contexto da cliente" className="flex flex-col gap-4 bg-surface-m3-low p-4">
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="text-[13px] font-bold leading-5 text-ink">Contexto da Cliente</h3>
         {cores ? (
-          <span className={cn('inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-semibold', cores.fundo, cores.texto)}>
+          <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold', cores.fundo, cores.texto)}>
             <span className={cn('h-1.5 w-1.5 rounded-full', cores.ponto)} />
             {FASE_ROTULO[fase]}
           </span>
         ) : null}
-        <h3 className="text-[16px] font-bold text-ink">{contexto.cliente.nome}</h3>
-        <p className="text-[12px] text-muted">{cadastradaHa(contexto.cliente.desde)}</p>
       </div>
 
-      <dl className="grid grid-cols-2 gap-3">
-        <div className="rounded-xl bg-surface-2 p-3">
-          <dt className="text-[11px] font-bold uppercase tracking-wider text-muted">LTV acumulado</dt>
-          <dd className="text-[16px] font-bold text-ink">{formatCurrency(contexto.ltv, { cents: false })}</dd>
+      <div className={CARTAO}>
+        <div className="flex items-center gap-3">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface-2 text-[15px] font-bold text-muted">
+            {getInitials(contexto.cliente.nome)}
+          </span>
+          <div className="flex min-w-0 flex-col">
+            <p className="break-words text-[16px] font-bold leading-5 text-ink">{contexto.cliente.nome}</p>
+            <p className="font-mono text-[11px] text-muted">{cadastradaHa(contexto.cliente.desde)}</p>
+          </div>
         </div>
-        <div className="rounded-xl bg-surface-2 p-3">
-          <dt className="text-[11px] font-bold uppercase tracking-wider text-muted">Ciclo médio</dt>
-          <dd className="text-[16px] font-bold text-ink">{contexto.cicloMedio != null ? `${contexto.cicloMedio} dias` : '—'}</dd>
-        </div>
-      </dl>
+        <dl className="grid grid-cols-2 gap-2 pt-1">
+          <div className="flex flex-col rounded-lg bg-surface-m3-low p-2">
+            <dt className="text-[11px] text-muted">LTV Acumulado</dt>
+            <dd className="font-mono text-[16px] font-bold text-ink">{formatCurrency(contexto.ltv, { cents: false })}</dd>
+          </div>
+          <div className="flex flex-col rounded-lg bg-surface-m3-low p-2">
+            <dt className="text-[11px] text-muted">Ciclo Médio</dt>
+            <dd className="font-mono text-[16px] font-bold text-ink">{contexto.cicloMedio != null ? `${contexto.cicloMedio} dias` : '—'}</dd>
+          </div>
+        </dl>
+      </div>
 
       {contexto.agendamento ? <Agendamento ag={contexto.agendamento} onAtualizar={onAtualizar} /> : null}
 
-      <section aria-label="Histórico recente" className="flex flex-col gap-2">
-        <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted">Histórico recente</h4>
+      <section aria-label="Histórico recente" className={CARTAO}>
+        <h4 className="text-[13px] font-bold text-ink">Histórico Recente</h4>
         {visitas.length === 0 ? (
           <p className="text-[13px] text-muted">Nenhuma visita ainda.</p>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-2 text-[13px]">
             {visitas.map((v) => {
               const [, m, d] = dataParte(v.data);
               return (
-                <li key={`${v.data}-${v.servico}`} className="flex flex-col rounded-xl bg-surface-2 p-3">
-                  <span className="text-[13px] font-bold text-ink">{`${doisDigitos(d)}/${doisDigitos(m)} • ${v.servico}`}</span>
-                  <span className="flex items-center gap-1 text-[12px] text-muted">
-                    <Icon name="check_circle" size={14} className="text-success-text" />
-                    {`${formatCurrency(v.valor, { cents: false })} (Pago)`}
-                  </span>
+                <li key={`${v.data}-${v.servico}`} className="flex items-start justify-between gap-2 text-muted">
+                  <span>{`${doisDigitos(d)}/${MESES[m - 1]} • ${v.servico}`}</span>
+                  <span className="shrink-0 font-mono font-bold text-success-text">{`${formatCurrency(v.valor, { cents: false })} (Pago)`}</span>
                 </li>
               );
             })}

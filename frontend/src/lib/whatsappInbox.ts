@@ -91,3 +91,8 @@ export function formatarTelefone(digitos: string): string {
   if (n.length === 10) return `+55 (${n.slice(0, 2)}) ${n.slice(2, 6)}-${n.slice(6)}`;
   return digitos;
 }
+
+/** "(83) 99876-5432": o mesmo número sem o +55, para listas e cabeçalhos. */
+export function formatarTelefoneLocal(digitos: string): string {
+  return formatarTelefone(digitos).replace(/^\+55 /, '');
+}
