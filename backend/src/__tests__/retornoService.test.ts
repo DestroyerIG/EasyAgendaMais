@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const crm = vi.hoisted(() => ({ clientes: vi.fn(), visitas: vi.fn() }));
 const today = vi.hoisted(() => ({ clientesComAgendamentoFuturo: vi.fn(), profissionaisAtivas: vi.fn(), agendamentosNasDatas: vi.fn() }));
-const fila = vi.hoisted(() => ({ ultimosPorCliente: vi.fn(), ultimosEnviadosPorCliente: vi.fn(), enfileirar: vi.fn() }));
+const fila = vi.hoisted(() => ({ ultimosPorCliente: vi.fn(), ultimosEnviadosPorCliente: vi.fn(), enfileirar: vi.fn(), previsoes: vi.fn() }));
 const zap = vi.hoisted(() => ({ getStatus: vi.fn(), send: vi.fn() }));
 const inbox = vi.hoisted(() => ({ estaEmOptOut: vi.fn() }));
 const neg = vi.hoisted(() => ({ negocio: vi.fn() }));
@@ -54,6 +54,7 @@ beforeEach(() => {
   today.agendamentosNasDatas.mockImplementation(async () => agenda);
   fila.ultimosPorCliente.mockResolvedValue(new Map());
   fila.ultimosEnviadosPorCliente.mockResolvedValue(new Map());
+  fila.previsoes.mockResolvedValue(new Map());
   inbox.estaEmOptOut.mockResolvedValue(false);
   neg.negocio.mockResolvedValue({ nome: 'Studio Aurora', slug: 'aurora', whatsapp: '83988887777' });
   fila.enfileirar.mockImplementation(async (itens: Array<{ clientId: string }>) =>
@@ -103,7 +104,7 @@ describe('quem pode receber', () => {
 
 describe('fila', () => {
   it('envio é o último de qualquer status; ultimoConviteEm é o último enviado', async () => {
-    const falhou = { id: 'e2', clientId: 'c1', status: 'falhou', motivo: 'x', agendadoPara: '2026-10-19T12:00:00.000Z', enviadoEm: '2026-10-19T12:01:00.000Z' };
+    const falhou = { id: 'e2', clientId: 'c1', status: 'falhou', motivo: 'x', agendadoPara: '2026-10-19T12:00:00.000Z', enviadoEm: '2026-10-19T12:01:00.000Z', previstoHora: null };
     fila.ultimosPorCliente.mockImplementation(async () => new Map([['c1', falhou]]));
     fila.ultimosEnviadosPorCliente.mockImplementation(async () => new Map([['c1', new Date('2026-10-15T12:01:00.000Z')]]));
     const r = await listar();
@@ -113,6 +114,24 @@ describe('fila', () => {
   });
   it('sem enviado: ultimoConviteEm null', async () => {
     expect((await listar()).itens[0].ultimoConviteEm).toBeNull();
+  });
+});
+
+describe('previsão de envio', () => {
+  const naFila = { id: 'e9', clientId: 'c1', status: 'na_fila', motivo: null, agendadoPara: AGORA.toISOString(), enviadoEm: null, previstoHora: null };
+  it('item na_fila ganha previstoHora no fuso do negócio, calculada pela posição na fila', async () => {
+    fila.ultimosPorCliente.mockImplementation(async () => new Map([['c1', naFila]]));
+    fila.previsoes.mockResolvedValue(new Map([['e9', new Date('2026-10-21T11:00:00Z')]])); // 08:00 em São Paulo
+    const r = await listar();
+    expect(fila.previsoes).toHaveBeenCalledWith('b1', 'America/Sao_Paulo', AGORA);
+    expect(r.itens[0].envio?.previstoHora).toBe('08:00');
+  });
+  it('sem item na fila não calcula previsão e previstoHora fica null', async () => {
+    const enviado = { ...naFila, status: 'enviado' };
+    fila.ultimosPorCliente.mockImplementation(async () => new Map([['c1', enviado]]));
+    const r = await listar();
+    expect(fila.previsoes).not.toHaveBeenCalled();
+    expect(r.itens[0].envio?.previstoHora).toBeNull();
   });
 });
 
@@ -176,6 +195,15 @@ describe('link', () => {
     const r = await listar();
     expect(r.linkAgendamento).toBeNull();
     expect(r.itens[0].texto).not.toContain('Se preferir, agende');
+  });
+});
+
+describe('sem FRONTEND_URL', () => {
+  it('linkAgendamento null e convite sem link', async () => {
+    delete process.env.FRONTEND_URL;
+    const r = await listar();
+    expect(r.linkAgendamento).toBeNull();
+    expect(r.itens[0].texto).not.toContain('/agendar/');
   });
 });
 

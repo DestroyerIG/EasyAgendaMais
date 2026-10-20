@@ -49,6 +49,7 @@ Falta de teste automatizado em telas com lógica nova (tarefas 9 e 11):
 
 Sub-projeto 2B (pendências conhecidas da revisão final):
 - O índice único `lower(name)` das etiquetas (`tags_business_id_lower_name_key`) existe só no SQL da migração e está fora do schema do Prisma. Toda migração nova gerada por `prisma migrate dev` vai conter um `DROP INDEX` desse índice; esse DROP deve ser removido à mão antes de aplicar, senão a unicidade das etiquetas some sem aviso.
+- O índice único parcial `whatsapp_envios_cliente_ativo_key` (`business_id, client_id, origin` onde `status` é `na_fila` ou `enviando` e `client_id` não é nulo, 2C-2a) também existe só no SQL da migração `20261020120000_whatsapp_envios` e está fora do schema do Prisma. Remova à mão qualquer `DROP INDEX` dele que o `prisma migrate dev` gerar, senão volta o risco de convite duplicado para a mesma cliente.
 - "Excluir cliente" ficou fora do 2B: não existe `DELETE /clients/:id`. Exige decisão de produto sobre histórico de atendimentos, caixa e LGPD (apagar fotos do storage, anonimizar em vez de apagar etc.).
 
 Sub-projeto 2C-1 (WhatsApp: conversas e base de envio):

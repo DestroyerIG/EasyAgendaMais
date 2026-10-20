@@ -18,6 +18,9 @@ import type { EnviarRetornoInput, OportunidadeDto, RetornoDto, TestarRetornoInpu
 const LIMITE_DIAS = 120;
 const MAX_ENCAIXES = 2;
 
+const horaNoFuso = (d: Date, tz: string) =>
+  new Intl.DateTimeFormat('pt-BR', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d);
+
 export const retornoService = {
   async listar(
     businessId: string,
@@ -35,8 +38,9 @@ export const retornoService = {
       retornoRepository.negocio(businessId),
     ]);
     const ativas = new Set(semana.profs.map((p) => p.id));
-    const base = process.env.FRONTEND_URL ?? '';
-    const linkAgendamento = negocio.slug ? `${base}/agendar/${negocio.slug}` : null;
+    const base = process.env.FRONTEND_URL;
+    // Sem FRONTEND_URL o link sairia relativo e quebrado no WhatsApp: melhor convite sem link.
+    const linkAgendamento = negocio.slug && base ? `${base}/agendar/${negocio.slug}` : null;
 
     const candidatas = clientes.flatMap((c) => {
       if (!c.active || futuros.has(c.id)) return [];
@@ -56,6 +60,10 @@ export const retornoService = {
       ])
       : [new Map<string, EnvioDto>(), new Map<string, Date>()];
 
+    const previsoes = [...ultimosEnvios.values()].some((e) => e.status === 'na_fila')
+      ? await filaEnvios.previsoes(businessId, tz, agora)
+      : new Map<string, Date>();
+
     const itens: OportunidadeDto[] = [];
     for (const { c, ultima, atraso, ciclo } of candidatas) {
       const professionalId = ultima.professionalId ?? '';
@@ -70,7 +78,9 @@ export const retornoService = {
       if (c.consentimento === 'revogado') motivoBloqueio = MOTIVO_REVOGADO;
       else if (await inboxRecorder.estaEmOptOut(businessId, c.phone)) motivoBloqueio = MOTIVO_OPT_OUT;
 
-      const envio = ultimosEnvios.get(c.id) ?? null;
+      const bruto = ultimosEnvios.get(c.id) ?? null;
+      const previsto = bruto?.status === 'na_fila' ? previsoes.get(bruto.id) : undefined;
+      const envio = bruto ? { ...bruto, previstoHora: previsto ? horaNoFuso(previsto, tz) : null } : null;
       itens.push({
         cliente: { id: c.id, nome: c.name, telefone: c.phone },
         atrasoDias: atraso, servico: ultima.servico, profissional: ultima.profissional, professionalId,
