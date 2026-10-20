@@ -9,7 +9,7 @@ CREATE TABLE "whatsapp_envios" (
     "origin" VARCHAR(20) NOT NULL,
     "agendado_para" TIMESTAMPTZ(6) NOT NULL,
     "status" VARCHAR(12) NOT NULL DEFAULT 'na_fila',
-    "reason" VARCHAR(160),
+    "motivo" VARCHAR(160),
     "enviado_em" TIMESTAMPTZ(6),
     "intervalo_apos_s" INTEGER,
     "lote_id" UUID,
@@ -32,6 +32,5 @@ ALTER TABLE "whatsapp_envios" ADD CONSTRAINT "whatsapp_envios_business_id_fkey" 
 
 -- AddForeignKey
 ALTER TABLE "whatsapp_envios" ADD CONSTRAINT "whatsapp_envios_client_id_fkey" FOREIGN KEY ("client_id") REFERENCES "clients"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
 
 ALTER TABLE public.whatsapp_envios ENABLE ROW LEVEL SECURITY;

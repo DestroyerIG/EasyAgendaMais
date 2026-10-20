@@ -802,7 +802,7 @@ model WhatsappEnvio {
   origin         String    @db.VarChar(20)
   scheduledFor   DateTime  @map("agendado_para") @db.Timestamptz(6)
   status         String    @default("na_fila") @db.VarChar(12)
-  reason         String?   @db.VarChar(160)
+  reason         String?   @map("motivo") @db.VarChar(160)
   sentAt         DateTime? @map("enviado_em") @db.Timestamptz(6)
   intervalAfterS Int?      @map("intervalo_apos_s")
   batchId        String?   @map("lote_id") @db.Uuid
