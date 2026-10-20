@@ -1,12 +1,14 @@
 import logger from '../../utils/logger.js';
 import { canonicalizePhone } from '../../services/whatsapp/utils/phoneUtils.js';
 import { sendWhatsAppMessage } from '../../services/whatsapp/whatsappMessageService.js';
+import { todayInTimezone } from '../../utils/businessDate.js';
+import { todayRepository } from '../dashboard/today.repository.js';
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
 import { whatsappService } from '../whatsapp/whatsapp.service.js';
 import { inboxRecorder } from '../whatsappInbox/inbox.recorder.js';
 import type { Origem } from '../whatsappInbox/inbox.types.js';
 import { filaRepository as repo, type EnvioRow } from './fila.repository.js';
-import { podeEnviarAgora, sortearIntervalo } from './fila.rules.js';
+import { podeEnviarAgora, previsaoDeEnvio, sortearIntervalo } from './fila.rules.js';
 
 export interface EnfileirarInput {
   businessId: string; clientId: string | null; phone: string; body: string; origin: Origem;
@@ -16,12 +18,16 @@ export interface EnvioDto {
   id: string; clientId: string | null;
   status: 'na_fila' | 'enviando' | 'enviado' | 'falhou' | 'pulado' | 'cancelado';
   motivo: string | null; agendadoPara: string; enviadoEm: string | null;
+  /** "HH:MM" no fuso do negócio; só preenchido pela listagem da Hora de voltar. */
+  previstoHora: string | null;
 }
 
 export const MOTIVO_OPT_OUT = 'Pediu para não receber mensagens';
 export const MOTIVO_REVOGADO = 'Consentimento revogado';
 export const MOTIVO_TELEFONE = 'Telefone inválido';
 export const MOTIVO_INTERROMPIDO = 'Envio interrompido; confira na conversa antes de reenviar';
+export const MOTIVO_VENCIDO = 'Convite vencido';
+export const MOTIVO_JA_AGENDOU = 'Cliente já agendou';
 export const MOTIVO_FALHA = 'O WhatsApp não aceitou o envio';
 
 const HORA_MS = 3_600_000;
@@ -34,6 +40,7 @@ const paraDto = (r: EnvioRow): EnvioDto => ({
   motivo: r.reason,
   agendadoPara: r.scheduledFor.toISOString(),
   enviadoEm: r.sentAt ? r.sentAt.toISOString() : null,
+  previstoHora: null,
 });
 
 type Resultado = 'enviado' | 'pulado' | 'falhou' | 'nada';
@@ -69,6 +76,13 @@ async function processarNegocio(businessId: string, agora: Date): Promise<Result
     if (!canonicalizePhone(item.phone)) decisao = await pular(MOTIVO_TELEFONE);
     else if (await inboxRecorder.estaEmOptOut(businessId, item.phone)) decisao = await pular(MOTIVO_OPT_OUT);
     else if (item.clientId && await repo.consentimentoRevogado(businessId, item.clientId)) decisao = await pular(MOTIVO_REVOGADO);
+    else if (item.origin === 'retorno') {
+      const hoje = todayInTimezone(timezone, agora);
+      if (todayInTimezone(timezone, item.createdAt) !== hoje) decisao = await pular(MOTIVO_VENCIDO);
+      else if (item.clientId && (await todayRepository.clientesComAgendamentoFuturo(businessId, hoje, agora, item.clientId)).has(item.clientId)) {
+        decisao = await pular(MOTIVO_JA_AGENDOU);
+      }
+    }
   } catch (err) {
     logger.warn({ err, businessId, envioId: item.id }, 'fila: checagem pré-envio falhou; item volta para a fila');
     try {
@@ -90,7 +104,7 @@ async function processarNegocio(businessId: string, agora: Date): Promise<Result
     await repo.atualizar(businessId, item.id, { status: 'falhou', reason: MOTIVO_FALHA });
     return 'falhou';
   }
-  await repo.atualizar(businessId, item.id, { status: 'enviado', sentAt: agora, intervalAfterS: sortearIntervalo() });
+  await repo.atualizar(businessId, item.id, { status: 'enviado', sentAt: new Date(), intervalAfterS: sortearIntervalo() });
   return 'enviado';
 }
 
@@ -102,11 +116,20 @@ export const filaEnvios = {
         const existente = await repo.naFilaDoCliente(i.businessId, i.clientId, i.origin);
         if (existente) { saida.push(paraDto(existente)); continue; }
       }
-      const criado = await repo.criar({
-        businessId: i.businessId, clientId: i.clientId, phone: i.phone, phoneKey: canonicalizePhone(i.phone),
-        body: i.body, origin: i.origin, scheduledFor: i.agendadoPara ?? new Date(), batchId: i.loteId ?? null,
-      });
-      saida.push(paraDto(criado));
+      try {
+        const criado = await repo.criar({
+          businessId: i.businessId, clientId: i.clientId, phone: i.phone, phoneKey: canonicalizePhone(i.phone),
+          body: i.body, origin: i.origin, scheduledFor: i.agendadoPara ?? new Date(), batchId: i.loteId ?? null,
+        });
+        saida.push(paraDto(criado));
+      } catch (err) {
+        // Índice único parcial (cliente já ativa na fila): outra requisição criou primeiro.
+        const existente = (err as { code?: string }).code === 'P2002' && i.clientId
+          ? await repo.naFilaDoCliente(i.businessId, i.clientId, i.origin)
+          : null;
+        if (!existente) throw err;
+        saida.push(paraDto(existente));
+      }
     }
     return saida;
   },
@@ -132,6 +155,13 @@ export const filaEnvios = {
       }
     }
     return total;
+  },
+
+  /** Previsão de saída de cada item na fila do negócio (posição, último envio e janela no fuso do negócio). */
+  async previsoes(businessId: string, tz: string, agora: Date = new Date()): Promise<Map<string, Date>> {
+    const [ids, ultimo] = await Promise.all([repo.idsNaFila(businessId), repo.ultimoEnviado(businessId)]);
+    const ult = ultimo ? { em: ultimo.sentAt, intervaloS: ultimo.intervalAfterS } : null;
+    return new Map(ids.map((id, posicao) => [id, previsaoDeEnvio({ agora, tz, posicao, ultimo: ult })]));
   },
 
   async ultimosPorCliente(businessId: string, origin: Origem, clientIds: string[]): Promise<Map<string, EnvioDto>> {

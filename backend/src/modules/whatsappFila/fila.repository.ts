@@ -1,11 +1,12 @@
 import type { WhatsappEnvio } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
+import { INTERVALO_MAX_S } from './fila.rules.js';
 
 export type EnvioRow = WhatsappEnvio;
 
 export const filaRepository = {
   naFilaDoCliente(businessId: string, clientId: string, origin: string): Promise<EnvioRow | null> {
-    return prisma.whatsappEnvio.findFirst({ where: { businessId, clientId, origin, status: 'na_fila' } });
+    return prisma.whatsappEnvio.findFirst({ where: { businessId, clientId, origin, status: { in: ['na_fila', 'enviando'] } } });
   },
 
   criar(data: {
@@ -26,15 +27,25 @@ export const filaRepository = {
 
   async ultimoEnviado(businessId: string): Promise<{ sentAt: Date; intervalAfterS: number } | null> {
     const r = await prisma.whatsappEnvio.findFirst({
-      where: { businessId, status: 'enviado', sentAt: { not: null } },
+      where: { businessId, status: { in: ['enviado', 'enviando'] }, sentAt: { not: null } },
       orderBy: { sentAt: 'desc' },
       select: { sentAt: true, intervalAfterS: true },
     });
-    return r?.sentAt ? { sentAt: r.sentAt, intervalAfterS: r.intervalAfterS ?? 0 } : null;
+    return r?.sentAt ? { sentAt: r.sentAt, intervalAfterS: r.intervalAfterS ?? INTERVALO_MAX_S } : null;
   },
 
   contarEnviadosDesde(businessId: string, desde: Date): Promise<number> {
-    return prisma.whatsappEnvio.count({ where: { businessId, status: 'enviado', sentAt: { gte: desde } } });
+    return prisma.whatsappEnvio.count({ where: { businessId, status: { in: ['enviado', 'enviando'] }, sentAt: { gte: desde } } });
+  },
+
+  /** Ids da fila do negócio na ordem de envio (para a previsão). */
+  async idsNaFila(businessId: string): Promise<string[]> {
+    const rows = await prisma.whatsappEnvio.findMany({
+      where: { businessId, status: 'na_fila' },
+      orderBy: [{ scheduledFor: 'asc' }, { createdAt: 'asc' }],
+      select: { id: true },
+    });
+    return rows.map((r) => r.id);
   },
 
   proximoVencido(businessId: string, agora: Date): Promise<EnvioRow | null> {

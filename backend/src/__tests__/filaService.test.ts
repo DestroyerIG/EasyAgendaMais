@@ -3,9 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const repo = vi.hoisted(() => ({
   naFilaDoCliente: vi.fn(), criar: vi.fn(), negociosComVencidos: vi.fn(), ultimoEnviado: vi.fn(),
   contarEnviadosDesde: vi.fn(), proximoVencido: vi.fn(), reservar: vi.fn(), atualizar: vi.fn(),
-  consentimentoRevogado: vi.fn(), interromper: vi.fn(), recentesPorCliente: vi.fn(), enviadosPorCliente: vi.fn(),
+  idsNaFila: vi.fn(), consentimentoRevogado: vi.fn(), interromper: vi.fn(), recentesPorCliente: vi.fn(), enviadosPorCliente: vi.fn(),
 }));
 vi.mock('../modules/whatsappFila/fila.repository.js', () => ({ filaRepository: repo }));
+const hoje = vi.hoisted(() => ({ todayRepository: { clientesComAgendamentoFuturo: vi.fn() } }));
+vi.mock('../modules/dashboard/today.repository.js', () => hoje);
 const envio = vi.hoisted(() => ({ sendWhatsAppMessage: vi.fn() }));
 vi.mock('../services/whatsapp/whatsappMessageService.js', () => envio);
 const rec = vi.hoisted(() => ({ inboxRecorder: { estaEmOptOut: vi.fn() } }));
@@ -33,6 +35,7 @@ beforeEach(() => {
   repo.atualizar.mockResolvedValue(undefined);
   repo.interromper.mockResolvedValue(0);
   repo.consentimentoRevogado.mockResolvedValue(false);
+  hoje.todayRepository.clientesComAgendamentoFuturo.mockResolvedValue(new Set());
   rec.inboxRecorder.estaEmOptOut.mockResolvedValue(false);
   wa.whatsappService.getStatus.mockResolvedValue({ status: 'connected' });
   envio.sendWhatsAppMessage.mockResolvedValue(true);
@@ -52,7 +55,64 @@ describe('enfileirar', () => {
   });
 });
 
+describe('enfileirar: duplicidade', () => {
+  const item = { businessId: 'b1', clientId: 'c1', phone: '5583999990000', body: 'Oi', origin: 'retorno' as const };
+  it('P2002 na criação devolve o envio existente', async () => {
+    repo.naFilaDoCliente.mockResolvedValueOnce(null).mockResolvedValueOnce(linha({ id: 'ja', status: 'enviando' }));
+    repo.criar.mockRejectedValue(Object.assign(new Error('unique'), { code: 'P2002' }));
+    const r = await filaEnvios.enfileirar([item]);
+    expect(r[0].id).toBe('ja');
+    expect(r[0].status).toBe('enviando');
+  });
+  it('outro erro na criação continua lançando', async () => {
+    repo.naFilaDoCliente.mockResolvedValue(null);
+    repo.criar.mockRejectedValue(new Error('banco'));
+    await expect(filaEnvios.enfileirar([item])).rejects.toThrow('banco');
+  });
+});
+
 describe('processar', () => {
+  it('sentAt é a hora real do envio, não o início do tick', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(AGORA);
+      envio.sendWhatsAppMessage.mockImplementation(async () => { vi.setSystemTime(new Date(AGORA.getTime() + 50_000)); return true; });
+      await filaEnvios.processar(AGORA);
+      const [, , dados] = repo.atualizar.mock.calls[0];
+      expect(dados.sentAt).toEqual(new Date(AGORA.getTime() + 50_000));
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('convite de outro dia é pulado como vencido', async () => {
+    repo.proximoVencido.mockResolvedValue(linha({ createdAt: new Date('2026-10-19T13:00:00Z') }));
+    const r = await filaEnvios.processar(AGORA);
+    expect(r.pulados).toBe(1);
+    expect(envio.sendWhatsAppMessage).not.toHaveBeenCalled();
+    expect(repo.atualizar).toHaveBeenCalledWith('b1', 'e1', { status: 'pulado', reason: 'Convite vencido', sentAt: null });
+  });
+
+  it('criado hoje no fuso do negócio (ainda ontem em UTC não, mas 00:30 local) não vence', async () => {
+    repo.proximoVencido.mockResolvedValue(linha({ createdAt: new Date('2026-10-20T03:30:00Z') })); // 00:30 local de 20/10
+    const r = await filaEnvios.processar(AGORA);
+    expect(r.enviados).toBe(1);
+  });
+
+  it('cliente que já agendou é pulada', async () => {
+    hoje.todayRepository.clientesComAgendamentoFuturo.mockResolvedValue(new Set(['c1']));
+    const r = await filaEnvios.processar(AGORA);
+    expect(r.pulados).toBe(1);
+    expect(envio.sendWhatsAppMessage).not.toHaveBeenCalled();
+    expect(repo.atualizar).toHaveBeenCalledWith('b1', 'e1', { status: 'pulado', reason: 'Cliente já agendou', sentAt: null });
+    expect(hoje.todayRepository.clientesComAgendamentoFuturo).toHaveBeenCalledWith('b1', '2026-10-20', AGORA, 'c1');
+  });
+
+  it('outras origens não passam pela validade', async () => {
+    repo.proximoVencido.mockResolvedValue(linha({ origin: 'sistema', createdAt: new Date('2026-10-01T13:00:00Z') }));
+    hoje.todayRepository.clientesComAgendamentoFuturo.mockResolvedValue(new Set(['c1']));
+    const r = await filaEnvios.processar(AGORA);
+    expect(r.enviados).toBe(1);
+  });
+
   it('envia só 1 por negócio e grava enviado com intervalo 45–90', async () => {
     const r = await filaEnvios.processar(AGORA);
     expect(r).toEqual({ enviados: 1, pulados: 0, falhas: 0 });
@@ -61,7 +121,7 @@ describe('processar', () => {
     const [, id, dados] = repo.atualizar.mock.calls[0];
     expect(id).toBe('e1');
     expect(dados.status).toBe('enviado');
-    expect(dados.sentAt).toEqual(AGORA);
+    expect(dados.sentAt).toBeInstanceOf(Date);
     expect(dados.intervalAfterS).toBeGreaterThanOrEqual(45);
     expect(dados.intervalAfterS).toBeLessThanOrEqual(90);
   });
@@ -149,6 +209,24 @@ describe('processar', () => {
     const r = await filaEnvios.processar(AGORA);
     expect(r.enviados).toBe(2);
     expect(envio.sendWhatsAppMessage).toHaveBeenCalledWith('5583999990000', 'Oi', { businessId: 'b2', origin: 'retorno' });
+  });
+});
+
+describe('previsoes', () => {
+  it('posição na fila do negócio, último envio e fuso do negócio', async () => {
+    repo.idsNaFila.mockResolvedValue(['a', 'b', 'c']);
+    repo.ultimoEnviado.mockResolvedValue({ sentAt: new Date(AGORA.getTime() - 10_000), intervalAfterS: 60 });
+    const m = await filaEnvios.previsoes('b1', 'America/Sao_Paulo', AGORA);
+    // início = último + 60 s = 15:00:50Z; 75 s por posição
+    expect(m.get('a')?.toISOString()).toBe('2026-10-20T15:00:50.000Z');
+    expect(m.get('b')?.toISOString()).toBe('2026-10-20T15:02:05.000Z');
+    expect(m.get('c')?.toISOString()).toBe('2026-10-20T15:03:20.000Z');
+  });
+  it('fora da janela, a previsão vai para as 08:00 do dia seguinte', async () => {
+    repo.idsNaFila.mockResolvedValue(['a']);
+    repo.ultimoEnviado.mockResolvedValue(null);
+    const m = await filaEnvios.previsoes('b1', 'America/Sao_Paulo', new Date('2026-10-21T00:00:00Z')); // 21:00 local
+    expect(m.get('a')?.toISOString()).toBe('2026-10-21T11:00:00.000Z');
   });
 });
 

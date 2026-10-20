@@ -34,3 +34,6 @@ ALTER TABLE "whatsapp_envios" ADD CONSTRAINT "whatsapp_envios_business_id_fkey" 
 ALTER TABLE "whatsapp_envios" ADD CONSTRAINT "whatsapp_envios_client_id_fkey" FOREIGN KEY ("client_id") REFERENCES "clients"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 ALTER TABLE public.whatsapp_envios ENABLE ROW LEVEL SECURITY;
+
+-- Um convite ativo por cliente e origem (índice parcial; fora do schema do Prisma).
+CREATE UNIQUE INDEX "whatsapp_envios_cliente_ativo_key" ON "whatsapp_envios" ("business_id", "client_id", "origin") WHERE "status" IN ('na_fila','enviando') AND "client_id" IS NOT NULL;

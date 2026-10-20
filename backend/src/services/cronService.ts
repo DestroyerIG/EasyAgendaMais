@@ -183,7 +183,7 @@ export const startReminderCron = (): void => {
     } catch (err) {
       logger.warn({ err }, 'Falha ao processar a fila de envios do WhatsApp');
     }
-  });
+  }, { noOverlap: true });
 
   cron.schedule('*/10 * * * *', () => {
     void runReminderJob();

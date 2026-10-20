@@ -94,10 +94,10 @@ export const todayRepository = {
   },
 
   /** Clientes com agendamento de hoje em diante confirmado ou aguardando pagamento ainda válido. */
-  async clientesComAgendamentoFuturo(businessId: string, hoje: string, agora: Date): Promise<Set<string>> {
+  async clientesComAgendamentoFuturo(businessId: string, hoje: string, agora: Date, clientId?: string): Promise<Set<string>> {
     const rows = await prisma.appointment.findMany({
       where: {
-        businessId, date: { gte: dia(hoje) },
+        businessId, date: { gte: dia(hoje) }, ...(clientId ? { clientId } : {}),
         OR: [{ status: 'confirmado' }, { status: 'aguardando_pagamento', expiresAt: { gt: agora } }],
       },
       select: { clientId: true },
