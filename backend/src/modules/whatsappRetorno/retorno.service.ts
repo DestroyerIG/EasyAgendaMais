@@ -7,6 +7,8 @@ import type { EnvioDto } from '../whatsappFila/fila.service.js';
 import { filaEnvios, MOTIVO_OPT_OUT, MOTIVO_REVOGADO } from '../whatsappFila/fila.service.js';
 import { whatsappService } from '../whatsapp/whatsapp.service.js';
 import { inboxRecorder } from '../whatsappInbox/inbox.recorder.js';
+import { avatares } from '../whatsappAvatar/avatar.service.js';
+import { canonicalizePhone } from '../../services/whatsapp/utils/phoneUtils.js';
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
 import { sendWhatsAppMessage } from '../../services/whatsapp/whatsappMessageService.js';
 import { AppError, ConflictError, ValidationError } from '../../utils/errors.js';
@@ -82,7 +84,7 @@ export const retornoService = {
       const previsto = bruto?.status === 'na_fila' ? previsoes.get(bruto.id) : undefined;
       const envio = bruto ? { ...bruto, previstoHora: previsto ? horaNoFuso(previsto, tz) : null } : null;
       itens.push({
-        cliente: { id: c.id, nome: c.name, telefone: c.phone },
+        cliente: { id: c.id, nome: c.name, telefone: c.phone, avatarUrl: null },
         atrasoDias: atraso, servico: ultima.servico, profissional: ultima.profissional, professionalId,
         ultimaVisitaHaDias: ultima.diasAtras, cicloDias: ciclo, valorUltimaVisita: ultima.receita, encaixes,
         podeReceber: motivoBloqueio === null, motivoBloqueio,
@@ -93,6 +95,11 @@ export const retornoService = {
           dias: ultima.diasAtras, encaixes, link: incluirLink ? linkAgendamento : null,
         }),
       });
+    }
+
+    if (itens.length) {
+      const fotos = await avatares.urlsPara(businessId, itens.map((i) => i.cliente.telefone));
+      for (const i of itens) i.cliente.avatarUrl = fotos.get(canonicalizePhone(i.cliente.telefone)) ?? null;
     }
 
     const centavos = itens.reduce((s, i) => s + Math.round(i.valorUltimaVisita * 100), 0);

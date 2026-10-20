@@ -6,6 +6,7 @@ import type { Segmento, CampoFicha } from './technicalSheetTemplates.js';
 export interface ClienteInsight extends ClienteBase {
   fase: Fase; etiquetasAuto: string[]; ultimaVisita: ResumoCliente['ultimaVisita'];
   cicloMedio: number | null; retornoPrevisto: ResumoCliente['retornoPrevisto']; ltv: number; atendimentos: number;
+  avatarUrl: string | null;
 }
 
 export const InsightsQuerySchema = z.object({
@@ -39,7 +40,10 @@ export interface FichaTecnicaDto {
 }
 export interface ConsentimentoDto { estado: 'consentido' | 'revogado' | 'nao_informado'; desde: string | null; canal: 'painel' | 'publico' | 'whatsapp' | null }
 export interface ClientProfileDto {
-  cliente: { id: string; name: string; phone: string; email: string | null; birthDate: string | null; notes: string | null; createdAt: string };
+  cliente: {
+    id: string; name: string; phone: string; email: string | null; birthDate: string | null; notes: string | null; createdAt: string;
+    avatarUrl: string | null;
+  };
   fase: Fase; etiquetas: Array<{ id: string; name: string; color: string }>; etiquetasAuto: string[];
   indicadores: {
     cicloMedio: number | null; ticketMedio: number | null; visitasNoAno: number; faltasECancelamentos: number;

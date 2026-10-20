@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { prisma } from '../config/prisma.js';
 import logger from '../utils/logger.js';
+import { avatares } from '../modules/whatsappAvatar/avatar.service.js';
 import { subscriptionRepository } from '../repositories/subscriptionRepository.js';
 import { businessSettingsRepository } from '../repositories/businessSettingsRepository.js';
 
@@ -182,6 +183,14 @@ export const startReminderCron = (): void => {
       await filaEnvios.processar();
     } catch (err) {
       logger.warn({ err }, 'Falha ao processar a fila de envios do WhatsApp');
+    }
+  }, { noOverlap: true });
+
+  cron.schedule('* * * * *', async () => {
+    try {
+      await avatares.processar();
+    } catch (err) {
+      logger.warn({ err }, 'Falha ao atualizar as fotos de perfil do WhatsApp');
     }
   }, { noOverlap: true });
 

@@ -3,7 +3,7 @@ import type { EnvioDto } from '../whatsappFila/fila.service.js';
 import type { Encaixe } from './retorno.rules.js';
 
 export interface OportunidadeDto {
-  cliente: { id: string; nome: string; telefone: string };
+  cliente: { id: string; nome: string; telefone: string; avatarUrl: string | null };
   atrasoDias: number; servico: string; profissional: string; professionalId: string;
   ultimaVisitaHaDias: number; cicloDias: number; valorUltimaVisita: number; encaixes: Encaixe[];
   podeReceber: boolean; motivoBloqueio: string | null; ultimoConviteEm: string | null; envio: EnvioDto | null; texto: string;

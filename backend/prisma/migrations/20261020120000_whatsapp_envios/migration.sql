@@ -18,6 +18,17 @@ CREATE TABLE "whatsapp_envios" (
     CONSTRAINT "whatsapp_envios_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "whatsapp_avatares" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "business_id" UUID NOT NULL,
+    "phone_key" VARCHAR(20) NOT NULL,
+    "url" TEXT,
+    "buscado_em" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "whatsapp_avatares_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE INDEX "whatsapp_envios_business_id_status_agendado_para_idx" ON "whatsapp_envios"("business_id", "status", "agendado_para");
 
@@ -27,13 +38,20 @@ CREATE INDEX "whatsapp_envios_business_id_client_id_created_at_idx" ON "whatsapp
 -- CreateIndex
 CREATE INDEX "whatsapp_envios_business_id_enviado_em_idx" ON "whatsapp_envios"("business_id", "enviado_em" DESC);
 
+-- CreateIndex
+CREATE UNIQUE INDEX "whatsapp_avatares_business_id_phone_key_key" ON "whatsapp_avatares"("business_id", "phone_key");
+
 -- AddForeignKey
 ALTER TABLE "whatsapp_envios" ADD CONSTRAINT "whatsapp_envios_business_id_fkey" FOREIGN KEY ("business_id") REFERENCES "businesses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "whatsapp_envios" ADD CONSTRAINT "whatsapp_envios_client_id_fkey" FOREIGN KEY ("client_id") REFERENCES "clients"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
+-- AddForeignKey
+ALTER TABLE "whatsapp_avatares" ADD CONSTRAINT "whatsapp_avatares_business_id_fkey" FOREIGN KEY ("business_id") REFERENCES "businesses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
 ALTER TABLE public.whatsapp_envios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.whatsapp_avatares ENABLE ROW LEVEL SECURITY;
 
 -- Um convite ativo por cliente e origem (índice parcial; fora do schema do Prisma).
 CREATE UNIQUE INDEX "whatsapp_envios_cliente_ativo_key" ON "whatsapp_envios" ("business_id", "client_id", "origin") WHERE "status" IN ('na_fila','enviando') AND "client_id" IS NOT NULL;

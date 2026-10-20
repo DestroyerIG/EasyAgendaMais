@@ -5,6 +5,8 @@ import { sendWhatsAppMessage } from '../../services/whatsapp/whatsappMessageServ
 import { deleteSession } from '../../services/whatsapp/whatsappSessionService.js';
 import logger from '../../utils/logger.js';
 import { whatsappService } from '../whatsapp/whatsapp.service.js';
+import { avatares } from '../whatsappAvatar/avatar.service.js';
+import { canonicalizePhone } from '../../services/whatsapp/utils/phoneUtils.js';
 import { crmRepository } from '../crm/crm.repository.js';
 import { resumirCliente } from '../crm/crmMetrics.js';
 import { inboxRepository, nomeDeUsuario } from './inbox.repository.js';
@@ -21,7 +23,7 @@ const SEM_PERMISSAO = 'Esta conversa está com outra pessoa';
 
 type ConversaComRelacoes = NonNullable<Awaited<ReturnType<typeof inboxRepository.conversaDoNegocio>>>;
 
-const paraResumo = (c: ConversaComRelacoes, sinalPendente: boolean): ConversaResumoDto => ({
+const paraResumo = (c: ConversaComRelacoes, sinalPendente: boolean, avatarUrl: string | null): ConversaResumoDto => ({
   id: c.id,
   telefone: c.phone,
   nome: c.client?.name ?? null,
@@ -33,11 +35,13 @@ const paraResumo = (c: ConversaComRelacoes, sinalPendente: boolean): ConversaRes
   previa: c.lastMessagePreview,
   naoLidas: c.unreadCount,
   sinalPendente,
+  avatarUrl,
 });
 
 async function resumoDe(businessId: string, c: ConversaComRelacoes): Promise<ConversaResumoDto> {
   const pendentes = c.clientId ? await inboxRepository.clientesComSinalPendente(businessId, [c.clientId]) : new Set<string>();
-  return paraResumo(c, !!c.clientId && pendentes.has(c.clientId));
+  const fotos = await avatares.urlsPara(businessId, [c.phone]);
+  return paraResumo(c, !!c.clientId && pendentes.has(c.clientId), fotos.get(canonicalizePhone(c.phone)) ?? null);
 }
 
 async function carregar(businessId: string, id: string): Promise<ConversaComRelacoes> {
@@ -113,7 +117,10 @@ export const inboxService = {
     const pagina = linhas.slice(0, POR_PAGINA);
     const clientIds = [...new Set(pagina.map((c) => c.clientId).filter((x): x is string => !!x))];
     const pendentes = await inboxRepository.clientesComSinalPendente(businessId, clientIds);
-    const itens = pagina.map((c) => paraResumo(c as ConversaComRelacoes, !!c.clientId && pendentes.has(c.clientId)));
+    const fotos = await avatares.urlsPara(businessId, pagina.map((c) => c.phone));
+    const itens = pagina.map((c) => paraResumo(
+      c as ConversaComRelacoes, !!c.clientId && pendentes.has(c.clientId), fotos.get(canonicalizePhone(c.phone)) ?? null,
+    ));
     const ultima = pagina[pagina.length - 1];
     return {
       itens,

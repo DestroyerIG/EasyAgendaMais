@@ -94,6 +94,7 @@ model Business {
   whatsappMessages      WhatsappMessage[]
   whatsappOptOuts       WhatsappOptOut[]
   whatsappEnvios        WhatsappEnvio[]
+  whatsappAvatares      WhatsappAvatar[]
 
   @@map("businesses")
 }
@@ -815,4 +816,17 @@ model WhatsappEnvio {
   @@index([businessId, clientId, createdAt(sort: Desc)])
   @@index([businessId, sentAt(sort: Desc)])
   @@map("whatsapp_envios")
+}
+
+model WhatsappAvatar {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
+  phoneKey   String   @map("phone_key") @db.VarChar(20)
+  url        String?  @db.Text
+  fetchedAt  DateTime @default(now()) @map("buscado_em") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, phoneKey])
+  @@map("whatsapp_avatares")
 }
