@@ -30,7 +30,7 @@ describe('montarMensagemRetorno', () => {
     expect(t).toBe([
       'Oi, Beatriz! 💕 Aqui é da equipe do *Studio Aurora*.',
       '',
-      'Notamos que seu Manutenção Fibra de Vidro com *Camila* já completou *39* dias e deve estar precisando daquele cuidado especial ✨',
+      'Notamos que já faz *39* dias desde o seu último atendimento de Manutenção Fibra de Vidro com *Camila* e você deve estar precisando daquele cuidado especial ✨',
       '',
       'Temos 2 opções para você nesta semana:',
       '1️⃣ *Quarta-feira (21/out) às 14:30*',

@@ -28,7 +28,7 @@ export function montarMensagemRetorno(d: {
   // Parágrafos separados por linha em branco; *trecho* é negrito no WhatsApp.
   const paragrafos = [
     `Oi, ${primeiroNome(d.nome)}! 💕 Aqui é da equipe do *${d.negocio}*.`,
-    `Notamos que seu ${d.servico} com *${primeiroNome(d.profissional)}* já completou *${d.dias}* dias e deve estar precisando daquele cuidado especial ✨`,
+    `Notamos que já faz *${d.dias}* dias desde o seu último atendimento de ${d.servico} com *${primeiroNome(d.profissional)}* e você deve estar precisando daquele cuidado especial ✨`,
   ];
   if (encaixes.length === 0) {
     paragrafos.push('Me conta o melhor dia para você que eu encontro um horário!');

@@ -43,7 +43,7 @@ Referência visual: `docs/design/stitch/projeto/studio-aurora-whatsapp-hora-de-v
 ```
 Oi, {primeiro_nome}! 💕 Aqui é da equipe do *{negocio}*.
 
-Notamos que seu {servico} com *{profissional}* já completou *{dias}* dias e deve estar precisando daquele cuidado especial ✨
+Notamos que já faz *{dias}* dias desde o seu último atendimento de {servico} com *{profissional}* e você deve estar precisando daquele cuidado especial ✨
 
 Temos {qtd} opções para você nesta semana:
 1️⃣ *{encaixe_1}*

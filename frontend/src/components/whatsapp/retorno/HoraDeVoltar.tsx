@@ -170,13 +170,17 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
           </span>
           <div className="flex flex-col pr-4" title={marcadas.length > 0 ? 'Soma do valor da última visita das clientes selecionadas' : 'Soma do valor da última visita de cada cliente'}>
             <span className="text-[11px] font-semibold leading-none text-muted">Recuperação Estimada</span>
-            <span className="mt-1 text-[20px] font-extrabold leading-7 text-ink"><span data-testid="recuperacao">{reais}<span className="text-[13px] font-normal text-muted">{centavos}</span></span></span>
+            <span className="mt-1 text-[20px] font-extrabold leading-7 text-ink">{dados ? (
+                <span data-testid="recuperacao">{reais}<span className="text-[13px] font-normal text-muted">{centavos}</span></span>
+              ) : (
+                <span aria-label="Carregando valor" className="text-muted">—</span>
+              )}</span>
           </div>
           <div className="mx-1 h-8 w-px bg-line" aria-hidden="true" />
           <div className="flex flex-col pl-1 pr-2">
             <span className="text-[11px] font-semibold leading-none text-muted">Oportunidades</span>
             <div className="mt-1 flex items-center gap-1">
-              <span className="text-[20px] font-extrabold leading-7 text-brand-text">{dados?.resumo.oportunidades ?? 0}</span>
+              <span className="text-[20px] font-extrabold leading-7 text-brand-text">{dados ? dados.resumo.oportunidades : '—'}</span>
               <span className="text-[11px] font-semibold text-muted">ativas</span>
             </div>
           </div>

@@ -419,4 +419,15 @@ describe('HoraDeVoltar', () => {
     expect(erro).not.toHaveBeenCalled();
     erro.mockRestore();
   });
+
+  it('antes da primeira resposta os cartões de resumo mostram traço, não zeros', async () => {
+    let resolver: (v: RetornoDto) => void = () => {};
+    retorno.buscarRetorno.mockReturnValue(new Promise<RetornoDto>((r) => { resolver = r; }));
+    render(<HoraDeVoltar conectado />);
+    expect(screen.getByLabelText('Carregando valor')).toBeInTheDocument();
+    expect(screen.queryByText(/R\$ 0,00/)).toBeNull();
+    expect(screen.queryByText('0')).toBeNull();
+    resolver(padrao());
+    expect(await screen.findByTestId('recuperacao')).toHaveTextContent('R$ 1.180,00');
+  });
 });
