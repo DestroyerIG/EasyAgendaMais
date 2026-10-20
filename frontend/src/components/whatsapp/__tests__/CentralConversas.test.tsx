@@ -34,7 +34,7 @@ const agora = () => new Date().toISOString();
 const conversa = (o: Partial<ConversaResumoDto> = {}): ConversaResumoDto => ({
   id: 'c1', telefone: '5583998765432', nome: 'Mariana Souza', clientId: 'cli1',
   atendimento: 'humano', status: 'aberta', responsavel: { id: 'u-carla', nome: 'Carla' },
-  ultimaMensagemEm: agora(), previa: 'Pode ser na quinta às 14h sim!', naoLidas: 1, sinalPendente: true, ...o,
+  ultimaMensagemEm: agora(), previa: 'Pode ser na quinta às 14h sim!', naoLidas: 1, sinalPendente: true, avatarUrl: null, ...o,
 });
 
 const lista = (itens: ConversaResumoDto[], extra: Partial<ListaConversasDto> = {}): ListaConversasDto => ({
@@ -481,5 +481,26 @@ describe('CentralConversas - leitura automática', () => {
     await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
     expect(inbox.listarConversas).toHaveBeenCalledTimes(callsAntes);
     expect(inbox.marcarLidas).not.toHaveBeenCalled();
+  });
+});
+
+describe('CentralConversas - fotos de perfil', () => {
+  it('mostra a foto de quem tem avatarUrl e as iniciais de quem não tem', async () => {
+    inbox.listarConversas.mockResolvedValue(lista([
+      conversa({ avatarUrl: 'https://cdn.exemplo/mariana.jpg' }),
+      conversa({ id: 'c3', nome: 'Rafa Diniz', avatarUrl: null }),
+    ]));
+    montar();
+    expect(await screen.findByRole('img', { name: 'Mariana Souza' })).toHaveAttribute('src', 'https://cdn.exemplo/mariana.jpg');
+    expect(screen.getByRole('img', { name: 'Rafa Diniz' })).toHaveTextContent('RD');
+  });
+
+  it('o cabeçalho da conversa aberta usa a foto', async () => {
+    inbox.listarConversas.mockResolvedValue(lista([conversa({ avatarUrl: 'https://cdn.exemplo/mariana.jpg' })]));
+    montar();
+    await abrirConversa();
+    const fotos = screen.getAllByRole('img', { name: 'Mariana Souza' });
+    expect(fotos.length).toBeGreaterThanOrEqual(2);
+    fotos.forEach((f) => expect(f).toHaveAttribute('src', 'https://cdn.exemplo/mariana.jpg'));
   });
 });

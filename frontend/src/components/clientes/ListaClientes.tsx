@@ -405,7 +405,7 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
                   >
                     <td className="py-3.5 pl-5 pr-3">
                       <div className="flex items-center gap-3">
-                        <Avatar name={c.name} size={36} />
+                        <Avatar name={c.name} src={c.avatarUrl} size={36} />
                         <div className="flex min-w-0 flex-col">
                           <span className="truncate font-bold text-ink transition-colors group-hover:text-brand-text">{c.name}</span>
                           <span className="text-[12px] tabular-nums text-muted">{c.phone ? formatPhone(c.phone) : 'Sem telefone'}</span>
@@ -487,7 +487,7 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <Avatar name={c.name} size={36} />
+                    <Avatar name={c.name} src={c.avatarUrl} size={36} />
                     <div className="flex min-w-0 flex-col">
                       <span className="truncate font-bold text-ink">{c.name}</span>
                       <span className="text-[12px] tabular-nums text-muted">{c.phone ? formatPhone(c.phone) : 'Sem telefone'}</span>

@@ -29,6 +29,7 @@ vi.mock('@/components/whatsapp/ConnectionPanel', () => ({
     </div>
   ),
 }));
+vi.mock('@/components/whatsapp/retorno/HoraDeVoltar', () => ({ HoraDeVoltar: () => <div>painel-hora-de-voltar</div> }));
 vi.mock('@/components/whatsapp/conversas/CentralConversas', () => ({ CentralConversas: () => <div>painel-conversas</div> }));
 vi.mock('@/components/whatsapp/MenuOptionsPanel', () => ({ MenuOptionsPanel: () => <div>painel-menu</div> }));
 vi.mock('@/components/whatsapp/MessageConfigPanel', () => ({ MessageConfigPanel: () => <div>painel-mensagens</div> }));
@@ -51,16 +52,22 @@ describe('WhatsAppModule', () => {
     abaNaUrl = null;
   });
 
-  it('mostra as abas Automações, Conversas e Conexão, nessa ordem, e nenhuma outra', async () => {
+  it('mostra as abas Hora de voltar, Automações, Conversas e Conexão, nessa ordem, e nenhuma outra', async () => {
     responderStatus('connected');
     render(<WhatsAppModule />);
     await screen.findByText('painel-conversas');
     const nomes = screen.getAllByRole('tab').map((t) => (t.textContent ?? ''));
-    expect(nomes).toEqual(['Automações', 'Conversas', 'Conexão']);
-    expect(screen.queryByRole('tab', { name: 'Hora de voltar' })).toBeNull();
+    expect(nomes).toEqual(['Hora de voltar', 'Automações', 'Conversas', 'Conexão']);
     expect(screen.queryByRole('tab', { name: 'Campanhas' })).toBeNull();
     expect(screen.queryByRole('tab', { name: /^list ?Menu$/ })).toBeNull();
     expect(screen.queryByRole('tab', { name: 'Simulador' })).toBeNull();
+  });
+
+  it('?aba=hora-de-voltar abre a Hora de voltar', async () => {
+    abaNaUrl = 'hora-de-voltar';
+    responderStatus('connected');
+    render(<WhatsAppModule />);
+    expect(await screen.findByText('painel-hora-de-voltar')).toBeInTheDocument();
   });
 
   it('?aba=conexao abre a aba Conexão', async () => {

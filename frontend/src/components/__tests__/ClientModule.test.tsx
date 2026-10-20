@@ -43,7 +43,7 @@ const insight: ClienteInsight = {
   id: 'c1', name: 'Maria Silva', phone: '11999999999', email: null, birthDate: null,
   createdAt: '2024-01-01T00:00:00.000Z', active: true, tags: [], consentimento: 'nao_informado',
   fase: 'novo', etiquetasAuto: [], ultimaVisita: null, cicloMedio: null,
-  retornoPrevisto: { data: null, venceuHa: null, texto: '—' }, ltv: 0, atendimentos: 0,
+  retornoPrevisto: { data: null, venceuHa: null, texto: '—' }, ltv: 0, atendimentos: 0, avatarUrl: null,
 };
 
 const completo: Client = {

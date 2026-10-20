@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Button, Icon } from '@/components/ui';
-import { getInitials } from '@/components/ui/Avatar';
+import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
@@ -275,9 +275,19 @@ export function ConversaAberta({
               <Icon name="arrow_back" />
             </button>
           ) : null}
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-2 text-[14px] font-bold text-muted">
-            {conversa.nome ? getInitials(conversa.nome) : <Icon name="person" size={20} className="text-muted" />}
-          </span>
+          {conversa.nome || conversa.avatarUrl ? (
+            <Avatar
+              name={conversa.nome ?? telefone}
+              src={conversa.avatarUrl}
+              size={40}
+              className="text-[14px] font-bold text-muted"
+              fallback={conversa.nome ? undefined : <Icon name="person" size={20} className="text-muted" />}
+            />
+          ) : (
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-2">
+              <Icon name="person" size={20} className="text-muted" />
+            </span>
+          )}
           <div className="flex min-w-0 flex-col">
             <h2 className="line-clamp-2 break-words text-[17px] font-bold leading-6 text-ink">{conversa.nome ?? telefone}</h2>
             <p className="flex flex-wrap items-center gap-x-1.5 text-[11px]">

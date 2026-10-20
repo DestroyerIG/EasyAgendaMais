@@ -7,6 +7,8 @@ import type { ClienteInsight, InsightsQuery } from './crm.types.js';
 import { linhaCsv } from './csv.js';
 import { todayInTimezone, zonedToUtc } from '../../utils/businessDate.js';
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
+import { avatares } from '../whatsappAvatar/avatar.service.js';
+import { canonicalizePhone } from '../../services/whatsapp/utils/phoneUtils.js';
 
 const FASES: Fase[] = ['novo', 'recorrente', 'fiel', 'em_risco', 'perdido'];
 const semAcento = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -39,10 +41,17 @@ async function montar(businessId: string) {
     const r = resumirCliente(visitas.get(c.id) ?? [], hoje, c.birthDate);
     return {
       ...c, fase: r.fase, etiquetasAuto: r.etiquetasAuto, ultimaVisita: r.ultimaVisita, cicloMedio: r.cicloMedio,
-      retornoPrevisto: r.retornoPrevisto, ltv: r.ltv, atendimentos: r.visitas,
+      retornoPrevisto: r.retornoPrevisto, ltv: r.ltv, atendimentos: r.visitas, avatarUrl: null,
     };
   });
   return { hoje, insights, visitas, profs };
+}
+
+/** Preenche avatarUrl das cartas devolvidas, com uma única consulta para a lista. */
+async function comAvatares(businessId: string, cartas: ClienteInsight[]): Promise<ClienteInsight[]> {
+  if (cartas.length === 0) return cartas;
+  const fotos = await avatares.urlsPara(businessId, cartas.map((c) => c.phone));
+  return cartas.map((c) => ({ ...c, avatarUrl: fotos.get(canonicalizePhone(c.phone)) ?? null }));
 }
 
 const porUltimaVisita = (a: ClienteInsight, b: ClienteInsight) => {
@@ -81,7 +90,8 @@ export const crmService = {
       : q.ordem === 'retorno' ? porRetorno : porUltimaVisita;
     const ordenados = [...filtrados].sort(cmp);
     const inicio = (q.page - 1) * q.pageSize;
-    return { itens: ordenados.slice(inicio, inicio + q.pageSize), total: ordenados.length, contagemPorFase };
+    const itens = await comAvatares(businessId, ordenados.slice(inicio, inicio + q.pageSize));
+    return { itens, total: ordenados.length, contagemPorFase };
   },
 
   async fases(businessId: string) {
@@ -94,6 +104,9 @@ export const crmService = {
         cartoes: doGrupo.slice(0, 20),
       };
     });
+    const todosCartoes = await comAvatares(businessId, colunas.flatMap((col) => col.cartoes));
+    let n = 0;
+    for (const col of colunas) col.cartoes = todosCartoes.slice(n, (n += col.cartoes.length));
     const ativas = insights.filter((c) => c.active && c.ultimaVisita && c.ultimaVisita.diasAtras <= 120);
     const mes = hoje.slice(0, 7);
     const ativasNovasNoMes = ativas.filter((c) => {
@@ -118,6 +131,7 @@ export const crmService = {
       crmRepository.ficha(businessId, clientId), crmRepository.ownerName(businessId), crmRepository.configuracao(businessId),
     ]);
     const r = resumirCliente(visitas, hoje, c.birthDate);
+    const fotoCliente = (await avatares.urlsPara(businessId, [c.phone])).get(canonicalizePhone(c.phone)) ?? null;
     const consent: ConsentimentoDto = c.consentimento
       ? {
         estado: ESTADO_CONSENT(c.consentimento), desde: c.consentimento.grantedAt,
@@ -125,7 +139,7 @@ export const crmService = {
       }
       : { estado: 'nao_informado', desde: null, canal: null };
     return {
-      cliente: { id: c.id, name: c.name, phone: c.phone, email: c.email, birthDate: c.birthDate, notes: c.notes, createdAt: c.createdAt },
+      cliente: { id: c.id, name: c.name, phone: c.phone, email: c.email, birthDate: c.birthDate, notes: c.notes, createdAt: c.createdAt, avatarUrl: fotoCliente },
       fase: r.fase, etiquetas: c.tags, etiquetasAuto: r.etiquetasAuto,
       indicadores: {
         cicloMedio: r.cicloMedio, ticketMedio: r.ticketMedio,

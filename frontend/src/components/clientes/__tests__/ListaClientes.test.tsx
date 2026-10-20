@@ -46,6 +46,7 @@ const cliente = (partes: Partial<ClienteInsight> & { id: string; name: string })
   retornoPrevisto: { data: '2026-10-08', venceuHa: null, texto: '08/10 · em 21 dias' },
   ltv: 1820,
   atendimentos: 14,
+  avatarUrl: null,
   ...partes,
 });
 
@@ -297,5 +298,18 @@ describe('ListaClientes', () => {
     expect(screen.queryByText('Nenhuma cliente cadastrada')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }));
     expect(await screen.findByRole('row', { name: 'Ver ficha de Mariana Souza' })).toBeInTheDocument();
+  });
+
+  it('mostra a foto da cliente quando existe e as iniciais quando não', async () => {
+    mockBuscarInsights.mockResolvedValue(
+      resposta([
+        cliente({ id: 'c1', name: 'Mariana Souza', avatarUrl: 'https://cdn.exemplo/m.jpg' }),
+        cliente({ id: 'c2', name: 'Rafa Diniz', avatarUrl: null }),
+      ]),
+    );
+    renderizar();
+    const fotos = await screen.findAllByRole('img', { name: 'Mariana Souza' });
+    expect(fotos[0]).toHaveAttribute('src', 'https://cdn.exemplo/m.jpg');
+    expect(screen.getAllByRole('img', { name: 'Rafa Diniz' })[0]).toHaveTextContent('RD');
   });
 });

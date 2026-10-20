@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export type Direcao = 'in' | 'out';
-export type Origem = 'cliente' | 'bot' | 'lembrete' | 'confirmacao' | 'pix_recibo' | 'lista_espera'
+export type Origem = 'cliente' | 'bot' | 'lembrete' | 'confirmacao' | 'pix_recibo' | 'lista_espera' | 'retorno'
   | 'manual_painel' | 'manual_celular' | 'sistema' | 'painel_evento';
 export type StatusMensagem = 'recebida' | 'enviada' | 'entregue' | 'lida' | 'falhou';
 export type Atendimento = 'bot' | 'humano';
@@ -16,6 +16,7 @@ export interface ConversaResumoDto {
   id: string; telefone: string; nome: string | null; clientId: string | null;
   atendimento: Atendimento; status: StatusConversa; responsavel: { id: string; nome: string } | null;
   ultimaMensagemEm: string; previa: string; naoLidas: number; sinalPendente: boolean;
+  avatarUrl: string | null;
 }
 export interface ListaConversasDto {
   itens: ConversaResumoDto[];

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button, Icon, Skeleton } from '@/components/ui';
 import { cn } from '@/lib/cn';
-import { getInitials } from '@/components/ui/Avatar';
+import { Avatar } from '@/components/ui/Avatar';
 import {
   formatarTelefoneLocal,
   horaCurta,
@@ -85,9 +85,19 @@ function ItemConversa({ c, selecionada, onSelecionar }: { c: ConversaResumoDto; 
       {selecionada ? <span className="absolute bottom-3 left-0 top-3 w-1 rounded-r bg-brand" aria-hidden="true" /> : null}
       <span className="flex items-start justify-between gap-2">
         <span className="flex min-w-0 items-center gap-3">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface-2 text-[15px] font-bold text-muted">
-            {c.nome ? getInitials(c.nome) : <Icon name="person" size={22} className="text-muted" />}
-          </span>
+          {c.nome || c.avatarUrl ? (
+            <Avatar
+              name={c.nome ?? telefone}
+              src={c.avatarUrl}
+              size={48}
+              className="text-[15px] font-bold text-muted"
+              fallback={c.nome ? undefined : <Icon name="person" size={22} className="text-muted" />}
+            />
+          ) : (
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface-2">
+              <Icon name="person" size={22} className="text-muted" />
+            </span>
+          )}
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
               <span className="break-words text-[15px] font-bold leading-5 text-ink">{c.nome ?? telefone}</span>

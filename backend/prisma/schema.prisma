@@ -93,6 +93,8 @@ model Business {
   whatsappConversations WhatsappConversation[]
   whatsappMessages      WhatsappMessage[]
   whatsappOptOuts       WhatsappOptOut[]
+  whatsappEnvios        WhatsappEnvio[]
+  whatsappAvatares      WhatsappAvatar[]
 
   @@map("businesses")
 }
@@ -219,6 +221,7 @@ model Client {
   consents        ClientConsent[]
   waitlistEntries WaitlistEntry[]
   whatsappConversations WhatsappConversation[]
+  whatsappEnvios        WhatsappEnvio[]
 
   @@map("clients")
 }
@@ -788,4 +791,42 @@ model WhatsappOptOut {
 
   @@unique([businessId, phoneKey])
   @@map("whatsapp_opt_outs")
+}
+
+model WhatsappEnvio {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId     String    @map("business_id") @db.Uuid
+  clientId       String?   @map("client_id") @db.Uuid
+  phone          String    @db.VarChar(20)
+  phoneKey       String    @map("phone_key") @db.VarChar(20)
+  body           String    @db.Text
+  origin         String    @db.VarChar(20)
+  scheduledFor   DateTime  @map("agendado_para") @db.Timestamptz(6)
+  status         String    @default("na_fila") @db.VarChar(12)
+  reason         String?   @map("motivo") @db.VarChar(160)
+  sentAt         DateTime? @map("enviado_em") @db.Timestamptz(6)
+  intervalAfterS Int?      @map("intervalo_apos_s")
+  batchId        String?   @map("lote_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  client   Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, status, scheduledFor])
+  @@index([businessId, clientId, createdAt(sort: Desc)])
+  @@index([businessId, sentAt(sort: Desc)])
+  @@map("whatsapp_envios")
+}
+
+model WhatsappAvatar {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId String   @map("business_id") @db.Uuid
+  phoneKey   String   @map("phone_key") @db.VarChar(20)
+  url        String?  @db.Text
+  fetchedAt  DateTime @default(now()) @map("buscado_em") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, phoneKey])
+  @@map("whatsapp_avatares")
 }

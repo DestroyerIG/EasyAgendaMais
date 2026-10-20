@@ -21,6 +21,7 @@ const cliente = (fase: Fase, id: string, name: string, extra: Partial<ClienteIns
   tags: [], consentimento: 'nao_informado', fase, etiquetasAuto: [],
   ultimaVisita: { date: '2026-09-17', receita: 120, servico: 'Manutenção', profissional: 'Camila', diasAtras: 3 },
   cicloMedio: 21, retornoPrevisto: { data: null, venceuHa: null, texto: '—' }, ltv: 1820, atendimentos: 14,
+  avatarUrl: null,
   ...extra,
 });
 
@@ -107,5 +108,14 @@ describe('FasesClientes', () => {
     render(<FasesClientes />);
     fireEvent.click(await screen.findByRole('button', { name: 'Tentar de novo' }));
     await waitFor(() => expect(screen.getByText('Ana')).toBeInTheDocument());
+  });
+
+  it('o cartão mostra a foto da cliente ou as iniciais', async () => {
+    mockBuscarFases.mockResolvedValue(dto({
+      novo: [cliente('novo', 'a', 'Ana Lima', { avatarUrl: 'https://cdn.exemplo/ana.jpg' }), cliente('novo', 'b', 'Bia Reis')],
+    }));
+    render(<FasesClientes nomeNegocio="Studio Aurora" />);
+    expect(await screen.findByRole('img', { name: 'Ana Lima' })).toHaveAttribute('src', 'https://cdn.exemplo/ana.jpg');
+    expect(screen.getByRole('img', { name: 'Bia Reis' })).toHaveTextContent('BR');
   });
 });

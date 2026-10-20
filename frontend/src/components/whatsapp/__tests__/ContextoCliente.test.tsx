@@ -16,7 +16,7 @@ import type { ContextoClienteDto, ConversaResumoDto } from '@/lib/whatsappInbox'
 const conversa = (o: Partial<ConversaResumoDto> = {}): ConversaResumoDto => ({
   id: 'c1', telefone: '5583998765432', nome: 'Mariana Souza', clientId: 'cli1',
   atendimento: 'humano', status: 'aberta', responsavel: null,
-  ultimaMensagemEm: new Date().toISOString(), previa: 'oi', naoLidas: 0, sinalPendente: true, ...o,
+  ultimaMensagemEm: new Date().toISOString(), previa: 'oi', naoLidas: 0, sinalPendente: true, avatarUrl: null, ...o,
 });
 
 const mesesAtras = (n: number) => {
@@ -113,5 +113,15 @@ describe('ContextoCliente', () => {
     await waitFor(() => expect(apiMock.post).toHaveBeenCalledWith('/clients', expect.objectContaining({ name: 'Joana Lima', phone: '+55 (83) 99876-5432' })));
     await waitFor(() => expect(onAtualizar).toHaveBeenCalled());
     expect(showToast).toHaveBeenCalledWith('Cliente cadastrada!', 'success');
+  });
+});
+
+describe('ContextoCliente - foto', () => {
+  it('mostra a foto da conversa e, sem ela, as iniciais', () => {
+    const { unmount } = render(<ContextoCliente contexto={contexto()} conversa={conversa({ avatarUrl: 'https://cdn.exemplo/m.jpg' })} onAtualizar={vi.fn()} />);
+    expect(screen.getByRole('img', { name: 'Mariana Souza' })).toHaveAttribute('src', 'https://cdn.exemplo/m.jpg');
+    unmount();
+    render(<ContextoCliente contexto={contexto()} conversa={conversa()} onAtualizar={vi.fn()} />);
+    expect(screen.getByRole('img', { name: 'Mariana Souza' })).toHaveTextContent('MS');
   });
 });

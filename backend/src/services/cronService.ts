@@ -1,12 +1,14 @@
 import cron from 'node-cron';
 import { prisma } from '../config/prisma.js';
 import logger from '../utils/logger.js';
+import { avatares } from '../modules/whatsappAvatar/avatar.service.js';
 import { subscriptionRepository } from '../repositories/subscriptionRepository.js';
 import { businessSettingsRepository } from '../repositories/businessSettingsRepository.js';
 
 // @ts-ignore — sendWhatsAppMessage is a legacy JS service not yet typed
 import { sendWhatsAppMessage } from './whatsapp/index.js';
 import { inboxCron } from '../modules/whatsappInbox/inbox.cron.js';
+import { filaEnvios } from '../modules/whatsappFila/fila.service.js';
 import { notificationsService } from '../modules/notifications/notifications.service.js';
 
 // Agendamentos gravam `time`/`date` no relógio local do negócio (BR), não UTC.
@@ -176,6 +178,22 @@ export const expirePendingAppointments = async (now: Date = new Date()): Promise
 };
 
 export const startReminderCron = (): void => {
+  cron.schedule('* * * * *', async () => {
+    try {
+      await filaEnvios.processar();
+    } catch (err) {
+      logger.warn({ err }, 'Falha ao processar a fila de envios do WhatsApp');
+    }
+  }, { noOverlap: true });
+
+  cron.schedule('* * * * *', async () => {
+    try {
+      await avatares.processar();
+    } catch (err) {
+      logger.warn({ err }, 'Falha ao atualizar as fotos de perfil do WhatsApp');
+    }
+  }, { noOverlap: true });
+
   cron.schedule('*/10 * * * *', () => {
     void runReminderJob();
   });

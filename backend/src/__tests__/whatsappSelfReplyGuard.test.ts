@@ -19,6 +19,8 @@ const mockIsWithinBusinessHours = vi.hoisted(() => vi.fn());
 const mockGenerateAvailableTimeSlots = vi.hoisted(() => vi.fn());
 const mockFormatBusinessHoursRange = vi.hoisted(() => vi.fn());
 
+vi.mock('../config/prisma.js', () => ({ prisma: { business: { findFirst: vi.fn().mockResolvedValue(null) } } }));
+
 vi.mock('../config/database.js', () => ({
   default: { query: mockPoolQuery },
 }));

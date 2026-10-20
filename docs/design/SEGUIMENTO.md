@@ -49,6 +49,7 @@ Falta de teste automatizado em telas com lógica nova (tarefas 9 e 11):
 
 Sub-projeto 2B (pendências conhecidas da revisão final):
 - O índice único `lower(name)` das etiquetas (`tags_business_id_lower_name_key`) existe só no SQL da migração e está fora do schema do Prisma. Toda migração nova gerada por `prisma migrate dev` vai conter um `DROP INDEX` desse índice; esse DROP deve ser removido à mão antes de aplicar, senão a unicidade das etiquetas some sem aviso.
+- O índice único parcial `whatsapp_envios_cliente_ativo_key` (`business_id, client_id, origin` onde `status` é `na_fila` ou `enviando` e `client_id` não é nulo, 2C-2a) também existe só no SQL da migração `20261020120000_whatsapp_envios` e está fora do schema do Prisma. Remova à mão qualquer `DROP INDEX` dele que o `prisma migrate dev` gerar, senão volta o risco de convite duplicado para a mesma cliente.
 - "Excluir cliente" ficou fora do 2B: não existe `DELETE /clients/:id`. Exige decisão de produto sobre histórico de atendimentos, caixa e LGPD (apagar fotos do storage, anonimizar em vez de apagar etc.).
 
 Sub-projeto 2C-1 (WhatsApp: conversas e base de envio):
@@ -56,6 +57,12 @@ Sub-projeto 2C-1 (WhatsApp: conversas e base de envio):
 - O nome de quem atende na central é derivado (dona = nome do dono do negócio; funcionária = início do e-mail), porque `users` não tem nome. Pendência: campo de nome do usuário.
 - `POST /whatsapp/send` (envio manual, sem uso no frontend) ainda não grava a mensagem na central.
 - O 2C-2 (campanhas) traz a cadência de envio e o rodapé "SAIR" automático; só então o texto das boas práticas do Stitch pode voltar.
+
+Sub-projeto 2C-2a (WhatsApp: Hora de voltar), pendências conhecidas:
+- O fuso da previsão de envio no frontend é fixo `America/Sao_Paulo`: o front não recebe o fuso do negócio.
+- O lote não pede confirmação para cliente que recebeu convite recente e foi marcada à mão (a confirmação só vale para quem entra pela seleção padrão).
+- O dedupe da fila não é atômico: não há índice único parcial em `whatsapp_envios`, então duas requisições simultâneas podem enfileirar o mesmo convite.
+- Um envio interrompido (processo caiu no meio) vira `falhou` após 10 min e não é reenviado, de propósito, para não duplicar mensagem.
 
 ## Melhorias técnicas pequenas
 
@@ -82,3 +89,10 @@ Sub-projeto 2C-1 (WhatsApp: conversas e base de envio):
   - Boas práticas da aba Conexão reescritas para afirmar só o que o sistema faz (sem "proteções inteligentes", sem cadência de 45 a 90 s, sem rodapé automático; variáveis reais `{nome_cliente}`/`{horario}`).
   - Aviso de sinal Pix confirmado é `pix_recibo` (transacional, não bloqueado pelo SAIR).
   - Abrir uma conversa a marca como lida.
+- Sub-projeto 2C-2a: aba "Hora de voltar" do WhatsApp (convites de retorno). Migração `20261020120000_whatsapp_envios` (aplicada em produção em 2026-10-20, com autorização do dono; inclui a tabela `whatsapp_avatares` das fotos de perfil). Decisões (marcadas como "decisão do Claude" no spec `docs/superpowers/specs/2026-10-20-hora-de-voltar-design.md`):
+  - Quem aparece: cliente ativa, última visita há no máximo 120 dias, retorno vencido (`venceuHa > 0`), sem agendamento futuro que ocupe a agenda; ordem por maior atraso, depois nome.
+  - Quem pode receber: todas, exceto consentimento revogado ou opt-out (SAIR). Convite há menos de 7 dias fica fora de "Selecionar todas" e o envio pede confirmação.
+  - Fila cadenciada: 1 envio por vez por negócio, intervalo aleatório de 45 a 90 s, no máximo 25 por hora, só entre 08:00 e 20:00 no fuso do negócio; reconfere opt-out/revogado/conexão na hora e espera se desconectado.
+  - Origem nova `retorno` ("Convite Hora de voltar"), bloqueada por opt-out e no grupo "automaticas" da Conexão.
+  - Encaixes: até 2 vagas nos próximos 7 dias, com a profissional da última visita; texto editável e teste no próprio número.
+  - A fila (`whatsapp_envios`) será reaproveitada pelas Campanhas (2C-2b).

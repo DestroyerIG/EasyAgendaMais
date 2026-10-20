@@ -229,6 +229,17 @@ export const evolutionApi = {
     return request('POST', `/message/sendText/${instanceName}`, { number, text });
   },
 
+  /** URL da foto de perfil do contato; null quando não há foto ou ela é privada. */
+  async fetchProfilePictureUrl(instanceName: string, number: string): Promise<string | null> {
+    const res = await request<{ profilePictureUrl?: string | null } | null>(
+      'POST',
+      `/chat/fetchProfilePictureUrl/${instanceName}`,
+      { number },
+    );
+    const url = res?.profilePictureUrl;
+    return typeof url === 'string' && url.trim() ? url : null;
+  },
+
   async setWebhook(instanceName: string, webhookUrl: string): Promise<unknown> {
     // Evolution v2 setWebhook expects the camelCase keys inside `webhook`.
     // We send both camel and snake variants so the call also works on

@@ -13,6 +13,7 @@ import { MenuOptionsPanel, MenuOption } from '@/components/whatsapp/MenuOptionsP
 import { ChatSimulator } from '@/components/whatsapp/ChatSimulator';
 import { AutomacoesProvisorio } from '@/components/whatsapp/AutomacoesProvisorio';
 import { CentralConversas } from '@/components/whatsapp/conversas/CentralConversas';
+import { HoraDeVoltar } from '@/components/whatsapp/retorno/HoraDeVoltar';
 
 interface WhatsAppStatus {
   status:
@@ -98,9 +99,10 @@ const DEFAULT_WA_STATUS: WhatsAppStatus = {
   error: null,
 };
 
-type Aba = 'automacoes' | 'conversas' | 'conexao';
+type Aba = 'hora-de-voltar' | 'automacoes' | 'conversas' | 'conexao';
 
 const ABAS: { id: Aba; label: string }[] = [
+  { id: 'hora-de-voltar', label: 'Hora de voltar' },
   { id: 'automacoes', label: 'Automações' },
   { id: 'conversas', label: 'Conversas' },
   { id: 'conexao', label: 'Conexão' },
@@ -479,6 +481,7 @@ export const WhatsAppModule = () => {
 
       <div id="painel-whatsapp" role="tabpanel" aria-labelledby={activeTab ? `aba-whatsapp-${activeTab}` : undefined}>
           {activeTab === null && <Skeleton className="h-40 w-full" label="Verificando conexão..." />}
+          {activeTab === 'hora-de-voltar' && <HoraDeVoltar conectado={waStatus.status === 'connected'} />}
           {activeTab === 'automacoes' && (
             <div className="flex flex-col gap-6">
               <div className="flex flex-col gap-1">

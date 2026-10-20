@@ -51,7 +51,7 @@ const ANO = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', ye
 const perfil = (partes: Partial<ClientProfileDto> = {}): ClientProfileDto => ({
   cliente: {
     id: 'c1', name: 'Mariana Souza', phone: '83998765432', email: null, birthDate: null, notes: null,
-    createdAt: '2026-01-10T13:00:00.000Z',
+    createdAt: '2026-01-10T13:00:00.000Z', avatarUrl: null,
   },
   fase: 'fiel',
   etiquetas: [{ id: 't1', name: 'Pé e mão', color: 'brand' }],
@@ -295,5 +295,12 @@ describe('FichaCliente', () => {
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Salvar etiquetas' }));
     expect(await screen.findByText('Noiva')).toBeInTheDocument();
     expect(screen.getByLabelText('Comprimento')).toHaveValue('Tamanho 3');
+  });
+
+  it('o cabeçalho mostra a foto da cliente', async () => {
+    mockBuscarPerfil.mockResolvedValue(perfil({ cliente: { ...perfil().cliente, avatarUrl: 'https://cdn.exemplo/m.jpg' } }));
+    renderizar();
+    await screen.findByRole('heading', { level: 1, name: 'Mariana Souza' });
+    expect(screen.getByRole('img', { name: 'Mariana Souza' })).toHaveAttribute('src', 'https://cdn.exemplo/m.jpg');
   });
 });

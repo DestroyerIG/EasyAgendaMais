@@ -204,7 +204,7 @@ export function FasesClientes({ nomeNegocio, versao = 0 }: FasesClientesProps) {
                       className="flex cursor-pointer flex-col gap-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                     >
                       <div className="flex items-center gap-3">
-                        <Avatar name={c.name} size={36} />
+                        <Avatar name={c.name} src={c.avatarUrl} size={36} />
                         <div className="flex min-w-0 flex-col">
                           <span className="truncate font-bold text-ink">{c.name}</span>
                           <span className="text-[12px] tabular-nums text-muted">{c.phone ? formatPhone(c.phone) : 'Sem telefone'}</span>
