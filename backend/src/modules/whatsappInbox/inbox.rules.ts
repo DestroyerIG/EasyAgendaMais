@@ -66,5 +66,6 @@ const ROTULOS: Record<Origem, string> = {
   confirmacao: 'Confirmação de agendamento', pix_recibo: 'Sinal Pix e recibo', lista_espera: 'Oferta da lista de espera',
   manual_painel: 'Resposta manual via painel', manual_celular: 'Mensagem pelo celular', sistema: 'Aviso do sistema',
   painel_evento: 'Evento do painel', retorno: 'Convite Hora de voltar',
+  sinal_pix: 'Sinal Pix', aniversario: 'Aniversário', avaliacao: 'Avaliação', campanha: 'Campanha',
 };
 export const rotuloOrigem = (o: Origem) => ROTULOS[o];
