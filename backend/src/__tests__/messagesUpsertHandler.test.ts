@@ -30,6 +30,7 @@ vi.mock('../services/whatsapp/whatsappSessionService.js', () => ({
 vi.mock('../services/whatsapp/whatsappMessageService.js', () => ({
   sendWhatsAppMessage: vi.fn().mockResolvedValue(true),
 }));
+vi.mock('../modules/whatsappAutomacoes/respostas.service.js', () => ({ respostas: { tratar: vi.fn().mockResolvedValue(false) } }));
 vi.mock('../modules/whatsappInbox/inbox.recorder.js', () => ({
   inboxRecorder: {
     registrarEntrada: vi.fn().mockResolvedValue(null),

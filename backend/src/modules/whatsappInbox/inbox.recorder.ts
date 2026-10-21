@@ -184,4 +184,24 @@ export const inboxRecorder = {
       logger.warn({ err, businessId }, 'inbox: pedirAtendimentoHumano falhou');
     }
   },
+
+  /** Nota do sistema na conversa (não é envio ao cliente). */
+  async avisoDoSistema(businessId: string, phone: string, texto: string): Promise<void> {
+    try {
+      const chave = canonicalizePhone(phone);
+      if (!chave) return;
+      let conversa: ConversaRow | null = await repo.conversaPorChave(businessId, chave);
+      if (!conversa) {
+        const cliente = await repo.clientePorTelefone(businessId, phone);
+        conversa = await repo.criarConversa({ businessId, phone: digitosDe(phone), phoneKey: chave, clientId: cliente?.id ?? null });
+      }
+      await repo.inserirMensagem({
+        businessId, conversationId: conversa.id, phoneKey: chave, direction: 'out', origin: 'painel_evento',
+        body: texto, mediaType: null, providerMessageId: null, status: 'enviada', sentByUserId: null,
+      });
+      await repo.atualizarConversa(conversa.id, { lastMessageAt: new Date(), lastMessagePreview: previa(texto) });
+    } catch (err) {
+      logger.warn({ err, businessId }, 'inbox: avisoDoSistema falhou');
+    }
+  },
 };

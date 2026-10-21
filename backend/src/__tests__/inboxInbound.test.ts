@@ -14,6 +14,8 @@ const recorder = vi.hoisted(() => ({
 }));
 vi.mock('../modules/whatsappInbox/inbox.recorder.js', () => ({ inboxRecorder: recorder }));
 
+vi.mock('../modules/whatsappAutomacoes/respostas.service.js', () => ({ respostas: { tratar: vi.fn().mockResolvedValue(false) } }));
+
 const { handleMessagesUpsert, TEXTO_OPT_OUT } = await import('../services/whatsapp/handlers/messagesUpsertHandler.js');
 
 let seq = 0;

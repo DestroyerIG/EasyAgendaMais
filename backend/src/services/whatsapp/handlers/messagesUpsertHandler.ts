@@ -14,6 +14,7 @@ import * as botOrchestrator from '../../../bot/botOrchestrator.js';
 import { getSession, isSessionExpired } from '../whatsappSessionService.js';
 import { sendWhatsAppMessage } from '../whatsappMessageService.js';
 import { inboxRecorder } from '../../../modules/whatsappInbox/inbox.recorder.js';
+import { respostas } from '../../../modules/whatsappAutomacoes/respostas.service.js';
 import { detectarPalavraChave } from '../../../modules/whatsappInbox/inbox.rules.js';
 
 export const TEXTO_OPT_OUT = (negocio: string) =>
@@ -147,6 +148,10 @@ export const handleMessagesUpsert = async (
     else await inboxRecorder.registrarOptIn({ businessId, phone });
     await sendWhatsAppMessage(phone, resposta, { businessId, instanceName: effectiveInstance, origin: 'sistema' });
     return { ok: true, reason: palavra === 'sair' ? 'opt_out' : 'opt_in', authorPhone: phone, businessId };
+  }
+
+  if (await respostas.tratar({ businessId, phone, texto: parsed.text, instanceName: effectiveInstance })) {
+    return { ok: true, reason: 'resposta_automacao', authorPhone: phone, businessId };
   }
 
   if (conversa?.handler === 'humano') {
