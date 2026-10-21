@@ -4,8 +4,11 @@ const repo = vi.hoisted(() => ({
   naFilaDoCliente: vi.fn(), criar: vi.fn(), negociosComVencidos: vi.fn(), ultimoEnviado: vi.fn(),
   contarEnviadosDesde: vi.fn(), proximoVencido: vi.fn(), reservar: vi.fn(), atualizar: vi.fn(),
   idsNaFila: vi.fn(), consentimentoRevogado: vi.fn(), interromper: vi.fn(), recentesPorCliente: vi.fn(), enviadosPorCliente: vi.fn(),
+  agendamentoParaEnvio: vi.fn(),
 }));
 vi.mock('../modules/whatsappFila/fila.repository.js', () => ({ filaRepository: repo }));
+const resp = vi.hoisted(() => ({ respostasRepository: { registrar: vi.fn() } }));
+vi.mock('../modules/whatsappAutomacoes/respostas.repository.js', () => resp);
 const hoje = vi.hoisted(() => ({ todayRepository: { clientesComAgendamentoFuturo: vi.fn() } }));
 vi.mock('../modules/dashboard/today.repository.js', () => hoje);
 const envio = vi.hoisted(() => ({ sendWhatsAppMessage: vi.fn() }));
@@ -39,6 +42,7 @@ beforeEach(() => {
   rec.inboxRecorder.estaEmOptOut.mockResolvedValue(false);
   wa.whatsappService.getStatus.mockResolvedValue({ status: 'connected' });
   envio.sendWhatsAppMessage.mockResolvedValue(true);
+  resp.respostasRepository.registrar.mockResolvedValue(undefined);
 });
 
 describe('enfileirar', () => {
@@ -209,6 +213,81 @@ describe('processar', () => {
     const r = await filaEnvios.processar(AGORA);
     expect(r.enviados).toBe(2);
     expect(envio.sendWhatsAppMessage).toHaveBeenCalledWith('5583999990000', 'Oi', { businessId: 'b2', origin: 'retorno' });
+  });
+});
+
+describe('agendamento vinculado', () => {
+  const conf = (o: Record<string, unknown> = {}) => linha({ origin: 'confirmacao', appointmentId: 'a1', ...o });
+  const ag = (o: Record<string, unknown> = {}) => ({
+    status: 'confirmado', date: new Date('2026-10-20T00:00:00Z'), time: new Date('1970-01-01T15:00:00Z'), jaAvaliou: false, ...o,
+  });
+
+  it('confirmação de agendamento cancelado é pulada', async () => {
+    repo.proximoVencido.mockResolvedValue(conf());
+    repo.agendamentoParaEnvio.mockResolvedValue(ag({ status: 'cancelado' }));
+    const r = await filaEnvios.processar(AGORA);
+    expect(r.pulados).toBe(1);
+    expect(envio.sendWhatsAppMessage).not.toHaveBeenCalled();
+    expect(repo.atualizar).toHaveBeenCalledWith('b1', 'e1', { status: 'pulado', reason: 'Agendamento não está mais confirmado', sentAt: null });
+  });
+
+  it('confirmação cujo agendamento não existe é pulada', async () => {
+    repo.proximoVencido.mockResolvedValue(conf());
+    repo.agendamentoParaEnvio.mockResolvedValue(null);
+    await filaEnvios.processar(AGORA);
+    expect(repo.atualizar).toHaveBeenCalledWith('b1', 'e1', expect.objectContaining({ reason: 'Agendamento não está mais confirmado' }));
+  });
+
+  it('confirmação de horário que já passou é pulada', async () => {
+    repo.proximoVencido.mockResolvedValue(conf());
+    repo.agendamentoParaEnvio.mockResolvedValue(ag({ time: new Date('1970-01-01T11:00:00Z') })); // 11:00 local < 12:00
+    const r = await filaEnvios.processar(AGORA);
+    expect(r.pulados).toBe(1);
+    expect(repo.atualizar).toHaveBeenCalledWith('b1', 'e1', { status: 'pulado', reason: 'Horário já passou', sentAt: null });
+  });
+
+  it('confirmação enviada registra a espera de resposta por 24h', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(AGORA);
+      repo.proximoVencido.mockResolvedValue(conf());
+      repo.agendamentoParaEnvio.mockResolvedValue(ag({ time: new Date('1970-01-01T18:00:00Z') }));
+      const r = await filaEnvios.processar(AGORA);
+      expect(r.enviados).toBe(1);
+      expect(resp.respostasRepository.registrar).toHaveBeenCalledWith({
+        businessId: 'b1', phoneKey: '8399990000', tipo: 'confirmacao', appointmentId: 'a1',
+        expiresAt: new Date(AGORA.getTime() + 24 * 3_600_000),
+      });
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('falha ao registrar a espera não muda o status enviado', async () => {
+    repo.proximoVencido.mockResolvedValue(conf());
+    repo.agendamentoParaEnvio.mockResolvedValue(ag({ time: new Date('1970-01-01T18:00:00Z') }));
+    resp.respostasRepository.registrar.mockRejectedValue(new Error('banco'));
+    const r = await filaEnvios.processar(AGORA);
+    expect(r.enviados).toBe(1);
+    expect(repo.atualizar).toHaveBeenCalledWith('b1', 'e1', expect.objectContaining({ status: 'enviado' }));
+  });
+
+  it('avaliação de quem já avaliou é pulada; sem avaliação envia e registra a espera', async () => {
+    repo.proximoVencido.mockResolvedValue(conf({ origin: 'avaliacao' }));
+    repo.agendamentoParaEnvio.mockResolvedValue(ag({ jaAvaliou: true }));
+    await filaEnvios.processar(AGORA);
+    expect(repo.atualizar).toHaveBeenCalledWith('b1', 'e1', { status: 'pulado', reason: 'Já avaliou', sentAt: null });
+    repo.atualizar.mockClear();
+    repo.agendamentoParaEnvio.mockResolvedValue(ag());
+    await filaEnvios.processar(AGORA);
+    expect(resp.respostasRepository.registrar).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'avaliacao' }));
+  });
+
+  it('enfileirar grava prioridade (padrão normal) e agendamento', async () => {
+    repo.naFilaDoCliente.mockResolvedValue(null);
+    repo.criar.mockResolvedValue(linha());
+    await filaEnvios.enfileirar([{ businessId: 'b1', clientId: 'c1', phone: '5583999990000', body: 'Oi', origin: 'confirmacao', prioridade: 1, appointmentId: 'a1' }]);
+    await filaEnvios.enfileirar([{ businessId: 'b1', clientId: 'c1', phone: '5583999990000', body: 'Oi', origin: 'retorno' }]);
+    expect(repo.criar.mock.calls[0][0]).toMatchObject({ priority: 1, appointmentId: 'a1' });
+    expect(repo.criar.mock.calls[1][0]).toMatchObject({ priority: 5, appointmentId: null });
   });
 });
 

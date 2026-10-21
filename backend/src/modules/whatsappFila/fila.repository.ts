@@ -12,6 +12,7 @@ export const filaRepository = {
   criar(data: {
     businessId: string; clientId: string | null; phone: string; phoneKey: string; body: string;
     origin: string; scheduledFor: Date; batchId: string | null;
+    priority: number; appointmentId: string | null;
   }): Promise<EnvioRow> {
     return prisma.whatsappEnvio.create({ data });
   },
@@ -42,7 +43,7 @@ export const filaRepository = {
   async idsNaFila(businessId: string): Promise<string[]> {
     const rows = await prisma.whatsappEnvio.findMany({
       where: { businessId, status: 'na_fila' },
-      orderBy: [{ scheduledFor: 'asc' }, { createdAt: 'asc' }],
+      orderBy: [{ priority: 'asc' }, { scheduledFor: 'asc' }, { createdAt: 'asc' }],
       select: { id: true },
     });
     return rows.map((r) => r.id);
@@ -51,7 +52,7 @@ export const filaRepository = {
   proximoVencido(businessId: string, agora: Date): Promise<EnvioRow | null> {
     return prisma.whatsappEnvio.findFirst({
       where: { businessId, status: 'na_fila', scheduledFor: { lte: agora } },
-      orderBy: [{ scheduledFor: 'asc' }, { createdAt: 'asc' }],
+      orderBy: [{ priority: 'asc' }, { scheduledFor: 'asc' }, { createdAt: 'asc' }],
     });
   },
 
@@ -89,6 +90,15 @@ export const filaRepository = {
       select: { granted: true, revokedAt: true },
     });
     return !!c && (!c.granted || !!c.revokedAt);
+  },
+
+  /** Dados do agendamento vinculado ao envio (status, data/hora e se já foi avaliado). */
+  async agendamentoParaEnvio(businessId: string, appointmentId: string): Promise<{ status: string; date: Date; time: Date; jaAvaliou: boolean } | null> {
+    const a = await prisma.appointment.findFirst({
+      where: { id: appointmentId, businessId },
+      select: { status: true, date: true, time: true, whatsappRating: { select: { id: true } } },
+    });
+    return a ? { status: a.status, date: a.date, time: a.time, jaAvaliou: !!a.whatsappRating } : null;
   },
 
   recentesPorCliente(businessId: string, origin: string, clientIds: string[]): Promise<EnvioRow[]> {
