@@ -34,6 +34,13 @@ vi.mock('@/components/whatsapp/conversas/CentralConversas', () => ({ CentralConv
 vi.mock('@/components/whatsapp/MenuOptionsPanel', () => ({ MenuOptionsPanel: () => <div>painel-menu</div> }));
 vi.mock('@/components/whatsapp/MessageConfigPanel', () => ({ MessageConfigPanel: () => <div>painel-mensagens</div> }));
 vi.mock('@/components/whatsapp/ChatSimulator', () => ({ ChatSimulator: () => <div>painel-simulador</div> }));
+const automacoesProps = vi.hoisted(() => ({ conectado: null as null | boolean }));
+vi.mock('@/components/whatsapp/automacoes/Automacoes', () => ({
+  Automacoes: (p: { conectado: boolean; onAbrirConexao: () => void }) => {
+    automacoesProps.conectado = p.conectado;
+    return <div>painel-automacoes<button onClick={p.onAbrirConexao}>abrir-conexao</button></div>;
+  },
+}));
 
 import { WhatsAppModule } from '../../WhatsAppModule';
 
@@ -106,18 +113,46 @@ describe('WhatsAppModule', () => {
     await screen.findByText('painel-conversas');
     await userEvent.click(screen.getByRole('tab', { name: 'Automações' }));
     expect(replace).toHaveBeenCalledWith('?aba=automacoes', { scroll: false });
-    expect(await screen.findByText('painel-menu')).toBeInTheDocument();
+    expect(await screen.findByText('painel-automacoes')).toBeInTheDocument();
   });
 
-  it('Automações oferece os painéis Menu, Mensagens e Simulador', async () => {
+  it('Automações mostra a tela nova, sem os painéis Menu e Simulador do robô', async () => {
     abaNaUrl = 'automacoes';
     responderStatus('connected');
     render(<WhatsAppModule />);
+    expect(await screen.findByText('painel-automacoes')).toBeInTheDocument();
+    expect(automacoesProps.conectado).toBe(true);
+    expect(screen.queryByText('painel-menu')).toBeNull();
+    expect(screen.queryByText('painel-simulador')).toBeNull();
+    expect(screen.queryByRole('tab', { name: /Menu/ })).toBeNull();
+    expect(screen.queryByRole('tab', { name: /Simulador/ })).toBeNull();
+    expect(screen.queryByText('Robô de atendimento')).toBeNull();
+  });
+
+  it('o "Configurações de envio" das Automações leva à aba Conexão', async () => {
+    abaNaUrl = 'automacoes';
+    responderStatus('connected');
+    render(<WhatsAppModule />);
+    await userEvent.click(await screen.findByText('abrir-conexao'));
+    expect(replace).toHaveBeenCalledWith('?aba=conexao', { scroll: false });
+    expect(await screen.findByText(/painel-conexao/)).toBeInTheDocument();
+  });
+
+  it('Conexão mostra o Robô de atendimento com Menu, Mensagens e Simulador abaixo do painel de conexão', async () => {
+    abaNaUrl = 'conexao';
+    responderStatus('connected');
+    render(<WhatsAppModule />);
+    expect(await screen.findByRole('heading', { name: 'Robô de atendimento' })).toBeInTheDocument();
     expect(await screen.findByText('painel-menu')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', { name: 'Mensagens' }));
+    const conexao = screen.getByText(/painel-conexao/);
+    const robo = screen.getByRole('heading', { name: 'Robô de atendimento' });
+    expect(conexao.compareDocumentPosition(robo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await userEvent.click(screen.getByRole('tab', { name: /Mensagens/ }));
     await waitFor(() => expect(screen.getByText('painel-mensagens')).toBeInTheDocument());
-    await userEvent.click(screen.getByRole('tab', { name: 'Simulador' }));
+    await userEvent.click(screen.getByRole('tab', { name: /Simulador/ }));
     await waitFor(() => expect(screen.getByText('painel-simulador')).toBeInTheDocument());
+    expect(get).toHaveBeenCalledWith('/whatsapp/config');
+    expect(get).toHaveBeenCalledWith('/whatsapp/config/menu');
   });
 
   it('a aba acompanha o ?aba= quando a URL muda (voltar/avançar e links internos)', async () => {
@@ -131,7 +166,7 @@ describe('WhatsAppModule', () => {
     expect(screen.getByRole('tab', { name: 'Conexão' })).toHaveAttribute('aria-selected', 'true');
     abaNaUrl = 'automacoes';
     rerender(<WhatsAppModule />);
-    expect(await screen.findByText('painel-menu')).toBeInTheDocument();
+    expect(await screen.findByText('painel-automacoes')).toBeInTheDocument();
   });
 
   it('liga a Conexão ao negócio, à desconexão (com confirmação), ao teste de envio e à atualização', async () => {

@@ -57,7 +57,6 @@ const FIELDS: FieldDef[] = [
 
   // Agendamento
   { key: 'confirmation_message', label: 'Confirmação de Agendamento', rows: 5, hint: 'Disponível: {servico}, {profissional}, {data}, {horario}, {valor}', category: 'Agendamento' },
-  { key: 'reminder_message', label: 'Lembrete (2h antes)', rows: 5, hint: 'Disponível: {nome_cliente}, {servico}, {profissional}, {horario}', category: 'Agendamento' },
   { key: 'no_slots_message', label: 'Sem Horários Disponíveis', rows: 3, category: 'Agendamento' },
 
   // Cancelamento

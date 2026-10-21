@@ -32,3 +32,14 @@ describe('MessageConfigPanel - política', () => {
     expect(screen.getByLabelText('Política de cancelamento e sinal')).toHaveAttribute('maxlength', '1000');
   });
 });
+
+describe('MessageConfigPanel - lembrete', () => {
+  it('não mostra mais o campo do lembrete, que virou regra das Automações', () => {
+    render(
+      <MessageConfigPanel botConfig={config()} onChange={vi.fn()} configLoading={false} actionLoading={false}
+        onSave={vi.fn()} onReset={vi.fn()} />,
+    );
+    expect(screen.queryByText(/Lembrete \(2h antes\)/)).toBeNull();
+    expect(screen.queryByLabelText(/Lembrete/)).toBeNull();
+  });
+});
