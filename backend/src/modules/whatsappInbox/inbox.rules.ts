@@ -24,12 +24,12 @@ export const marcadorMidia = (t: string | null | undefined) => (t && MIDIAS[t]) 
 
 export const previa = (texto: string) => texto.replace(/\s+/g, ' ').trim().slice(0, 160);
 
-const AUTOMATICAS = new Set<Origem>(['lembrete', 'confirmacao', 'lista_espera', 'retorno']);
+const AUTOMATICAS = new Set<Origem>(['lembrete', 'confirmacao', 'lista_espera', 'retorno', 'aniversario', 'avaliacao', 'campanha']);
 export const ehAutomatica = (o: Origem) => AUTOMATICAS.has(o);
 
 export function grupoEnvio(o: Origem): 'automaticas' | 'pix' | 'manuais' | null {
-  if (o === 'lembrete' || o === 'confirmacao' || o === 'lista_espera' || o === 'retorno') return 'automaticas';
-  if (o === 'pix_recibo') return 'pix';
+  if (AUTOMATICAS.has(o)) return 'automaticas';
+  if (o === 'pix_recibo' || o === 'sinal_pix') return 'pix';
   if (o === 'manual_painel' || o === 'manual_celular' || o === 'bot') return 'manuais';
   return null;
 }

@@ -76,7 +76,7 @@
 **Files:**
 - Create: `backend/src/modules/whatsappAutomacoes/automacoes.rules.ts`
 - Create: `backend/src/modules/whatsappAutomacoes/automacoes.types.ts`
-- Test: `backend/src/modules/whatsappAutomacoes/__tests__/automacoesRules.test.ts`
+- Test: `backend/src/__tests__/automacoesRules.test.ts`
 
 **Interfaces:**
 - Produces (`automacoes.types.ts`):
@@ -164,7 +164,7 @@ it('lerConfig volta ao padrão em campo inválido', () => {
 });
 it('seloTaxa', () => { expect(seloTaxa(80)).toBe('Excelente'); expect(seloTaxa(50)).toBe('Boa'); expect(seloTaxa(49.9)).toBe('Baixa'); });
 ```
-- [ ] **Step 2:** Rodar `npx vitest run src/modules/whatsappAutomacoes/__tests__/automacoesRules.test.ts`. Esperado: FAIL (módulo não existe).
+- [ ] **Step 2:** Rodar `npx vitest run src/__tests__/automacoesRules.test.ts`. Esperado: FAIL (módulo não existe).
 - [ ] **Step 3:** Implementar.
   - `respostaConfirmacao` normaliza (minúsculas, sem acento, sem pontuação nas pontas) e aceita só a palavra inteira.
   - `renderizarTexto` troca `{chave}` conhecida (presente em `vars`, mesmo vazia) e mantém as desconhecidas. Depois remove as linhas que, sem a pontuação e os espaços, ficaram sem letras nem dígitos, ou que eram só "rótulo + variável vazia". Regra: a linha tinha variável, a variável virou vazia e o que sobrou tem até 20 caracteres sem dígitos. Por fim, colapsa 3+ quebras de linha em 2 e faz `trim()`.
@@ -179,7 +179,7 @@ it('seloTaxa', () => { expect(seloTaxa(80)).toBe('Excelente'); expect(seloTaxa(5
 - Create: `backend/src/modules/whatsappAutomacoes/automacoes.controller.ts`
 - Create: `backend/src/modules/whatsappAutomacoes/automacoes.routes.ts`
 - Modify: o arquivo que monta `retornoRoutes` (montar `automacoesRoutes` em `/api/v1/whatsapp/automacoes`, antes do `whatsappRoutes`)
-- Test: `backend/src/modules/whatsappAutomacoes/__tests__/automacoesService.test.ts`
+- Test: `backend/src/__tests__/automacoesService.test.ts`
 
 **Interfaces:**
 - Consumes: Task 2 inteira.
@@ -236,7 +236,7 @@ it('seloTaxa', () => { expect(seloTaxa(80)).toBe('Excelente'); expect(seloTaxa(5
   - `registrar` lançando erro não muda o status `enviado`.
 - [ ] **Step 2:** Rodar e ver falhar.
 - [ ] **Step 3:** Implementar.
-- [ ] **Step 4:** Rodar `npx vitest run src/modules/whatsappFila`. Esperado: PASS.
+- [ ] **Step 4:** Rodar `npx vitest run src/__tests__/fila`. Esperado: PASS.
 - [ ] **Step 5:** Commit `feat(whatsapp): fila com prioridade e envios ligados a agendamento`.
 
 ### Task 5: Respostas da confirmação e da avaliação
@@ -245,7 +245,7 @@ it('seloTaxa', () => { expect(seloTaxa(80)).toBe('Excelente'); expect(seloTaxa(5
 - Create: `backend/src/modules/whatsappAutomacoes/respostas.service.ts`
 - Modify: `backend/src/services/whatsapp/handlers/messagesUpsertHandler.ts` (passo 7b, depois do bloco de SAIR/VOLTAR e antes de `if (conversa?.handler === 'humano')`)
 - Modify: `backend/src/modules/whatsappInbox/inbox.recorder.ts` (acrescentar `avisoDoSistema`)
-- Test: `backend/src/modules/whatsappAutomacoes/__tests__/respostasService.test.ts`
+- Test: `backend/src/__tests__/respostasService.test.ts`
 
 **Interfaces:**
 - Consumes: `respostasRepository` (Task 4), `respostaConfirmacao` e `notaAvaliacao` (Task 2), `automacoes.obter` (Task 3), `inboxRecorder.pedirAtendimentoHumano`, `appointmentsService.updateStatus` (`backend/src/modules/appointments/appointments.service.ts`), `automacoesGatilhos.aoCancelar` (Task 6; chamado por `updateStatus`, não aqui).
@@ -281,7 +281,7 @@ it('seloTaxa', () => { expect(seloTaxa(80)).toBe('Excelente'); expect(seloTaxa(5
   - espera vencida (o repositório não devolve) + "1" → `false` (Review Focus 2).
 - [ ] **Step 2:** Rodar e ver falhar.
 - [ ] **Step 3:** Implementar e ligar ao handler.
-- [ ] **Step 4:** Rodar `npx vitest run src/modules/whatsappAutomacoes src/services/whatsapp`. Esperado: PASS.
+- [ ] **Step 4:** Rodar `npx vitest run src/__tests__/respostas src/__tests__/inbox`. Esperado: PASS.
 - [ ] **Step 5:** Commit `feat(whatsapp): respostas da confirmação e da avaliação`.
 
 ### Task 6: Gatilhos por evento (lista de espera, sinal Pix, avaliação)
@@ -294,7 +294,7 @@ it('seloTaxa', () => { expect(seloTaxa(80)).toBe('Excelente'); expect(seloTaxa(5
   - `backend/src/modules/publicBooking/publicBooking.service.ts`: `HOLD_MINUTES` vem da config `sinal_pix.toleranciaMin`; o envio acontece depois de criar a reserva;
   - `backend/src/modules/comandas/comandas.service.ts`: em `close`, depois de gravar, no mesmo lugar não bloqueante do recibo;
   - `backend/src/modules/waitlist/waitlist.repository.ts`: consulta das entradas compatíveis e marcação de oferta.
-- Test: `backend/src/modules/whatsappAutomacoes/__tests__/gatilhos.test.ts`
+- Test: `backend/src/__tests__/gatilhos.test.ts`
 
 **Interfaces:**
 - Consumes: `automacoes.obter`, `renderizarTexto`, `entradaCompativel`, `filaEnvios.enfileirar`, `sendWhatsAppMessage`, `inboxRecorder.estaEmOptOut`.
@@ -328,7 +328,7 @@ it('seloTaxa', () => { expect(seloTaxa(80)).toBe('Excelente'); expect(seloTaxa(5
 - Create: `backend/src/modules/whatsappAutomacoes/rotinas.service.ts`
 - Modify: `backend/src/services/cronService.ts` (`runReminderJob` e `startReminderCron`)
 - Modify: `backend/src/modules/whatsappRetorno/retorno.service.ts` (expor a montagem da lista e do texto para a rotina, sem mudar o comportamento da tela)
-- Test: `backend/src/modules/whatsappAutomacoes/__tests__/rotinas.test.ts` e o teste existente do `runReminderJob`
+- Test: `backend/src/__tests__/rotinas.test.ts` e o teste existente do `runReminderJob`
 
 **Interfaces:**
 - Produces (`automacoesRotinas`):
@@ -367,7 +367,7 @@ it('seloTaxa', () => { expect(seloTaxa(80)).toBe('Excelente'); expect(seloTaxa(5
 **Files:**
 - Create: `backend/src/modules/whatsappAutomacoes/metricas.repository.ts`, `metricas.service.ts`
 - Modify: `automacoes.controller.ts` e `automacoes.routes.ts` (`GET /api/v1/whatsapp/automacoes/painel` e `GET /historico`)
-- Test: `backend/src/modules/whatsappAutomacoes/__tests__/metricas.test.ts`
+- Test: `backend/src/__tests__/metricas.test.ts`
 
 **Interfaces:**
 - Produces:
