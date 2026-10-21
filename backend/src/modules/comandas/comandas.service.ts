@@ -9,6 +9,7 @@ import { calcularComanda } from './comandaMath.js';
 import { commissionSettings, resolveCommission } from './commissionSettings.js';
 import { comandasRepository } from './comandas.repository.js';
 import { sendComandaReceipt } from './receipt.js';
+import { automacoesGatilhos } from '../whatsappAutomacoes/gatilhos.service.js';
 import type { ComandaDetailDto, NewExtraItem, SaveComandaInput, PaymentMethod } from './comandas.types.js';
 
 type ComandaRow = NonNullable<Awaited<ReturnType<typeof comandasRepository.findComandaById>>>;
@@ -175,6 +176,9 @@ export const comandasService = {
       servicePct: salvo.commission.servicePct, productPct: salvo.commission.productPct, calc,
     });
     if (!ok) throw new ConflictError('Esta comanda já foi fechada');
+
+    void automacoesGatilhos.aoFecharComanda(businessId, c.appointment.id, new Date())
+      .catch((err) => logger.warn({ err, comandaId: id }, 'Gatilho da avaliação falhou'));
 
     if (salvo.whatsappConnected) {
       // O fechamento já foi gravado: um WhatsApp lento não pode virar "erro ao fechar".

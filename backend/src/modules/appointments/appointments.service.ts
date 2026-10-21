@@ -20,6 +20,7 @@ import type { AppointmentStatus } from '../../types/domain.js';
 // @ts-ignore — sendWhatsAppMessage é um serviço JS legado ainda não tipado
 import { sendWhatsAppMessage } from '../../services/whatsapp/index.js';
 import { notificationsService } from '../notifications/notifications.service.js';
+import { automacoesGatilhos } from '../whatsappAutomacoes/gatilhos.service.js';
 
 export const appointmentsService = {
   async getDetails(id: string, businessId: string) {
@@ -128,6 +129,11 @@ export const appointmentsService = {
       });
     }
 
+    if (newStatus === 'cancelado') {
+      void automacoesGatilhos.aoCancelar(businessId, id)
+        .catch((err) => logger.warn({ err, appointmentId: id }, 'Gatilho da lista de espera falhou'));
+    }
+
     logger.info({ appointmentId: id, from: currentStatus, to: newStatus }, 'Status atualizado');
     return result;
   },
@@ -166,6 +172,8 @@ export const appointmentsService = {
   async delete(id: string, businessId: string): Promise<void> {
     const deleted = await appointmentsPrismaRepository.softDelete(id, businessId);
     if (!deleted) throw new NotFoundError('Agendamento');
+    void automacoesGatilhos.aoCancelar(businessId, id)
+      .catch((err) => logger.warn({ err, appointmentId: id }, 'Gatilho da lista de espera falhou'));
     logger.info({ appointmentId: id, businessId }, 'Agendamento cancelado');
   },
 
