@@ -33,6 +33,7 @@ export const MOTIVO_JA_AGENDOU = 'Cliente já agendou';
 export const MOTIVO_HORARIO_PASSOU = 'Horário já passou';
 export const MOTIVO_NAO_CONFIRMADO = 'Agendamento não está mais confirmado';
 export const MOTIVO_JA_AVALIOU = 'Já avaliou';
+export const MOTIVO_SEM_AGENDAMENTO = 'Agendamento não encontrado';
 export const MOTIVO_FALHA = 'O WhatsApp não aceitou o envio';
 
 const HORA_MS = 3_600_000;
@@ -95,7 +96,7 @@ async function processarNegocio(businessId: string, agora: Date): Promise<Result
       if (item.origin === 'confirmacao') {
         if (!ag || ag.status !== 'confirmado') decisao = await pular(MOTIVO_NAO_CONFIRMADO);
         else if (zonedToUtc(ag.date.toISOString().slice(0, 10), hhmmUtc(ag.time), timezone) <= agora) decisao = await pular(MOTIVO_HORARIO_PASSOU);
-      } else if (!ag) decisao = await pular(MOTIVO_NAO_CONFIRMADO);
+      } else if (!ag) decisao = await pular(MOTIVO_SEM_AGENDAMENTO);
       else if (ag.jaAvaliou) decisao = await pular(MOTIVO_JA_AVALIOU);
     }
   } catch (err) {
