@@ -26,15 +26,18 @@ async function tratarConfirmacao(i: Entrada, espera: RespostaPendente, agora: Da
     return false;
   }
   if (r === 'sim') {
-    await respostasRepository.marcarConfirmadoPeloCliente(espera.appointmentId, i.businessId, agora);
+    const marcou = await respostasRepository.marcarConfirmadoPeloCliente(espera.appointmentId, i.businessId, agora);
+    await respostasRepository.apagar(espera.id);
+    if (!marcou) return false;
     await enviar(i, TEXTO_CONFIRMADO);
+    return true;
   } else {
     await appointmentsService.updateStatus(espera.appointmentId, i.businessId, 'cancelado');
+    await respostasRepository.apagar(espera.id);
     await inboxRecorder.pedirAtendimentoHumano(i.businessId, i.phone);
     await inboxRecorder.avisoDoSistema(i.businessId, i.phone, 'Pediu para reagendar pelo WhatsApp');
     await enviar(i, TEXTO_CANCELADO);
   }
-  await respostasRepository.apagar(espera.id);
   return true;
 }
 
@@ -42,16 +45,17 @@ async function tratarAvaliacao(i: Entrada, espera: RespostaPendente): Promise<bo
   const nota = notaAvaliacao(i.texto ?? '');
   if (!nota) return false;
   await respostasRepository.salvarNota({ businessId: i.businessId, appointmentId: espera.appointmentId, rating: nota });
+  // A nota já está gravada: apagar a espera antes dos envios evita repetir o agradecimento numa nova resposta.
+  await respostasRepository.apagar(espera.id);
+  const link = nota === 5
+    ? await automacoes.obter(i.businessId, 'avaliacao').then((r) => r.config.linkGoogle).catch(() => null)
+    : null;
   await enviar(i, TEXTO_NOTA);
-  if (nota === 5) {
-    const regra = await automacoes.obter(i.businessId, 'avaliacao');
-    const link = regra.config.linkGoogle;
-    if (link) await enviar(i, TEXTO_GOOGLE(link));
-  } else if (nota <= 2) {
+  if (link) await enviar(i, TEXTO_GOOGLE(link));
+  if (nota <= 2) {
     await inboxRecorder.pedirAtendimentoHumano(i.businessId, i.phone);
     await inboxRecorder.avisoDoSistema(i.businessId, i.phone, `Avaliação baixa (${nota}) — vale falar com ela`);
   }
-  await respostasRepository.apagar(espera.id);
   return true;
 }
 

@@ -23,6 +23,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   repo.maisRecente.mockResolvedValue(null);
   repo.statusDoAgendamento.mockResolvedValue('confirmado');
+  repo.marcarConfirmadoPeloCliente.mockResolvedValue(true);
   auto.obter.mockResolvedValue({ config: { horas: 2, linkGoogle: 'https://g.page/x' } });
 });
 
@@ -86,4 +87,12 @@ it('avaliação 2: pede humano e avisa', async () => {
 it('erro interno: false', async () => {
   repo.maisRecente.mockRejectedValue(new Error('x'));
   expect(await respostas.tratar({ ...base, texto: '1' })).toBe(false);
+});
+
+it('confirmação + "2" com cancelamento falhando: não responde "Liberamos" e não consome', async () => {
+  repo.maisRecente.mockResolvedValue(espera('confirmacao'));
+  appts.updateStatus.mockRejectedValueOnce(new Error('falhou'));
+  expect(await respostas.tratar({ ...base, texto: '2' })).toBe(false);
+  expect(msg.sendWhatsAppMessage).not.toHaveBeenCalled();
+  expect(repo.apagar).not.toHaveBeenCalled();
 });
