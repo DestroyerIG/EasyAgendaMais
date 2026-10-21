@@ -49,7 +49,7 @@ export const automacoes = {
   },
 
   async atualizar<R extends Regra>(businessId: string, regra: R, patch: AtualizarAutomacao<R>): Promise<RegraDto<R>> {
-    if (patch.texto !== undefined && patch.texto !== null && (patch.texto.length < 1 || patch.texto.length > 1000)) {
+    if (patch.texto !== undefined && patch.texto !== null && (patch.texto.trim().length < 1 || patch.texto.length > 1000)) {
       throw new ValidationError('O texto deve ter de 1 a 1000 caracteres');
     }
     const atual = await this.obter(businessId, regra);
