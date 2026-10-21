@@ -27,6 +27,9 @@ export interface HistoricoAutomacoesDto {
   itens: Array<{ id: string; criadaEm: string; cliente: string | null; telefone: string; tipo: Origem; status: StatusMensagem }>;
 }
 
+/** Quantos itens o histórico traz quando o pedido não diz. */
+export const LIMITE_HISTORICO_PADRAO = 30;
+
 /** As origens das 7 regras (o histórico de Automações mostra só essas). */
 export const ORIGENS_REGRAS: Origem[] = [...REGRAS];
 
@@ -97,7 +100,7 @@ export const metricas = {
     };
   },
 
-  async historico(businessId: string, limite = 30): Promise<HistoricoAutomacoesDto> {
+  async historico(businessId: string, limite = LIMITE_HISTORICO_PADRAO): Promise<HistoricoAutomacoesDto> {
     const rows = await inboxRepository.historicoEnvios(businessId, limite, ORIGENS_REGRAS);
     return {
       itens: rows.filter((m) => (ORIGENS_REGRAS as string[]).includes(m.origin)).map((m) => ({

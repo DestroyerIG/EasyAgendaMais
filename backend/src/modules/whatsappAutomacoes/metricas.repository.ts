@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
+import { TEXTO_REAGENDAR } from './automacoes.rules.js';
 
 /** Origens que contam como "trouxe a cliente de volta" (envio nos 7 dias antes de agendar). */
 const ORIGENS_RECEITA = ['retorno', 'aniversario', 'campanha'];
@@ -7,7 +8,6 @@ const ORIGENS_RECEITA = ['retorno', 'aniversario', 'campanha'];
 const ORIGENS_RESPOSTA = ['confirmacao', 'avaliacao', 'retorno', 'aniversario', 'lista_espera'];
 /** Status de quem já pagou o sinal (a reserva saiu de `aguardando_pagamento` sem cancelar). */
 const STATUS_PAGOS = ['confirmado', 'em_atendimento', 'concluido', 'faltou'];
-export const TEXTO_REAGENDAR = 'Pediu para reagendar pelo WhatsApp';
 
 /**
  * Mesma regra do canonicalizePhone em SQL: só dígitos, tira o 55 de 13+ dígitos e o 9 do celular.
@@ -24,7 +24,8 @@ const num = (v: unknown): number => (v === null || v === undefined ? 0 : Number(
 export const metricasRepository = {
   /**
    * Preço dos agendamentos criados no período (não cancelados nem esperando Pix) de clientes que
-   * receberam retorno/aniversário/campanha (fila) ou oferta da lista de espera nos 7 dias anteriores.
+   * receberam retorno/aniversário/campanha (fila) ou mensagem `lista_espera` (envio direto, pela phone_key)
+   * nos 7 dias anteriores.
    * Cada agendamento conta uma vez; se houve `retorno`, entra na parte do retorno.
    */
   async receitaAutomacoes(businessId: string, inicio: Date, fim: Date): Promise<{ retorno: number; outros: number }> {
@@ -34,6 +35,7 @@ export const metricasRepository = {
         COALESCE(SUM(s.price) FILTER (WHERE NOT t.retorno AND t.outros), 0) AS outros
       FROM appointments a
       JOIN services s ON s.id = a.service_id
+      JOIN clients c ON c.id = a.client_id
       -- created_at é timestamp sem fuso gravado em UTC; enviado_em é timestamptz.
       CROSS JOIN LATERAL (SELECT a.created_at AT TIME ZONE 'UTC' AS criada) ac
       CROSS JOIN LATERAL (SELECT
@@ -45,9 +47,10 @@ export const metricasRepository = {
                   WHERE e.business_id = a.business_id AND e.client_id = a.client_id AND e.status = 'enviado'
                     AND e.origin IN (${Prisma.join(ORIGENS_RECEITA)})
                     AND e.enviado_em >= ac.criada - interval '7 days' AND e.enviado_em <= ac.criada)
-         OR EXISTS (SELECT 1 FROM waitlist_entries w
-                     WHERE w.business_id = a.business_id AND w.client_id = a.client_id AND w.offered_at IS NOT NULL
-                       AND w.offered_at >= a.created_at - interval '7 days' AND w.offered_at <= a.created_at)) AS outros
+         OR EXISTS (SELECT 1 FROM whatsapp_messages m
+                     WHERE m.business_id = a.business_id AND m.direction = 'out' AND m.origin = 'lista_espera'
+                       AND m.status <> 'falhou' AND m.phone_key = ${canonico('c.phone')}
+                       AND m.created_at >= ac.criada - interval '7 days' AND m.created_at <= ac.criada)) AS outros
       ) t
       WHERE a.business_id = ${businessId}::uuid AND a.created_at >= ${inicio} AND a.created_at < ${fim}
         AND a.status NOT IN ('cancelado', 'aguardando_pagamento')`;
@@ -85,7 +88,7 @@ export const metricasRepository = {
       LEFT JOIN LATERAL (SELECT min(i.created_at) AS em FROM whatsapp_messages i
                           WHERE i.conversation_id = m.conversation_id AND i.direction = 'in'
                             AND i.created_at > m.created_at AND i.created_at <= m.created_at + interval '24 hours') r ON true
-      WHERE m.business_id = ${businessId}::uuid AND m.direction = 'out'
+      WHERE m.business_id = ${businessId}::uuid AND m.direction = 'out' AND m.status <> 'falhou'
         AND m.origin IN (${Prisma.join(ORIGENS_RESPOSTA)})
         AND m.created_at >= ${inicio} AND m.created_at < ${fim}`;
     return { total: num(r?.total), respondidas: num(r?.respondidas), mediaMin: r?.media === null || r?.media === undefined ? null : Number(r.media) };

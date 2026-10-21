@@ -7,8 +7,9 @@ const repo = vi.hoisted(() => ({
 const inbox = vi.hoisted(() => ({ historicoEnvios: vi.fn(), dadosConexao: vi.fn() }));
 const zap = vi.hoisted(() => ({ getStatus: vi.fn() }));
 const settings = vi.hoisted(() => ({ get: vi.fn() }));
+const db = vi.hoisted(() => ({ $queryRaw: vi.fn(), whatsappMessage: { count: vi.fn() } }));
 
-vi.mock('../config/prisma.js', () => ({ prisma: {} }));
+vi.mock('../config/prisma.js', () => ({ prisma: db }));
 vi.mock('../modules/whatsappAutomacoes/metricas.repository.js', () => ({ metricasRepository: repo }));
 vi.mock('../modules/whatsappInbox/inbox.repository.js', () => ({ inboxRepository: inbox }));
 vi.mock('../modules/whatsapp/whatsapp.service.js', () => ({ whatsappService: zap }));
@@ -115,5 +116,37 @@ describe('metricas.historico', () => {
     expect(inbox.historicoEnvios).toHaveBeenCalledWith('b1', 30, ORIGENS_REGRAS);
     expect(r.itens.map((i) => i.id)).toEqual(['m1']);
     expect(r.itens[0]).toMatchObject({ cliente: 'Ana', tipo: 'lembrete', status: 'lida', criadaEm: '2026-10-21T12:00:00.000Z' });
+  });
+});
+
+describe('metricasRepository (SQL)', () => {
+  type Repo = typeof import('../modules/whatsappAutomacoes/metricas.repository.js');
+  const real = () => vi.importActual<Repo>('../modules/whatsappAutomacoes/metricas.repository.js');
+  const textoSql = () => (db.$queryRaw.mock.calls[0]![0] as TemplateStringsArray).join('?')
+    + (db.$queryRaw.mock.calls[0]!.slice(1) as Array<{ sql?: string }>).map((v) => v?.sql ?? '').join(' ');
+
+  it('receita da lista de espera vem da mensagem lista_espera (não de waitlist_entries.offered_at)', async () => {
+    db.$queryRaw.mockResolvedValue([{ retorno: 0, outros: 0 }]);
+    const { metricasRepository } = await real();
+    await metricasRepository.receitaAutomacoes('b1', new Date(), new Date());
+    const sql = textoSql();
+    expect(sql).not.toContain('waitlist_entries');
+    expect(sql).toMatch(/whatsapp_messages m[\s\S]*m\.origin = 'lista_espera'[\s\S]*m\.status <> 'falhou'[\s\S]*m\.phone_key = /);
+    expect(sql).toContain("interval '7 days'");
+  });
+
+  it('taxa de resposta ignora mensagens que falharam', async () => {
+    db.$queryRaw.mockResolvedValue([{ total: 0, respondidas: 0, media: null }]);
+    const { metricasRepository } = await real();
+    await metricasRepository.respostas('b1', new Date(), new Date());
+    expect(textoSql()).toContain("m.status <> 'falhou'");
+  });
+
+  it('conta os pedidos de reagendar pelo texto único do aviso', async () => {
+    db.whatsappMessage.count.mockResolvedValue(2);
+    const { metricasRepository } = await real();
+    const { TEXTO_REAGENDAR } = await import('../modules/whatsappAutomacoes/automacoes.rules.js');
+    expect(await metricasRepository.pedidosDeReagendar('b1', new Date(), new Date())).toBe(2);
+    expect(db.whatsappMessage.count.mock.calls[0]![0].where.body).toBe(TEXTO_REAGENDAR);
   });
 });

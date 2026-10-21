@@ -4,7 +4,7 @@ import { sendWhatsAppMessage } from '../../services/whatsapp/whatsappMessageServ
 import { inboxRecorder } from '../whatsappInbox/inbox.recorder.js';
 import { appointmentsService } from '../appointments/appointments.service.js';
 import { automacoes } from './automacoes.service.js';
-import { notaAvaliacao, respostaConfirmacao } from './automacoes.rules.js';
+import { notaAvaliacao, respostaConfirmacao, TEXTO_REAGENDAR } from './automacoes.rules.js';
 import { respostasRepository, type RespostaPendente } from './respostas.repository.js';
 
 export const TEXTO_CONFIRMADO = 'Obrigada! Seu horário está confirmado ✨';
@@ -35,7 +35,7 @@ async function tratarConfirmacao(i: Entrada, espera: RespostaPendente, agora: Da
     await appointmentsService.updateStatus(espera.appointmentId, i.businessId, 'cancelado');
     await respostasRepository.apagar(espera.id);
     await inboxRecorder.pedirAtendimentoHumano(i.businessId, i.phone);
-    await inboxRecorder.avisoDoSistema(i.businessId, i.phone, 'Pediu para reagendar pelo WhatsApp');
+    await inboxRecorder.avisoDoSistema(i.businessId, i.phone, TEXTO_REAGENDAR);
     await enviar(i, TEXTO_CANCELADO);
   }
   return true;

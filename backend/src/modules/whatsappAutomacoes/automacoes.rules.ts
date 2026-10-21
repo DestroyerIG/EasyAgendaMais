@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import type { ConfigRegras, Regra } from './automacoes.types.js';
 
+/** Aviso gravado na conversa quando a cliente responde "2" à confirmação (contado nas métricas). */
+export const TEXTO_REAGENDAR = 'Pediu para reagendar pelo WhatsApp';
+
 export const TEXTO_PADRAO: Record<Regra, string> = {
   confirmacao: 'Olá {primeiro_nome}! Tudo bem? Seu agendamento de {servico} está marcado para amanhã às {horario}. Responda 1 para Confirmar ou 2 para Reagendar.',
   sinal_pix: 'Sua vaga para {servico} está pré-reservada por {prazo} min! Para garantir, pague o sinal de R$ {valor_sinal} pelo Pix abaixo:\n\n{pix_copia_e_cola}',

@@ -5,6 +5,7 @@ import { requireTenantRoles } from '../../middleware/rbac.js';
 import { requireFeature } from '../../middleware/subscriptionGuard.js';
 import { validate } from '../../middleware/validate.js';
 import { REGRAS } from './automacoes.types.js';
+import { LIMITE_HISTORICO_PADRAO } from './metricas.service.js';
 import { listarAutomacoes, atualizarAutomacao, testarAutomacao, painelAutomacoes, historicoAutomacoes } from './automacoes.controller.js';
 
 const router = express.Router();
@@ -16,7 +17,7 @@ const AtualizarSchema = z.object({
   texto: z.string().nullable().optional(),
   config: z.record(z.string(), z.unknown()).optional(),
 });
-const HistoricoQuery = z.object({ limite: z.coerce.number().int().min(1).max(100).default(30) });
+const HistoricoQuery = z.object({ limite: z.coerce.number().int().min(1).max(100).default(LIMITE_HISTORICO_PADRAO) });
 
 router.get('/', ...guard, listarAutomacoes);
 // Antes das rotas com :regra para não colidirem.
