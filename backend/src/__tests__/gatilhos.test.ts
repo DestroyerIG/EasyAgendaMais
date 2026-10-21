@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const regras = vi.hoisted(() => ({ obter: vi.fn() }));
 const repo = vi.hoisted(() => ({
   vaga: vi.fn(), negocio: vi.fn(), nomeServico: vi.fn(), entradasAguardando: vi.fn(),
-  marcarOferecida: vi.fn(), temAvaliacao: vi.fn(), agendamentoParaAvaliacao: vi.fn(),
+  marcarOferecida: vi.fn(), desfazerOferta: vi.fn(), temAvaliacao: vi.fn(), agendamentoParaAvaliacao: vi.fn(),
 }));
 const zap = vi.hoisted(() => ({ getStatus: vi.fn(), send: vi.fn() }));
 const inbox = vi.hoisted(() => ({ estaEmOptOut: vi.fn() }));
@@ -71,6 +71,22 @@ describe('aoCancelar', () => {
     repo.vaga.mockResolvedValue({ data: '2026-10-22', hora: '14:00', serviceId: 's1', professionalId: 'p1', duracao: 60, profissional: 'Camila' });
     await automacoesGatilhos.aoCancelar('b1', 'a1', AGORA);
     expect(zap.send.mock.calls[0][1]).toBe('Vaga amanhã às 14:00 com Camila (Gel), Cliente!');
+  });
+
+  it('entrada já reservada por outro cancelamento não recebe de novo', async () => {
+    repo.marcarOferecida.mockImplementation(async (id: string) => id !== '1');
+    expect(await automacoesGatilhos.aoCancelar('b1', 'a1', AGORA)).toBe(2);
+    expect(zap.send.mock.calls.map((c) => c[0])).toEqual(['83999990002', '83999990003']);
+  });
+
+  it('envio que falha desfaz a oferta e não conta; erro numa entrada não para as outras', async () => {
+    zap.send.mockImplementation(async (phone: string) => {
+      if (phone === '83999990001') return false;
+      if (phone === '83999990002') throw new Error('caiu');
+      return true;
+    });
+    expect(await automacoesGatilhos.aoCancelar('b1', 'a1', AGORA)).toBe(1);
+    expect(repo.desfazerOferta).toHaveBeenCalledWith('1', 'b1');
   });
 
   it('opt-out é pulado e não conta', async () => {

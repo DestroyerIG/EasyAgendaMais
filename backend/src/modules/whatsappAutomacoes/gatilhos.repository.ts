@@ -77,6 +77,12 @@ export const gatilhosRepository = {
     return r.count > 0;
   },
 
+  async desfazerOferta(id: string, businessId: string): Promise<void> {
+    await prisma.waitlistEntry.updateMany({
+      where: { id, businessId, status: 'oferecida' }, data: { status: 'aguardando', offeredAt: null },
+    });
+  },
+
   async temAvaliacao(appointmentId: string): Promise<boolean> {
     return (await prisma.whatsappRating.count({ where: { appointmentId } })) > 0;
   },

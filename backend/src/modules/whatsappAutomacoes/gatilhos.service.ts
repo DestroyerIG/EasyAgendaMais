@@ -51,14 +51,19 @@ export const automacoesGatilhos = {
 
     let avisadas = 0;
     for (const e of entradas) {
-      if (await inboxRecorder.estaEmOptOut(businessId, e.phone)) continue;
-      const texto = renderizarTexto(regra.texto, {
-        primeiro_nome: primeiroNome(e.nome), data, horario: vaga.hora, profissional: vaga.profissional, servico, link,
-      });
-      const ok = await sendWhatsAppMessage(e.phone, texto, { businessId, origin: 'lista_espera' });
-      if (!ok) continue;
-      await repo.marcarOferecida(e.id, businessId, agora);
-      avisadas += 1;
+      try {
+        if (await inboxRecorder.estaEmOptOut(businessId, e.phone)) continue;
+        // Reserva a entrada antes de enviar: dois cancelamentos ao mesmo tempo não avisam a mesma pessoa duas vezes.
+        if (!(await repo.marcarOferecida(e.id, businessId, agora))) continue;
+        const texto = renderizarTexto(regra.texto, {
+          primeiro_nome: primeiroNome(e.nome), data, horario: vaga.hora, profissional: vaga.profissional, servico, link,
+        });
+        const ok = await sendWhatsAppMessage(e.phone, texto, { businessId, origin: 'lista_espera' });
+        if (!ok) { await repo.desfazerOferta(e.id, businessId); continue; }
+        avisadas += 1;
+      } catch (err) {
+        logger.warn({ err, businessId, entradaId: e.id }, 'automacoes: aviso da lista de espera falhou');
+      }
     }
     return avisadas;
   },
