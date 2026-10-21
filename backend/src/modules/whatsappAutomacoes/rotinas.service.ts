@@ -50,6 +50,19 @@ function loteDoRadar(businessId: string, hoje: string): string {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-${variante}${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
 
+/**
+ * Trava diária em memória ("regra:negócio" -> dia local já processado), marcada só depois de uma rodada
+ * completa sem erro. Reinício do servidor volta a rodar uma vez; lote, carência e envio do ano evitam duplicar.
+ */
+const diaProcessado = new Map<string, string>();
+const jaRodouHoje = (regra: Regra, businessId: string, hoje: string) => diaProcessado.get(`${regra}:${businessId}`) === hoje;
+const marcarRodouHoje = (regra: Regra, businessId: string, hoje: string) => { diaProcessado.set(`${regra}:${businessId}`, hoje); };
+
+/** Só para testes. */
+export function limparTravasDiarias(): void {
+  diaProcessado.clear();
+}
+
 /** Roda `fn` em cada negócio com a regra ligada; erro de um negócio não para os outros. */
 async function porNegocio(regra: Regra, fn: (businessId: string) => Promise<number>): Promise<number> {
   let total = 0;
@@ -104,8 +117,10 @@ export const automacoesRotinas = {
       if (!regra.ativa) return 0;
       const tz = await fusoDe(businessId);
       if (horaLocal(agora, tz) < HORA_RADAR) return 0;
-      const lote = loteDoRadar(businessId, todayInTimezone(tz, agora));
-      if (await repo.existeLote(businessId, lote)) return 0;
+      const hoje = todayInTimezone(tz, agora);
+      if (jaRodouHoje('retorno', businessId, hoje)) return 0;
+      const lote = loteDoRadar(businessId, hoje);
+      if (await repo.existeLote(businessId, lote)) { marcarRodouHoje('retorno', businessId, hoje); return 0; }
 
       const lista = await retornoService.listarParaRotina(businessId, agora);
       const carencia = agora.getTime() - CARENCIA_RETORNO_DIAS * DIA_MS;
@@ -115,7 +130,7 @@ export const automacoesRotinas = {
         .filter((i) => !i.ultimoConviteEm || new Date(i.ultimoConviteEm).getTime() < carencia)
         .filter((i) => i.envio?.status !== 'na_fila' && i.envio?.status !== 'enviando')
         .slice(0, LIMITE_RADAR);
-      if (escolhidas.length === 0) return 0;
+      if (escolhidas.length === 0) { marcarRodouHoje('retorno', businessId, hoje); return 0; }
 
       const envios = await filaEnvios.enfileirar(escolhidas.map((i) => ({
         businessId, clientId: i.cliente.id, phone: i.cliente.telefone, origin: 'retorno' as const,
@@ -126,6 +141,7 @@ export const automacoesRotinas = {
           link_agenda: lista.linkAgendamento, negocio: lista.negocioNome,
         }),
       })));
+      marcarRodouHoje('retorno', businessId, hoje);
       return envios.length;
     });
   },
@@ -137,12 +153,16 @@ export const automacoesRotinas = {
       const tz = await fusoDe(businessId);
       if (horaLocal(agora, tz) < HORA_ANIVERSARIO) return 0;
       const hoje = todayInTimezone(tz, agora);
-      const doDia = (await repo.clientesComAniversario(businessId)).filter((c) => aniversarianteEm(c.birthDate, hoje));
-      if (doDia.length === 0) return 0;
+      if (jaRodouHoje('aniversario', businessId, hoje)) return 0;
+      const [ano, mes, dia] = hoje.split('-').map(Number);
+      const bissexto = (ano % 4 === 0 && ano % 100 !== 0) || ano % 400 === 0;
+      const doDia = (await repo.aniversariantesDoDia(businessId, mes, dia, mes === 2 && dia === 28 && !bissexto))
+        .filter((c) => aniversarianteEm(c.birthDate, hoje));
+      if (doDia.length === 0) { marcarRodouHoje('aniversario', businessId, hoje); return 0; }
       const inicioDoAno = zonedToUtc(`${hoje.slice(0, 4)}-01-01`, '00:00', tz);
       const jaReceberam = await repo.clientesComEnvioDesde(businessId, 'aniversario', inicioDoAno, doDia.map((c) => c.id));
       const novas = doDia.filter((c) => !jaReceberam.has(c.id));
-      if (novas.length === 0) return 0;
+      if (novas.length === 0) { marcarRodouHoje('aniversario', businessId, hoje); return 0; }
 
       const negocio = await repo.negocio(businessId);
       const link = linkPublico(negocio.slug);
@@ -153,6 +173,7 @@ export const automacoesRotinas = {
           primeiro_nome: primeiroNome(c.nome), presente: regra.config.presente, link, negocio: negocio.nome,
         }),
       })));
+      marcarRodouHoje('aniversario', businessId, hoje);
       return envios.length;
     });
   },

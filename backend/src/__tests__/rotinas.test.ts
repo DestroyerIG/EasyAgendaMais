@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const regras = vi.hoisted(() => ({ obter: vi.fn() }));
 const repo = vi.hoisted(() => ({
   negociosComRegraAtiva: vi.fn(), negocio: vi.fn(), agendamentosDoDia: vi.fn(), marcarConfirmacaoEnviada: vi.fn(),
-  marcarLembreteEnviado: vi.fn(), clientesComAniversario: vi.fn(), clientesComEnvioDesde: vi.fn(), existeLote: vi.fn(),
+  marcarLembreteEnviado: vi.fn(), aniversariantesDoDia: vi.fn(), clientesComEnvioDesde: vi.fn(), existeLote: vi.fn(),
 }));
 const fila = vi.hoisted(() => ({ enfileirar: vi.fn() }));
 const retorno = vi.hoisted(() => ({ listarParaRotina: vi.fn() }));
@@ -20,7 +20,7 @@ vi.mock('../modules/whatsappInbox/inbox.recorder.js', () => ({ inboxRecorder: in
 vi.mock('../services/whatsapp/whatsappMessageService.js', () => ({ sendWhatsAppMessage: zap.send }));
 vi.mock('../services/scheduleSettingsService.js', () => ({ getBusinessScheduleSettings: settings.get }));
 
-const { automacoesRotinas } = await import('../modules/whatsappAutomacoes/rotinas.service.js');
+const { automacoesRotinas, limparTravasDiarias } = await import('../modules/whatsappAutomacoes/rotinas.service.js');
 
 /** Hoje é 2026-10-21 em São Paulo (UTC-3). */
 const local = (hhmm: string) => new Date(`2026-10-21T${hhmm}:00-03:00`);
@@ -34,6 +34,7 @@ const dto = (over: Record<string, unknown>) => ({ id: 'e1', clientId: 'c1', appo
 
 beforeEach(() => {
   vi.resetAllMocks();
+  limparTravasDiarias();
   delete process.env.FRONTEND_URL;
   settings.get.mockResolvedValue({ timezone: 'America/Sao_Paulo' });
   repo.negociosComRegraAtiva.mockResolvedValue(['b1']);
@@ -69,6 +70,13 @@ describe('confirmacoes', () => {
     expect(repo.marcarConfirmacaoEnviada).toHaveBeenCalledWith('b1', '1', agora);
   });
 
+  it('às 22:00 locais (01:00Z do dia seguinte), amanhã é o dia local seguinte', async () => {
+    const agora = local('22:00');
+    expect(agora.toISOString()).toBe('2026-10-22T01:00:00.000Z');
+    expect(await automacoesRotinas.confirmacoes(agora)).toBe(1);
+    expect(repo.agendamentosDoDia).toHaveBeenCalledWith('b1', '2026-10-22', 'confirmacao');
+  });
+
   it('agendamento criado 3h antes do horário: não enfileira', async () => {
     repo.agendamentosDoDia.mockResolvedValue([ag('1', { createdAt: new Date('2026-10-22T14:00:00Z') })]); // 11:00 locais de amanhã
     expect(await automacoesRotinas.confirmacoes(local('09:05'))).toBe(0);
@@ -91,7 +99,7 @@ describe('confirmacoes', () => {
 describe('aniversarios', () => {
   beforeEach(() => {
     regras.obter.mockResolvedValue({ ativa: true, texto: 'Parabéns, {primeiro_nome}! {presente}\nAgende: {link}', config: { presente: 'R$ 20 OFF' } });
-    repo.clientesComAniversario.mockResolvedValue([
+    repo.aniversariantesDoDia.mockResolvedValue([
       { id: 'c1', nome: 'Ana Lima', phone: '83911110001', birthDate: new Date('1990-10-21T00:00:00Z') },
       { id: 'c2', nome: 'Bia Melo', phone: '83911110002', birthDate: new Date('1992-10-21T00:00:00Z') },
       { id: 'c3', nome: 'Carla Dias', phone: '83911110003', birthDate: new Date('1992-10-22T00:00:00Z') },
@@ -115,6 +123,39 @@ describe('aniversarios', () => {
       businessId: 'b1', clientId: 'c2', phone: '83911110002', origin: 'aniversario', prioridade: 5, agendadoPara: agora,
       body: 'Parabéns, Bia! R$ 20 OFF',
     }]);
+  });
+});
+
+describe('aniversarios: filtro no banco e trava diária', () => {
+  beforeEach(() => {
+    regras.obter.mockResolvedValue({ ativa: true, texto: 'Parabéns, {primeiro_nome}!', config: { presente: 'R$ 20 OFF' } });
+    repo.aniversariantesDoDia.mockResolvedValue([]);
+  });
+
+  it('pede ao banco o mês e o dia locais', async () => {
+    await automacoesRotinas.aniversarios(local('08:10'));
+    expect(repo.aniversariantesDoDia).toHaveBeenCalledWith('b1', 10, 21, false);
+  });
+
+  it('28/02 de ano não bissexto inclui quem nasceu em 29/02', async () => {
+    repo.aniversariantesDoDia.mockResolvedValue([{ id: 'c1', nome: 'Ana', phone: '83911110001', birthDate: new Date('2000-02-29T00:00:00Z') }]);
+    expect(await automacoesRotinas.aniversarios(new Date('2027-02-28T12:00:00Z'))).toBe(1);
+    expect(repo.aniversariantesDoDia).toHaveBeenCalledWith('b1', 2, 28, true);
+  });
+
+  it('depois de uma rodada completa, não consulta de novo no mesmo dia', async () => {
+    await automacoesRotinas.aniversarios(local('08:10'));
+    await automacoesRotinas.aniversarios(local('08:25'));
+    expect(repo.aniversariantesDoDia).toHaveBeenCalledTimes(1);
+    await automacoesRotinas.aniversarios(new Date('2026-10-22T11:10:00Z'));
+    expect(repo.aniversariantesDoDia).toHaveBeenCalledTimes(2);
+  });
+
+  it('rodada com erro não trava o dia', async () => {
+    repo.aniversariantesDoDia.mockRejectedValueOnce(new Error('banco'));
+    expect(await automacoesRotinas.aniversarios(local('08:10'))).toBe(0);
+    await automacoesRotinas.aniversarios(local('08:25'));
+    expect(repo.aniversariantesDoDia).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -161,6 +202,19 @@ describe('radarRetorno', () => {
     expect(fila.enfileirar).toHaveBeenCalledTimes(1);
     // No dia seguinte o lote é outro.
     expect(await automacoesRotinas.radarRetorno(new Date('2026-10-22T12:30:00Z'))).toBe(1);
+  });
+
+  it('sem elegíveis, trava o dia: a lista não é remontada', async () => {
+    retorno.listarParaRotina.mockResolvedValue(lista([]));
+    expect(await automacoesRotinas.radarRetorno(AGORA)).toBe(0);
+    expect(await automacoesRotinas.radarRetorno(local('09:45'))).toBe(0);
+    expect(retorno.listarParaRotina).toHaveBeenCalledTimes(1);
+  });
+
+  it('erro na montagem da lista não trava o dia', async () => {
+    retorno.listarParaRotina.mockRejectedValueOnce(new Error('crm'));
+    expect(await automacoesRotinas.radarRetorno(AGORA)).toBe(0);
+    expect(await automacoesRotinas.radarRetorno(local('09:45'))).toBe(1);
   });
 
   it('40 elegíveis: enfileira 30', async () => {

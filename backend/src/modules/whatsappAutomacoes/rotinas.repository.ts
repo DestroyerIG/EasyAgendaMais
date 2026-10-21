@@ -76,12 +76,16 @@ export const rotinasRepository = {
     await prisma.appointment.updateMany({ where: { id, businessId }, data: { reminderSent: true } });
   },
 
-  async clientesComAniversario(businessId: string): Promise<Aniversariante[]> {
-    const rows = await prisma.client.findMany({
-      where: { businessId, active: true, birthDate: { not: null } },
-      select: { id: true, name: true, phone: true, birthDate: true },
-    });
-    return rows.flatMap((c) => (c.birthDate ? [{ id: c.id, nome: c.name, phone: c.phone, birthDate: c.birthDate }] : []));
+  /** Clientes ativas que fazem aniversário no dia (filtro de mês/dia no banco); `incluir29Fev` para 28/02 de ano não bissexto. */
+  async aniversariantesDoDia(businessId: string, mes: number, dia: number, incluir29Fev: boolean): Promise<Aniversariante[]> {
+    const rows = await prisma.$queryRaw<Array<{ id: string; name: string; phone: string; birth_date: Date }>>`
+      SELECT id, name, phone, birth_date FROM clients
+      WHERE business_id = ${businessId}::uuid AND active = true AND birth_date IS NOT NULL
+        AND (
+          (EXTRACT(MONTH FROM birth_date) = ${mes} AND EXTRACT(DAY FROM birth_date) = ${dia})
+          OR (${incluir29Fev} AND EXTRACT(MONTH FROM birth_date) = 2 AND EXTRACT(DAY FROM birth_date) = 29)
+        )`;
+    return rows.map((c) => ({ id: c.id, nome: c.name, phone: c.phone, birthDate: c.birth_date }));
   },
 
   /** Clientes (entre os informados) com algum envio da origem criado desde `desde`. */

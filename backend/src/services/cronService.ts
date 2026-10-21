@@ -202,9 +202,14 @@ export const startReminderCron = (): void => {
     }
   }, { noOverlap: true });
 
-  cron.schedule('*/10 * * * *', () => {
-    void runReminderJob();
-  });
+  // noOverlap: a véspera envia em sequência; uma rodada lenta não pode ser repetida pela próxima.
+  cron.schedule('*/10 * * * *', async () => {
+    try {
+      await runReminderJob();
+    } catch (err) {
+      logger.warn({ err }, 'Falha na rotina de lembretes do WhatsApp');
+    }
+  }, { noOverlap: true });
 
   cron.schedule('*/10 * * * *', async () => {
     try {
