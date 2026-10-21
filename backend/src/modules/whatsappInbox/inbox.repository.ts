@@ -32,8 +32,8 @@ export const inboxRepository = {
   enviosDesde: async (businessId: string, desde: Date) => (await prisma.whatsappMessage.groupBy({
     by: ['origin', 'status'], where: { businessId, direction: 'out', origin: { not: 'painel_evento' }, createdAt: { gte: desde } },
     _count: { _all: true } })).map((g) => ({ origin: g.origin, status: g.status, n: g._count._all })),
-  historicoEnvios: (businessId: string, take = 20) => prisma.whatsappMessage.findMany({
-    where: { businessId, direction: 'out', origin: { not: 'painel_evento' } }, orderBy: { createdAt: 'desc' }, take,
+  historicoEnvios: (businessId: string, take = 20, origens?: string[]) => prisma.whatsappMessage.findMany({
+    where: { businessId, direction: 'out', origin: origens ? { in: origens } : { not: 'painel_evento' } }, orderBy: { createdAt: 'desc' }, take,
     select: { id: true, createdAt: true, origin: true, status: true, phoneKey: true,
       conversation: { select: { phone: true, client: { select: { name: true } } } } } }),
   dadosConexao: (businessId: string) => prisma.business.findUniqueOrThrow({ where: { id: businessId }, select: { whatsapp: true, whatsappConnectedAt: true } }),
