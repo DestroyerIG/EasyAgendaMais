@@ -103,6 +103,52 @@ describe('Automacoes', () => {
     }
   });
 
+  it('com a config padrão, as descrições são as do Stitch', async () => {
+    api.listarRegras.mockResolvedValue(regras().map((r) =>
+      (r.regra === 'aniversario' ? { ...r, config: { presente: 'R$ 20 OFF em qualquer serviço' } } : r)));
+    renderizar();
+    await screen.findByRole('heading', { name: TITULOS[0] });
+    expect(screen.getByText('Ao surgir cancelamento, dispara para as 3 primeiras clientes compatíveis na fila de espera por estrita ordem de solicitação.')).toBeInTheDocument();
+    expect(screen.getByText('Dispara às 18:00 do dia anterior com endereço completo, link do GPS e recomendações prévias para o procedimento.')).toBeInTheDocument();
+    expect(screen.getByText('Envia felicitações às 08:00 com cupom de R$ 20 ou mimo de hidratação para agendamentos realizados na semana festiva.')).toBeInTheDocument();
+    expect(screen.getByText('Disparado 2 horas após a comanda ser finalizada no balcão, solicitando nota de 1 a 5 e direcionando 5 estrelas ao Google Meu Negócio.')).toBeInTheDocument();
+  });
+
+  it('fora do padrão, título e descrição acompanham a config', async () => {
+    const fora: Partial<Record<string, object>> = {
+      lista_espera: { quantas: 5 },
+      lembrete: { modo: '2h', hora: '18:00' },
+      avaliacao: { horas: 4, linkGoogle: null },
+      aniversario: { presente: 'uma escova grátis' },
+    };
+    api.listarRegras.mockResolvedValue(regras().map((r) => (fora[r.regra] ? { ...r, config: fora[r.regra] } : r)));
+    renderizar();
+    await screen.findByRole('heading', { name: TITULOS[0] });
+    expect(screen.getByText('Ao surgir cancelamento, dispara para as 5 primeiras clientes compatíveis na fila de espera por estrita ordem de solicitação.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Lembrete antes do horário' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Lembrete na véspera' })).toBeNull();
+    expect(screen.getByText('Dispara 2 horas antes do horário com endereço completo, link do GPS e recomendações prévias para o procedimento.')).toBeInTheDocument();
+    expect(screen.getByText('2 horas antes')).toBeInTheDocument();
+    expect(screen.getByText('Disparado 4 horas após a comanda ser finalizada no balcão, solicitando nota de 1 a 5 e direcionando 5 estrelas ao Google Meu Negócio.')).toBeInTheDocument();
+    expect(screen.getByText('Envia felicitações às 08:00 com uma escova grátis para agendamentos realizados na semana festiva.')).toBeInTheDocument();
+  });
+
+  it('lembrete na véspera em outro horário, avaliação em 1 hora, uma só da lista e aniversário sem presente', async () => {
+    const fora: Partial<Record<string, object>> = {
+      lista_espera: { quantas: 1 },
+      lembrete: { modo: 'vespera', hora: '19:30' },
+      avaliacao: { horas: 1, linkGoogle: null },
+      aniversario: { presente: '' },
+    };
+    api.listarRegras.mockResolvedValue(regras().map((r) => (fora[r.regra] ? { ...r, config: fora[r.regra] } : r)));
+    renderizar();
+    await screen.findByRole('heading', { name: TITULOS[0] });
+    expect(screen.getByText('Ao surgir cancelamento, dispara para a primeira cliente compatível na fila de espera por estrita ordem de solicitação.')).toBeInTheDocument();
+    expect(screen.getByText('Dispara às 19:30 do dia anterior com endereço completo, link do GPS e recomendações prévias para o procedimento.')).toBeInTheDocument();
+    expect(screen.getByText(/^Disparado 1 hora após a comanda/)).toBeInTheDocument();
+    expect(screen.getByText('Envia felicitações às 08:00 e convida a cliente para comemorar com um agendamento na semana festiva.')).toBeInTheDocument();
+  });
+
   it('conta as regras ativas', async () => {
     renderizar();
     expect(await screen.findByText('1 ativa')).toBeInTheDocument();

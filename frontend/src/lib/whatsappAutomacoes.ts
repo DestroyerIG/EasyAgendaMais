@@ -8,6 +8,9 @@ export type Regra = 'confirmacao' | 'sinal_pix' | 'retorno' | 'lista_espera' | '
 /** Ordem de exibição (a do Stitch). */
 export const REGRAS: Regra[] = ['confirmacao', 'sinal_pix', 'retorno', 'lista_espera', 'lembrete', 'aniversario', 'avaliacao'];
 
+/** Presente padrão do aniversário (o mesmo de configPadrao em automacoes.rules.ts). */
+export const PRESENTE_PADRAO = 'R$ 20 OFF em qualquer serviço';
+
 export interface ConfigRegras {
   confirmacao: { hora: string };
   sinal_pix: { toleranciaMin: 15 | 30 | 60 };

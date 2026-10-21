@@ -8,7 +8,7 @@ import { formatCurrency, formatNumber } from '@/lib/formatters';
 import { formatarTelefone } from '@/lib/whatsappInbox';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import {
-  atualizarRegra, listarRegras, painel as buscarPainel,
+  atualizarRegra, listarRegras, painel as buscarPainel, PRESENTE_PADRAO,
   type ConfigRegras, type PainelAutomacoesDto, type Regra, type RegraDto,
 } from '@/lib/whatsappAutomacoes';
 import { CartaoRegra } from './CartaoRegra';
@@ -22,8 +22,8 @@ interface AutomacoesProps {
 type PorRegra = PainelAutomacoesDto['porRegra'];
 
 interface ConteudoRegra<R extends Regra> {
-  titulo: string;
-  descricao: string;
+  titulo(config: ConfigRegras[R]): string;
+  descricao(config: ConfigRegras[R]): string;
   icone: string;
   quando(config: ConfigRegras[R]): string;
   numero(r: PorRegra[R]): string;
@@ -32,39 +32,39 @@ interface ConteudoRegra<R extends Regra> {
 const plural = (n: number, um: string, varios: string) => `${formatNumber(n)} ${n === 1 ? um : varios}`;
 const reais = (v: number) => formatCurrency(v, { cents: false });
 
-// Título, descrição e ícone copiados do Stitch; rodapé e número montados dos dados.
+// Com a config padrão, título e descrição são os do Stitch; os trechos configuráveis acompanham a config.
 const CONTEUDO: { [R in Regra]: ConteudoRegra<R> } = {
   confirmacao: {
-    titulo: 'Confirmação 24h antes',
-    descricao: 'Pergunta se a cliente confirma o comparecimento. Se responder "Não", o horário é liberado imediatamente para a lista de espera.',
+    titulo: () => 'Confirmação 24h antes',
+    descricao: () => 'Pergunta se a cliente confirma o comparecimento. Se responder "Não", o horário é liberado imediatamente para a lista de espera.',
     icone: 'schedule',
     quando: (c) => `24h antes · ${c.hora}`,
     numero: (r) => `${plural(r.faltasEvitadas, 'falta evitada', 'faltas evitadas')} este mês`,
   },
   sinal_pix: {
-    titulo: 'Cobrança de sinal Pix',
-    descricao: 'Envia a chave Copia e Cola Pix e QR code assim que a cliente solicita vaga. Reserva temporária com contagem regressiva rigorosa.',
+    titulo: () => 'Cobrança de sinal Pix',
+    descricao: () => 'Envia a chave Copia e Cola Pix e QR code assim que a cliente solicita vaga. Reserva temporária com contagem regressiva rigorosa.',
     icone: 'timer',
     quando: (c) => `Tolerância de ${c.toleranciaMin} min`,
     numero: (r) => `${reais(r.recebido)} recebidos em sinais`,
   },
   retorno: {
-    titulo: 'Radar de Retorno',
-    descricao: 'Detecta quando o ciclo médio do serviço está vencendo e convida a cliente para agendar antes que procure outro lugar.',
+    titulo: () => 'Radar de Retorno',
+    descricao: () => 'Detecta quando o ciclo médio do serviço está vencendo e convida a cliente para agendar antes que procure outro lugar.',
     icone: 'cached',
     quando: (c) => (c.modo === 'dias' ? `Aos ${c.dias} dias (personalizado)` : 'No ciclo da cliente'),
     numero: (r) => `${reais(r.recuperado)} recuperados`,
   },
   lista_espera: {
-    titulo: 'Lista de espera automática',
-    descricao: 'Ao surgir cancelamento, dispara para as 3 primeiras clientes compatíveis na fila de espera por estrita ordem de solicitação.',
+    titulo: () => 'Lista de espera automática',
+    descricao: (c) => `Ao surgir cancelamento, dispara para ${c.quantas === 1 ? 'a primeira cliente compatível' : `as ${c.quantas} primeiras clientes compatíveis`} na fila de espera por estrita ordem de solicitação.`,
     icone: 'group_add',
     quando: (c) => (c.quantas === 1 ? 'Disparo para a primeira' : `Disparo para as ${c.quantas} primeiras`),
     numero: (r) => plural(r.vagasPreenchidas, 'vaga preenchida', 'vagas preenchidas'),
   },
   lembrete: {
-    titulo: 'Lembrete na véspera',
-    descricao: 'Dispara às 18:00 do dia anterior com endereço completo, link do GPS e recomendações prévias para o procedimento.',
+    titulo: (c) => (c.modo === 'vespera' ? 'Lembrete na véspera' : 'Lembrete antes do horário'),
+    descricao: (c) => `Dispara ${c.modo === 'vespera' ? `às ${c.hora} do dia anterior` : '2 horas antes do horário'} com endereço completo, link do GPS e recomendações prévias para o procedimento.`,
     icone: 'pin_drop',
     quando: (c) => (c.modo === 'vespera' ? `Véspera às ${c.hora}` : '2 horas antes'),
     numero: (r) => {
@@ -73,15 +73,20 @@ const CONTEUDO: { [R in Regra]: ConteudoRegra<R> } = {
     },
   },
   aniversario: {
-    titulo: 'Aniversário da cliente',
-    descricao: 'Envia felicitações às 08:00 com cupom de R$ 20 ou mimo de hidratação para agendamentos realizados na semana festiva.',
+    titulo: () => 'Aniversário da cliente',
+    descricao: (c) => {
+      const presente = c.presente.trim();
+      if (presente === PRESENTE_PADRAO) return 'Envia felicitações às 08:00 com cupom de R$ 20 ou mimo de hidratação para agendamentos realizados na semana festiva.';
+      if (!presente) return 'Envia felicitações às 08:00 e convida a cliente para comemorar com um agendamento na semana festiva.';
+      return `Envia felicitações às 08:00 com ${presente} para agendamentos realizados na semana festiva.`;
+    },
     icone: 'cake',
     quando: () => 'Dia do aniversário às 08:00',
     numero: (r) => `${plural(r.aniversariantes, 'aniversariante', 'aniversariantes')} · ${plural(r.agendamentos, 'agendamento', 'agendamentos')}`,
   },
   avaliacao: {
-    titulo: 'Pedido de avaliação',
-    descricao: 'Disparado 2 horas após a comanda ser finalizada no balcão, solicitando nota de 1 a 5 e direcionando 5 estrelas ao Google Meu Negócio.',
+    titulo: () => 'Pedido de avaliação',
+    descricao: (c) => `Disparado ${c.horas} ${c.horas === 1 ? 'hora' : 'horas'} após a comanda ser finalizada no balcão, solicitando nota de 1 a 5 e direcionando 5 estrelas ao Google Meu Negócio.`,
     icone: 'star',
     quando: (c) => `${c.horas}h após o checkout`,
     numero: (r) => {
@@ -93,17 +98,14 @@ const CONTEUDO: { [R in Regra]: ConteudoRegra<R> } = {
   },
 };
 
-function conteudoDe(regra: RegraDto, porRegra: PorRegra | null) {
-  // O par (regra, config) chega casado do servidor; a união não deixa o TS provar isso aqui.
-  const c = CONTEUDO[regra.regra] as unknown as ConteudoRegra<Regra> & {
-    quando(config: unknown): string; numero(r: unknown): string;
-  };
+function conteudoDe<R extends Regra>(regra: R, config: ConfigRegras[R], porRegra: PorRegra | null) {
+  const c: ConteudoRegra<R> = CONTEUDO[regra];
   return {
-    titulo: c.titulo,
-    descricao: c.descricao,
+    titulo: c.titulo(config),
+    descricao: c.descricao(config),
     icone: c.icone,
-    quando: c.quando(regra.config),
-    numero: porRegra ? c.numero(porRegra[regra.regra]) : '—',
+    quando: c.quando(config),
+    numero: porRegra ? c.numero(porRegra[regra]) : '—',
   };
 }
 
@@ -225,7 +227,7 @@ export function Automacoes({ conectado, onAbrirConexao }: AutomacoesProps) {
             <CartaoRegra
               key={r.regra}
               regra={r}
-              {...conteudoDe(r, painel?.porRegra ?? null)}
+              {...conteudoDe(r.regra, r.config, painel?.porRegra ?? null)}
               onAlternar={(ativa) => void alternar(r.regra, ativa)}
               onConfigurar={semModal}
               className={i === regras.length - 1 && regras.length % 2 === 1 ? 'lg:col-span-2 xl:col-span-1' : undefined}
