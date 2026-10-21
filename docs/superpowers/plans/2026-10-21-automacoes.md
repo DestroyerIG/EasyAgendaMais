@@ -22,7 +22,7 @@
   - o SQL da migração é escrito à mão em `backend/prisma/migrations/20261021120000_whatsapp_automacoes/migration.sql`.
 - Testes nunca tocam o banco:
   - repositórios mockados com `vi.mock`;
-  - todo teste que importa um serviço que chega em `avatares` ou `config/prisma` mocka esses módulos, como em `backend/src/modules/whatsappRetorno/__tests__/retornoService.test.ts`.
+  - todo teste que importa um serviço que chega em `avatares` ou `config/prisma` mocka esses módulos, como em `backend/src/__tests__/retornoService.test.ts`.
 - Horários sempre no fuso do negócio: `getBusinessScheduleSettings(businessId)` → `timezone`, `todayInTimezone`, `zonedToUtc` de `backend/src/utils/businessDate.ts`.
 - Origens novas em `Origem` (`backend/src/modules/whatsappInbox/inbox.types.ts`): `sinal_pix`, `aniversario`, `avaliacao`, `campanha`.
   - SAIR e consentimento revogado bloqueiam `confirmacao`, `retorno`, `lista_espera`, `lembrete`, `aniversario`, `avaliacao` e `campanha`.
@@ -214,7 +214,7 @@ it('seloTaxa', () => { expect(seloTaxa(80)).toBe('Excelente'); expect(seloTaxa(5
 **Files:**
 - Modify: `backend/src/modules/whatsappFila/fila.rules.ts`, `fila.repository.ts`, `fila.service.ts`
 - Create: `backend/src/modules/whatsappAutomacoes/respostas.repository.ts`
-- Test: `backend/src/modules/whatsappFila/__tests__/` (estender os testes existentes do serviço da fila)
+- Test: `backend/src/__tests__/filaService.test.ts` (estender)
 
 **Interfaces:**
 - Produces:
