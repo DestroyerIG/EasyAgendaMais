@@ -23,6 +23,95 @@ const MAX_ENCAIXES = 2;
 const horaNoFuso = (d: Date, tz: string) =>
   new Intl.DateTimeFormat('pt-BR', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d);
 
+async function montarLista(
+  businessId: string,
+  filtros: { professionalId?: string; somenteComEncaixe?: boolean },
+  agora: Date,
+  incluirLink: boolean,
+  comFotos: boolean,
+): Promise<{ dto: RetornoDto; negocioNome: string }> {
+  const tz = (await getBusinessScheduleSettings(businessId)).timezone || 'America/Sao_Paulo';
+  const hoje = todayInTimezone(tz, agora);
+  const [clientes, visitas, futuros, semana, negocio] = await Promise.all([
+    crmRepository.clientes(businessId),
+    crmRepository.visitas(businessId),
+    todayRepository.clientesComAgendamentoFuturo(businessId, hoje, agora),
+    carregarAgendaSemana(businessId, agora),
+    retornoRepository.negocio(businessId),
+  ]);
+  const ativas = new Set(semana.profs.map((p) => p.id));
+  const base = process.env.FRONTEND_URL;
+  // Sem FRONTEND_URL o link sairia relativo e quebrado no WhatsApp: melhor convite sem link.
+  const linkAgendamento = negocio.slug && base ? `${base}/agendar/${negocio.slug}` : null;
+
+  const candidatas = clientes.flatMap((c) => {
+    if (!c.active || futuros.has(c.id)) return [];
+    const r = resumirCliente(visitas.get(c.id) ?? [], hoje, null);
+    const ultima = r.ultimaVisita;
+    if (!ultima || ultima.diasAtras > LIMITE_DIAS) return [];
+    if (r.retornoPrevisto.venceuHa === null || r.retornoPrevisto.venceuHa <= 0 || !r.retornoPrevisto.data) return [];
+    return [{ c, ultima, atraso: r.retornoPrevisto.venceuHa, ciclo: diasEntre(ultima.date, r.retornoPrevisto.data) }];
+  }).filter((x) => !filtros.professionalId || x.ultima.professionalId === filtros.professionalId)
+    .sort((a, b) => b.atraso - a.atraso || a.c.name.localeCompare(b.c.name, 'pt-BR'));
+
+  const ids = candidatas.map((x) => x.c.id);
+  const [ultimosEnvios, ultimosEnviados] = ids.length
+    ? await Promise.all([
+      filaEnvios.ultimosPorCliente(businessId, 'retorno', ids),
+      filaEnvios.ultimosEnviadosPorCliente(businessId, 'retorno', ids),
+    ])
+    : [new Map<string, EnvioDto>(), new Map<string, Date>()];
+
+  const previsoes = [...ultimosEnvios.values()].some((e) => e.status === 'na_fila')
+    ? await filaEnvios.previsoes(businessId, tz, agora)
+    : new Map<string, Date>();
+
+  const itens: OportunidadeDto[] = [];
+  for (const { c, ultima, atraso, ciclo } of candidatas) {
+    const professionalId = ultima.professionalId ?? '';
+    const vagas = vagasDaSemana(semana, MAX_ENCAIXES, {
+      professionalId: ativas.has(professionalId) ? professionalId : undefined,
+      duracaoMinima: ultima.duracao,
+    });
+    const encaixes = vagas.map((v) => formatarEncaixe(v.data, v.inicio, tz));
+    if (filtros.somenteComEncaixe && encaixes.length === 0) continue;
+
+    let motivoBloqueio: string | null = null;
+    if (c.consentimento === 'revogado') motivoBloqueio = MOTIVO_REVOGADO;
+    else if (await inboxRecorder.estaEmOptOut(businessId, c.phone)) motivoBloqueio = MOTIVO_OPT_OUT;
+
+    const bruto = ultimosEnvios.get(c.id) ?? null;
+    const previsto = bruto?.status === 'na_fila' ? previsoes.get(bruto.id) : undefined;
+    const envio = bruto ? { ...bruto, previstoHora: previsto ? horaNoFuso(previsto, tz) : null } : null;
+    itens.push({
+      cliente: { id: c.id, nome: c.name, telefone: c.phone, avatarUrl: null },
+      atrasoDias: atraso, servico: ultima.servico, profissional: ultima.profissional, professionalId,
+      ultimaVisitaHaDias: ultima.diasAtras, cicloDias: ciclo, valorUltimaVisita: ultima.receita, encaixes,
+      podeReceber: motivoBloqueio === null, motivoBloqueio,
+      ultimoConviteEm: ultimosEnviados.get(c.id)?.toISOString() ?? null,
+      envio,
+      texto: montarMensagemRetorno({
+        nome: c.name, negocio: negocio.nome, servico: ultima.servico, profissional: ultima.profissional,
+        dias: ultima.diasAtras, encaixes, link: incluirLink ? linkAgendamento : null,
+      }),
+    });
+  }
+
+  if (comFotos && itens.length) {
+    const fotos = await avatares.urlsPara(businessId, itens.map((i) => i.cliente.telefone));
+    for (const i of itens) i.cliente.avatarUrl = fotos.get(canonicalizePhone(i.cliente.telefone)) ?? null;
+  }
+
+  const centavos = itens.reduce((s, i) => s + Math.round(i.valorUltimaVisita * 100), 0);
+  return {
+    dto: {
+      resumo: { recuperacaoEstimada: centavos / 100, oportunidades: itens.length },
+      linkAgendamento, numeroNegocio: negocio.whatsapp, itens,
+    },
+    negocioNome: negocio.nome,
+  };
+}
+
 export const retornoService = {
   async listar(
     businessId: string,
@@ -30,83 +119,13 @@ export const retornoService = {
     agora: Date = new Date(),
     incluirLink = true,
   ): Promise<RetornoDto> {
-    const tz = (await getBusinessScheduleSettings(businessId)).timezone || 'America/Sao_Paulo';
-    const hoje = todayInTimezone(tz, agora);
-    const [clientes, visitas, futuros, semana, negocio] = await Promise.all([
-      crmRepository.clientes(businessId),
-      crmRepository.visitas(businessId),
-      todayRepository.clientesComAgendamentoFuturo(businessId, hoje, agora),
-      carregarAgendaSemana(businessId, agora),
-      retornoRepository.negocio(businessId),
-    ]);
-    const ativas = new Set(semana.profs.map((p) => p.id));
-    const base = process.env.FRONTEND_URL;
-    // Sem FRONTEND_URL o link sairia relativo e quebrado no WhatsApp: melhor convite sem link.
-    const linkAgendamento = negocio.slug && base ? `${base}/agendar/${negocio.slug}` : null;
+    return (await montarLista(businessId, filtros, agora, incluirLink, true)).dto;
+  },
 
-    const candidatas = clientes.flatMap((c) => {
-      if (!c.active || futuros.has(c.id)) return [];
-      const r = resumirCliente(visitas.get(c.id) ?? [], hoje, null);
-      const ultima = r.ultimaVisita;
-      if (!ultima || ultima.diasAtras > LIMITE_DIAS) return [];
-      if (r.retornoPrevisto.venceuHa === null || r.retornoPrevisto.venceuHa <= 0 || !r.retornoPrevisto.data) return [];
-      return [{ c, ultima, atraso: r.retornoPrevisto.venceuHa, ciclo: diasEntre(ultima.date, r.retornoPrevisto.data) }];
-    }).filter((x) => !filtros.professionalId || x.ultima.professionalId === filtros.professionalId)
-      .sort((a, b) => b.atraso - a.atraso || a.c.name.localeCompare(b.c.name, 'pt-BR'));
-
-    const ids = candidatas.map((x) => x.c.id);
-    const [ultimosEnvios, ultimosEnviados] = ids.length
-      ? await Promise.all([
-        filaEnvios.ultimosPorCliente(businessId, 'retorno', ids),
-        filaEnvios.ultimosEnviadosPorCliente(businessId, 'retorno', ids),
-      ])
-      : [new Map<string, EnvioDto>(), new Map<string, Date>()];
-
-    const previsoes = [...ultimosEnvios.values()].some((e) => e.status === 'na_fila')
-      ? await filaEnvios.previsoes(businessId, tz, agora)
-      : new Map<string, Date>();
-
-    const itens: OportunidadeDto[] = [];
-    for (const { c, ultima, atraso, ciclo } of candidatas) {
-      const professionalId = ultima.professionalId ?? '';
-      const vagas = vagasDaSemana(semana, MAX_ENCAIXES, {
-        professionalId: ativas.has(professionalId) ? professionalId : undefined,
-        duracaoMinima: ultima.duracao,
-      });
-      const encaixes = vagas.map((v) => formatarEncaixe(v.data, v.inicio, tz));
-      if (filtros.somenteComEncaixe && encaixes.length === 0) continue;
-
-      let motivoBloqueio: string | null = null;
-      if (c.consentimento === 'revogado') motivoBloqueio = MOTIVO_REVOGADO;
-      else if (await inboxRecorder.estaEmOptOut(businessId, c.phone)) motivoBloqueio = MOTIVO_OPT_OUT;
-
-      const bruto = ultimosEnvios.get(c.id) ?? null;
-      const previsto = bruto?.status === 'na_fila' ? previsoes.get(bruto.id) : undefined;
-      const envio = bruto ? { ...bruto, previstoHora: previsto ? horaNoFuso(previsto, tz) : null } : null;
-      itens.push({
-        cliente: { id: c.id, nome: c.name, telefone: c.phone, avatarUrl: null },
-        atrasoDias: atraso, servico: ultima.servico, profissional: ultima.profissional, professionalId,
-        ultimaVisitaHaDias: ultima.diasAtras, cicloDias: ciclo, valorUltimaVisita: ultima.receita, encaixes,
-        podeReceber: motivoBloqueio === null, motivoBloqueio,
-        ultimoConviteEm: ultimosEnviados.get(c.id)?.toISOString() ?? null,
-        envio,
-        texto: montarMensagemRetorno({
-          nome: c.name, negocio: negocio.nome, servico: ultima.servico, profissional: ultima.profissional,
-          dias: ultima.diasAtras, encaixes, link: incluirLink ? linkAgendamento : null,
-        }),
-      });
-    }
-
-    if (itens.length) {
-      const fotos = await avatares.urlsPara(businessId, itens.map((i) => i.cliente.telefone));
-      for (const i of itens) i.cliente.avatarUrl = fotos.get(canonicalizePhone(i.cliente.telefone)) ?? null;
-    }
-
-    const centavos = itens.reduce((s, i) => s + Math.round(i.valorUltimaVisita * 100), 0);
-    return {
-      resumo: { recuperacaoEstimada: centavos / 100, oportunidades: itens.length },
-      linkAgendamento, numeroNegocio: negocio.whatsapp, itens,
-    };
+  /** Mesma lista da tela (sem fotos), com o nome do negócio, para o radar automático. */
+  async listarParaRotina(businessId: string, agora: Date = new Date()): Promise<RetornoDto & { negocioNome: string }> {
+    const { dto, negocioNome } = await montarLista(businessId, {}, agora, true, false);
+    return { ...dto, negocioNome };
   },
 
   async enviar(
