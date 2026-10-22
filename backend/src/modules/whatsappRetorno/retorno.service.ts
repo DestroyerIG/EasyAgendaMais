@@ -53,7 +53,7 @@ async function montarLista(
     const ciclo = r.retornoPrevisto.data ? diasEntre(ultima.date, r.retornoPrevisto.data) : null;
     // Radar personalizado: quem está há pelo menos N dias sem vir, em vez de quem venceu o ciclo.
     if (minDias !== undefined) {
-      if (ultima.diasAtras < minDias || ultima.diasAtras > Math.max(LIMITE_DIAS, minDias)) return [];
+      if (ultima.diasAtras < minDias || ultima.diasAtras > Math.max(LIMITE_DIAS, minDias + 30)) return [];
       return [{ c, ultima, atraso: ultima.diasAtras - minDias, ciclo: ciclo ?? minDias }];
     }
     if (ultima.diasAtras > LIMITE_DIAS) return [];

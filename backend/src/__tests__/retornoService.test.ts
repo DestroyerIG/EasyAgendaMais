@@ -300,6 +300,16 @@ describe('listarParaRotina: radar por N dias sem vir', () => {
     expect(tela.itens.map((i) => i.cliente.id)).toEqual([]);
   });
 
+  it('N acima de 120: quem perdeu o dia exato ainda entra por 30 dias', async () => {
+    clientes = [cli('c1', 'Ana'), cli('c2', 'Bia')];
+    vis = new Map<string, unknown[]>([
+      ['c1', visitas(160, 30)], // 10 dias depois de N = 150
+      ['c2', visitas(181, 30)], // passou de N + 30
+    ]);
+    const radar = await retornoService.listarParaRotina('b1', AGORA, { minDiasSemVir: 150 });
+    expect(radar.itens.map((i) => i.cliente.id)).toEqual(['c1']);
+  });
+
   it('sem opção: mesma lista da tela (ciclo vencido)', async () => {
     const radar = await retornoService.listarParaRotina('b1', AGORA);
     expect(radar.itens.map((i) => i.cliente.id)).toEqual(['c1']);
