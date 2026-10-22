@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   renderizarTexto, respostaConfirmacao, notaAvaliacao, aniversarianteEm, periodoDoHorario,
-  entradaCompativel, lerConfig, seloTaxa, TEXTO_PADRAO, VARIAVEIS, TEXTO_PADRAO_LEMBRETE_2H,
+  entradaCompativel, lerConfig, seloTaxa, CONFIG_SCHEMA, TEXTO_PADRAO, VARIAVEIS, TEXTO_PADRAO_LEMBRETE_2H,
 } from '../modules/whatsappAutomacoes/automacoes.rules.js';
 import { REGRAS } from '../modules/whatsappAutomacoes/automacoes.types.js';
 
@@ -40,6 +40,16 @@ describe('automacoes.rules', () => {
     expect(lerConfig('lista_espera', { quantas: 5 })).toEqual({ quantas: 5 });
     expect(lerConfig('retorno', null)).toEqual({ modo: 'ciclo', dias: 21 });
     expect(lerConfig('retorno', { modo: 'dias', dias: 500 })).toEqual({ modo: 'dias', dias: 21 });
+  });
+  it('confirmação: hora só entre 08:00 e 12:00 (a fila abre às 08:00)', () => {
+    expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '07:55' }).success).toBe(false);
+    expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '08:00' }).success).toBe(true);
+    expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '12:00' }).success).toBe(true);
+    expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '12:05' }).success).toBe(false);
+  });
+  it('avaliação: texto padrão sem data relativa (a fila pode atrasar para o dia seguinte)', () => {
+    expect(TEXTO_PADRAO.avaliacao).not.toMatch(/hoje|amanhã|ontem/i);
+    expect(TEXTO_PADRAO.avaliacao).toBe('Como foi sua experiência no {negocio}? Responda com uma nota de 1 a 5 ⭐');
   });
   it('seloTaxa', () => { expect(seloTaxa(80)).toBe('Excelente'); expect(seloTaxa(50)).toBe('Boa'); expect(seloTaxa(49.9)).toBe('Baixa'); });
   it('catálogo cobre todas as regras e textos só usam variáveis declaradas', () => {

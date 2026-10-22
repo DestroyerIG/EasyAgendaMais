@@ -34,6 +34,7 @@ export const MOTIVO_HORARIO_PASSOU = 'Horário já passou';
 export const MOTIVO_NAO_CONFIRMADO = 'Agendamento não está mais confirmado';
 export const MOTIVO_JA_AVALIOU = 'Já avaliou';
 export const MOTIVO_SEM_AGENDAMENTO = 'Agendamento não encontrado';
+export const MOTIVO_CONFIRMACAO_FORA_VESPERA = 'Confirmação fora da véspera';
 export const MOTIVO_FALHA = 'O WhatsApp não aceitou o envio';
 
 const HORA_MS = 3_600_000;
@@ -41,6 +42,13 @@ const RESERVA_MAX_MS = 10 * 60_000;
 const ESPERA_RESPOSTA_MS = 24 * HORA_MS;
 
 const hhmmUtc = (d: Date) => d.toISOString().slice(11, 16);
+
+/** O texto diz "amanhã": só vale se hoje (fuso do negócio) é a véspera do agendamento. */
+function ehVespera(dataAgendamento: Date, tz: string, agora: Date): boolean {
+  const vespera = new Date(dataAgendamento.getTime());
+  vespera.setUTCDate(vespera.getUTCDate() - 1);
+  return todayInTimezone(tz, agora) === vespera.toISOString().slice(0, 10);
+}
 
 const paraDto = (r: EnvioRow): EnvioDto => ({
   id: r.id,
@@ -97,6 +105,7 @@ async function processarNegocio(businessId: string, agora: Date): Promise<Result
       if (item.origin === 'confirmacao') {
         if (!ag || ag.status !== 'confirmado') decisao = await pular(MOTIVO_NAO_CONFIRMADO);
         else if (zonedToUtc(ag.date.toISOString().slice(0, 10), hhmmUtc(ag.time), timezone) <= agora) decisao = await pular(MOTIVO_HORARIO_PASSOU);
+        else if (!ehVespera(ag.date, timezone, agora)) decisao = await pular(MOTIVO_CONFIRMACAO_FORA_VESPERA);
       } else if (!ag) decisao = await pular(MOTIVO_SEM_AGENDAMENTO);
       else if (ag.jaAvaliou) decisao = await pular(MOTIVO_JA_AVALIOU);
     }

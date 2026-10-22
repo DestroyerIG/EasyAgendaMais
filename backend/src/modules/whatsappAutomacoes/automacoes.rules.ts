@@ -11,7 +11,7 @@ export const TEXTO_PADRAO: Record<Regra, string> = {
   lista_espera: 'Abriu uma vaga {data} às {horario} com {profissional}! A primeira a agendar fica com o horário: {link}',
   lembrete: 'Seu horário amanhã é às {horario}. Estamos na {endereco}. Trajeto Waze/Maps: {link_mapa}. Chegue com 5 min de antecedência!',
   aniversario: 'Parabéns pelo seu dia, {primeiro_nome}! 🎉 Você ganhou {presente} para comemorar em grande estilo esta semana: {link}',
-  avaliacao: 'Como foi sua experiência no {negocio} hoje? Responda com uma nota de 1 a 5 ⭐',
+  avaliacao: 'Como foi sua experiência no {negocio}? Responda com uma nota de 1 a 5 ⭐',
 };
 
 // Texto atual de runReminderJob (cronService), sem mudança
@@ -32,7 +32,8 @@ const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export const CONFIG_SCHEMA: { [R in Regra]: z.ZodType<ConfigRegras[R]> } = {
   confirmacao: z.object({
-    hora: z.string().regex(HHMM).refine((h) => h >= '07:00' && h <= '12:00', 'Entre 07:00 e 12:00'),
+    // A fila só envia a partir das 08:00.
+    hora: z.string().regex(HHMM).refine((h) => h >= '08:00' && h <= '12:00', 'Entre 08:00 e 12:00'),
   }),
   sinal_pix: z.object({ toleranciaMin: z.union([z.literal(15), z.literal(30), z.literal(60)]) }),
   retorno: z.object({ modo: z.enum(['ciclo', 'dias']), dias: z.number().int().min(7).max(180) }),

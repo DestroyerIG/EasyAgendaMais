@@ -81,11 +81,14 @@ describe('ConfigurarRegraModal', () => {
     await waitFor(() => expect(api.atualizarRegra).toHaveBeenCalledTimes(1));
   });
 
-  it('horário de confirmação fora de 07:00 a 12:00 bloqueia o salvar', () => {
+  it('horário de confirmação fora de 08:00 a 12:00 bloqueia o salvar', () => {
     renderizar();
     fireEvent.change(screen.getByLabelText('Horário do envio'), { target: { value: '13:00' } });
-    expect(screen.getByText('Escolha um horário entre 07:00 e 12:00')).toBeInTheDocument();
+    expect(screen.getByText('Escolha um horário entre 08:00 e 12:00')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Horário do envio'), { target: { value: '07:30' } });
+    expect(screen.getByText('Escolha um horário entre 08:00 e 12:00')).toBeInTheDocument();
+    expect(screen.getByLabelText('Horário do envio')).toHaveAttribute('min', '08:00');
   });
 
   it('retorno personalizado manda modo e dias', async () => {

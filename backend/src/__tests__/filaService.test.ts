@@ -218,6 +218,7 @@ describe('processar', () => {
 
 describe('agendamento vinculado', () => {
   const conf = (o: Record<string, unknown> = {}) => linha({ origin: 'confirmacao', appointmentId: 'a1', ...o });
+  const AMANHA = new Date('2026-10-21T00:00:00Z');
   const ag = (o: Record<string, unknown> = {}) => ({
     status: 'confirmado', date: new Date('2026-10-20T00:00:00Z'), time: new Date('1970-01-01T15:00:00Z'), jaAvaliou: false, ...o,
   });
@@ -246,12 +247,28 @@ describe('agendamento vinculado', () => {
     expect(repo.atualizar).toHaveBeenCalledWith('b1', 'e1', { status: 'pulado', reason: 'Horário já passou', sentAt: null });
   });
 
+  it('confirmação fora da véspera (fila atrasou para o próprio dia) é pulada', async () => {
+    repo.proximoVencido.mockResolvedValue(conf());
+    repo.agendamentoParaEnvio.mockResolvedValue(ag({ time: new Date('1970-01-01T18:00:00Z') })); // hoje 18:00, ainda não passou
+    const r = await filaEnvios.processar(AGORA);
+    expect(r.pulados).toBe(1);
+    expect(envio.sendWhatsAppMessage).not.toHaveBeenCalled();
+    expect(repo.atualizar).toHaveBeenCalledWith('b1', 'e1', { status: 'pulado', reason: 'Confirmação fora da véspera', sentAt: null });
+  });
+
+  it('confirmação com dois dias de antecedência ainda não é véspera: pulada', async () => {
+    repo.proximoVencido.mockResolvedValue(conf());
+    repo.agendamentoParaEnvio.mockResolvedValue(ag({ date: new Date('2026-10-22T00:00:00Z') }));
+    await filaEnvios.processar(AGORA);
+    expect(repo.atualizar).toHaveBeenCalledWith('b1', 'e1', expect.objectContaining({ reason: 'Confirmação fora da véspera' }));
+  });
+
   it('confirmação enviada registra a espera de resposta por 24h', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     try {
       vi.setSystemTime(AGORA);
       repo.proximoVencido.mockResolvedValue(conf());
-      repo.agendamentoParaEnvio.mockResolvedValue(ag({ time: new Date('1970-01-01T18:00:00Z') }));
+      repo.agendamentoParaEnvio.mockResolvedValue(ag({ date: AMANHA }));
       const r = await filaEnvios.processar(AGORA);
       expect(r.enviados).toBe(1);
       expect(resp.respostasRepository.registrar).toHaveBeenCalledWith({
@@ -263,7 +280,7 @@ describe('agendamento vinculado', () => {
 
   it('falha ao registrar a espera não muda o status enviado', async () => {
     repo.proximoVencido.mockResolvedValue(conf());
-    repo.agendamentoParaEnvio.mockResolvedValue(ag({ time: new Date('1970-01-01T18:00:00Z') }));
+    repo.agendamentoParaEnvio.mockResolvedValue(ag({ date: AMANHA }));
     resp.respostasRepository.registrar.mockRejectedValue(new Error('banco'));
     const r = await filaEnvios.processar(AGORA);
     expect(r.enviados).toBe(1);

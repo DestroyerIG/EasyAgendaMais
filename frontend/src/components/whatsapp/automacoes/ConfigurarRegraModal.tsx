@@ -30,7 +30,7 @@ function erroDaConfig(regra: Regra, config: Config): string | null {
   switch (regra) {
     case 'confirmacao': {
       const { hora } = config as ConfigRegras['confirmacao'];
-      return HHMM.test(hora) && hora >= '07:00' && hora <= '12:00' ? null : 'Escolha um horário entre 07:00 e 12:00';
+      return HHMM.test(hora) && hora >= '08:00' && hora <= '12:00' ? null : 'Escolha um horário entre 08:00 e 12:00';
     }
     case 'retorno': {
       const { modo, dias } = config as ConfigRegras['retorno'];
@@ -147,8 +147,8 @@ function CamposDaRegra({ regra, config, erro, onMudar }: CamposProps) {
     case 'confirmacao': {
       const c = config as ConfigRegras['confirmacao'];
       return (
-        <Field id="cfg-hora" label="Horário do envio" hint="Na véspera do atendimento, entre 07:00 e 12:00." error={e}>
-          <Input id="cfg-hora" type="time" min="07:00" max="12:00" step={300} value={c.hora} invalid={!!e}
+        <Field id="cfg-hora" label="Horário do envio" hint="Na véspera do atendimento, entre 08:00 e 12:00." error={e}>
+          <Input id="cfg-hora" type="time" min="08:00" max="12:00" step={300} value={c.hora} invalid={!!e}
             onChange={(ev) => onMudar({ hora: ev.target.value })} />
         </Field>
       );
