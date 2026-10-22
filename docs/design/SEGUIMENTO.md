@@ -71,6 +71,10 @@ Sub-projeto 2C-2b (WhatsApp: Automações), pendências conhecidas:
 - `created_at` sem fuso nas consultas das métricas depende de a sessão do banco estar em UTC.
 - O sinal "pago no mês" é aproximado pela mensagem `sinal_pix` com uma folga de 1 h. A receita da lista de espera conta a vaga ocupada por quem recebeu a mensagem `lista_espera` enviada (não a oferta manual) em até 7 dias.
 - Trocar o lembrete de "2 horas antes" para "Véspera" no meio do dia deixa sem lembrete os agendamentos de hoje que ainda não receberam o de 2 h.
+- O lembrete na véspera marca `reminder_sent` quando entra na fila, como a confirmação faz com `confirmation_sent_at`. Se a fila pular o item (SAIR, consentimento, agendamento cancelado), o agendamento fica marcado como lembrado e entra assim nos números de "lembrete" do Hoje e do CRM.
+- Depois que a cliente responde à confirmação, o "Obrigada!" do sistema é uma saída nova e invalida a espera da avaliação do mesmo número, se houver. Uma nota mandada logo em seguida vai para o robô.
+- A espera de resposta também é ignorada quando a sessão do robô teve atividade depois dela (o critério usa a última atividade da sessão, que cobre "sessão iniciada depois").
+- O spec ainda diz confirmação entre 07:00 e 12:00; o código aceita 08:00–12:00 porque a fila só envia a partir das 08:00.
 - Se o processo cair entre enfileirar a confirmação e gravar `confirmation_sent_at`, a cliente pode receber a confirmação duas vezes.
 - O índice único parcial do 2C-2a (`whatsapp_envios_cliente_ativo_key`) permite só uma confirmação ativa por cliente: o segundo agendamento da mesma cliente é confirmado na rodada seguinte, depois que o primeiro sair da fila.
 - O botão "Testar envio" manda para o WhatsApp cadastrado no negócio (`business.whatsapp`), não para o número da sessão conectada, como já faz o teste da Hora de voltar.
@@ -116,7 +120,15 @@ Sub-projeto 2C-2b (WhatsApp: Automações), pendências conhecidas:
   - Decisões:
     - Na primeira leitura só o lembrete fica ligado: herda `whatsapp_reminders` e o `reminder_message` legado. As outras seis começam desligadas.
     - Prioridade na fila: confirmação 1, regras normais 5, campanha 9. `aniversario`, `avaliacao` e `campanha` são bloqueadas pelo SAIR e entram no grupo "automaticas"; `sinal_pix` não é bloqueado e fica no grupo "pix".
-    - "1" ou "2" só são interceptados quando existe uma espera de resposta válida (menos de 24 h). Fora disso, seguem para o robô.
+    - "1" ou "2" só são interceptados quando existe uma espera de resposta válida (menos de 24 h) e ninguém falou com a cliente depois dela. Uma saída posterior para o número (robô, equipe ou outra automação; ficam de fora a confirmação, a avaliação e as notas internas do painel) apaga a espera. A conversa com a equipe (`humano`) ou com o robô ativo depois da espera também não é interceptada. Fora disso, seguem para o robô.
+    - Confirmação e avaliação têm uma espera cada por número; com as duas pendentes, "1"/"2" (e "sim"/"não") respondem a confirmação e as notas 3 a 5 vão para a avaliação.
+    - A fila pula a confirmação com "Confirmação fora da véspera" e o lembrete com "Lembrete fora da véspera" quando o dia local já não é a véspera do agendamento (fila atrasada ou WhatsApp desconectado). O texto padrão da avaliação não fala mais "hoje".
+    - Horários: confirmação entre 08:00 e 12:00; lembrete na véspera entre 08:00 e 20:00 (Zod e modal).
+    - O lembrete na véspera passa pela fila (origem `lembrete`, prioridade 1, agendamento vinculado), com cadência, janela, SAIR e consentimento da fila. O de 2 h continua com envio direto.
+    - Lista de espera automática: pula consentimento revogado e a própria cliente que cancelou; candidatas são as entradas `aguardando` e as `oferecida` há mais de 24 h (aguardando primeiro, depois as ofertas mais antigas). "Vagas preenchidas" conta agendamentos criados (não cancelados nem esperando Pix) por quem recebeu `lista_espera` nos 7 dias anteriores, o mesmo critério da receita.
+    - Radar no modo personalizado: entra quem está há pelo menos N dias sem vir, mesmo sem o ciclo vencido (a tela Hora de voltar continua pelo ciclo). Até 120 dias sem vir, ou até N se N for maior.
+    - O interruptor "Enviar lembretes por WhatsApp" saiu de Configurações; no lugar há um aviso com link para WhatsApp › Automações. O `whatsapp_reminders` legado só vale como valor inicial da regra.
+    - O link do Google da avaliação só aceita http/https também no backend. O aniversário que falhou ou foi pulado não conta como "já recebeu neste ano".
     - Os textos dos cartões são os do Stitch com a config padrão e acompanham a config quando ela muda. A taxa de resposta aparece como número inteiro.
     - O texto igual ao padrão é salvo como `null`, então a regra volta a seguir o texto padrão (inclusive o do modo do lembrete).
     - O texto legado do lembrete passa por `renderizarTexto` (apara espaços e junta quebras de linha repetidas).
