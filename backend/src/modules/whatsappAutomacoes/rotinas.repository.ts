@@ -90,11 +90,11 @@ export const rotinasRepository = {
     return rows.map((c) => ({ id: c.id, nome: c.name, phone: c.phone, birthDate: c.birth_date }));
   },
 
-  /** Clientes (entre os informados) com algum envio da origem criado desde `desde`. */
+  /** Clientes (entre os informados) com algum envio da origem criado desde `desde` que não falhou nem foi pulado. */
   async clientesComEnvioDesde(businessId: string, origin: string, desde: Date, clientIds: string[]): Promise<Set<string>> {
     if (!clientIds.length) return new Set();
     const rows = await prisma.whatsappEnvio.findMany({
-      where: { businessId, origin, createdAt: { gte: desde }, clientId: { in: clientIds } },
+      where: { businessId, origin, createdAt: { gte: desde }, clientId: { in: clientIds }, status: { notIn: ['falhou', 'pulado'] } },
       select: { clientId: true },
     });
     return new Set(rows.flatMap((r) => (r.clientId ? [r.clientId] : [])));
