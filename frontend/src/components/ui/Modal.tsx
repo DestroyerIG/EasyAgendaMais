@@ -31,9 +31,15 @@ interface ModalProps {
   // Sem o cabeçalho padrão: a tela desenha o próprio cabeçalho (e o próprio botão de fechar).
   // O título continua no Dialog.Title, só que visível apenas para leitores de tela.
   headerless?: boolean;
+  /** Ocupa a tela inteira no celular (o `xl` já faz isso sempre). */
+  telaCheiaNoCelular?: boolean;
 }
 
-export function Modal({ isOpen, onClose, title, icon: Icon, description, size = 'md', children, footer, headerless = false }: ModalProps) {
+const TELA_CHEIA_NO_CELULAR = 'max-sm:h-dvh max-sm:max-h-none max-sm:w-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0';
+
+export function Modal({
+  isOpen, onClose, title, icon: Icon, description, size = 'md', children, footer, headerless = false, telaCheiaNoCelular = false,
+}: ModalProps) {
   const forcedDark = useForcedDarkClass();
   const forcedLight = useForcedLightClass();
   const themeClass = forcedDark || forcedLight;
@@ -48,6 +54,7 @@ export function Modal({ isOpen, onClose, title, icon: Icon, description, size = 
             className={cn(
               'fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-card border border-line bg-surface text-ink shadow-xl focus:outline-none',
               SIZE_CLASS[size],
+              telaCheiaNoCelular && TELA_CHEIA_NO_CELULAR,
             )}
           >
             {headerless ? (

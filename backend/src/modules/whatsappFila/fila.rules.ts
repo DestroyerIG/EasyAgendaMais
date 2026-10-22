@@ -5,6 +5,9 @@ export const INTERVALO_MAX_S = 90;
 export const LIMITE_POR_HORA = 25;
 export const JANELA_INICIO = '08:00';
 export const JANELA_FIM = '20:00';
+export const PRIORIDADE_ALTA = 1;
+export const PRIORIDADE_NORMAL = 5;
+export const PRIORIDADE_CAMPANHA = 9;
 /** Média usada só para estimar a previsão de cada posição da fila. */
 const MEDIA_POR_POSICAO_S = 75;
 

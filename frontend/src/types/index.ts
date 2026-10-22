@@ -29,6 +29,8 @@ export interface Appointment {
     source?: 'painel' | 'publico' | 'whatsapp' | string;
     deposit_amount?: number | null;
     started_at?: string | null;
+    /** Quando a cliente confirmou pela automação do WhatsApp (respondeu "1"). */
+    client_confirmed_at?: string | null;
     comanda_id?: string | null;
     comanda_status?: 'rascunho' | 'fechada' | null;
     comanda_number?: number | null;

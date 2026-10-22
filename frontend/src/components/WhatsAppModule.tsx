@@ -11,7 +11,8 @@ import { ConnectionPanel } from '@/components/whatsapp/ConnectionPanel';
 import { MessageConfigPanel, BotConfig } from '@/components/whatsapp/MessageConfigPanel';
 import { MenuOptionsPanel, MenuOption } from '@/components/whatsapp/MenuOptionsPanel';
 import { ChatSimulator } from '@/components/whatsapp/ChatSimulator';
-import { AutomacoesProvisorio } from '@/components/whatsapp/AutomacoesProvisorio';
+import { RoboAtendimento } from '@/components/whatsapp/RoboAtendimento';
+import { Automacoes } from '@/components/whatsapp/automacoes/Automacoes';
 import { CentralConversas } from '@/components/whatsapp/conversas/CentralConversas';
 import { HoraDeVoltar } from '@/components/whatsapp/retorno/HoraDeVoltar';
 
@@ -196,7 +197,7 @@ export const WhatsAppModule = () => {
     setConfigLoading(true);
     try {
       const response = await api.get('/whatsapp/config');
-      setBotConfig(response.data);
+      setBotConfig((atual) => ({ ...atual, ...asObjectPayload(response.data) }));
     } catch {
       showToast('Erro ao carregar configurações de mensagens', 'error');
     } finally {
@@ -208,7 +209,8 @@ export const WhatsAppModule = () => {
     setMenuLoading(true);
     try {
       const response = await api.get('/whatsapp/config/menu');
-      setMenuOptions(response.data);
+      // A aba Conexão (a inicial de quem está desconectado) monta o menu: resposta fora do formato não pode derrubá-la.
+      setMenuOptions(Array.isArray(response.data) ? response.data : []);
     } catch {
       showToast('Erro ao carregar opções do menu', 'error');
     } finally {
@@ -265,8 +267,9 @@ export const WhatsAppModule = () => {
     setActiveTab(waStatus.status === 'connected' ? 'conversas' : 'conexao');
   }, [activeTab, statusLoading, waStatus.status]);
 
+  // Os painéis do robô (Menu, Mensagens, Simulador) moram na aba Conexão.
   useEffect(() => {
-    if (activeTab === 'automacoes') {
+    if (activeTab === 'conexao') {
       fetchConfig();
       fetchMenuOptions();
     }
@@ -483,52 +486,53 @@ export const WhatsAppModule = () => {
           {activeTab === null && <Skeleton className="h-40 w-full" label="Verificando conexão..." />}
           {activeTab === 'hora-de-voltar' && <HoraDeVoltar conectado={waStatus.status === 'connected'} />}
           {activeTab === 'automacoes' && (
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col gap-1">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted">WHATSAPP / AUTOMAÇÕES</p>
-                <h2 className="text-[28px] font-bold leading-9 tracking-tight text-ink">Automações do WhatsApp</h2>
-              </div>
-            <AutomacoesProvisorio
-              menu={
-                <MenuOptionsPanel
-                  options={menuOptions}
-                  loading={menuLoading}
-                  actionLoading={actionLoading}
-                  onToggle={handleMenuToggle}
-                  onUpdate={handleMenuUpdate}
-                  onDelete={handleMenuDelete}
-                  onCreate={handleMenuCreate}
-                  onReorder={handleMenuReorder}
-                  onReset={handleMenuReset}
-                />
-              }
-              mensagens={
-                <MessageConfigPanel
-                  botConfig={botConfig}
-                  onChange={setBotConfig}
-                  configLoading={configLoading}
-                  actionLoading={actionLoading}
-                  onSave={handleSaveConfig}
-                  onReset={handleResetConfig}
-                />
-              }
-              simulador={<ChatSimulator onSendMessage={handleSimulatorMessage} />}
+            <Automacoes
+              conectado={waStatus.status === 'connected'}
+              onAbrirConexao={() => trocarAba('conexao')}
+              nomeNegocio={user?.businessName || 'Seu negócio'}
             />
-            </div>
           )}
           {activeTab === 'conversas' && <CentralConversas conectado={waStatus.status === 'connected'} />}
           {activeTab === 'conexao' && (
-            <ConnectionPanel
-              waStatus={waStatus}
-              statusLoading={statusLoading}
-              actionLoading={actionLoading}
-              lastSyncedAt={lastSyncedAt}
-              nomeNegocio={user?.businessName || 'seu negócio'}
-              onConnect={handleConnect}
-              onDisconnect={handleDisconnect}
-              onRefresh={() => { void fetchStatus(); }}
-              onTestSend={handleTestSend}
-            />
+            <div className="flex flex-col gap-8">
+              <ConnectionPanel
+                waStatus={waStatus}
+                statusLoading={statusLoading}
+                actionLoading={actionLoading}
+                lastSyncedAt={lastSyncedAt}
+                nomeNegocio={user?.businessName || 'seu negócio'}
+                onConnect={handleConnect}
+                onDisconnect={handleDisconnect}
+                onRefresh={() => { void fetchStatus(); }}
+                onTestSend={handleTestSend}
+              />
+              <RoboAtendimento
+                menu={
+                  <MenuOptionsPanel
+                    options={menuOptions}
+                    loading={menuLoading}
+                    actionLoading={actionLoading}
+                    onToggle={handleMenuToggle}
+                    onUpdate={handleMenuUpdate}
+                    onDelete={handleMenuDelete}
+                    onCreate={handleMenuCreate}
+                    onReorder={handleMenuReorder}
+                    onReset={handleMenuReset}
+                  />
+                }
+                mensagens={
+                  <MessageConfigPanel
+                    botConfig={botConfig}
+                    onChange={setBotConfig}
+                    configLoading={configLoading}
+                    actionLoading={actionLoading}
+                    onSave={handleSaveConfig}
+                    onReset={handleResetConfig}
+                  />
+                }
+                simulador={<ChatSimulator onSendMessage={handleSimulatorMessage} />}
+              />
+            </div>
           )}
       </div>
     </div>

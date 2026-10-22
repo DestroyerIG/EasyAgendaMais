@@ -12,6 +12,7 @@ const repo = vi.hoisted(() => ({
   topExtras: vi.fn(),
   findActiveServicesByIds: vi.fn(),
 }));
+vi.mock('../modules/whatsappAutomacoes/gatilhos.service.js', () => ({ automacoesGatilhos: { aoCancelar: vi.fn().mockResolvedValue(0), aoCriarReservaComSinal: vi.fn().mockResolvedValue(false), toleranciaSinal: vi.fn().mockResolvedValue(15), aoFecharComanda: vi.fn().mockResolvedValue(undefined) } }));
 vi.mock('../modules/comandas/comandas.repository.js', () => ({ comandasRepository: repo }));
 const products = vi.hoisted(() => ({ findActiveByIds: vi.fn() }));
 vi.mock('../modules/products/products.repository.js', () => ({ productsRepository: products }));

@@ -501,11 +501,7 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
           onFieldChange={updateSettingsField}
         />
 
-        <RemindersSection
-          settingsLoading={settingsLoading}
-          whatsappReminders={settings.whatsappReminders}
-          onFieldChange={updateSettingsField}
-        />
+        <RemindersSection />
 
         <IntegrationsSection
           settingsLoading={settingsLoading}

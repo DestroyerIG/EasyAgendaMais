@@ -100,6 +100,17 @@ describe('linkWhatsapp', () => {
 });
 
 describe('PainelDetalhesAgendamento', () => {
+  it('cliente que confirmou pelo WhatsApp ganha o selo', async () => {
+    abrir({ client_confirmed_at: '2026-09-16T12:00:00.000Z' });
+    expect(await screen.findByText('Confirmou pelo WhatsApp')).toBeInTheDocument();
+  });
+
+  it('sem confirmação da cliente, sem o selo', async () => {
+    abrir();
+    await screen.findByText('Rafaela Diniz');
+    expect(screen.queryByText('Confirmou pelo WhatsApp')).not.toBeInTheDocument();
+  });
+
   it('cabeçalho, cliente, serviço, profissional e horário com a duração real', async () => {
     abrir();
 

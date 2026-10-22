@@ -14,6 +14,7 @@ import * as botOrchestrator from '../../../bot/botOrchestrator.js';
 import { getSession, isSessionExpired } from '../whatsappSessionService.js';
 import { sendWhatsAppMessage } from '../whatsappMessageService.js';
 import { inboxRecorder } from '../../../modules/whatsappInbox/inbox.recorder.js';
+import { respostas } from '../../../modules/whatsappAutomacoes/respostas.service.js';
 import { detectarPalavraChave } from '../../../modules/whatsappInbox/inbox.rules.js';
 
 export const TEXTO_OPT_OUT = (negocio: string) =>
@@ -129,13 +130,14 @@ export const handleMessagesUpsert = async (
   const phone = resolved.phone as string;
   const businessId = tenant.business.id;
   const sessao = await getSession(phone, businessId).catch(() => null);
+  const sessaoAtiva = Boolean(sessao && !isSessionExpired(sessao));
   const conversa = await inboxRecorder.registrarEntrada({
     businessId,
     phone,
     texto: parsed.text,
     messageType: parsed.messageType,
     providerMessageId: parsed.messageId,
-    sessaoRoboAtiva: Boolean(sessao && !isSessionExpired(sessao)),
+    sessaoRoboAtiva: sessaoAtiva,
   });
 
   let palavra = detectarPalavraChave(parsed.text);
@@ -147,6 +149,15 @@ export const handleMessagesUpsert = async (
     else await inboxRecorder.registrarOptIn({ businessId, phone });
     await sendWhatsAppMessage(phone, resposta, { businessId, instanceName: effectiveInstance, origin: 'sistema' });
     return { ok: true, reason: palavra === 'sair' ? 'opt_out' : 'opt_in', authorPhone: phone, businessId };
+  }
+
+  // Conversa com a equipe ou com o robô em andamento: o "1"/"2" é para eles, não para a automação.
+  if (await respostas.tratar({
+    businessId, phone, texto: parsed.text, instanceName: effectiveInstance,
+    atendimentoHumano: conversa?.handler === 'humano',
+    sessaoRoboDesde: sessaoAtiva && sessao ? sessao.updatedAt : null,
+  })) {
+    return { ok: true, reason: 'resposta_automacao', authorPhone: phone, businessId };
   }
 
   if (conversa?.handler === 'humano') {

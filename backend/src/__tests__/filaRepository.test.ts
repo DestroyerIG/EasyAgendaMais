@@ -33,4 +33,9 @@ describe('filaRepository: reserva conta como envio', () => {
     expect(db.whatsappEnvio.findMany.mock.calls[0][0].where).toMatchObject({ businessId: 'b1', status: 'na_fila' });
     expect(db.whatsappEnvio.findFirst.mock.calls[0][0].where).toMatchObject({ businessId: 'b1', status: 'na_fila' });
   });
+  it('a ordem do próximo vencido começa pela prioridade', async () => {
+    db.whatsappEnvio.findFirst.mockResolvedValue(null);
+    await filaRepository.proximoVencido('b1', new Date());
+    expect(db.whatsappEnvio.findFirst.mock.calls[0][0].orderBy).toEqual([{ priority: 'asc' }, { scheduledFor: 'asc' }, { createdAt: 'asc' }]);
+  });
 });

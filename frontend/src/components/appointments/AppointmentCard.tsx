@@ -22,6 +22,9 @@
  *
  * A ação vermelha do arquivo de referência ("Marcar Falta") agora existe de verdade: o
  * status `faltou` é aceito por PUT /appointments/:id/status.
+ *
+ * Selo "Confirmou pelo WhatsApp" (2C-2b): aparece quando `client_confirmed_at` existe,
+ * junto do botão de WhatsApp (desligado na agenda de um profissional só, como ele).
  */
 
 import {
@@ -113,6 +116,21 @@ interface CorpoCartaoProps {
   mostrarWhatsapp?: boolean;
 }
 
+/** A cliente respondeu "1" à confirmação automática (client_confirmed_at). */
+export function SeloConfirmouWhatsapp({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex min-w-0 items-center gap-1 rounded-full bg-whatsapp/12 px-2 py-0.5 text-[11px] font-bold text-whatsapp',
+        className,
+      )}
+    >
+      <Icon name="verified" size={14} className="shrink-0" />
+      <span className="truncate">Confirmou pelo WhatsApp</span>
+    </span>
+  );
+}
+
 /** Miolo do cartão, compartilhado com a agenda de um profissional só. */
 export function CorpoCartaoAgendamento({
   appointment,
@@ -163,6 +181,7 @@ export function CorpoCartaoAgendamento({
         </div>
         <div className="mt-2 flex items-center gap-1.5">
           <StatusChip status={appointment.status} comPonto={comPontoDeStatus} className="px-2 text-[11px]" />
+          {mostrarWhatsapp && appointment.client_confirmed_at && !cancelado && <SeloConfirmouWhatsapp />}
           {whatsapp && (
             // O corpo do cartão inteiro escuta pointerdown/up para o gesto de arrastar
             // e para abrir o painel de detalhes num toque parado (AppointmentCard.tsx) —

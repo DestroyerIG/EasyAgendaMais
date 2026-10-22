@@ -30,6 +30,7 @@ vi.mock('../services/whatsapp/whatsappSessionService.js', () => ({
 vi.mock('../services/whatsapp/whatsappMessageService.js', () => ({
   sendWhatsAppMessage: vi.fn().mockResolvedValue(true),
 }));
+vi.mock('../modules/whatsappAutomacoes/respostas.service.js', () => ({ respostas: { tratar: vi.fn().mockResolvedValue(false) } }));
 vi.mock('../modules/whatsappInbox/inbox.recorder.js', () => ({
   inboxRecorder: {
     registrarEntrada: vi.fn().mockResolvedValue(null),
@@ -39,6 +40,9 @@ vi.mock('../modules/whatsappInbox/inbox.recorder.js', () => ({
   },
 }));
 
+const { respostas } = await import('../modules/whatsappAutomacoes/respostas.service.js');
+const sessaoSvc = await import('../services/whatsapp/whatsappSessionService.js');
+const { inboxRecorder } = await import('../modules/whatsappInbox/inbox.recorder.js');
 const { handleMessagesUpsert } = await import(
   '../services/whatsapp/handlers/messagesUpsertHandler.js'
 );
@@ -231,6 +235,29 @@ describe('handleMessagesUpsert', () => {
       };
       const r = await handleMessagesUpsert(payload, { instanceName: INSTANCE });
       expect(r).toMatchObject({ ok: false, reason: 'no_text' });
+    });
+  });
+
+  describe('Passo 7b — respostas das automações', () => {
+    it('passa atendimento humano e a sessão ativa do robô para as respostas', async () => {
+      const atividade = new Date('2026-10-22T12:00:00Z');
+      vi.mocked(sessaoSvc.getSession).mockResolvedValueOnce({
+        id: 's', phone: CLIENT_NUMBER, businessId: 'business-1', step: 'menu', data: null,
+        createdAt: new Date('2026-10-22T11:00:00Z'), updatedAt: atividade,
+      });
+      vi.mocked(sessaoSvc.isSessionExpired).mockReturnValueOnce(false);
+      vi.mocked(inboxRecorder.registrarEntrada).mockResolvedValueOnce({ handler: 'humano' } as never);
+      const payload = { ...DIRECT_PAYLOAD, data: { ...DIRECT_PAYLOAD.data, key: { ...DIRECT_PAYLOAD.data.key, id: `resp-${Date.now()}` } } };
+      await handleMessagesUpsert(payload, { instanceName: INSTANCE });
+      expect(respostas.tratar).toHaveBeenCalledWith(expect.objectContaining({
+        atendimentoHumano: true, sessaoRoboDesde: atividade,
+      }));
+    });
+
+    it('sem sessão ativa: sessaoRoboDesde null', async () => {
+      const payload = { ...DIRECT_PAYLOAD, data: { ...DIRECT_PAYLOAD.data, key: { ...DIRECT_PAYLOAD.data.key, id: `resp2-${Date.now()}` } } };
+      await handleMessagesUpsert(payload, { instanceName: INSTANCE });
+      expect(respostas.tratar).toHaveBeenCalledWith(expect.objectContaining({ atendimentoHumano: false, sessaoRoboDesde: null }));
     });
   });
 

@@ -5,9 +5,9 @@ import { generateAvailableTimeSlots, getBusinessScheduleSettings } from '../../s
 import { buildPixPayload } from '../../utils/pixPayload.js';
 import { notificationsService } from '../notifications/notifications.service.js';
 import logger from '../../utils/logger.js';
+import { automacoesGatilhos } from '../whatsappAutomacoes/gatilhos.service.js';
 import type { CreatePublicAppointmentInput, GetPublicAvailabilityQuery, Storefront } from './publicBooking.types.js';
 
-const HOLD_MINUTES = 15;
 
 const calcDeposit = (price: number, depositPercentage: number): number =>
   Math.round(price * (depositPercentage / 100) * 100) / 100;
@@ -127,7 +127,8 @@ export const publicBookingService = {
       description: `Sinal - ${service.name}`,
     });
 
-    const expiresAt = new Date(Date.now() + HOLD_MINUTES * 60 * 1000);
+    const toleranciaMin = await automacoesGatilhos.toleranciaSinal(business.id);
+    const expiresAt = new Date(Date.now() + toleranciaMin * 60 * 1000);
 
     // Checagem de conflito + criação dentro de uma única transação com advisory lock
     // por profissional+dia: duas requisições simultâneas para o mesmo horário são
@@ -169,6 +170,11 @@ export const publicBookingService = {
       title: 'Nova reserva online',
       description: `${data.clientName} · ${service.name} · ${day}/${month}/${year} às ${data.time}`,
     });
+
+    void automacoesGatilhos.aoCriarReservaComSinal(business.id, appointment.id, {
+      phone: data.clientPhone, nome: data.clientName, servico: service.name, valorSinal: depositAmount, pixPayload,
+      data: `${day}/${month}`, horario: data.time, toleranciaMin,
+    }).catch((err) => logger.warn({ err, appointmentId: appointment.id }, 'Envio do sinal Pix pelo WhatsApp falhou'));
 
     return {
       appointmentId: appointment.id,

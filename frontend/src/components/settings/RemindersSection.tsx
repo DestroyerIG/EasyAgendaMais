@@ -1,15 +1,10 @@
 'use client';
 
-import { Card, Switch, Skeleton } from '@/components/ui';
-import type { SettingsState } from './types';
+import Link from 'next/link';
+import { Card } from '@/components/ui';
 
-export interface RemindersSectionProps {
-  settingsLoading: boolean;
-  whatsappReminders: boolean;
-  onFieldChange: <K extends keyof SettingsState>(field: K, value: SettingsState[K]) => void;
-}
-
-export function RemindersSection({ settingsLoading, whatsappReminders, onFieldChange }: RemindersSectionProps) {
+/** O lembrete por WhatsApp é a regra "Lembrete" em WhatsApp › Automações (fonte única). */
+export function RemindersSection() {
   return (
     <Card className="space-y-6">
       <div>
@@ -19,22 +14,12 @@ export function RemindersSection({ settingsLoading, whatsappReminders, onFieldCh
         </p>
       </div>
 
-      {settingsLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-11 w-full" label={index === 0 ? 'Carregando…' : undefined} />
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <Switch
-            checked={whatsappReminders}
-            onCheckedChange={(checked) => onFieldChange('whatsappReminders', checked)}
-            label="Enviar lembretes por WhatsApp"
-            description="Usa o canal com melhor taxa de abertura para lembrar os clientes."
-          />
-        </div>
-      )}
+      <p className="text-[15px] text-muted">
+        Os lembretes por WhatsApp agora ficam em Automações, junto com a confirmação e as outras mensagens automáticas.{' '}
+        <Link href="/dashboard/whatsapp?aba=automacoes" className="font-semibold text-brand-text hover:underline">
+          Abrir Automações
+        </Link>
+      </p>
     </Card>
   );
 }

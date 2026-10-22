@@ -17,7 +17,7 @@ export function separarLink(texto: string): { corpo: string; link: string | null
 }
 
 /** *trecho* vira negrito, como no WhatsApp; as quebras de linha ficam por conta do whitespace-pre-wrap. */
-function TextoWhatsApp({ texto }: { texto: string }) {
+export function TextoWhatsApp({ texto }: { texto: string }) {
   return (
     <>
       {texto.split(/(\*[^*\n]+\*)/g).map((parte, i) => (

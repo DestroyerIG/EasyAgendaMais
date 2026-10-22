@@ -3,13 +3,17 @@ import { prisma } from '../config/prisma.js';
 import logger from '../utils/logger.js';
 import { avatares } from '../modules/whatsappAvatar/avatar.service.js';
 import { subscriptionRepository } from '../repositories/subscriptionRepository.js';
-import { businessSettingsRepository } from '../repositories/businessSettingsRepository.js';
 
 // @ts-ignore — sendWhatsAppMessage is a legacy JS service not yet typed
 import { sendWhatsAppMessage } from './whatsapp/index.js';
 import { inboxCron } from '../modules/whatsappInbox/inbox.cron.js';
 import { filaEnvios } from '../modules/whatsappFila/fila.service.js';
 import { notificationsService } from '../modules/notifications/notifications.service.js';
+import { inboxRecorder } from '../modules/whatsappInbox/inbox.recorder.js';
+import { automacoes } from '../modules/whatsappAutomacoes/automacoes.service.js';
+import { renderizarTexto } from '../modules/whatsappAutomacoes/automacoes.rules.js';
+import { automacoesRotinas, linkMapa } from '../modules/whatsappAutomacoes/rotinas.service.js';
+import { rotinasRepository } from '../modules/whatsappAutomacoes/rotinas.repository.js';
 
 // Agendamentos gravam `time`/`date` no relógio local do negócio (BR), não UTC.
 // Render roda em UTC, então o alvo precisa ser calculado no fuso de negócio.
@@ -80,23 +84,24 @@ export const runReminderJob = async (now: Date = new Date()): Promise<void> => {
       },
     });
 
-    // Uma consulta de configuração por negócio, não por agendamento.
-    const remindersEnabledByBusiness = new Map<string, boolean>();
+    // Uma consulta de regra por negócio, não por agendamento.
+    type Lembrete2h = { texto: string; endereco: string | null } | null;
+    const regraPorNegocio = new Map<string, Lembrete2h>();
 
-    const remindersEnabled = async (businessId: string): Promise<boolean> => {
-      const cached = remindersEnabledByBusiness.get(businessId);
-      if (cached !== undefined) return cached;
-
-      const settings = await businessSettingsRepository.findByBusinessId(businessId);
-      const enabled = settings ? (settings as { whatsappReminders?: unknown }).whatsappReminders !== false : true;
-
-      remindersEnabledByBusiness.set(businessId, enabled);
-      return enabled;
+    const regra2h = async (businessId: string): Promise<Lembrete2h> => {
+      if (regraPorNegocio.has(businessId)) return regraPorNegocio.get(businessId)!;
+      const regra = await automacoes.obter(businessId, 'lembrete');
+      const valor = regra.ativa && regra.config.modo === '2h'
+        ? { texto: regra.texto, endereco: (await rotinasRepository.negocio(businessId)).endereco }
+        : null;
+      regraPorNegocio.set(businessId, valor);
+      return valor;
     };
 
     for (const appointment of appointments) {
-      if (!(await remindersEnabled(appointment.businessId))) {
-        logger.debug({ businessId: appointment.businessId }, 'Lembretes por WhatsApp desligados; pulando');
+      const regra = await regra2h(appointment.businessId);
+      if (!regra) {
+        logger.debug({ businessId: appointment.businessId }, 'Lembrete de 2h desligado (ou no modo véspera); pulando');
         continue;
       }
 
@@ -108,22 +113,18 @@ export const runReminderJob = async (now: Date = new Date()): Promise<void> => {
         continue;
       }
 
-      const config = await prisma.whatsappBotConfig.findFirst({
-        where: { businessId: appointment.businessId },
-        select: { reminderMessage: true },
+      if (await inboxRecorder.estaEmOptOut(appointment.businessId, appointment.client.phone)) {
+        logger.debug({ appointmentId: appointment.id }, 'Cliente pediu para não receber mensagens; lembrete não enviado');
+        continue;
+      }
+
+      const nome = appointment.client.name;
+      const message = renderizarTexto(regra.texto, {
+        nome, nome_cliente: nome, primeiro_nome: nome.trim().split(/\s+/)[0] ?? '',
+        servico: appointment.service.name, profissional: appointment.professional.name,
+        horario: appointment.time.toISOString().substring(11, 16), data: 'hoje',
+        endereco: regra.endereco, link_mapa: linkMapa(regra.endereco),
       });
-
-      let template =
-        '⏰ Lembrete!\n\nOlá {nome_cliente}!\n\nSeu horário é daqui a 2 horas:\n📋 {servico}\n👤 Profissional: {profissional}\n⏰ {horario}\n\nTe esperamos!';
-
-      if (config?.reminderMessage) template = config.reminderMessage;
-
-      const timeStr = appointment.time.toISOString().substring(11, 16);
-      const message = template
-        .replace(/{nome_cliente}/g, appointment.client.name)
-        .replace(/{servico}/g, appointment.service.name)
-        .replace(/{profissional}/g, appointment.professional.name)
-        .replace(/{horario}/g, timeStr);
 
       const sent = await sendWhatsAppMessage(appointment.client.phone, message, {
         businessId: appointment.businessId,
@@ -140,6 +141,13 @@ export const runReminderJob = async (now: Date = new Date()): Promise<void> => {
     }
   } catch (error) {
     logger.error({ err: error }, 'Erro ao enviar lembretes');
+  }
+
+  try {
+    const vespera = await automacoesRotinas.lembretesVespera(now);
+    if (vespera > 0) logger.info({ vespera }, 'Lembretes da véspera enviados');
+  } catch (error) {
+    logger.warn({ err: error }, 'Erro ao enviar lembretes da véspera');
   }
 };
 
@@ -194,9 +202,38 @@ export const startReminderCron = (): void => {
     }
   }, { noOverlap: true });
 
-  cron.schedule('*/10 * * * *', () => {
-    void runReminderJob();
-  });
+  // noOverlap: a véspera envia em sequência; uma rodada lenta não pode ser repetida pela próxima.
+  cron.schedule('*/10 * * * *', async () => {
+    try {
+      await runReminderJob();
+    } catch (err) {
+      logger.warn({ err }, 'Falha na rotina de lembretes do WhatsApp');
+    }
+  }, { noOverlap: true });
+
+  cron.schedule('*/10 * * * *', async () => {
+    try {
+      await automacoesRotinas.confirmacoes();
+    } catch (err) {
+      logger.warn({ err }, 'Falha na rotina de confirmação do WhatsApp');
+    }
+  }, { noOverlap: true });
+
+  cron.schedule('*/15 * * * *', async () => {
+    try {
+      await automacoesRotinas.radarRetorno();
+    } catch (err) {
+      logger.warn({ err }, 'Falha no radar de retorno do WhatsApp');
+    }
+  }, { noOverlap: true });
+
+  cron.schedule('*/15 * * * *', async () => {
+    try {
+      await automacoesRotinas.aniversarios();
+    } catch (err) {
+      logger.warn({ err }, 'Falha na rotina de aniversário do WhatsApp');
+    }
+  }, { noOverlap: true });
 
   cron.schedule('15 * * * *', async () => {
     try {

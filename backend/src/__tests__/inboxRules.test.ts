@@ -39,7 +39,9 @@ it('automáticas e grupos', () => {
   expect(ehAutomatica('lembrete')).toBe(true);
   expect(ehAutomatica('confirmacao')).toBe(true);
   expect(ehAutomatica('lista_espera')).toBe(true);
-  for (const o of ['bot', 'pix_recibo', 'manual_painel', 'manual_celular', 'sistema'] as const) expect(ehAutomatica(o)).toBe(false);
+  for (const o of ['aniversario', 'avaliacao', 'campanha'] as const) expect(ehAutomatica(o)).toBe(true);
+  for (const o of ['bot', 'pix_recibo', 'sinal_pix', 'manual_painel', 'manual_celular', 'sistema'] as const) expect(ehAutomatica(o)).toBe(false);
+  expect(grupoEnvio('sinal_pix')).toBe('pix');
   expect(grupoEnvio('lembrete')).toBe('automaticas');
   expect(grupoEnvio('lista_espera')).toBe('automaticas');
   expect(ehAutomatica('retorno')).toBe(true);

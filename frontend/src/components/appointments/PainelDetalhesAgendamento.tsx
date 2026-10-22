@@ -8,7 +8,8 @@
  * Tudo é dado real. Do `Appointment` que já veio da lista: número (o da comanda, quando
  * existe; senão os últimos 4 caracteres do id), cliente, telefone, origem (`source`),
  * serviço, profissional, data, horário com a duração do serviço, preço, sinal
- * (`deposit_amount`) e a comanda (`comanda_*`). De GET /appointments/:id/details, pedido a
+ * (`deposit_amount`), a comanda (`comanda_*`) e o selo "Confirmou pelo WhatsApp"
+ * (`client_confirmed_at`). De GET /appointments/:id/details, pedido a
  * cada troca de agendamento: o ciclo médio, as visitas do ano, a última visita, o selo de
  * cliente recorrente e as observações da ficha técnica. Enquanto essa leitura não chega,
  * os dois blocos que dependem dela mostram esqueleto; se ela falha, somem (com um aviso)
@@ -38,6 +39,7 @@ import { Avatar, Icon, SidePanel, Skeleton, StatusChip } from '@/components/ui';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { formatarDataAgenda } from './DateNavigationBar';
 import { formatarDuracao } from './LinhaDoTempo';
+import { SeloConfirmouWhatsapp } from './AppointmentCard';
 import { ACOES_POR_STATUS, ROTULO_ACAO, type AcaoAgendamento } from './acoes';
 import { linkWhatsapp } from '@/lib/whatsapp';
 import type { Appointment } from '@/types';
@@ -287,12 +289,15 @@ export function ConteudoDetalhesAgendamento({ agendamento }: ConteudoDetalhesPro
       <Bloco>
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2.5">
           <span className="text-[12px] font-bold uppercase tracking-wide text-muted">Serviço e horário</span>
-          {origem && (
-            <span className="flex items-center gap-1 rounded-full border border-line bg-surface-2 px-2.5 py-0.5 text-[11px] font-bold text-brand-text">
-              <Icon name={origem.icone} size={13} />
-              Origem: {origem.texto}
-            </span>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {agendamento.client_confirmed_at && agendamento.status !== 'cancelado' && <SeloConfirmouWhatsapp />}
+            {origem && (
+              <span className="flex items-center gap-1 rounded-full border border-line bg-surface-2 px-2.5 py-0.5 text-[11px] font-bold text-brand-text">
+                <Icon name={origem.icone} size={13} />
+                Origem: {origem.texto}
+              </span>
+            )}
+          </div>
         </div>
         <div className="space-y-2.5">
           <div className="flex items-center justify-between gap-3">

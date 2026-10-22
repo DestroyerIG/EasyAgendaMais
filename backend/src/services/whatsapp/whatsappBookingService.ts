@@ -14,6 +14,7 @@ import { updateSession } from './whatsappSessionService.js';
 import { formatMessage } from './whatsappMessageService.js';
 import { goBackToMainMenu } from './whatsappFlowService.js';
 import { formatTimeHm } from './utils/timeUtils.js';
+import { automacoesGatilhos } from '../../modules/whatsappAutomacoes/gatilhos.service.js';
 
 // ==================== UTILITÁRIO DE DATA (FIX Bug 5) ====================
 
@@ -123,6 +124,8 @@ export const handleConfirmCancel = async (
       where: { id: appointmentId },
       data: { status: 'cancelado' },
     });
+    void automacoesGatilhos.aoCancelar(businessId, appointmentId)
+      .catch((err) => logger.warn({ err, appointmentId }, 'Gatilho da lista de espera falhou'));
     const mainMenu = await goBackToMainMenu(phone, businessId);
     return { message: formatMessage(config.cancel_success_message) + '\n\n' + mainMenu.message };
   } catch (error) {

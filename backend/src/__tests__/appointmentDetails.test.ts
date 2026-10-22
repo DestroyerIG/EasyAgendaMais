@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { toAppointmentDto } from '../modules/appointments/appointment.serializer.js';
 
 const repo = vi.hoisted(() => ({ findById: vi.fn(), findClientVisits: vi.fn(), findClientNotes: vi.fn() }));
+vi.mock('../modules/whatsappAutomacoes/gatilhos.service.js', () => ({ automacoesGatilhos: { aoCancelar: vi.fn().mockResolvedValue(0), aoCriarReservaComSinal: vi.fn().mockResolvedValue(false), toleranciaSinal: vi.fn().mockResolvedValue(15), aoFecharComanda: vi.fn().mockResolvedValue(undefined) } }));
 vi.mock('../modules/appointments/appointments.repository.js', () => ({ appointmentsPrismaRepository: repo }));
 vi.mock('../services/whatsapp/index.js', () => ({ sendWhatsAppMessage: vi.fn() }));
 vi.mock('../modules/notifications/notifications.service.js', () => ({ notificationsService: { notify: vi.fn() } }));
@@ -37,6 +38,14 @@ describe('toAppointmentDto', () => {
       comanda: { id: 'k1', status: 'rascunho', number: 1043, totalCharged: '150.00', depositApplied: '30.00' },
     });
     expect(dto).toMatchObject({ comanda_total_charged: null, comanda_deposit_applied: null });
+  });
+
+  it('leva a confirmação da cliente pelo WhatsApp', () => {
+    const dto = toAppointmentDto({
+      id: 'a1', date: '2026-10-13', time: '10:00:00', status: 'confirmado', clientConfirmedAt: new Date('2026-10-12T12:30:00Z'),
+    });
+    expect(dto.client_confirmed_at).toBe('2026-10-12T12:30:00.000Z');
+    expect(toAppointmentDto({ id: 'a1', date: '2026-10-13', time: '10:00:00', status: 'confirmado' }).client_confirmed_at).toBeNull();
   });
 
   it('sem sinal e sem comanda dá null', () => {
