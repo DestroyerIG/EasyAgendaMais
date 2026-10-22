@@ -73,6 +73,15 @@ describe('aoCancelar', () => {
     expect(zap.send.mock.calls[0][1]).toBe('Vaga amanhã às 14:00 com Camila (Gel), Cliente!');
   });
 
+  it('consentimento revogado: pula a entrada e avisa a próxima', async () => {
+    repo.entradasAguardando.mockResolvedValue([
+      entrada('1', { consentimentoRevogado: true }), entrada('2'), entrada('3'), entrada('4'),
+    ]);
+    expect(await automacoesGatilhos.aoCancelar('b1', 'a1', AGORA)).toBe(3);
+    expect(zap.send.mock.calls.map((c) => c[0])).toEqual(['83999990002', '83999990003', '83999990004']);
+    expect(repo.marcarOferecida).not.toHaveBeenCalledWith('1', 'b1', AGORA);
+  });
+
   it('entrada já reservada por outro cancelamento não recebe de novo', async () => {
     repo.marcarOferecida.mockImplementation(async (id: string) => id !== '1');
     expect(await automacoesGatilhos.aoCancelar('b1', 'a1', AGORA)).toBe(2);

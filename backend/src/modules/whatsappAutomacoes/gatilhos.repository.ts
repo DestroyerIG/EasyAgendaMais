@@ -19,6 +19,7 @@ export interface EntradaEspera {
   desiredDate: string | null;
   period: string;
   duracaoServico: number;
+  consentimentoRevogado: boolean;
 }
 
 export interface AgendamentoAvaliacao {
@@ -27,6 +28,10 @@ export interface AgendamentoAvaliacao {
   phone: string;
   servico: string;
 }
+
+/** Mesmo critério de rotinasRepository.agendamentosDoDia: o consentimento mais recente negado ou revogado. */
+const revogado = (c: { granted: boolean; revokedAt: Date | null } | undefined): boolean =>
+  !!c && (!c.granted || !!c.revokedAt);
 
 export const gatilhosRepository = {
   async vaga(businessId: string, appointmentId: string): Promise<VagaLiberada | null> {
@@ -59,13 +64,25 @@ export const gatilhosRepository = {
     const rows = await prisma.waitlistEntry.findMany({
       where: { businessId, status: 'aguardando' },
       orderBy: { createdAt: 'asc' },
-      include: { client: { select: { name: true, phone: true } }, service: { select: { durationMinutes: true } } },
+      include: {
+        client: {
+          select: {
+            name: true, phone: true,
+            consents: {
+              where: { kind: 'whatsapp_lembretes' }, orderBy: { grantedAt: 'desc' }, take: 1,
+              select: { granted: true, revokedAt: true },
+            },
+          },
+        },
+        service: { select: { durationMinutes: true } },
+      },
     });
     return rows.map((r) => ({
       id: r.id, clientId: r.clientId, nome: r.client.name, phone: r.client.phone,
       serviceId: r.serviceId, professionalId: r.professionalId,
       desiredDate: r.desiredDate ? r.desiredDate.toISOString().slice(0, 10) : null,
       period: r.period, duracaoServico: r.service.durationMinutes,
+      consentimentoRevogado: revogado(r.client.consents?.[0]),
     }));
   },
 
