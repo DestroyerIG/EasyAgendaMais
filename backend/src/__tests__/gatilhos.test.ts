@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const regras = vi.hoisted(() => ({ obter: vi.fn() }));
 const repo = vi.hoisted(() => ({
-  vaga: vi.fn(), negocio: vi.fn(), nomeServico: vi.fn(), entradasAguardando: vi.fn(),
+  vaga: vi.fn(), negocio: vi.fn(), nomeServico: vi.fn(), entradasCandidatas: vi.fn(),
   marcarOferecida: vi.fn(), desfazerOferta: vi.fn(), temAvaliacao: vi.fn(), agendamentoParaAvaliacao: vi.fn(),
 }));
 const zap = vi.hoisted(() => ({ getStatus: vi.fn(), send: vi.fn() }));
@@ -33,10 +33,10 @@ beforeEach(() => {
   delete process.env.FRONTEND_URL;
   settings.get.mockResolvedValue({ timezone: 'America/Sao_Paulo' });
   regras.obter.mockResolvedValue({ ativa: true, texto: TEXTO_ESPERA, config: { quantas: 3 } });
-  repo.vaga.mockResolvedValue({ data: '2026-10-23', hora: '14:00', serviceId: 's1', professionalId: 'p1', duracao: 60, profissional: 'Camila' });
+  repo.vaga.mockResolvedValue({ data: '2026-10-23', hora: '14:00', serviceId: 's1', professionalId: 'p1', duracao: 60, profissional: 'Camila', clientId: 'cx' });
   repo.negocio.mockResolvedValue({ nome: 'Studio Aurora', slug: 'aurora' });
   repo.nomeServico.mockResolvedValue('Gel');
-  repo.entradasAguardando.mockResolvedValue([1, 2, 3, 4, 5].map((n) => entrada(String(n))));
+  repo.entradasCandidatas.mockResolvedValue([1, 2, 3, 4, 5].map((n) => entrada(String(n))));
   repo.marcarOferecida.mockResolvedValue(true);
   inbox.estaEmOptOut.mockResolvedValue(false);
   zap.send.mockResolvedValue(true);
@@ -74,12 +74,19 @@ describe('aoCancelar', () => {
   });
 
   it('consentimento revogado: pula a entrada e avisa a próxima', async () => {
-    repo.entradasAguardando.mockResolvedValue([
+    repo.entradasCandidatas.mockResolvedValue([
       entrada('1', { consentimentoRevogado: true }), entrada('2'), entrada('3'), entrada('4'),
     ]);
     expect(await automacoesGatilhos.aoCancelar('b1', 'a1', AGORA)).toBe(3);
     expect(zap.send.mock.calls.map((c) => c[0])).toEqual(['83999990002', '83999990003', '83999990004']);
     expect(repo.marcarOferecida).not.toHaveBeenCalledWith('1', 'b1', AGORA);
+  });
+
+  it('busca candidatas com o horário atual e não oferece a vaga para quem cancelou', async () => {
+    repo.entradasCandidatas.mockResolvedValue([entrada('1', { clientId: 'cx' }), entrada('2')]);
+    expect(await automacoesGatilhos.aoCancelar('b1', 'a1', AGORA)).toBe(1);
+    expect(repo.entradasCandidatas).toHaveBeenCalledWith('b1', AGORA);
+    expect(zap.send.mock.calls.map((c) => c[0])).toEqual(['83999990002']);
   });
 
   it('entrada já reservada por outro cancelamento não recebe de novo', async () => {
@@ -106,7 +113,7 @@ describe('aoCancelar', () => {
   });
 
   it('entrada incompatível (outro profissional) não recebe', async () => {
-    repo.entradasAguardando.mockResolvedValue([entrada('1', { professionalId: 'p9' }), entrada('2')]);
+    repo.entradasCandidatas.mockResolvedValue([entrada('1', { professionalId: 'p9' }), entrada('2')]);
     expect(await automacoesGatilhos.aoCancelar('b1', 'a1', AGORA)).toBe(1);
     expect(zap.send.mock.calls[0][0]).toBe('83999990002');
   });

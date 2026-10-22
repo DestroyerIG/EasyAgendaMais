@@ -19,6 +19,15 @@ const canonico = (coluna: string): Prisma.Sql => {
   return Prisma.raw(`(CASE WHEN ${x} ~ '^[0-9]{2}9[0-9]{8}$' THEN substr(${x}, 1, 2) || substr(${x}, 4) ELSE ${x} END)`);
 };
 
+/**
+ * A cliente do agendamento (`a`, `c`, `ac.criada`) recebeu mensagem `lista_espera` (envio direto, pela phone_key)
+ * nos 7 dias anteriores à criação. Usado na receita e nas vagas preenchidas.
+ */
+const recebeuListaEspera = Prisma.sql`EXISTS (SELECT 1 FROM whatsapp_messages m
+                     WHERE m.business_id = a.business_id AND m.direction = 'out' AND m.origin = 'lista_espera'
+                       AND m.status <> 'falhou' AND m.phone_key = ${canonico('c.phone')}
+                       AND m.created_at >= ac.criada - interval '7 days' AND m.created_at <= ac.criada)`;
+
 const num = (v: unknown): number => (v === null || v === undefined ? 0 : Number(v));
 
 export const metricasRepository = {
@@ -47,10 +56,7 @@ export const metricasRepository = {
                   WHERE e.business_id = a.business_id AND e.client_id = a.client_id AND e.status = 'enviado'
                     AND e.origin IN (${Prisma.join(ORIGENS_RECEITA)})
                     AND e.enviado_em >= ac.criada - interval '7 days' AND e.enviado_em <= ac.criada)
-         OR EXISTS (SELECT 1 FROM whatsapp_messages m
-                     WHERE m.business_id = a.business_id AND m.direction = 'out' AND m.origin = 'lista_espera'
-                       AND m.status <> 'falhou' AND m.phone_key = ${canonico('c.phone')}
-                       AND m.created_at >= ac.criada - interval '7 days' AND m.created_at <= ac.criada)) AS outros
+         OR ${recebeuListaEspera}) AS outros
       ) t
       WHERE a.business_id = ${businessId}::uuid AND a.created_at >= ${inicio} AND a.created_at < ${fim}
         AND a.status NOT IN ('cancelado', 'aguardando_pagamento')`;
@@ -94,8 +100,18 @@ export const metricasRepository = {
     return { total: num(r?.total), respondidas: num(r?.respondidas), mediaMin: r?.media === null || r?.media === undefined ? null : Number(r.media) };
   },
 
-  vagasPreenchidas: (businessId: string, inicio: Date, fim: Date) =>
-    prisma.waitlistEntry.count({ where: { businessId, status: 'agendada', offeredAt: { gte: inicio, lt: fim } } }),
+  /** Agendamentos criados no período (não cancelados nem esperando Pix) por clientes avisados pela lista de espera. */
+  async vagasPreenchidas(businessId: string, inicio: Date, fim: Date): Promise<number> {
+    const [r] = await prisma.$queryRaw<Array<{ total: unknown }>>`
+      SELECT count(*)::int AS total
+      FROM appointments a
+      JOIN clients c ON c.id = a.client_id
+      CROSS JOIN LATERAL (SELECT a.created_at AT TIME ZONE 'UTC' AS criada) ac
+      WHERE a.business_id = ${businessId}::uuid AND a.created_at >= ${inicio} AND a.created_at < ${fim}
+        AND a.status NOT IN ('cancelado', 'aguardando_pagamento')
+        AND ${recebeuListaEspera}`;
+    return num(r?.total);
+  },
 
   async lembretes(businessId: string, inicio: Date, fim: Date): Promise<{ enviados: number; lidos: number }> {
     const g = await prisma.whatsappMessage.groupBy({

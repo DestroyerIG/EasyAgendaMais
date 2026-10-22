@@ -135,6 +135,23 @@ describe('metricasRepository (SQL)', () => {
     expect(sql).toContain("interval '7 days'");
   });
 
+  it('vagas preenchidas: agendamentos de quem recebeu lista_espera, com o mesmo critério da receita', async () => {
+    db.$queryRaw.mockResolvedValue([{ total: 4 }]);
+    const { metricasRepository } = await real();
+    expect(await metricasRepository.vagasPreenchidas('b1', new Date(), new Date())).toBe(4);
+    const sqlVagas = textoSql();
+    expect(sqlVagas).not.toContain('waitlist_entries');
+    expect(sqlVagas).toContain('FROM appointments a');
+    expect(sqlVagas).toMatch(/a\.status NOT IN \('cancelado', 'aguardando_pagamento'\)/);
+    db.$queryRaw.mockClear();
+    db.$queryRaw.mockResolvedValue([{ retorno: 0, outros: 0 }]);
+    await metricasRepository.receitaAutomacoes('b1', new Date(), new Date());
+    const sqlReceita = textoSql();
+    const trecho = sqlVagas.match(/EXISTS \(SELECT 1 FROM whatsapp_messages m[\s\S]*?ac\.criada\)/)?.[0];
+    expect(trecho).toMatch(/m\.origin = 'lista_espera'[\s\S]*m\.status <> 'falhou'[\s\S]*interval '7 days'/);
+    expect(sqlReceita).toContain(trecho!);
+  });
+
   it('taxa de resposta ignora mensagens que falharam', async () => {
     db.$queryRaw.mockResolvedValue([{ total: 0, respondidas: 0, media: null }]);
     const { metricasRepository } = await real();

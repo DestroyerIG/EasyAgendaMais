@@ -39,8 +39,8 @@ export const automacoesGatilhos = {
     const inicio = zonedToUtc(vaga.data, vaga.hora, tz);
     if (inicio.getTime() - agora.getTime() < ANTECEDENCIA_MIN * 60_000) return 0;
 
-    const entradas = (await repo.entradasAguardando(businessId))
-      .filter((e) => !e.consentimentoRevogado && entradaCompativel(e, vaga))
+    const entradas = (await repo.entradasCandidatas(businessId, agora))
+      .filter((e) => e.clientId !== vaga.clientId && !e.consentimentoRevogado && entradaCompativel(e, vaga))
       .slice(0, regra.config.quantas);
     if (entradas.length === 0) return 0;
 

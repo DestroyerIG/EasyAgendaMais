@@ -7,6 +7,8 @@ export interface VagaLiberada {
   professionalId: string;
   duracao: number;
   profissional: string;
+  /** Cliente que liberou a vaga (não recebe a oferta). */
+  clientId: string;
 }
 
 export interface EntradaEspera {
@@ -33,12 +35,22 @@ export interface AgendamentoAvaliacao {
 const revogado = (c: { granted: boolean; revokedAt: Date | null } | undefined): boolean =>
   !!c && (!c.granted || !!c.revokedAt);
 
+const OFERTA_VENCE_MS = 24 * 3_600_000;
+
+/** Aguardando, ou oferecida há mais de 24h (a vaga anterior ficou com outra pessoa ou não foi usada). */
+const podeReceberOferta = (agora: Date) => ({
+  OR: [
+    { status: 'aguardando' },
+    { status: 'oferecida', offeredAt: { lt: new Date(agora.getTime() - OFERTA_VENCE_MS) } },
+  ],
+});
+
 export const gatilhosRepository = {
   async vaga(businessId: string, appointmentId: string): Promise<VagaLiberada | null> {
     const a = await prisma.appointment.findFirst({
       where: { id: appointmentId, businessId },
       select: {
-        date: true, time: true, serviceId: true, professionalId: true,
+        date: true, time: true, serviceId: true, professionalId: true, clientId: true,
         service: { select: { durationMinutes: true } }, professional: { select: { name: true } },
       },
     });
@@ -46,7 +58,7 @@ export const gatilhosRepository = {
     return {
       data: a.date.toISOString().slice(0, 10), hora: a.time.toISOString().slice(11, 16),
       serviceId: a.serviceId, professionalId: a.professionalId,
-      duracao: a.service.durationMinutes, profissional: a.professional.name,
+      duracao: a.service.durationMinutes, profissional: a.professional.name, clientId: a.clientId,
     };
   },
 
@@ -60,9 +72,13 @@ export const gatilhosRepository = {
     return s?.name ?? '';
   },
 
-  async entradasAguardando(businessId: string): Promise<EntradaEspera[]> {
+  /**
+   * Quem pode receber a oferta: `aguardando` e `oferecida` há mais de 24h sem ter ficado com a vaga.
+   * Ordem: aguardando primeiro (por entrada na lista), depois as ofertas mais antigas.
+   */
+  async entradasCandidatas(businessId: string, agora: Date): Promise<EntradaEspera[]> {
     const rows = await prisma.waitlistEntry.findMany({
-      where: { businessId, status: 'aguardando' },
+      where: { businessId, ...podeReceberOferta(agora) },
       orderBy: { createdAt: 'asc' },
       include: {
         client: {
@@ -77,7 +93,13 @@ export const gatilhosRepository = {
         service: { select: { durationMinutes: true } },
       },
     });
-    return rows.map((r) => ({
+    const chave = (r: { status: string; offeredAt: Date | null; createdAt: Date }) =>
+      r.status === 'aguardando' ? [0, r.createdAt.getTime()] : [1, r.offeredAt?.getTime() ?? 0];
+    const ordenadas = [...rows].sort((x, y) => {
+      const [a1, a2] = chave(x); const [b1, b2] = chave(y);
+      return a1 - b1 || a2 - b2;
+    });
+    return ordenadas.map((r) => ({
       id: r.id, clientId: r.clientId, nome: r.client.name, phone: r.client.phone,
       serviceId: r.serviceId, professionalId: r.professionalId,
       desiredDate: r.desiredDate ? r.desiredDate.toISOString().slice(0, 10) : null,
@@ -86,10 +108,10 @@ export const gatilhosRepository = {
     }));
   },
 
-  /** Mesmo valor de waitlistService.offer ('oferecida'); só se ainda estiver aguardando. */
+  /** Mesmo valor de waitlistService.offer ('oferecida'); só se ainda puder receber (compare-and-set). */
   async marcarOferecida(id: string, businessId: string, quando: Date): Promise<boolean> {
     const r = await prisma.waitlistEntry.updateMany({
-      where: { id, businessId, status: 'aguardando' }, data: { status: 'oferecida', offeredAt: quando },
+      where: { id, businessId, ...podeReceberOferta(quando) }, data: { status: 'oferecida', offeredAt: quando },
     });
     return r.count > 0;
   },
