@@ -47,11 +47,11 @@ describe('automacoes.rules', () => {
     expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '12:00' }).success).toBe(true);
     expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '12:05' }).success).toBe(false);
   });
-  it('lembrete: hora da véspera só entre 08:00 e 20:00 (janela da fila)', () => {
+  it('lembrete: hora da véspera só entre 08:00 e 18:00 (sobra janela da fila até 20:00)', () => {
     expect(CONFIG_SCHEMA.lembrete.safeParse({ modo: 'vespera', hora: '07:59' }).success).toBe(false);
     expect(CONFIG_SCHEMA.lembrete.safeParse({ modo: 'vespera', hora: '08:00' }).success).toBe(true);
-    expect(CONFIG_SCHEMA.lembrete.safeParse({ modo: 'vespera', hora: '20:00' }).success).toBe(true);
-    expect(CONFIG_SCHEMA.lembrete.safeParse({ modo: 'vespera', hora: '20:05' }).success).toBe(false);
+    expect(CONFIG_SCHEMA.lembrete.safeParse({ modo: 'vespera', hora: '18:00' }).success).toBe(true);
+    expect(CONFIG_SCHEMA.lembrete.safeParse({ modo: 'vespera', hora: '18:05' }).success).toBe(false);
     expect(lerConfig('lembrete', { modo: 'vespera', hora: '23:00' })).toEqual({ modo: 'vespera', hora: '18:00' });
   });
   it('avaliação: linkGoogle só aceita http/https', () => {

@@ -4,7 +4,7 @@ const repo = vi.hoisted(() => ({
   naFilaDoCliente: vi.fn(), criar: vi.fn(), negociosComVencidos: vi.fn(), ultimoEnviado: vi.fn(),
   contarEnviadosDesde: vi.fn(), proximoVencido: vi.fn(), reservar: vi.fn(), atualizar: vi.fn(),
   idsNaFila: vi.fn(), consentimentoRevogado: vi.fn(), interromper: vi.fn(), recentesPorCliente: vi.fn(), enviadosPorCliente: vi.fn(),
-  agendamentoParaEnvio: vi.fn(),
+  agendamentoParaEnvio: vi.fn(), desmarcarLembrete: vi.fn(),
 }));
 vi.mock('../modules/whatsappFila/fila.repository.js', () => ({ filaRepository: repo }));
 const resp = vi.hoisted(() => ({ respostasRepository: { registrar: vi.fn() } }));
@@ -275,12 +275,31 @@ describe('agendamento vinculado', () => {
     repo.agendamentoParaEnvio.mockResolvedValue(ag({ time: new Date('1970-01-01T18:00:00Z') }));
     await filaEnvios.processar(AGORA);
     expect(repo.atualizar).toHaveBeenLastCalledWith('b1', 'e1', { status: 'pulado', reason: 'Lembrete fora da véspera', sentAt: null });
+    expect(repo.desmarcarLembrete).toHaveBeenCalledTimes(1);
+    expect(repo.desmarcarLembrete).toHaveBeenCalledWith('b1', 'a1');
     expect(envio.sendWhatsAppMessage).not.toHaveBeenCalled();
     repo.agendamentoParaEnvio.mockResolvedValue(ag({ date: AMANHA }));
     const r = await filaEnvios.processar(AGORA);
     expect(r.enviados).toBe(1);
     expect(envio.sendWhatsAppMessage).toHaveBeenCalledWith('5583999990000', 'Oi', { businessId: 'b1', origin: 'lembrete' });
     expect(resp.respostasRepository.registrar).not.toHaveBeenCalled();
+  });
+
+  it('lembrete na véspera que falha ao enviar volta a ficar pendente no agendamento', async () => {
+    repo.proximoVencido.mockResolvedValue(conf({ origin: 'lembrete' }));
+    repo.agendamentoParaEnvio.mockResolvedValue(ag({ date: AMANHA }));
+    envio.sendWhatsAppMessage.mockResolvedValue(false);
+    const r = await filaEnvios.processar(AGORA);
+    expect(r.falhas).toBe(1);
+    expect(repo.desmarcarLembrete).toHaveBeenCalledWith('b1', 'a1');
+  });
+
+  it('confirmação que falha não mexe no lembrete do agendamento', async () => {
+    repo.proximoVencido.mockResolvedValue(conf());
+    repo.agendamentoParaEnvio.mockResolvedValue(ag({ date: AMANHA }));
+    envio.sendWhatsAppMessage.mockResolvedValue(false);
+    await filaEnvios.processar(AGORA);
+    expect(repo.desmarcarLembrete).not.toHaveBeenCalled();
   });
 
   it('confirmação enviada registra a espera de resposta por 24h', async () => {

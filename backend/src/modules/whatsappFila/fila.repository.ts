@@ -101,6 +101,11 @@ export const filaRepository = {
     return a ? { status: a.status, date: a.date, time: a.time, jaAvaliou: !!a.whatsappRating } : null;
   },
 
+  /** O lembrete na véspera não saiu: o agendamento volta a contar como não lembrado. */
+  async desmarcarLembrete(businessId: string, appointmentId: string): Promise<void> {
+    await prisma.appointment.updateMany({ where: { id: appointmentId, businessId }, data: { reminderSent: false } });
+  },
+
   recentesPorCliente(businessId: string, origin: string, clientIds: string[]): Promise<EnvioRow[]> {
     if (!clientIds.length) return Promise.resolve([]);
     return prisma.whatsappEnvio.findMany({

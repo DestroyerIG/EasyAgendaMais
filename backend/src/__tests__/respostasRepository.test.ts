@@ -16,13 +16,13 @@ it('registrar apaga só a espera do mesmo tipo (avaliação nova não apaga conf
   expect(db.whatsappRespostaPendente.deleteMany).toHaveBeenCalledWith({ where: { businessId: 'b1', phoneKey: 'k', tipo: 'avaliacao' } });
 });
 
-it('houveSaidaDepois: saída do número depois da espera, ignorando confirmação/avaliação e nota do painel', async () => {
+it('houveSaidaDepois: saída do número depois da espera, ignorando confirmação/avaliação/lembrete e nota do painel', async () => {
   const desde = new Date('2026-10-22T12:00:00Z');
   db.whatsappMessage.count.mockResolvedValue(1);
   expect(await respostasRepository.houveSaidaDepois('b1', 'k', desde)).toBe(true);
   expect(db.whatsappMessage.count.mock.calls[0][0].where).toEqual({
     businessId: 'b1', phoneKey: 'k', direction: 'out', createdAt: { gt: desde },
-    origin: { notIn: ['confirmacao', 'avaliacao', 'painel_evento'] },
+    origin: { notIn: ['confirmacao', 'avaliacao', 'lembrete', 'painel_evento'] },
   });
   db.whatsappMessage.count.mockResolvedValue(0);
   expect(await respostasRepository.houveSaidaDepois('b1', 'k', desde)).toBe(false);

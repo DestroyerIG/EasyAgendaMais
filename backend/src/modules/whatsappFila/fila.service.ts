@@ -109,6 +109,7 @@ async function processarNegocio(businessId: string, agora: Date): Promise<Result
         else if (zonedToUtc(ag.date.toISOString().slice(0, 10), hhmmUtc(ag.time), timezone) <= agora) decisao = await pular(MOTIVO_HORARIO_PASSOU);
         else if (!ehVespera(ag.date, timezone, agora)) {
           decisao = await pular(item.origin === 'confirmacao' ? MOTIVO_CONFIRMACAO_FORA_VESPERA : MOTIVO_LEMBRETE_FORA_VESPERA);
+          if (item.origin === 'lembrete') await repo.desmarcarLembrete(businessId, item.appointmentId);
         }
       } else if (!ag) decisao = await pular(MOTIVO_SEM_AGENDAMENTO);
       else if (ag.jaAvaliou) decisao = await pular(MOTIVO_JA_AVALIOU);
@@ -132,6 +133,14 @@ async function processarNegocio(businessId: string, agora: Date): Promise<Result
   }
   if (!enviou) {
     await repo.atualizar(businessId, item.id, { status: 'falhou', reason: MOTIVO_FALHA });
+    // Lembrete na véspera que não saiu: a rotina tenta de novo e os números não contam como lembrado.
+    if (item.origin === 'lembrete' && item.appointmentId) {
+      try {
+        await repo.desmarcarLembrete(businessId, item.appointmentId);
+      } catch (err) {
+        logger.warn({ err, businessId, envioId: item.id }, 'fila: não consegui desmarcar o lembrete');
+      }
+    }
     return 'falhou';
   }
   await repo.atualizar(businessId, item.id, { status: 'enviado', sentAt: new Date(), intervalAfterS: sortearIntervalo() });

@@ -41,7 +41,7 @@ export const CONFIG_SCHEMA: { [R in Regra]: z.ZodType<ConfigRegras[R]> } = {
   lembrete: z.object({
     modo: z.enum(['2h', 'vespera']),
     // Hora da véspera: a fila só envia entre 08:00 e 20:00.
-    hora: z.string().regex(HHMM).refine((h) => h >= '08:00' && h <= '20:00', 'Entre 08:00 e 20:00'),
+    hora: z.string().regex(HHMM).refine((h) => h >= '08:00' && h <= '18:00', 'Entre 08:00 e 18:00'),
   }),
   aniversario: z.object({ presente: z.string().trim().min(1).max(80) }),
   avaliacao: z.object({

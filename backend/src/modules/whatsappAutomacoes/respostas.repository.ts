@@ -1,7 +1,7 @@
 import { prisma } from '../../config/prisma.js';
 
 /** Saídas que não invalidam a espera de resposta. */
-export const ORIGENS_QUE_NAO_INVALIDAM = ['confirmacao', 'avaliacao', 'painel_evento'] as const;
+export const ORIGENS_QUE_NAO_INVALIDAM = ['confirmacao', 'avaliacao', 'lembrete', 'painel_evento'] as const;
 
 export interface RespostaPendente {
   id: string; businessId: string; phoneKey: string; tipo: string; appointmentId: string; expiresAt: Date; createdAt: Date;

@@ -80,7 +80,7 @@ describe('automacoes.atualizar', () => {
 
   it('primeira gravação do lembrete preserva o estado herdado do legado', async () => {
     repo.legadoLembrete.mockResolvedValue({ ativa: false, texto: 'Legado' });
-    await automacoes.atualizar('b1', 'lembrete', { config: { hora: '19:00' } });
+    await automacoes.atualizar('b1', 'lembrete', { config: { hora: '17:00' } });
     expect(repo.salvar).toHaveBeenCalledWith('b1', 'lembrete', expect.objectContaining({ ativa: false, texto: 'Legado' }));
   });
 });
