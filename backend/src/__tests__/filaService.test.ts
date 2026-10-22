@@ -263,6 +263,26 @@ describe('agendamento vinculado', () => {
     expect(repo.atualizar).toHaveBeenCalledWith('b1', 'e1', expect.objectContaining({ reason: 'Confirmação fora da véspera' }));
   });
 
+  it('lembrete na véspera: pula agendamento não confirmado, horário passado e fora da véspera; envia sem registrar espera', async () => {
+    const lemb = () => conf({ origin: 'lembrete' });
+    repo.proximoVencido.mockResolvedValue(lemb());
+    repo.agendamentoParaEnvio.mockResolvedValue(ag({ status: 'cancelado', date: AMANHA }));
+    await filaEnvios.processar(AGORA);
+    expect(repo.atualizar).toHaveBeenLastCalledWith('b1', 'e1', { status: 'pulado', reason: 'Agendamento não está mais confirmado', sentAt: null });
+    repo.agendamentoParaEnvio.mockResolvedValue(ag({ time: new Date('1970-01-01T11:00:00Z') }));
+    await filaEnvios.processar(AGORA);
+    expect(repo.atualizar).toHaveBeenLastCalledWith('b1', 'e1', { status: 'pulado', reason: 'Horário já passou', sentAt: null });
+    repo.agendamentoParaEnvio.mockResolvedValue(ag({ time: new Date('1970-01-01T18:00:00Z') }));
+    await filaEnvios.processar(AGORA);
+    expect(repo.atualizar).toHaveBeenLastCalledWith('b1', 'e1', { status: 'pulado', reason: 'Lembrete fora da véspera', sentAt: null });
+    expect(envio.sendWhatsAppMessage).not.toHaveBeenCalled();
+    repo.agendamentoParaEnvio.mockResolvedValue(ag({ date: AMANHA }));
+    const r = await filaEnvios.processar(AGORA);
+    expect(r.enviados).toBe(1);
+    expect(envio.sendWhatsAppMessage).toHaveBeenCalledWith('5583999990000', 'Oi', { businessId: 'b1', origin: 'lembrete' });
+    expect(resp.respostasRepository.registrar).not.toHaveBeenCalled();
+  });
+
   it('confirmação enviada registra a espera de resposta por 24h', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     try {

@@ -1,9 +1,7 @@
 import { createHash } from 'node:crypto';
 import logger from '../../utils/logger.js';
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
-import { sendWhatsAppMessage } from '../../services/whatsapp/whatsappMessageService.js';
 import { todayInTimezone, zonedToUtc } from '../../utils/businessDate.js';
-import { inboxRecorder } from '../whatsappInbox/inbox.recorder.js';
 import { filaEnvios } from '../whatsappFila/fila.service.js';
 import { PRIORIDADE_ALTA, PRIORIDADE_NORMAL } from '../whatsappFila/fila.rules.js';
 import { retornoService } from '../whatsappRetorno/retorno.service.js';
@@ -178,7 +176,10 @@ export const automacoesRotinas = {
     });
   },
 
-  /** Lembrete no modo véspera: agendamentos de amanhã, a partir da hora configurada, envio direto. */
+  /**
+   * Lembrete no modo véspera: agendamentos de amanhã, a partir da hora configurada, pela fila
+   * (cadência, janela, SAIR e consentimento ficam com ela). reminderSent marca o que já entrou na fila.
+   */
   async lembretesVespera(agora: Date = new Date()): Promise<number> {
     return porNegocio('lembrete', async (businessId) => {
       const regra = await automacoes.obter(businessId, 'lembrete');
@@ -190,24 +191,26 @@ export const automacoesRotinas = {
       if (ags.length === 0) return 0;
       const negocio = await repo.negocio(businessId);
 
-      let enviados = 0;
+      let enfileirados = 0;
       for (const a of ags) {
         try {
-          if (a.consentimentoRevogado) continue;
-          if (await inboxRecorder.estaEmOptOut(businessId, a.phone)) continue;
           const texto = renderizarTexto(regra.texto, {
             nome: a.nome, nome_cliente: a.nome, primeiro_nome: primeiroNome(a.nome), servico: a.servico,
             profissional: a.profissional, horario: a.hora, data: 'amanhã',
             endereco: negocio.endereco, link_mapa: linkMapa(negocio.endereco),
           });
-          if (!(await sendWhatsAppMessage(a.phone, texto, { businessId, origin: 'lembrete' }))) continue;
-          await repo.marcarLembreteEnviado(businessId, a.id);
-          enviados += 1;
+          const [envio] = await filaEnvios.enfileirar([{
+            businessId, clientId: a.clientId, phone: a.phone, body: texto, origin: 'lembrete',
+            agendadoPara: agora, prioridade: PRIORIDADE_ALTA, appointmentId: a.id,
+          }]);
+          // Voltou o item de outro agendamento da mesma cliente: tenta de novo depois que ele sair.
+          if (envio?.appointmentId !== a.id) continue;
+          if (await repo.marcarLembreteEnviado(businessId, a.id)) enfileirados += 1;
         } catch (err) {
-          logger.warn({ err, businessId, appointmentId: a.id }, 'automacoes: lembrete na véspera falhou');
+          logger.warn({ err, businessId, appointmentId: a.id }, 'automacoes: lembrete na véspera não enfileirado');
         }
       }
-      return enviados;
+      return enfileirados;
     });
   },
 };

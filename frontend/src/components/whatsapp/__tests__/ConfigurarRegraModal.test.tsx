@@ -106,6 +106,24 @@ describe('ConfigurarRegraModal', () => {
     await waitFor(() => expect(api.atualizarRegra).toHaveBeenCalledWith('retorno', { texto: 'Volta?', config: { modo: 'dias', dias: 30 } }));
   });
 
+  it('lembrete na véspera: horário fora de 08:00 a 20:00 bloqueia; voltar para 2h salva com horário válido', async () => {
+    const lembrete: RegraDto<'lembrete'> = {
+      regra: 'lembrete', ativa: true, texto: 'Lembrete', textoPadrao: 'Padrão', personalizado: true,
+      config: { modo: 'vespera', hora: '18:00' }, variaveis: ['horario'],
+    };
+    api.atualizarRegra.mockResolvedValue(lembrete);
+    renderizar(lembrete);
+    const hora = screen.getByLabelText('Horário do lembrete');
+    expect(hora).toHaveAttribute('min', '08:00');
+    expect(hora).toHaveAttribute('max', '20:00');
+    fireEvent.change(hora, { target: { value: '21:00' } });
+    expect(screen.getByText('Escolha um horário entre 08:00 e 20:00')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+    await userEvent.click(screen.getByRole('radio', { name: '2 horas antes' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(api.atualizarRegra).toHaveBeenCalledWith('lembrete', { texto: 'Lembrete', config: { modo: '2h', hora: '18:00' } }));
+  });
+
   it('avaliação com link vazio manda linkGoogle null', async () => {
     const avaliacao: RegraDto<'avaliacao'> = {
       regra: 'avaliacao', ativa: true, texto: 'Nota?', textoPadrao: 'Padrão', personalizado: true,

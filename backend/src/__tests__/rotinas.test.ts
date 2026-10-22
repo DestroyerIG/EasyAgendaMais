@@ -248,45 +248,60 @@ describe('lembretesVespera', () => {
       ativa: true, texto: 'Seu horário amanhã é às {horario}. Estamos na {endereco}. Trajeto: {link_mapa}', config: { modo: 'vespera', hora: '18:00' },
     });
     repo.agendamentosDoDia.mockResolvedValue([ag('1')]);
+    repo.marcarLembreteEnviado.mockResolvedValue(true);
   });
 
-  it('às 18:00 locais envia com o endereço e o link do mapa e marca reminderSent', async () => {
-    expect(await automacoesRotinas.lembretesVespera(local('18:00'))).toBe(1);
+  it('às 18:00 locais enfileira (prioridade 1, agendamento) com endereço e mapa e marca reminderSent', async () => {
+    const agora = local('18:00');
+    expect(await automacoesRotinas.lembretesVespera(agora)).toBe(1);
     expect(repo.negociosComRegraAtiva).toHaveBeenCalledWith('lembrete');
     expect(repo.agendamentosDoDia).toHaveBeenCalledWith('b1', '2026-10-22', 'lembrete');
-    expect(zap.send).toHaveBeenCalledWith(
-      '83999990001',
-      'Seu horário amanhã é às 14:00. Estamos na Rua das Flores, 123. Trajeto: https://www.google.com/maps/search/?api=1&query=Rua%20das%20Flores%2C%20123',
-      { businessId: 'b1', origin: 'lembrete' },
-    );
+    expect(fila.enfileirar).toHaveBeenCalledWith([{
+      businessId: 'b1', clientId: 'c1', phone: '83999990001',
+      body: 'Seu horário amanhã é às 14:00. Estamos na Rua das Flores, 123. Trajeto: https://www.google.com/maps/search/?api=1&query=Rua%20das%20Flores%2C%20123',
+      origin: 'lembrete', agendadoPara: agora, prioridade: 1, appointmentId: '1',
+    }]);
+    expect(zap.send).not.toHaveBeenCalled();
     expect(repo.marcarLembreteEnviado).toHaveBeenCalledWith('b1', '1');
   });
 
   it('às 17:59 locais: nada', async () => {
     expect(await automacoesRotinas.lembretesVespera(local('17:59'))).toBe(0);
-    expect(zap.send).not.toHaveBeenCalled();
+    expect(fila.enfileirar).not.toHaveBeenCalled();
   });
 
   it('regra desligada: nada', async () => {
     regras.obter.mockResolvedValue({ ativa: false, texto: 'x', config: { modo: 'vespera', hora: '18:00' } });
     expect(await automacoesRotinas.lembretesVespera(local('19:00'))).toBe(0);
-    expect(zap.send).not.toHaveBeenCalled();
+    expect(fila.enfileirar).not.toHaveBeenCalled();
     expect(repo.marcarLembreteEnviado).not.toHaveBeenCalled();
   });
 
-  it('modo 2h: a véspera não envia', async () => {
+  it('modo 2h: a véspera não enfileira', async () => {
     regras.obter.mockResolvedValue({ ativa: true, texto: 'x', config: { modo: '2h', hora: '18:00' } });
     expect(await automacoesRotinas.lembretesVespera(local('19:00'))).toBe(0);
-    expect(zap.send).not.toHaveBeenCalled();
+    expect(fila.enfileirar).not.toHaveBeenCalled();
   });
 
-  it('pula opt-out e consentimento revogado; envio que falha não marca', async () => {
-    repo.agendamentosDoDia.mockResolvedValue([ag('1'), ag('2', { consentimentoRevogado: true }), ag('3'), ag('4')]);
-    inbox.estaEmOptOut.mockImplementation(async (_b: string, phone: string) => phone === '83999990001');
-    zap.send.mockImplementation(async (phone: string) => phone !== '83999990004');
-    expect(await automacoesRotinas.lembretesVespera(local('18:30'))).toBe(1);
-    expect(zap.send.mock.calls.map((c) => c[0])).toEqual(['83999990003', '83999990004']);
-    expect(repo.marcarLembreteEnviado.mock.calls).toEqual([['b1', '3']]);
+  it('opt-out e consentimento ficam com a fila (que pula com motivo): todos são enfileirados uma vez', async () => {
+    repo.agendamentosDoDia.mockResolvedValue([ag('1'), ag('2', { consentimentoRevogado: true })]);
+    expect(await automacoesRotinas.lembretesVespera(local('18:30'))).toBe(2);
+    expect(fila.enfileirar).toHaveBeenCalledTimes(2);
+    expect(inbox.estaEmOptOut).not.toHaveBeenCalled();
+    expect(repo.marcarLembreteEnviado.mock.calls).toEqual([['b1', '1'], ['b1', '2']]);
+  });
+
+  it('a fila devolveu o item de outro agendamento da cliente: não marca (tenta na próxima rodada)', async () => {
+    fila.enfileirar.mockResolvedValue([dto({ appointmentId: 'outro' })]);
+    expect(await automacoesRotinas.lembretesVespera(local('18:00'))).toBe(0);
+    expect(repo.marcarLembreteEnviado).not.toHaveBeenCalled();
+  });
+
+  it('erro ao enfileirar um não para os outros', async () => {
+    repo.agendamentosDoDia.mockResolvedValue([ag('1'), ag('2')]);
+    fila.enfileirar.mockRejectedValueOnce(new Error('banco'));
+    expect(await automacoesRotinas.lembretesVespera(local('18:00'))).toBe(1);
+    expect(repo.marcarLembreteEnviado.mock.calls).toEqual([['b1', '2']]);
   });
 
   it('negócio sem endereço: a linha do endereço some', async () => {
@@ -295,6 +310,6 @@ describe('lembretesVespera', () => {
     });
     repo.negocio.mockResolvedValue({ nome: 'Studio Aurora', slug: null, endereco: null });
     await automacoesRotinas.lembretesVespera(local('18:00'));
-    expect(zap.send.mock.calls[0][1]).toBe('Amanhã às 14:00.');
+    expect(fila.enfileirar.mock.calls[0][0][0].body).toBe('Amanhã às 14:00.');
   });
 });

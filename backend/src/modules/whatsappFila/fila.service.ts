@@ -35,6 +35,7 @@ export const MOTIVO_NAO_CONFIRMADO = 'Agendamento não está mais confirmado';
 export const MOTIVO_JA_AVALIOU = 'Já avaliou';
 export const MOTIVO_SEM_AGENDAMENTO = 'Agendamento não encontrado';
 export const MOTIVO_CONFIRMACAO_FORA_VESPERA = 'Confirmação fora da véspera';
+export const MOTIVO_LEMBRETE_FORA_VESPERA = 'Lembrete fora da véspera';
 export const MOTIVO_FALHA = 'O WhatsApp não aceitou o envio';
 
 const HORA_MS = 3_600_000;
@@ -100,12 +101,15 @@ async function processarNegocio(businessId: string, agora: Date): Promise<Result
       else if (item.clientId && (await todayRepository.clientesComAgendamentoFuturo(businessId, hoje, agora, item.clientId)).has(item.clientId)) {
         decisao = await pular(MOTIVO_JA_AGENDOU);
       }
-    } else if ((item.origin === 'confirmacao' || item.origin === 'avaliacao') && item.appointmentId) {
+    } else if ((item.origin === 'confirmacao' || item.origin === 'lembrete' || item.origin === 'avaliacao') && item.appointmentId) {
       const ag = await repo.agendamentoParaEnvio(businessId, item.appointmentId);
-      if (item.origin === 'confirmacao') {
+      // Confirmação e lembrete na véspera dizem "amanhã": só saem na véspera de um agendamento ainda confirmado.
+      if (item.origin === 'confirmacao' || item.origin === 'lembrete') {
         if (!ag || ag.status !== 'confirmado') decisao = await pular(MOTIVO_NAO_CONFIRMADO);
         else if (zonedToUtc(ag.date.toISOString().slice(0, 10), hhmmUtc(ag.time), timezone) <= agora) decisao = await pular(MOTIVO_HORARIO_PASSOU);
-        else if (!ehVespera(ag.date, timezone, agora)) decisao = await pular(MOTIVO_CONFIRMACAO_FORA_VESPERA);
+        else if (!ehVespera(ag.date, timezone, agora)) {
+          decisao = await pular(item.origin === 'confirmacao' ? MOTIVO_CONFIRMACAO_FORA_VESPERA : MOTIVO_LEMBRETE_FORA_VESPERA);
+        }
       } else if (!ag) decisao = await pular(MOTIVO_SEM_AGENDAMENTO);
       else if (ag.jaAvaliou) decisao = await pular(MOTIVO_JA_AVALIOU);
     }

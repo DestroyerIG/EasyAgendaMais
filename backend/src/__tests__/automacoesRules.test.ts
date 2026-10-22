@@ -47,6 +47,13 @@ describe('automacoes.rules', () => {
     expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '12:00' }).success).toBe(true);
     expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '12:05' }).success).toBe(false);
   });
+  it('lembrete: hora da véspera só entre 08:00 e 20:00 (janela da fila)', () => {
+    expect(CONFIG_SCHEMA.lembrete.safeParse({ modo: 'vespera', hora: '07:59' }).success).toBe(false);
+    expect(CONFIG_SCHEMA.lembrete.safeParse({ modo: 'vespera', hora: '08:00' }).success).toBe(true);
+    expect(CONFIG_SCHEMA.lembrete.safeParse({ modo: 'vespera', hora: '20:00' }).success).toBe(true);
+    expect(CONFIG_SCHEMA.lembrete.safeParse({ modo: 'vespera', hora: '20:05' }).success).toBe(false);
+    expect(lerConfig('lembrete', { modo: 'vespera', hora: '23:00' })).toEqual({ modo: 'vespera', hora: '18:00' });
+  });
   it('avaliação: texto padrão sem data relativa (a fila pode atrasar para o dia seguinte)', () => {
     expect(TEXTO_PADRAO.avaliacao).not.toMatch(/hoje|amanhã|ontem/i);
     expect(TEXTO_PADRAO.avaliacao).toBe('Como foi sua experiência no {negocio}? Responda com uma nota de 1 a 5 ⭐');

@@ -25,6 +25,9 @@ type Config = ConfigRegras[Regra];
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+/** Hora do lembrete na véspera: dentro da janela da fila (08:00–20:00). */
+const horaDoLembreteValida = (hora: string) => HHMM.test(hora) && hora >= '08:00' && hora <= '20:00';
+
 /** Mesmas regras de CONFIG_SCHEMA (automacoes.rules.ts); devolve a mensagem do campo inválido. */
 function erroDaConfig(regra: Regra, config: Config): string | null {
   switch (regra) {
@@ -39,7 +42,7 @@ function erroDaConfig(regra: Regra, config: Config): string | null {
     }
     case 'lembrete': {
       const { modo, hora } = config as ConfigRegras['lembrete'];
-      return modo === '2h' || HHMM.test(hora) ? null : 'Escolha o horário do lembrete';
+      return modo === '2h' || horaDoLembreteValida(hora) ? null : 'Escolha um horário entre 08:00 e 20:00';
     }
     case 'aniversario': {
       const presente = (config as ConfigRegras['aniversario']).presente.trim();
@@ -63,6 +66,11 @@ function erroDaConfig(regra: Regra, config: Config): string | null {
 /** A config como o backend espera: textos aparados e link vazio vira null. */
 function configParaEnviar(regra: Regra, config: Config): Config {
   if (regra === 'aniversario') return { presente: (config as ConfigRegras['aniversario']).presente.trim() };
+  if (regra === 'lembrete') {
+    // No modo 2h a hora não aparece; se ficou inválida na véspera, volta ao padrão para o backend aceitar.
+    const c = config as ConfigRegras['lembrete'];
+    return c.modo === '2h' && !horaDoLembreteValida(c.hora) ? { ...c, hora: '18:00' } : c;
+  }
   if (regra === 'avaliacao') {
     const c = config as ConfigRegras['avaliacao'];
     return { horas: c.horas, linkGoogle: c.linkGoogle?.trim() || null };
@@ -196,8 +204,8 @@ function CamposDaRegra({ regra, config, erro, onMudar }: CamposProps) {
             opcoes={[{ valor: '2h', texto: '2 horas antes' }, { valor: 'vespera', texto: 'Véspera às' }]}
             onMudar={(modo) => onMudar({ modo })} />
           {c.modo === 'vespera' ? (
-            <Field id="cfg-hora-lembrete" label="Horário do lembrete" error={e}>
-              <Input id="cfg-hora-lembrete" type="time" step={300} value={c.hora} invalid={!!e}
+            <Field id="cfg-hora-lembrete" label="Horário do lembrete" hint="Entre 08:00 e 20:00." error={e}>
+              <Input id="cfg-hora-lembrete" type="time" min="08:00" max="20:00" step={300} value={c.hora} invalid={!!e}
                 onChange={(ev) => onMudar({ hora: ev.target.value })} />
             </Field>
           ) : null}

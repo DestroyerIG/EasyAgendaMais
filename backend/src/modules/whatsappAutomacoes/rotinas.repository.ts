@@ -72,8 +72,10 @@ export const rotinasRepository = {
     return r.count > 0;
   },
 
-  async marcarLembreteEnviado(businessId: string, id: string): Promise<void> {
-    await prisma.appointment.updateMany({ where: { id, businessId }, data: { reminderSent: true } });
+  /** Só grava se ainda não estava marcado (o lembrete na véspera entra na fila uma vez). */
+  async marcarLembreteEnviado(businessId: string, id: string): Promise<boolean> {
+    const r = await prisma.appointment.updateMany({ where: { id, businessId, reminderSent: false }, data: { reminderSent: true } });
+    return r.count > 0;
   },
 
   /** Clientes ativas que fazem aniversário no dia (filtro de mês/dia no banco); `incluir29Fev` para 28/02 de ano não bissexto. */
