@@ -25,11 +25,12 @@ const horaNoFuso = (d: Date, tz: string) =>
 
 async function montarLista(
   businessId: string,
-  filtros: { professionalId?: string; somenteComEncaixe?: boolean },
+  filtros: { professionalId?: string; somenteComEncaixe?: boolean; minDiasSemVir?: number },
   agora: Date,
   incluirLink: boolean,
   comFotos: boolean,
 ): Promise<{ dto: RetornoDto; negocioNome: string }> {
+  const minDias = filtros.minDiasSemVir;
   const tz = (await getBusinessScheduleSettings(businessId)).timezone || 'America/Sao_Paulo';
   const hoje = todayInTimezone(tz, agora);
   const [clientes, visitas, futuros, semana, negocio] = await Promise.all([
@@ -48,7 +49,14 @@ async function montarLista(
     if (!c.active || futuros.has(c.id)) return [];
     const r = resumirCliente(visitas.get(c.id) ?? [], hoje, null);
     const ultima = r.ultimaVisita;
-    if (!ultima || ultima.diasAtras > LIMITE_DIAS) return [];
+    if (!ultima) return [];
+    const ciclo = r.retornoPrevisto.data ? diasEntre(ultima.date, r.retornoPrevisto.data) : null;
+    // Radar personalizado: quem está há pelo menos N dias sem vir, em vez de quem venceu o ciclo.
+    if (minDias !== undefined) {
+      if (ultima.diasAtras < minDias || ultima.diasAtras > Math.max(LIMITE_DIAS, minDias)) return [];
+      return [{ c, ultima, atraso: ultima.diasAtras - minDias, ciclo: ciclo ?? minDias }];
+    }
+    if (ultima.diasAtras > LIMITE_DIAS) return [];
     if (r.retornoPrevisto.venceuHa === null || r.retornoPrevisto.venceuHa <= 0 || !r.retornoPrevisto.data) return [];
     return [{ c, ultima, atraso: r.retornoPrevisto.venceuHa, ciclo: diasEntre(ultima.date, r.retornoPrevisto.data) }];
   }).filter((x) => !filtros.professionalId || x.ultima.professionalId === filtros.professionalId)
@@ -122,9 +130,16 @@ export const retornoService = {
     return (await montarLista(businessId, filtros, agora, incluirLink, true)).dto;
   },
 
-  /** Mesma lista da tela (sem fotos), com o nome do negócio, para o radar automático. */
-  async listarParaRotina(businessId: string, agora: Date = new Date()): Promise<RetornoDto & { negocioNome: string }> {
-    const { dto, negocioNome } = await montarLista(businessId, {}, agora, true, false);
+  /**
+   * Mesma lista da tela (sem fotos), com o nome do negócio, para o radar automático.
+   * `minDiasSemVir` troca o critério do ciclo vencido por "pelo menos N dias sem vir" (modo personalizado).
+   */
+  async listarParaRotina(
+    businessId: string,
+    agora: Date = new Date(),
+    opcoes: { minDiasSemVir?: number } = {},
+  ): Promise<RetornoDto & { negocioNome: string }> {
+    const { dto, negocioNome } = await montarLista(businessId, { minDiasSemVir: opcoes.minDiasSemVir }, agora, true, false);
     return { ...dto, negocioNome };
   },
 

@@ -284,3 +284,24 @@ describe('schemas', () => {
     expect(EnviarRetornoSchema.safeParse({ itens: [] }).success).toBe(false);
   });
 });
+
+describe('listarParaRotina: radar por N dias sem vir', () => {
+  it('entra quem está há pelo menos N dias sem vir, mesmo sem ter vencido o ciclo; a tela continua pelo ciclo', async () => {
+    clientes = [cli('c1', 'Ana'), cli('c2', 'Bia'), cli('c3', 'Carla')];
+    vis = new Map<string, unknown[]>([
+      ['c1', visitas(21, 30)], // ciclo de 30 ainda não venceu
+      ['c2', visitas(15, 30)], // menos de N dias
+      ['c3', [visitas(25)[1]]], // uma visita só (sem ciclo)
+    ]);
+    const radar = await retornoService.listarParaRotina('b1', AGORA, { minDiasSemVir: 21 });
+    expect(radar.itens.map((i) => i.cliente.id)).toEqual(['c3', 'c1']);
+    expect(radar.itens[0]).toMatchObject({ ultimaVisitaHaDias: 25, atrasoDias: 4 });
+    const tela = await listar();
+    expect(tela.itens.map((i) => i.cliente.id)).toEqual([]);
+  });
+
+  it('sem opção: mesma lista da tela (ciclo vencido)', async () => {
+    const radar = await retornoService.listarParaRotina('b1', AGORA);
+    expect(radar.itens.map((i) => i.cliente.id)).toEqual(['c1']);
+  });
+});

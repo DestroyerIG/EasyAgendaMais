@@ -120,11 +120,12 @@ export const automacoesRotinas = {
       const lote = loteDoRadar(businessId, hoje);
       if (await repo.existeLote(businessId, lote)) { marcarRodouHoje('retorno', businessId, hoje); return 0; }
 
-      const lista = await retornoService.listarParaRotina(businessId, agora);
+      const porDias = regra.config.modo === 'dias';
+      const lista = await retornoService.listarParaRotina(businessId, agora, porDias ? { minDiasSemVir: regra.config.dias } : {});
       const carencia = agora.getTime() - CARENCIA_RETORNO_DIAS * DIA_MS;
       const escolhidas = lista.itens
         .filter((i) => i.podeReceber)
-        .filter((i) => regra.config.modo !== 'dias' || i.ultimaVisitaHaDias >= regra.config.dias)
+        .filter((i) => !porDias || i.ultimaVisitaHaDias >= regra.config.dias)
         .filter((i) => !i.ultimoConviteEm || new Date(i.ultimoConviteEm).getTime() < carencia)
         .filter((i) => i.envio?.status !== 'na_fila' && i.envio?.status !== 'enviando')
         .slice(0, LIMITE_RADAR);

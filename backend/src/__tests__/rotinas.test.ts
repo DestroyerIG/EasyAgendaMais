@@ -234,8 +234,17 @@ describe('radarRetorno', () => {
     expect(fila.enfileirar.mock.calls[0][0].map((i: { clientId: string }) => i.clientId)).toEqual(['c4']);
   });
 
-  it('modo dias: só quem tem dias desde a última visita >= config.dias', async () => {
+  it('modo ciclo: lista da Hora de voltar sem mínimo de dias', async () => {
+    await automacoesRotinas.radarRetorno(AGORA);
+    expect(retorno.listarParaRotina).toHaveBeenCalledWith('b1', AGORA, {});
+  });
+
+  it('modo dias: pede a lista por dias sem vir (em vez do ciclo) e confere >= config.dias', async () => {
     regras.obter.mockResolvedValue({ ativa: true, texto: 'x', config: { modo: 'dias', dias: 45 } });
+    await automacoesRotinas.radarRetorno(AGORA);
+    expect(retorno.listarParaRotina).toHaveBeenCalledWith('b1', AGORA, { minDiasSemVir: 45 });
+    limparTravasDiarias();
+    fila.enfileirar.mockClear();
     retorno.listarParaRotina.mockResolvedValue(lista([op(1, { ultimaVisitaHaDias: 44 }), op(2, { ultimaVisitaHaDias: 45 })]));
     expect(await automacoesRotinas.radarRetorno(AGORA)).toBe(1);
     expect(fila.enfileirar.mock.calls[0][0][0].clientId).toBe('c2');
