@@ -54,6 +54,14 @@ describe('automacoes.rules', () => {
     expect(CONFIG_SCHEMA.lembrete.safeParse({ modo: 'vespera', hora: '20:05' }).success).toBe(false);
     expect(lerConfig('lembrete', { modo: 'vespera', hora: '23:00' })).toEqual({ modo: 'vespera', hora: '18:00' });
   });
+  it('avaliação: linkGoogle só aceita http/https', () => {
+    const ok = (linkGoogle: string | null) => CONFIG_SCHEMA.avaliacao.safeParse({ horas: 2, linkGoogle }).success;
+    expect(ok('https://g.page/r/abc')).toBe(true);
+    expect(ok('http://exemplo.com/avaliar')).toBe(true);
+    expect(ok(null)).toBe(true);
+    expect(ok('javascript:alert(1)')).toBe(false);
+    expect(ok('ftp://exemplo.com/x')).toBe(false);
+  });
   it('avaliação: texto padrão sem data relativa (a fila pode atrasar para o dia seguinte)', () => {
     expect(TEXTO_PADRAO.avaliacao).not.toMatch(/hoje|amanhã|ontem/i);
     expect(TEXTO_PADRAO.avaliacao).toBe('Como foi sua experiência no {negocio}? Responda com uma nota de 1 a 5 ⭐');

@@ -46,7 +46,7 @@ export const CONFIG_SCHEMA: { [R in Regra]: z.ZodType<ConfigRegras[R]> } = {
   aniversario: z.object({ presente: z.string().trim().min(1).max(80) }),
   avaliacao: z.object({
     horas: z.union([z.literal(1), z.literal(2), z.literal(4)]),
-    linkGoogle: z.string().trim().url().max(500).nullable(),
+    linkGoogle: z.string().trim().url().max(500).refine((u) => /^https?:\/\//i.test(u), 'Use um link http(s)').nullable(),
   }),
 };
 
