@@ -1,25 +1,43 @@
 import { prisma } from '../../config/prisma.js';
 
+/** Saídas que não invalidam a espera de resposta. */
+export const ORIGENS_QUE_NAO_INVALIDAM = ['confirmacao', 'avaliacao', 'painel_evento'] as const;
+
 export interface RespostaPendente {
   id: string; businessId: string; phoneKey: string; tipo: string; appointmentId: string; expiresAt: Date; createdAt: Date;
 }
 
 export const respostasRepository = {
-  /** Uma espera por número: apaga as anteriores e cria a nova. */
+  /** Uma espera por número e tipo: apaga a anterior do mesmo tipo e cria a nova (confirmação e avaliação convivem). */
   async registrar(a: {
     businessId: string; phoneKey: string; tipo: 'confirmacao' | 'avaliacao'; appointmentId: string; expiresAt: Date;
   }): Promise<void> {
     await prisma.$transaction([
-      prisma.whatsappRespostaPendente.deleteMany({ where: { businessId: a.businessId, phoneKey: a.phoneKey } }),
+      prisma.whatsappRespostaPendente.deleteMany({ where: { businessId: a.businessId, phoneKey: a.phoneKey, tipo: a.tipo } }),
       prisma.whatsappRespostaPendente.create({ data: a }),
     ]);
   },
 
-  maisRecente(businessId: string, phoneKey: string, agora: Date): Promise<RespostaPendente | null> {
-    return prisma.whatsappRespostaPendente.findFirst({
+  /** Esperas ainda válidas do número, da mais recente para a mais antiga. */
+  pendentes(businessId: string, phoneKey: string, agora: Date): Promise<RespostaPendente[]> {
+    return prisma.whatsappRespostaPendente.findMany({
       where: { businessId, phoneKey, expiresAt: { gt: agora } },
       orderBy: { createdAt: 'desc' },
     });
+  },
+
+  /**
+   * Houve saída para o número depois de `desde` que não seja de confirmação/avaliação
+   * (essas convivem como esperas) nem nota interna do painel (não vai para a cliente)?
+   */
+  async houveSaidaDepois(businessId: string, phoneKey: string, desde: Date): Promise<boolean> {
+    const n = await prisma.whatsappMessage.count({
+      where: {
+        businessId, phoneKey, direction: 'out', createdAt: { gt: desde },
+        origin: { notIn: [...ORIGENS_QUE_NAO_INVALIDAM] },
+      },
+    });
+    return n > 0;
   },
 
   async apagar(id: string): Promise<void> {

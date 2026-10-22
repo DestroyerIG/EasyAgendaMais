@@ -12,7 +12,13 @@ export const TEXTO_CANCELADO = 'Tudo bem! Liberamos seu horário e a equipe já 
 export const TEXTO_NOTA = 'Obrigada pela nota!';
 export const TEXTO_GOOGLE = (link: string) => `Que bom que gostou! Se puder, deixe sua avaliação no Google: ${link}`;
 
-interface Entrada { businessId: string; phone: string; texto: string | null; instanceName?: string }
+interface Entrada {
+  businessId: string; phone: string; texto: string | null; instanceName?: string;
+  /** Conversa está com a equipe: a mensagem é para ela, não para a automação. */
+  atendimentoHumano?: boolean;
+  /** Última atividade da sessão ativa do robô (null/ausente = sem sessão ativa). */
+  sessaoRoboDesde?: Date | null;
+}
 
 const enviar = (i: Entrada, texto: string) =>
   sendWhatsAppMessage(i.phone, texto, { businessId: i.businessId, instanceName: i.instanceName, origin: 'sistema' });
@@ -59,17 +65,37 @@ async function tratarAvaliacao(i: Entrada, espera: RespostaPendente): Promise<bo
   return true;
 }
 
+/**
+ * A espera só vale se a última saída para o número foi a própria automação: robô, equipe
+ * ou outra automação falando depois dela invalidam a espera (o "1"/"2" passa a ser para eles).
+ */
+async function esperasValidas(i: Entrada, chave: string, agora: Date): Promise<RespostaPendente[]> {
+  const validas: RespostaPendente[] = [];
+  for (const e of await respostasRepository.pendentes(i.businessId, chave, agora)) {
+    if (i.sessaoRoboDesde && i.sessaoRoboDesde > e.createdAt) continue;
+    if (await respostasRepository.houveSaidaDepois(i.businessId, chave, e.createdAt)) {
+      await respostasRepository.apagar(e.id);
+      continue;
+    }
+    validas.push(e);
+  }
+  return validas;
+}
+
 export const respostas = {
   /** true quando a mensagem foi consumida como resposta de uma automação. */
   async tratar(i: Entrada): Promise<boolean> {
     try {
+      if (i.atendimentoHumano) return false;
       const chave = canonicalizePhone(i.phone);
       if (!chave) return false;
       const agora = new Date();
-      const espera = await respostasRepository.maisRecente(i.businessId, chave, agora);
-      if (!espera) return false;
-      if (espera.tipo === 'confirmacao') return await tratarConfirmacao(i, espera, agora);
-      if (espera.tipo === 'avaliacao') return await tratarAvaliacao(i, espera);
+      const esperas = await esperasValidas(i, chave, agora);
+      // Confirmação pendente tem prioridade: "1"/"2" é a resposta dela, nunca uma nota.
+      const confirmacao = esperas.find((e) => e.tipo === 'confirmacao');
+      if (confirmacao && respostaConfirmacao(i.texto ?? '')) return await tratarConfirmacao(i, confirmacao, agora);
+      const avaliacao = esperas.find((e) => e.tipo === 'avaliacao');
+      if (avaliacao) return await tratarAvaliacao(i, avaliacao);
       return false;
     } catch (err) {
       logger.warn({ err, businessId: i.businessId }, 'automacoes: tratar resposta falhou');
