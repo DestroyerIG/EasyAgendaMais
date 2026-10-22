@@ -1,22 +1,28 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Icon, Skeleton } from '@/components/ui';
+import axios from 'axios';
+import { Button, Icon, Modal, Skeleton } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { cn } from '@/lib/cn';
 import { formatCurrency, formatNumber } from '@/lib/formatters';
 import { formatarTelefone } from '@/lib/whatsappInbox';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import {
-  atualizarRegra, listarRegras, painel as buscarPainel, PRESENTE_PADRAO,
+  atualizarRegra, listarRegras, painel as buscarPainel, PRESENTE_PADRAO, ROTULO_REGRA, testarRegra,
   type ConfigRegras, type PainelAutomacoesDto, type Regra, type RegraDto,
 } from '@/lib/whatsappAutomacoes';
 import { CartaoRegra } from './CartaoRegra';
 import { CartoesResultado } from './CartoesResultado';
+import { ConfigurarRegraModal } from './ConfigurarRegraModal';
+import { HistoricoDisparosModal } from './HistoricoDisparosModal';
+import { NovaAutomacaoModal } from './NovaAutomacaoModal';
 
 interface AutomacoesProps {
   conectado: boolean;
   onAbrirConexao: () => void;
+  /** Nome do negócio no cabeçalho da prévia do WhatsApp. */
+  nomeNegocio?: string;
 }
 
 type PorRegra = PainelAutomacoesDto['porRegra'];
@@ -109,13 +115,12 @@ function conteudoDe<R extends Regra>(regra: R, config: ConfigRegras[R], porRegra
   };
 }
 
-// Os modais (Configurar, Histórico, Nova automação, Testar) chegam na Tarefa 10.
-const semModal = () => {};
+const AVISO_DESCONECTADO = 'O WhatsApp está desconectado. Conecte o número para testar o envio.';
 
 const botaoSecundario =
   'inline-flex items-center justify-center gap-1 rounded-lg border border-line bg-surface px-4 py-2 text-[13px] font-bold leading-[18px] text-ink shadow-sm transition-colors hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand';
 
-export function Automacoes({ conectado, onAbrirConexao }: AutomacoesProps) {
+export function Automacoes({ conectado, onAbrirConexao, nomeNegocio }: AutomacoesProps) {
   const { showToast } = useToast();
   const showToastRef = useRef(showToast);
   showToastRef.current = showToast;
@@ -123,6 +128,11 @@ export function Automacoes({ conectado, onAbrirConexao }: AutomacoesProps) {
   const [erroRegras, setErroRegras] = useState(false);
   const [painel, setPainel] = useState<PainelAutomacoesDto | null>(null);
   const pendentes = useRef(new Set<Regra>());
+  const [configurando, setConfigurando] = useState<Regra | null>(null);
+  const [modal, setModal] = useState<'historico' | 'nova' | 'testar' | null>(null);
+  const [regraTeste, setRegraTeste] = useState<Regra>('confirmacao');
+  const [testando, setTestando] = useState(false);
+  const testandoRef = useRef(false);
 
   const carregarRegras = useCallback(async () => {
     setErroRegras(false);
@@ -143,6 +153,9 @@ export function Automacoes({ conectado, onAbrirConexao }: AutomacoesProps) {
     return () => { ativo = false; };
   }, []);
 
+  const substituir = (nova: RegraDto) =>
+    setRegras((atuais) => atuais?.map((r) => (r.regra === nova.regra ? nova : r)) ?? atuais);
+
   const definirAtiva = (regra: Regra, ativa: boolean) =>
     setRegras((atuais) => atuais?.map((r) => (r.regra === regra ? { ...r, ativa } : r)) ?? atuais);
 
@@ -152,8 +165,7 @@ export function Automacoes({ conectado, onAbrirConexao }: AutomacoesProps) {
     pendentes.current.add(regra);
     definirAtiva(regra, ativa);
     try {
-      const nova = await atualizarRegra(regra, { ativa });
-      setRegras((atuais) => atuais?.map((r) => (r.regra === regra ? nova : r)) ?? atuais);
+      substituir(await atualizarRegra(regra, { ativa }));
     } catch (e) {
       definirAtiva(regra, !ativa);
       showToast(getApiErrorMessage(e, ativa ? 'Não foi possível ativar a automação.' : 'Não foi possível pausar a automação.'), 'error');
@@ -162,6 +174,24 @@ export function Automacoes({ conectado, onAbrirConexao }: AutomacoesProps) {
     }
   };
 
+  const testar = async () => {
+    if (testandoRef.current) return;
+    testandoRef.current = true;
+    setTestando(true);
+    try {
+      const { para } = await testarRegra(regraTeste);
+      showToast(`Teste enviado para ${formatarTelefone(para)}`, 'success');
+      setModal(null);
+    } catch (e) {
+      const desconectado = axios.isAxiosError(e) && e.response?.status === 409;
+      showToast(desconectado ? AVISO_DESCONECTADO : getApiErrorMessage(e, 'Não foi possível enviar o teste.'), 'error');
+    } finally {
+      testandoRef.current = false;
+      setTestando(false);
+    }
+  };
+
+  const regraConfigurando = regras?.find((r) => r.regra === configurando) ?? null;
   const ativas = regras?.filter((r) => r.ativa).length ?? 0;
   const numero = painel?.conexao.numero ?? null;
 
@@ -180,14 +210,15 @@ export function Automacoes({ conectado, onAbrirConexao }: AutomacoesProps) {
           </p>
         </div>
         <div className="flex items-center gap-2 self-start md:self-auto">
-          <button type="button" onClick={semModal} className={botaoSecundario}>
+          <button type="button" onClick={() => setModal('historico')} className={botaoSecundario}>
             <Icon name="history" size={18} />
             <span>Histórico de disparos</span>
           </button>
           <button
             type="button"
-            onClick={semModal}
-            className="inline-flex items-center gap-1 rounded-lg bg-brand px-4 py-2 text-[13px] font-bold leading-[18px] text-on-brand shadow-sm transition-opacity hover:opacity-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+            onClick={() => setModal('nova')}
+            disabled={!regras}
+            className="inline-flex items-center gap-1 rounded-lg bg-brand px-4 py-2 text-[13px] font-bold leading-[18px] text-on-brand shadow-sm transition-opacity hover:opacity-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Icon name="add" size={18} />
             <span>Nova automação</span>
@@ -229,7 +260,7 @@ export function Automacoes({ conectado, onAbrirConexao }: AutomacoesProps) {
               regra={r}
               {...conteudoDe(r.regra, r.config, painel?.porRegra ?? null)}
               onAlternar={(ativa) => void alternar(r.regra, ativa)}
-              onConfigurar={semModal}
+              onConfigurar={() => setConfigurando(r.regra)}
               className={i === regras.length - 1 && regras.length % 2 === 1 ? 'lg:col-span-2 xl:col-span-1' : undefined}
             />
           ))}
@@ -252,7 +283,7 @@ export function Automacoes({ conectado, onAbrirConexao }: AutomacoesProps) {
         </div>
         <div className="flex w-full items-center gap-2 md:w-auto">
           {conectado ? (
-            <button type="button" onClick={semModal} className={cn(botaoSecundario, 'w-full shadow-none hover:bg-surface-m3-low md:w-auto')}>
+            <button type="button" onClick={() => setModal('testar')} className={cn(botaoSecundario, 'w-full shadow-none hover:bg-surface-m3-low md:w-auto')}>
               Testar envio
             </button>
           ) : (
@@ -273,6 +304,66 @@ export function Automacoes({ conectado, onAbrirConexao }: AutomacoesProps) {
           </button>
         </div>
       </div>
+
+      {regraConfigurando ? (
+        <ConfigurarRegraModal
+          regra={regraConfigurando}
+          aberto
+          titulo={conteudoDe(regraConfigurando.regra, regraConfigurando.config, null).titulo}
+          nomeNegocio={nomeNegocio}
+          onFechar={() => setConfigurando(null)}
+          onSalvo={(nova) => { substituir(nova); setConfigurando(null); }}
+        />
+      ) : null}
+
+      <HistoricoDisparosModal aberto={modal === 'historico'} onFechar={() => setModal(null)} />
+
+      <NovaAutomacaoModal
+        regras={regras ?? []}
+        aberto={modal === 'nova'}
+        descrever={(r) => conteudoDe(r.regra, r.config, null)}
+        onFechar={() => setModal(null)}
+        onAtivar={(regra) => void alternar(regra, true)}
+      />
+
+      <Modal
+        isOpen={modal === 'testar'}
+        onClose={() => setModal(null)}
+        title="Testar envio"
+        icon="send_to_mobile"
+        description="Envia a mensagem da automação escolhida, com dados de exemplo, para o WhatsApp do negócio."
+        size="md"
+        telaCheiaNoCelular
+        footer={(
+          <>
+            <Button variant="secondary" onClick={() => setModal(null)} disabled={testando}>Cancelar</Button>
+            <Button variant="whatsapp" onClick={() => void testar()} loading={testando}>Enviar teste</Button>
+          </>
+        )}
+      >
+        <fieldset className="flex flex-col gap-1">
+          <legend className="mb-2 text-[13px] font-semibold text-ink">Automação</legend>
+          {(regras ?? []).map((r) => (
+            <label
+              key={r.regra}
+              className={cn(
+                'flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-3 text-[14px] text-ink transition-colors hover:bg-surface-2',
+                regraTeste === r.regra && 'bg-surface-2 font-semibold',
+              )}
+            >
+              <input
+                type="radio"
+                name="regra-teste"
+                value={r.regra}
+                checked={regraTeste === r.regra}
+                onChange={() => setRegraTeste(r.regra)}
+                className="h-4 w-4 accent-whatsapp"
+              />
+              {ROTULO_REGRA[r.regra]}
+            </label>
+          ))}
+        </fieldset>
+      </Modal>
     </div>
   );
 }

@@ -46,6 +46,16 @@ describe('encaixarArraste', () => {
 });
 
 describe('AppointmentCard', () => {
+  it('com clientConfirmedAt mostra "Confirmou pelo WhatsApp"', () => {
+    render(<AppointmentCard {...props} appointment={agendamento({ client_confirmed_at: '2026-09-16T12:00:00.000Z' })} />);
+    expect(screen.getByText('Confirmou pelo WhatsApp')).toBeInTheDocument();
+  });
+
+  it('sem confirmação da cliente não mostra o selo', () => {
+    render(<AppointmentCard {...props} appointment={agendamento()} />);
+    expect(screen.queryByText('Confirmou pelo WhatsApp')).not.toBeInTheDocument();
+  });
+
   it('mostra horário, duração, cliente, valor, serviço, profissional e status', () => {
     render(<AppointmentCard {...props} appointment={agendamento()} />);
 

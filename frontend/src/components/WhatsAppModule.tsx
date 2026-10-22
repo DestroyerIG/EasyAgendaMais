@@ -486,7 +486,11 @@ export const WhatsAppModule = () => {
           {activeTab === null && <Skeleton className="h-40 w-full" label="Verificando conexão..." />}
           {activeTab === 'hora-de-voltar' && <HoraDeVoltar conectado={waStatus.status === 'connected'} />}
           {activeTab === 'automacoes' && (
-            <Automacoes conectado={waStatus.status === 'connected'} onAbrirConexao={() => trocarAba('conexao')} />
+            <Automacoes
+              conectado={waStatus.status === 'connected'}
+              onAbrirConexao={() => trocarAba('conexao')}
+              nomeNegocio={user?.businessName || 'Seu negócio'}
+            />
           )}
           {activeTab === 'conversas' && <CentralConversas conectado={waStatus.status === 'connected'} />}
           {activeTab === 'conexao' && (

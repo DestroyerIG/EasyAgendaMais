@@ -8,6 +8,29 @@ export type Regra = 'confirmacao' | 'sinal_pix' | 'retorno' | 'lista_espera' | '
 /** Ordem de exibição (a do Stitch). */
 export const REGRAS: Regra[] = ['confirmacao', 'sinal_pix', 'retorno', 'lista_espera', 'lembrete', 'aniversario', 'avaliacao'];
 
+/** Nome curto de cada regra (histórico, teste de envio). */
+export const ROTULO_REGRA: Record<Regra, string> = {
+  confirmacao: 'Confirmação',
+  sinal_pix: 'Sinal Pix',
+  retorno: 'Radar de Retorno',
+  lista_espera: 'Lista de espera',
+  lembrete: 'Lembrete',
+  aniversario: 'Aniversário',
+  avaliacao: 'Pedido de avaliação',
+};
+
+/** Limite do texto (o mesmo de automacoes.service.ts). */
+export const LIMITE_TEXTO_REGRA = 1000;
+
+/** Dados de exemplo da prévia (os mesmos de EXEMPLO em automacoes.service.ts, usados no teste de envio). */
+export const EXEMPLO_VARIAVEIS: Record<string, string> = {
+  nome: 'Mariana', nome_cliente: 'Mariana', primeiro_nome: 'Mariana', servico: 'Design de Sobrancelha',
+  horario: '14:00', data: 'amanhã', profissional: 'Camila', ultimo_servico: 'Design de Sobrancelha', dias: '21',
+  valor_sinal: '30,00', pix_copia_e_cola: '00020126...', prazo: '15', presente: 'R$ 20 OFF', endereco: 'Rua das Flores, 123',
+  link_mapa: 'https://maps.google.com', link_agenda: 'https://exemplo.com/agenda', link: 'https://exemplo.com',
+  link_avaliacao: 'https://exemplo.com/avaliar', horarios_livres: 'amanhã 14:00',
+};
+
 /** Presente padrão do aniversário (o mesmo de configPadrao em automacoes.rules.ts). */
 export const PRESENTE_PADRAO = 'R$ 20 OFF em qualquer serviço';
 

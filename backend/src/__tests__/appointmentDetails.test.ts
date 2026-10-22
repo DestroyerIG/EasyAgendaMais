@@ -40,6 +40,14 @@ describe('toAppointmentDto', () => {
     expect(dto).toMatchObject({ comanda_total_charged: null, comanda_deposit_applied: null });
   });
 
+  it('leva a confirmação da cliente pelo WhatsApp', () => {
+    const dto = toAppointmentDto({
+      id: 'a1', date: '2026-10-13', time: '10:00:00', status: 'confirmado', clientConfirmedAt: new Date('2026-10-12T12:30:00Z'),
+    });
+    expect(dto.client_confirmed_at).toBe('2026-10-12T12:30:00.000Z');
+    expect(toAppointmentDto({ id: 'a1', date: '2026-10-13', time: '10:00:00', status: 'confirmado' }).client_confirmed_at).toBeNull();
+  });
+
   it('sem sinal e sem comanda dá null', () => {
     const dto = toAppointmentDto({ id: 'a1', date: '2026-10-13', time: '10:00:00', status: 'confirmado' });
     expect(dto).toMatchObject({ source: 'painel', deposit_amount: null, comanda_id: null, comanda_status: null, comanda_number: null, comanda_total_charged: null, comanda_deposit_applied: null, started_at: null });

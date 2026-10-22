@@ -22,6 +22,7 @@ interface RawAppointment {
   source?: string;
   depositAmount?: unknown;
   startedAt?: Date | string | null;
+  clientConfirmedAt?: Date | string | null;
   comanda?: { id: string; status: string; number: number; totalCharged?: unknown; depositApplied?: unknown } | null;
   client?: { name?: string; phone?: string } | null;
   professional?: { name?: string } | null;
@@ -48,6 +49,8 @@ export interface AppointmentDto {
   source: string;
   deposit_amount: number | null;
   started_at: string | null;
+  /** Quando a cliente respondeu "1" à confirmação automática do WhatsApp. */
+  client_confirmed_at: string | null;
   comanda_id: string | null;
   comanda_status: 'rascunho' | 'fechada' | null;
   comanda_number: number | null;
@@ -102,6 +105,7 @@ export const toAppointmentDto = (a: RawAppointment): AppointmentDto => ({
   source: a.source ?? 'painel',
   deposit_amount: a.depositAmount === null || a.depositAmount === undefined ? null : priceToNumber(a.depositAmount),
   started_at: a.startedAt ? new Date(a.startedAt).toISOString() : null,
+  client_confirmed_at: a.clientConfirmedAt ? new Date(a.clientConfirmedAt).toISOString() : null,
   comanda_id: a.comanda?.id ?? null,
   comanda_status: (a.comanda?.status as 'rascunho' | 'fechada' | undefined) ?? null,
   comanda_number: a.comanda?.number ?? null,

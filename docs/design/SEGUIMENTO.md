@@ -64,6 +64,19 @@ Sub-projeto 2C-2a (WhatsApp: Hora de voltar), pendências conhecidas:
 - O dedupe da fila não é atômico: não há índice único parcial em `whatsapp_envios`, então duas requisições simultâneas podem enfileirar o mesmo convite.
 - Um envio interrompido (processo caiu no meio) vira `falhou` após 10 min e não é reenviado, de propósito, para não duplicar mensagem.
 
+Sub-projeto 2C-2b (WhatsApp: Automações), pendências conhecidas:
+- **Migração `20261021120000_whatsapp_automacoes` PENDENTE de aplicação em produção.** Ela cria `whatsapp_automacoes` e `whatsapp_respostas_pendentes` (com RLS), e acrescenta `appointments.client_confirmed_at`/`confirmation_sent_at`, `whatsapp_envios.prioridade`/`appointment_id` e `business_settings.google_review_url`. Como o `schema.prisma` já tem essas colunas, qualquer consulta de agendamento quebra em produção se o código subir antes da migração. Aplicar a migração primeiro e só então publicar o código, com autorização do dono.
+- As rotinas (confirmação, radar de retorno, aniversário, avaliação, lembrete) não checam a permissão de plano `whatsapp_automation`, igual ao lembrete que já está em produção. Um negócio que perder o plano com uma regra ligada continua disparando. As rotas da tela checam o plano.
+- O SQL cru das métricas (`metricas.repository.ts`: receita recuperada, taxa de resposta, faltas evitadas, vagas preenchidas) nunca rodou num banco real. Os testes mockam o repositório. Conferir os números na primeira semana em produção.
+- `created_at` sem fuso nas consultas das métricas depende de a sessão do banco estar em UTC.
+- O sinal "pago no mês" é aproximado pela mensagem `sinal_pix` com uma folga de 1 h. A receita da lista de espera conta a vaga ocupada por quem recebeu a mensagem `lista_espera` enviada (não a oferta manual) em até 7 dias.
+- Trocar o lembrete de "2 horas antes" para "Véspera" no meio do dia deixa sem lembrete os agendamentos de hoje que ainda não receberam o de 2 h.
+- Se o processo cair entre enfileirar a confirmação e gravar `confirmation_sent_at`, a cliente pode receber a confirmação duas vezes.
+- O índice único parcial do 2C-2a (`whatsapp_envios_cliente_ativo_key`) permite só uma confirmação ativa por cliente: o segundo agendamento da mesma cliente é confirmado na rodada seguinte, depois que o primeiro sair da fila.
+- O botão "Testar envio" manda para o WhatsApp cadastrado no negócio (`business.whatsapp`), não para o número da sessão conectada, como já faz o teste da Hora de voltar.
+- Ao trocar o modo do lembrete com o texto padrão, a prévia do modal ainda mostra o texto padrão do modo antigo. O novo texto aparece depois de salvar, porque o frontend não conhece os dois textos padrão.
+- Minors parados nas revisões: `notaAvaliacao` aceita "+5" e "-5"; uma linha curta cuja variável ficou vazia some inteira; `expiresAt` da espera de resposta usa `Date.now()`; faltam testes de erro em `agendamentoParaEnvio`, de virada de dia, de `toleranciaMin` customizado no agendamento público e de integração do SQL das métricas; a taxa de resposta é exibida sem casa decimal.
+
 ## Melhorias técnicas pequenas
 
 - O Vitest imprime um aviso de configuração a cada execução. Silenciar exige renomear `vitest.config.ts` para `.mts` ou declarar `"type": "module"`.
@@ -96,3 +109,14 @@ Sub-projeto 2C-2a (WhatsApp: Hora de voltar), pendências conhecidas:
   - Origem nova `retorno` ("Convite Hora de voltar"), bloqueada por opt-out e no grupo "automaticas" da Conexão.
   - Encaixes: até 2 vagas nos próximos 7 dias, com a profissional da última visita; texto editável e teste no próprio número.
   - A fila (`whatsapp_envios`) será reaproveitada pelas Campanhas (2C-2b).
+- Sub-projeto 2C-2b: aba "Automações" do WhatsApp, com sete regras: confirmação 24 h antes, cobrança de sinal Pix, radar de retorno, lista de espera automática, lembrete, aniversário e pedido de avaliação. Migração `20261021120000_whatsapp_automacoes`, **pendente de aplicação em produção** (ver pendências acima). Entrou:
+  - Backend `backend/src/modules/whatsappAutomacoes/`: regras com texto editável e config validada (`CONFIG_SCHEMA`), respostas "1/2" da confirmação e nota 1 a 5 da avaliação, gatilhos (cancelamento → lista de espera, reserva com sinal, comanda fechada → avaliação), rotinas no cron, painel de resultados e histórico de disparos.
+  - Tela fiel ao Stitch (`studio-aurora-whatsapp-automacoes-ajustada`): cartões com interruptor, resultados do mês, modais Configurar regra (variáveis inseridas no cursor, campos por regra, prévia em balão do WhatsApp, "Restaurar texto padrão"), Histórico de disparos, Nova automação e Testar envio.
+  - Agenda: selo "Confirmou pelo WhatsApp" no cartão e no painel de detalhes quando `client_confirmed_at` existe.
+  - Decisões:
+    - Na primeira leitura só o lembrete fica ligado: herda `whatsapp_reminders` e o `reminder_message` legado. As outras seis começam desligadas.
+    - Prioridade na fila: confirmação 1, regras normais 5, campanha 9. `aniversario`, `avaliacao` e `campanha` são bloqueadas pelo SAIR e entram no grupo "automaticas"; `sinal_pix` não é bloqueado e fica no grupo "pix".
+    - "1" ou "2" só são interceptados quando existe uma espera de resposta válida (menos de 24 h). Fora disso, seguem para o robô.
+    - Os textos dos cartões são os do Stitch com a config padrão e acompanham a config quando ela muda. A taxa de resposta aparece como número inteiro.
+    - O texto igual ao padrão é salvo como `null`, então a regra volta a seguir o texto padrão (inclusive o do modo do lembrete).
+    - O texto legado do lembrete passa por `renderizarTexto` (apara espaços e junta quebras de linha repetidas).

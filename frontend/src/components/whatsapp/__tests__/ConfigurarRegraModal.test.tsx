@@ -1,0 +1,126 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+const showToast = vi.fn();
+const toastApi = { showToast };
+vi.mock('@/components/Toast', () => ({ useToast: () => toastApi }));
+
+const api = vi.hoisted(() => ({ atualizarRegra: vi.fn() }));
+vi.mock('@/lib/whatsappAutomacoes', async (original) => ({ ...(await original<object>()), ...api }));
+
+import { ConfigurarRegraModal } from '../automacoes/ConfigurarRegraModal';
+import type { RegraDto } from '@/lib/whatsappAutomacoes';
+
+const confirmacao = (partes: Partial<RegraDto<'confirmacao'>> = {}): RegraDto<'confirmacao'> => ({
+  regra: 'confirmacao',
+  ativa: true,
+  texto: 'Oi! Confirma?',
+  textoPadrao: 'Olá {primeiro_nome}! Confirma seu horário às {horario}?',
+  personalizado: true,
+  config: { hora: '09:00' },
+  variaveis: ['nome', 'primeiro_nome', 'horario'],
+  ...partes,
+});
+
+const renderizar = (regra: RegraDto = confirmacao(), onSalvo = vi.fn(), onFechar = vi.fn()) =>
+  render(<ConfigurarRegraModal regra={regra} aberto onFechar={onFechar} onSalvo={onSalvo} />);
+
+const caixaDeTexto = () => screen.getByLabelText('Texto da mensagem') as HTMLTextAreaElement;
+
+describe('ConfigurarRegraModal', () => {
+  beforeEach(() => {
+    showToast.mockReset();
+    api.atualizarRegra.mockReset();
+  });
+
+  it('clicar no chip {primeiro_nome} insere a variável na posição do cursor', async () => {
+    renderizar();
+    const caixa = caixaDeTexto();
+    caixa.focus();
+    caixa.setSelectionRange(3, 3); // depois de "Oi!"
+    await userEvent.click(screen.getByRole('button', { name: '{primeiro_nome}' }));
+    expect(caixa.value).toBe('Oi!{primeiro_nome} Confirma?');
+    expect(screen.getByText(`${'Oi!{primeiro_nome} Confirma?'.length} caracteres`)).toBeInTheDocument();
+  });
+
+  it('mostra a prévia com os dados de exemplo', () => {
+    renderizar(confirmacao({ texto: 'Olá {primeiro_nome}, às {horario}' }));
+    expect(screen.getByText('Olá Mariana, às 14:00')).toBeInTheDocument();
+  });
+
+  it('salvar manda um PATCH com texto e config', async () => {
+    const salvo = confirmacao({ config: { hora: '10:00' } });
+    api.atualizarRegra.mockResolvedValue(salvo);
+    const onSalvo = vi.fn();
+    renderizar(confirmacao(), onSalvo);
+    fireEvent.change(screen.getByLabelText('Horário do envio'), { target: { value: '10:00' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(onSalvo).toHaveBeenCalledWith(salvo));
+    expect(api.atualizarRegra).toHaveBeenCalledTimes(1);
+    expect(api.atualizarRegra).toHaveBeenCalledWith('confirmacao', { texto: 'Oi! Confirma?', config: { hora: '10:00' } });
+  });
+
+  it('"Restaurar texto padrão" manda texto: null', async () => {
+    api.atualizarRegra.mockResolvedValue(confirmacao({ personalizado: false }));
+    renderizar();
+    await userEvent.click(screen.getByRole('button', { name: 'Restaurar texto padrão' }));
+    expect(caixaDeTexto().value).toBe('Olá {primeiro_nome}! Confirma seu horário às {horario}?');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(api.atualizarRegra).toHaveBeenCalledWith('confirmacao', { texto: null, config: { hora: '09:00' } }));
+  });
+
+  it('duplo clique em Salvar faz um só PATCH', async () => {
+    let resolver: (r: RegraDto) => void = () => {};
+    api.atualizarRegra.mockReturnValue(new Promise((r) => { resolver = r; }));
+    renderizar();
+    const salvar = screen.getByRole('button', { name: 'Salvar' });
+    fireEvent.click(salvar);
+    fireEvent.click(salvar);
+    resolver(confirmacao());
+    await waitFor(() => expect(api.atualizarRegra).toHaveBeenCalledTimes(1));
+  });
+
+  it('horário de confirmação fora de 07:00 a 12:00 bloqueia o salvar', () => {
+    renderizar();
+    fireEvent.change(screen.getByLabelText('Horário do envio'), { target: { value: '13:00' } });
+    expect(screen.getByText('Escolha um horário entre 07:00 e 12:00')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+  });
+
+  it('retorno personalizado manda modo e dias', async () => {
+    const retorno: RegraDto<'retorno'> = {
+      regra: 'retorno', ativa: true, texto: 'Volta?', textoPadrao: 'Padrão', personalizado: true,
+      config: { modo: 'ciclo', dias: 21 }, variaveis: ['primeiro_nome'],
+    };
+    api.atualizarRegra.mockResolvedValue(retorno);
+    renderizar(retorno);
+    await userEvent.click(screen.getByRole('radio', { name: 'Personalizado' }));
+    const dias = screen.getByLabelText('Dias desde a última visita');
+    await userEvent.clear(dias);
+    await userEvent.type(dias, '30');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(api.atualizarRegra).toHaveBeenCalledWith('retorno', { texto: 'Volta?', config: { modo: 'dias', dias: 30 } }));
+  });
+
+  it('avaliação com link vazio manda linkGoogle null', async () => {
+    const avaliacao: RegraDto<'avaliacao'> = {
+      regra: 'avaliacao', ativa: true, texto: 'Nota?', textoPadrao: 'Padrão', personalizado: true,
+      config: { horas: 2, linkGoogle: null }, variaveis: ['negocio'],
+    };
+    api.atualizarRegra.mockResolvedValue(avaliacao);
+    renderizar(avaliacao);
+    await userEvent.click(screen.getByRole('radio', { name: '4 h' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(api.atualizarRegra).toHaveBeenCalledWith('avaliacao', { texto: 'Nota?', config: { horas: 4, linkGoogle: null } }));
+  });
+
+  it('erro ao salvar mostra toast e não fecha', async () => {
+    api.atualizarRegra.mockRejectedValue(new Error('Configuração inválida'));
+    const onSalvo = vi.fn();
+    renderizar(confirmacao(), onSalvo);
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(showToast).toHaveBeenCalledWith('Configuração inválida', 'error'));
+    expect(onSalvo).not.toHaveBeenCalled();
+  });
+});

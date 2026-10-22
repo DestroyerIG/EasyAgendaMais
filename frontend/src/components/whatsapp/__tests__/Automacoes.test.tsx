@@ -204,4 +204,82 @@ describe('Automacoes', () => {
     expect(screen.getByRole('button', { name: 'Nova automação' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Configurar regra' })).toHaveLength(7);
   });
+
+  it('"Nova automação" lista só as desligadas e "Ativar" liga a regra', async () => {
+    api.atualizarRegra.mockImplementation(async (regra: string, patch: { ativa: boolean }) => ({
+      ...regras().find((r) => r.regra === regra)!, ...patch,
+    }));
+    renderizar();
+    await userEvent.click(await screen.findByRole('button', { name: 'Nova automação' }));
+    const dialogo = await screen.findByRole('dialog');
+    expect(within(dialogo).getAllByRole('button', { name: /^Ativar / })).toHaveLength(6);
+    expect(within(dialogo).queryByText('Lembrete na véspera')).toBeNull();
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Ativar Confirmação 24h antes' }));
+    expect(api.atualizarRegra).toHaveBeenCalledWith('confirmacao', { ativa: true });
+    await waitFor(() => expect(within(dialogo).getAllByRole('button', { name: /^Ativar / })).toHaveLength(5));
+  });
+
+  it('"Nova automação" com todas ativas avisa', async () => {
+    api.listarRegras.mockResolvedValue(regras().map((r) => ({ ...r, ativa: true })));
+    renderizar();
+    await userEvent.click(await screen.findByRole('button', { name: 'Nova automação' }));
+    expect(await screen.findByText('Todas as automações já estão ativas')).toBeInTheDocument();
+  });
+
+  it('"Configurar regra" abre o modal e salvar atualiza o cartão', async () => {
+    api.atualizarRegra.mockResolvedValue({ ...regras()[0], config: { hora: '10:00' } });
+    renderizar();
+    const c = await cartao('Confirmação 24h antes');
+    await userEvent.click(within(c).getByRole('button', { name: 'Configurar regra' }));
+    const dialogo = await screen.findByRole('dialog');
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
+    expect(await screen.findByText('24h antes · 10:00')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('"Histórico de disparos" lista os envios', async () => {
+    api.historico.mockResolvedValue({ itens: [
+      { id: 'm1', criadaEm: '2026-10-20T13:05:00.000Z', cliente: 'Mariana Souza', telefone: '5583999990000', tipo: 'confirmacao', status: 'lida' },
+      { id: 'm2', criadaEm: '2026-10-20T14:00:00.000Z', cliente: null, telefone: '5583988887777', tipo: 'avaliacao', status: 'falhou' },
+    ] });
+    renderizar();
+    await userEvent.click(await screen.findByRole('button', { name: 'Histórico de disparos' }));
+    const dialogo = await screen.findByRole('dialog');
+    expect(await within(dialogo).findByText('Mariana Souza')).toBeInTheDocument();
+    expect(within(dialogo).getByText('Confirmação')).toBeInTheDocument();
+    expect(within(dialogo).getByText('Lida')).toBeInTheDocument();
+    expect(within(dialogo).getByText('+55 (83) 98888-7777')).toBeInTheDocument();
+    expect(within(dialogo).getByText('Pedido de avaliação')).toBeInTheDocument();
+    expect(within(dialogo).getByText('Falhou')).toBeInTheDocument();
+    expect(within(dialogo).getByText('20/10 · 10:05')).toBeInTheDocument();
+  });
+
+  it('"Histórico de disparos" vazio', async () => {
+    api.historico.mockResolvedValue({ itens: [] });
+    renderizar();
+    await userEvent.click(await screen.findByRole('button', { name: 'Histórico de disparos' }));
+    expect(await screen.findByText('Nenhum disparo automático ainda')).toBeInTheDocument();
+  });
+
+  it('"Testar envio" escolhe a regra e chama o teste', async () => {
+    api.testarRegra.mockReset().mockResolvedValue({ enviado: true, para: '5583981204000' });
+    renderizar();
+    await userEvent.click(await screen.findByRole('button', { name: 'Testar envio' }));
+    const dialogo = await screen.findByRole('dialog');
+    await userEvent.click(within(dialogo).getByRole('radio', { name: 'Pedido de avaliação' }));
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Enviar teste' }));
+    expect(api.testarRegra).toHaveBeenCalledWith('avaliacao');
+    await waitFor(() => expect(showToast).toHaveBeenCalledWith('Teste enviado para +55 (83) 98120-4000', 'success'));
+  });
+
+  it('"Testar envio" com 409 avisa que o WhatsApp está desconectado', async () => {
+    const erro = Object.assign(new Error('Conflito'), { isAxiosError: true, response: { status: 409, data: { error: 'Conecte o WhatsApp para testar' } } });
+    api.testarRegra.mockReset().mockRejectedValue(erro);
+    renderizar();
+    await userEvent.click(await screen.findByRole('button', { name: 'Testar envio' }));
+    const dialogo = await screen.findByRole('dialog');
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Enviar teste' }));
+    expect(api.testarRegra).toHaveBeenCalledWith('confirmacao');
+    await waitFor(() => expect(showToast).toHaveBeenCalledWith('O WhatsApp está desconectado. Conecte o número para testar o envio.', 'error'));
+  });
 });
