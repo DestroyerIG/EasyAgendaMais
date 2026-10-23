@@ -154,9 +154,9 @@ describe('HoraDeVoltar', () => {
   it('mostra o estado do envio no cartão', async () => {
     const agendadoPara = new Date('2026-10-20T17:42:00.000Z').toISOString();
     retorno.buscarRetorno.mockResolvedValue(dto([
-      op({ id: 'a', nome: 'Ana Fila', envio: { id: 'e1', clientId: 'a', status: 'na_fila', motivo: null, agendadoPara, enviadoEm: null, previstoHora: '14:42' } }),
-      op({ id: 'b', nome: 'Bia Enviada', envio: { id: 'e2', clientId: 'b', status: 'enviado', motivo: null, agendadoPara, enviadoEm: agendadoPara, previstoHora: null } }),
-      op({ id: 'c', nome: 'Cris Falhou', envio: { id: 'e3', clientId: 'c', status: 'pulado', motivo: 'Pediu para não receber mensagens', agendadoPara, enviadoEm: null, previstoHora: null } }),
+      op({ id: 'a', nome: 'Ana Fila', envio: { id: 'e1', clientId: 'a', loteId: null, status: 'na_fila', motivo: null, agendadoPara, enviadoEm: null, previstoHora: '14:42' } }),
+      op({ id: 'b', nome: 'Bia Enviada', envio: { id: 'e2', clientId: 'b', loteId: null, status: 'enviado', motivo: null, agendadoPara, enviadoEm: agendadoPara, previstoHora: null } }),
+      op({ id: 'c', nome: 'Cris Falhou', envio: { id: 'e3', clientId: 'c', loteId: null, status: 'pulado', motivo: 'Pediu para não receber mensagens', agendadoPara, enviadoEm: null, previstoHora: null } }),
     ]));
     render(<HoraDeVoltar conectado />);
     expect(await screen.findByText('Na fila (envio previsto ~14:42)')).toBeInTheDocument();
@@ -188,7 +188,7 @@ describe('HoraDeVoltar', () => {
     expect(await screen.findByText('18 dias atrasada')).toBeInTheDocument();
   });
 
-  const envioNaFila = (clientId: string) => ({ id: `e-${clientId}`, clientId, status: 'na_fila' as const, motivo: null, agendadoPara: new Date().toISOString(), enviadoEm: null, previstoHora: '14:42' });
+  const envioNaFila = (clientId: string) => ({ id: `e-${clientId}`, clientId, loteId: null, status: 'na_fila' as const, motivo: null, agendadoPara: new Date().toISOString(), enviadoEm: null, previstoHora: '14:42' });
   const cartaoDe = (nome: string) => screen.getByRole('group', { name: `Oportunidade de ${nome}` });
 
   it('Enviar do cartão enfileira com o link atual, avisa e mostra "Na fila"', async () => {
