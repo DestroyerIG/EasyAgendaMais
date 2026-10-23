@@ -8,7 +8,7 @@ export interface ClienteBase {
   consentimento: 'consentido' | 'revogado' | 'nao_informado';
 }
 
-interface LinhaVisita { client_id: string; date: string; receita: unknown; servico: string; profissional: string; professional_id: string; duracao: number | null }
+interface LinhaVisita { client_id: string; date: string; receita: unknown; servico: string; profissional: string; professional_id: string; service_id: string; duracao: number | null }
 
 export interface ClientePerfilRow {
   id: string; name: string; phone: string; email: string | null; birthDate: string | null; notes: string | null; createdAt: string;
@@ -26,7 +26,7 @@ export interface AgendamentoLinha {
 async function carregarVisitas(businessId: string, clientId?: string) {
   const linhas = await prisma.$queryRaw<LinhaVisita[]>(Prisma.sql`
     SELECT a.client_id, to_char(a.date, 'YYYY-MM-DD') AS date,
-           COALESCE(e.amount, s.price) AS receita, s.name AS servico, p.name AS profissional, p.id AS professional_id, s.duration_minutes AS duracao
+           COALESCE(e.amount, s.price) AS receita, s.name AS servico, p.name AS profissional, p.id AS professional_id, s.id AS service_id, s.duration_minutes AS duracao
     FROM appointments a
     JOIN services s ON s.id = a.service_id
     JOIN professionals p ON p.id = a.professional_id
@@ -37,7 +37,7 @@ async function carregarVisitas(businessId: string, clientId?: string) {
   const profissionais = new Map<string, Set<string>>();
   for (const l of linhas) {
     const lista = visitas.get(l.client_id) ?? [];
-    lista.push({ date: l.date, receita: Number(l.receita ?? 0), servico: l.servico, profissional: l.profissional, professionalId: l.professional_id, duracao: l.duracao ?? undefined });
+    lista.push({ date: l.date, receita: Number(l.receita ?? 0), servico: l.servico, profissional: l.profissional, professionalId: l.professional_id, serviceId: l.service_id, duracao: l.duracao ?? undefined });
     visitas.set(l.client_id, lista);
     const set = profissionais.get(l.client_id) ?? new Set<string>();
     set.add(l.professional_id);

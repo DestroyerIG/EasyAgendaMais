@@ -17,7 +17,7 @@ export interface EnfileirarInput {
   prioridade?: number; appointmentId?: string | null;
 }
 export interface EnvioDto {
-  id: string; clientId: string | null; appointmentId: string | null;
+  id: string; clientId: string | null; appointmentId: string | null; loteId: string | null;
   status: 'na_fila' | 'enviando' | 'enviado' | 'falhou' | 'pulado' | 'cancelado';
   motivo: string | null; agendadoPara: string; enviadoEm: string | null;
   /** "HH:MM" no fuso do negócio; só preenchido pela listagem da Hora de voltar. */
@@ -55,6 +55,7 @@ const paraDto = (r: EnvioRow): EnvioDto => ({
   id: r.id,
   clientId: r.clientId,
   appointmentId: r.appointmentId,
+  loteId: r.batchId,
   status: r.status as EnvioDto['status'],
   motivo: r.reason,
   agendadoPara: r.scheduledFor.toISOString(),

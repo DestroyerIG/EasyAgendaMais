@@ -4,7 +4,7 @@ export const FASE_ROTULO: Record<Fase, string> = {
   novo: 'Novo', recorrente: 'Recorrente', fiel: 'Fiel / VIP', em_risco: 'Em risco', perdido: 'Perdido',
 };
 
-export interface Visita { date: string; receita: number; servico: string; profissional: string; professionalId?: string; duracao?: number }
+export interface Visita { date: string; receita: number; servico: string; profissional: string; professionalId?: string; serviceId?: string; duracao?: number }
 export interface ResumoCliente {
   visitas: number;
   cicloMedio: number | null;
