@@ -30,6 +30,7 @@ vi.mock('@/components/whatsapp/ConnectionPanel', () => ({
   ),
 }));
 vi.mock('@/components/whatsapp/retorno/HoraDeVoltar', () => ({ HoraDeVoltar: () => <div>painel-hora-de-voltar</div> }));
+vi.mock('@/components/whatsapp/campanhas/Campanhas', () => ({ Campanhas: () => <div>painel-campanhas</div> }));
 vi.mock('@/components/whatsapp/conversas/CentralConversas', () => ({ CentralConversas: () => <div>painel-conversas</div> }));
 vi.mock('@/components/whatsapp/MenuOptionsPanel', () => ({ MenuOptionsPanel: () => <div>painel-menu</div> }));
 vi.mock('@/components/whatsapp/MessageConfigPanel', () => ({ MessageConfigPanel: () => <div>painel-mensagens</div> }));
@@ -59,13 +60,12 @@ describe('WhatsAppModule', () => {
     abaNaUrl = null;
   });
 
-  it('mostra as abas Hora de voltar, Automações, Conversas e Conexão, nessa ordem, e nenhuma outra', async () => {
+  it('mostra as abas Hora de voltar, Automações, Campanhas, Conversas e Conexão, nessa ordem, e nenhuma outra', async () => {
     responderStatus('connected');
     render(<WhatsAppModule />);
     await screen.findByText('painel-conversas');
     const nomes = screen.getAllByRole('tab').map((t) => (t.textContent ?? ''));
-    expect(nomes).toEqual(['Hora de voltar', 'Automações', 'Conversas', 'Conexão']);
-    expect(screen.queryByRole('tab', { name: 'Campanhas' })).toBeNull();
+    expect(nomes).toEqual(['Hora de voltar', 'Automações', 'Campanhas', 'Conversas', 'Conexão']);
     expect(screen.queryByRole('tab', { name: /^list ?Menu$/ })).toBeNull();
     expect(screen.queryByRole('tab', { name: 'Simulador' })).toBeNull();
   });
@@ -75,6 +75,13 @@ describe('WhatsAppModule', () => {
     responderStatus('connected');
     render(<WhatsAppModule />);
     expect(await screen.findByText('painel-hora-de-voltar')).toBeInTheDocument();
+  });
+
+  it('?aba=campanhas abre a aba Campanhas', async () => {
+    abaNaUrl = 'campanhas';
+    responderStatus('connected');
+    render(<WhatsAppModule />);
+    expect(await screen.findByText('painel-campanhas')).toBeInTheDocument();
   });
 
   it('?aba=conexao abre a aba Conexão', async () => {

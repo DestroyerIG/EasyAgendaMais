@@ -13,6 +13,7 @@ import { MenuOptionsPanel, MenuOption } from '@/components/whatsapp/MenuOptionsP
 import { ChatSimulator } from '@/components/whatsapp/ChatSimulator';
 import { RoboAtendimento } from '@/components/whatsapp/RoboAtendimento';
 import { Automacoes } from '@/components/whatsapp/automacoes/Automacoes';
+import { Campanhas } from '@/components/whatsapp/campanhas/Campanhas';
 import { CentralConversas } from '@/components/whatsapp/conversas/CentralConversas';
 import { HoraDeVoltar } from '@/components/whatsapp/retorno/HoraDeVoltar';
 
@@ -100,11 +101,12 @@ const DEFAULT_WA_STATUS: WhatsAppStatus = {
   error: null,
 };
 
-type Aba = 'hora-de-voltar' | 'automacoes' | 'conversas' | 'conexao';
+type Aba = 'hora-de-voltar' | 'automacoes' | 'campanhas' | 'conversas' | 'conexao';
 
 const ABAS: { id: Aba; label: string }[] = [
   { id: 'hora-de-voltar', label: 'Hora de voltar' },
   { id: 'automacoes', label: 'Automações' },
+  { id: 'campanhas', label: 'Campanhas' },
   { id: 'conversas', label: 'Conversas' },
   { id: 'conexao', label: 'Conexão' },
 ];
@@ -491,6 +493,9 @@ export const WhatsAppModule = () => {
               onAbrirConexao={() => trocarAba('conexao')}
               nomeNegocio={user?.businessName || 'Seu negócio'}
             />
+          )}
+          {activeTab === 'campanhas' && (
+            <Campanhas conectado={waStatus.status === 'connected'} nomeNegocio={user?.businessName || 'Seu negócio'} />
           )}
           {activeTab === 'conversas' && <CentralConversas conectado={waStatus.status === 'connected'} />}
           {activeTab === 'conexao' && (

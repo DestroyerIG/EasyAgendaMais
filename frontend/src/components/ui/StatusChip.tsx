@@ -53,9 +53,11 @@ export interface StatusChipProps {
   // `animate-ping` no ponto — só agendamento-detalhes.html:411 pede isso; a bolinha da
   // Agenda no celular fica parada.
   pontoAnimado?: boolean;
+  // Texto no lugar do rotulo padrao (usos fora da agenda, que so emprestam as cores).
+  rotulo?: string;
 }
 
-export function StatusChip({ status, className, comPonto = false, pontoAnimado = false }: StatusChipProps) {
+export function StatusChip({ status, className, comPonto = false, pontoAnimado = false, rotulo }: StatusChipProps) {
   return (
     <span
       data-status={status}
@@ -64,7 +66,7 @@ export function StatusChip({ status, className, comPonto = false, pontoAnimado =
       {comPonto && (
         <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', STATUS_STRIPE_CLASS[status], pontoAnimado && 'animate-ping')} />
       )}
-      {STATUS_LABEL[status]}
+      {rotulo ?? STATUS_LABEL[status]}
     </span>
   );
 }
