@@ -17,10 +17,11 @@ export function sortearIntervalo(rand: () => number = Math.random): number {
 
 /**
  * Intervalo depois de um item de campanha: em média 3600 / cadência segundos (±25%), nunca abaixo de 45 s.
- * 10/h → 270–450 s; 25/h → 108–180 s; 60/h → 45–75 s.
+ * 10/h → 270–450 s; 25/h → 108–180 s; 60/h → 45–75 s. Cadência inválida (<= 0) vale como a padrão.
  */
 export function intervaloCampanha(cadencia: number, rand: () => number = Math.random): number {
-  return Math.max(INTERVALO_MIN_S, Math.round((3600 / cadencia) * (0.75 + 0.5 * rand())));
+  const porHora = cadencia > 0 ? cadencia : LIMITE_POR_HORA;
+  return Math.max(INTERVALO_MIN_S, Math.round((3600 / porHora) * (0.75 + 0.5 * rand())));
 }
 
 /** Limite por hora do negócio: o padrão, ou a maior cadência entre as campanhas em envio. */

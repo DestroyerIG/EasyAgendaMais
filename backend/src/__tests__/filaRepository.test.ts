@@ -45,11 +45,22 @@ describe('filaRepository: reserva conta como envio', () => {
 
 describe('filaRepository: lotes das campanhas', () => {
   const agora = new Date('2026-10-20T15:00:00Z');
-  it('cadenciasEmEnvio: campanhas agendadas do negócio que já começaram', async () => {
-    db.whatsappCampanha.findMany.mockResolvedValue([{ id: 'L1', cadencia: 10 }]);
+  it('cadenciasEmEnvio: campanhas agendadas do negócio que já começaram e ainda têm itens pendentes', async () => {
+    db.whatsappCampanha.findMany.mockResolvedValue([{ id: 'L1', cadencia: 10 }, { id: 'L2', cadencia: 60 }]);
+    db.whatsappEnvio.findMany.mockResolvedValue([{ batchId: 'L1' }]);
     const r = await filaRepository.cadenciasEmEnvio('b1', agora);
     expect(db.whatsappCampanha.findMany.mock.calls[0][0].where).toEqual({ businessId: 'b1', status: 'agendada', inicioEm: { lte: agora } });
+    expect(db.whatsappEnvio.findMany.mock.calls[0][0]).toMatchObject({
+      where: { businessId: 'b1', origin: 'campanha', status: { in: ['na_fila', 'enviando'] }, batchId: { in: ['L1', 'L2'] } },
+      distinct: ['batchId'],
+    });
+    // L2 está agendada e já começou, mas não tem mais nada na fila: terminou, não conta.
     expect(r).toEqual([{ id: 'L1', cadencia: 10 }]);
+  });
+  it('cadenciasEmEnvio sem campanhas candidatas não consulta os envios', async () => {
+    db.whatsappCampanha.findMany.mockResolvedValue([]);
+    expect(await filaRepository.cadenciasEmEnvio('b1', agora)).toEqual([]);
+    expect(db.whatsappEnvio.findMany).not.toHaveBeenCalled();
   });
   it('contarEnviadosDoLoteDesde agrupa por lote (enviado e enviando) e não consulta sem lotes', async () => {
     expect(await filaRepository.contarEnviadosDoLoteDesde('b1', [], agora)).toEqual(new Map());

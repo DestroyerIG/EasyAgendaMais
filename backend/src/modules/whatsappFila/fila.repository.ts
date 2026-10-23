@@ -63,12 +63,27 @@ export const filaRepository = {
     });
   },
 
-  /** Campanhas do negócio em envio (agendadas e já iniciadas); o id da campanha é o lote dos envios. */
-  cadenciasEmEnvio(businessId: string, agora: Date): Promise<Array<{ id: string; cadencia: number }>> {
-    return prisma.whatsappCampanha.findMany({
+  /**
+   * Campanhas do negócio em envio: agendadas, já iniciadas e com algum item ainda na fila ou saindo.
+   * "Concluída" não é gravada (é derivada), então sem a checagem dos itens uma campanha terminada
+   * continuaria contando para sempre. O id da campanha é o lote dos envios.
+   */
+  async cadenciasEmEnvio(businessId: string, agora: Date): Promise<Array<{ id: string; cadencia: number }>> {
+    const candidatas = await prisma.whatsappCampanha.findMany({
       where: { businessId, status: 'agendada', inicioEm: { lte: agora } },
       select: { id: true, cadencia: true },
     });
+    if (!candidatas.length) return [];
+    const pendentes = await prisma.whatsappEnvio.findMany({
+      where: {
+        businessId, origin: 'campanha', status: { in: ['na_fila', 'enviando'] },
+        batchId: { in: candidatas.map((c) => c.id) },
+      },
+      distinct: ['batchId'],
+      select: { batchId: true },
+    });
+    const comPendentes = new Set(pendentes.map((p) => p.batchId));
+    return candidatas.filter((c) => comPendentes.has(c.id));
   },
 
   /** Enviados (ou reservados) de cada lote desde `desde`. */

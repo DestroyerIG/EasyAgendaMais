@@ -64,6 +64,10 @@ describe('intervaloCampanha', () => {
     expect(intervaloCampanha(60, () => 0)).toBe(45);
     expect(intervaloCampanha(10, () => 0.5)).toBe(360);
   });
+  it('cadência inválida (<= 0) usa a padrão de 25/h', () => {
+    expect(intervaloCampanha(0, () => 0)).toBe(108);
+    expect(intervaloCampanha(-5, () => 1)).toBe(180);
+  });
 });
 
 describe('limiteDoNegocio', () => {

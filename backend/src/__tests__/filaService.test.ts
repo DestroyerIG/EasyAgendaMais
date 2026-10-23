@@ -255,6 +255,24 @@ describe('cadência das campanhas', () => {
     expect(r.enviados).toBe(1);
   });
 
+  it('sem campanha em envio o limite do negócio continua 25', async () => {
+    repo.contarEnviadosDesde.mockResolvedValue(25);
+    const r = await filaEnvios.processar(AGORA);
+    expect(r).toEqual({ enviados: 0, pulados: 0, falhas: 0 });
+    expect(repo.proximoVencido).not.toHaveBeenCalled();
+    expect(envio.sendWhatsAppMessage).not.toHaveBeenCalled();
+  });
+
+  it('negócio com 60 enviados na hora e campanha de 60/h: nada sai', async () => {
+    repo.cadenciasEmEnvio.mockResolvedValue([{ id: 'L1', cadencia: 60 }]);
+    repo.contarEnviadosDesde.mockResolvedValue(60);
+    repo.proximoVencido.mockResolvedValue(camp());
+    const r = await filaEnvios.processar(AGORA);
+    expect(r).toEqual({ enviados: 0, pulados: 0, falhas: 0 });
+    expect(repo.proximoVencido).not.toHaveBeenCalled();
+    expect(envio.sendWhatsAppMessage).not.toHaveBeenCalled();
+  });
+
   it('item de campanha enviado grava o intervalo da cadência (25/h: 108–180 s)', async () => {
     repo.cadenciasEmEnvio.mockResolvedValue([{ id: 'L1', cadencia: 25 }]);
     repo.contarEnviadosDoLoteDesde.mockResolvedValue(new Map([['L1', 3]]));
