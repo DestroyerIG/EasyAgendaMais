@@ -24,6 +24,7 @@ vi.mock('../modules/whatsappCampanhas/campanhas.repository.js', () => ({ campanh
 
 const router = (await import('../modules/whatsappCampanhas/campanhas.routes.js')).default;
 const { errorHandler } = await import('../middleware/errorHandler.js');
+const { ValidationError } = await import('../utils/errors.js');
 const supertest = (await import('supertest')).default;
 
 const app = express();
@@ -66,6 +67,13 @@ describe('rotas de campanhas', () => {
     expect(r.status).toBe(201);
     expect(r.body.data).toEqual({ campanha: { id: ID }, jaNaFila: 0 });
     expect(service.salvar).toHaveBeenCalledWith('b1', 'u1', expect.objectContaining({ cadencia: 25 }));
+  });
+
+  it('POST / que falha depois do rascunho devolve o id em error.details', async () => {
+    service.salvar.mockRejectedValue(new ValidationError('Nenhuma cliente pode receber esta campanha', [{ campanhaId: ID }]));
+    const r = await request.post('/api/v1/whatsapp/campanhas').send(CORPO);
+    expect(r.status).toBe(400);
+    expect(r.body.error).toMatchObject({ message: 'Nenhuma cliente pode receber esta campanha', details: [{ campanhaId: ID }] });
   });
 
   it('GET /opcoes não cai em /:id', async () => {

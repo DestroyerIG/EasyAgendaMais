@@ -9,6 +9,7 @@ const fila = vi.hoisted(() => ({ enfileirar: vi.fn() }));
 const publico = vi.hoisted(() => ({ montar: vi.fn(), previa: vi.fn() }));
 
 vi.mock('../config/prisma.js', () => ({ prisma: {} }));
+vi.mock('../utils/logger.js', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 vi.mock('../modules/whatsappCampanhas/campanhas.repository.js', () => ({ campanhasRepository: repo }));
 vi.mock('../modules/whatsappFila/fila.repository.js', () => ({ filaRepository: filaRepo }));
 vi.mock('../modules/whatsappFila/fila.service.js', () => ({ filaEnvios: fila }));
@@ -94,12 +95,34 @@ describe('campanhasService.salvar (agendar)', () => {
     expect(repo.voltarRascunho).toHaveBeenCalledWith('b1', ID);
   });
 
-  it('público sem elegíveis → 400 e campanha em rascunho', async () => {
+  it('público sem elegíveis → 400 com o id do rascunho e campanha em rascunho', async () => {
     publico.montar.mockResolvedValue({ elegiveis: [], selecionadas: 2, resguardadas: 2 });
-    await expect(campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA))
-      .rejects.toMatchObject({ statusCode: 400, message: 'Nenhuma cliente pode receber esta campanha' });
+    await expect(campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA)).rejects.toMatchObject({
+      statusCode: 400, message: 'Nenhuma cliente pode receber esta campanha', details: [{ campanhaId: ID }],
+    });
     expect(repo.voltarRascunho).toHaveBeenCalledWith('b1', ID);
     expect(fila.enfileirar).not.toHaveBeenCalled();
+  });
+
+  it('montar lança → volta a rascunho e o erro sobe', async () => {
+    publico.montar.mockRejectedValue(new Error('crm fora'));
+    await expect(campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA)).rejects.toThrow('crm fora');
+    expect(repo.voltarRascunho).toHaveBeenCalledWith('b1', ID);
+    expect(fila.enfileirar).not.toHaveBeenCalled();
+  });
+
+  it('gravarTotal lança → cancela o lote e volta a rascunho', async () => {
+    repo.gravarTotal.mockRejectedValue(new Error('banco caiu'));
+    await expect(campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA)).rejects.toThrow('banco caiu');
+    expect(filaRepo.cancelarDoLote).toHaveBeenCalledWith('b1', ID, 'Campanha cancelada');
+    expect(repo.voltarRascunho).toHaveBeenCalledWith('b1', ID);
+  });
+
+  it('falha ao desfazer não esconde o erro original', async () => {
+    fila.enfileirar.mockRejectedValue(new Error('banco caiu'));
+    filaRepo.cancelarDoLote.mockRejectedValue(new Error('outra falha'));
+    await expect(campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA)).rejects.toThrow('banco caiu');
+    expect(repo.voltarRascunho).toHaveBeenCalledWith('b1', ID);
   });
 
   it('todas já na fila de outra campanha → cancela o lote, volta a rascunho e 400', async () => {
@@ -166,6 +189,14 @@ describe('campanhasService.cancelar', () => {
     expect(repo.marcarCancelada).toHaveBeenCalledWith('b1', ID);
     expect(filaRepo.cancelarDoLote).toHaveBeenCalledWith('b1', ID, 'Campanha cancelada');
     expect(r.status).toBe('cancelada');
+  });
+
+  it('concluída → 409 sem mudar o status', async () => {
+    repo.buscar.mockResolvedValue(linha({ status: 'agendada', inicioEm: new Date('2026-10-19T13:00:00Z'), total: 3 }));
+    filaRepo.contagemDoLote.mockResolvedValue(new Map([[ID, contagem({ enviado: 3 })]]));
+    await expect(campanhasService.cancelar('b1', ID, AGORA)).rejects.toMatchObject({ statusCode: 409, message: 'Esta campanha já foi concluída' });
+    expect(repo.marcarCancelada).not.toHaveBeenCalled();
+    expect(filaRepo.cancelarDoLote).not.toHaveBeenCalled();
   });
 
   it('rascunho → 409', async () => {

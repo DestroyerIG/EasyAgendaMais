@@ -3,6 +3,7 @@ import { renderizarTexto } from '../whatsappAutomacoes/automacoes.rules.js';
 import { PRIORIDADE_CAMPANHA } from '../whatsappFila/fila.rules.js';
 import { filaRepository } from '../whatsappFila/fila.repository.js';
 import { filaEnvios, type EnvioDto } from '../whatsappFila/fila.service.js';
+import logger from '../../utils/logger.js';
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
 import { todayInTimezone, zonedToUtc } from '../../utils/businessDate.js';
 import { ConflictError, NotFoundError, ValidationError } from '../../utils/errors.js';
@@ -42,8 +43,10 @@ function inicioDe(input: SalvarInput, tz: string, agora: Date): Date {
   return inicio;
 }
 
+const restantesDe = (c: Contagem) => c.na_fila + c.enviando;
+
 function paraDto(c: CampanhaRow, contagem: Contagem, tz: string, agora: Date): CampanhaDto {
-  const restantes = contagem.na_fila + contagem.enviando;
+  const restantes = restantesDe(contagem);
   return {
     id: c.id,
     nome: c.nome,
@@ -88,38 +91,35 @@ async function enfileirarCampanha(businessId: string, c: CampanhaRow, inicio: Da
   const { elegiveis } = await publicoService.montar(
     businessId, { segmento: c.segmento as Segmento, professionalId: c.professionalId, serviceId: c.serviceId }, inicio, agora,
   );
-  if (elegiveis.length === 0) {
-    await repo.voltarRascunho(businessId, c.id);
-    throw new ValidationError('Nenhuma cliente pode receber esta campanha');
-  }
+  if (elegiveis.length === 0) throw new ValidationError('Nenhuma cliente pode receber esta campanha');
 
-  let envios: EnvioDto[];
-  try {
-    envios = await filaEnvios.enfileirar(elegiveis.map((e) => ({
-      businessId,
-      clientId: e.id,
-      phone: e.telefone,
-      body: comRodape(renderizarTexto(c.texto, e.vars)),
-      origin: 'campanha' as const,
-      agendadoPara: inicio,
-      loteId: c.id,
-      prioridade: PRIORIDADE_CAMPANHA,
-    })));
-  } catch (err) {
-    await filaRepository.cancelarDoLote(businessId, c.id, MOTIVO_CANCELADA);
-    await repo.voltarRascunho(businessId, c.id);
-    throw err;
-  }
+  const envios = await filaEnvios.enfileirar(elegiveis.map((e) => ({
+    businessId,
+    clientId: e.id,
+    phone: e.telefone,
+    body: comRodape(renderizarTexto(c.texto, e.vars)),
+    origin: 'campanha' as const,
+    agendadoPara: inicio,
+    loteId: c.id,
+    prioridade: PRIORIDADE_CAMPANHA,
+  })));
 
   // A deduplicação da fila devolve o envio que já existia, possivelmente de outra campanha.
   const total = envios.filter((e) => e.loteId === c.id).length;
-  if (total === 0) {
-    await filaRepository.cancelarDoLote(businessId, c.id, MOTIVO_CANCELADA);
-    await repo.voltarRascunho(businessId, c.id);
-    throw new ValidationError('Todas as clientes deste público já estão na fila de outra campanha');
-  }
+  if (total === 0) throw new ValidationError('Todas as clientes deste público já estão na fila de outra campanha');
   await repo.gravarTotal(businessId, c.id, total);
   return { total, jaNaFila: envios.length - total };
+}
+
+/** Desfaz um agendamento que falhou: tira o lote da fila e volta a campanha a rascunho. */
+async function desfazerAgendamento(businessId: string, id: string): Promise<void> {
+  // Falhas aqui não podem esconder o erro original.
+  try { await filaRepository.cancelarDoLote(businessId, id, MOTIVO_CANCELADA); } catch (err) {
+    logger.warn({ err, businessId, campanhaId: id }, 'campanhas: falha ao cancelar o lote de um agendamento desfeito');
+  }
+  try { await repo.voltarRascunho(businessId, id); } catch (err) {
+    logger.warn({ err, businessId, campanhaId: id }, 'campanhas: falha ao voltar a campanha a rascunho');
+  }
 }
 
 export const campanhasService = {
@@ -170,7 +170,16 @@ export const campanhasService = {
     }
 
     if ((await repo.marcarAgendada(businessId, rascunho.id)) === 0) throw new ConflictError('Esta campanha já foi agendada');
-    const { total, jaNaFila } = await enfileirarCampanha(businessId, rascunho, inicio, agora);
+    let resultado: { total: number; jaNaFila: number };
+    try {
+      resultado = await enfileirarCampanha(businessId, rascunho, inicio, agora);
+    } catch (err) {
+      await desfazerAgendamento(businessId, rascunho.id);
+      // A UI precisa do id do rascunho para tentar de novo com PUT.
+      if (err instanceof ValidationError) err.details = [{ campanhaId: rascunho.id }];
+      throw err;
+    }
+    const { total, jaNaFila } = resultado;
     const campanha = paraDto({ ...rascunho, status: 'agendada', total }, await contagemDe(businessId, rascunho.id), tz, agora);
     return { campanha, jaNaFila };
   },
@@ -178,6 +187,9 @@ export const campanhasService = {
   async cancelar(businessId: string, id: string, agora: Date = new Date()): Promise<CampanhaDto> {
     const c = await buscarOu404(businessId, id);
     if (c.status !== 'agendada') throw new ConflictError('Esta campanha não está agendada');
+    if (statusCampanha({ status: 'agendada', inicioEm: c.inicioEm }, restantesDe(await contagemDe(businessId, id)), agora) === 'concluida') {
+      throw new ConflictError('Esta campanha já foi concluída');
+    }
     if ((await repo.marcarCancelada(businessId, id)) === 0) throw new ConflictError('Esta campanha não está agendada');
     // Só o que ainda está na fila; o que já saiu ou está saindo fica como está.
     await filaRepository.cancelarDoLote(businessId, id, MOTIVO_CANCELADA);
