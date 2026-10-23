@@ -78,6 +78,8 @@ export const inboxRepository = {
   atualizarStatusMensagem: (id: string, status: string) => prisma.whatsappMessage.update({ where: { id }, data: { status } }),
   optOutAtivo: (businessId: string, phoneKey: string) =>
     prisma.whatsappOptOut.findFirst({ where: { businessId, phoneKey, reactivatedAt: null }, select: { id: true } }),
+  optOutsAtivos: (businessId: string) =>
+    prisma.whatsappOptOut.findMany({ where: { businessId, reactivatedAt: null }, select: { phoneKey: true } }),
   gravarOptOut: (d: { businessId: string; phoneKey: string; clientId: string | null; keyword: string }) =>
     prisma.whatsappOptOut.upsert({
       where: { businessId_phoneKey: { businessId: d.businessId, phoneKey: d.phoneKey } },

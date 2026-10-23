@@ -146,6 +146,16 @@ export const inboxRecorder = {
     }
   },
 
+  /** Chaves de telefone em opt-out. Em erro, loga e lança: não se manda campanha sem saber quem saiu. */
+  async telefonesEmOptOut(businessId: string): Promise<Set<string>> {
+    try {
+      return new Set((await repo.optOutsAtivos(businessId)).map((o) => o.phoneKey));
+    } catch (err) {
+      logger.error({ err, businessId }, 'inbox: telefonesEmOptOut falhou');
+      throw err;
+    }
+  },
+
   async registrarOptOut(i: { businessId: string; phone: string; keyword: string }): Promise<void> {
     try {
       const chave = canonicalizePhone(i.phone);
