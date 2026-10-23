@@ -66,6 +66,28 @@ describe('Campanhas', () => {
     expect(confirmar).not.toHaveBeenCalled();
   });
 
+  it('depois de cancelar, o cartão fecha a confirmação e mostra Ver detalhes', async () => {
+    api.listarCampanhas.mockResolvedValueOnce([camp()]).mockResolvedValueOnce([camp({ status: 'cancelada' })]);
+    api.cancelarCampanha.mockResolvedValue(undefined);
+    render(<Campanhas conectado nomeNegocio="Studio" />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Cancelar envio' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Sim, cancelar' }));
+    expect(await screen.findByText('Cancelada')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sim, cancelar' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Ver detalhes' })).toBeInTheDocument();
+  });
+
+  it('se o cancelamento falha, recarrega a lista e fecha a confirmação', async () => {
+    api.listarCampanhas.mockResolvedValueOnce([camp()]).mockResolvedValueOnce([camp({ status: 'concluida', enviadas: 40 })]);
+    api.cancelarCampanha.mockRejectedValue(new Error('409'));
+    render(<Campanhas conectado nomeNegocio="Studio" />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Cancelar envio' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Sim, cancelar' }));
+    expect(await screen.findByText('Concluída')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sim, cancelar' })).toBeNull();
+    expect(showToast).toHaveBeenCalledWith(expect.any(String), 'error');
+  });
+
   it('rascunho oferece continuar editando e não mostra progresso', async () => {
     api.listarCampanhas.mockResolvedValue([camp({ status: 'rascunho', total: 0, enviadas: 0 })]);
     render(<Campanhas conectado nomeNegocio="Studio" />);

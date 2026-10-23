@@ -19,7 +19,8 @@ interface CartaoCampanhaProps {
   campanha: CampanhaDto;
   cancelando: boolean;
   onEditar: () => void;
-  onCancelar: () => void;
+  /** Resolve quando o cancelamento terminou (com sucesso ou não). */
+  onCancelar: () => Promise<void>;
   onDetalhes: () => void;
 }
 
@@ -65,7 +66,7 @@ export function CartaoCampanha({ campanha, cancelando, onEditar, onCancelar, onD
           <p className="text-[13px] text-ink">As mensagens que ainda não saíram serão canceladas.</p>
           <div className="flex gap-2">
             <Button variant="secondary" size="sm" onClick={() => setConfirmando(false)} disabled={cancelando}>Voltar</Button>
-            <Button variant="danger" size="sm" loading={cancelando} onClick={onCancelar}>Sim, cancelar</Button>
+            <Button variant="danger" size="sm" loading={cancelando} onClick={() => { void onCancelar().finally(() => setConfirmando(false)); }}>Sim, cancelar</Button>
           </div>
         </div>
       ) : (

@@ -42,10 +42,11 @@ export function Campanhas(_props: CampanhasProps) {
     try {
       await cancelarCampanha(c.id);
       showToast('Envio cancelado.', 'success');
-      await carregar();
     } catch (e) {
       showToast(getApiErrorMessage(e, 'Não foi possível cancelar o envio.'), 'error');
     } finally {
+      // Sucesso ou falha (ex.: 409 "já concluída"): o cartão passa a mostrar o status real.
+      await carregar();
       setCancelando(null);
     }
   };
@@ -91,7 +92,7 @@ export function Campanhas(_props: CampanhasProps) {
               campanha={c}
               cancelando={cancelando === c.id}
               onEditar={() => setTela({ tipo: 'nova', campanha: c })}
-              onCancelar={() => void cancelar(c)}
+              onCancelar={() => cancelar(c)}
               onDetalhes={() => setDetalhes(c)}
             />
           ))}
