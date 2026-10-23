@@ -5,6 +5,7 @@ const repo = vi.hoisted(() => ({
   contarEnviadosDesde: vi.fn(), proximoVencido: vi.fn(), reservar: vi.fn(), atualizar: vi.fn(),
   idsNaFila: vi.fn(), consentimentoRevogado: vi.fn(), interromper: vi.fn(), recentesPorCliente: vi.fn(), enviadosPorCliente: vi.fn(),
   agendamentoParaEnvio: vi.fn(), desmarcarLembrete: vi.fn(),
+  cadenciasEmEnvio: vi.fn(), contarEnviadosDoLoteDesde: vi.fn(),
 }));
 vi.mock('../modules/whatsappFila/fila.repository.js', () => ({ filaRepository: repo }));
 const resp = vi.hoisted(() => ({ respostasRepository: { registrar: vi.fn() } }));
@@ -43,6 +44,8 @@ beforeEach(() => {
   wa.whatsappService.getStatus.mockResolvedValue({ status: 'connected' });
   envio.sendWhatsAppMessage.mockResolvedValue(true);
   resp.respostasRepository.registrar.mockResolvedValue(undefined);
+  repo.cadenciasEmEnvio.mockResolvedValue([]);
+  repo.contarEnviadosDoLoteDesde.mockResolvedValue(new Map());
 });
 
 describe('enfileirar', () => {
@@ -213,6 +216,73 @@ describe('processar', () => {
     const r = await filaEnvios.processar(AGORA);
     expect(r.enviados).toBe(2);
     expect(envio.sendWhatsAppMessage).toHaveBeenCalledWith('5583999990000', 'Oi', { businessId: 'b2', origin: 'retorno' });
+  });
+});
+
+describe('cadência das campanhas', () => {
+  const camp = (o: Record<string, unknown> = {}) => linha({ origin: 'campanha', batchId: 'L1', priority: 9, ...o });
+
+  it('sem campanha em envio: não conta por lote e não exclui lotes', async () => {
+    await filaEnvios.processar(AGORA);
+    expect(repo.cadenciasEmEnvio).toHaveBeenCalledWith('b1', AGORA);
+    expect(repo.contarEnviadosDoLoteDesde).not.toHaveBeenCalled();
+    expect(repo.proximoVencido).toHaveBeenCalledWith('b1', AGORA, []);
+  });
+
+  it('lote de cadência 10 com 10 enviados na última hora fica de fora e o retorno vencido sai', async () => {
+    repo.cadenciasEmEnvio.mockResolvedValue([{ id: 'L1', cadencia: 10 }]);
+    repo.contarEnviadosDoLoteDesde.mockResolvedValue(new Map([['L1', 10]]));
+    const r = await filaEnvios.processar(AGORA);
+    expect(repo.contarEnviadosDoLoteDesde).toHaveBeenCalledWith('b1', ['L1'], new Date(AGORA.getTime() - 3_600_000));
+    expect(repo.proximoVencido).toHaveBeenCalledWith('b1', AGORA, ['L1']);
+    expect(r.enviados).toBe(1);
+    expect(envio.sendWhatsAppMessage).toHaveBeenCalledWith('5583999990000', 'Oi', { businessId: 'b1', origin: 'retorno' });
+  });
+
+  it('lote abaixo da cadência continua elegível', async () => {
+    repo.cadenciasEmEnvio.mockResolvedValue([{ id: 'L1', cadencia: 10 }]);
+    repo.contarEnviadosDoLoteDesde.mockResolvedValue(new Map([['L1', 9]]));
+    await filaEnvios.processar(AGORA);
+    expect(repo.proximoVencido).toHaveBeenCalledWith('b1', AGORA, []);
+  });
+
+  it('campanha de 60/h em envio: limite do negócio sobe para 60', async () => {
+    repo.cadenciasEmEnvio.mockResolvedValue([{ id: 'L1', cadencia: 60 }]);
+    repo.contarEnviadosDesde.mockResolvedValue(30);
+    repo.contarEnviadosDoLoteDesde.mockResolvedValue(new Map([['L1', 30]]));
+    repo.proximoVencido.mockResolvedValue(camp());
+    const r = await filaEnvios.processar(AGORA);
+    expect(r.enviados).toBe(1);
+  });
+
+  it('item de campanha enviado grava o intervalo da cadência (25/h: 108–180 s)', async () => {
+    repo.cadenciasEmEnvio.mockResolvedValue([{ id: 'L1', cadencia: 25 }]);
+    repo.contarEnviadosDoLoteDesde.mockResolvedValue(new Map([['L1', 3]]));
+    repo.proximoVencido.mockResolvedValue(camp());
+    const r = await filaEnvios.processar(AGORA);
+    expect(r.enviados).toBe(1);
+    const [, , dados] = repo.atualizar.mock.calls[0];
+    expect(dados.status).toBe('enviado');
+    expect(dados.intervalAfterS).toBeGreaterThanOrEqual(108);
+    expect(dados.intervalAfterS).toBeLessThanOrEqual(180);
+  });
+
+  it('item de campanha de lote que não está em envio segue o intervalo padrão', async () => {
+    repo.proximoVencido.mockResolvedValue(camp({ batchId: 'outro' }));
+    await filaEnvios.processar(AGORA);
+    const [, , dados] = repo.atualizar.mock.calls[0];
+    expect(dados.intervalAfterS).toBeGreaterThanOrEqual(45);
+    expect(dados.intervalAfterS).toBeLessThanOrEqual(90);
+  });
+
+  it('item de campanha de telefone em opt-out é pulado', async () => {
+    repo.cadenciasEmEnvio.mockResolvedValue([{ id: 'L1', cadencia: 25 }]);
+    repo.proximoVencido.mockResolvedValue(camp());
+    rec.inboxRecorder.estaEmOptOut.mockResolvedValue(true);
+    const r = await filaEnvios.processar(AGORA);
+    expect(r.pulados).toBe(1);
+    expect(envio.sendWhatsAppMessage).not.toHaveBeenCalled();
+    expect(repo.atualizar).toHaveBeenCalledWith('b1', 'e1', { status: 'pulado', reason: 'Pediu para não receber mensagens', sentAt: null });
   });
 });
 

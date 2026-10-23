@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const db = vi.hoisted(() => ({ whatsappEnvio: { findFirst: vi.fn(), count: vi.fn(), findMany: vi.fn() } }));
+const db = vi.hoisted(() => ({
+  whatsappEnvio: { findFirst: vi.fn(), count: vi.fn(), findMany: vi.fn(), groupBy: vi.fn(), updateMany: vi.fn() },
+  whatsappCampanha: { findMany: vi.fn() },
+}));
 vi.mock('../config/prisma.js', () => ({ prisma: db }));
 
 const { filaRepository } = await import('../modules/whatsappFila/fila.repository.js');
@@ -37,5 +40,63 @@ describe('filaRepository: reserva conta como envio', () => {
     db.whatsappEnvio.findFirst.mockResolvedValue(null);
     await filaRepository.proximoVencido('b1', new Date());
     expect(db.whatsappEnvio.findFirst.mock.calls[0][0].orderBy).toEqual([{ priority: 'asc' }, { scheduledFor: 'asc' }, { createdAt: 'asc' }]);
+  });
+});
+
+describe('filaRepository: lotes das campanhas', () => {
+  const agora = new Date('2026-10-20T15:00:00Z');
+  it('cadenciasEmEnvio: campanhas agendadas do negócio que já começaram', async () => {
+    db.whatsappCampanha.findMany.mockResolvedValue([{ id: 'L1', cadencia: 10 }]);
+    const r = await filaRepository.cadenciasEmEnvio('b1', agora);
+    expect(db.whatsappCampanha.findMany.mock.calls[0][0].where).toEqual({ businessId: 'b1', status: 'agendada', inicioEm: { lte: agora } });
+    expect(r).toEqual([{ id: 'L1', cadencia: 10 }]);
+  });
+  it('contarEnviadosDoLoteDesde agrupa por lote (enviado e enviando) e não consulta sem lotes', async () => {
+    expect(await filaRepository.contarEnviadosDoLoteDesde('b1', [], agora)).toEqual(new Map());
+    expect(db.whatsappEnvio.groupBy).not.toHaveBeenCalled();
+    db.whatsappEnvio.groupBy.mockResolvedValue([{ batchId: 'L1', _count: { _all: 4 } }]);
+    const r = await filaRepository.contarEnviadosDoLoteDesde('b1', ['L1', 'L2'], agora);
+    expect(db.whatsappEnvio.groupBy.mock.calls[0][0].where).toEqual({
+      businessId: 'b1', batchId: { in: ['L1', 'L2'] }, status: { in: ['enviado', 'enviando'] }, sentAt: { gte: agora },
+    });
+    expect(r).toEqual(new Map([['L1', 4]]));
+  });
+  it('proximoVencido sem lotes excluídos mantém o filtro antigo; com lotes, deixa de fora só eles', async () => {
+    db.whatsappEnvio.findFirst.mockResolvedValue(null);
+    await filaRepository.proximoVencido('b1', agora);
+    await filaRepository.proximoVencido('b1', agora, ['L1']);
+    expect(db.whatsappEnvio.findFirst.mock.calls[0][0].where).toEqual({ businessId: 'b1', status: 'na_fila', scheduledFor: { lte: agora } });
+    expect(db.whatsappEnvio.findFirst.mock.calls[1][0].where).toEqual({
+      businessId: 'b1', status: 'na_fila', scheduledFor: { lte: agora },
+      OR: [{ batchId: null }, { batchId: { notIn: ['L1'] } }],
+    });
+  });
+  it('cancelarDoLote cancela só o que está na fila do lote', async () => {
+    db.whatsappEnvio.updateMany.mockResolvedValue({ count: 3 });
+    const n = await filaRepository.cancelarDoLote('b1', 'L1', 'Campanha cancelada');
+    expect(db.whatsappEnvio.updateMany).toHaveBeenCalledWith({
+      where: { businessId: 'b1', batchId: 'L1', status: 'na_fila' },
+      data: { status: 'cancelado', reason: 'Campanha cancelada' },
+    });
+    expect(n).toBe(3);
+  });
+  it('contagemDoLote devolve todos os status, com zero nos que faltam', async () => {
+    db.whatsappEnvio.groupBy.mockResolvedValue([
+      { batchId: 'L1', status: 'enviado', _count: { _all: 2 } },
+      { batchId: 'L1', status: 'na_fila', _count: { _all: 5 } },
+    ]);
+    const m = await filaRepository.contagemDoLote('b1', ['L1', 'L2']);
+    expect(db.whatsappEnvio.groupBy.mock.calls[0][0].where).toEqual({ businessId: 'b1', batchId: { in: ['L1', 'L2'] } });
+    expect(m.get('L1')).toEqual({ na_fila: 5, enviando: 0, enviado: 2, falhou: 0, pulado: 0, cancelado: 0 });
+    expect(m.get('L2')).toEqual({ na_fila: 0, enviando: 0, enviado: 0, falhou: 0, pulado: 0, cancelado: 0 });
+  });
+  it('itensDoLote filtra por negócio e lote, traz o nome da cliente e ordena pela criação', async () => {
+    db.whatsappEnvio.findMany.mockResolvedValue([]);
+    await filaRepository.itensDoLote('b1', 'L1');
+    expect(db.whatsappEnvio.findMany).toHaveBeenCalledWith({
+      where: { businessId: 'b1', batchId: 'L1' },
+      include: { client: { select: { name: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
   });
 });

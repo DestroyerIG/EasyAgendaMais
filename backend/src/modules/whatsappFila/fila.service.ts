@@ -9,7 +9,9 @@ import { inboxRecorder } from '../whatsappInbox/inbox.recorder.js';
 import type { Origem } from '../whatsappInbox/inbox.types.js';
 import { filaRepository as repo, type EnvioRow } from './fila.repository.js';
 import { respostasRepository } from '../whatsappAutomacoes/respostas.repository.js';
-import { PRIORIDADE_NORMAL, podeEnviarAgora, previsaoDeEnvio, sortearIntervalo } from './fila.rules.js';
+import {
+  PRIORIDADE_NORMAL, intervaloCampanha, limiteDoNegocio, podeEnviarAgora, previsaoDeEnvio, sortearIntervalo,
+} from './fila.rules.js';
 
 export interface EnfileirarInput {
   businessId: string; clientId: string | null; phone: string; body: string; origin: Origem;
@@ -67,12 +69,14 @@ type Resultado = 'enviado' | 'pulado' | 'falhou' | 'nada';
 
 async function processarNegocio(businessId: string, agora: Date): Promise<Resultado> {
   const { timezone } = await getBusinessScheduleSettings(businessId);
-  const [ultimo, enviadosUltimaHora] = await Promise.all([
+  const umaHoraAtras = new Date(agora.getTime() - HORA_MS);
+  const [ultimo, enviadosUltimaHora, emEnvio] = await Promise.all([
     repo.ultimoEnviado(businessId),
-    repo.contarEnviadosDesde(businessId, new Date(agora.getTime() - HORA_MS)),
+    repo.contarEnviadosDesde(businessId, umaHoraAtras),
+    repo.cadenciasEmEnvio(businessId, agora),
   ]);
   const pode = podeEnviarAgora({
-    agora, tz: timezone, enviadosUltimaHora,
+    agora, tz: timezone, enviadosUltimaHora, limitePorHora: limiteDoNegocio(emEnvio.map((c) => c.cadencia)),
     ultimo: ultimo ? { em: ultimo.sentAt, intervaloS: ultimo.intervalAfterS } : null,
   });
   if (!pode) return 'nada';
@@ -81,7 +85,15 @@ async function processarNegocio(businessId: string, agora: Date): Promise<Result
   const conexao = await whatsappService.getStatus(businessId);
   if (conexao?.status !== 'connected') return 'nada';
 
-  const item = await repo.proximoVencido(businessId, agora);
+  // Lotes (campanhas) que já bateram a própria cadência na última hora esperam; o resto da fila segue.
+  const cadenciaDoLote = new Map(emEnvio.map((c) => [c.id, c.cadencia]));
+  const excluirLotes: string[] = [];
+  if (emEnvio.length) {
+    const porLote = await repo.contarEnviadosDoLoteDesde(businessId, emEnvio.map((c) => c.id), umaHoraAtras);
+    for (const c of emEnvio) if ((porLote.get(c.id) ?? 0) >= c.cadencia) excluirLotes.push(c.id);
+  }
+
+  const item = await repo.proximoVencido(businessId, agora, excluirLotes);
   if (!item) return 'nada';
   if (!(await repo.reservar(businessId, item.id, agora))) return 'nada';
 
@@ -144,7 +156,10 @@ async function processarNegocio(businessId: string, agora: Date): Promise<Result
     }
     return 'falhou';
   }
-  await repo.atualizar(businessId, item.id, { status: 'enviado', sentAt: new Date(), intervalAfterS: sortearIntervalo() });
+  // Item de campanha em envio: o intervalo segue a cadência escolhida; o resto mantém 45–90 s.
+  const cadencia = item.origin === 'campanha' && item.batchId ? cadenciaDoLote.get(item.batchId) : undefined;
+  const intervalAfterS = cadencia ? intervaloCampanha(cadencia) : sortearIntervalo();
+  await repo.atualizar(businessId, item.id, { status: 'enviado', sentAt: new Date(), intervalAfterS });
   if ((item.origin === 'confirmacao' || item.origin === 'avaliacao') && item.appointmentId && item.phoneKey) {
     try {
       await respostasRepository.registrar({

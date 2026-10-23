@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   sortearIntervalo, dentroDaJanela, proximaAberturaDaJanela, podeEnviarAgora, previsaoDeEnvio,
+  intervaloCampanha, limiteDoNegocio,
 } from '../modules/whatsappFila/fila.rules.js';
 
 const TZ = 'America/Sao_Paulo';
@@ -49,6 +50,27 @@ describe('podeEnviarAgora', () => {
   });
   it('fora da janela', () => {
     expect(podeEnviarAgora({ agora: d('2026-10-20T23:30:00Z'), tz: TZ, ultimo: null, enviadosUltimaHora: 0 })).toBe(false);
+  });
+  it('limite do negócio maior quando há campanha de 60/h em envio', () => {
+    expect(podeEnviarAgora({ agora, tz: TZ, ultimo: null, enviadosUltimaHora: 30, limitePorHora: 60 })).toBe(true);
+    expect(podeEnviarAgora({ agora, tz: TZ, ultimo: null, enviadosUltimaHora: 30 })).toBe(false);
+  });
+});
+
+describe('intervaloCampanha', () => {
+  it('3600 / cadência × (0,75 a 1,25), nunca abaixo de 45 s', () => {
+    expect(intervaloCampanha(25, () => 0)).toBe(108);
+    expect(intervaloCampanha(25, () => 1)).toBe(180);
+    expect(intervaloCampanha(60, () => 0)).toBe(45);
+    expect(intervaloCampanha(10, () => 0.5)).toBe(360);
+  });
+});
+
+describe('limiteDoNegocio', () => {
+  it('máximo entre 25 e as cadências em envio', () => {
+    expect(limiteDoNegocio([])).toBe(25);
+    expect(limiteDoNegocio([10])).toBe(25);
+    expect(limiteDoNegocio([60, 10])).toBe(60);
   });
 });
 

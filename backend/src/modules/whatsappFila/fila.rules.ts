@@ -15,6 +15,19 @@ export function sortearIntervalo(rand: () => number = Math.random): number {
   return INTERVALO_MIN_S + Math.floor(rand() * (INTERVALO_MAX_S - INTERVALO_MIN_S + 1));
 }
 
+/**
+ * Intervalo depois de um item de campanha: em média 3600 / cadência segundos (±25%), nunca abaixo de 45 s.
+ * 10/h → 270–450 s; 25/h → 108–180 s; 60/h → 45–75 s.
+ */
+export function intervaloCampanha(cadencia: number, rand: () => number = Math.random): number {
+  return Math.max(INTERVALO_MIN_S, Math.round((3600 / cadencia) * (0.75 + 0.5 * rand())));
+}
+
+/** Limite por hora do negócio: o padrão, ou a maior cadência entre as campanhas em envio. */
+export function limiteDoNegocio(cadenciasEmEnvio: number[]): number {
+  return Math.max(LIMITE_POR_HORA, ...cadenciasEmEnvio);
+}
+
 function minutosLocais(agora: Date, tz: string): number {
   const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
     timeZone: tz, hourCycle: 'h23', hour: 'numeric', minute: 'numeric',
@@ -46,9 +59,11 @@ export function proximaAberturaDaJanela(agora: Date, tz: string): Date {
 
 type Ultimo = { em: Date; intervaloS: number } | null;
 
-export function podeEnviarAgora(a: { agora: Date; tz: string; ultimo: Ultimo; enviadosUltimaHora: number }): boolean {
+export function podeEnviarAgora(a: {
+  agora: Date; tz: string; ultimo: Ultimo; enviadosUltimaHora: number; limitePorHora?: number;
+}): boolean {
   if (!dentroDaJanela(a.agora, a.tz)) return false;
-  if (a.enviadosUltimaHora >= LIMITE_POR_HORA) return false;
+  if (a.enviadosUltimaHora >= (a.limitePorHora ?? LIMITE_POR_HORA)) return false;
   if (a.ultimo && a.agora.getTime() < a.ultimo.em.getTime() + a.ultimo.intervaloS * 1000) return false;
   return true;
 }
