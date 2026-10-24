@@ -17,7 +17,7 @@ vi.mock('@/lib/whatsappCampanhas', async (original) => ({ ...(await original<obj
 
 import { NovaCampanha } from '../campanhas/NovaCampanha';
 import {
-  agoraNoFuso, intervaloCampanha, nomeAutomatico, previsaoDuracao, somarDias,
+  agoraNoFuso, campanhaIdDoErro, intervaloCampanha, nomeAutomatico, previsaoDuracao, somarDias,
   type CampanhaDto, type PublicoDto,
 } from '@/lib/whatsappCampanhas';
 import { inserirVariavel } from '@/lib/inserirVariavel';
@@ -36,9 +36,13 @@ const camp = (o: Partial<CampanhaDto> = {}): CampanhaDto => ({
 
 const resposta = (total = 36, jaNaFila = 0) => ({ campanha: camp({ status: 'agendada', total }), jaNaFila });
 
-const erroComRascunho = () => new AxiosError('Request failed', 'ERR_BAD_REQUEST', undefined, undefined, {
-  status: 400, statusText: '', headers: {}, config: {} as never,
-  data: { success: false, message: 'Nenhuma cliente neste público', error: { code: 'VALIDATION_ERROR', message: 'Nenhuma cliente neste público', details: [{ campanhaId: 'abc' }] } },
+const erroCom = (data: unknown) => new AxiosError('Request failed', 'ERR_BAD_REQUEST', undefined, undefined, {
+  status: 400, statusText: '', headers: {}, config: {} as never, data,
+});
+// Forma que chega aos componentes depois do interceptor de `api` (error vira texto, details sobe para a raiz).
+const erroComRascunho = () => erroCom({
+  success: false, message: 'Nenhuma cliente neste público', error: 'Nenhuma cliente neste público',
+  errorCode: 'VALIDATION_ERROR', details: [{ campanhaId: 'abc' }],
 });
 
 const caixa = () => screen.getByLabelText('Texto da mensagem') as HTMLTextAreaElement;
@@ -61,6 +65,12 @@ describe('regras espelhadas', () => {
     expect([intervaloCampanha(60, () => 0), intervaloCampanha(60, () => 1)]).toEqual([45, 75]);
     expect([intervaloCampanha(25, () => 0), intervaloCampanha(25, () => 1)]).toEqual([108, 180]);
     expect([intervaloCampanha(10, () => 0), intervaloCampanha(10, () => 1)]).toEqual([270, 450]);
+  });
+  it('campanhaIdDoErro acha o id depois e antes do interceptor', () => {
+    expect(campanhaIdDoErro(erroComRascunho())).toBe('abc');
+    expect(campanhaIdDoErro(erroCom({ error: { code: 'VALIDATION_ERROR', message: 'x', details: [{ campanhaId: 'def' }] } }))).toBe('def');
+    expect(campanhaIdDoErro(erroCom({ error: 'x', details: ['texto'] }))).toBeNull();
+    expect(campanhaIdDoErro(new Error('x'))).toBeNull();
   });
   it('nomeAutomatico', () => {
     expect(nomeAutomatico('reativacao', '2026-10-21')).toBe('Reativação · 21/10');

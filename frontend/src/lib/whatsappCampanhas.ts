@@ -128,14 +128,19 @@ export function somarDias(ymd: string, dias: number): string {
   return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
 }
 
-/** Id do rascunho criado num agendamento que falhou (400 com error.details: [{ campanhaId }]). */
+/**
+ * Id do rascunho criado num agendamento que falhou (400 com details: [{ campanhaId }]).
+ * O interceptor de `api` move os details para `data.details`; sem ele ficam em `data.error.details`.
+ */
 export function campanhaIdDoErro(erro: unknown): string | null {
-  const data = (erro as { response?: { data?: { error?: { details?: unknown } } } } | null)?.response?.data;
-  const details = data?.error?.details;
-  if (!Array.isArray(details)) return null;
-  for (const d of details) {
-    if (d && typeof d === 'object' && typeof (d as { campanhaId?: unknown }).campanhaId === 'string') {
-      return (d as { campanhaId: string }).campanhaId;
+  const data = (erro as { response?: { data?: { details?: unknown; error?: unknown } } } | null)?.response?.data;
+  const doErro = data?.error && typeof data.error === 'object' ? (data.error as { details?: unknown }).details : undefined;
+  for (const details of [data?.details, doErro]) {
+    if (!Array.isArray(details)) continue;
+    for (const d of details) {
+      if (d && typeof d === 'object' && typeof (d as { campanhaId?: unknown }).campanhaId === 'string') {
+        return (d as { campanhaId: string }).campanhaId;
+      }
     }
   }
   return null;
