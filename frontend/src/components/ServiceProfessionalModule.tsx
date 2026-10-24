@@ -81,6 +81,8 @@ export const ServiceProfessionalModule = () => {
       breakEnd: data.breakEnd,
       commissionServicePct: data.commissionServicePct,
       commissionProductPct: data.commissionProductPct,
+      especialidade: data.especialidade,
+      cnpj: data.cnpj,
     };
     try {
       if (editingItem) {

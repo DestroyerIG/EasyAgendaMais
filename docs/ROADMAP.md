@@ -23,13 +23,13 @@ Atualizado em 24/10/2026.
 | 2C-2b | WhatsApp: Automações | ✅ Concluída | PR #7 |
 | 2C-2c | WhatsApp: Campanhas | ✅ Concluída | PR #8 |
 | 2D | Ajustes › Plano e cobrança, comparação e upgrade | ✅ Concluída | PR #9 |
-| **3** | **Relatórios e Comissões (Salão-Parceiro)** | 🔄 Em andamento | branch `feat/relatorios-comissoes` |
+| **3** | **Relatórios e Comissões (Salão-Parceiro)** | 🔄 Em revisão | branch `feat/relatorios-comissoes` |
 | 4 | Clube e pacotes | ⏳ A fazer | — |
 | 5 | App da profissional (PWA) | ⏳ A fazer | — |
 
 ## Próxima fase: 3
 
-Spec: `docs/superpowers/specs/2026-10-24-relatorios-comissoes-design.md`. Decisões do dono em 24/10:
+Spec: `docs/superpowers/specs/2026-10-24-relatorios-comissoes-design.md`. Plano: `docs/superpowers/plans/2026-10-24-relatorios-comissoes.md`. A implementação está na branch `feat/relatorios-comissoes`. A migração `20261025120000_relatorios_comissoes` ainda não foi aplicada em produção (ver `SEGUIMENTO.md`). Decisões do dono em 24/10:
 - O salão-parceiro entra só no plano Salão.
 - O repasse tem "Marcar como pago" e adiantamentos, e o Pix é feito por fora.
 - O período padrão é a quinzena.

@@ -203,3 +203,12 @@ CNPJ e especialidade entram no corpo que o cadastro de profissional já aceita.
 - **Volume:** a ocupação e a origem leem agendamentos de até um ano. As consultas usam os índices por `business_id` e data e agregam no banco quando dá. Se ficar lento, entra cache curto por negócio (fora do escopo agora).
 - **Fuso:** comanda fechada perto da meia-noite cai no dia do fuso do negócio, e não em UTC. Isso tem teste específico.
 - **Salão-parceiro é tema jurídico.** A tela não promete enquadramento. Ela mostra o aviso para confirmar com o contador.
+
+## Ajustes feitos na implementação
+- **Modelo de repasse num lugar só.** O seletor "Comissão tradicional | Salão-parceiro" fica no topo da tela de Comissões e grava no negócio. Ele não foi repetido em Ajustes, para não haver dois controles do mesmo valor.
+- **Comanda fechada não reabre hoje.** O status só vai de rascunho para fechada. O aviso "Diferença desde o pagamento" fica como proteção, para o caso de uma reabertura entrar no futuro.
+- **Ocupação e período:** o mapa usa o mesmo período da tela (padrão de 30 dias). Domingo só aparece se o negócio abre no domingo. Segunda fechada aparece como "Fechado", como no Stitch.
+- **Serviços e produtos na evolução:** o desconto da comanda é rateado entre serviços e produtos, na proporção de cada um, para a soma bater com o faturamento.
+- **Adiantamento para quem não teve comanda:** o modal lista todas as profissionais ativas, não só as da apuração. O desconto acontece no primeiro repasse com valor.
+- **Pagar sem comanda no período** é recusado ("Nenhuma comanda fechada desta profissional no período").
+
