@@ -7,6 +7,8 @@ interface ProfessionalWriteData {
   breakEnd?: string | null;
   commissionServicePct?: number | null;
   commissionProductPct?: number | null;
+  cnpj?: string | null;
+  especialidade?: string | null;
 }
 
 const toTime = (hhmm: string | null) => (hhmm ? new Date(`1970-01-01T${hhmm}:00Z`) : null);
@@ -33,6 +35,8 @@ export const professionalRepository = {
         breakEnd: toTime(data.breakEnd ?? null),
         commissionServicePct: data.commissionServicePct ?? null,
         commissionProductPct: data.commissionProductPct ?? null,
+        cnpj: data.cnpj ?? null,
+        especialidade: data.especialidade ?? null,
       },
     });
   },
@@ -47,6 +51,8 @@ export const professionalRepository = {
         ...(data.breakEnd !== undefined && { breakEnd: toTime(data.breakEnd) }),
         ...(data.commissionServicePct !== undefined && { commissionServicePct: data.commissionServicePct }),
         ...(data.commissionProductPct !== undefined && { commissionProductPct: data.commissionProductPct }),
+        ...(data.cnpj !== undefined && { cnpj: data.cnpj }),
+        ...(data.especialidade !== undefined && { especialidade: data.especialidade }),
       },
     });
     if (result.count === 0) return null;

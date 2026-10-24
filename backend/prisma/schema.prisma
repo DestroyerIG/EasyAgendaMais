@@ -103,6 +103,8 @@ model Business {
   whatsappRespostasPendentes WhatsappRespostaPendente[]
   whatsappCampanhas     WhatsappCampanha[]
 
+  repasses      Repasse[]
+  adiantamentos Adiantamento[]
   @@map("businesses")
 }
 
@@ -170,6 +172,8 @@ model Professional {
   active       Boolean  @default(true)
   commissionServicePct Decimal? @map("commission_service_pct") @db.Decimal(5, 2)
   commissionProductPct Decimal? @map("commission_product_pct") @db.Decimal(5, 2)
+  cnpj                 String?  @db.VarChar(20)
+  especialidade        String?  @db.VarChar(80)
   breakStart           DateTime? @map("break_start") @db.Time(6)
   breakEnd             DateTime? @map("break_end") @db.Time(6)
   createdAt    DateTime @default(now()) @map("created_at")
@@ -179,6 +183,8 @@ model Professional {
   appointments Appointment[]
   comandas     Comanda[]
   waitlistEntries WaitlistEntry[]
+  repasses     Repasse[]
+  adiantamentos Adiantamento[]
 
   @@map("professionals")
 }
@@ -483,6 +489,7 @@ model BusinessSettings {
   whatsappReminders        Boolean  @default(true) @map("whatsapp_reminders")
   commissionServicePct     Decimal  @default(0) @map("commission_service_pct") @db.Decimal(5, 2)
   commissionProductPct     Decimal  @default(0) @map("commission_product_pct") @db.Decimal(5, 2)
+  modeloRepasse            String   @default("comissao") @map("modelo_repasse") @db.VarChar(20)
   segment                  String   @default("outro") @db.VarChar(20)
   dailyRevenueGoal         Decimal? @map("daily_revenue_goal") @db.Decimal(10, 2)
   googleReviewUrl          String?  @map("google_review_url") @db.VarChar(500)
@@ -899,4 +906,66 @@ model WhatsappCampanha {
 
   @@index([businessId, createdAt(sort: Desc)])
   @@map("whatsapp_campanhas")
+}
+
+// ─── Repasses e adiantamentos das profissionais (sub-projeto 3) ─────────────
+
+model Repasse {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId       String   @map("business_id") @db.Uuid
+  professionalId   String   @map("professional_id") @db.Uuid
+  periodoInicio    DateTime @map("periodo_inicio") @db.Date
+  periodoFim       DateTime @map("periodo_fim") @db.Date
+  servicos         Decimal  @db.Decimal(10, 2)
+  produtos         Decimal  @db.Decimal(10, 2)
+  comissaoServico  Decimal  @map("comissao_servico") @db.Decimal(10, 2)
+  comissaoProduto  Decimal  @map("comissao_produto") @db.Decimal(10, 2)
+  gorjetas         Decimal  @db.Decimal(10, 2)
+  adiantamentos    Decimal  @db.Decimal(10, 2)
+  valorPago        Decimal  @map("valor_pago") @db.Decimal(10, 2)
+  modelo           String   @db.VarChar(20)
+  forma            String   @db.VarChar(20)
+  pagoEm           DateTime @default(now()) @map("pago_em") @db.Timestamptz(6)
+  pagoPor          String?  @map("pago_por") @db.Uuid
+  observacao       String?  @db.Text
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  business     Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  professional Professional          @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  abatimentos  RepasseAdiantamento[]
+
+  @@unique([businessId, professionalId, periodoInicio, periodoFim])
+  @@index([businessId, periodoFim])
+  @@map("repasses")
+}
+
+model Adiantamento {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId     String   @map("business_id") @db.Uuid
+  professionalId String   @map("professional_id") @db.Uuid
+  valor          Decimal  @db.Decimal(10, 2)
+  valorAbatido   Decimal  @default(0) @map("valor_abatido") @db.Decimal(10, 2)
+  data           DateTime @db.Date
+  descricao      String?  @db.VarChar(255)
+  createdBy      String?  @map("created_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  business     Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  professional Professional          @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  abatimentos  RepasseAdiantamento[]
+
+  @@index([businessId, professionalId, data])
+  @@map("adiantamentos")
+}
+
+model RepasseAdiantamento {
+  repasseId      String  @map("repasse_id") @db.Uuid
+  adiantamentoId String  @map("adiantamento_id") @db.Uuid
+  valor          Decimal @db.Decimal(10, 2)
+
+  repasse      Repasse      @relation(fields: [repasseId], references: [id], onDelete: Cascade)
+  adiantamento Adiantamento @relation(fields: [adiantamentoId], references: [id], onDelete: Cascade)
+
+  @@id([repasseId, adiantamentoId])
+  @@map("repasse_adiantamentos")
 }

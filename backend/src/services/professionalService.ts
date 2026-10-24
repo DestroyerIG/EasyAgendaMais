@@ -15,6 +15,8 @@ interface ProfessionalData {
   breakEnd?: string | null;
   commissionServicePct?: number | null;
   commissionProductPct?: number | null;
+  cnpj?: string | null;
+  especialidade?: string | null;
 }
 
 const hhmm = (t: Date | null) => (t ? t.toISOString().substring(11, 16) : null);
@@ -73,6 +75,8 @@ export const professionalService = {
       breakEnd: data.breakEnd,
       commissionServicePct: data.commissionServicePct,
       commissionProductPct: data.commissionProductPct,
+      cnpj: data.cnpj,
+      especialidade: data.especialidade,
     });
   },
 
