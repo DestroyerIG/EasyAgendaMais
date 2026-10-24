@@ -97,6 +97,7 @@ model Business {
   whatsappAvatares      WhatsappAvatar[]
   whatsappAutomacoes    WhatsappAutomacao[]
   whatsappRespostasPendentes WhatsappRespostaPendente[]
+  whatsappCampanhas     WhatsappCampanha[]
 
   @@map("businesses")
 }
@@ -824,6 +825,7 @@ model WhatsappEnvio {
   @@index([businessId, status, priority, scheduledFor])
   @@index([businessId, clientId, createdAt(sort: Desc)])
   @@index([businessId, sentAt(sort: Desc)])
+  @@index([businessId, batchId, status])
   @@map("whatsapp_envios")
 }
 
@@ -869,4 +871,26 @@ model WhatsappRespostaPendente {
 
   @@index([businessId, phoneKey])
   @@map("whatsapp_respostas_pendentes")
+}
+
+model WhatsappCampanha {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId     String   @map("business_id") @db.Uuid
+  nome           String   @db.VarChar(80)
+  segmento       String   @db.VarChar(20)
+  professionalId String?  @map("professional_id") @db.Uuid
+  serviceId      String?  @map("service_id") @db.Uuid
+  texto          String   @db.Text
+  inicioEm       DateTime @map("inicio_em") @db.Timestamptz(6)
+  cadencia       Int      @default(25) @db.SmallInt
+  status         String   @default("rascunho") @db.VarChar(12)
+  total          Int      @default(0)
+  createdBy      String?  @map("created_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, createdAt(sort: Desc)])
+  @@map("whatsapp_campanhas")
 }

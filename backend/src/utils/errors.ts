@@ -25,7 +25,7 @@ export class ValidationError extends AppError {
 }
 
 // Recursos de gênero feminino (pela primeira palavra): "Cliente não encontrada".
-const RECURSOS_FEMININOS = new Set(['Cliente', 'Etiqueta', 'Foto', 'Comanda', 'Notificação', 'Página', 'Inscrição', 'Profissional', 'Conta', 'Conversa']);
+const RECURSOS_FEMININOS = new Set(['Cliente', 'Etiqueta', 'Foto', 'Comanda', 'Notificação', 'Página', 'Inscrição', 'Profissional', 'Conta', 'Conversa', 'Campanha']);
 
 export class NotFoundError extends AppError {
   constructor(resource = 'Recurso') {

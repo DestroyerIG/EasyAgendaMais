@@ -5,6 +5,7 @@ import { Button, Field, Icon, Input, Modal } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { cn } from '@/lib/cn';
 import { getApiErrorMessage } from '@/utils/handleApiError';
+import { inserirVariavel } from '@/lib/inserirVariavel';
 import {
   atualizarRegra, EXEMPLO_VARIAVEIS, LIMITE_TEXTO_REGRA, ROTULO_REGRA,
   type ConfigRegras, type Regra, type RegraDto,
@@ -294,15 +295,14 @@ export function ConfigurarRegraModal({ regra, aberto, titulo, nomeNegocio = 'Seu
   const lembreteMudaPadrao = regra.regra === 'lembrete' && ehPadrao
     && (config as ConfigRegras['lembrete']).modo !== (regra.config as ConfigRegras['lembrete']).modo;
 
-  const inserirVariavel = (nome: string) => {
-    const token = `{${nome}}`;
+  const inserirNoCursor = (nome: string) => {
     const caixa = caixaRef.current;
     const inicio = caixa?.selectionStart ?? texto.length;
     const fim = caixa?.selectionEnd ?? inicio;
-    const novo = texto.slice(0, inicio) + token + texto.slice(fim);
-    if (novo.length > LIMITE_TEXTO_REGRA) return;
-    setTexto(novo);
-    const cursor = inicio + token.length;
+    const r = inserirVariavel(texto, inicio, fim, nome, LIMITE_TEXTO_REGRA);
+    if (!r) return;
+    setTexto(r.texto);
+    const { cursor } = r;
     requestAnimationFrame(() => {
       caixa?.focus();
       caixa?.setSelectionRange(cursor, cursor);
@@ -349,7 +349,7 @@ export function ConfigurarRegraModal({ regra, aberto, titulo, nomeNegocio = 'Seu
                   key={v}
                   type="button"
                   onMouseDown={(ev) => ev.preventDefault()}
-                  onClick={() => inserirVariavel(v)}
+                  onClick={() => inserirNoCursor(v)}
                   className="min-h-9 rounded-full bg-whatsapp/12 px-2.5 font-mono text-[12px] font-semibold text-whatsapp transition-colors hover:bg-whatsapp/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
                 >
                   {`{${v}}`}

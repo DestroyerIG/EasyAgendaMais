@@ -66,6 +66,7 @@ import whatsappRoutes from './modules/whatsapp/whatsapp.routes.js';
 import inboxRoutes from './modules/whatsappInbox/inbox.routes.js';
 import retornoRoutes from './modules/whatsappRetorno/retorno.routes.js';
 import automacoesRoutes from './modules/whatsappAutomacoes/automacoes.routes.js';
+import campanhasRoutes from './modules/whatsappCampanhas/campanhas.routes.js';
 
 // @ts-ignore
 import subscriptionRoutes from './modules/subscriptions/subscriptions.routes.js';
@@ -490,6 +491,11 @@ app.use(
 app.use(
   `${API_V1}/whatsapp/automacoes`,
   automacoesRoutes
+);
+
+app.use(
+  `${API_V1}/whatsapp/campanhas`,
+  campanhasRoutes
 );
 
 app.use(

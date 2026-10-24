@@ -19,3 +19,10 @@ describe('getApiErrorMessage', () => {
     expect(getApiErrorMessage(new AxiosError('Network Error'))).toBe('Erro de conexão. Verifique sua internet.');
   });
 });
+
+describe('getApiErrorMessage com details que não são texto', () => {
+  it('ignora objetos em error.details e usa a mensagem', () => {
+    const e = comResposta(400, { error: { code: 'VALIDATION_ERROR', message: 'Nenhuma cliente neste público', details: [{ campanhaId: 'abc' }] } });
+    expect(getApiErrorMessage(e)).toBe('Nenhuma cliente neste público');
+  });
+});

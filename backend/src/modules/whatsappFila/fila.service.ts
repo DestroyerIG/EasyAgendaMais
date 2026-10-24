@@ -7,17 +7,24 @@ import { getBusinessScheduleSettings } from '../../services/scheduleSettingsServ
 import { whatsappService } from '../whatsapp/whatsapp.service.js';
 import { inboxRecorder } from '../whatsappInbox/inbox.recorder.js';
 import type { Origem } from '../whatsappInbox/inbox.types.js';
-import { filaRepository as repo, type EnvioRow } from './fila.repository.js';
+import { filaRepository as repo, type EnvioRow, type NovoEnvio } from './fila.repository.js';
 import { respostasRepository } from '../whatsappAutomacoes/respostas.repository.js';
-import { PRIORIDADE_NORMAL, podeEnviarAgora, previsaoDeEnvio, sortearIntervalo } from './fila.rules.js';
+import {
+  LIMITE_POR_HORA, PRIORIDADE_NORMAL, intervaloCampanha, limiteDoNegocio, podeEnviarAgora, previsaoDeEnvio, sortearIntervalo,
+} from './fila.rules.js';
 
 export interface EnfileirarInput {
   businessId: string; clientId: string | null; phone: string; body: string; origin: Origem;
   agendadoPara?: Date; loteId?: string | null;
   prioridade?: number; appointmentId?: string | null;
 }
+/** Um lote (campanha) de uma vez: mesmo negócio, origem, lote, início e prioridade para todos os itens. */
+export interface LoteInput {
+  businessId: string; loteId: string; origin: Origem; agendadoPara: Date; prioridade: number;
+}
+export interface ItemDoLote { clientId: string; phone: string; body: string }
 export interface EnvioDto {
-  id: string; clientId: string | null; appointmentId: string | null;
+  id: string; clientId: string | null; appointmentId: string | null; loteId: string | null;
   status: 'na_fila' | 'enviando' | 'enviado' | 'falhou' | 'pulado' | 'cancelado';
   motivo: string | null; agendadoPara: string; enviadoEm: string | null;
   /** "HH:MM" no fuso do negócio; só preenchido pela listagem da Hora de voltar. */
@@ -37,6 +44,7 @@ export const MOTIVO_SEM_AGENDAMENTO = 'Agendamento não encontrado';
 export const MOTIVO_CONFIRMACAO_FORA_VESPERA = 'Confirmação fora da véspera';
 export const MOTIVO_LEMBRETE_FORA_VESPERA = 'Lembrete fora da véspera';
 export const MOTIVO_FALHA = 'O WhatsApp não aceitou o envio';
+export const MOTIVO_CAMPANHA_CANCELADA = 'Campanha cancelada';
 
 const HORA_MS = 3_600_000;
 const RESERVA_MAX_MS = 10 * 60_000;
@@ -55,6 +63,7 @@ const paraDto = (r: EnvioRow): EnvioDto => ({
   id: r.id,
   clientId: r.clientId,
   appointmentId: r.appointmentId,
+  loteId: r.batchId,
   status: r.status as EnvioDto['status'],
   motivo: r.reason,
   agendadoPara: r.scheduledFor.toISOString(),
@@ -66,12 +75,36 @@ type Resultado = 'enviado' | 'pulado' | 'falhou' | 'nada';
 
 async function processarNegocio(businessId: string, agora: Date): Promise<Resultado> {
   const { timezone } = await getBusinessScheduleSettings(businessId);
-  const [ultimo, enviadosUltimaHora] = await Promise.all([
+  const umaHoraAtras = new Date(agora.getTime() - HORA_MS);
+  // Falha nas consultas das campanhas (inclusive tabela ainda sem migração) não para a fila:
+  // as campanhas ficam de fora nesta rodada e o resto segue com o limite padrão.
+  let semCampanhas = false;
+  const falhaCampanhas = (err: unknown) => {
+    semCampanhas = true;
+    logger.warn({ err, businessId }, 'fila: consulta das campanhas falhou; campanhas ficam de fora nesta rodada');
+  };
+  const [ultimo, enviadosUltimaHora, emEnvioLido] = await Promise.all([
     repo.ultimoEnviado(businessId),
-    repo.contarEnviadosDesde(businessId, new Date(agora.getTime() - HORA_MS)),
+    repo.contarEnviadosDesde(businessId, umaHoraAtras),
+    repo.cadenciasEmEnvio(businessId, agora).catch((err: unknown) => { falhaCampanhas(err); return []; }),
   ]);
+  let emEnvio = emEnvioLido;
+
+  // Lotes (campanhas) que já bateram a própria cadência na última hora esperam; o resto da fila segue.
+  const excluirLotes: string[] = [];
+  if (emEnvio.length) {
+    try {
+      const porLote = await repo.contarEnviadosDoLoteDesde(businessId, emEnvio.map((c) => c.id), umaHoraAtras);
+      for (const c of emEnvio) if ((porLote.get(c.id) ?? 0) >= c.cadencia) excluirLotes.push(c.id);
+    } catch (err) {
+      falhaCampanhas(err);
+      emEnvio = [];
+    }
+  }
+
   const pode = podeEnviarAgora({
     agora, tz: timezone, enviadosUltimaHora,
+    limitePorHora: semCampanhas ? LIMITE_POR_HORA : limiteDoNegocio(emEnvio.map((c) => c.cadencia)),
     ultimo: ultimo ? { em: ultimo.sentAt, intervaloS: ultimo.intervalAfterS } : null,
   });
   if (!pode) return 'nada';
@@ -80,7 +113,8 @@ async function processarNegocio(businessId: string, agora: Date): Promise<Result
   const conexao = await whatsappService.getStatus(businessId);
   if (conexao?.status !== 'connected') return 'nada';
 
-  const item = await repo.proximoVencido(businessId, agora);
+  const cadenciaDoLote = new Map(emEnvio.map((c) => [c.id, c.cadencia]));
+  const item = await repo.proximoVencido(businessId, agora, semCampanhas ? [] : excluirLotes, { semCampanhas });
   if (!item) return 'nada';
   if (!(await repo.reservar(businessId, item.id, agora))) return 'nada';
 
@@ -92,8 +126,12 @@ async function processarNegocio(businessId: string, agora: Date): Promise<Result
   // Nada foi enviado ainda: se uma checagem lançar, devolve a linha para a fila.
   let decisao: Resultado | null = null;
   try {
-    if (!canonicalizePhone(item.phone)) decisao = await pular(MOTIVO_TELEFONE);
-    else if (await inboxRecorder.estaEmOptOut(businessId, item.phone)) decisao = await pular(MOTIVO_OPT_OUT);
+    // Item de campanha cujo lote não está em envio: a campanha foi cancelada (ou voltou a rascunho) depois
+    // que o item entrou. Item vencido e pendente de campanha agendada já iniciada sempre aparece em emEnvio.
+    if (item.origin === 'campanha' && item.batchId && !cadenciaDoLote.has(item.batchId)) decisao = await pular(MOTIVO_CAMPANHA_CANCELADA);
+    else if (!canonicalizePhone(item.phone)) decisao = await pular(MOTIVO_TELEFONE);
+    // Versão estrita: se não der para ler o SAIR, lança e o item volta para a fila (nunca envia às cegas).
+    else if (await inboxRecorder.estaEmOptOutOuFalha(businessId, item.phone)) decisao = await pular(MOTIVO_OPT_OUT);
     else if (item.clientId && await repo.consentimentoRevogado(businessId, item.clientId)) decisao = await pular(MOTIVO_REVOGADO);
     else if (item.origin === 'retorno') {
       const hoje = todayInTimezone(timezone, agora);
@@ -143,7 +181,10 @@ async function processarNegocio(businessId: string, agora: Date): Promise<Result
     }
     return 'falhou';
   }
-  await repo.atualizar(businessId, item.id, { status: 'enviado', sentAt: new Date(), intervalAfterS: sortearIntervalo() });
+  // Item de campanha em envio: o intervalo segue a cadência escolhida; o resto mantém 45–90 s.
+  const cadencia = item.origin === 'campanha' && item.batchId ? cadenciaDoLote.get(item.batchId) : undefined;
+  const intervalAfterS = cadencia ? intervaloCampanha(cadencia) : sortearIntervalo();
+  await repo.atualizar(businessId, item.id, { status: 'enviado', sentAt: new Date(), intervalAfterS });
   if ((item.origin === 'confirmacao' || item.origin === 'avaliacao') && item.appointmentId && item.phoneKey) {
     try {
       await respostasRepository.registrar({
@@ -182,6 +223,33 @@ export const filaEnvios = {
       }
     }
     return saida;
+  },
+
+  /**
+   * Lote de campanha em massa: um prefetch de quem já está ativa na fila com a mesma origem, um createMany
+   * (ON CONFLICT DO NOTHING cobre a corrida com o índice único parcial) e uma leitura do lote.
+   * Devolve só os itens ativos deste lote; quem ficou de fora já estava na fila de outro.
+   */
+  async enfileirarLote(lote: LoteInput, itens: ItemDoLote[]): Promise<EnvioDto[]> {
+    const ativas = await repo.clientesAtivosDaOrigem(lote.businessId, lote.origin);
+    // created_at explícito e crescente: num INSERT só todas teriam o mesmo, e a fila desempata por ele.
+    const base = Date.now();
+    const vistas = new Set<string>();
+    // `createdAt` cresce 1 ms por linha para fixar a ordem de saída; as últimas ficam alguns segundos
+    // no futuro, então não filtrar envios por `createdAt <= agora`.
+    const linhas: Array<NovoEnvio & { createdAt: Date }> = [];
+    for (const i of itens) {
+      if (ativas.has(i.clientId) || vistas.has(i.clientId)) continue;
+      vistas.add(i.clientId);
+      linhas.push({
+        businessId: lote.businessId, clientId: i.clientId, phone: i.phone, phoneKey: canonicalizePhone(i.phone),
+        body: i.body, origin: lote.origin, scheduledFor: lote.agendadoPara, batchId: lote.loteId,
+        priority: lote.prioridade, appointmentId: null, createdAt: new Date(base + linhas.length),
+      });
+    }
+    if (!linhas.length) return [];
+    await repo.criarVarios(linhas);
+    return (await repo.ativosDoLote(lote.businessId, lote.loteId)).map(paraDto);
   },
 
   /** Um envio por negócio a cada chamada (a rotina roda a cada minuto). */

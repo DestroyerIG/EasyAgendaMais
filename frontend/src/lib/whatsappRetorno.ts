@@ -3,7 +3,7 @@ import api from '@/lib/api';
 export interface Encaixe { inicio: string; curto: string; longo: string }
 
 export interface EnvioDto {
-  id: string; clientId: string | null;
+  id: string; clientId: string | null; loteId: string | null;
   status: 'na_fila' | 'enviando' | 'enviado' | 'falhou' | 'pulado' | 'cancelado';
   motivo: string | null; agendadoPara: string; enviadoEm: string | null;
   /** "HH:MM" no fuso do negócio, calculado pelo servidor para quem está na fila. */

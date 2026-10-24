@@ -263,4 +263,18 @@ describe('proximasVagas', () => {
     expect(longas.every((v) => v.data !== '2026-10-14')).toBe(true);
     expect(longas[0]).toEqual({ data: '2026-10-15', inicio: '09:00', profissional: 'Camila', professionalId: 'p1' });
   });
+
+  it('aPartirDe corta as vagas antes do instante dado (no mesmo dia e em dias seguintes)', async () => {
+    const mesmoDia = await proximasVagas('b1', AGORA, 2, { aPartirDe: new Date('2026-10-14T11:30:00-03:00') });
+    expect(mesmoDia.map((v) => [v.data, v.inicio])).toEqual([['2026-10-14', '11:30'], ['2026-10-15', '09:00']]);
+    const outroDia = await proximasVagas('b1', AGORA, 2, { aPartirDe: new Date('2026-10-15T10:00:00-03:00') });
+    expect(outroDia.map((v) => [v.data, v.inicio])).toEqual([['2026-10-15', '10:00'], ['2026-10-16', '09:00']]);
+    // Depois da semana carregada: nenhuma vaga.
+    expect(await proximasVagas('b1', AGORA, 2, { aPartirDe: new Date('2026-10-22T10:00:00-03:00') })).toEqual([]);
+  });
+
+  it('aPartirDe anterior a agora não muda nada', async () => {
+    const sem = await proximasVagas('b1', AGORA, 3);
+    expect(await proximasVagas('b1', AGORA, 3, { aPartirDe: new Date('2026-10-13T10:00:00-03:00') })).toEqual(sem);
+  });
 });

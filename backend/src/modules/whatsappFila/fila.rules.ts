@@ -15,6 +15,20 @@ export function sortearIntervalo(rand: () => number = Math.random): number {
   return INTERVALO_MIN_S + Math.floor(rand() * (INTERVALO_MAX_S - INTERVALO_MIN_S + 1));
 }
 
+/**
+ * Intervalo depois de um item de campanha: em média 3600 / cadência segundos (±25%), nunca abaixo de 45 s.
+ * 10/h → 270–450 s; 25/h → 108–180 s; 60/h → 45–75 s. Cadência inválida (<= 0) vale como a padrão.
+ */
+export function intervaloCampanha(cadencia: number, rand: () => number = Math.random): number {
+  const porHora = cadencia > 0 ? cadencia : LIMITE_POR_HORA;
+  return Math.max(INTERVALO_MIN_S, Math.round((3600 / porHora) * (0.75 + 0.5 * rand())));
+}
+
+/** Limite por hora do negócio: o padrão, ou a maior cadência entre as campanhas em envio. */
+export function limiteDoNegocio(cadenciasEmEnvio: number[]): number {
+  return Math.max(LIMITE_POR_HORA, ...cadenciasEmEnvio);
+}
+
 function minutosLocais(agora: Date, tz: string): number {
   const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
     timeZone: tz, hourCycle: 'h23', hour: 'numeric', minute: 'numeric',
@@ -46,19 +60,22 @@ export function proximaAberturaDaJanela(agora: Date, tz: string): Date {
 
 type Ultimo = { em: Date; intervaloS: number } | null;
 
-export function podeEnviarAgora(a: { agora: Date; tz: string; ultimo: Ultimo; enviadosUltimaHora: number }): boolean {
+export function podeEnviarAgora(a: {
+  agora: Date; tz: string; ultimo: Ultimo; enviadosUltimaHora: number; limitePorHora?: number;
+}): boolean {
   if (!dentroDaJanela(a.agora, a.tz)) return false;
-  if (a.enviadosUltimaHora >= LIMITE_POR_HORA) return false;
+  if (a.enviadosUltimaHora >= (a.limitePorHora ?? LIMITE_POR_HORA)) return false;
   if (a.ultimo && a.agora.getTime() < a.ultimo.em.getTime() + a.ultimo.intervaloS * 1000) return false;
   return true;
 }
 
 /**
- * Estimativa de quando a posição `posicao` (0 = próxima) sai: 75 s por posição, só dentro da janela.
- * Em cada dia cabem as posições cujo horário (início + 75 s × índice) ainda é anterior ao fim da janela;
- * as que sobram seguem para o próximo dia a partir das 08:00.
+ * Estimativa de quando a posição `posicao` (0 = próxima) sai: `intervaloS` por posição (padrão 75 s), só dentro
+ * da janela. Em cada dia cabem as posições cujo horário (início + intervalo × índice) ainda é anterior ao fim
+ * da janela; as que sobram seguem para o próximo dia a partir das 08:00.
  */
-export function previsaoDeEnvio(a: { agora: Date; tz: string; posicao: number; ultimo: Ultimo }): Date {
+export function previsaoDeEnvio(a: { agora: Date; tz: string; posicao: number; ultimo: Ultimo; intervaloS?: number }): Date {
+  const passoS = a.intervaloS && a.intervaloS > 0 ? a.intervaloS : MEDIA_POR_POSICAO_S;
   let inicio = a.agora;
   if (a.ultimo) inicio = new Date(Math.max(inicio.getTime(), a.ultimo.em.getTime() + a.ultimo.intervaloS * 1000));
   let restantes = a.posicao;
@@ -66,8 +83,8 @@ export function previsaoDeEnvio(a: { agora: Date; tz: string; posicao: number; u
     inicio = proximaAberturaDaJanela(inicio, a.tz);
     const fimDaJanela = zonedToUtc(todayInTimezone(a.tz, inicio), JANELA_FIM, a.tz);
     const sobraS = (fimDaJanela.getTime() - inicio.getTime()) / 1000;
-    const cabem = Math.ceil(sobraS / MEDIA_POR_POSICAO_S);
-    if (restantes < cabem) return new Date(inicio.getTime() + restantes * MEDIA_POR_POSICAO_S * 1000);
+    const cabem = Math.ceil(sobraS / passoS);
+    if (restantes < cabem) return new Date(inicio.getTime() + restantes * passoS * 1000);
     restantes -= cabem;
     inicio = fimDaJanela;
   }

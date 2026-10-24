@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   sortearIntervalo, dentroDaJanela, proximaAberturaDaJanela, podeEnviarAgora, previsaoDeEnvio,
+  intervaloCampanha, limiteDoNegocio,
 } from '../modules/whatsappFila/fila.rules.js';
 
 const TZ = 'America/Sao_Paulo';
@@ -50,6 +51,31 @@ describe('podeEnviarAgora', () => {
   it('fora da janela', () => {
     expect(podeEnviarAgora({ agora: d('2026-10-20T23:30:00Z'), tz: TZ, ultimo: null, enviadosUltimaHora: 0 })).toBe(false);
   });
+  it('limite do negócio maior quando há campanha de 60/h em envio', () => {
+    expect(podeEnviarAgora({ agora, tz: TZ, ultimo: null, enviadosUltimaHora: 30, limitePorHora: 60 })).toBe(true);
+    expect(podeEnviarAgora({ agora, tz: TZ, ultimo: null, enviadosUltimaHora: 30 })).toBe(false);
+  });
+});
+
+describe('intervaloCampanha', () => {
+  it('3600 / cadência × (0,75 a 1,25), nunca abaixo de 45 s', () => {
+    expect(intervaloCampanha(25, () => 0)).toBe(108);
+    expect(intervaloCampanha(25, () => 1)).toBe(180);
+    expect(intervaloCampanha(60, () => 0)).toBe(45);
+    expect(intervaloCampanha(10, () => 0.5)).toBe(360);
+  });
+  it('cadência inválida (<= 0) usa a padrão de 25/h', () => {
+    expect(intervaloCampanha(0, () => 0)).toBe(108);
+    expect(intervaloCampanha(-5, () => 1)).toBe(180);
+  });
+});
+
+describe('limiteDoNegocio', () => {
+  it('máximo entre 25 e as cadências em envio', () => {
+    expect(limiteDoNegocio([])).toBe(25);
+    expect(limiteDoNegocio([10])).toBe(25);
+    expect(limiteDoNegocio([60, 10])).toBe(60);
+  });
 });
 
 describe('previsaoDeEnvio', () => {
@@ -74,5 +100,12 @@ describe('previsaoDeEnvio', () => {
     expect(previsaoDeEnvio({ agora: base, tz: TZ, posicao: 1, ultimo: null }).toISOString()).toBe('2026-10-20T22:59:15.000Z');
     expect(previsaoDeEnvio({ agora: base, tz: TZ, posicao: 2, ultimo: null }).toISOString()).toBe('2026-10-21T11:00:00.000Z');
     expect(previsaoDeEnvio({ agora: base, tz: TZ, posicao: 3, ultimo: null }).toISOString()).toBe('2026-10-21T11:01:15.000Z');
+  });
+  it('intervaloS troca os 75 s por posição (cadência de campanha) e continua respeitando a janela', () => {
+    const inicio = new Date('2026-10-21T13:00:00Z'); // 10:00 local
+    // 25/h = 144 s: posição 50 sai 2 h depois.
+    expect(previsaoDeEnvio({ agora: inicio, tz: TZ, posicao: 50, ultimo: null, intervaloS: 144 }).toISOString()).toBe('2026-10-21T15:00:00.000Z');
+    // 10/h = 360 s: das 10:00 às 20:00 cabem 100; a posição 100 vai para 08:00 do dia seguinte.
+    expect(previsaoDeEnvio({ agora: inicio, tz: TZ, posicao: 100, ultimo: null, intervaloS: 360 }).toISOString()).toBe('2026-10-22T11:00:00.000Z');
   });
 });
