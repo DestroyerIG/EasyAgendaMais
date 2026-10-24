@@ -54,6 +54,12 @@ const RECURSOS_EXCLUSIVOS: Record<string, RecursoExclusivo> = {
     texto: (a, p) => `Você tentou exportar dados do painel. Faça upgrade do plano ${a} para o ${p} para liberar a exportação e os relatórios.`,
     plano: (a) => (nivelPlano(a) < 1 ? 'profissional' : null),
   },
+  salao_parceiro: {
+    icone: 'handshake',
+    titulo: (p) => `Salão-parceiro faz parte do plano ${p}`,
+    texto: (a, p) => `Você tentou ativar o modo salão-parceiro nas comissões. Faça upgrade do plano ${a} para o ${p} para apurar a cota-parte do salão e das profissionais, conforme a Lei 13.352.`,
+    plano: (a) => (nivelPlano(a) < 2 ? 'premium' : null),
+  },
   profissionais: {
     icone: 'group_add',
     titulo: (p) => `Mais profissionais no plano ${p}`,
@@ -359,11 +365,10 @@ function CompararPlanos() {
         <div className="space-y-1">
           <h3 className="flex flex-wrap items-center gap-2 text-lg font-bold text-ink">
             Segurança jurídica para o Salão-parceiro
-            <span className="rounded-full bg-tertiary-container px-2 py-0.5 text-[12px] font-bold text-ink">Em breve</span>
           </h3>
           <p className="text-[14px] text-muted">
-            No plano Salão, o EasyAgenda+ vai gerar os recibos com a cota-parte do salão e da profissional, conforme a Lei
-            13.352 (Salão-parceiro).
+            No plano Salão, as comissões mostram a cota-parte do salão e da profissional, com o CNPJ do MEI e o comprovante de
+            cada repasse, conforme a Lei 13.352 (Salão-parceiro).
           </p>
         </div>
       </section>

@@ -1,6 +1,12 @@
 import { z } from 'zod';
+import { isValidCnpj, normalizeDocumentDigits } from '../../utils/cpfCnpj.js';
 
 const horaHHMM = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use o formato HH:MM');
+// CNPJ (MEI) da profissional, para o salão-parceiro. Vazio vira null; guarda só os dígitos.
+const cnpj = z.preprocess(
+  (v) => (v === undefined ? undefined : normalizeDocumentDigits(v) || null),
+  z.string().refine(isValidCnpj, 'CNPJ inválido').nullable().optional(),
+);
 const percentual = z.number().min(0, 'Mínimo 0%').max(100, 'Máximo 100%');
 
 const baseProfessional = z.object({
@@ -10,6 +16,8 @@ const baseProfessional = z.object({
   breakEnd: horaHHMM.nullable().optional(),
   commissionServicePct: percentual.nullable().optional(),
   commissionProductPct: percentual.nullable().optional(),
+  cnpj,
+  especialidade: z.preprocess((v) => (typeof v === 'string' ? v.trim() || null : v), z.string().max(80).nullable().optional()),
 });
 
 const intervaloValido = (d: { breakStart?: string | null; breakEnd?: string | null }) => {

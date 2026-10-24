@@ -43,6 +43,24 @@ describe('ServiceProfessionalModal (profissional)', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('bloqueia CNPJ inválido e envia o válido só com dígitos, com a especialidade', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    renderModal(onSubmit);
+    await user.type(screen.getByLabelText('Nome do Profissional'), 'Camila');
+    await user.type(screen.getByLabelText('Especialidade (opcional)'), 'Nail designer');
+    const cnpj = screen.getByLabelText('CNPJ do MEI (opcional)');
+    await user.type(cnpj, '11111111111111');
+    await user.click(screen.getByRole('button', { name: /salvar/i }));
+    expect(await screen.findByText('CNPJ inválido')).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+    await user.clear(cnpj);
+    await user.type(cnpj, '11222333000181');
+    expect(cnpj).toHaveValue('11.222.333/0001-81');
+    await user.click(screen.getByRole('button', { name: /salvar/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ cnpj: '11222333000181', especialidade: 'Nail designer' })));
+  });
+
   it('envia intervalo e comissão própria da profissional', async () => {
     const user = userEvent.setup();
     const onSubmitProfessional = vi.fn().mockResolvedValue(undefined);

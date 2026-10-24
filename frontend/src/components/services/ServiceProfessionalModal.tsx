@@ -6,6 +6,7 @@ import { Scissors, Camera, Save, X, Loader2 } from 'lucide-react';
 import type { Service, Professional } from '@/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/Toast';
+import { isValidCnpj } from '@/utils/cpfCnpj';
 
 export interface ServiceFormData {
   name: string;
@@ -21,6 +22,8 @@ export interface ProfessionalFormData {
   breakEnd: string | null;
   commissionServicePct: number | null;
   commissionProductPct: number | null;
+  especialidade: string | null;
+  cnpj: string | null;
 }
 
 // Estado do formulário: os campos novos ficam como texto até o envio.
@@ -31,10 +34,22 @@ interface ProfessionalFormState {
   breakEnd: string;
   commissionServicePct: string;
   commissionProductPct: string;
+  especialidade: string;
+  cnpj: string;
 }
 
 const EMPTY_PROFESSIONAL: ProfessionalFormState = {
-  name: '', photo: '', breakStart: '', breakEnd: '', commissionServicePct: '', commissionProductPct: '',
+  name: '', photo: '', breakStart: '', breakEnd: '', commissionServicePct: '', commissionProductPct: '', especialidade: '', cnpj: '',
+};
+
+// Máscara 00.000.000/0000-00 enquanto digita.
+const mascaraCnpj = (v: string) => {
+  const d = v.replace(/\D/g, '').slice(0, 14);
+  return d
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2');
 };
 
 const pctOuNull = (v: string) => (v.trim() === '' || Number.isNaN(parseFloat(v)) ? null : parseFloat(v));
@@ -93,6 +108,8 @@ export const ServiceProfessionalModal = ({
           breakEnd: prof.breakEnd ?? '',
           commissionServicePct: prof.commissionServicePct != null ? String(prof.commissionServicePct) : '',
           commissionProductPct: prof.commissionProductPct != null ? String(prof.commissionProductPct) : '',
+          especialidade: prof.especialidade ?? '',
+          cnpj: prof.cnpj ? mascaraCnpj(prof.cnpj) : '',
         });
         setPhotoPreview(existingPhoto);
       } else {
@@ -164,6 +181,10 @@ export const ServiceProfessionalModal = ({
         showToast('Comissão deve ficar entre 0% e 100%', 'error');
         return;
       }
+      if (professionalForm.cnpj.trim() && !isValidCnpj(professionalForm.cnpj)) {
+        showToast('CNPJ inválido', 'error');
+        return;
+      }
     }
     setSubmitting(true);
     try {
@@ -189,6 +210,8 @@ export const ServiceProfessionalModal = ({
           breakEnd: professionalForm.breakEnd || null,
           commissionServicePct: pctOuNull(professionalForm.commissionServicePct),
           commissionProductPct: pctOuNull(professionalForm.commissionProductPct),
+          especialidade: professionalForm.especialidade.trim() || null,
+          cnpj: professionalForm.cnpj.replace(/\D/g, '') || null,
         });
       }
       onClose();
@@ -280,6 +303,17 @@ export const ServiceProfessionalModal = ({
                 value={professionalForm.name}
                 onChange={e => setProfessionalForm({ ...professionalForm, name: e.target.value })}
                 placeholder="Ex: Gabriel Souza"
+              />
+            </Field>
+
+            <Field id="professional-especialidade" label="Especialidade (opcional)">
+              <Input
+                id="professional-especialidade"
+                type="text"
+                maxLength={80}
+                value={professionalForm.especialidade}
+                onChange={e => setProfessionalForm({ ...professionalForm, especialidade: e.target.value })}
+                placeholder="Ex: Nail designer"
               />
             </Field>
 
@@ -390,6 +424,16 @@ export const ServiceProfessionalModal = ({
               </div>
               <p className="text-[13px] text-muted">Deixe em branco para usar a comissão padrão de Ajustes</p>
             </fieldset>
+
+            <Field id="professional-cnpj" label="CNPJ do MEI (opcional)" hint="Usado no salão-parceiro e no comprovante de repasse">
+              <Input
+                id="professional-cnpj"
+                inputMode="numeric"
+                value={professionalForm.cnpj}
+                onChange={e => setProfessionalForm({ ...professionalForm, cnpj: mascaraCnpj(e.target.value) })}
+                placeholder="00.000.000/0000-00"
+              />
+            </Field>
           </>
         )}
       </form>

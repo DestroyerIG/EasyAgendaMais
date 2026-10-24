@@ -9,6 +9,7 @@ export type FeatureKey =
   | 'finance'
   | 'reports'
   | 'exports'
+  | 'salao_parceiro'
   | 'whatsapp_automation'
   | 'advanced_admin'
   | 'billing'
@@ -46,6 +47,7 @@ const FEATURE_REQUIREMENTS: Record<FeatureKey, PlanId> = {
   finance: 'basico',
   reports: 'profissional',
   exports: 'profissional',
+  salao_parceiro: 'premium',
   whatsapp_automation: 'basico',
   advanced_admin: 'basico',
   billing: 'basico',

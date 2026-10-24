@@ -1,11 +1,22 @@
-import { EmBreve } from '@/components/shell/EmBreve';
+'use client';
+
+import { FeatureGate } from '@/components/billing/FeatureGate';
+import { RelatoriosModule } from '@/components/relatorios/RelatoriosModule';
+import { RelatoriosTabs } from '@/components/relatorios/RelatoriosTabs';
+import { useDashboardBilling } from '@/hooks/useDashboardBilling';
 
 export default function RelatoriosPage() {
+  const { access, goToPlans, openBillingPortal } = useDashboardBilling();
+
   return (
-    <EmBreve
-      icon="bar_chart"
-      titulo="Relatórios"
-      descricao="Relatórios de faturamento, ocupação e desempenho da equipe chegam em breve."
-    />
+    <FeatureGate
+      access={access.evaluate('reports')}
+      onUpgrade={goToPlans}
+      onManageBilling={openBillingPortal}
+      title="Relatórios indisponíveis"
+    >
+      <RelatoriosTabs />
+      <RelatoriosModule />
+    </FeatureGate>
   );
 }

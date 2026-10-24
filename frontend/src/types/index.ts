@@ -83,6 +83,8 @@ export interface Professional {
     breakEnd?: string | null;
     commissionServicePct?: number | null;
     commissionProductPct?: number | null;
+    especialidade?: string | null;
+    cnpj?: string | null;
 }
 
 export interface FinanceSummary {
