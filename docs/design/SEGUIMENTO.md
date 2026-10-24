@@ -82,12 +82,19 @@ Sub-projeto 2C-2b (WhatsApp: Automações), pendências conhecidas:
 - Minors parados nas revisões: `notaAvaliacao` aceita "+5" e "-5"; uma linha curta cuja variável ficou vazia some inteira; `expiresAt` da espera de resposta usa `Date.now()`; faltam testes de erro em `agendamentoParaEnvio`, de virada de dia, de `toleranciaMin` customizado no agendamento público e de integração do SQL das métricas; a taxa de resposta é exibida sem casa decimal.
 
 Sub-projeto 2C-2c (WhatsApp: Campanhas), pendências conhecidas:
-- **Migração `20261023120000_whatsapp_campanhas` PENDENTE de aplicação em produção.** Ela cria `whatsapp_campanhas` (com RLS) e o índice `whatsapp_envios (business_id, batch_id, status)`. A fila consulta `whatsapp_campanhas` a cada rodada, então o código não pode subir antes da migração. Aplicar primeiro, com autorização do dono.
+- **Migração `20261023120000_whatsapp_campanhas` PENDENTE de aplicação em produção.** Ela cria `whatsapp_campanhas` (com RLS) e o índice `whatsapp_envios (business_id, lote_id, status)` (no Prisma o campo é `batchId`, mapeado para a coluna `lote_id`). Aplicar com autorização do dono. Se o código subir antes, a fila não para: a consulta das campanhas falha, os itens de campanha ficam de fora daquela rodada (com aviso no log) e confirmações, lembretes e Hora de voltar seguem com o limite padrão de 25/h. As telas de Campanhas dão erro até a migração.
 - Uma campanha agendada que entra em envio sobe o limite do negócio para a cadência dela (até 60/h) enquanto tiver itens pendentes, inclusive para lembretes e confirmações. Depois de um item de campanha de 10/h, o próximo envio do negócio (mesmo um lembrete) espera de 270 a 450 s.
 - Duas clientes com o mesmo telefone contam e recebem duas vezes (o público não deduplica por telefone).
-- Um cancelamento feito no exato instante do agendamento pode deixar itens na fila de uma campanha cancelada (janela de milissegundos). Dois POSTs simultâneos de uma campanha nova podem criar duas campanhas que dividem o público.
+- Cancelamento: o status da campanha e os itens da fila mudam na mesma transação, e a fila pula ("Campanha cancelada") qualquer item de campanha cujo lote não está em envio. Um item que estava saindo no instante do cancelamento e voltou para a fila (checagem falhou) também é pulado no tick seguinte. Fica só o item que já estava reservado e cujas checagens passaram: esse sai.
+- Dois POSTs simultâneos de uma campanha nova podem criar duas campanhas que dividem o público.
+- `{horarios_livres}` (corrigido): cada cliente recebe horários a partir da própria previsão de chegada + 2 h (início + posição × 3600 / cadência, dentro da janela de envio, arredondado para cima até :00/:30). A semana é carregada uma vez a partir do início; quem sai tarde pode ficar com menos horários ou nenhum (a linha some). Os dois horários vêm juntos com " ou ".
 - A tela usa o fuso America/Sao_Paulo para "hoje" e para os horários; o backend valida no fuso do negócio.
-- Minors parados nas revisões: o modal de detalhes não tem "Tentar de novo"; o indicador de passos é heurístico; faltam testes de `opcoes` (precisa de banco) e dos argumentos passados a `vagasDaSemana`.
+- A cadência de 60/h rende cerca de 40/h na prática: a rotina roda a cada minuto e manda 1 por negócio por rodada, e o intervalo de 45–75 s faz várias rodadas caírem sem envio.
+- Itens de campanha não vencem: se o WhatsApp ficar desconectado por dias, a campanha sai inteira quando reconectar (e os horários livres do texto podem já ter passado).
+- Cada prévia do público recalcula o público inteiro (CRM, visitas, opt-outs e agenda da semana).
+- O modal de detalhes carrega todos os itens do lote, sem paginação.
+- O rótulo "Agendar" pode mostrar por um instante a contagem antiga enquanto a prévia recarrega.
+- Minors parados nas revisões: o modal de detalhes não tem "Tentar de novo"; o indicador de passos é heurístico; falta teste de `opcoes` (precisa de banco).
 
 ## Melhorias técnicas pequenas
 
@@ -142,7 +149,7 @@ Sub-projeto 2C-2c (WhatsApp: Campanhas), pendências conhecidas:
     - O texto legado do lembrete passa por `renderizarTexto` (apara espaços e junta quebras de linha repetidas).
 
 - Sub-projeto 2C-2c: aba "Campanhas" do WhatsApp. Migração `20261023120000_whatsapp_campanhas`, **pendente de aplicação em produção** (ver pendências acima). Entrou:
-  - Backend `backend/src/modules/whatsappCampanhas/`: público por segmento (em risco, reativação, aniversariantes, VIPs, todas) com filtro de profissional e de último serviço, prévia real, salvar rascunho, agendar, cancelar, listar e detalhar. Cada cliente vira um item da fila com origem `campanha`, prioridade 9 e `batch_id` = id da campanha.
+  - Backend `backend/src/modules/whatsappCampanhas/`: público por segmento (em risco, reativação, aniversariantes, VIPs, todas) com filtro de profissional e de último serviço, prévia real, salvar rascunho, agendar, cancelar, listar e detalhar. Cada cliente vira um item da fila com origem `campanha`, prioridade 9 e `lote_id` (`batchId`) = id da campanha. O agendamento enfileira em massa (`filaEnvios.enfileirarLote`: 1 consulta de quem já está na fila, `createMany` com `skipDuplicates` e 1 leitura do lote), para caber nos 30 s do proxy.
   - Fila: a cadência escolhida (10, 25 ou 60 por hora) vale para os itens da campanha; o limite do negócio é o maior entre 25 e a cadência das campanhas com itens pendentes.
   - Tela fiel ao Stitch (`studio-aurora-whatsapp-nova-campanha-ajustada`): lista com as 5 situações (Rascunho, Agendada, Enviando, Concluída, Cancelada), cancelamento confirmado no cartão, detalhes com contagens e motivo de cada item, e "Nova campanha" em 3 passos com prévia no celular e simulação de entrega. Ordem das abas: Hora de voltar · Automações · Campanhas · Conversas · Conexão.
   - Decisões:
@@ -151,5 +158,6 @@ Sub-projeto 2C-2c (WhatsApp: Campanhas), pendências conhecidas:
     - Quem já está na fila de outra campanha fica de fora da nova; o agendamento informa quantas eram. Se todas já estavam, a campanha volta a rascunho com aviso.
     - Início de hoje a hoje + 30 dias, de 08:00 a 19:30 em passos de 30 min; padrão amanhã às 10:00. Previsão = total ÷ cadência, com "continua no dia seguinte às 08:00" quando passa das 20:00.
     - "Concluída" não é gravada: é calculada (agendada, início passado, nada pendente). Campanha concluída não pode ser cancelada.
-    - Qualquer falha depois de marcar como agendada cancela os itens já criados e volta a campanha para rascunho. O erro devolve o id do rascunho, e a tela passa a salvar nele em vez de criar outro.
+    - Qualquer falha depois de marcar como agendada cancela os itens já criados e volta a campanha para rascunho. O erro devolve o id do rascunho (`details: [{ campanhaId }]`) em qualquer classe de erro; erro inesperado vira 500 "Não foi possível agendar a campanha." com o original no log. A tela passa a salvar no rascunho em vez de criar outro.
+    - Na hora do envio, a fila usa `estaEmOptOutOuFalha`: se não der para ler o SAIR, o item volta para a fila e tenta no próximo tick (nunca envia às cegas). Os outros chamadores continuam com `estaEmOptOut`, que devolve false em erro.
     - Público vazio ou erro de validação responde 400 (o projeto não tem classe de erro 422).
