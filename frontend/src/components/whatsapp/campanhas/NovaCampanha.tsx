@@ -231,7 +231,7 @@ export function NovaCampanha({ campanha, nomeNegocio, conectado = true, onFechar
           <PassoProgramacao data={data} hora={hora} cadencia={cadencia} datas={datas} horarios={horariosDe(data)}
             conectado={conectado} onMudar={mudarProgramacao} />
 
-          <div className="sticky bottom-4 z-20 flex flex-col items-center justify-between gap-3 rounded-xl bg-surface p-4 shadow-md sm:flex-row">
+          <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 lg:bottom-4flex flex-col items-center justify-between gap-3 rounded-xl bg-surface p-4 shadow-md sm:flex-row">
             <Button variant="secondary" fullWidth className="sm:w-auto" disabled={!podeSalvar}
               loading={salvando === 'rascunho'} onClick={() => void enviar('rascunho')}>
               <Icon name="bookmark_border" size={18} />
