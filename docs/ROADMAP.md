@@ -29,7 +29,7 @@ Atualizado em 24/10/2026.
 
 ## Próxima fase: 3
 
-Spec: `docs/superpowers/specs/2026-10-24-relatorios-comissoes-design.md`. Plano: `docs/superpowers/plans/2026-10-24-relatorios-comissoes.md`. A implementação está na branch `feat/relatorios-comissoes`. A migração `20261025120000_relatorios_comissoes` ainda não foi aplicada em produção (ver `SEGUIMENTO.md`). Decisões do dono em 24/10:
+Spec: `docs/superpowers/specs/2026-10-24-relatorios-comissoes-design.md`. Plano: `docs/superpowers/plans/2026-10-24-relatorios-comissoes.md`. A implementação está na branch `feat/relatorios-comissoes`. A migração `20261025120000_relatorios_comissoes` já foi aplicada em produção (24/10). Ver `SEGUIMENTO.md`. Decisões do dono em 24/10:
 - O salão-parceiro entra só no plano Salão.
 - O repasse tem "Marcar como pago" e adiantamentos, e o Pix é feito por fora.
 - O período padrão é a quinzena.

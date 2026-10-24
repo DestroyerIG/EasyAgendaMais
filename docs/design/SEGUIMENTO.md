@@ -108,8 +108,8 @@ Sub-projeto 2D (Plano e cobrança, comparação e upgrade), pendências conhecid
 - Os botões "Dúvidas financeiras" e "Fale com nosso financeiro" só aparecem com `NEXT_PUBLIC_SUPPORT_WHATSAPP` configurado no frontend.
 
 Sub-projeto 3 (Relatórios e Comissões), pendências conhecidas:
-- A migração `20261025120000_relatorios_comissoes` ainda **não** foi aplicada em produção. Ela só faz adições. Sem ela, as telas de Comissões e Relatórios e o cadastro de profissional com CNPJ dão erro de coluna.
-- As telas não foram vistas no navegador com dado real, porque o `.env` local aponta para produção. Conferir depois da migração: a apuração de uma quinzena com comandas fechadas, o marcar como pago com adiantamento e o mapa de ocupação.
+- Migração `20261025120000_relatorios_comissoes` aplicada em produção em 24/10/2026, com autorização do dono (`migrate status` limpo antes e depois; só adições).
+- As telas não foram vistas no navegador com dado real, porque o `.env` local aponta para produção. Conferir: a apuração de uma quinzena com comandas fechadas, o marcar como pago com adiantamento e o mapa de ocupação.
 - **Ocupação:** usa o horário do negócio e o intervalo da profissional. Quem trabalha só alguns dias aparece com ocupação baixa nos outros. A escala por profissional fica para depois.
 - **Origem "Hora de voltar e campanhas":** é atribuição por janela de 7 dias depois do envio, e não clique rastreado.
 - **Salão-parceiro:** a tela não gera contrato nem calcula imposto, só mostra o aviso para confirmar com o contador.
@@ -185,7 +185,7 @@ Sub-projeto 3 (Relatórios e Comissões), pendências conhecidas:
   - Faturas reais (`/billing/invoices`, Pix do banco e cartão do Stripe) e forma de pagamento real (`/billing/payment-method`).
   - Correções que apareceram no caminho: cancelar o Pix bloqueava o painel na hora (agora mantém o acesso até o fim do período); a consulta do Pix e o webhook tratariam a diferença do upgrade como mensalidade; o webhook do Stripe preferia o `metadata.plan` ao plano do Price.
   - `conteudoDemo.ts` saiu (o último uso era a tela de Plano).
-- Sub-projeto 3: Relatórios (`/relatorios`) e Comissões (`/relatorios/comissoes`) com dado real. Migração `20261025120000_relatorios_comissoes` (pendente de aplicar). Entrou:
+- Sub-projeto 3: Relatórios (`/relatorios`) e Comissões (`/relatorios/comissoes`) com dado real. Migração `20261025120000_relatorios_comissoes`, aplicada em produção em 24/10/2026. Entrou:
   - Apuração por profissional no período (quinzena por padrão), somando o que cada comanda gravou no fechamento, mais gorjetas e menos adiantamentos.
   - "Marcar como pago" com a foto dos valores. É idempotente pela chave única e roda numa transação com o abatimento dos adiantamentos. Também entraram desfazer pagamento, comprovante em PDF e exportação para o contador em CSV e em PDF.
   - Modo salão-parceiro só no plano Salão (recurso `salao_parceiro`), com cota-parte, CNPJ do MEI e o aviso da Lei 13.352/2016. Saiu o "Em breve" da comparação.
