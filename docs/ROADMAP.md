@@ -29,7 +29,7 @@ Atualizado em 24/10/2026.
 
 ## Próxima fase: 2D
 
-A 2D ainda não tem spec. O primeiro passo é o brainstorming para fechar o escopo, que inclui decidir como as telas usam a cobrança atual (`billing/status`).
+Spec em revisão: `docs/superpowers/specs/2026-10-24-plano-cobranca-design.md` (branch `feat/plano-cobranca`). Decisões do dono em 24/10: Solo continua R$ 49,90, anual fica para depois, upgrade na hora com proporcional e downgrade na renovação, recursos que não existem com selo "Em breve".
 
 Referências do Stitch em `docs/design/stitch/projeto/`:
 
