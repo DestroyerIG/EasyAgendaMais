@@ -79,3 +79,64 @@ export function previsaoDuracao(total: number, cadencia: Cadencia, hora: string)
   const [hh, mm] = hora.split(':').map(Number);
   return hh * 60 + mm + minutos > FIM_DO_DIA_MIN ? `${texto} — continua no dia seguinte às 08:00` : texto;
 }
+
+/** Nome curto do segmento, usado no nome automático (igual ao backend, campanhas.rules.ts). */
+export const NOME_CURTO_SEGMENTO: Record<Segmento, string> = {
+  em_risco: 'Em risco',
+  reativacao: 'Reativação',
+  aniversariantes: 'Aniversariantes',
+  vips: 'VIPs',
+  todas: 'Todas',
+};
+
+/** Ex.: "Reativação · 21/10" (mesma regra de nomeAutomatico no backend). */
+export function nomeAutomatico(segmento: Segmento, hojeYmd: string): string {
+  return `${NOME_CURTO_SEGMENTO[segmento]} · ${hojeYmd.slice(8, 10)}/${hojeYmd.slice(5, 7)}`;
+}
+
+const INTERVALO_MIN_S = 45;
+const CADENCIA_PADRAO = 25;
+
+/** Espelho de intervaloCampanha (whatsappFila/fila.rules.ts): 3600 / cadência ±25%, nunca abaixo de 45 s. */
+export function intervaloCampanha(cadencia: number, rand: () => number = Math.random): number {
+  const porHora = cadencia > 0 ? cadencia : CADENCIA_PADRAO;
+  return Math.max(INTERVALO_MIN_S, Math.round((3600 / porHora) * (0.75 + 0.5 * rand())));
+}
+
+/** Faixa mostrada em "Intervalo Dinâmico": 60/h → "45 a 75 segundos". */
+export const faixaIntervalo = (cadencia: Cadencia) =>
+  `${intervaloCampanha(cadencia, () => 0)} a ${intervaloCampanha(cadencia, () => 1)} segundos`;
+
+/** Horários de início: 08:00 a 19:30, de 30 em 30 minutos. */
+export const HORARIOS_CAMPANHA: string[] = Array.from({ length: 24 }, (_, i) =>
+  `${String(8 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
+
+export const DIAS_AGENDAMENTO = 30;
+
+const FUSO = 'America/Sao_Paulo';
+
+/** Data e hora de agora no fuso do painel. */
+export function agoraNoFuso(agora: Date = new Date()): { ymd: string; hhmm: string } {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+    timeZone: FUSO, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(agora).map((x) => [x.type, x.value]));
+  return { ymd: `${p.year}-${p.month}-${p.day}`, hhmm: `${p.hour}:${p.minute}` };
+}
+
+export function somarDias(ymd: string, dias: number): string {
+  const [a, m, d] = ymd.split('-').map(Number);
+  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
+}
+
+/** Id do rascunho criado num agendamento que falhou (400 com error.details: [{ campanhaId }]). */
+export function campanhaIdDoErro(erro: unknown): string | null {
+  const data = (erro as { response?: { data?: { error?: { details?: unknown } } } } | null)?.response?.data;
+  const details = data?.error?.details;
+  if (!Array.isArray(details)) return null;
+  for (const d of details) {
+    if (d && typeof d === 'object' && typeof (d as { campanhaId?: unknown }).campanhaId === 'string') {
+      return (d as { campanhaId: string }).campanhaId;
+    }
+  }
+  return null;
+}

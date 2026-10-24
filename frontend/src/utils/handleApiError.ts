@@ -1,21 +1,21 @@
 import axios from 'axios';
 
 type ApiErrorPayload = {
-  error?: string | { code?: string; message?: string; details?: string[] };
+  error?: string | { code?: string; message?: string; details?: unknown[] };
   errorCode?: string;
   message?: string;
-  details?: string[];
+  details?: unknown[];
 };
 
 const getPayloadDetails = (payload?: ApiErrorPayload): string[] => {
   if (!payload) return [];
 
   if (Array.isArray(payload.details)) {
-    return payload.details.filter(Boolean);
+    return payload.details.filter((d): d is string => typeof d === 'string' && d.length > 0);
   }
 
   if (typeof payload.error === 'object' && payload.error && Array.isArray(payload.error.details)) {
-    return payload.error.details.filter(Boolean);
+    return payload.error.details.filter((d): d is string => typeof d === 'string' && d.length > 0);
   }
 
   return [];

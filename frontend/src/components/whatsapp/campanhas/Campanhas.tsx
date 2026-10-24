@@ -11,14 +11,14 @@ import { DetalhesCampanhaModal } from './DetalhesCampanhaModal';
 import { NovaCampanha } from './NovaCampanha';
 
 interface CampanhasProps {
-  /** Usados pela criação (Task 7): aviso de desconexão e cabeçalho da prévia. */
+  /** Usados pela criação: aviso de desconexão e cabeçalho da prévia. */
   conectado: boolean;
   nomeNegocio: string;
 }
 
 type Tela = { tipo: 'lista' } | { tipo: 'nova'; campanha?: CampanhaDto };
 
-export function Campanhas(_props: CampanhasProps) {
+export function Campanhas({ conectado, nomeNegocio }: CampanhasProps) {
   const { showToast } = useToast();
   const [tela, setTela] = useState<Tela>({ tipo: 'lista' });
   const [campanhas, setCampanhas] = useState<CampanhaDto[] | null>(null);
@@ -55,6 +55,8 @@ export function Campanhas(_props: CampanhasProps) {
     return (
       <NovaCampanha
         campanha={tela.campanha}
+        nomeNegocio={nomeNegocio}
+        conectado={conectado}
         onFechar={(recarregar) => { setTela({ tipo: 'lista' }); if (recarregar) void carregar(); }}
       />
     );
