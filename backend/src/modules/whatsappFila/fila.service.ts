@@ -235,6 +235,8 @@ export const filaEnvios = {
     // created_at explícito e crescente: num INSERT só todas teriam o mesmo, e a fila desempata por ele.
     const base = Date.now();
     const vistas = new Set<string>();
+    // `createdAt` cresce 1 ms por linha para fixar a ordem de saída; as últimas ficam alguns segundos
+    // no futuro, então não filtrar envios por `createdAt <= agora`.
     const linhas: Array<NovoEnvio & { createdAt: Date }> = [];
     for (const i of itens) {
       if (ativas.has(i.clientId) || vistas.has(i.clientId)) continue;

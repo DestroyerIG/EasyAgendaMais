@@ -62,9 +62,10 @@ export const publicoService = {
     const link = negocio.slug && urlBase ? `${urlBase}/agendar/${negocio.slug}` : '';
 
     // A ordem de `elegiveis` é a ordem de criação na fila e, com a mesma prioridade e o mesmo início,
-    // a ordem de saída. A cliente `idx` sai por volta de início + idx × 3600 / cadência (dentro da janela
-    // de envio): os horários dela começam 2 h depois disso, para não oferecer um horário que já passou.
-    const intervaloS = 3600 / (cadencia > 0 ? cadencia : LIMITE_POR_HORA);
+    // a ordem de saída. A previsão usa o intervalo mais lento da cadência (× 1,25), arredondado para cima
+    // ao minuto do tick da fila, porque a fila na prática anda mais devagar que a cadência nominal. Os
+    // horários da cliente `idx` começam 2 h depois dessa previsão, para não oferecer um horário que já passou.
+    const intervaloS = Math.ceil((3600 / (cadencia > 0 ? cadencia : LIMITE_POR_HORA)) * 1.25 / 60) * 60;
     const elegiveis = livres.map((c, idx) => {
       const profId = c.profissionalPreferida?.id;
       const chegada = previsaoDeEnvio({ agora: inicio, tz, posicao: idx, ultimo: null, intervaloS });

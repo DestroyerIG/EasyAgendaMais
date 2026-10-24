@@ -137,11 +137,12 @@ describe('publicoService.montar: horários livres por posição na fila', () => 
     expect(agenda.carregarAgendaSemana).toHaveBeenCalledWith('b1', INICIO);
   });
 
-  it('cliente 0 e cliente 50 (25/h, 2 h depois) recebem vagas diferentes e posteriores', async () => {
+  it('cliente 0 e cliente 50 (25/h, 2 h 30 depois) recebem vagas diferentes e posteriores', async () => {
     const { elegiveis } = await publicoService.montar('b1', INPUT, INICIO, 25, AGORA);
-    // 0 sai às 10:00 → vagas a partir das 12:00; 50 sai às 10:00 + 50 × 144 s = 12:00 → a partir das 14:00.
+    // Previsão pelo intervalo mais lento (144 s × 1,25 = 180 s). 0 sai às 10:00 → vagas a partir das 12:00;
+    // 50 sai às 10:00 + 50 × 180 s = 12:30 → a partir das 14:30.
     expect(elegiveis[0].vars.horarios_livres).toBe('Qua 12:00 ou Qui 09:00');
-    expect(elegiveis[50].vars.horarios_livres).toBe('Qua 14:00 ou Qui 09:00');
+    expect(elegiveis[50].vars.horarios_livres).toBe('Qua 14:30 ou Qui 09:00');
   });
 
   it('nenhuma vaga antes da previsão de envio + 2 h', async () => {
@@ -166,10 +167,10 @@ describe('publicoService.montar: horários livres por posição na fila', () => 
     });
   });
 
-  it('cadência maior aproxima as vagas do início (60/h: cliente 50 sai 50 min depois)', async () => {
+  it('cadência maior aproxima as vagas do início (60/h: cliente 50 sai 100 min depois)', async () => {
     const { elegiveis } = await publicoService.montar('b1', INPUT, INICIO, 60, AGORA);
-    // 10:50 + 2 h = 12:50 → arredonda para 13:00.
-    expect(elegiveis[50].vars.horarios_livres).toBe('Qua 13:00 ou Qui 09:00');
+    // 60 s × 1,25 = 75 s, arredondado ao tick de 1 min = 120 s. 10:00 + 100 min + 2 h = 13:40 → 14:00.
+    expect(elegiveis[50].vars.horarios_livres).toBe('Qua 14:00 ou Qui 09:00');
   });
 
   it('cliente sem vaga depois do próprio corte fica sem horários (a linha some no texto)', async () => {
