@@ -146,6 +146,18 @@ export const inboxRecorder = {
     }
   },
 
+  /** Igual a `estaEmOptOut`, mas lança se a consulta falhar: usada na hora do envio da fila. */
+  async estaEmOptOutOuFalha(businessId: string, phone: string): Promise<boolean> {
+    const chave = canonicalizePhone(phone);
+    if (!chave) return false;
+    try {
+      return !!(await repo.optOutAtivo(businessId, chave));
+    } catch (err) {
+      logger.warn({ err, businessId }, 'inbox: estaEmOptOutOuFalha falhou');
+      throw err;
+    }
+  },
+
   /** Chaves de telefone em opt-out. Em erro, loga e lança: não se manda campanha sem saber quem saiu. */
   async telefonesEmOptOut(businessId: string): Promise<Set<string>> {
     try {

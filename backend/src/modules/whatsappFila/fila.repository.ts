@@ -1,4 +1,4 @@
-import type { WhatsappEnvio } from '@prisma/client';
+import type { Prisma, WhatsappEnvio } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { INTERVALO_MAX_S } from './fila.rules.js';
 import type { EnvioDto } from './fila.service.js';
@@ -6,18 +6,53 @@ import type { EnvioDto } from './fila.service.js';
 export type EnvioRow = WhatsappEnvio;
 type StatusEnvio = EnvioDto['status'];
 const STATUS_ENVIO: StatusEnvio[] = ['na_fila', 'enviando', 'enviado', 'falhou', 'pulado', 'cancelado'];
+const STATUS_ATIVOS = ['na_fila', 'enviando'];
+/** Linhas por INSERT no lote em massa (11 colunas: bem abaixo do limite de parâmetros do Postgres). */
+const BLOCO_CRIACAO = 1000;
+
+export interface NovoEnvio {
+  businessId: string; clientId: string | null; phone: string; phoneKey: string; body: string;
+  origin: string; scheduledFor: Date; batchId: string | null;
+  priority: number; appointmentId: string | null;
+}
 
 export const filaRepository = {
   naFilaDoCliente(businessId: string, clientId: string, origin: string): Promise<EnvioRow | null> {
     return prisma.whatsappEnvio.findFirst({ where: { businessId, clientId, origin, status: { in: ['na_fila', 'enviando'] } } });
   },
 
-  criar(data: {
-    businessId: string; clientId: string | null; phone: string; phoneKey: string; body: string;
-    origin: string; scheduledFor: Date; batchId: string | null;
-    priority: number; appointmentId: string | null;
-  }): Promise<EnvioRow> {
+  criar(data: NovoEnvio): Promise<EnvioRow> {
     return prisma.whatsappEnvio.create({ data });
+  },
+
+  /** Clientes com algum item ativo (na fila ou saindo) da origem no negócio; uma consulta só. */
+  async clientesAtivosDaOrigem(businessId: string, origin: string): Promise<Set<string>> {
+    const rows = await prisma.whatsappEnvio.findMany({
+      where: { businessId, origin, status: { in: STATUS_ATIVOS }, clientId: { not: null } },
+      select: { clientId: true },
+    });
+    return new Set(rows.flatMap((r) => (r.clientId ? [r.clientId] : [])));
+  },
+
+  /**
+   * Cria em massa com ON CONFLICT DO NOTHING: quem bater no índice único parcial (cliente já ativa na fila
+   * com a mesma origem) fica de fora sem derrubar o resto. Devolve quantas linhas entraram.
+   */
+  async criarVarios(linhas: Array<NovoEnvio & { createdAt: Date }>): Promise<number> {
+    let total = 0;
+    for (let i = 0; i < linhas.length; i += BLOCO_CRIACAO) {
+      const r = await prisma.whatsappEnvio.createMany({ data: linhas.slice(i, i + BLOCO_CRIACAO), skipDuplicates: true });
+      total += r.count;
+    }
+    return total;
+  },
+
+  /** Itens ativos (na fila ou saindo) do lote, na ordem de criação. */
+  ativosDoLote(businessId: string, loteId: string): Promise<EnvioRow[]> {
+    return prisma.whatsappEnvio.findMany({
+      where: { businessId, batchId: loteId, status: { in: STATUS_ATIVOS } },
+      orderBy: { createdAt: 'asc' },
+    });
   },
 
   async negociosComVencidos(agora: Date): Promise<string[]> {
@@ -52,11 +87,17 @@ export const filaRepository = {
     return rows.map((r) => r.id);
   },
 
-  /** Próximo item vencido; `excluirLotes` deixa de fora os lotes que já bateram a cadência na última hora. */
-  proximoVencido(businessId: string, agora: Date, excluirLotes: string[] = []): Promise<EnvioRow | null> {
+  /**
+   * Próximo item vencido; `excluirLotes` deixa de fora os lotes que já bateram a cadência na última hora.
+   * `semCampanhas` deixa de fora toda a origem campanha (a consulta das campanhas falhou nesta rodada).
+   */
+  proximoVencido(
+    businessId: string, agora: Date, excluirLotes: string[] = [], opcoes: { semCampanhas?: boolean } = {},
+  ): Promise<EnvioRow | null> {
     return prisma.whatsappEnvio.findFirst({
       where: {
         businessId, status: 'na_fila', scheduledFor: { lte: agora },
+        ...(opcoes.semCampanhas ? { origin: { not: 'campanha' } } : {}),
         ...(excluirLotes.length ? { OR: [{ batchId: null }, { batchId: { notIn: excluirLotes } }] } : {}),
       },
       orderBy: [{ priority: 'asc' }, { scheduledFor: 'asc' }, { createdAt: 'asc' }],
@@ -74,13 +115,13 @@ export const filaRepository = {
       select: { id: true, cadencia: true },
     });
     if (!candidatas.length) return [];
-    const pendentes = await prisma.whatsappEnvio.findMany({
+    // groupBy: o `distinct` do Prisma 5 traz todas as linhas pendentes e deduplica em memória.
+    const pendentes = await prisma.whatsappEnvio.groupBy({
+      by: ['batchId'],
       where: {
-        businessId, origin: 'campanha', status: { in: ['na_fila', 'enviando'] },
+        businessId, origin: 'campanha', status: { in: STATUS_ATIVOS },
         batchId: { in: candidatas.map((c) => c.id) },
       },
-      distinct: ['batchId'],
-      select: { batchId: true },
     });
     const comPendentes = new Set(pendentes.map((p) => p.batchId));
     return candidatas.filter((c) => comPendentes.has(c.id));
@@ -100,8 +141,10 @@ export const filaRepository = {
   },
 
   /** Cancela o que ainda está na fila do lote (o que já saiu ou está saindo fica como está). */
-  async cancelarDoLote(businessId: string, loteId: string, motivo: string): Promise<number> {
-    const r = await prisma.whatsappEnvio.updateMany({
+  async cancelarDoLote(
+    businessId: string, loteId: string, motivo: string, db: Prisma.TransactionClient = prisma,
+  ): Promise<number> {
+    const r = await db.whatsappEnvio.updateMany({
       where: { businessId, batchId: loteId, status: 'na_fila' },
       data: { status: 'cancelado', reason: motivo },
     });

@@ -178,6 +178,17 @@ describe('entrega, opt-out e humano', () => {
     repo.optOutAtivo.mockRejectedValue(new Error('db'));
     expect(await inboxRecorder.estaEmOptOut(B, TEL)).toBe(false);
   });
+  it('estaEmOptOutOuFalha: mesma resposta, mas relança quando a consulta falha', async () => {
+    repo.optOutAtivo.mockResolvedValue({ id: 'o' });
+    expect(await inboxRecorder.estaEmOptOutOuFalha(B, '(83) 99999-0000')).toBe(true);
+    expect(repo.optOutAtivo).toHaveBeenCalledWith(B, '8399990000');
+    repo.optOutAtivo.mockResolvedValue(null);
+    expect(await inboxRecorder.estaEmOptOutOuFalha(B, TEL)).toBe(false);
+    repo.optOutAtivo.mockRejectedValue(new Error('db'));
+    await expect(inboxRecorder.estaEmOptOutOuFalha(B, TEL)).rejects.toThrow('db');
+    // A versão tolerante continua devolvendo false para os outros chamadores.
+    expect(await inboxRecorder.estaEmOptOut(B, TEL)).toBe(false);
+  });
   it('pedirAtendimentoHumano põe a conversa na fila "aguardando" sem responsável', async () => {
     await inboxRecorder.pedirAtendimentoHumano(B, TEL);
     expect(repo.atualizarConversa).toHaveBeenCalledWith('cv1', { handler: 'humano', status: 'aguardando', assignedUserId: null });
