@@ -53,7 +53,7 @@ interface FinanceSummary {
 interface FinanceModuleProps {
   reportAccess: FeatureAccessDecision;
   exportAccess: FeatureAccessDecision;
-  onUpgrade: () => void;
+  onUpgrade: (recurso: string) => void;
   onManageBilling: () => void;
 }
 

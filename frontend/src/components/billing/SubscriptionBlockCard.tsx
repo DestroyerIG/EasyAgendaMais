@@ -8,7 +8,8 @@ import type { FeatureAccessDecision } from '@/lib/subscriptionAccess';
 interface SubscriptionBlockCardProps {
   access: FeatureAccessDecision;
   title?: string;
-  onUpgrade?: () => void;
+  // Recebe o recurso bloqueado: a comparação de planos abre com a faixa "Recurso exclusivo".
+  onUpgrade?: (recurso: string) => void;
   onManageBilling?: () => void;
   className?: string;
 }
@@ -47,7 +48,7 @@ export const SubscriptionBlockCard = ({
             )}
 
             {access.upgradeRequired && onUpgrade && (
-              <Button type="button" variant="secondary" onClick={onUpgrade}>
+              <Button type="button" variant="secondary" onClick={() => onUpgrade(access.feature)}>
                 <TrendingUp size={16} aria-hidden="true" />
                 Ver planos
               </Button>

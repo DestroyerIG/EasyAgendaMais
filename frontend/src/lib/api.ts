@@ -70,9 +70,11 @@ const shouldRedirectToBilling = (url: string) => {
   const pathname = window.location.pathname;
   const isBillingPage =
     pathname === '/planos' ||
+    pathname.startsWith('/planos/') ||
     pathname === '/pagamento' ||
     pathname.startsWith('/pagamento/') ||
-    pathname === '/dashboard/planos';
+    pathname === '/dashboard/planos' ||
+    pathname.startsWith('/dashboard/planos/');
   const isBillingRequest =
     url.includes('/billing/status') ||
     url.includes('/billing/checkout/session') ||

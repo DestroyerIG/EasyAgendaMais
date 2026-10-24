@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { PLAN_MAP, SAAS_PLANS, PLAN_SHELL_LABEL } from '@/lib/plans';
 import { PLANS } from '@/lib/constants';
@@ -35,5 +37,17 @@ describe('planos', () => {
     const acesso = evaluateFeatureAccess({ feature: 'reports', plan: 'basico', subscriptionStatus: 'active' });
     expect(acesso.allowed).toBe(false);
     expect(acesso.message).toBe('Esta funcionalidade requer o plano Equipe ou superior.');
+  });
+});
+
+describe('catálogo do backend', () => {
+  it('a landing anuncia os mesmos preços que o backend cobra (backend/src/config/planCatalog.ts)', () => {
+    const catalogo = readFileSync(resolve(__dirname, '../../../../backend/src/config/planCatalog.ts'), 'utf-8');
+    for (const plan of SAAS_PLANS) {
+      const bloco = new RegExp(`${plan.id}: \\{\\s*id: '${plan.id}',\\s*nome: '([^']+)',\\s*preco: ([\\d.]+)`).exec(catalogo);
+      expect(bloco, `plano ${plan.id} no catálogo`).not.toBeNull();
+      expect(bloco![1]).toBe(plan.name);
+      expect(Number(bloco![2])).toBe(plan.price);
+    }
   });
 });

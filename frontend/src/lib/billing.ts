@@ -69,7 +69,109 @@ export interface SubscriptionStatusResponse {
   providerCustomerId?: string | null;
   providerSubscriptionId?: string | null;
   providerPaymentId?: string | null;
+  // Plano e cobrança (2D)
+  planoAgendado?: PlanId | null;
+  planoAgendadoEm?: string | null;
+  upgradePendente?: UpgradePendente | null;
+  profissionaisAtivas?: number;
+  nomesProfissionais?: string[];
 }
+
+export interface UpgradePendente {
+  plano: PlanId | null;
+  valor: number;
+  paymentId: string;
+  pixCopyPaste: string | null;
+  qrCode: string | null;
+}
+
+export type DisponibilidadeRecurso = boolean | 'em_breve' | string;
+
+export interface PlanoCatalogo {
+  id: PlanId;
+  nome: string;
+  preco: number;
+  limiteProfissionais: number | null;
+  publico: string;
+  descricao: string;
+  destaques: string[];
+  emBreve: string[];
+}
+
+export interface RecursoMatriz {
+  id: string;
+  grupo: string;
+  titulo: string;
+  basico: DisponibilidadeRecurso;
+  profissional: DisponibilidadeRecurso;
+  premium: DisponibilidadeRecurso;
+}
+
+export interface CatalogoPlanos {
+  planos: PlanoCatalogo[];
+  matriz: RecursoMatriz[];
+}
+
+export type StatusFatura = 'pago' | 'em_aberto' | 'vencido' | 'cancelado' | 'estornado';
+
+export interface Fatura {
+  id: string;
+  data: string;
+  referencia: string;
+  periodoInicio: string | null;
+  periodoFim: string | null;
+  valor: number;
+  forma: 'pix' | 'card';
+  formaDetalhe: string;
+  status: StatusFatura;
+  tipo: 'mensalidade' | 'upgrade';
+  url: string | null;
+}
+
+export interface FaturasResponse {
+  anos: number[];
+  itens: Fatura[];
+}
+
+export type FormaPagamento =
+  | { tipo: 'card'; bandeira: string; final: string; titular: string | null; validade: string }
+  | {
+      tipo: 'pix';
+      cobrancaAberta: {
+        paymentId: string;
+        valor: number;
+        vencimento: string | null;
+        pixCopyPaste: string | null;
+        qrCode: string | null;
+        url: string | null;
+      } | null;
+    };
+
+export interface PreviaTroca {
+  tipo: 'upgrade' | 'downgrade';
+  planoAtual: PlanId;
+  planoNovo: PlanId;
+  valorHoje: number;
+  dias: number;
+  valorMensalNovo: number;
+  aPartirDe: string | null;
+  formaPagamento: 'card' | 'pix';
+  bloqueio: { motivo: string } | null;
+}
+
+export type ResultadoTroca =
+  | { tipo: 'upgrade'; status: 'pago'; plano: PlanId }
+  | { tipo: 'upgrade'; status: 'falhou'; motivo: string }
+  | {
+      tipo: 'upgrade';
+      status: 'aguardando';
+      plano: PlanId;
+      valor: number;
+      paymentId: string;
+      pixCopyPaste: string | null;
+      qrCode: string | null;
+    }
+  | { tipo: 'downgrade'; agendadoPara: string | null; plano: PlanId };
 
 export interface PixPaymentStatusResponse {
   provider: 'asaas';
@@ -131,7 +233,7 @@ export const billingApi = {
   },
 
   async reactivateSubscription(reason?: string): Promise<CheckoutSessionResponse & {
-    reactivationMode?: 'new_pix_checkout';
+    reactivationMode?: 'new_pix_checkout' | 'resumed';
   }> {
     const payload = reason ? { reason } : {};
     const response = await api.post('/billing/reactivate', payload);
@@ -140,6 +242,36 @@ export const billingApi = {
 
   async getPixPaymentStatus(paymentId: string): Promise<PixPaymentStatusResponse> {
     const response = await api.get(`/billing/pix/${encodeURIComponent(paymentId)}`);
+    return response.data;
+  },
+
+  async getPlans(): Promise<CatalogoPlanos> {
+    const response = await api.get('/billing/plans');
+    return response.data;
+  },
+
+  async getInvoices(ano?: number | null): Promise<FaturasResponse> {
+    const response = await api.get('/billing/invoices', { params: ano ? { ano } : {} });
+    return response.data;
+  },
+
+  async getPaymentMethod(): Promise<FormaPagamento | null> {
+    const response = await api.get('/billing/payment-method');
+    return response.data;
+  },
+
+  async previewPlanChange(plan: PlanId): Promise<PreviaTroca> {
+    const response = await api.post('/billing/change-plan/preview', { plan });
+    return response.data;
+  },
+
+  async changePlan(plan: PlanId): Promise<ResultadoTroca> {
+    const response = await api.post('/billing/change-plan', { plan });
+    return response.data;
+  },
+
+  async cancelPlanChange(): Promise<{ cancelado: 'downgrade' | 'upgrade' }> {
+    const response = await api.delete('/billing/change-plan');
     return response.data;
   },
 };
