@@ -146,3 +146,11 @@ Frontend:
 - O Stripe e o Asaas em modo de teste precisam estar configurados no ambiente local para o teste manual. Sem as chaves, o roteiro manual cobre só os estados mockados.
 - A troca agendada no Stripe usa subscription schedules. Se a conta usar o Customer Portal com troca de plano ligada, as duas vias podem brigar: desligar a troca de plano no portal e deixar só a atualização do cartão.
 - `conteudoDemo.plano` sai. Conferir que nenhuma outra tela o usa antes de apagar.
+
+## Ajustes feitos na implementação
+O código mostrou diferenças em relação ao que esta spec supunha. Os detalhes estão em `docs/superpowers/plans/2026-10-24-plano-cobranca.md` ("Ajustes da spec descobertos no código"):
+- O Pix é uma cobrança avulsa por mês, não uma assinatura do Asaas. O downgrade no Pix vale pela rotina, e a próxima cobrança já sai no preço novo.
+- O downgrade nunca é adiado: enquanto ele estiver agendado, o limite para cadastrar profissional já é o do plano novo.
+- A troca de forma de pagamento (Pix ↔ cartão) ficou de fora.
+- Sem assinatura paga, a comparação leva ao checkout que já existe.
+- Cancelar o Pix mantém o acesso até o fim do período, como a tela promete.
