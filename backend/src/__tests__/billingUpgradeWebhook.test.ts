@@ -130,3 +130,41 @@ describe('webhook Asaas da diferença de upgrade (2D)', () => {
     );
   });
 });
+
+describe('consulta do Pix da diferença de upgrade (2D)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSubscriptionRepository.findBillingPaymentByProviderPaymentId.mockResolvedValue({ business_id: 'tenant-up' });
+    mockSubscriptionRepository.getBusinessBillingContext.mockResolvedValue({
+      id: 'tenant-up',
+      plan: 'profissional',
+      provider_customer_id: 'cus_1',
+    });
+    mockAsaasMapper.extractBusinessIdFromExternalReference.mockReturnValue('tenant-up');
+  });
+
+  it('não mexe no período nem no status da assinatura', async () => {
+    mockBillingProviderFactory.getProvider.mockReturnValue({
+      getPaymentStatus: vi.fn().mockResolvedValue({
+        payment: {
+          id: 'pay_up',
+          status: 'PENDING',
+          customer: 'cus_1',
+          externalReference: 'business:tenant-up:plan:premium:upgrade',
+        },
+        pixData: { qrCode: 'qr', pixCopyPaste: 'copia' },
+      }),
+      mapExternalStatusToInternalStatus: vi.fn().mockReturnValue('pending'),
+    });
+
+    const r = await billingService.getPixPaymentStatus('tenant-up', 'pay_up');
+
+    expect(r).toMatchObject({ status: 'pending', pixCopyPaste: 'copia' });
+    expect(mockPlanChangeService.webhookUpgradePix).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'pay_up' }),
+      'tenant-up',
+      'premium'
+    );
+    expect(mockSubscriptionRepository.updateSubscriptionState).not.toHaveBeenCalled();
+  });
+});

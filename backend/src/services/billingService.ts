@@ -916,26 +916,37 @@ export const billingService = {
     const resolvedPlan =
       resolvePlanFromExternalReference(payment?.externalReference) || business.plan || 'basico';
 
-    await updateBusinessFromAsaasPayment({
-      business,
-      plan: resolvedPlan,
-      payment,
-      subscriptionId:
-        payment?.subscription || business.provider_subscription_id || null,
-      customerId:
-        payment?.customer || business.provider_customer_id || null,
-      internalStatus,
-      eventType: 'pix.status.refresh',
-    });
+    if (ehReferenciaUpgrade(payment?.externalReference)) {
+      // Diferença de upgrade (2D): a consulta não pode tratar como mensalidade (reiniciaria
+      // o período e marcaria a assinatura como pendente enquanto o Pix não é pago).
+      await planChangeService.webhookUpgradePix(
+        payment as unknown as Record<string, unknown>,
+        businessId,
+        resolvedPlan as PlanName
+      );
+    } else {
+      await updateBusinessFromAsaasPayment({
+        business,
+        plan: resolvedPlan,
+        payment,
+        subscriptionId:
+          payment?.subscription || business.provider_subscription_id || null,
+        customerId:
+          payment?.customer || business.provider_customer_id || null,
+        internalStatus,
+        eventType: 'pix.status.refresh',
+      });
 
-    await saveAsaasPaymentSnapshot({
-      businessId,
-      payment,
-      subscriptionId:
-        payment?.subscription || business.provider_subscription_id || null,
-      internalStatus,
-      pixData: paymentResult.pixData,
-    });
+      await saveAsaasPaymentSnapshot({
+        businessId,
+        payment,
+        subscriptionId:
+          payment?.subscription || business.provider_subscription_id || null,
+        internalStatus,
+        pixData: paymentResult.pixData,
+        plano: resolvedPlan,
+      });
+    }
 
     return {
       provider: 'asaas',
