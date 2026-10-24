@@ -4,9 +4,10 @@ import { PRIORIDADE_CAMPANHA } from '../whatsappFila/fila.rules.js';
 import { filaRepository } from '../whatsappFila/fila.repository.js';
 import { filaEnvios, type EnvioDto } from '../whatsappFila/fila.service.js';
 import logger from '../../utils/logger.js';
+import { prisma } from '../../config/prisma.js';
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
 import { todayInTimezone, zonedToUtc } from '../../utils/businessDate.js';
-import { ConflictError, NotFoundError, ValidationError } from '../../utils/errors.js';
+import { AppError, ConflictError, NotFoundError, ValidationError } from '../../utils/errors.js';
 import { campanhasRepository as repo, type CampanhaRow, type DadosCampanha } from './campanhas.repository.js';
 import { comRodape, statusCampanha, validarInicio } from './campanhas.rules.js';
 import { publicoService } from './publico.service.js';
@@ -18,6 +19,7 @@ type SalvarInput = z.infer<typeof SalvarCampanhaSchema>;
 type Contagem = Record<EnvioDto['status'], number>;
 
 const MOTIVO_CANCELADA = 'Campanha cancelada';
+const ERRO_AGENDAR = 'Não foi possível agendar a campanha.';
 const CONTAGEM_VAZIA: Contagem = { na_fila: 0, enviando: 0, enviado: 0, falhou: 0, pulado: 0, cancelado: 0 };
 
 async function fusoDo(businessId: string): Promise<string> {
@@ -89,26 +91,39 @@ async function gravarRascunho(
 /** Monta o público e põe na fila; devolve quantas entraram neste lote e quantas já estavam na fila de outro. */
 async function enfileirarCampanha(businessId: string, c: CampanhaRow, inicio: Date, agora: Date): Promise<{ total: number; jaNaFila: number }> {
   const { elegiveis } = await publicoService.montar(
-    businessId, { segmento: c.segmento as Segmento, professionalId: c.professionalId, serviceId: c.serviceId }, inicio, agora,
+    businessId, { segmento: c.segmento as Segmento, professionalId: c.professionalId, serviceId: c.serviceId },
+    inicio, c.cadencia, agora,
   );
   if (elegiveis.length === 0) throw new ValidationError('Nenhuma cliente pode receber esta campanha');
 
-  const envios = await filaEnvios.enfileirar(elegiveis.map((e) => ({
-    businessId,
-    clientId: e.id,
-    phone: e.telefone,
-    body: comRodape(renderizarTexto(c.texto, e.vars)),
-    origin: 'campanha' as const,
-    agendadoPara: inicio,
-    loteId: c.id,
-    prioridade: PRIORIDADE_CAMPANHA,
-  })));
+  // Em massa (createMany): uma ida e volta por cliente não cabe nos 30 s do proxy com públicos grandes.
+  // A ordem das elegíveis é a ordem de criação, que é a ordem de saída da fila.
+  const envios = await filaEnvios.enfileirarLote(
+    { businessId, loteId: c.id, origin: 'campanha', agendadoPara: inicio, prioridade: PRIORIDADE_CAMPANHA },
+    elegiveis.map((e) => ({ clientId: e.id, phone: e.telefone, body: comRodape(renderizarTexto(c.texto, e.vars)) })),
+  );
 
-  // A deduplicação da fila devolve o envio que já existia, possivelmente de outra campanha.
+  // Só voltam os itens deste lote; quem ficou de fora já estava na fila de outra campanha.
   const total = envios.filter((e) => e.loteId === c.id).length;
   if (total === 0) throw new ValidationError('Todas as clientes deste público já estão na fila de outra campanha');
   await repo.gravarTotal(businessId, c.id, total);
-  return { total, jaNaFila: envios.length - total };
+  return { total, jaNaFila: Math.max(0, elegiveis.length - total) };
+}
+
+/**
+ * Qualquer erro depois que o rascunho existe leva o id dele, para a tela tentar de novo com PUT em vez de
+ * criar outro. Erro inesperado vira 500 genérico (o original vai para o log); AppError mantém a classe.
+ */
+function comIdDoRascunho(err: unknown, businessId: string, campanhaId: string): AppError {
+  const details = [{ campanhaId }];
+  if (err instanceof AppError) {
+    err.details = details;
+    return err;
+  }
+  logger.error({ err, businessId, campanhaId }, 'campanhas: falha inesperada ao agendar');
+  const erro = new AppError(ERRO_AGENDAR, 500, 'INTERNAL_ERROR');
+  erro.details = details;
+  return erro;
 }
 
 /** Desfaz um agendamento que falhou: tira o lote da fila e volta a campanha a rascunho. */
@@ -175,9 +190,7 @@ export const campanhasService = {
       resultado = await enfileirarCampanha(businessId, rascunho, inicio, agora);
     } catch (err) {
       await desfazerAgendamento(businessId, rascunho.id);
-      // A UI precisa do id do rascunho para tentar de novo com PUT.
-      if (err instanceof ValidationError) err.details = [{ campanhaId: rascunho.id }];
-      throw err;
+      throw comIdDoRascunho(err, businessId, rascunho.id);
     }
     const { total, jaNaFila } = resultado;
     const campanha = paraDto({ ...rascunho, status: 'agendada', total }, await contagemDe(businessId, rascunho.id), tz, agora);
@@ -190,9 +203,12 @@ export const campanhasService = {
     if (statusCampanha({ status: 'agendada', inicioEm: c.inicioEm }, restantesDe(await contagemDe(businessId, id)), agora) === 'concluida') {
       throw new ConflictError('Esta campanha já foi concluída');
     }
-    if ((await repo.marcarCancelada(businessId, id)) === 0) throw new ConflictError('Esta campanha não está agendada');
-    // Só o que ainda está na fila; o que já saiu ou está saindo fica como está.
-    await filaRepository.cancelarDoLote(businessId, id, MOTIVO_CANCELADA);
+    // Status e itens juntos: ou os dois mudam, ou nenhum. O que estiver saindo ('enviando') fica como está;
+    // se voltar para a fila depois, a fila pula o item porque o lote não está mais em envio.
+    await prisma.$transaction(async (tx) => {
+      if ((await repo.marcarCancelada(businessId, id, tx)) === 0) throw new ConflictError('Esta campanha não está agendada');
+      await filaRepository.cancelarDoLote(businessId, id, MOTIVO_CANCELADA, tx);
+    });
     const [tz, atual, contagem] = await Promise.all([fusoDo(businessId), buscarOu404(businessId, id), contagemDe(businessId, id)]);
     return paraDto(atual, contagem, tz, agora);
   },

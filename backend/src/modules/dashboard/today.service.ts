@@ -251,17 +251,26 @@ export async function carregarAgendaSemana(businessId: string, agora: Date): Pro
   };
 }
 
+export interface OpcoesVagas {
+  professionalId?: string;
+  duracaoMinima?: number;
+  /** Só vagas que começam neste instante ou depois (vale só se for depois do `agora` da semana). */
+  aPartirDe?: Date;
+}
+
 /** Função pura: primeiras vagas livres (>= 30 min, ou `duracaoMinima`) da semana já carregada. */
-export function vagasDaSemana(
-  semana: AgendaSemana, limite = 3, opcoes: { professionalId?: string; duracaoMinima?: number } = {},
-): Vaga[] {
-  const { tz, hoje, datas, agora, abertura, fechamento, diasAbertos, ags } = semana;
+export function vagasDaSemana(semana: AgendaSemana, limite = 3, opcoes: OpcoesVagas = {}): Vaga[] {
+  const { tz, datas, agora, abertura, fechamento, diasAbertos, ags } = semana;
   const profs = opcoes.professionalId ? semana.profs.filter((p) => p.id === opcoes.professionalId) : semana.profs;
   const minima = opcoes.duracaoMinima ?? 0;
+  // Sem `aPartirDe` (ou com um anterior a agora) o corte é o próprio agora: mesmo comportamento de antes.
+  const corte = opcoes.aPartirDe && opcoes.aPartirDe.getTime() > agora.getTime() ? opcoes.aPartirDe : agora;
+  const diaDoCorte = corte === agora ? semana.hoje : todayInTimezone(tz, corte);
   const vagas: Vaga[] = [];
   for (const data of datas) {
+    if (data < diaDoCorte) continue;
     if (diasAbertos[CHAVES_DIA[diaDaSemana(data)]] !== true) continue;
-    const inicio = data === hoje ? Math.max(abertura, minutosAgora(tz, agora)) : abertura;
+    const inicio = data === diaDoCorte ? Math.max(abertura, minutosAgora(tz, corte)) : abertura;
     const doDia = ags.filter((a) => ymdDe(a.date) === data && ocupa(a, agora));
     const doDiaVagas: Vaga[] = [];
     for (const p of profs) {
@@ -279,8 +288,7 @@ export function vagasDaSemana(
 
 /** Próximas vagas livres dos próximos 7 dias a partir de `agora`, por data e início. */
 export async function proximasVagas(
-  businessId: string, agora: Date, limite = 3,
-  opcoes: { professionalId?: string; duracaoMinima?: number } = {},
+  businessId: string, agora: Date, limite = 3, opcoes: OpcoesVagas = {},
 ): Promise<Vaga[]> {
   return vagasDaSemana(await carregarAgendaSemana(businessId, agora), limite, opcoes);
 }

@@ -70,11 +70,12 @@ export function podeEnviarAgora(a: {
 }
 
 /**
- * Estimativa de quando a posição `posicao` (0 = próxima) sai: 75 s por posição, só dentro da janela.
- * Em cada dia cabem as posições cujo horário (início + 75 s × índice) ainda é anterior ao fim da janela;
- * as que sobram seguem para o próximo dia a partir das 08:00.
+ * Estimativa de quando a posição `posicao` (0 = próxima) sai: `intervaloS` por posição (padrão 75 s), só dentro
+ * da janela. Em cada dia cabem as posições cujo horário (início + intervalo × índice) ainda é anterior ao fim
+ * da janela; as que sobram seguem para o próximo dia a partir das 08:00.
  */
-export function previsaoDeEnvio(a: { agora: Date; tz: string; posicao: number; ultimo: Ultimo }): Date {
+export function previsaoDeEnvio(a: { agora: Date; tz: string; posicao: number; ultimo: Ultimo; intervaloS?: number }): Date {
+  const passoS = a.intervaloS && a.intervaloS > 0 ? a.intervaloS : MEDIA_POR_POSICAO_S;
   let inicio = a.agora;
   if (a.ultimo) inicio = new Date(Math.max(inicio.getTime(), a.ultimo.em.getTime() + a.ultimo.intervaloS * 1000));
   let restantes = a.posicao;
@@ -82,8 +83,8 @@ export function previsaoDeEnvio(a: { agora: Date; tz: string; posicao: number; u
     inicio = proximaAberturaDaJanela(inicio, a.tz);
     const fimDaJanela = zonedToUtc(todayInTimezone(a.tz, inicio), JANELA_FIM, a.tz);
     const sobraS = (fimDaJanela.getTime() - inicio.getTime()) / 1000;
-    const cabem = Math.ceil(sobraS / MEDIA_POR_POSICAO_S);
-    if (restantes < cabem) return new Date(inicio.getTime() + restantes * MEDIA_POR_POSICAO_S * 1000);
+    const cabem = Math.ceil(sobraS / passoS);
+    if (restantes < cabem) return new Date(inicio.getTime() + restantes * passoS * 1000);
     restantes -= cabem;
     inicio = fimDaJanela;
   }

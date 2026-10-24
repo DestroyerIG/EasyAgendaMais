@@ -5,11 +5,14 @@ const repo = vi.hoisted(() => ({
   marcarAgendada: vi.fn(), voltarRascunho: vi.fn(), gravarTotal: vi.fn(), marcarCancelada: vi.fn(),
 }));
 const filaRepo = vi.hoisted(() => ({ cancelarDoLote: vi.fn(), contagemDoLote: vi.fn(), itensDoLote: vi.fn() }));
-const fila = vi.hoisted(() => ({ enfileirar: vi.fn() }));
+const fila = vi.hoisted(() => ({ enfileirar: vi.fn(), enfileirarLote: vi.fn() }));
+const TX = vi.hoisted(() => ({ tx: true }));
+const db = vi.hoisted(() => ({ $transaction: vi.fn() }));
 const publico = vi.hoisted(() => ({ montar: vi.fn(), previa: vi.fn() }));
 
-vi.mock('../config/prisma.js', () => ({ prisma: {} }));
-vi.mock('../utils/logger.js', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
+vi.mock('../config/prisma.js', () => ({ prisma: db }));
+const log = vi.hoisted(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }));
+vi.mock('../utils/logger.js', () => ({ default: log }));
 vi.mock('../modules/whatsappCampanhas/campanhas.repository.js', () => ({ campanhasRepository: repo }));
 vi.mock('../modules/whatsappFila/fila.repository.js', () => ({ filaRepository: filaRepo }));
 vi.mock('../modules/whatsappFila/fila.service.js', () => ({ filaEnvios: fila }));
@@ -18,6 +21,7 @@ vi.mock('../services/scheduleSettingsService.js', () => ({ getBusinessScheduleSe
 
 const { campanhasService } = await import('../modules/whatsappCampanhas/campanhas.service.js');
 const { RODAPE_SAIR } = await import('../modules/whatsappCampanhas/campanhas.types.js');
+const { AppError, NotFoundError } = await import('../utils/errors.js');
 
 const AGORA = new Date('2026-10-20T13:00:00Z'); // 10:00 em São Paulo
 const INICIO = new Date('2026-10-22T13:00:00Z'); // 22/10 10:00 em São Paulo
@@ -40,6 +44,10 @@ const contagem = (over: Record<string, number> = {}) =>
 
 const eleg = (id: string, nome: string) => ({ id, nome, telefone: `8399999000${id.slice(-1)}`, vars: { primeiro_nome: nome } });
 const envio = (clientId: string, loteId: string) => ({ id: `e-${clientId}`, clientId, loteId, status: 'na_fila' });
+type ItemLote = { clientId: string; phone: string; body: string };
+/** enfileirarLote devolve só os itens deste lote; `fora` simula quem já estava na fila de outra campanha. */
+const loteCom = (fora: string[] = []) => async (l: { loteId: string }, itens: ItemLote[]) =>
+  itens.filter((i) => !fora.includes(i.clientId)).map((i) => envio(i.clientId, l.loteId));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -52,20 +60,23 @@ beforeEach(() => {
   filaRepo.contagemDoLote.mockImplementation(async (_b: string, ids: string[]) => new Map(ids.map((i) => [i, contagem()])));
   filaRepo.cancelarDoLote.mockResolvedValue(0);
   publico.montar.mockResolvedValue({ elegiveis: [eleg('c1', 'Ana'), eleg('c2', 'Bia'), eleg('c3', 'Carla')], selecionadas: 3, resguardadas: 0 });
-  fila.enfileirar.mockImplementation(async (itens: Array<{ clientId: string; loteId: string }>) => itens.map((i) => envio(i.clientId, i.loteId)));
+  fila.enfileirarLote.mockImplementation(loteCom());
+  db.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => fn(TX));
 });
 
 describe('campanhasService.salvar (agendar)', () => {
-  it('enfileira as 3 elegíveis com origem, prioridade, lote, início e rodapé', async () => {
+  it('enfileira as 3 elegíveis em lote com origem, prioridade, lote, início e rodapé', async () => {
     const r = await campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA);
-    expect(fila.enfileirar).toHaveBeenCalledTimes(1);
-    const itens = fila.enfileirar.mock.calls[0][0];
+    expect(fila.enfileirar).not.toHaveBeenCalled();
+    expect(fila.enfileirarLote).toHaveBeenCalledTimes(1);
+    const [lote, itens] = fila.enfileirarLote.mock.calls[0];
+    expect(lote).toEqual({ businessId: 'b1', loteId: ID, origin: 'campanha', agendadoPara: INICIO, prioridade: 9 });
     expect(itens).toHaveLength(3);
-    for (const i of itens) {
-      expect(i).toMatchObject({ businessId: 'b1', origin: 'campanha', prioridade: 9, loteId: ID, agendadoPara: INICIO });
-      expect(i.body.endsWith(RODAPE_SAIR)).toBe(true);
-    }
-    expect(itens[0]).toMatchObject({ clientId: 'c1', phone: '83999990001', body: `Oi Ana!\n\n${RODAPE_SAIR}` });
+    for (const i of itens) expect(i.body.endsWith(RODAPE_SAIR)).toBe(true);
+    expect(itens.map((i: ItemLote) => i.clientId)).toEqual(['c1', 'c2', 'c3']);
+    expect(itens[0]).toEqual({ clientId: 'c1', phone: '83999990001', body: `Oi Ana!\n\n${RODAPE_SAIR}` });
+    // O público é montado com a cadência da campanha (para os horários livres de cada cliente).
+    expect(publico.montar).toHaveBeenCalledWith('b1', { segmento: 'em_risco', professionalId: null, serviceId: null }, INICIO, 25, AGORA);
     expect(repo.marcarAgendada).toHaveBeenCalledWith('b1', ID);
     expect(repo.gravarTotal).toHaveBeenCalledWith('b1', ID, 3);
     expect(r.jaNaFila).toBe(0);
@@ -73,8 +84,7 @@ describe('campanhasService.salvar (agendar)', () => {
   });
 
   it('cliente já na fila de outra campanha conta em jaNaFila', async () => {
-    fila.enfileirar.mockImplementation(async (itens: Array<{ clientId: string; loteId: string }>) =>
-      itens.map((i) => envio(i.clientId, i.clientId === 'c2' ? 'outro-lote' : i.loteId)));
+    fila.enfileirarLote.mockImplementation(loteCom(['c2']));
     const r = await campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA);
     expect(repo.gravarTotal).toHaveBeenCalledWith('b1', ID, 2);
     expect(r.campanha.total).toBe(2);
@@ -85,13 +95,25 @@ describe('campanhasService.salvar (agendar)', () => {
     repo.marcarAgendada.mockResolvedValue(0);
     await expect(campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA))
       .rejects.toMatchObject({ statusCode: 409, message: 'Esta campanha já foi agendada' });
-    expect(fila.enfileirar).not.toHaveBeenCalled();
+    expect(fila.enfileirarLote).not.toHaveBeenCalled();
   });
 
-  it('enfileirar lança → cancela o lote, volta a rascunho e relança', async () => {
-    fila.enfileirar.mockRejectedValue(new Error('banco caiu'));
-    await expect(campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA)).rejects.toThrow('banco caiu');
+  it('enfileirar lança → cancela o lote, volta a rascunho e sobe 500 genérico com o id do rascunho', async () => {
+    const original = new Error('banco caiu');
+    fila.enfileirarLote.mockRejectedValue(original);
+    const err = await campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(AppError);
+    expect(err).toMatchObject({ statusCode: 500, message: 'Não foi possível agendar a campanha.', details: [{ campanhaId: ID }] });
+    expect(log.error).toHaveBeenCalledWith(expect.objectContaining({ err: original, campanhaId: ID }), expect.any(String));
     expect(filaRepo.cancelarDoLote).toHaveBeenCalledWith('b1', ID, 'Campanha cancelada');
+    expect(repo.voltarRascunho).toHaveBeenCalledWith('b1', ID);
+  });
+
+  it('AppError de outra classe depois do rascunho mantém a classe e ganha o id do rascunho', async () => {
+    publico.montar.mockRejectedValue(new NotFoundError('Profissional'));
+    await expect(campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA)).rejects.toMatchObject({
+      statusCode: 404, message: 'Profissional não encontrada', details: [{ campanhaId: ID }],
+    });
     expect(repo.voltarRascunho).toHaveBeenCalledWith('b1', ID);
   });
 
@@ -101,34 +123,43 @@ describe('campanhasService.salvar (agendar)', () => {
       statusCode: 400, message: 'Nenhuma cliente pode receber esta campanha', details: [{ campanhaId: ID }],
     });
     expect(repo.voltarRascunho).toHaveBeenCalledWith('b1', ID);
-    expect(fila.enfileirar).not.toHaveBeenCalled();
+    expect(fila.enfileirarLote).not.toHaveBeenCalled();
   });
 
-  it('montar lança → volta a rascunho e o erro sobe', async () => {
+  it('montar lança → volta a rascunho e o erro sobe com o id do rascunho', async () => {
     publico.montar.mockRejectedValue(new Error('crm fora'));
-    await expect(campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA)).rejects.toThrow('crm fora');
+    await expect(campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA)).rejects.toMatchObject({
+      statusCode: 500, details: [{ campanhaId: ID }],
+    });
     expect(repo.voltarRascunho).toHaveBeenCalledWith('b1', ID);
-    expect(fila.enfileirar).not.toHaveBeenCalled();
+    expect(fila.enfileirarLote).not.toHaveBeenCalled();
   });
 
   it('gravarTotal lança → cancela o lote e volta a rascunho', async () => {
     repo.gravarTotal.mockRejectedValue(new Error('banco caiu'));
-    await expect(campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA)).rejects.toThrow('banco caiu');
+    await expect(campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA)).rejects.toMatchObject({
+      statusCode: 500, message: 'Não foi possível agendar a campanha.', details: [{ campanhaId: ID }],
+    });
     expect(filaRepo.cancelarDoLote).toHaveBeenCalledWith('b1', ID, 'Campanha cancelada');
     expect(repo.voltarRascunho).toHaveBeenCalledWith('b1', ID);
   });
 
   it('falha ao desfazer não esconde o erro original', async () => {
-    fila.enfileirar.mockRejectedValue(new Error('banco caiu'));
+    const original = new Error('banco caiu');
+    fila.enfileirarLote.mockRejectedValue(original);
     filaRepo.cancelarDoLote.mockRejectedValue(new Error('outra falha'));
-    await expect(campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA)).rejects.toThrow('banco caiu');
+    await expect(campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA)).rejects.toMatchObject({
+      statusCode: 500, details: [{ campanhaId: ID }],
+    });
+    expect(log.error).toHaveBeenCalledWith(expect.objectContaining({ err: original }), expect.any(String));
     expect(repo.voltarRascunho).toHaveBeenCalledWith('b1', ID);
   });
 
   it('todas já na fila de outra campanha → cancela o lote, volta a rascunho e 400', async () => {
-    fila.enfileirar.mockImplementation(async (itens: Array<{ clientId: string }>) => itens.map((i) => envio(i.clientId, 'outro-lote')));
-    await expect(campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA))
-      .rejects.toMatchObject({ statusCode: 400, message: 'Todas as clientes deste público já estão na fila de outra campanha' });
+    fila.enfileirarLote.mockImplementation(loteCom(['c1', 'c2', 'c3']));
+    await expect(campanhasService.salvar('b1', 'u1', INPUT, undefined, AGORA)).rejects.toMatchObject({
+      statusCode: 400, message: 'Todas as clientes deste público já estão na fila de outra campanha', details: [{ campanhaId: ID }],
+    });
     expect(filaRepo.cancelarDoLote).toHaveBeenCalledWith('b1', ID, 'Campanha cancelada');
     expect(repo.voltarRascunho).toHaveBeenCalledWith('b1', ID);
     expect(repo.gravarTotal).not.toHaveBeenCalled();
@@ -153,7 +184,7 @@ describe('campanhasService.salvar (rascunho e edição)', () => {
     expect(repo.criar).toHaveBeenCalledWith(expect.objectContaining({
       businessId: 'b1', createdBy: 'u1', status: 'rascunho', inicioEm: new Date('2026-10-02T00:00:00Z'),
     }));
-    expect(fila.enfileirar).not.toHaveBeenCalled();
+    expect(fila.enfileirarLote).not.toHaveBeenCalled();
     expect(r).toMatchObject({ jaNaFila: 0, campanha: { status: 'rascunho' } });
   });
 
@@ -186,9 +217,23 @@ describe('campanhasService.cancelar', () => {
       .mockResolvedValueOnce(linha({ status: 'cancelada', total: 3 }));
     filaRepo.contagemDoLote.mockResolvedValue(new Map([[ID, contagem({ na_fila: 3 })]]));
     const r = await campanhasService.cancelar('b1', ID, AGORA);
-    expect(repo.marcarCancelada).toHaveBeenCalledWith('b1', ID);
-    expect(filaRepo.cancelarDoLote).toHaveBeenCalledWith('b1', ID, 'Campanha cancelada');
+    // As duas gravações na mesma transação.
+    expect(db.$transaction).toHaveBeenCalledTimes(1);
+    expect(repo.marcarCancelada).toHaveBeenCalledWith('b1', ID, TX);
+    expect(filaRepo.cancelarDoLote).toHaveBeenCalledWith('b1', ID, 'Campanha cancelada', TX);
     expect(r.status).toBe('cancelada');
+  });
+
+  it('marcarCancelada devolve 0 → 409 e o lote não é tocado', async () => {
+    repo.marcarCancelada.mockResolvedValue(0);
+    await expect(campanhasService.cancelar('b1', ID, AGORA)).rejects.toMatchObject({ statusCode: 409, message: 'Esta campanha não está agendada' });
+    expect(filaRepo.cancelarDoLote).not.toHaveBeenCalled();
+  });
+
+  it('cancelarDoLote lança → a transação falha e o erro sobe', async () => {
+    filaRepo.cancelarDoLote.mockRejectedValue(new Error('banco caiu'));
+    await expect(campanhasService.cancelar('b1', ID, AGORA)).rejects.toThrow('banco caiu');
+    expect(repo.marcarCancelada).toHaveBeenCalledWith('b1', ID, TX);
   });
 
   it('concluída → 409 sem mudar o status', async () => {

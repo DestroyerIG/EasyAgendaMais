@@ -101,4 +101,11 @@ describe('previsaoDeEnvio', () => {
     expect(previsaoDeEnvio({ agora: base, tz: TZ, posicao: 2, ultimo: null }).toISOString()).toBe('2026-10-21T11:00:00.000Z');
     expect(previsaoDeEnvio({ agora: base, tz: TZ, posicao: 3, ultimo: null }).toISOString()).toBe('2026-10-21T11:01:15.000Z');
   });
+  it('intervaloS troca os 75 s por posição (cadência de campanha) e continua respeitando a janela', () => {
+    const inicio = new Date('2026-10-21T13:00:00Z'); // 10:00 local
+    // 25/h = 144 s: posição 50 sai 2 h depois.
+    expect(previsaoDeEnvio({ agora: inicio, tz: TZ, posicao: 50, ultimo: null, intervaloS: 144 }).toISOString()).toBe('2026-10-21T15:00:00.000Z');
+    // 10/h = 360 s: das 10:00 às 20:00 cabem 100; a posição 100 vai para 08:00 do dia seguinte.
+    expect(previsaoDeEnvio({ agora: inicio, tz: TZ, posicao: 100, ultimo: null, intervaloS: 360 }).toISOString()).toBe('2026-10-22T11:00:00.000Z');
+  });
 });

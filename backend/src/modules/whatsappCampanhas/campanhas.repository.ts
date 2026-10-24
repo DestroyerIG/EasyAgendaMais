@@ -1,4 +1,4 @@
-import type { WhatsappCampanha } from '@prisma/client';
+import type { Prisma, WhatsappCampanha } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 
 export type CampanhaRow = WhatsappCampanha;
@@ -58,8 +58,8 @@ export const campanhasRepository = {
   },
 
   /** agendada -> cancelada; 0 se não estava agendada. */
-  async marcarCancelada(businessId: string, id: string): Promise<number> {
-    const r = await prisma.whatsappCampanha.updateMany({ where: { id, businessId, status: 'agendada' }, data: { status: 'cancelada' } });
+  async marcarCancelada(businessId: string, id: string, db: Prisma.TransactionClient = prisma): Promise<number> {
+    const r = await db.whatsappCampanha.updateMany({ where: { id, businessId, status: 'agendada' }, data: { status: 'cancelada' } });
     return r.count;
   },
 };
