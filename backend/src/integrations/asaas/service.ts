@@ -1,4 +1,5 @@
 import { AppError } from '../../utils/errors.js';
+import { PLAN_PRICES } from '../../config/planCatalog.js';
 import {
   isValidCpf as validateCpf,
   isValidCnpj as validateCnpj,
@@ -144,11 +145,7 @@ interface AsaasErrorContextOptions {
 // Constants
 // ---------------------------------------------------------------------------
 
-const PLAN_VALUES = Object.freeze({
-  basico: 49.9,
-  profissional: 99.9,
-  premium: 199.9,
-}) as Record<string, number>;
+const PLAN_VALUES = PLAN_PRICES as Record<string, number>;
 
 const GENERIC_CUSTOMER_NAMES = new Set([
   'equipe easyagenda',

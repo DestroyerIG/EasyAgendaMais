@@ -17,6 +17,14 @@ export const PixPaymentParamsSchema = z.object({
   paymentId: z.string().trim().min(3).max(120),
 });
 
+export const ChangePlanBodySchema = z.object({
+  plan: z.enum(['basico', 'profissional', 'premium']),
+});
+
+export const InvoicesQuerySchema = z.object({
+  ano: z.coerce.number().int().min(2000).max(2100).optional(),
+});
+
 export const ValidateCouponBodySchema = z.object({
   code: z.string().trim().min(1).max(50),
   plan: z.enum(['basico', 'profissional', 'premium']),

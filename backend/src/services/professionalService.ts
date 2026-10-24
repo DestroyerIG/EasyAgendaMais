@@ -1,14 +1,12 @@
 import { professionalRepository } from '../repositories/professionalRepository.js';
 import { NotFoundError, PlanLimitError, ValidationError } from '../utils/errors.js';
 import { getBusinessScheduleSettings } from './scheduleSettingsService.js';
+import { prisma } from '../config/prisma.js';
+import { normalizePlan } from '../config/planPermissions.js';
+import { PLAN_ORDER, professionalLimit } from '../config/planCatalog.js';
+import { limiteProfissionaisEfetivo } from '../modules/billing/planChange.rules.js';
 
 type Plan = 'basico' | 'profissional' | 'premium';
-
-const PROFESSIONAL_LIMITS: Record<Plan, number> = {
-  basico: 1,
-  profissional: 5,
-  premium: 999,
-};
 
 interface ProfessionalData {
   name: string;
@@ -46,11 +44,22 @@ export const professionalService = {
 
   async createProfessional(businessId: string, plan: string, data: ProfessionalData) {
     const currentProfessionals = await professionalRepository.countActive(businessId);
-    const limit = PROFESSIONAL_LIMITS[plan as Plan] ?? 1;
+    const negocio = await prisma.business.findUnique({
+      where: { id: businessId },
+      select: { planoAgendado: true },
+    });
+    const planoAtual = normalizePlan(plan) as Plan;
+    const planoAgendado = negocio?.planoAgendado ? (normalizePlan(negocio.planoAgendado) as Plan) : null;
+    const limit = limiteProfissionaisEfetivo(planoAtual, planoAgendado);
 
     if (currentProfessionals >= limit) {
+      if (planoAgendado && professionalLimit(planoAtual) > currentProfessionals) {
+        throw new ValidationError(
+          'Com a mudança de plano agendada, não dá para cadastrar mais profissionais. Cancele a mudança em Plano e cobrança.'
+        );
+      }
       throw new PlanLimitError(
-        Object.entries(PROFESSIONAL_LIMITS).find(([, v]) => v > currentProfessionals)?.[0] || 'premium'
+        PLAN_ORDER.find((id) => professionalLimit(id) > currentProfessionals) || 'premium'
       );
     }
 

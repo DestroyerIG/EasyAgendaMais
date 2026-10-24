@@ -12,7 +12,8 @@ import { ServiceCard } from '@/components/services/ServiceCard';
 import { ProfessionalCard } from '@/components/services/ProfessionalCard';
 import { ServiceProfessionalModal } from '@/components/services/ServiceProfessionalModal';
 import type { ServiceFormData, ProfessionalFormData } from '@/components/services/ServiceProfessionalModal';
-import { getApiErrorMessage } from '@/utils/handleApiError';
+import { getApiErrorCode, getApiErrorMessage } from '@/utils/handleApiError';
+import { useRouter } from 'next/navigation';
 
 export const ServiceProfessionalModule = () => {
   const [activeTab, setActiveTab] = useState<'servicos' | 'profissionais' | 'produtos'>('servicos');
@@ -22,6 +23,7 @@ export const ServiceProfessionalModule = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Service | Professional | null>(null);
   const [selectedProfessionalForAgenda, setSelectedProfessionalForAgenda] = useState<Professional | null>(null);
+  const router = useRouter();
   const { showToast } = useToast();
 
   const loadData = useCallback(async () => {
@@ -91,6 +93,10 @@ export const ServiceProfessionalModule = () => {
       loadData();
     } catch (error: unknown) {
       showToast(getApiErrorMessage(error, 'Erro ao salvar profissional'), 'error');
+      // Limite de profissionais do plano: a comparação abre explicando o upgrade (2D).
+      if (!editingItem && getApiErrorCode(error) === 'PLAN_LIMIT') {
+        router.push('/planos/comparar?recurso=profissionais');
+      }
       throw error;
     }
   };

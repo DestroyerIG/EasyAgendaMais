@@ -48,6 +48,10 @@ model Business {
   providerPaymentId            String?   @map("provider_payment_id") @db.VarChar(255)
   paymentMethod                String?   @map("payment_method") @db.VarChar(20)
 
+  // Downgrade agendado para o fim do período (2D)
+  planoAgendado                String?   @map("plano_agendado") @db.VarChar(50)
+  planoAgendadoEm              DateTime? @map("plano_agendado_em")
+
   // Metadata
   metadata                     Json      @default("{}")
   instagramHandle              String?   @map("instagram_handle") @db.VarChar(255)
@@ -345,6 +349,8 @@ model BillingPayment {
   paidAt                 DateTime? @map("paid_at")
   pixCopyPaste           String?   @map("pix_copy_paste") @db.Text
   qrCode                 String?   @map("qr_code") @db.Text
+  tipo                   String    @default("mensalidade") @db.VarChar(20)
+  plano                  String?   @db.VarChar(50)
   metadata               Json?
   createdAt              DateTime  @default(now()) @map("created_at")
   updatedAt              DateTime  @default(now()) @updatedAt @map("updated_at")

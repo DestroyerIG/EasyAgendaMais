@@ -7,6 +7,7 @@ import { subscriptionRepository } from '../repositories/subscriptionRepository.j
 // @ts-ignore — sendWhatsAppMessage is a legacy JS service not yet typed
 import { sendWhatsAppMessage } from './whatsapp/index.js';
 import { inboxCron } from '../modules/whatsappInbox/inbox.cron.js';
+import { planChangeService } from '../modules/billing/planChange.service.js';
 import { filaEnvios } from '../modules/whatsappFila/fila.service.js';
 import { notificationsService } from '../modules/notifications/notifications.service.js';
 import { inboxRecorder } from '../modules/whatsappInbox/inbox.recorder.js';
@@ -244,6 +245,18 @@ export const startReminderCron = (): void => {
       }
     } catch (error) {
       logger.error({ err: error }, 'Erro ao expirar assinaturas one-time');
+    }
+  });
+
+  // Downgrades Pix agendados cujo período acabou (os do cartão viram pelo webhook do Stripe).
+  cron.schedule('20 * * * *', async () => {
+    try {
+      const aplicados = await planChangeService.aplicarDowngradesVencidos();
+      if (aplicados > 0) {
+        logger.info({ aplicados }, 'Downgrades agendados aplicados');
+      }
+    } catch (error) {
+      logger.error({ err: error }, 'Erro ao aplicar downgrades agendados');
     }
   });
 

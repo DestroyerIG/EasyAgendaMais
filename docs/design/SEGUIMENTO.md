@@ -96,6 +96,17 @@ Sub-projeto 2C-2c (WhatsApp: Campanhas), pendências conhecidas:
 - O rótulo "Agendar" pode mostrar por um instante a contagem antiga enquanto a prévia recarrega.
 - Minors parados nas revisões: o modal de detalhes não tem "Tentar de novo"; o indicador de passos é heurístico; falta teste de `opcoes` (precisa de banco).
 
+Sub-projeto 2D (Plano e cobrança, comparação e upgrade), pendências conhecidas:
+- Migração `20261024120000_plano_cobranca` aplicada em produção em 24/10/2026, com autorização do dono (`migrate status` limpo antes e depois; só adições).
+- Nada da troca de plano rodou no Stripe ou no Asaas de verdade: os testes mockam os dois. Antes de publicar, testar em modo de teste: upgrade no cartão (cobrança da diferença e cartão recusado), downgrade no cartão (schedule criado e virada na renovação), upgrade no Pix (QR, pagamento e webhook) e cancelar cada um.
+- No Stripe, desligar a troca de plano no Customer Portal e deixar só a atualização do cartão. Senão a troca pelo portal pula a regra de profissionais e o proporcional da tela.
+- Pix continua sendo cobrança avulsa por mês (não é assinatura recorrente no Asaas). Gerar a cobrança do mês seguinte ainda marca a assinatura como `pending` até o pagamento, então a tela só oferece "Gerar cobrança Pix" quando a assinatura já está sem pagamento. Cobrança recorrente de verdade no Pix (Pix Automático ou assinatura do Asaas) fica para depois.
+- Trocar a forma de pagamento (Pix para cartão ou o contrário) não entrou: o checkout de hoje criaria uma segunda assinatura em paralelo.
+- Uma cobrança Pix do mês seguinte gerada antes de um upgrade sai no preço antigo.
+- Os valores proporcionais da prévia são calculados pela tela. No cartão, o Stripe cobra o valor que ele mesmo calcula, que pode diferir em centavos.
+- "Lista de espera" e "Campanhas" aparecem no Stitch como exclusivas do Equipe, mas funcionam em todos os planos. A matriz da comparação mostra o que o backend separa de fato. Tirar recursos do Solo é decisão de venda.
+- Os botões "Dúvidas financeiras" e "Fale com nosso financeiro" só aparecem com `NEXT_PUBLIC_SUPPORT_WHATSAPP` configurado no frontend.
+
 ## Melhorias técnicas pequenas
 
 - O Vitest imprime um aviso de configuração a cada execução. Silenciar exige renomear `vitest.config.ts` para `.mts` ou declarar `"type": "module"`.
@@ -161,3 +172,9 @@ Sub-projeto 2C-2c (WhatsApp: Campanhas), pendências conhecidas:
     - Qualquer falha depois de marcar como agendada cancela os itens já criados e volta a campanha para rascunho. O erro devolve o id do rascunho (`details: [{ campanhaId }]`) em qualquer classe de erro; erro inesperado vira 500 "Não foi possível agendar a campanha." com o original no log. A tela passa a salvar no rascunho em vez de criar outro.
     - Na hora do envio, a fila usa `estaEmOptOutOuFalha`: se não der para ler o SAIR, o item volta para a fila e tenta no próximo tick (nunca envia às cegas). Os outros chamadores continuam com `estaEmOptOut`, que devolve false em erro.
     - Público vazio ou erro de validação responde 400 (o projeto não tem classe de erro 422).
+- Sub-projeto 2D: Ajustes › Plano e cobrança com dado real e a tela nova de comparação e upgrade (`/planos/comparar`). Migração `20261024120000_plano_cobranca`, aplicada em produção em 24/10/2026. Entrou:
+  - Catálogo único dos planos em `backend/src/config/planCatalog.ts` (preço, limite de profissionais, matriz), usado pelo checkout, pelo Pix, pelo limite de profissionais e por `GET /billing/plans`.
+  - Troca de plano (`/billing/change-plan`): upgrade na hora com a diferença proporcional (Stripe com `pending_if_incomplete`, Pix com cobrança avulsa marcada `:upgrade`), downgrade na renovação (schedule no Stripe, `plano_agendado` e rotina de hora em hora no Pix), bloqueio por profissionais ativas e cancelar a mudança.
+  - Faturas reais (`/billing/invoices`, Pix do banco e cartão do Stripe) e forma de pagamento real (`/billing/payment-method`).
+  - Correções que apareceram no caminho: cancelar o Pix bloqueava o painel na hora (agora mantém o acesso até o fim do período); a consulta do Pix e o webhook tratariam a diferença do upgrade como mensalidade; o webhook do Stripe preferia o `metadata.plan` ao plano do Price.
+  - `conteudoDemo.ts` saiu (o último uso era a tela de Plano).

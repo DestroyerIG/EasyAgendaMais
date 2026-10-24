@@ -1,57 +1,53 @@
 'use client';
 
 /**
- * Tela Ajustes › Plano e Cobrança (ajustes-plano.html).
+ * Ajustes › Plano e cobrança (Stitch `studio-aurora-ajustes-plano-e-cobranca-equipe-2026--cf22b5`).
  *
- * Dado real: nome, preço e ciclo do plano atual vêm de PLAN_MAP a partir do plano do
- * usuário logado (o mesmo dado que a tela já usava); o nome exibido é Solo/Equipe/Salão,
- * o mesmo da barra lateral e das páginas de preço, nunca "Pro". Status
- * da assinatura e "Gerenciar assinatura"/"Gerar nova cobrança Pix" continuam vindo de
- * useDashboardBilling, com o mesmo handler de sempre. Quando o backend informa
- * subscriptionCurrentPeriodEnd (TrialBanner já usa o mesmo campo), a data e os dias da
- * "Próxima cobrança" vêm dele; sem esse dado, caem no exemplo abaixo. "Mudar de plano"
- * rola até a seção de planos disponíveis (PricingPlansSection), real e com checkout de
- * verdade — não duplicamos aquele componente aqui.
- *
- * Dado de exemplo (`conteudoDemo.plano`): cartão de crédito salvo e débito automático como
- * forma de cobrança (só quando o provedor real não é Pix/Asaas — com Asaas a tela não
- * pode afirmar um cartão que não existe), o histórico de faturas com download de PDF e
- * NFS-e, e a data de próxima cobrança quando o backend não a informa — nada disso o
- * sistema expõe hoje nesta tela. Para o histórico de faturas não repetir um nome e um
- * valor de plano diferentes dos mostrados no cartão "Plano Atual" da mesma tela, a
- * referência e o valor de cada lançamento usam o plano e o preço reais; só a data, a forma
- * de pagamento e o status de cada lançamento são do exemplo — o período da fatura mais
- * recente é recalculado a partir da próxima cobrança real, para nunca terminar depois
- * dela. Pelo mesmo motivo, o acesso após cancelamento é sempre a véspera da próxima
- * cobrança real, nunca uma data solta. "Recursos inclusos no seu plano" vem de
- * `PLAN_MAP[planId].features` (o mesmo dado real que `PricingPlansSection` desenha no
- * rodapé desta página), não de conteudoDemo — e o histórico de faturas de exemplo só
- * aparece quando a assinatura real está ativa e paga (trial e inadimplência mostram um
- * estado vazio real, nunca "Pago" para uma cobrança que não existiu).
- *
- * Botões sem suporte real ("Relatório de Gastos", "Dúvidas Financeiras", "Trocar para
- * anual", "Atualizar método de pagamento", "Fatura"/"NFS-e", "Filtrar por ano",
- * "Carregar histórico completo", "Cancelar assinatura", "Fale com nosso financeiro via
- * WhatsApp") mostram o aviso padrão em vez de fingir que funcionaram.
+ * Tudo aqui é dado real (spec 2D): status e período de `billing/status`, recursos do
+ * catálogo único (`billing/plans`), cartão do Stripe ou cobrança Pix em aberto
+ * (`billing/payment-method`) e o histórico de `billing/invoices`. Sem dado, a tela diz que
+ * não há, em vez de mostrar exemplo. "Mudar de plano" leva à comparação
+ * (`/planos/comparar`); quem não tem assinatura paga escolhe o plano pelo checkout de
+ * sempre (`PricingPlansSection`), que só aparece nesse caso.
  */
 
-import { useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
 import { useDashboardBilling } from '@/hooks/useDashboardBilling';
 import { PricingPlansSection } from '@/components/marketing/PricingPlansSection';
 import { ForcedDark } from '@/components/theme/ForcedDark';
 import { SettingsTabs } from '@/components/shell/SettingsTabs';
-import { isPlanId, PLAN_MAP, getPlanShellLabel, type PlanId } from '@/lib/plans';
-import { conteudoDemo } from '@/lib/conteudoDemo';
-import { formatCurrency } from '@/lib/formatters';
-import { format, subDays, subMonths } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { PixPagamento } from '@/components/planos/PixPagamento';
+import { isPlanId, type PlanId } from '@/lib/plans';
 import {
-  AVISO_RECURSO_A_CAMINHO,
+  billingApi,
+  type CatalogoPlanos,
+  type FaturasResponse,
+  type FormaPagamento,
+  type SubscriptionStatusResponse,
+} from '@/lib/billing';
+import { formatCurrency } from '@/lib/formatters';
+import {
+  NOME_PLANO,
+  SEM_PAGAMENTO,
+  STATUS_ASSINATURA,
+  STATUS_FATURA,
+  dataFatura,
+  dataLonga,
+  diaMes,
+  diasAte,
+  linkSuporteWhatsapp,
+  periodoFatura,
+  vespera,
+} from '@/lib/planoCobranca';
+import { getApiErrorMessage } from '@/utils/handleApiError';
+import {
   Button,
   Card,
   Icon,
+  Modal,
   TableBody,
   TableCell,
   TableHead,
@@ -59,128 +55,143 @@ import {
   TableRow,
 } from '@/components/ui';
 
-// Rótulo da assinatura por status (mesmos status de src/lib/billing.ts). Sem status
-// conhecido (billing pode não estar configurado em ambiente local), a tela não afirma
-// "ativa" à toa.
-const STATUS_ROTULO: Record<string, string> = {
-  active: 'Assinatura ativa',
-  trialing: 'Período de teste',
-  pending: 'Pagamento pendente',
-  past_due: 'Pagamento atrasado',
-  unpaid: 'Pagamento em atraso',
-  canceled: 'Assinatura cancelada',
-  incomplete: 'Cadastro incompleto',
-};
+const FATURAS_INICIAIS = 4;
 
-// "Até 5 profissionais na grade" etc.: o primeiro item de "recursos inclusos" (posição
-// que PLAN_MAP[planId].features também reserva para a contagem de profissionais), com a
-// vaga real da grade em vez do texto genérico do plano.
-const PROFISSIONAIS_POR_PLANO: Record<PlanId, string> = {
-  basico: '1 profissional incluído no plano',
-  profissional: 'Até 5 profissionais na grade',
-  premium: 'Profissionais ilimitados, em várias unidades',
-};
+type PixAberto = { paymentId: string; valor: number; qrCode: string | null; pixCopyPaste: string | null };
 
-// Selo por status da fatura (I7 da revisão final): antes era sempre bg-success fixo. Hoje
-// só existe o status 'Pago' no tipo de conteudoDemo, mas o selo lê o valor de fato em vez
-// de uma cor gravada, para não afirmar "Pago" se um status diferente aparecer no futuro.
-const STATUS_FATURA_TOKENS: Record<string, string> = {
-  Pago: 'bg-success/12 text-success-text',
-};
-const STATUS_FATURA_PADRAO = 'bg-surface-2 text-ink';
-
-// Um recurso de "lembretes/bot WhatsApp" só é afirmado para quem o subscriptionAccess
-// realmente libera (WhatsAppModule.tsx trava o Solo dizendo o contrário) — mesma fonte
-// (PLAN_MAP[planId].features) que decide o resto da lista, só filtrando por palavra-chave.
-const ehRecursoWhatsapp = (feature: string): boolean => feature.toLowerCase().includes('whatsapp');
-
-const formatarDataLonga = (date: Date): string =>
-  new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
-
-const formatarDataCurta = (date: Date): string => format(date, 'd/MMM', { locale: ptBR }).replace('.', '');
+const listaNomes = (nomes: string[]): string =>
+  nomes.length <= 1 ? nomes.join('') : `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}`;
 
 export default function PlanosPage() {
-  const { user } = useAuth();
-  const { subscriptionStatus, openBillingPortal, portalLoading, billingProvider } = useDashboardBilling();
+  const { user, refreshMe } = useAuth();
   const { showToast } = useToast();
-  const pricingRef = useRef<HTMLDivElement>(null);
+  const { openBillingPortal, portalLoading } = useDashboardBilling();
 
-  const planId: PlanId = user?.plan && isPlanId(user.plan) ? user.plan : 'basico';
-  const plan = PLAN_MAP[planId];
-  const nomeExibicao = getPlanShellLabel(planId);
-  const demo = conteudoDemo.plano;
+  const [status, setStatus] = useState<SubscriptionStatusResponse | null>(null);
+  const [catalogo, setCatalogo] = useState<CatalogoPlanos | null>(null);
+  const [forma, setForma] = useState<FormaPagamento | null>(null);
+  const [faturas, setFaturas] = useState<FaturasResponse | null>(null);
+  const [ano, setAno] = useState<number | null>(null);
+  const [verTodas, setVerTodas] = useState(false);
+  const [carregando, setCarregando] = useState(true);
+  const [pixAberto, setPixAberto] = useState<PixAberto | null>(null);
+  const [confirmarCancelamento, setConfirmarCancelamento] = useState(false);
+  const [acao, setAcao] = useState<null | 'cancelar' | 'reativar' | 'mudanca' | 'gerar'>(null);
 
-  const aCaminho = () => showToast(AVISO_RECURSO_A_CAMINHO, 'info');
-  const statusRotulo = subscriptionStatus ? STATUS_ROTULO[subscriptionStatus] ?? subscriptionStatus : 'Plano atual';
-  const scrollToPricing = () => pricingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const carregar = useCallback(async () => {
+    const [s, c, f] = await Promise.allSettled([
+      billingApi.getStatus(),
+      billingApi.getPlans(),
+      billingApi.getPaymentMethod(),
+    ]);
+    if (s.status === 'fulfilled') setStatus(s.value);
+    if (c.status === 'fulfilled') setCatalogo(c.value);
+    setForma(f.status === 'fulfilled' ? f.value : null);
+    setCarregando(false);
+  }, []);
 
-  const { proximaCobrancaData, proximaCobrancaDias } = useMemo(() => {
-    if (user?.subscriptionCurrentPeriodEnd) {
-      const fim = new Date(user.subscriptionCurrentPeriodEnd);
-      return {
-        proximaCobrancaData: formatarDataLonga(fim),
-        proximaCobrancaDias: Math.max(0, Math.ceil((fim.getTime() - Date.now()) / (1000 * 60 * 60 * 24))),
-        proximaCobrancaDate: fim,
-      };
+  const carregarFaturas = useCallback(async (filtro: number | null) => {
+    try {
+      setFaturas(await billingApi.getInvoices(filtro));
+    } catch {
+      setFaturas({ anos: [], itens: [] });
     }
-    return {
-      proximaCobrancaData: demo.atual.proximaCobranca.data,
-      proximaCobrancaDias: demo.atual.proximaCobranca.diasRestantes,
-      proximaCobrancaDate: null as Date | null,
-    };
-  }, [user?.subscriptionCurrentPeriodEnd, demo.atual.proximaCobranca]);
+  }, []);
 
-  const acessoAte = useMemo(() => {
-    if (user?.subscriptionCurrentPeriodEnd) {
-      const vespera = new Date(user.subscriptionCurrentPeriodEnd);
-      vespera.setDate(vespera.getDate() - 1);
-      return formatarDataLonga(vespera);
+  useEffect(() => {
+    void carregar();
+  }, [carregar]);
+
+  useEffect(() => {
+    void carregarFaturas(ano);
+  }, [ano, carregarFaturas]);
+
+  const recarregarTudo = useCallback(async () => {
+    await Promise.all([carregar(), carregarFaturas(ano), refreshMe()]);
+  }, [ano, carregar, carregarFaturas, refreshMe]);
+
+  const planoBruto = status?.plan ?? user?.plan ?? 'basico';
+  const planId: PlanId = isPlanId(planoBruto) ? planoBruto : 'basico';
+  const nome = NOME_PLANO[planId];
+  const planoCatalogo = catalogo?.planos.find((p) => p.id === planId) ?? null;
+  const preco = planoCatalogo?.preco ?? null;
+  const statusAssinatura = status?.subscriptionStatus ?? user?.subscriptionStatus ?? null;
+  const statusRotulo = statusAssinatura ? STATUS_ASSINATURA[statusAssinatura] : 'Plano atual';
+  const provider = status?.provider ?? null;
+  const fimPeriodo = status?.nextDueDate ?? status?.currentPeriodEnd ?? null;
+  const assinaturaPaga = statusAssinatura === 'active' && (provider === 'stripe' || provider === 'asaas');
+  const canceladaNoFim = Boolean(status?.cancelAtPeriodEnd) && statusAssinatura === 'active';
+  const semPagamento = statusAssinatura ? SEM_PAGAMENTO.includes(statusAssinatura) : false;
+  const precisaEscolher = !assinaturaPaga && !semPagamento;
+  const suporte = linkSuporteWhatsapp(`Olá! Tenho uma dúvida sobre a cobrança do ${user?.businessName || 'meu negócio'}.`);
+
+  const recursos = useMemo(() => {
+    if (!planoCatalogo) return [];
+    const ativas = status?.nomesProfissionais ?? [];
+    const limite = planoCatalogo.limiteProfissionais;
+    const livres = limite === null ? null : Math.max(0, limite - ativas.length);
+    const titulo =
+      limite === null ? 'Profissionais ilimitadas na grade' : limite === 1 ? '1 profissional na grade' : `Até ${limite} profissionais na grade`;
+    const vagas = livres ? [`${livres} ${livres === 1 ? 'vaga livre' : 'vagas livres'}`] : [];
+    const descricao = ativas.length ? listaNomes([...ativas, ...vagas]) : 'Nenhuma profissional ativa ainda';
+    return [
+      { icone: 'badge', titulo, descricao },
+      ...planoCatalogo.destaques
+        .filter((d) => !/profissionais/i.test(d))
+        .map((d) => ({ icone: /whatsapp/i.test(d) ? 'smart_toy' : 'check_circle', titulo: d, descricao: null as string | null })),
+    ];
+  }, [planoCatalogo, status?.nomesProfissionais]);
+
+  const executar = async (tipo: NonNullable<typeof acao>, fn: () => Promise<void>) => {
+    setAcao(tipo);
+    try {
+      await fn();
+    } catch (error) {
+      showToast(getApiErrorMessage(error, 'Não foi possível concluir. Tente de novo.'), 'error');
+    } finally {
+      setAcao(null);
     }
-    return demo.cancelamento.acessoAte;
-  }, [user?.subscriptionCurrentPeriodEnd, demo.cancelamento.acessoAte]);
+  };
 
-  // Recursos inclusos: o mesmo dado real que PricingPlansSection já desenha no rodapé
-  // desta página (PLAN_MAP[planId].features), nunca conteudoDemo — tira automaticamente
-  // "Clube de assinaturas e pacotes" (contradiz /dashboard/clube, "chegam em breve") e
-  // "Sinal Pix no agendamento" (não existe), que só existiam no array de exemplo.
-  // Ícone por tipo de recurso (ajustes-plano.html): antes disto, todo item exceto o
-  // primeiro usava "check_circle" fixo — a condição que deveria dar destaque ao ícone de
-  // WhatsApp nunca era verdadeira porque nada atribuía "smart_toy" (achado da varredura).
-  const recursos = [
-    { icone: 'badge', titulo: PROFISSIONAIS_POR_PLANO[planId], descricao: 'Vagas ativas na sua grade de horários.' },
-    ...plan.features
-      .slice(1)
-      .filter((feature) => planId !== 'basico' || !ehRecursoWhatsapp(feature))
-      .map((feature) => ({ icone: ehRecursoWhatsapp(feature) ? 'smart_toy' : 'check_circle', titulo: feature })),
-  ];
+  const cancelarAssinatura = () =>
+    executar('cancelar', async () => {
+      await billingApi.cancelSubscription();
+      setConfirmarCancelamento(false);
+      showToast('Assinatura cancelada. Nenhuma nova cobrança será feita.', 'success');
+      await recarregarTudo();
+    });
 
-  // Período da fatura mais recente: recalculado a partir da próxima cobrança real, para
-  // nunca terminar depois dela (I7 da revisão final) — as demais faturas (mais antigas)
-  // seguem o período de exemplo, que não concorre com a próxima cobrança.
-  const periodoUltimaFaturaTexto = useMemo(() => {
-    const fimReal = user?.subscriptionCurrentPeriodEnd ? new Date(user.subscriptionCurrentPeriodEnd) : null;
-    if (!fimReal || Number.isNaN(fimReal.getTime())) return demo.faturas[0]?.periodo ?? '';
-    const inicioPeriodoAtual = subMonths(fimReal, 1);
-    const fimUltimaFatura = subDays(inicioPeriodoAtual, 1);
-    const inicioUltimaFatura = subMonths(inicioPeriodoAtual, 1);
-    return `${formatarDataCurta(inicioUltimaFatura)} a ${formatarDataCurta(fimUltimaFatura)} de ${fimUltimaFatura.getFullYear()}`;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.subscriptionCurrentPeriodEnd]);
+  const reativarOuPagar = () =>
+    executar(canceladaNoFim ? 'reativar' : 'gerar', async () => {
+      const r = await billingApi.reactivateSubscription();
+      if ('reactivationMode' in r && r.reactivationMode === 'new_pix_checkout' && 'paymentId' in r && r.paymentId) {
+        const planoCobrado = status?.planoAgendado ?? planId;
+        const valor = catalogo?.planos.find((p) => p.id === planoCobrado)?.preco ?? preco ?? 0;
+        setPixAberto({ paymentId: r.paymentId, valor, qrCode: r.qrCode, pixCopyPaste: r.pixCopyPaste });
+      } else {
+        showToast('Assinatura reativada.', 'success');
+      }
+      await recarregarTudo();
+    });
 
-  // Faturas de exemplo só quando a assinatura real está ativa e paga: em teste ou com
-  // pagamento atrasado, nenhuma cobrança paga existiu ainda, então a tabela não pode
-  // afirmar "Pago" para as quatro faturas de exemplo.
-  const mostrarFaturasDemo = subscriptionStatus === 'active';
-  const faturas = demo.faturas.map((fatura, indice) => ({
-    ...fatura,
-    referencia: `Mensalidade EasyAgenda+ ${nomeExibicao}`,
-    valor: plan.price,
-    periodo: indice === 0 ? periodoUltimaFaturaTexto || fatura.periodo : fatura.periodo,
-  }));
+  const cancelarMudanca = () =>
+    executar('mudanca', async () => {
+      const r = await billingApi.cancelPlanChange();
+      showToast(r.cancelado === 'downgrade' ? 'Mudança de plano cancelada.' : 'Upgrade cancelado.', 'success');
+      setPixAberto(null);
+      await recarregarTudo();
+    });
 
-  // Cartão salvo (débito automático) é exemplo aceito só quando a cobrança real não é
-  // Pix/Asaas — quem paga por Pix não pode ver um cartão que nunca cadastrou.
-  const cobrancaPorPix = billingProvider === 'asaas' || billingProvider === 'coupon';
+  const pagamentoConfirmado = () => {
+    setPixAberto(null);
+    showToast('Pagamento confirmado!', 'success');
+    void recarregarTudo();
+  };
+
+  const proximaCobranca = dataLonga(fimPeriodo);
+  const diasProxima = diasAte(fimPeriodo);
+  const faturasVisiveis = faturas ? (verTodas ? faturas.itens : faturas.itens.slice(0, FATURAS_INICIAIS)) : [];
+  const upgrade = status?.upgradePendente ?? null;
 
   return (
     <div>
@@ -188,40 +199,101 @@ export default function PlanosPage() {
 
       <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-[13px] font-semibold text-brand-text">
-            <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" />
+          <div className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wider text-brand-text">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${statusAssinatura === 'active' ? 'bg-success' : 'bg-warning'}`}
+              aria-hidden="true"
+            />
             {statusRotulo}
             {user?.businessName && (
               <>
-                <span aria-hidden="true">·</span>
-                {user.businessName}
+                <span aria-hidden="true">•</span>
+                <span className="normal-case tracking-normal">{user.businessName}</span>
               </>
             )}
           </div>
-          <h2 className="text-3xl font-bold text-ink">Plano e Cobrança</h2>
+          <h2 className="text-3xl font-bold text-ink">Plano e cobrança</h2>
           <p className="max-w-2xl text-muted">
-            Gerencie sua assinatura, consulte a próxima renovação, a forma de pagamento e as notas fiscais do seu negócio.
+            Gerencie sua assinatura, consulte a próxima renovação, a forma de pagamento e o histórico de faturas do seu negócio.
           </p>
         </div>
+        {suporte && (
+          <a href={suporte} target="_blank" rel="noreferrer" className="inline-flex">
+            <span className="inline-flex h-11 items-center gap-2 rounded-control border border-line bg-surface-2 px-4 text-[15px] font-semibold text-ink hover:bg-line/60">
+              <Icon name="help" size={18} />
+              Dúvidas financeiras
+            </span>
+          </a>
+        )}
+      </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <Button variant="secondary" onClick={aCaminho}>
-            <Icon name="receipt_long" size={18} />
-            Relatório de gastos
-          </Button>
-          <Button variant="secondary" onClick={aCaminho}>
-            <Icon name="help" size={18} />
-            Dúvidas financeiras
-          </Button>
-          <Button variant="secondary" onClick={openBillingPortal} loading={portalLoading}>
-            {!portalLoading && <Icon name="shield" size={16} />}
-            {portalLoading
-              ? 'Abrindo...'
-              : billingProvider === 'asaas' || billingProvider === 'coupon'
-              ? 'Gerar nova cobrança Pix'
-              : 'Gerenciar assinatura'}
-          </Button>
-        </div>
+      {/* Faixas de estado: pagamento, teste, mudança agendada, upgrade aguardando Pix. */}
+      <div className="mb-6 space-y-3">
+        {semPagamento && (
+          <div role="alert" className="flex flex-col gap-3 rounded-card border border-warning/40 bg-warning/12 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-2 text-warning-text">
+              <Icon name="error" size={20} className="mt-0.5 shrink-0" />
+              <span className="text-[14px] font-semibold">
+                {statusRotulo}. Regularize para voltar a usar todos os recursos do painel.
+              </span>
+            </div>
+            {provider === 'stripe' ? (
+              <Button onClick={openBillingPortal} loading={portalLoading}>
+                Atualizar cartão
+              </Button>
+            ) : (
+              <Button onClick={reativarOuPagar} loading={acao === 'gerar'}>
+                Gerar cobrança Pix
+              </Button>
+            )}
+          </div>
+        )}
+
+        {statusAssinatura === 'trialing' && (
+          <div className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-[14px] text-ink">
+              <strong className="font-semibold">Período de teste</strong>
+              {proximaCobranca ? ` · termina em ${proximaCobranca}` : ''}. Escolha um plano para continuar depois do teste.
+            </span>
+            <Link href="/planos/comparar" className="text-[14px] font-bold text-brand-text hover:underline">
+              Escolher plano
+            </Link>
+          </div>
+        )}
+
+        {status?.planoAgendado && isPlanId(status.planoAgendado) && (
+          <div className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+            <span className="flex items-center gap-2 text-[14px] text-ink">
+              <Icon name="event_repeat" size={20} className="text-brand-text" />
+              Seu plano muda para {NOME_PLANO[status.planoAgendado]} em {diaMes(status.planoAgendadoEm) ?? 'breve'}.
+            </span>
+            <Button variant="secondary" size="sm" onClick={cancelarMudanca} loading={acao === 'mudanca'}>
+              Cancelar mudança
+            </Button>
+          </div>
+        )}
+
+        {upgrade && upgrade.plano && isPlanId(upgrade.plano) && (
+          <div className="flex flex-col gap-3 rounded-card border border-brand/40 bg-brand/12 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <span className="flex items-center gap-2 text-[14px] text-ink">
+              <Icon name="qr_code_2" size={20} className="text-brand-text" />
+              Upgrade para {NOME_PLANO[upgrade.plano]} aguardando o pagamento de {formatCurrency(upgrade.valor)} no Pix.
+            </span>
+            <div className="flex gap-2">
+              <Button variant="secondary" size="sm" onClick={cancelarMudanca} loading={acao === 'mudanca'}>
+                Cancelar upgrade
+              </Button>
+              <Button
+                size="sm"
+                onClick={() =>
+                  setPixAberto({ paymentId: upgrade.paymentId, valor: upgrade.valor, qrCode: upgrade.qrCode, pixCopyPaste: upgrade.pixCopyPaste })
+                }
+              >
+                Ver Pix
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
@@ -231,51 +303,63 @@ export default function PlanosPage() {
           <div className="relative flex flex-wrap items-start justify-between gap-4 border-b border-line pb-6">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-3">
-                <h3 className="text-xl font-bold text-ink">Plano {nomeExibicao}</h3>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-success/12 px-3 py-1 text-[13px] font-bold text-success-text">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" aria-hidden="true" />
-                  {statusRotulo}
+                <h3 className="text-xl font-bold text-ink">Plano {nome} (Mensal)</h3>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-bold ${
+                    statusAssinatura === 'active' && !canceladaNoFim ? 'bg-success/12 text-success-text' : 'bg-warning/12 text-warning-text'
+                  }`}
+                >
+                  {canceladaNoFim ? 'Cancelada' : statusAssinatura === 'active' ? 'Ativo' : statusRotulo}
                 </span>
               </div>
-              <p className="text-[14px] text-muted">Ciclo mensal com renovação automática debitada na forma de pagamento cadastrada.</p>
+              <p className="text-[14px] text-muted">
+                {provider === 'stripe'
+                  ? 'Ciclo mensal com renovação automática no cartão cadastrado.'
+                  : provider === 'asaas'
+                  ? 'Ciclo mensal pago por Pix a cada vencimento.'
+                  : 'Ciclo mensal.'}
+              </p>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold tracking-tight text-ink">
-                {formatCurrency(plan.price)}
-                <span className="ml-1 text-[14px] font-normal text-muted">/mês</span>
-              </div>
-              <div className="mt-1 text-[13px] font-semibold text-brand-text">
-                Próxima cobrança: {proximaCobrancaData}{' '}
-                <span className="font-normal text-muted">(em {proximaCobrancaDias} dias)</span>
-              </div>
+              {preco !== null && (
+                <div className="text-2xl font-bold tracking-tight text-ink">
+                  {formatCurrency(preco)}
+                  <span className="ml-1 text-[14px] font-normal text-muted">/ mês</span>
+                </div>
+              )}
+              {proximaCobranca && assinaturaPaga && !canceladaNoFim && (
+                <div className="mt-1 text-[13px] font-semibold text-brand-text">
+                  Próxima cobrança: {proximaCobranca}{' '}
+                  {diasProxima !== null && <span className="font-normal text-muted">(em {diasProxima} dias)</span>}
+                </div>
+              )}
             </div>
           </div>
 
           <div className="relative py-6">
-            {/* Ajustes-plano.html usa "no seu pacote"; mantido "plano" aqui para não abrir
-                mais uma variação de nome, além da já pendente (SEGUIMENTO.md, decisão do
-                dono) — só o estilo (uppercase/tracking-wider) segue a referência. */}
             <div className="mb-4 text-[13px] font-bold uppercase tracking-wider text-muted">Recursos inclusos no seu plano</div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {recursos.map((recurso) => (
-                <div key={recurso.titulo} className="flex items-start gap-3 rounded-xl border border-line/60 bg-surface-2 p-3.5">
-                  <div
-                    className={
-                      'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface shadow-sm ' +
-                      (recurso.icone === 'smart_toy' ? 'text-whatsapp' : 'text-brand-text')
-                    }
-                  >
-                    <Icon name={recurso.icone} size={20} />
+            {carregando ? (
+              <p className="text-[14px] text-muted">Carregando...</p>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {recursos.map((recurso) => (
+                  <div key={recurso.titulo} className="flex items-start gap-3 rounded-xl border border-line/60 bg-surface-2 p-3.5">
+                    <div
+                      className={
+                        'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface shadow-sm ' +
+                        (recurso.icone === 'smart_toy' ? 'text-whatsapp' : 'text-brand-text')
+                      }
+                    >
+                      <Icon name={recurso.icone} size={20} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[14px] font-semibold text-ink">{recurso.titulo}</span>
+                      {recurso.descricao && <span className="text-[13px] text-muted">{recurso.descricao}</span>}
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-[14px] font-semibold text-ink">{recurso.titulo}</span>
-                    {'descricao' in recurso && recurso.descricao && (
-                      <span className="text-[13px] text-muted">{recurso.descricao}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="relative flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
@@ -283,15 +367,13 @@ export default function PlanosPage() {
               <Icon name="info" size={20} />
               Sem multas de fidelidade ou taxa de cancelamento.
             </div>
-            <div className="flex items-center gap-3">
-              <Button variant="secondary" onClick={aCaminho}>
-                Trocar para anual
-              </Button>
-              <Button onClick={scrollToPricing}>
-                Mudar de plano
-                <Icon name="arrow_forward" size={18} />
-              </Button>
-            </div>
+            <Link
+              href="/planos/comparar"
+              className="inline-flex h-11 items-center gap-2 rounded-control bg-brand px-4 text-[15px] font-semibold text-on-brand hover:bg-brand/90"
+            >
+              Mudar de plano
+              <Icon name="arrow_forward" size={18} />
+            </Link>
           </div>
         </Card>
 
@@ -299,67 +381,87 @@ export default function PlanosPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Icon name={cobrancaPorPix ? 'payments' : 'credit_card'} size={22} className="text-brand-text" />
+                <Icon name={forma?.tipo === 'pix' ? 'payments' : 'credit_card'} size={22} className="text-brand-text" />
                 <h3 className="text-lg font-bold text-ink">Forma de pagamento</h3>
               </div>
-              <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[13px] text-muted">Padrão</span>
+              {forma && <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[13px] text-muted">Padrão</span>}
             </div>
 
-            {cobrancaPorPix ? (
-              // Provedor real é Pix/Asaas: não existe cartão salvo nem débito automático
-              // para afirmar, então a tela mostra a forma de cobrança real (I7).
-              <div className="flex items-center gap-3 rounded-xl border border-line/70 bg-surface-2 p-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface shadow-sm text-success-text">
-                  <Icon name="qr_code_2" size={20} />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[14px] font-semibold text-ink">Cobrança via Pix</span>
-                  <span className="text-[13px] text-muted">Gere uma nova cobrança a cada vencimento pelo botão acima.</span>
-                </div>
-              </div>
-            ) : (
+            {forma?.tipo === 'card' && (
               <>
                 <div className="space-y-4 rounded-xl border border-line/70 bg-surface-2 p-4">
                   <div className="flex items-center justify-between">
-                    {/* ajustes-plano.html põe o logo de duas bolinhas coloridas da
-                        Mastercard ao lado do nome (achado da varredura de telas) — sem
-                        exceção no colorRules.ts para cor de marca fora dos tokens do
-                        DESIGN.md, reproduzir o hexadecimal exato quebraria o teste de
-                        conformidade de tema; fica só o texto. */}
-                    <span className="text-[14px] font-semibold text-ink">{demo.formaPagamento.bandeira}</span>
+                    <span className="text-[14px] font-semibold text-ink">{forma.bandeira}</span>
                     <span className="font-mono text-[13px] text-muted">Débito automático</span>
                   </div>
                   <div className="space-y-1">
-                    <div className="font-mono text-[17px] tracking-wider text-ink">•••• •••• •••• {demo.formaPagamento.final}</div>
+                    <div className="font-mono text-[17px] tracking-wider text-ink">•••• •••• •••• {forma.final}</div>
                     <div className="flex items-center justify-between text-muted">
-                      <span className="text-[13px] uppercase">{demo.formaPagamento.titular}</span>
-                      <span className="text-[13px]">Exp: {demo.formaPagamento.validade}</span>
+                      <span className="text-[13px] uppercase">{forma.titular ?? ''}</span>
+                      <span className="text-[13px]">Exp: {forma.validade}</span>
                     </div>
                   </div>
                 </div>
-
-                <div className="flex items-start gap-2.5 rounded-lg bg-success/12 p-3 text-ink">
-                  <Icon name="verified_user" size={18} className="mt-0.5 shrink-0 text-success-text" />
-                  <p className="text-[13px] leading-relaxed">
-                    <strong className="font-semibold text-success-text">Débito automático ativo.</strong> A cobrança de{' '}
-                    {formatCurrency(plan.price)} será processada automaticamente no vencimento, sem interrupção dos serviços.
-                  </p>
-                </div>
-                {/* ajustes-plano.html também mostra um bloco "Pix Automático" ativo ao lado
-                    do cartão — dois métodos de pagamento simultâneos. Este ramo (!cobrancaPorPix)
-                    é justamente para negócios cujo provedor real NÃO é Pix/Asaas; afirmar um
-                    "Pix Automático" aqui contradiria o cobrancaPorPix real, não é uma omissão
-                    decorativa como o logo do cartão — por isso fica de fora (achado da
-                    varredura de telas, mas não corrigido: manter honesto com o provedor real
-                    pesa mais do que reproduzir o card). */}
+                {assinaturaPaga && !canceladaNoFim && preco !== null && (
+                  <div className="flex items-start gap-2.5 rounded-lg bg-success/12 p-3 text-ink">
+                    <Icon name="verified_user" size={18} className="mt-0.5 shrink-0 text-success-text" />
+                    <p className="text-[13px] leading-relaxed">
+                      <strong className="font-semibold text-success-text">Débito automático ativo.</strong> A cobrança de{' '}
+                      {formatCurrency(preco)} será processada automaticamente no vencimento, sem interrupção dos serviços.
+                    </p>
+                  </div>
+                )}
               </>
+            )}
+
+            {forma?.tipo === 'pix' && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 rounded-xl border border-line/70 bg-surface-2 p-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface text-success-text shadow-sm">
+                    <Icon name="qr_code_2" size={20} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[14px] font-semibold text-ink">Pix · cobrança mensal</span>
+                    <span className="text-[13px] text-muted">
+                      {forma.cobrancaAberta
+                        ? `Cobrança de ${formatCurrency(forma.cobrancaAberta.valor)} em aberto${
+                            forma.cobrancaAberta.vencimento ? `, vence em ${diaMes(forma.cobrancaAberta.vencimento)}` : ''
+                          }.`
+                        : 'A cobrança de cada mês é gerada aqui no vencimento.'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!forma && !carregando && (
+              <p className="rounded-xl border border-dashed border-line p-4 text-[14px] text-muted">
+                Nenhuma forma de pagamento cadastrada. Ela aparece aqui depois do primeiro pagamento.
+              </p>
             )}
           </div>
 
-          {!cobrancaPorPix && (
-            <Button variant="secondary" fullWidth onClick={aCaminho}>
+          {forma?.tipo === 'card' && (
+            <Button variant="secondary" fullWidth onClick={openBillingPortal} loading={portalLoading}>
               <Icon name="edit" size={18} />
               Atualizar método de pagamento
+            </Button>
+          )}
+          {forma?.tipo === 'pix' && forma.cobrancaAberta && (
+            <Button
+              fullWidth
+              onClick={() =>
+                forma.cobrancaAberta &&
+                setPixAberto({
+                  paymentId: forma.cobrancaAberta.paymentId,
+                  valor: forma.cobrancaAberta.valor,
+                  qrCode: forma.cobrancaAberta.qrCode,
+                  pixCopyPaste: forma.cobrancaAberta.pixCopyPaste,
+                })
+              }
+            >
+              <Icon name="qr_code_2" size={18} />
+              Pagar com Pix
             </Button>
           )}
         </Card>
@@ -369,143 +471,238 @@ export default function PlanosPage() {
         <div className="flex flex-col gap-4 border-b border-line p-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-lg font-bold text-ink">Histórico de faturas e pagamentos</h3>
-            <p className="mt-0.5 text-[14px] text-muted">
-              Acesse os comprovantes de quitação e baixe as notas fiscais de serviço (NFS-e).
-            </p>
+            <p className="mt-0.5 text-[14px] text-muted">Acesse as faturas e os comprovantes de cada cobrança.</p>
           </div>
-          <Button variant="secondary" size="sm" onClick={aCaminho}>
-            <Icon name="filter_list" size={16} />
-            Filtrar por ano ({new Date().getFullYear()})
-          </Button>
+          {faturas && faturas.anos.length > 1 && (
+            <label className="inline-flex items-center gap-2 text-[14px] text-muted">
+              <Icon name="filter_list" size={16} />
+              <span className="sr-only">Filtrar por ano</span>
+              <select
+                value={ano ?? ''}
+                onChange={(e) => setAno(e.target.value ? Number(e.target.value) : null)}
+                className="h-9 rounded-control border border-line bg-surface-2 px-2 text-[14px] text-ink"
+              >
+                <option value="">Todos os anos</option>
+                {faturas.anos.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
 
-        <div className="w-full overflow-x-auto">
-          <table className="w-full border-collapse text-left text-[15px]" style={{ minWidth: 760 }}>
-            <TableHead>
-              <TableRow>
-                <TableHeaderCell>Data</TableHeaderCell>
-                <TableHeaderCell>Referência / Período</TableHeaderCell>
-                <TableHeaderCell className="text-right">Valor</TableHeaderCell>
-                <TableHeaderCell>Forma de pagamento</TableHeaderCell>
-                <TableHeaderCell>Status</TableHeaderCell>
-                <TableHeaderCell className="text-center">Comprovante / NF</TableHeaderCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {mostrarFaturasDemo ? (
-                faturas.map((fatura) => (
-                  <TableRow key={fatura.data}>
-                    <TableCell className="whitespace-nowrap font-mono font-medium">{fatura.data}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-ink">{fatura.referencia}</span>
-                        <span className="text-[13px] text-muted">Período: {fatura.periodo}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-right font-mono font-semibold">{formatCurrency(fatura.valor)}</TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <div className="inline-flex items-center gap-2">
-                        <Icon
-                          name={fatura.formaPagamento.startsWith('Pix') ? 'payments' : 'credit_card'}
-                          size={18}
-                          className="text-muted"
-                        />
-                        <span className="font-mono text-[13px]">{fatura.formaPagamento}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[13px] font-semibold ${
-                          STATUS_FATURA_TOKENS[fatura.status] ?? STATUS_FATURA_PADRAO
-                        }`}
-                      >
-                        <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
-                        {fatura.status}
-                      </span>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          type="button"
-                          onClick={aCaminho}
-                          title="Baixar PDF da fatura"
-                          className="inline-flex items-center gap-1 whitespace-nowrap rounded bg-surface-2 border border-line px-2.5 py-1 text-[13px] transition-colors hover:bg-line/60"
-                        >
-                          <Icon name="picture_as_pdf" size={16} className="text-danger" />
-                          Fatura
-                        </button>
-                        <button
-                          type="button"
-                          onClick={aCaminho}
-                          title="Baixar nota fiscal NFS-e"
-                          className="inline-flex items-center gap-1 whitespace-nowrap rounded bg-surface-2 border border-line px-2.5 py-1 text-[13px] transition-colors hover:bg-line/60"
-                        >
-                          <Icon name="description" size={16} className="text-brand-text" />
-                          NFS-e
-                        </button>
-                      </div>
-                    </TableCell>
+        {faturasVisiveis.length === 0 ? (
+          <p className="px-6 py-10 text-center text-muted">
+            {faturas ? 'Nenhuma cobrança ainda. A primeira aparece aqui quando for gerada.' : 'Carregando faturas...'}
+          </p>
+        ) : (
+          <>
+            {/* Celular: lista de cartões. */}
+            <ul className="divide-y divide-line md:hidden">
+              {faturasVisiveis.map((f) => (
+                <li key={f.id} className="flex items-start justify-between gap-3 p-4">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-ink">{f.referencia}</div>
+                    <div className="text-[13px] text-muted">
+                      {dataFatura(f.data)} · {f.formaDetalhe}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <span className="font-mono font-semibold text-ink">{formatCurrency(f.valor)}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[12px] font-semibold ${STATUS_FATURA[f.status].classe}`}>
+                      {STATUS_FATURA[f.status].rotulo}
+                    </span>
+                    {f.url && (
+                      <a href={f.url} target="_blank" rel="noreferrer" className="text-[13px] font-semibold text-brand-text hover:underline">
+                        Fatura
+                      </a>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            <div className="hidden w-full overflow-x-auto md:block">
+              <table className="w-full border-collapse text-left text-[15px]">
+                <TableHead>
+                  <TableRow>
+                    <TableHeaderCell>Data</TableHeaderCell>
+                    <TableHeaderCell>Referência / Período</TableHeaderCell>
+                    <TableHeaderCell className="text-right">Valor</TableHeaderCell>
+                    <TableHeaderCell>Forma de pagamento</TableHeaderCell>
+                    <TableHeaderCell>Status</TableHeaderCell>
+                    <TableHeaderCell className="text-center">Comprovante</TableHeaderCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-muted">
-                    Nenhuma fatura emitida ainda
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </table>
-        </div>
+                </TableHead>
+                <TableBody>
+                  {faturasVisiveis.map((f) => {
+                    const periodo = periodoFatura(f.periodoInicio, f.periodoFim);
+                    return (
+                      <TableRow key={f.id}>
+                        <TableCell className="whitespace-nowrap font-mono font-medium">{dataFatura(f.data)}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-ink">{f.referencia}</span>
+                            {periodo && <span className="text-[13px] text-muted">Período: {periodo}</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-right font-mono font-semibold">{formatCurrency(f.valor)}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <span className="inline-flex items-center gap-2">
+                            <Icon name={f.forma === 'pix' ? 'payments' : 'credit_card'} size={18} className="text-muted" />
+                            <span className="text-[13px]">{f.formaDetalhe}</span>
+                          </span>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[13px] font-semibold ${STATUS_FATURA[f.status].classe}`}>
+                            <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+                            {STATUS_FATURA[f.status].rotulo}
+                          </span>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-center">
+                          {f.url ? (
+                            <a
+                              href={f.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 rounded border border-line bg-surface-2 px-2.5 py-1 text-[13px] hover:bg-line/60"
+                            >
+                              <Icon name="picture_as_pdf" size={16} className="text-danger" />
+                              Fatura
+                            </a>
+                          ) : (
+                            <span className="text-[13px] text-muted">—</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </table>
+            </div>
 
-        {mostrarFaturasDemo && (
-          <div className="flex items-center justify-between bg-surface-2 p-4 text-[13px] text-muted">
-            <span>Exibindo os últimos {faturas.length} lançamentos</span>
-            <button type="button" onClick={aCaminho} className="font-semibold text-brand-text hover:underline">
-              Carregar histórico completo ({new Date().getFullYear()})
-            </button>
-          </div>
+            {faturas && faturas.itens.length > FATURAS_INICIAIS && (
+              <div className="flex items-center justify-between bg-surface-2 p-4 text-[13px] text-muted">
+                <span>
+                  Exibindo {faturasVisiveis.length} de {faturas.itens.length} lançamentos
+                </span>
+                {!verTodas && (
+                  <button type="button" onClick={() => setVerTodas(true)} className="font-semibold text-brand-text hover:underline">
+                    Carregar histórico completo
+                  </button>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      <Card className="mt-6 space-y-4">
-        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-          <div className="max-w-2xl space-y-1">
+      {(assinaturaPaga || canceladaNoFim) && (
+        <Card className="mt-6 space-y-4">
+          {canceladaNoFim ? (
+            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+              <div className="max-w-2xl space-y-1">
+                <div className="flex items-center gap-2">
+                  <Icon name="event_busy" size={18} className="text-muted" />
+                  <span className="text-[15px] font-bold text-ink">Assinatura cancelada</span>
+                </div>
+                <p className="text-[14px] leading-relaxed text-muted">
+                  Seu negócio mantém acesso a todos os recursos até{' '}
+                  <span className="font-semibold text-ink">{vespera(fimPeriodo) ?? 'o fim do período'}</span>. Nenhuma nova
+                  cobrança será feita.
+                </p>
+              </div>
+              <Button onClick={reativarOuPagar} loading={acao === 'reativar'} className="shrink-0">
+                Reativar assinatura
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+              <div className="max-w-2xl space-y-1">
+                <div className="flex items-center gap-2">
+                  <Icon name="pause_circle" size={18} className="text-muted" />
+                  <span className="text-[15px] font-bold text-ink">
+                    Deseja cancelar a assinatura do {user?.businessName || 'seu negócio'}?
+                  </span>
+                </div>
+                <p className="text-[14px] leading-relaxed text-muted">
+                  Ao cancelar, seu negócio mantém acesso irrestrito a todos os recursos até{' '}
+                  <span className="font-semibold text-ink">{vespera(fimPeriodo) ?? 'o fim do período pago'}</span>. Seus dados
+                  de clientes e o histórico de agendamentos não são apagados.
+                </p>
+              </div>
+              <Button variant="secondary" onClick={() => setConfirmarCancelamento(true)} className="shrink-0 text-danger">
+                Cancelar assinatura
+              </Button>
+            </div>
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-4 text-[13px] text-muted">
             <div className="flex items-center gap-2">
-              <Icon name="pause_circle" size={18} className="text-muted" />
-              <span className="text-[15px] font-bold text-ink">
-                Deseja pausar ou cancelar a assinatura do {user?.businessName || 'seu negócio'}?
+              <Icon name="lock" size={16} className="text-success-text" />
+              <span>
+                {provider === 'stripe'
+                  ? 'Pagamento com cartão processado pela Stripe.'
+                  : 'Cobrança segura intermediada por Asaas Instituição de Pagamento S.A., regulada pelo Banco Central do Brasil.'}
               </span>
             </div>
-            <p className="text-[14px] leading-relaxed text-muted">
-              Ao cancelar, seu negócio mantém acesso irrestrito a todos os recursos até{' '}
-              <span className="font-semibold text-ink">{acessoAte}</span>. {demo.cancelamento.mensagem}
-            </p>
+            {suporte && (
+              <div className="flex items-center gap-1.5">
+                <span>Dúvidas com notas ou faturamento?</span>
+                <a href={suporte} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-bold text-whatsapp hover:underline">
+                  <Icon name="chat" size={14} />
+                  Fale com nosso financeiro via WhatsApp
+                </a>
+              </div>
+            )}
           </div>
-          <Button variant="secondary" onClick={aCaminho} className="shrink-0 text-danger">
-            Cancelar assinatura
-          </Button>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-4 text-[13px] text-muted">
-          <div className="flex items-center gap-2">
-            <Icon name="lock" size={16} className="text-success-text" />
-            <span>Cobrança segura processada por Stripe (cartão) ou Asaas (Pix), instituições regulamentadas pelo Banco Central do Brasil.</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span>Dúvidas com notas ou faturamento?</span>
-            <button type="button" onClick={aCaminho} className="inline-flex items-center gap-1 font-bold text-whatsapp hover:underline">
-              <Icon name="chat" size={14} />
-              Fale com nosso financeiro via WhatsApp
-            </button>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
-      <div ref={pricingRef} className="mt-10">
-        <ForcedDark className="rounded-card p-4 sm:p-6">
-          <PricingPlansSection showHeader={false} currentPlan={user?.plan || 'basico'} subscriptionStatus={subscriptionStatus} />
-        </ForcedDark>
-      </div>
+      {precisaEscolher && !carregando && (
+        <div id="assinar" className="mt-10 space-y-4">
+          <h3 className="text-xl font-bold text-ink">Escolha seu plano</h3>
+          <ForcedDark className="rounded-card p-4 sm:p-6">
+            <PricingPlansSection showHeader={false} currentPlan={planId} subscriptionStatus={statusAssinatura} />
+          </ForcedDark>
+        </div>
+      )}
+
+      <Modal
+        isOpen={confirmarCancelamento}
+        onClose={() => setConfirmarCancelamento(false)}
+        title="Cancelar assinatura"
+        icon="event_busy"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setConfirmarCancelamento(false)}>
+              Manter assinatura
+            </Button>
+            <Button variant="danger" onClick={cancelarAssinatura} loading={acao === 'cancelar'}>
+              Cancelar assinatura
+            </Button>
+          </>
+        }
+      >
+        <p className="text-[14px] text-ink">
+          Você mantém acesso até <strong>{vespera(fimPeriodo) ?? 'o fim do período pago'}</strong>. Depois disso, o painel
+          fica bloqueado até você assinar de novo. Seus dados não são apagados.
+        </p>
+      </Modal>
+
+      <Modal isOpen={Boolean(pixAberto)} onClose={() => setPixAberto(null)} title="Pagar com Pix" icon="qr_code_2">
+        {pixAberto && (
+          <PixPagamento
+            paymentId={pixAberto.paymentId}
+            valor={pixAberto.valor}
+            qrCode={pixAberto.qrCode}
+            pixCopyPaste={pixAberto.pixCopyPaste}
+            acompanhar
+            onPago={pagamentoConfirmado}
+          />
+        )}
+      </Modal>
     </div>
   );
 }

@@ -8,7 +8,7 @@ interface FeatureGateProps {
   access: FeatureAccessDecision;
   children: ReactNode;
   title?: string;
-  onUpgrade?: () => void;
+  onUpgrade?: (recurso: string) => void;
   onManageBilling?: () => void;
   className?: string;
 }

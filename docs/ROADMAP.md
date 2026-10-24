@@ -22,14 +22,14 @@ Atualizado em 24/10/2026.
 | 2C-2a | WhatsApp: Hora de voltar, fila cadenciada e fotos de perfil | ✅ Concluída | PR #6 |
 | 2C-2b | WhatsApp: Automações | ✅ Concluída | PR #7 |
 | 2C-2c | WhatsApp: Campanhas | ✅ Concluída | PR #8 |
-| **2D** | **Ajustes › Plano e cobrança, comparação e upgrade** | ⏭️ Próxima | — |
+| **2D** | **Ajustes › Plano e cobrança, comparação e upgrade** | 🔄 Em revisão | branch `feat/plano-cobranca` |
 | 3 | Relatórios e Comissões (Salão-Parceiro) | ⏳ A fazer | — |
 | 4 | Clube e pacotes | ⏳ A fazer | — |
 | 5 | App da profissional (PWA) | ⏳ A fazer | — |
 
 ## Próxima fase: 2D
 
-A 2D ainda não tem spec. O primeiro passo é o brainstorming para fechar o escopo, que inclui decidir como as telas usam a cobrança atual (`billing/status`).
+Spec: `docs/superpowers/specs/2026-10-24-plano-cobranca-design.md`. Plano: `docs/superpowers/plans/2026-10-24-plano-cobranca.md`. Implementação na branch `feat/plano-cobranca`, com a migração `20261024120000_plano_cobranca` já aplicada em produção (24/10) e os testes no Stripe e no Asaas em modo de teste ainda por fazer (ver `SEGUIMENTO.md`). Decisões do dono em 24/10: Solo continua R$ 49,90, anual fica para depois, upgrade na hora com proporcional e downgrade na renovação, recursos que não existem com selo "Em breve".
 
 Referências do Stitch em `docs/design/stitch/projeto/`:
 

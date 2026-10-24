@@ -303,7 +303,9 @@ const updateFromStripeSubscription = async ({
 }): Promise<UpdatedSubscriptionRow> => {
   const stripePriceId = subscription.items?.data?.[0]?.price?.id || null;
   const resolvedByPriceId = stripePricingService.resolvePlanByPriceId(stripePriceId, priceCatalog);
-  const resolvedPlan = explicitPlan || resolvedByPriceId?.plan || null;
+  // O Price da assinatura manda: depois de um upgrade ou da virada de um downgrade agendado
+  // (2D), o metadata.plan pode estar atrasado em relação ao item cobrado.
+  const resolvedPlan = resolvedByPriceId?.plan || explicitPlan || null;
   const stripeCustomerId = getStripeObjectId(subscription.customer);
   const subscriptionStatus = normalizeStatus(subscription.status);
 

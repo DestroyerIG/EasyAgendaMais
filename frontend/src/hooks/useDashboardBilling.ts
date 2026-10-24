@@ -35,7 +35,9 @@ export function useDashboardBilling() {
     loadSubscriptionStatus();
   }, [loadSubscriptionStatus]);
 
-  const goToPlans = () => router.push('/planos');
+  // Com o recurso bloqueado, a comparação mostra a faixa "Recurso exclusivo" (2D).
+  const goToPlans = (recurso?: string) =>
+    router.push(typeof recurso === 'string' && recurso ? `/planos/comparar?recurso=${encodeURIComponent(recurso)}` : '/planos/comparar');
 
   const openBillingPortal = async () => {
     if (billingProvider === 'asaas' || billingProvider === 'coupon') {
