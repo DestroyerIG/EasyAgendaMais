@@ -29,7 +29,7 @@ Atualizado em 24/10/2026.
 
 ## Próxima fase: 2D
 
-Spec: `docs/superpowers/specs/2026-10-24-plano-cobranca-design.md`. Plano: `docs/superpowers/plans/2026-10-24-plano-cobranca.md`. Implementação na branch `feat/plano-cobranca`, com a migração `20261024120000_plano_cobranca` pendente de aplicação e os testes no Stripe e no Asaas em modo de teste ainda por fazer (ver `SEGUIMENTO.md`). Decisões do dono em 24/10: Solo continua R$ 49,90, anual fica para depois, upgrade na hora com proporcional e downgrade na renovação, recursos que não existem com selo "Em breve".
+Spec: `docs/superpowers/specs/2026-10-24-plano-cobranca-design.md`. Plano: `docs/superpowers/plans/2026-10-24-plano-cobranca.md`. Implementação na branch `feat/plano-cobranca`, com a migração `20261024120000_plano_cobranca` já aplicada em produção (24/10) e os testes no Stripe e no Asaas em modo de teste ainda por fazer (ver `SEGUIMENTO.md`). Decisões do dono em 24/10: Solo continua R$ 49,90, anual fica para depois, upgrade na hora com proporcional e downgrade na renovação, recursos que não existem com selo "Em breve".
 
 Referências do Stitch em `docs/design/stitch/projeto/`:
 
