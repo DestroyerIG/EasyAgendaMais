@@ -2,7 +2,7 @@ import express, { type Request, type Response, type NextFunction } from 'express
 import { timingSafeEqual } from 'crypto';
 import Stripe from 'stripe';
 import { authMiddleware } from '../../middleware/auth.js';
-import { requireTenantRoles } from '../../middleware/rbac.js';
+import { requireRole, requireTenantRoles } from '../../middleware/rbac.js';
 import { requireFeature } from '../../middleware/subscriptionGuard.js';
 import { validate } from '../../middleware/validate.js';
 import { AppError, UnauthorizedError } from '../../utils/errors.js';
@@ -12,6 +12,8 @@ import {
   BillingActionBodySchema,
   PixPaymentParamsSchema,
   ValidateCouponBodySchema,
+  ChangePlanBodySchema,
+  InvoicesQuerySchema,
 } from './billing.types.js';
 import {
   createCheckoutSession,
@@ -21,6 +23,12 @@ import {
   getPixPaymentStatus,
   handleAsaasWebhook,
   validateCoupon,
+  getPlans,
+  previewPlanChange,
+  changePlan,
+  cancelPlanChange,
+  getInvoices,
+  getPaymentMethod,
 } from './billing.controller.js';
 import { stripeWebhook } from '../../controllers/subscriptionController.js';
 
@@ -184,5 +192,20 @@ router.get(
   validate({ params: PixPaymentParamsSchema }),
   getPixPaymentStatus
 );
+
+// ─── Plano e cobrança (2D) ────────────────────────────────────────────────────
+
+// Catálogo público (a landing também usa).
+router.get('/plans', getPlans);
+
+const leitura = [authMiddleware, requireTenantRoles, requireFeature('subscription_status')];
+// Trocar de plano é da dona da conta, não da equipe.
+const acao = [authMiddleware, requireRole(['tenant_admin']), requireFeature('billing')];
+
+router.get('/invoices', ...leitura, validate({ query: InvoicesQuerySchema }), getInvoices);
+router.get('/payment-method', ...leitura, getPaymentMethod);
+router.post('/change-plan/preview', ...acao, validate({ body: ChangePlanBodySchema }), previewPlanChange);
+router.post('/change-plan', ...acao, validate({ body: ChangePlanBodySchema }), changePlan);
+router.delete('/change-plan', ...acao, cancelPlanChange);
 
 export default router;

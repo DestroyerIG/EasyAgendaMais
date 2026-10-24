@@ -33,6 +33,8 @@ export const subscriptionRepository = {
              next_due_date,
              last_payment_date,
              canceled_at,
+             plano_agendado,
+             plano_agendado_em,
              metadata
       FROM businesses
       WHERE id = ${businessId}::uuid AND active = true
@@ -294,6 +296,9 @@ export const subscriptionRepository = {
     const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
       UPDATE businesses
       SET plan = COALESCE(${p2}::text, plan),
+          -- Downgrade agendado que acabou de valer (pelo Stripe ou pela rotina) sai da fila.
+          plano_agendado = CASE WHEN plano_agendado = COALESCE(${p2}::text, plan) THEN NULL ELSE plano_agendado END,
+          plano_agendado_em = CASE WHEN plano_agendado = COALESCE(${p2}::text, plan) THEN NULL ELSE plano_agendado_em END,
           stripe_customer_id = COALESCE(${p22}::text, stripe_customer_id),
           stripe_subscription_id = CASE
             WHEN ${p11}::boolean THEN NULL
@@ -492,6 +497,8 @@ export const subscriptionRepository = {
       paidAt?: string | Date | null;
       pixCopyPaste?: string | null;
       qrCode?: string | null;
+      tipo?: 'mensalidade' | 'upgrade' | null;
+      plano?: string | null;
       metadata?: unknown;
     },
     _client: unknown = null
@@ -510,6 +517,8 @@ export const subscriptionRepository = {
         paid_at,
         pix_copy_paste,
         qr_code,
+        tipo,
+        plano,
         metadata
       )
       VALUES (
@@ -525,6 +534,8 @@ export const subscriptionRepository = {
         ${payment.paidAt ?? null}::timestamp,
         ${payment.pixCopyPaste ?? null}::text,
         ${payment.qrCode ?? null}::text,
+        ${payment.tipo ?? 'mensalidade'}::text,
+        ${payment.plano ?? null}::text,
         ${normalizeJsonb(payment.metadata)}::jsonb
       )
       ON CONFLICT (provider, provider_payment_id)
@@ -539,6 +550,7 @@ export const subscriptionRepository = {
         paid_at = COALESCE(EXCLUDED.paid_at, billing_payments.paid_at),
         pix_copy_paste = COALESCE(EXCLUDED.pix_copy_paste, billing_payments.pix_copy_paste),
         qr_code = COALESCE(EXCLUDED.qr_code, billing_payments.qr_code),
+        plano = COALESCE(billing_payments.plano, EXCLUDED.plano),
         metadata = COALESCE(EXCLUDED.metadata, billing_payments.metadata),
         updated_at = CURRENT_TIMESTAMP
       RETURNING *

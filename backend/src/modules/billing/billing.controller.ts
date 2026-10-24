@@ -4,12 +4,12 @@ import { billingService } from '../../services/billingService.js';
 import { couponService } from '../../services/couponService.js';
 import { AppError } from '../../utils/errors.js';
 import type { WebhookResult } from './billing.types.js';
+import { PLAN_PRICES, getPlanCatalog } from '../../config/planCatalog.js';
+import { planChangeService } from './planChange.service.js';
+import { billingInfoService } from './billingInfo.service.js';
+import logger from '../../utils/logger.js';
 
-const PLAN_BASE_AMOUNTS: Record<string, number> = {
-  basico: 49.9,
-  profissional: 99.9,
-  premium: 199.9,
-};
+const PLAN_BASE_AMOUNTS: Record<string, number> = PLAN_PRICES;
 
 export const createCheckoutSession = async (
   req: Request,
@@ -36,7 +36,13 @@ export const getBillingStatus = async (
 ): Promise<void> => {
   try {
     const data = await billingService.getStatus(req.user.businessId!);
-    sendSuccess(res, data);
+    let complemento: Record<string, unknown> = {};
+    try {
+      complemento = await billingInfoService.complementoStatus(req.user.businessId!);
+    } catch (error) {
+      logger.warn({ err: error, businessId: req.user.businessId }, 'Complemento do status de billing indisponível');
+    }
+    sendSuccess(res, { ...data, ...complemento });
   } catch (error) {
     next(error);
   }
@@ -134,6 +140,53 @@ export const validateCoupon = async (
       finalAmount: adjustedFinalAmount,
       originalAmount: baseAmount,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── Plano e cobrança (2D) ────────────────────────────────────────────────────
+
+export const getPlans = (_req: Request, res: Response): void => {
+  sendSuccess(res, getPlanCatalog());
+};
+
+export const previewPlanChange = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    sendSuccess(res, await planChangeService.previa(req.user.businessId!, req.body.plan));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const changePlan = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    sendSuccess(res, await planChangeService.trocar(req.user.businessId!, req.body.plan));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const cancelPlanChange = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    sendSuccess(res, await planChangeService.cancelar(req.user.businessId!));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getInvoices = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const ano = req.query.ano ? Number(req.query.ano) : null;
+    sendSuccess(res, await billingInfoService.faturas(req.user.businessId!, ano));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPaymentMethod = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    sendSuccess(res, await billingInfoService.formaPagamento(req.user.businessId!));
   } catch (error) {
     next(error);
   }

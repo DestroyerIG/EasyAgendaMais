@@ -4,6 +4,9 @@ import { AppError, NotFoundError, UnauthorizedError } from '../utils/errors.js';
 import { prisma } from '../config/prisma.js';
 import { Prisma } from '@prisma/client';
 import { subscriptionRepository } from '../repositories/subscriptionRepository.js';
+import { PLAN_PRICES } from '../config/planCatalog.js';
+import { planChangeService } from '../modules/billing/planChange.service.js';
+import { ehReferenciaUpgrade } from '../modules/billing/planChange.rules.js';
 import { asaasService, type AsaasPayment, type AsaasBusinessInput } from '../integrations/asaas/service.js';
 import { asaasMapper, type AsaasWebhookPayment } from '../integrations/asaas/mapper.js';
 import { subscriptionService } from './subscriptionService.js';
@@ -38,6 +41,7 @@ interface AsaasPaymentSnapshotInput {
   subscriptionId: string | null;
   internalStatus: InternalSubscriptionStatus;
   pixData?: PixData | null;
+  plano?: string | null;
   client?: unknown;
 }
 
@@ -250,6 +254,7 @@ const saveAsaasPaymentSnapshot = async ({
   subscriptionId,
   internalStatus,
   pixData,
+  plano = null,
   client = null,
 }: AsaasPaymentSnapshotInput): Promise<unknown> => {
   if (!payment?.id) {
@@ -270,6 +275,8 @@ const saveAsaasPaymentSnapshot = async ({
       paidAt: parseDate(payment.confirmedDate || payment.clientPaymentDate || payment.paymentDate),
       pixCopyPaste: pixData?.pixCopyPaste || null,
       qrCode: pixData?.qrCode || null,
+      tipo: 'mensalidade',
+      plano,
       metadata: {
         rawPayment: payment,
       },
@@ -482,12 +489,7 @@ export const billingService = {
         };
       }
 
-      const PLAN_VALUES: Record<string, number> = {
-        basico: 49.9,
-        profissional: 99.9,
-        premium: 199.9,
-      };
-      const baseAmount = PLAN_VALUES[checkoutPlan] ?? 49.9;
+      const baseAmount = PLAN_PRICES[checkoutPlan as PlanName] ?? PLAN_PRICES.basico;
       const {
         finalAmount: rawFinalAmount,
         discount: rawDiscount,
@@ -601,6 +603,7 @@ export const billingService = {
           pxCheckout.subscription?.id || payment?.subscription || null,
         internalStatus,
         pixData: pxCheckout.pixData,
+        plano: resolvedPlan,
       });
 
       logger.info(
@@ -852,7 +855,8 @@ export const billingService = {
       }) as unknown as Promise<Record<string, unknown>>;
     }
 
-    const plan = context.plan || 'basico';
+    // Com downgrade agendado, a próxima cobrança Pix já sai no plano novo.
+    const plan = (context.plano_agendado as string | null) || context.plan || 'basico';
     const checkout = await this.createCheckoutSession(businessId, plan, 'pix');
 
     return {
@@ -1014,34 +1018,44 @@ export const billingService = {
           business.plan ||
           'basico';
 
-        await updateBusinessFromAsaasPayment({
-          business,
-          plan: resolvedPlan,
-          payment: normalizedPayload.payment as unknown as AsaasPayment,
-          subscriptionId:
-            normalizedPayload.subscriptionId ||
-            business.provider_subscription_id ||
-            null,
-          customerId:
-            normalizedPayload.customerId ||
-            business.provider_customer_id ||
-            null,
-          internalStatus: normalizedPayload.internalStatus,
-          eventType: normalizedPayload.eventType,
-          client: null,
-        });
+        if (ehReferenciaUpgrade(normalizedPayload.externalReference)) {
+          // Diferença de upgrade (2D): só troca o plano, sem reiniciar o período.
+          await planChangeService.webhookUpgradePix(
+            normalizedPayload.payment as unknown as Record<string, unknown>,
+            business.id,
+            resolvedPlan as PlanName
+          );
+        } else {
+          await updateBusinessFromAsaasPayment({
+            business,
+            plan: resolvedPlan,
+            payment: normalizedPayload.payment as unknown as AsaasPayment,
+            subscriptionId:
+              normalizedPayload.subscriptionId ||
+              business.provider_subscription_id ||
+              null,
+            customerId:
+              normalizedPayload.customerId ||
+              business.provider_customer_id ||
+              null,
+            internalStatus: normalizedPayload.internalStatus,
+            eventType: normalizedPayload.eventType,
+            client: null,
+          });
 
-        await saveAsaasPaymentSnapshot({
-          businessId: business.id,
-          payment: normalizedPayload.payment as unknown as AsaasPayment,
-          subscriptionId:
-            normalizedPayload.subscriptionId ||
-            business.provider_subscription_id ||
-            null,
-          internalStatus: normalizedPayload.internalStatus,
-          pixData: asaasMapper.mapAsaasPaymentToPixData(normalizedPayload.payment),
-          client: null,
-        });
+          await saveAsaasPaymentSnapshot({
+            businessId: business.id,
+            payment: normalizedPayload.payment as unknown as AsaasPayment,
+            subscriptionId:
+              normalizedPayload.subscriptionId ||
+              business.provider_subscription_id ||
+              null,
+            internalStatus: normalizedPayload.internalStatus,
+            pixData: asaasMapper.mapAsaasPaymentToPixData(normalizedPayload.payment),
+            plano: resolvedPlan,
+            client: null,
+          });
+        }
 
         processingStatus = 'processed';
       } else {
