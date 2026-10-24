@@ -806,11 +806,19 @@ export const billingService = {
       });
     }
 
+    // Pix é cobrança mês a mês: cancelar só impede a próxima. O acesso continua até o fim
+    // do período pago (spec 2D), quando a rotina de expiração marca 'canceled'. Sem período
+    // pago (pendente, atrasada), cancela na hora.
+    const status = normalizeInternalSubscriptionStatus(context.subscription_status);
+    const fimPeriodo = parseDate(context.current_period_end ?? context.subscription_current_period_end);
+    const mantemAcesso = status === 'active' && Boolean(fimPeriodo && fimPeriodo.getTime() > Date.now());
+    const canceledAt = new Date();
+
     await subscriptionRepository.updateSubscriptionState(businessId, {
       provider: 'asaas',
       paymentMethod: 'pix',
-      subscriptionStatus: 'canceled',
-      canceledAt: new Date(),
+      subscriptionStatus: mantemAcesso ? 'active' : 'canceled',
+      canceledAt,
       cancelAtPeriodEnd: true,
       metadata: {
         billingProvider: 'asaas',
@@ -820,8 +828,10 @@ export const billingService = {
 
     return {
       provider: 'asaas',
-      subscriptionStatus: 'canceled',
-      canceledAt: new Date().toISOString(),
+      subscriptionStatus: mantemAcesso ? 'active' : 'canceled',
+      cancelAtPeriodEnd: true,
+      currentPeriodEnd: mantemAcesso ? fimPeriodo!.toISOString() : null,
+      canceledAt: canceledAt.toISOString(),
     };
   },
 
@@ -853,6 +863,18 @@ export const billingService = {
         businessId,
         context,
       }) as unknown as Promise<Record<string, unknown>>;
+    }
+
+    // Pix cancelado que ainda está no período pago: só desfaz o cancelamento.
+    if (
+      normalizeInternalSubscriptionStatus(context.subscription_status) === 'active' &&
+      context.subscription_cancel_at_period_end
+    ) {
+      await subscriptionRepository.updateSubscriptionState(businessId, {
+        provider: 'asaas',
+        cancelAtPeriodEnd: false,
+      });
+      return { provider: 'asaas', subscriptionStatus: 'active', reactivationMode: 'resumed' };
     }
 
     // Com downgrade agendado, a próxima cobrança Pix já sai no plano novo.

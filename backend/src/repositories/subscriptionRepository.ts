@@ -416,7 +416,8 @@ export const subscriptionRepository = {
   async expireOneTimeSubscriptions(_client: unknown = null): Promise<{ expiredCount: number; businessIds: string[] }> {
     const result = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
       UPDATE businesses
-      SET subscription_status = 'unpaid',
+      -- Pix cancelado pela dona termina como 'canceled' no fim do período pago (2D).
+      SET subscription_status = CASE WHEN subscription_cancel_at_period_end THEN 'canceled' ELSE 'unpaid' END,
           subscription_updated_at = CURRENT_TIMESTAMP
       WHERE (
         stripe_payment_mode = 'payment'

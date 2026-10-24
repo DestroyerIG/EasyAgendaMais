@@ -168,3 +168,61 @@ describe('consulta do Pix da diferença de upgrade (2D)', () => {
     expect(mockSubscriptionRepository.updateSubscriptionState).not.toHaveBeenCalled();
   });
 });
+
+describe('cancelar e reativar no Pix (2D)', () => {
+  const futuro = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockBillingProviderFactory.getProvider.mockReturnValue({ cancelSubscription: vi.fn() });
+  });
+
+  it('com período pago, mantém o acesso até o fim e marca o cancelamento', async () => {
+    mockSubscriptionRepository.getBusinessBillingContext.mockResolvedValue({
+      id: 'b1',
+      provider: 'asaas',
+      payment_method: 'pix',
+      subscription_status: 'active',
+      current_period_end: futuro,
+    });
+
+    const r = await billingService.cancelSubscription('b1');
+
+    expect(mockSubscriptionRepository.updateSubscriptionState).toHaveBeenCalledWith(
+      'b1',
+      expect.objectContaining({ subscriptionStatus: 'active', cancelAtPeriodEnd: true })
+    );
+    expect(r).toMatchObject({ subscriptionStatus: 'active', cancelAtPeriodEnd: true, currentPeriodEnd: futuro.toISOString() });
+  });
+
+  it('sem período pago, cancela na hora', async () => {
+    mockSubscriptionRepository.getBusinessBillingContext.mockResolvedValue({
+      id: 'b1',
+      provider: 'asaas',
+      payment_method: 'pix',
+      subscription_status: 'unpaid',
+      current_period_end: new Date(Date.now() - 1000),
+    });
+
+    const r = await billingService.cancelSubscription('b1');
+    expect(r).toMatchObject({ subscriptionStatus: 'canceled' });
+  });
+
+  it('reativar dentro do período só desfaz o cancelamento, sem gerar Pix', async () => {
+    mockSubscriptionRepository.getBusinessBillingContext.mockResolvedValue({
+      id: 'b1',
+      provider: 'asaas',
+      payment_method: 'pix',
+      subscription_status: 'active',
+      subscription_cancel_at_period_end: true,
+    });
+
+    const r = await billingService.reactivateSubscription('b1');
+
+    expect(r).toEqual({ provider: 'asaas', subscriptionStatus: 'active', reactivationMode: 'resumed' });
+    expect(mockSubscriptionRepository.updateSubscriptionState).toHaveBeenCalledWith('b1', {
+      provider: 'asaas',
+      cancelAtPeriodEnd: false,
+    });
+  });
+});
