@@ -1,11 +1,22 @@
-import { EmBreve } from '@/components/shell/EmBreve';
+'use client';
+
+import { FeatureGate } from '@/components/billing/FeatureGate';
+import { ClubeTabs } from '@/components/clube/ClubeTabs';
+import { PlanosModule } from '@/components/clube/PlanosModule';
+import { useDashboardBilling } from '@/hooks/useDashboardBilling';
 
 export default function ClubePage() {
+  const { access, goToPlans, openBillingPortal } = useDashboardBilling();
+
   return (
-    <EmBreve
-      icon="loyalty"
-      titulo="Clube e pacotes"
-      descricao="Assinaturas, pacotes de sessões e benefícios para clientes fiéis chegam em breve."
-    />
+    <FeatureGate
+      access={access.evaluate('clube')}
+      onUpgrade={() => goToPlans('clube')}
+      onManageBilling={openBillingPortal}
+      title="Clube e pacotes no plano Salão"
+    >
+      <ClubeTabs />
+      <PlanosModule />
+    </FeatureGate>
   );
 }

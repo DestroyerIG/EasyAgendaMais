@@ -4,10 +4,12 @@ import type { Appointment } from '@/types';
 
 // ─── Cálculo: cópia exata de backend/src/modules/comandas/comandaMath.ts ─────────
 // Os dois arquivos têm os mesmos testes; mudou um, mude o outro.
-export interface ComandaItemInput { kind: 'servico' | 'produto'; unitPrice: number; quantity: number }
+// coveredValue: sessão coberta por clube/pacote — sai a R$ 0, mas o valor por sessão entra na base de comissão.
+export interface ComandaItemInput { kind: 'servico' | 'produto'; unitPrice: number; quantity: number; coveredValue?: number | null }
 export interface ComandaCalcInput {
   items: ComandaItemInput[]; depositAvailable: number; discount: number; tip: number;
   serviceCommissionPct: number; productCommissionPct: number;
+  memberDiscountPct?: number;
 }
 export interface ComandaCalc {
   servicesTotal: number; productsTotal: number; subtotal: number;
@@ -16,6 +18,7 @@ export interface ComandaCalc {
   commissionService: number; commissionProduct: number; commissionTotal: number;
   houseRetention: number;
   serviceBase: number; productBase: number;
+  coveredTotal: number; memberDiscount: number;
 }
 const toCents = (v: number): number => Math.round((Number(v) || 0) * 100);
 const fromCents = (c: number): number => c / 100;
@@ -25,18 +28,21 @@ const pctOf = (cents: number, pct: number) => Math.floor((cents * Math.round(pct
 export function calcularComanda(input: ComandaCalcInput): ComandaCalc {
   let services = 0;
   let products = 0;
+  let covered = 0;
   for (const item of input.items) {
+    if (item.coveredValue != null) { covered += toCents(item.coveredValue); continue; }
     const linha = toCents(item.unitPrice) * Math.max(1, Math.floor(item.quantity));
     if (item.kind === 'servico') services += linha; else products += linha;
   }
   const subtotal = services + products;
   const depositApplied = Math.min(pos(toCents(input.depositAvailable)), subtotal);
-  const discount = Math.min(pos(toCents(input.discount)), subtotal - depositApplied);
+  const member = pctOf(subtotal, Math.min(100, Math.max(0, input.memberDiscountPct ?? 0)));
+  const discount = Math.min(pos(toCents(input.discount)) + member, subtotal - depositApplied);
   const tip = pos(toCents(input.tip));
   const totalCharged = subtotal - depositApplied - discount + tip;
   const revenue = subtotal - discount;
   const descontoServico = subtotal > 0 ? Math.round((discount * services) / subtotal) : 0;
-  const serviceBase = services - descontoServico;
+  const serviceBase = services - descontoServico + covered;
   const productBase = products - (discount - descontoServico);
   const commissionService = pctOf(serviceBase, input.serviceCommissionPct);
   const commissionProduct = pctOf(productBase, input.productCommissionPct);
@@ -48,6 +54,7 @@ export function calcularComanda(input: ComandaCalcInput): ComandaCalc {
     commissionTotal: fromCents(commissionService + commissionProduct + tip),
     houseRetention: fromCents(revenue - commissionService - commissionProduct),
     serviceBase: fromCents(serviceBase), productBase: fromCents(productBase),
+    coveredTotal: fromCents(covered), memberDiscount: fromCents(Math.min(member, discount)),
   };
 }
 
@@ -60,6 +67,15 @@ export const ROTULO_PAGAMENTO: Record<PaymentMethod, string> = {
 export interface ComandaItem {
   id: string | null; kind: 'servico' | 'produto'; refId: string | null; name: string;
   unitPrice: number; quantity: number; durationMinutes: number | null; isMain: boolean;
+  coveredValue: number | null;
+}
+
+// Clube/pacote que cobre o serviço principal (sub-projeto 4).
+export interface CoberturaComanda {
+  disponivel: { contratoId: string; nome: string; tipo: 'clube' | 'pacote'; sessao: number | null; de: number | null; valorSessao: number } | null;
+  bloqueio: { nome: string; motivo: string } | null;
+  usando: boolean;
+  descontoSociaPct: number;
 }
 export interface ComandaDetail {
   id: string; number: number; status: 'rascunho' | 'fechada';
@@ -70,6 +86,7 @@ export interface ComandaDetail {
   depositAvailable: number;
   discount: number; tip: number; paymentMethod: PaymentMethod | null;
   commission: { servicePct: number; productPct: number; origem: 'profissional' | 'negocio' };
+  cobertura: CoberturaComanda;
   calc: ComandaCalc;
   whatsappConnected: boolean;
   closedAt: string | null; receiptSentAt: string | null;
@@ -77,6 +94,7 @@ export interface ComandaDetail {
 export interface ComandaExtraInput { kind: 'servico' | 'produto'; id: string; quantity: number }
 export interface SalvarComandaInput {
   extras: ComandaExtraInput[]; discount: number; tip: number; paymentMethod: PaymentMethod | null;
+  usarCobertura?: boolean;
 }
 export interface ComandaShortcut { kind: 'servico' | 'produto'; id: string; name: string; price: number }
 export interface AppointmentDetails {

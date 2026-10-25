@@ -55,6 +55,8 @@ export const THEMED_PATHS: readonly string[] = [
   'src/app/agendar',
   'src/components/publicBooking',
   'src/components/comanda',
+  'src/components/clube',
+  'src/lib/clube.ts',
   'src/components/caixa',
   'src/components/relatorios',
   'src/lib/relatorios.ts',

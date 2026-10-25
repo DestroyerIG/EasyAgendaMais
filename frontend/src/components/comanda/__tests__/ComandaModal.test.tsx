@@ -25,11 +25,12 @@ const dto = (over: Partial<comanda.ComandaDetail> = {}): comanda.ComandaDetail =
   appointment: { id: 'a1', date: '2026-10-13', time: '10:00', status: 'em_atendimento', source: 'publico' },
   client: { id: 'c1', name: 'Mariana Souza', phone: '83999990000' },
   professional: { id: 'p1', name: 'Camila Rocha' },
-  items: [{ id: 'i1', kind: 'servico', refId: 's1', name: 'Manutenção Fibra de Vidro', unitPrice: 110, quantity: 1, durationMinutes: 90, isMain: true }],
+  items: [{ id: 'i1', kind: 'servico', refId: 's1', name: 'Manutenção Fibra de Vidro', unitPrice: 110, quantity: 1, durationMinutes: 90, isMain: true, coveredValue: null }],
   depositAvailable: 30, discount: 0, tip: 0, paymentMethod: null,
   commission: { servicePct: 50, productPct: 20, origem: 'negocio' },
   calc: comanda.calcularComanda({ items: [{ kind: 'servico', unitPrice: 110, quantity: 1 }], depositAvailable: 30, discount: 0, tip: 0, serviceCommissionPct: 50, productCommissionPct: 20 }),
   whatsappConnected: true, closedAt: null, receiptSentAt: null,
+  cobertura: { disponivel: null, bloqueio: null, usando: false, descontoSociaPct: 0 },
   ...over,
 });
 
@@ -189,6 +190,51 @@ describe('ComandaModal', () => {
       await screen.findByText('Comanda #1042');
       expect(screen.getByText('Comprovante instantâneo')).toBeInTheDocument();
       expect(screen.queryByText('Lançamento em caixa')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('clube e pacote', () => {
+    const coberta = () => dto({
+      depositAvailable: 0,
+      cobertura: {
+        disponivel: { contratoId: 'ct1', nome: 'Pacote 4 manutenções', tipo: 'pacote', sessao: 2, de: 4, valorSessao: 95 },
+        bloqueio: null, usando: false, descontoSociaPct: 0,
+      },
+    });
+
+    it('sessão coberta sai a R$ 0,00 e desligar a chave volta a cobrar', async () => {
+      const user = userEvent.setup();
+      vi.mocked(comanda.abrirComanda).mockResolvedValue(coberta());
+      vi.mocked(comanda.salvarComanda).mockResolvedValue(coberta());
+      abrir();
+      expect(await screen.findByText('Coberto pelo pacote · Sessão 2 de 4')).toBeInTheDocument();
+      expect(screen.getByTestId('total-a-cobrar')).toHaveTextContent('R$ 0,00');
+      await user.click(screen.getByRole('switch', { name: /Usar pacote/ }));
+      expect(screen.getByTestId('total-a-cobrar')).toHaveTextContent('R$ 110,00');
+      await user.click(screen.getByRole('button', { name: 'Salvar como rascunho' }));
+      await waitFor(() => expect(comanda.salvarComanda).toHaveBeenCalledWith('k1', expect.objectContaining({ usarCobertura: false })));
+    });
+
+    it('mostra por que o plano não cobre a sessão', async () => {
+      vi.mocked(comanda.abrirComanda).mockResolvedValue(dto({
+        cobertura: { disponivel: null, bloqueio: { nome: 'Clube Mãos', motivo: 'Sem saldo neste mês' }, usando: false, descontoSociaPct: 0 },
+      }));
+      abrir();
+      expect(await screen.findByText('Clube Mãos')).toBeInTheDocument();
+      expect(screen.getByText(/não cobre esta sessão: Sem saldo neste mês/)).toBeInTheDocument();
+      expect(screen.getByTestId('total-a-cobrar')).toHaveTextContent('R$ 80,00');
+    });
+
+    it('desconto de sócia entra no resumo e não vai como desconto manual', async () => {
+      const user = userEvent.setup();
+      const socia = dto({ cobertura: { disponivel: null, bloqueio: null, usando: false, descontoSociaPct: 10 } });
+      vi.mocked(comanda.abrirComanda).mockResolvedValue(socia);
+      vi.mocked(comanda.salvarComanda).mockResolvedValue(socia);
+      abrir();
+      expect(await screen.findByText('Desconto de sócia (10%)')).toBeInTheDocument();
+      expect(screen.getByTestId('total-a-cobrar')).toHaveTextContent('R$ 69,00');
+      await user.click(screen.getByRole('button', { name: 'Salvar como rascunho' }));
+      await waitFor(() => expect(comanda.salvarComanda).toHaveBeenCalledWith('k1', expect.objectContaining({ discount: 0 })));
     });
   });
 

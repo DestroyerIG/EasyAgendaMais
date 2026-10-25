@@ -1,6 +1,5 @@
-// Aviso padrão para ações ainda sem efeito real — mesma linguagem das telas "em
-// breve" do produto (EmBreve.tsx), só que como toast em vez de página inteira,
-// já que o botão continua clicável dentro da tela.
+// Aviso padrão para ações ainda sem efeito real: um toast "em breve", já que o botão
+// continua clicável dentro da tela.
 //
 // Mora no kit porque tem vários consumidores em pastas diferentes (Hoje, Clientes, Agenda,
 // Caixa, Plano — a lista muda conforme telas ganham ou perdem botões sem função real, então

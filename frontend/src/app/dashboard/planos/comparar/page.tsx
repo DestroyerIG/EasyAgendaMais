@@ -60,6 +60,12 @@ const RECURSOS_EXCLUSIVOS: Record<string, RecursoExclusivo> = {
     texto: (a, p) => `Você tentou ativar o modo salão-parceiro nas comissões. Faça upgrade do plano ${a} para o ${p} para apurar a cota-parte do salão e das profissionais, conforme a Lei 13.352.`,
     plano: (a) => (nivelPlano(a) < 2 ? 'premium' : null),
   },
+  clube: {
+    icone: 'loyalty',
+    titulo: (p) => `Clube e pacotes fazem parte do plano ${p}`,
+    texto: (a, p) => `Você tentou abrir o Clube e pacotes. Faça upgrade do plano ${a} para o ${p} para vender assinaturas mensais e pacotes de sessões, com a cobrança por Pix.`,
+    plano: (a) => (nivelPlano(a) < 2 ? 'premium' : null),
+  },
   profissionais: {
     icone: 'group_add',
     titulo: (p) => `Mais profissionais no plano ${p}`,

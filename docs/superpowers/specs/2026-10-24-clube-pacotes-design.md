@@ -224,3 +224,15 @@ A comanda (`GET/PUT/POST /comandas/:id`) passa a devolver `cobertura` (contrato,
 - **Confirmação manual depende da dona.** Pix não confirmado vira atraso e bloqueia o uso. O texto da tela deixa isso claro, e o sino avisa as cobranças vencidas.
 - **Mexer na `calcularComanda`** afeta todo fechamento. Os testes atuais continuam valendo: sem item coberto, o resultado é idêntico.
 - **WhatsApp desconectado:** a cobrança fica na fila como hoje, e a tela mostra "Não enviada" com "Cobrar" para tentar de novo ou copiar o Pix.
+
+## Ajustes feitos na implementação
+- **Desconto de sócia gravado à parte.** A comanda ganhou `desconto_clube`. O `discount_amount` continua com o desconto total (manual + sócia), e a tela mostra e envia só o manual.
+- **Cobrança paga:** o status da cobrança é `paga` (não `confirmada`).
+- **Ciclo vencido sem pagamento:** depois do `cicloFim`, a sessão fica bloqueada com "Mensalidade de dd/mm aguardando pagamento", mesmo antes de a rotina marcar o atraso.
+- **Falta não se desfaz.** `faltou` é status final do agendamento, então não existe "desfazer falta" para devolver a sessão.
+- **Selo da cliente sem trava de plano.** `GET /clube/clientes/:id` exige só login e papel: quem caiu do Salão continua vendo os contratos já pagos da cliente.
+- **Caixa do dia:** entram as mensalidades e pacotes recebidos naquela sessão de caixa, mais os confirmados sem caixa aberto naquele dia. Cada um vira uma linha "Clube" na lista do Caixa, sem abrir comanda.
+- **Vitrine pública:** só aparece com chave Pix cadastrada e plano Salão em dia. Fora disso, a seção "Clube" some e a adesão responde 404.
+- **Comanda fechada:** mostra o item coberto pelo que foi gravado, sem o número da sessão.
+- **Evolução de 6 meses:** o recebimento do clube entra em "Serviços", no mês em que foi pago.
+- **Telas "em breve":** com o Clube, o componente `EmBreve` ficou sem uso e saiu.

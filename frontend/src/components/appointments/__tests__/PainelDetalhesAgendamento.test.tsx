@@ -12,6 +12,7 @@ import {
 } from '../PainelDetalhesAgendamento';
 import type { Appointment } from '@/types';
 
+vi.mock('@/components/clube/SeloClube', () => ({ SeloClube: () => null }));
 vi.mock('@/lib/comanda', async (orig) => ({
   ...(await orig<typeof import('@/lib/comanda')>()),
   buscarDetalhesAgendamento: vi.fn(), reenviarComprovante: vi.fn(),

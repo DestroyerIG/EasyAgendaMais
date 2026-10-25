@@ -28,6 +28,7 @@ import { FichaTecnica } from '@/components/clientes/FichaTecnica';
 import { GaleriaCliente } from '@/components/clientes/GaleriaCliente';
 import { LinhaDoTempoCliente } from '@/components/clientes/LinhaDoTempoCliente';
 import { ClientFormModal, type ClientFormData } from '@/components/clients/ClientFormModal';
+import { SeloClube } from '@/components/clube/SeloClube';
 import { cn } from '@/lib/cn';
 import { anoAtualNegocio, formatCurrency, formatDataNegocio, formatPhone } from '@/lib/formatters';
 import {
@@ -305,6 +306,7 @@ export function FichaCliente({ clienteId, nomeNegocio }: FichaClienteProps) {
                   <span className={cn('h-1.5 w-1.5 rounded-full', FASE_CORES[perfil.fase].ponto)} />
                   {FASE_ROTULO[perfil.fase]}
                 </span>
+                <SeloClube clientId={cliente.id} />
               </div>
               <span className="text-[13px] tabular-nums text-muted">{cliente.phone ? formatPhone(cliente.phone) : 'Sem telefone'}</span>
               {(perfil.etiquetas.length > 0 || perfil.etiquetasAuto.length > 0) && (

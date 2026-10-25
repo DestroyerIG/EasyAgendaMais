@@ -65,6 +65,8 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
   const [enviando, setEnviando] = useState(false);
   // Por que o fechamento parou no caixa: ainda não aberto hoje, ou já fechado hoje.
   const [pedirCaixa, setPedirCaixa] = useState<'abrir' | 'reabrir' | null>(null);
+  // Sessão de clube/pacote: a dona pode desligar quando a cliente prefere pagar.
+  const [usarCobertura, setUsarCobertura] = useState(true);
 
   useEffect(() => {
     if (!appointmentId) return;
@@ -86,6 +88,7 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
         unitPrice: i.unitPrice, quantity: i.quantity,
       })));
       setForma(c.paymentMethod);
+      setUsarCobertura(c.cobertura.usando || (!!c.cobertura.disponivel && c.status === 'rascunho'));
       if ((GORJETAS as readonly number[]).includes(c.tip) || c.tip <= 0) setGorjeta(c.tip > 0 ? c.tip : 0);
       else { setGorjetaOutro(true); setGorjetaTexto(textoValor(c.tip)); }
       if (c.discount > 0) { setMostrarDesconto(true); setDescontoTexto(textoValor(c.discount)); }
@@ -98,18 +101,28 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
   }, [appointmentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const principal = dto?.items.find((i) => i.isMain) ?? null;
-  const subtotalBruto = (principal ? principal.unitPrice : 0) + extras.reduce((t, e) => t + e.unitPrice * e.quantity, 0);
+  const cobertura = dto?.cobertura ?? null;
+  // Comanda fechada mostra o que foi gravado; no rascunho vale a chave.
+  const valorCoberto = dto?.status === 'fechada'
+    ? principal?.coveredValue ?? null
+    : usarCobertura && cobertura?.disponivel ? cobertura.disponivel.valorSessao : null;
+  const coberto = valorCoberto !== null;
+  const subtotalBruto = (principal && !coberto ? principal.unitPrice : 0) + extras.reduce((t, e) => t + e.unitPrice * e.quantity, 0);
   const descontoReais = descontoModo === 'percentual' ? round2(subtotalBruto * numero(descontoTexto) / 100) : numero(descontoTexto);
   const gorjetaFinal = gorjetaOutro ? numero(gorjetaTexto) : gorjeta;
 
-  const calc = useMemo(() => dto && calcularComanda({
+  // Fechada: os totais gravados no fechamento (o desconto de sócia não é recalculado).
+  const calc = useMemo(() => dto && (dto.status === 'fechada' ? dto.calc : calcularComanda({
     items: [
-      ...(principal ? [{ kind: 'servico' as const, unitPrice: principal.unitPrice, quantity: 1 }] : []),
+      ...(principal ? [{ kind: 'servico' as const, unitPrice: principal.unitPrice, quantity: 1, coveredValue: valorCoberto }] : []),
       ...extras.map((e) => ({ kind: e.kind, unitPrice: e.unitPrice, quantity: e.quantity })),
     ],
     depositAvailable: dto.depositAvailable, discount: descontoReais, tip: gorjetaFinal,
     serviceCommissionPct: dto.commission.servicePct, productCommissionPct: dto.commission.productPct,
-  }), [dto, principal, extras, descontoReais, gorjetaFinal]);
+    memberDiscountPct: dto.cobertura.descontoSociaPct,
+  })), [dto, principal, extras, descontoReais, gorjetaFinal, valorCoberto]);
+  // O desconto total inclui o da sócia; o backend recebe só o manual e recalcula o resto.
+  const descontoManual = calc ? round2(calc.discount - calc.memberDiscount) : 0;
 
   const resultados = useMemo<Opcao[]>(() => {
     const termo = semAcento(busca.trim());
@@ -148,7 +161,8 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
 
   const entrada = (): SalvarComandaInput => ({
     extras: extras.map((e) => ({ kind: e.kind, id: e.refId, quantity: e.quantity })),
-    discount: calc?.discount ?? 0, tip: calc?.tip ?? 0, paymentMethod: forma,
+    discount: descontoManual, tip: calc?.tip ?? 0, paymentMethod: forma,
+    ...(cobertura?.disponivel ? { usarCobertura } : {}),
   });
 
   const salvarRascunho = async () => {
@@ -305,10 +319,59 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
                                 </>
                               ) : null}
                               <span className="rounded-full bg-surface px-2 py-0.5 text-[12px] text-ink">Serviço principal</span>
+                              {coberto && cobertura?.disponivel ? (
+                                <span className="rounded-full bg-success/15 px-2 py-0.5 text-[12px] font-semibold text-success-text">
+                                  Coberto pelo {cobertura.disponivel.tipo === 'clube' ? 'clube' : 'pacote'}
+                                  {cobertura.disponivel.sessao !== null
+                                    ? ` · Sessão ${cobertura.disponivel.sessao}${cobertura.disponivel.de !== null ? ` de ${cobertura.disponivel.de}` : ''}`
+                                    : ''}
+                                </span>
+                              ) : null}
                             </div>
                           </div>
                         </div>
-                        <span className="shrink-0 text-right text-[15px] font-bold text-ink">{formatCurrency(principal.unitPrice)}</span>
+                        {coberto ? (
+                          <span className="flex shrink-0 flex-col items-end">
+                            <span className="text-[13px] text-muted line-through">{formatCurrency(principal.unitPrice)}</span>
+                            <span className="text-[15px] font-bold text-success-text">{formatCurrency(0)}</span>
+                          </span>
+                        ) : (
+                          <span className="shrink-0 text-right text-[15px] font-bold text-ink">{formatCurrency(principal.unitPrice)}</span>
+                        )}
+                      </li>
+                    ) : null}
+                    {cobertura?.disponivel && !somenteLeitura ? (
+                      <li className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-success/30 bg-success/8 p-4">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <Icon name="loyalty" size={22} className="shrink-0 text-success-text" />
+                          <div className="min-w-0">
+                            <p className="text-[14px] font-semibold text-ink">Clube / pacote ativo · {cobertura.disponivel.nome}</p>
+                            <p className="text-[12px] text-muted">
+                              {usarCobertura
+                                ? `A sessão sai a R$ 0,00. A comissão de ${primeiroNome} é sobre ${formatCurrency(cobertura.disponivel.valorSessao)}.`
+                                : 'Desligado: o serviço será cobrado normalmente.'}
+                            </p>
+                          </div>
+                        </div>
+                        <label className="flex cursor-pointer items-center gap-2 text-[13px] font-semibold text-ink">
+                          <input
+                            type="checkbox"
+                            role="switch"
+                            checked={usarCobertura}
+                            onChange={(ev) => setUsarCobertura(ev.target.checked)}
+                            className="h-5 w-9 cursor-pointer accent-brand"
+                          />
+                          Usar {cobertura.disponivel.tipo === 'clube' ? 'clube' : 'pacote'}
+                        </label>
+                      </li>
+                    ) : null}
+                    {cobertura?.bloqueio && !somenteLeitura ? (
+                      <li role="status" className="flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/8 p-4 text-[13px]">
+                        <Icon name="info" size={20} className="shrink-0 text-warning-text" />
+                        <span>
+                          <strong className="text-ink">{cobertura.bloqueio.nome}</strong>
+                          <span className="text-muted"> não cobre esta sessão: {cobertura.bloqueio.motivo}.</span>
+                        </span>
                       </li>
                     ) : null}
                     {extras.map((e, i) => (
@@ -452,6 +515,7 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
                   </h2>
                   <div className="space-y-2.5 text-[14px] text-ink">
                     <Linha rotulo="Serviços executados" valor={formatCurrency(calc.servicesTotal)} />
+                    {calc.coveredTotal > 0 ? <Linha rotulo="Sessão coberta (clube/pacote)" valor={formatCurrency(0)} /> : null}
                     {calc.productsTotal > 0 ? <Linha rotulo="Produtos extras" valor={formatCurrency(calc.productsTotal)} /> : null}
                     <div className="flex items-center justify-between pt-1">
                       <span className="font-medium text-muted">Subtotal</span>
@@ -476,8 +540,8 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
                       </div>
                       {mostrarDesconto ? (
                         <div className="flex items-center gap-2">
-                          {calc.discount > 0 ? (
-                            <span className="text-[14px] font-semibold text-ink">− {formatCurrency(calc.discount)}</span>
+                          {descontoManual > 0 ? (
+                            <span className="text-[14px] font-semibold text-ink">− {formatCurrency(descontoManual)}</span>
                           ) : null}
                           <button
                             type="button"
@@ -526,6 +590,15 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
                             </button>
                           ))}
                         </div>
+                      </div>
+                    ) : null}
+                    {calc.memberDiscount > 0 ? (
+                      <div className="flex items-center justify-between text-[14px]">
+                        <span className="flex items-center gap-2 text-muted">
+                          <Icon name="loyalty" size={18} />
+                          Desconto de sócia ({String(dto.cobertura.descontoSociaPct).replace('.', ',')}%)
+                        </span>
+                        <span className="font-semibold text-ink">− {formatCurrency(calc.memberDiscount)}</span>
                       </div>
                     ) : null}
                   </div>

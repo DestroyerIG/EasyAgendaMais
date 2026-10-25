@@ -94,6 +94,7 @@ const STATUS_COMANDA_TOKENS: Record<LinhaComanda['status'], string> = {
   Fechada: 'bg-success/12 text-success-text',
   Aberta: 'bg-warning/12 text-warning-text',
   Falta: 'bg-danger/12 text-danger',
+  Clube: 'bg-brand/12 text-brand',
 };
 
 const ROTULO_PAGAMENTO_LINHA: Record<'pix' | 'debito' | 'credito' | 'dinheiro', string> = {
@@ -581,12 +582,13 @@ export const FinanceModule = ({
                             </td>
                           </tr>
                         ) : (
-                          linhasDaPagina.map(linha => {
-                            const aberta = linha.status === 'Aberta';
+                          linhasDaPagina.map((linha, i) => {
+                            const aberta = linha.status === 'Aberta' && linha.appointmentId !== null;
                             const abrirComanda = () => setComandaAppointmentId(linha.appointmentId);
                             return (
                               <tr
-                                key={linha.appointmentId}
+                                // Mensalidade do clube não tem agendamento.
+                                key={linha.appointmentId ?? `clube-${linha.hora}-${i}`}
                                 className={aberta ? 'cursor-pointer bg-warning/5 transition-colors hover:bg-warning/10' : undefined}
                                 onClick={aberta ? abrirComanda : undefined}
                                 onKeyDown={aberta ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrirComanda(); } } : undefined}
