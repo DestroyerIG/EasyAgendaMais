@@ -24,27 +24,25 @@ Atualizado em 24/10/2026.
 | 2C-2c | WhatsApp: Campanhas | ✅ Concluída | PR #8 |
 | 2D | Ajustes › Plano e cobrança, comparação e upgrade | ✅ Concluída | PR #9 |
 | 3 | Relatórios e Comissões (Salão-Parceiro) | ✅ Concluída | PR #10 |
-| **4** | **Clube e pacotes** | 🔄 Em revisão (migração aplicada) | branch `feat/clube-pacotes` |
-| 5 | App da profissional (PWA) | ⏳ A fazer | — |
+| 4 | Clube e pacotes | ✅ Concluída | PR #11 |
+| **5** | **App da profissional (PWA)** | 🔄 Em andamento | branch `feat/app-profissional` |
 
-## Próxima fase: 4
+## Próxima fase: 5
 
-Spec: `docs/superpowers/specs/2026-10-24-clube-pacotes-design.md`. Decisões do dono em 24/10:
-- A mensalidade é cobrada pela chave Pix do salão, com confirmação manual.
-- Clube e pacotes ficam só no plano Salão.
-- A comissão da sessão coberta é sobre o valor por sessão.
-- A página pública de adesão entra agora.
+Spec: `docs/superpowers/specs/2026-10-25-app-profissional-design.md`. Decisões do dono em 25/10:
+- A profissional entra por convite por e-mail, com senha própria ligada ao cadastro dela.
+- No fechar atendimento, a dona decide em Ajustes se a profissional cobra no app ou só prepara a comanda (padrão).
+- Meus números mostra só a parte dela, sem faturamento da casa e sem avaliações.
+- O app fica nos planos Equipe e Salão. Push de notificação fica para depois.
 
 Referências do Stitch em `docs/design/stitch/projeto/`:
 
-- `studio-aurora-clube-e-pacotes-gestao-de-planos--3ed137.html`
-- `studio-aurora-assinantes-e-pacotes-ativos-retoque-final--3ad7a1.html`
-- `studio-aurora-comanda-com-debito-de-pacote-janela-completa--f852ab.html`
-- `studio-aurora-pagina-de-adesao-ao-clube-corrigida--257172.html` (mobile `…--f22861.html`)
+- `minha-agenda-do-dia-pwa-profissional--2c03bd.html`
+- `ficha-rapida-da-cliente-pwa-profissional--4faec7.html`
+- `fechar-atendimento-pwa-profissional--29883f.html`
+- `meus-numeros-e-comissoes-pwa-profissional--6e6598.html` e `studio-aurora-meus-ganhos-visao-profissional--98d611.html`
 
-A implementação da fase 4 terminou em 25/10. A migração `20261026120000_clube_pacotes` foi aplicada em produção no mesmo dia, com autorização do dono, e o PR está aberto para revisão. O plano está em `docs/superpowers/plans/2026-10-24-clube-pacotes.md`.
-
-A fase 3 (PR #10) foi entregue em 24/10, com a migração já aplicada. A conferência das telas com dados reais continua pendente em `SEGUIMENTO.md`.
+A fase 4 (PR #11) foi entregue em 25/10, com a migração já aplicada. A conferência das telas com dados reais continua pendente em `SEGUIMENTO.md`.
 
 ## Itens da lista original (A a I) ainda em aberto
 
