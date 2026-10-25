@@ -23,24 +23,26 @@ Atualizado em 24/10/2026.
 | 2C-2b | WhatsApp: Automações | ✅ Concluída | PR #7 |
 | 2C-2c | WhatsApp: Campanhas | ✅ Concluída | PR #8 |
 | 2D | Ajustes › Plano e cobrança, comparação e upgrade | ✅ Concluída | PR #9 |
-| **3** | **Relatórios e Comissões (Salão-Parceiro)** | 🔄 Em revisão | branch `feat/relatorios-comissoes` |
-| 4 | Clube e pacotes | ⏳ A fazer | — |
+| 3 | Relatórios e Comissões (Salão-Parceiro) | ✅ Concluída | PR #10 |
+| **4** | **Clube e pacotes** | 🔄 Em andamento | branch `feat/clube-pacotes` |
 | 5 | App da profissional (PWA) | ⏳ A fazer | — |
 
-## Próxima fase: 3
+## Próxima fase: 4
 
-Spec: `docs/superpowers/specs/2026-10-24-relatorios-comissoes-design.md`. Plano: `docs/superpowers/plans/2026-10-24-relatorios-comissoes.md`. A implementação está na branch `feat/relatorios-comissoes`. A migração `20261025120000_relatorios_comissoes` já foi aplicada em produção (24/10). Ver `SEGUIMENTO.md`. Decisões do dono em 24/10:
-- O salão-parceiro entra só no plano Salão.
-- O repasse tem "Marcar como pago" e adiantamentos, e o Pix é feito por fora.
-- O período padrão é a quinzena.
-- A tela de Relatórios entra completa.
+Spec: `docs/superpowers/specs/2026-10-24-clube-pacotes-design.md`. Decisões do dono em 24/10:
+- A mensalidade é cobrada pela chave Pix do salão, com confirmação manual.
+- Clube e pacotes ficam só no plano Salão.
+- A comissão da sessão coberta é sobre o valor por sessão.
+- A página pública de adesão entra agora.
 
 Referências do Stitch em `docs/design/stitch/projeto/`:
 
-- `studio-aurora-comissoes-e-salao-parceiro-ajustada--f4df6a.html` (a `bd2b20` traz adiantamentos e CNPJ do MEI)
-- `studio-aurora-relatorios-e-indicadores-operacionais--a56db8.html`
+- `studio-aurora-clube-e-pacotes-gestao-de-planos--3ed137.html`
+- `studio-aurora-assinantes-e-pacotes-ativos-retoque-final--3ad7a1.html`
+- `studio-aurora-comanda-com-debito-de-pacote-janela-completa--f852ab.html`
+- `studio-aurora-pagina-de-adesao-ao-clube-corrigida--257172.html` (mobile `…--f22861.html`)
 
-A 2D (PR #9) foi entregue em 24/10. Os testes de troca de plano no Stripe e no Asaas em modo de teste continuam pendentes em `SEGUIMENTO.md`.
+A fase 3 (PR #10) foi entregue em 24/10, com a migração já aplicada. A conferência das telas com dados reais continua pendente em `SEGUIMENTO.md`.
 
 ## Itens da lista original (A a I) ainda em aberto
 
