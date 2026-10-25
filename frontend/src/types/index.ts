@@ -37,6 +37,8 @@ export interface Appointment {
     /** Gravados no fechamento da comanda; null enquanto não fechada. */
     comanda_total_charged?: number | null;
     comanda_deposit_applied?: number | null;
+    /** A profissional mandou a comanda pelo app para a recepção cobrar (fase 5). */
+    comanda_enviada_recepcao_em?: string | null;
     reminder_sent: boolean;
     created_at: string;
     client_name?: string;

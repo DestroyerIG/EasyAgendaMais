@@ -4,7 +4,7 @@ import express from 'express';
 vi.mock('../config/prisma.js', () => ({ prisma: {} }));
 
 const repo = vi.hoisted(() => ({
-  usuarioProfissional: vi.fn(), profissionalCobra: vi.fn(), agendaDoDia: vi.fn(), clienteDaProfissional: vi.fn(),
+  usuarioProfissional: vi.fn(), profissionalCobra: vi.fn(), agendaDoDia: vi.fn(), clienteDaProfissional: vi.fn(), clientesDela: vi.fn(),
   visitasConcluidas: vi.fn(), visitasComEla: vi.fn(), agendamentoDela: vi.fn(), comandaDela: vi.fn(), reagendar: vi.fn(),
   marcarEnviadaRecepcao: vi.fn(), salvarNota: vi.fn(), extrato: vi.fn(), avaliacoes: vi.fn(), nomeDoNegocio: vi.fn(),
 }));
@@ -16,7 +16,7 @@ const crm = vi.hoisted(() => ({ profile: vi.fn() }));
 vi.mock('../modules/crm/crm.service.js', () => ({ crmService: crm }));
 const fotos = vi.hoisted(() => ({ list: vi.fn(), upload: vi.fn() }));
 vi.mock('../modules/clientPhotos/clientPhotos.service.js', () => ({ clientPhotosService: fotos }));
-const comandas = vi.hoisted(() => ({ open: vi.fn(), get: vi.fn(), save: vi.fn(), close: vi.fn() }));
+const comandas = vi.hoisted(() => ({ open: vi.fn(), get: vi.fn(), save: vi.fn(), close: vi.fn(), shortcuts: vi.fn() }));
 vi.mock('../modules/comandas/comandas.service.js', () => ({ comandasService: comandas }));
 const appts = vi.hoisted(() => ({ updateStatus: vi.fn(), getAvailableSlots: vi.fn() }));
 vi.mock('../modules/appointments/appointments.service.js', () => ({ appointmentsService: appts }));
@@ -184,7 +184,7 @@ describe('bancadaService', () => {
     comandas.save.mockResolvedValue(comandaDto());
     await bancadaService.enviarParaRecepcao('b1', P, 'k1', { extras: [] });
     expect(repo.marcarEnviadaRecepcao).toHaveBeenCalledWith('k1');
-    expect(notif.notify).toHaveBeenCalledWith('b1', expect.objectContaining({ type: 'comanda_pronta', link: `/caixa?comanda=${ID}` }));
+    expect(notif.notify).toHaveBeenCalledWith('b1', expect.objectContaining({ type: 'comanda_pronta', link: `/financeiro?comanda=${ID}` }));
   });
 
   it('fechar: só com a chave; caixa fechado vira recado para a recepção', async () => {
@@ -277,5 +277,22 @@ describe('isolamento do app da profissional', () => {
   it('valida o corpo do reagendar e do cancelar', async () => {
     expect((await request.post(`/api/v1/bancada/agendamentos/${ID}/reagendar`).send({ data: '27/10', hora: '15:00' })).status).toBe(400);
     expect((await request.post(`/api/v1/bancada/agendamentos/${ID}/cancelar`).send({ motivo: '' })).status).toBe(400);
+  });
+});
+
+describe('agenda de outro dia e lista de clientes', () => {
+  it('outro dia: agenda dela, sem cliente em destaque', async () => {
+    repo.agendaDoDia.mockResolvedValue([{ id: 'a', time: '13:00', status: 'confirmado', cliente: { id: 'c1' } }]);
+    const r = await bancadaService.hoje('b1', P, '2026-10-27');
+    expect(repo.agendaDoDia).toHaveBeenCalledWith('b1', 'p1', '2026-10-27');
+    expect(r).toMatchObject({ data: '2026-10-27', hoje: '2026-10-25', destaque: null });
+    expect(crm.profile).not.toHaveBeenCalled();
+  });
+
+  it('clientes: sempre filtradas pela profissional do login', async () => {
+    repo.clientesDela.mockResolvedValue([]);
+    expect((await request.get('/api/v1/bancada/clientes?busca=mari')).status).toBe(200);
+    expect(repo.clientesDela).toHaveBeenCalledWith('b1', 'p1', 'mari');
+    expect((await request.get('/api/v1/bancada/hoje?data=amanha')).status).toBe(400);
   });
 });

@@ -27,7 +27,16 @@ async function periodo(req: Request): Promise<Periodo> {
 }
 
 export const today: H = async (req, res, next) => {
-  try { sendSuccess(res, await bancadaService.hoje(negocio(req), profissionalDe(res))); } catch (e) { next(e); }
+  try {
+    const { data } = req.query as { data?: string };
+    sendSuccess(res, await bancadaService.hoje(negocio(req), profissionalDe(res), data));
+  } catch (e) { next(e); }
+};
+export const myClients: H = async (req, res, next) => {
+  try {
+    const { busca } = req.query as { busca?: string };
+    sendSuccess(res, await bancadaService.clientes(negocio(req), profissionalDe(res), busca));
+  } catch (e) { next(e); }
 };
 export const clientCard: H = async (req, res, next) => {
   try { sendSuccess(res, await bancadaService.ficha(negocio(req), profissionalDe(res), id(req))); } catch (e) { next(e); }
@@ -55,6 +64,9 @@ export const reschedule: H = async (req, res, next) => {
 };
 export const cancel: H = async (req, res, next) => {
   try { sendSuccess(res, await bancadaService.cancelar(negocio(req), profissionalDe(res), id(req), req.body)); } catch (e) { next(e); }
+};
+export const shortcuts: H = async (req, res, next) => {
+  try { sendSuccess(res, await bancadaService.atalhos(negocio(req))); } catch (e) { next(e); }
 };
 export const getComanda: H = async (req, res, next) => {
   try { sendSuccess(res, await bancadaService.comanda(negocio(req), profissionalDe(res), id(req))); } catch (e) { next(e); }

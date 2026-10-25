@@ -17,11 +17,15 @@ const lerBase64 = (arquivo: File) =>
 
 export const listarFotos = async (id: string) => (await api.get<FotoCliente[]>(`/clients/${id}/photos`)).data;
 
-export async function enviarFoto(id: string, arquivo: File, extra: EnvioFotoExtra = {}) {
+/** Confere tamanho e tipo e monta o corpo do envio (usado pelo painel e pelo app da profissional). */
+export async function corpoDaFoto(arquivo: File, extra: EnvioFotoExtra = {}) {
   if (arquivo.size > TAMANHO_MAX_FOTO) throw new Error('A foto deve ter no máximo 5 MB.');
   if (!TIPOS.includes(arquivo.type as TipoFoto)) throw new Error('Use uma imagem JPG, PNG ou WebP.');
-  const imageBase64 = await lerBase64(arquivo);
-  return (await api.post<FotoCliente>(`/clients/${id}/photos`, { imageBase64, contentType: arquivo.type, ...extra })).data;
+  return { imageBase64: await lerBase64(arquivo), contentType: arquivo.type, ...extra };
+}
+
+export async function enviarFoto(id: string, arquivo: File, extra: EnvioFotoExtra = {}) {
+  return (await api.post<FotoCliente>(`/clients/${id}/photos`, await corpoDaFoto(arquivo, extra))).data;
 }
 
 export const removerFoto = async (id: string, fotoId: string) => { await api.delete(`/clients/${id}/photos/${fotoId}`); };

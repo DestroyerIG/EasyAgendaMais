@@ -16,6 +16,8 @@ export interface CashDay {
     cliente: string; telefone: string; profissional: string; servicos: string;
     pagamento: 'pix' | 'debito' | 'credito' | 'dinheiro' | 'sinal' | 'em_atendimento' | 'faltou';
     depositApplied: number; total: number; status: 'Fechada' | 'Aberta' | 'Falta' | 'Clube';
+    /** A profissional mandou pelo app para a recepção cobrar (fase 5). */
+    prontaParaCobrar?: boolean;
   }>;
   despesas: Array<{ id: string; descricao: string; categoria: string; valor: number; formaPagamento: string | null; criadoEm: string }>;
   movimentos: Array<{ id: string; kind: 'sangria' | 'suprimento'; valor: number; descricao: string; criadoEm: string }>;

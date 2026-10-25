@@ -49,6 +49,24 @@ export const bancadaRepository = {
     return (await prisma.appointment.count({ where: { businessId, professionalId, clientId } })) > 0;
   },
 
+  /** As clientes dela (com agendamento passado ou futuro), por nome ou telefone. */
+  async clientesDela(businessId: string, professionalId: string, busca: string | null) {
+    const termo = busca?.trim() ?? '';
+    const digitos = termo.replace(/\D/g, '');
+    return prisma.client.findMany({
+      where: {
+        businessId,
+        appointments: { some: { professionalId } },
+        ...(termo ? { OR: [
+          { name: { contains: termo, mode: 'insensitive' as const } },
+          ...(digitos.length >= 3 ? [{ phone: { contains: digitos } }] : []),
+        ] } : {}),
+      },
+      orderBy: { name: 'asc' }, take: 40,
+      select: { id: true, name: true, phone: true },
+    });
+  },
+
   async visitasConcluidas(businessId: string, clientId: string): Promise<number> {
     return prisma.appointment.count({ where: { businessId, clientId, status: 'concluido' } });
   },

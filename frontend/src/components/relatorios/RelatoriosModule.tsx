@@ -13,9 +13,11 @@ import {
 import { pdfRelatorio } from '@/lib/relatoriosPdf';
 import { Banner, Button, Card, Icon, Skeleton } from '@/components/ui';
 import { SeletorPeriodo } from './SeletorPeriodo';
+import { AvaliacoesRelatorio } from './AvaliacoesRelatorio';
 
 // Relatórios (sub-projeto 3): indicadores com comparação ao período anterior, mapa de
 // ocupação, origem dos agendamentos e evolução de 6 meses. Tudo com dado real.
+// Fase 5: avaliações das clientes por profissional.
 
 const DIAS: { id: ChaveDia; rotulo: string }[] = [
   { id: 'seg', rotulo: 'Seg' }, { id: 'ter', rotulo: 'Ter' }, { id: 'qua', rotulo: 'Qua' },
@@ -122,6 +124,8 @@ export function RelatoriosModule() {
           {!evolucao ? <Skeleton className="h-56 w-full" /> : <GraficoEvolucao e={evolucao} />}
         </Card>
       </div>
+
+      <AvaliacoesRelatorio periodo={periodo} />
 
       {visao && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

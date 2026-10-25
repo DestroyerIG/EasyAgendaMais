@@ -21,6 +21,7 @@ const PROTECTED_PATHS = [
   ...DASHBOARD_ALIAS_ROUTES.map((route) => `/${route}`),
   '/pagamento',
   '/admin',
+  '/bancada',
 ];
 const AUTH_PAGES = ['/login', '/cadastro'];
 
@@ -112,6 +113,8 @@ export const config = {
     '/relatorios/:path*',
     '/minha-pagina/:path*',
     '/admin/:path*',
+    '/bancada',
+    '/bancada/:path*',
     '/login',
     '/cadastro',
     '/esqueci-senha',

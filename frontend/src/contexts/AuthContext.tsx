@@ -59,6 +59,10 @@ const resolvePostAuthRoute = (role: string | undefined, redirectTo?: string) => 
   if (role === 'platform_admin') {
     return '/admin';
   }
+  // A profissional só usa o app da bancada (fase 5); o painel é da dona e da recepção.
+  if (role === 'professional') {
+    return redirectTo?.startsWith('/bancada') ? redirectTo : '/bancada';
+  }
 
   return redirectTo || '/dashboard';
 };
@@ -239,7 +243,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         setUser(userData);
-        const postAuthRoute = userData.role === 'platform_admin'
+        const postAuthRoute = userData.role === 'platform_admin' || userData.role === 'professional'
           ? resolvePostAuthRoute(userData.role, options?.redirectTo)
           : await resolveTenantPostLoginRoute(options?.redirectTo);
 

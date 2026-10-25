@@ -147,3 +147,18 @@ Referências do Stitch em `docs/design/stitch/projeto/`:
 - **Avaliação falsa:** o link é por comanda e de uso único, mas quem tiver o link pode avaliar. Por isso o link só vai para o WhatsApp da cliente.
 - **Mensagem à cliente no cancelamento:** sai pela fila, que respeita o opt-out. Se o WhatsApp estiver desconectado, a tela diz que o aviso não foi enviado.
 - **Fechar pelo celular:** com `profissional_cobra`, o dinheiro entra na gaveta pela mão da profissional. O texto da chave em Ajustes deixa isso claro.
+
+## Ajustes feitos na implementação
+- **Rotas da dona em `/equipe`:** convite, revogar, remover e reativar ficam em `/equipe/profissionais/:id/...`, e a lista de estados em `GET /equipe/acessos`. A chave "a profissional cobra" tem rota própria (`GET/PUT /equipe/configuracao`), sem passar pelo salvamento geral de Ajustes, que regrava tudo.
+- **Rotas públicas fora de `/public`:** `/convites/:token` e `/avaliacoes/:token`, para não colidir com `/public/:slug`.
+- **Reativar acesso:** `POST /equipe/profissionais/:id/acesso/reativar` desbloqueia o login sem novo convite.
+- **Link do convite na resposta:** a dona pode copiar e mandar por onde quiser quando o e-mail não sai (SMTP desligado).
+- **Avaliações na mesma tabela:** a nota pelo link grava em `whatsapp_ratings` com `origem = 'link'`; a da automação continua `whatsapp`. Uma nota por agendamento, venha de onde vier, e a automação já pula quem avaliou.
+- **Link novo a cada comprovante:** reenviar o comprovante troca o token; o link anterior deixa de valer.
+- **Reagendar só confirmado**, como no painel (aguardando o sinal só cancela).
+- **Aviso à cliente:** sai pela fila com origem `painel_evento`, que respeita o opt-out.
+- **Extrato em PDF no aparelho** (jsPDF, como os PDFs de Relatórios), sem rota no backend.
+- **Rotas extras da bancada:** `GET /bancada/hoje?data=` (agenda de outro dia, sem destaque), `GET /bancada/clientes?busca=` (as clientes dela, aba Clientes) e `GET /bancada/atalhos` (serviços e produtos para a comanda).
+- **Reagendar e cancelar no cartão da agenda.** A ficha rápida mostra a cliente, não um agendamento, então as ações ficaram só na agenda.
+- **Selo "Pronta para cobrar":** na Agenda (cartão) e no Caixa (linha aberta, `prontaParaCobrar`). O link da notificação abre o Caixa, sem abrir a comanda sozinho.
+- **Push nunca derruba a operação:** o texto é montado dentro de um `try`, e o envio não lança.

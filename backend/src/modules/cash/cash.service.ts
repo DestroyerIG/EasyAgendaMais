@@ -73,6 +73,7 @@ export const cashService = {
         appointmentId: a.id, comandaId: null, numero: null, hora: hhmm(a.time), cliente: a.client.name, telefone: a.client.phone,
         profissional: a.professional.name, servicos: a.service.name, pagamento: 'em_atendimento',
         depositApplied: 0, total: n(a.service.price), status: 'Aberta',
+        prontaParaCobrar: Boolean(a.comanda?.enviadaRecepcaoEm),
       })),
       ...clube.map((b): Linha => ({
         appointmentId: null, comandaId: null, numero: null, hora: b.pagoEm ? horaNoFuso(b.pagoEm, timezone) : '00:00',

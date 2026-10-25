@@ -44,6 +44,7 @@ import { addDays, format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { SeloProntaParaCobrar } from '@/components/comanda/SeloProntaParaCobrar';
 
 interface FinanceSummary {
   today: { earnings: number; expenses: number; profit: number };
@@ -632,6 +633,7 @@ export const FinanceModule = ({
                                   >
                                     {linha.status}
                                   </span>
+                                  {linha.prontaParaCobrar && <SeloProntaParaCobrar className="mt-1" />}
                                 </td>
                               </tr>
                             );

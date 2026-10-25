@@ -15,6 +15,9 @@ export const CancelarSchema = z.object({
 });
 export type CancelarInput = z.infer<typeof CancelarSchema>;
 
+export const HojeQuerySchema = z.object({ data: DATA.optional() });
+export const ClientesQuerySchema = z.object({ busca: z.string().trim().max(80).optional() });
+
 export const HorariosQuerySchema = z.object({ agendamento: z.string().uuid(), data: DATA });
 
 export const NotaSchema = z.object({ notas: z.string().max(2000).nullable() });

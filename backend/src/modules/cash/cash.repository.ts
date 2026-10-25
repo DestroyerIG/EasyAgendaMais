@@ -42,6 +42,7 @@ export const cashRepository = {
         client: { select: { name: true, phone: true } },
         professional: { select: { name: true } },
         service: { select: { name: true, price: true } },
+        comanda: { select: { enviadaRecepcaoEm: true } },
       },
     });
   },

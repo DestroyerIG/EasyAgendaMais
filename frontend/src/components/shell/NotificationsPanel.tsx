@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { AlertTriangle, Bell, CalendarPlus, CheckCheck, CircleDollarSign, Clock3, Crown, Loader2 } from 'lucide-react';
+import { AlertTriangle, Bell, CalendarClock, CalendarPlus, CheckCheck, CircleDollarSign, Clock3, Crown, Loader2, Receipt, Star } from 'lucide-react';
 import { notificationsApi, type AppNotification, type NotificationType } from '@/lib/notifications';
 import { EmptyState } from '@/components/ui';
+import { AtivarNotificacoes } from '@/components/push/AtivarNotificacoes';
 import { cn } from '@/lib/cn';
 
 const ICON_BY_TYPE: Record<NotificationType, typeof CalendarPlus> = {
@@ -14,6 +15,9 @@ const ICON_BY_TYPE: Record<NotificationType, typeof CalendarPlus> = {
   pagamento_confirmado: CircleDollarSign,
   clube_adesao: Crown,
   clube_atraso: AlertTriangle,
+  agenda_profissional: CalendarClock,
+  comanda_pronta: Receipt,
+  avaliacao_baixa: Star,
 };
 
 const formatRelativo = (iso: string) =>
@@ -130,6 +134,7 @@ export function NotificationsPanel({ onUnreadCountChange }: NotificationsPanelPr
           );
         })}
       </div>
+      <AtivarNotificacoes compacto className="border-t border-line px-3 py-2" />
     </div>
   );
 }

@@ -16,6 +16,7 @@ import { RemindersSection } from '@/components/settings/RemindersSection';
 import { IntegrationsSection } from '@/components/settings/IntegrationsSection';
 import { AppearanceSection } from '@/components/settings/AppearanceSection';
 import { ComissaoPadraoSection } from '@/components/settings/ComissaoPadraoSection';
+import { AppProfissionalSection } from '@/components/settings/AppProfissionalSection';
 import { CrmSettingsSection } from '@/components/settings/CrmSettingsSection';
 import { EtiquetasSection } from '@/components/settings/EtiquetasSection';
 import {
@@ -512,6 +513,8 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
       </div>
 
       <ComissaoPadraoSection />
+
+      <AppProfissionalSection />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <CrmSettingsSection />

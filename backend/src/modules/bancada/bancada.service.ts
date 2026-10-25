@@ -61,10 +61,12 @@ async function avisarCliente(businessId: string, a: { clientId: string; client: 
 const comCobranca = async (businessId: string, dto: ComandaDetailDto) => ({ ...dto, profissionalCobra: await repo.profissionalCobra(businessId) });
 
 export const bancadaService = {
-  async hoje(businessId: string, p: Profissional) {
+  /** A agenda do dia (hoje por padrão). A cliente em destaque só aparece no dia de hoje. */
+  async hoje(businessId: string, p: Profissional, dia?: string) {
     const { hoje, agora } = await relogio(businessId);
-    const [agenda, cobra] = await Promise.all([repo.agendaDoDia(businessId, p.id, hoje), repo.profissionalCobra(businessId)]);
-    const proxima = escolherProxima(agenda, agora);
+    const data = dia ?? hoje;
+    const [agenda, cobra] = await Promise.all([repo.agendaDoDia(businessId, p.id, data), repo.profissionalCobra(businessId)]);
+    const proxima = data === hoje ? escolherProxima(agenda, agora) : null;
     let destaque = null;
     if (proxima) {
       const [perfil, visitas, ultimas] = await Promise.all([
@@ -87,7 +89,8 @@ export const bancadaService = {
     }
     return {
       profissional: { id: p.id, nome: p.nome },
-      data: hoje,
+      data,
+      hoje,
       profissionalCobra: cobra,
       resumo: {
         total: agenda.length,
@@ -97,6 +100,10 @@ export const bancadaService = {
       destaque,
       agenda,
     };
+  },
+
+  async clientes(businessId: string, p: Profissional, busca?: string) {
+    return repo.clientesDela(businessId, p.id, busca ?? null);
   },
 
   async ficha(businessId: string, p: Profissional, clientId: string) {
@@ -159,7 +166,7 @@ export const bancadaService = {
       type: 'agenda_profissional',
       title: `${primeiro(p.nome)} reagendou ${primeiro(a.client.name)}`,
       description: `${a.service.name} · de ${dataBr(a.date)} ${a.time} para ${dataBr(input.data)} às ${input.hora}`,
-      link: `/agenda?data=${input.data}`,
+      link: `/agendamentos?data=${input.data}`,
     });
     const negocio = await repo.nomeDoNegocio(businessId);
     const avisoEnviado = input.avisarCliente
@@ -179,7 +186,7 @@ export const bancadaService = {
       type: 'agenda_profissional',
       title: `${primeiro(p.nome)} cancelou ${primeiro(a.client.name)}`,
       description: `${a.service.name} · ${dataBr(a.date)} às ${a.time} · ${input.motivo}`,
-      link: `/agenda?data=${a.date}`,
+      link: `/agendamentos?data=${a.date}`,
     });
     const negocio = await repo.nomeDoNegocio(businessId);
     const avisoEnviado = input.avisarCliente
@@ -187,6 +194,9 @@ export const bancadaService = {
       : false;
     return { cancelado: true, avisoEnviado };
   },
+
+  /** Serviços e produtos para adicionar na comanda (os mesmos atalhos do painel). */
+  atalhos: (businessId: string) => comandasService.shortcuts(businessId),
 
   async comanda(businessId: string, p: Profissional, id: string) {
     await exigirComanda(businessId, p, id);
@@ -215,7 +225,7 @@ export const bancadaService = {
       type: 'comanda_pronta',
       title: `Comanda de ${primeiro(dto.client.name)} pronta para cobrar`,
       description: `${primeiro(p.nome)} · Comanda #${dto.number}`,
-      link: `/caixa?comanda=${dto.appointment.id}`,
+      link: `/financeiro?comanda=${dto.appointment.id}`,
     });
     return dto;
   },
@@ -260,6 +270,7 @@ export const bancadaService = {
     }));
     return {
       periodo,
+      profissional: { id: p.id, nome: p.nome },
       modelo: apuracao.modelo,
       // Nada da casa (faturamento total, retenção): só a parte dela.
       resumo: minha ? {

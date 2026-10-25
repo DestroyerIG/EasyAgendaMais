@@ -99,9 +99,9 @@ const resolveBackendApiBaseUrl = () => {
   return normalized.endsWith('/api/v1') ? normalized : `${normalized}/api/v1`;
 };
 
-const getBackendAuthUrl = (path: string) => {
+const getBackendAuthUrl = (path: string, prefix = 'auth') => {
   const normalizedPath = path.replace(/^\/+/, '');
-  return `${resolveBackendApiBaseUrl()}/auth/${normalizedPath}`;
+  return `${resolveBackendApiBaseUrl()}/${prefix}/${normalizedPath}`;
 };
 
 const parseResponsePayload = async (response: Response): Promise<BackendEnvelope | null> => {
@@ -204,15 +204,17 @@ const sanitizeSuccessEnvelope = (payload: BackendEnvelope | null): BackendEnvelo
   };
 };
 
+/** `prefix` troca o módulo do backend (ex.: `convites`, cujo aceite também abre a sessão). */
 export const requestBackendAuth = async (
   path: string,
-  init: RequestInit = {}
+  init: RequestInit = {},
+  prefix = 'auth'
 ): Promise<BackendRequestResult> => {
   const timeoutMs = resolveBackendAuthTimeoutMs();
   const { signal, didTimeout, cleanup } = createTimeoutSignal(timeoutMs, init.signal);
 
   try {
-    const response = await fetch(getBackendAuthUrl(path), {
+    const response = await fetch(getBackendAuthUrl(path, prefix), {
       ...init,
       cache: 'no-store',
       signal,

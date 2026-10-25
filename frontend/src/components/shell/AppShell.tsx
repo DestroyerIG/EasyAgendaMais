@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
+import { useEffect, useState, type ReactNode } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { getPlanShellLabel } from '@/lib/plans';
 import { NAV_ITEMS, getActiveNavItem } from '@/lib/navigation';
@@ -21,8 +21,15 @@ const ROLE_LABEL: Record<string, string> = {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, logout } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
+  // O papel `professional` usa só o app da bancada (fase 5): o painel fica fechado para ele.
+  const ehProfissional = user?.role === 'professional';
+
+  useEffect(() => {
+    if (ehProfissional) router.replace('/bancada');
+  }, [ehProfissional, router]);
 
   const activeId = getActiveNavItem(pathname);
   const businessName = user?.businessName || 'Seu negócio';
@@ -32,6 +39,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const handleLogout = () => {
     void logout();
   };
+
+  if (ehProfissional) return <div className="app-theme min-h-screen" />;
 
   return (
     <div className="app-theme min-h-screen">

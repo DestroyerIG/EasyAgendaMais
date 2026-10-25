@@ -61,4 +61,15 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/relatorios',
   'src/lib/relatorios.ts',
   'src/components/waitlist',
+  // Fase 5: app da profissional, convite, avaliação e push.
+  'src/app/bancada',
+  'src/components/bancada',
+  'src/lib/bancada.ts',
+  'src/lib/equipe.ts',
+  'src/lib/avaliacoes.ts',
+  'src/components/push',
+  'src/app/convite',
+  'src/components/convite',
+  'src/app/avaliar',
+  'src/components/avaliacao',
 ];

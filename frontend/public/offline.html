@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sem conexão · EasyAgenda+</title>
+<style>
+  :root { --bg: #FAF7F2; --ink: #1A1817; --muted: #6B6560; --brand: #FF7A00; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1A1817; --ink: #F5F1EA; --muted: #A8A29C; } }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, sans-serif; padding: 24px; box-sizing: border-box; }
+  main { max-width: 320px; text-align: center; }
+  img { width: 64px; height: 64px; border-radius: 16px; }
+  h1 { font-size: 20px; margin: 16px 0 8px; }
+  p { color: var(--muted); font-size: 15px; line-height: 1.5; margin: 0 0 20px; }
+  button { background: var(--brand); color: #1A1817; border: 0; border-radius: 12px; font-weight: 700; font-size: 15px; padding: 12px 20px; }
+</style>
+</head>
+<body>
+<main>
+  <img src="/icons/icon-192.png" alt="">
+  <h1>Sem conexão</h1>
+  <p>O app precisa de internet para mostrar sua agenda. Confira o Wi-Fi ou os dados móveis.</p>
+  <button type="button" onclick="location.reload()">Tentar de novo</button>
+</main>
+</body>
+</html>

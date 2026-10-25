@@ -25,7 +25,7 @@ Atualizado em 24/10/2026.
 | 2D | Ajustes › Plano e cobrança, comparação e upgrade | ✅ Concluída | PR #9 |
 | 3 | Relatórios e Comissões (Salão-Parceiro) | ✅ Concluída | PR #10 |
 | 4 | Clube e pacotes | ✅ Concluída | PR #11 |
-| **5** | **App da profissional (PWA)** | 🔄 Em andamento | branch `feat/app-profissional` |
+| **5** | **App da profissional (PWA)** | 🔄 Implementada, aguardando PR | branch `feat/app-profissional` |
 
 ## Próxima fase: 5
 
