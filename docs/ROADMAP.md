@@ -25,9 +25,9 @@ Atualizado em 24/10/2026.
 | 2D | Ajustes › Plano e cobrança, comparação e upgrade | ✅ Concluída | PR #9 |
 | 3 | Relatórios e Comissões (Salão-Parceiro) | ✅ Concluída | PR #10 |
 | 4 | Clube e pacotes | ✅ Concluída | PR #11 |
-| **5** | **App da profissional (PWA)** | 🔄 Implementada, aguardando PR | branch `feat/app-profissional` |
+| 5 | App da profissional (PWA) | ✅ Concluída | PR #12 |
 
-## Próxima fase: 5
+## Fase 5 (concluída)
 
 Spec: `docs/superpowers/specs/2026-10-25-app-profissional-design.md`. Decisões do dono em 25/10:
 - A profissional entra por convite por e-mail, com senha própria ligada ao cadastro dela.
@@ -43,7 +43,7 @@ Referências do Stitch em `docs/design/stitch/projeto/`:
 - `fechar-atendimento-pwa-profissional--29883f.html`
 - `meus-numeros-e-comissoes-pwa-profissional--6e6598.html` e `studio-aurora-meus-ganhos-visao-profissional--98d611.html`
 
-A fase 4 (PR #11) foi entregue em 25/10, com a migração já aplicada. A conferência das telas com dados reais continua pendente em `SEGUIMENTO.md`.
+A fase 4 (PR #11) foi entregue em 25/10, com a migração já aplicada. A fase 5 (PR #12) também, com a migração `20261027120000_app_profissional` aplicada em 25/10; faltam as chaves VAPID para o push. A conferência das telas com dados reais continua pendente em `SEGUIMENTO.md`.
 
 ## Itens da lista original (A a I) ainda em aberto
 

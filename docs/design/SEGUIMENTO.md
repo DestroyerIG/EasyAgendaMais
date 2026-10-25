@@ -122,7 +122,6 @@ Sub-projeto 4 (Clube e pacotes), pendências conhecidas:
 - **Uma sessão coberta por comanda:** só o serviço principal é coberto. Serviços extras pagam normal (com o desconto de sócia, se houver).
 
 Sub-projeto 5 (App da profissional), pendências conhecidas:
-- **Migração `20261027120000_app_profissional` pendente de aplicação em produção.** Só adiciona colunas e tabelas (`users.professional_id`, `business_settings.profissional_cobra`, `comandas.enviada_recepcao_em`/`avaliacao_token_hash`, `whatsapp_ratings.origem`, `profissional_convites`, `push_inscricoes`). O `schema.prisma` já tem as colunas, então a migração precisa ir antes do código, com autorização do dono.
 - **Chaves VAPID:** gerar (`npx web-push generate-vapid-keys`) e configurar `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` (ex.: `mailto:suporte@...`) no backend. Sem elas, o botão "Ativar notificações" não aparece e nada quebra.
 - **E-mail do convite:** depende do SMTP do backend. Sem SMTP, a dona copia o link no cadastro da profissional.
 - **Supabase:** o aceite cria o usuário já confirmado com a chave de serviço do backend.
@@ -217,7 +216,7 @@ Sub-projeto 5 (App da profissional), pendências conhecidas:
   - Recebimentos do clube no Caixa (linha "Clube"), no faturamento, na evolução e nas comissões.
   - Adesão pública em `/agendar/[slug]/clube/[ofertaId]` e a seção "Clube" na Minha página.
   - Selo do clube na ficha da cliente e no detalhe do agendamento. Saiu o "Em breve" do Clube na comparação de planos.
-- Sub-projeto 5: App da profissional (PWA em `/bancada`), nos planos Equipe e Salão (recurso `app_profissional`). Migração `20261027120000_app_profissional`, **pendente de aplicação em produção** (ver pendências acima). Entrou:
+- Sub-projeto 5: App da profissional (PWA em `/bancada`), nos planos Equipe e Salão (recurso `app_profissional`). Migração `20261027120000_app_profissional`, aplicada em produção em 25/10/2026. Entrou:
   - Convite por e-mail no cadastro da profissional (com link para copiar), aceite com senha em `/convite/[token]`, revogar, remover e reativar o acesso.
   - Bancada: agenda do dia (e de outros dias), destaque da próxima cliente com alergia, ficha e último trabalho, iniciar atendimento e as clientes dela com ficha rápida, nota e foto.
   - Atendimento: comanda com extras, comissão estimada e "Enviar para a recepção"; com a chave "A profissional cobra no app" (Ajustes), forma de pagamento, desconto, gorjeta e fechar.
