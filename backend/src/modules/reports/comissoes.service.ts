@@ -33,7 +33,8 @@ const paraApurada = (k: Awaited<ReturnType<typeof repo.comandasFechadas>>[number
   }
   return {
     professionalId: k.professionalId,
-    servicos: Number(k.servicesTotal), produtos: Number(k.productsTotal),
+    // A sessão coberta sai a R$ 0 na comanda, mas é serviço que a profissional produziu.
+    servicos: reais(cents(k.servicesTotal) + k.items.reduce((t, i) => t + cents(i.valorCoberto), 0)), produtos: Number(k.productsTotal),
     desconto: Number(k.discountAmount), gorjeta: Number(k.tipAmount),
     comissaoServico: reais(comissaoServico), comissaoProduto: reais(comissaoProduto),
   };

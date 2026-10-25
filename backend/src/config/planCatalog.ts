@@ -70,7 +70,7 @@ export const PLAN_CATALOG: Readonly<Record<PlanId, PlanoCatalogo>> = Object.free
 export const PLAN_EM_BREVE: Readonly<Record<PlanId, string[]>> = Object.freeze({
   basico: [],
   profissional: ['Acesso das profissionais'],
-  premium: ['Clube e pacotes', 'Várias unidades'],
+  premium: ['Várias unidades'],
 });
 
 export const FEATURE_MATRIX: readonly RecursoMatriz[] = Object.freeze([
@@ -84,7 +84,7 @@ export const FEATURE_MATRIX: readonly RecursoMatriz[] = Object.freeze([
   { id: 'reports', grupo: 'Equipe e operação', titulo: 'Relatórios e exportação', basico: false, profissional: true, premium: true },
   { id: 'acesso_profissionais', grupo: 'Equipe e operação', titulo: 'Acesso das profissionais', basico: false, profissional: 'em_breve', premium: 'em_breve' },
   { id: 'salao_parceiro', grupo: 'Expansão e gestão avançada', titulo: 'Salão-parceiro', basico: false, profissional: false, premium: true },
-  { id: 'clube', grupo: 'Expansão e gestão avançada', titulo: 'Clube e pacotes de serviços', basico: false, profissional: false, premium: 'em_breve' },
+  { id: 'clube', grupo: 'Expansão e gestão avançada', titulo: 'Clube e pacotes de serviços', basico: false, profissional: false, premium: true },
   { id: 'unidades', grupo: 'Expansão e gestão avançada', titulo: 'Gestão de várias unidades', basico: false, profissional: false, premium: 'em_breve' },
   { id: 'suporte', grupo: 'Expansão e gestão avançada', titulo: 'Suporte prioritário', basico: false, profissional: false, premium: true },
 ]);

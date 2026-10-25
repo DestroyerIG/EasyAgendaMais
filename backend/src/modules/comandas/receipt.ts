@@ -9,7 +9,7 @@ const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',').replace(/\B(?=(\
 
 export interface DadosComprovante {
   negocio: string; numero: number; cliente: string; profissional: string;
-  itens: Array<{ name: string; quantity: number; unitPrice: number }>;
+  itens: Array<{ name: string; quantity: number; unitPrice: number; coveredValue?: number | null }>;
   calc: { depositApplied: number; discount: number; tip: number; totalCharged: number };
   paymentMethod: PaymentMethod | null;
 }
@@ -20,7 +20,7 @@ export function montarComprovante(d: DadosComprovante): string {
     `*${d.negocio}* — Comanda #${d.numero}`,
     `Olá, ${d.cliente.split(' ')[0]}! Obrigado pela visita. Segue o comprovante do seu atendimento:`,
     '',
-    ...d.itens.map((i) => `• ${i.quantity > 1 ? `${i.quantity}x ` : ''}${i.name} — ${brl(i.unitPrice * i.quantity)}`),
+    ...d.itens.map((i) => `• ${i.quantity > 1 ? `${i.quantity}x ` : ''}${i.name} — ${i.coveredValue != null ? 'coberto pelo clube/pacote' : brl(i.unitPrice * i.quantity)}`),
     '',
   ];
   if (d.calc.depositApplied > 0) linhas.push(`Sinal Pix: -${brl(d.calc.depositApplied)}`);

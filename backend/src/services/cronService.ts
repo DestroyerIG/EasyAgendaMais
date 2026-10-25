@@ -15,6 +15,7 @@ import { automacoes } from '../modules/whatsappAutomacoes/automacoes.service.js'
 import { renderizarTexto } from '../modules/whatsappAutomacoes/automacoes.rules.js';
 import { automacoesRotinas, linkMapa } from '../modules/whatsappAutomacoes/rotinas.service.js';
 import { rotinasRepository } from '../modules/whatsappAutomacoes/rotinas.repository.js';
+import { clubeService } from '../modules/clube/clube.service.js';
 
 // Agendamentos gravam `time`/`date` no relógio local do negócio (BR), não UTC.
 // Render roda em UTC, então o alvo precisa ser calculado no fuso de negócio.
@@ -247,6 +248,16 @@ export const startReminderCron = (): void => {
       logger.error({ err: error }, 'Erro ao expirar assinaturas one-time');
     }
   });
+
+  // Clube e pacotes: cobrança do ciclo seguinte, atraso, pacotes vencidos e adesões abandonadas.
+  cron.schedule('25 * * * *', async () => {
+    try {
+      const r = await clubeService.rotina();
+      if (r.cobrancas > 0 || r.atrasos > 0) logger.info(r, 'Rotina do clube executada');
+    } catch (error) {
+      logger.error({ err: error }, 'Erro na rotina do clube');
+    }
+  }, { noOverlap: true });
 
   // Downgrades Pix agendados cujo período acabou (os do cartão viram pelo webhook do Stripe).
   cron.schedule('20 * * * *', async () => {

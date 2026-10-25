@@ -21,6 +21,7 @@ import type { AppointmentStatus } from '../../types/domain.js';
 import { sendWhatsAppMessage } from '../../services/whatsapp/index.js';
 import { notificationsService } from '../notifications/notifications.service.js';
 import { automacoesGatilhos } from '../whatsappAutomacoes/gatilhos.service.js';
+import { clubeService } from '../clube/clube.service.js';
 
 export const appointmentsService = {
   async getDetails(id: string, businessId: string) {
@@ -127,6 +128,12 @@ export const appointmentsService = {
         title: 'Pagamento confirmado',
         description: `${appointment.client.name} · ${appointment.service.name}`,
       });
+    }
+
+    // Clube/pacote com "falta debita": a falta consome a sessão ("faltou" é terminal, não há estorno).
+    if (newStatus === 'faltou') {
+      await clubeService.aoFaltar(businessId, id)
+        .catch((err) => logger.warn({ err, appointmentId: id }, 'Débito da falta no clube falhou'));
     }
 
     if (newStatus === 'cancelado') {

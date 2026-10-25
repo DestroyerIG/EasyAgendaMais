@@ -12,7 +12,7 @@ export const reportsRepository = {
       select: {
         id: true, professionalId: true, clientId: true, closedAt: true,
         servicesTotal: true, productsTotal: true, discountAmount: true, tipAmount: true,
-        items: { select: { kind: true, commissionAmount: true } },
+        items: { select: { kind: true, commissionAmount: true, valorCoberto: true } },
         appointment: { select: { id: true } },
       },
     });

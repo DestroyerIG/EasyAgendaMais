@@ -13,12 +13,22 @@ export const SaveComandaSchema = z.object({
   discount: z.number().min(0).multipleOf(0.01),
   tip: z.number().min(0).multipleOf(0.01),
   paymentMethod: z.enum(PAYMENT_METHODS).nullable(),
+  // Sessão coberta por clube/pacote: a dona pode desligar (a cliente prefere pagar). Ausente = usar.
+  usarCobertura: z.boolean().optional(),
 });
 export type SaveComandaInput = z.infer<typeof SaveComandaSchema>;
 
 export interface ComandaItemDto {
   id: string | null; kind: 'servico' | 'produto'; refId: string | null; name: string;
   unitPrice: number; quantity: number; durationMinutes: number | null; isMain: boolean;
+  coveredValue: number | null;
+}
+
+export interface CoberturaComandaDto {
+  disponivel: { contratoId: string; nome: string; tipo: 'clube' | 'pacote'; sessao: number | null; de: number | null; valorSessao: number } | null;
+  bloqueio: { nome: string; motivo: string } | null;
+  usando: boolean;
+  descontoSociaPct: number;
 }
 
 export interface ComandaDetailDto {
@@ -30,6 +40,7 @@ export interface ComandaDetailDto {
   depositAvailable: number;
   discount: number; tip: number; paymentMethod: PaymentMethod | null;
   commission: { servicePct: number; productPct: number; origem: 'profissional' | 'negocio' };
+  cobertura: CoberturaComandaDto;
   calc: ComandaCalc;
   whatsappConnected: boolean;
   closedAt: string | null; receiptSentAt: string | null;

@@ -28,10 +28,10 @@ export interface CashDayDto {
   comandasResumo: { total: number; fechadas: number; abertas: number; falta: number };
   formas: Array<{ chave: 'pix' | 'sinal_pix' | 'debito' | 'credito' | 'dinheiro'; valor: number; quantidade: number }>;
   linhas: Array<{
-    appointmentId: string; comandaId: string | null; numero: number | null; hora: string;
+    appointmentId: string | null; comandaId: string | null; numero: number | null; hora: string;
     cliente: string; telefone: string; profissional: string; servicos: string;
     pagamento: 'pix' | 'debito' | 'credito' | 'dinheiro' | 'sinal' | 'em_atendimento' | 'faltou';
-    depositApplied: number; total: number; status: 'Fechada' | 'Aberta' | 'Falta';
+    depositApplied: number; total: number; status: 'Fechada' | 'Aberta' | 'Falta' | 'Clube';
   }>;
   despesas: Array<{ id: string; descricao: string; categoria: string; valor: number; formaPagamento: string | null; criadoEm: string }>;
   movimentos: Array<{ id: string; kind: 'sangria' | 'suprimento'; valor: number; descricao: string; criadoEm: string }>;

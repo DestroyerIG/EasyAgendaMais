@@ -5,6 +5,8 @@ const repo = vi.hoisted(() => ({
   enviosDeRetorno: vi.fn(), profissionais: vi.fn(),
 }));
 vi.mock('../modules/reports/reports.repository.js', () => ({ reportsRepository: repo }));
+const clube = vi.hoisted(() => ({ recebimentos: vi.fn().mockResolvedValue([]) }));
+vi.mock('../modules/clube/clube.repository.js', () => ({ clubeRepository: clube }));
 vi.mock('../services/scheduleSettingsService.js', () => ({
   getBusinessScheduleSettings: vi.fn().mockResolvedValue({
     timezone: 'America/Sao_Paulo', openingTime: '09:00', closingTime: '18:00',
@@ -35,6 +37,17 @@ beforeEach(() => {
 });
 
 describe('visão geral', () => {
+  it('faturamento soma mensalidades e pacotes; o ticket médio fica só nas comandas', async () => {
+    repo.comandasFechadas.mockResolvedValue([comanda('k1', 'a1', 100), comanda('k2', 'a2', 200)]);
+    repo.agendamentos.mockResolvedValue([]);
+    clube.recebimentos.mockResolvedValue([{ valor: '149.90', pagoEm: new Date('2026-10-10T15:00:00Z') }]);
+    const r = await relatoriosService.visaoGeral('b1', P);
+    expect(r.faturamento).toBe(449.9);
+    expect(r.indicadores.ticketMedio.valor).toBe(150);
+    expect(r.indicadores.faturamentoMes.valor).toBe(449.9);
+    clube.recebimentos.mockResolvedValue([]);
+  });
+
   it('ticket sem gorjeta, faltas, meta do mês e origem com atribuição de campanha', async () => {
     const atuais = [comanda('k1', 'a1', 100, 50, 10), comanda('k2', 'a2', 200)];
     repo.comandasFechadas.mockImplementation(async (_b: string, i: { gte: Date }) =>

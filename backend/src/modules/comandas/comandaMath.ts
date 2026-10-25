@@ -3,7 +3,8 @@
  * para gravar e o frontend tem uma cópia (frontend/src/lib/comanda.ts) para a prévia.
  * Qualquer mudança aqui precisa ser repetida lá — os dois têm os mesmos testes.
  */
-export interface ComandaItemInput { kind: 'servico' | 'produto'; unitPrice: number; quantity: number }
+// coveredValue: sessão coberta por clube/pacote — sai a R$ 0, mas o valor por sessão entra na base de comissão.
+export interface ComandaItemInput { kind: 'servico' | 'produto'; unitPrice: number; quantity: number; coveredValue?: number | null }
 export interface ComandaCalcInput {
   items: ComandaItemInput[];
   depositAvailable: number;
@@ -11,6 +12,7 @@ export interface ComandaCalcInput {
   tip: number;
   serviceCommissionPct: number;
   productCommissionPct: number;
+  memberDiscountPct?: number;
 }
 export interface ComandaCalc {
   servicesTotal: number; productsTotal: number; subtotal: number;
@@ -19,6 +21,7 @@ export interface ComandaCalc {
   commissionService: number; commissionProduct: number; commissionTotal: number;
   houseRetention: number;
   serviceBase: number; productBase: number;
+  coveredTotal: number; memberDiscount: number;
 }
 
 export const toCents = (v: number): number => Math.round((Number(v) || 0) * 100);
@@ -30,19 +33,22 @@ const pctOf = (cents: number, pct: number) => Math.floor((cents * Math.round(pct
 export function calcularComanda(input: ComandaCalcInput): ComandaCalc {
   let services = 0;
   let products = 0;
+  let covered = 0;
   for (const item of input.items) {
+    if (item.coveredValue != null) { covered += toCents(item.coveredValue); continue; }
     const linha = toCents(item.unitPrice) * Math.max(1, Math.floor(item.quantity));
     if (item.kind === 'servico') services += linha; else products += linha;
   }
   const subtotal = services + products;
   const depositApplied = Math.min(pos(toCents(input.depositAvailable)), subtotal);
-  const discount = Math.min(pos(toCents(input.discount)), subtotal - depositApplied);
+  const member = pctOf(subtotal, Math.min(100, Math.max(0, input.memberDiscountPct ?? 0)));
+  const discount = Math.min(pos(toCents(input.discount)) + member, subtotal - depositApplied);
   const tip = pos(toCents(input.tip));
   const totalCharged = subtotal - depositApplied - discount + tip;
   const revenue = subtotal - discount;
 
   const descontoServico = subtotal > 0 ? Math.round((discount * services) / subtotal) : 0;
-  const serviceBase = services - descontoServico;
+  const serviceBase = services - descontoServico + covered;
   const productBase = products - (discount - descontoServico);
 
   const commissionService = pctOf(serviceBase, input.serviceCommissionPct);
@@ -65,5 +71,7 @@ export function calcularComanda(input: ComandaCalcInput): ComandaCalc {
     houseRetention: fromCents(houseRetention),
     serviceBase: fromCents(serviceBase),
     productBase: fromCents(productBase),
+    coveredTotal: fromCents(covered),
+    memberDiscount: fromCents(Math.min(member, discount)),
   };
 }

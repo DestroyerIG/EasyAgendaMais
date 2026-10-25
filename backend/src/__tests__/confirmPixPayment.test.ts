@@ -6,6 +6,8 @@ import { sendWhatsAppMessage } from '../services/whatsapp/index.js';
 import { notificationsService } from '../modules/notifications/notifications.service.js';
 
 vi.mock('../modules/whatsappAutomacoes/gatilhos.service.js', () => ({ automacoesGatilhos: { aoCancelar: vi.fn().mockResolvedValue(0), aoCriarReservaComSinal: vi.fn().mockResolvedValue(false), toleranciaSinal: vi.fn().mockResolvedValue(15), aoFecharComanda: vi.fn().mockResolvedValue(undefined) } }));
+const clube = vi.hoisted(() => ({ aoFaltar: vi.fn().mockResolvedValue(null) }));
+vi.mock('../modules/clube/clube.service.js', () => ({ clubeService: clube }));
 vi.mock('../modules/appointments/appointments.repository.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../modules/appointments/appointments.repository.js')>();
   return {

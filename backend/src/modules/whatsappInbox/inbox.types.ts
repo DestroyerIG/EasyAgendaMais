@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export type Direcao = 'in' | 'out';
 export type Origem = 'cliente' | 'bot' | 'lembrete' | 'confirmacao' | 'pix_recibo' | 'lista_espera' | 'retorno'
-  | 'sinal_pix' | 'aniversario' | 'avaliacao' | 'campanha' | 'manual_painel' | 'manual_celular' | 'sistema' | 'painel_evento';
+  | 'sinal_pix' | 'aniversario' | 'avaliacao' | 'campanha' | 'manual_painel' | 'manual_celular' | 'sistema' | 'painel_evento' | 'clube';
 export type StatusMensagem = 'recebida' | 'enviada' | 'entregue' | 'lida' | 'falhou';
 export type Atendimento = 'bot' | 'humano';
 export type StatusConversa = 'aberta' | 'aguardando' | 'finalizada';
