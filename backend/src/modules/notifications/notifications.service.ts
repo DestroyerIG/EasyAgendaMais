@@ -2,6 +2,7 @@ import logger from '../../utils/logger.js';
 import { NotFoundError } from '../../utils/errors.js';
 import { notificationsRepository } from './notifications.repository.js';
 import type { NotificationDto, NotifyInput } from './notifications.types.js';
+import { pushService } from '../push/push.service.js';
 
 interface NotificationRow {
   id: string;
@@ -53,5 +54,7 @@ export const notificationsService = {
     } catch (error) {
       logger.error({ err: error, businessId, type: input.type }, 'Falha ao criar notificação');
     }
+    // O sino também vai por push para quem ativou no aparelho (nunca lança).
+    void pushService.paraEquipe(businessId, { titulo: input.title, corpo: input.description, link: input.link ?? '/', tag: input.type });
   },
 };

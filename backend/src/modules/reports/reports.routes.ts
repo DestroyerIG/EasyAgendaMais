@@ -7,7 +7,7 @@ import { validate } from '../../middleware/validate.js';
 import { AdiantamentoSchema, AdiantamentosQuerySchema, ModeloRepasseSchema, PagarRepasseSchema, PeriodoOpcionalQuerySchema } from './reports.types.js';
 import {
   createAdvance, deleteAdvance, exportCommissionsCsv, getCommissions, getEvolution, getOccupancy, getOverview,
-  listAdvances, payCommission, savePayoutModel, undoCommissionPayment,
+  getRatings, listAdvances, payCommission, savePayoutModel, undoCommissionPayment,
 } from './reports.controller.js';
 
 const router = express.Router();
@@ -19,6 +19,7 @@ const periodo = validate({ query: PeriodoOpcionalQuerySchema });
 router.get('/overview', ...leitura, periodo, getOverview);
 router.get('/occupancy', ...leitura, periodo, getOccupancy);
 router.get('/evolution', ...leitura, getEvolution);
+router.get('/avaliacoes', ...leitura, periodo, getRatings);
 router.get('/commissions', ...leitura, periodo, getCommissions);
 router.get('/commissions/export.csv', ...leitura, periodo, exportCommissionsCsv);
 router.post('/commissions/payouts', ...dona, validate({ body: PagarRepasseSchema }), payCommission);

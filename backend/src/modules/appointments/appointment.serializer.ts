@@ -23,7 +23,7 @@ interface RawAppointment {
   depositAmount?: unknown;
   startedAt?: Date | string | null;
   clientConfirmedAt?: Date | string | null;
-  comanda?: { id: string; status: string; number: number; totalCharged?: unknown; depositApplied?: unknown } | null;
+  comanda?: { id: string; status: string; number: number; totalCharged?: unknown; depositApplied?: unknown; enviadaRecepcaoEm?: Date | null } | null;
   client?: { name?: string; phone?: string } | null;
   professional?: { name?: string } | null;
   service?: { name?: string; price?: unknown; durationMinutes?: number } | null;
@@ -57,6 +57,8 @@ export interface AppointmentDto {
   /** Gravados no fechamento (null enquanto a comanda é rascunho ou não existe). */
   comanda_total_charged: number | null;
   comanda_deposit_applied: number | null;
+  /** A profissional mandou pelo app para a recepção cobrar (selo "Pronta para cobrar"). */
+  comanda_enviada_recepcao_em: string | null;
 }
 
 const dateToLocalIso = (d: Date | string): string => {
@@ -111,4 +113,5 @@ export const toAppointmentDto = (a: RawAppointment): AppointmentDto => ({
   comanda_number: a.comanda?.number ?? null,
   comanda_total_charged: a.comanda?.status === 'fechada' ? nullablePrice(a.comanda.totalCharged) : null,
   comanda_deposit_applied: a.comanda?.status === 'fechada' ? nullablePrice(a.comanda.depositApplied) : null,
+  comanda_enviada_recepcao_em: a.comanda?.enviadaRecepcaoEm ? new Date(a.comanda.enviadaRecepcaoEm).toISOString() : null,
 });

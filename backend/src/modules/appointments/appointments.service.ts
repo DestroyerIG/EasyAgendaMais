@@ -22,6 +22,21 @@ import { sendWhatsAppMessage } from '../../services/whatsapp/index.js';
 import { notificationsService } from '../notifications/notifications.service.js';
 import { automacoesGatilhos } from '../whatsappAutomacoes/gatilhos.service.js';
 import { clubeService } from '../clube/clube.service.js';
+import { pushService } from '../push/push.service.js';
+
+const dataBr = (d: Date) => `${d.toISOString().slice(8, 10)}/${d.toISOString().slice(5, 7)}`;
+const horaDe = (t: Date) => t.toISOString().slice(11, 16);
+const primeiroNome = (nome: string) => nome.split(' ')[0] || nome;
+
+/** Push para a profissional do agendamento (app da bancada). Nunca lança. */
+/** Push para a profissional. Nunca derruba a operação: o texto é montado aqui dentro, protegido. */
+function avisarProfissional(a: AppointmentWithRelations, titulo: string, corpo: () => string): void {
+  try {
+    void pushService.paraProfissional(a.businessId, a.professionalId, { titulo, corpo: corpo(), link: '/bancada', tag: `agendamento-${a.id}` });
+  } catch (err) {
+    logger.warn({ err, appointmentId: a.id }, 'Push para a profissional não enviado');
+  }
+}
 
 export const appointmentsService = {
   async getDetails(id: string, businessId: string) {
@@ -75,13 +90,17 @@ export const appointmentsService = {
 
     const result = await appointmentsPrismaRepository.create({ ...data, businessId, source: opts.source ?? 'painel' });
     logger.info({ appointmentId: result.id, businessId }, 'Agendamento criado');
+    if (result.status === 'confirmado') {
+      avisarProfissional(result, 'Novo agendamento', () => `${primeiroNome(result.client.name)} · ${result.service.name} · ${dataBr(result.date)} às ${horaDe(result.time)}`);
+    }
     return result;
   },
 
   async updateStatus(
     id: string,
     businessId: string,
-    newStatus: AppointmentStatus
+    newStatus: AppointmentStatus,
+    opts: { porProfissional?: boolean } = {}
   ): Promise<AppointmentWithRelations> {
     const appointment = await appointmentsPrismaRepository.findById(id, businessId);
     if (!appointment) throw new NotFoundError('Agendamento');
@@ -128,12 +147,18 @@ export const appointmentsService = {
         title: 'Pagamento confirmado',
         description: `${appointment.client.name} · ${appointment.service.name}`,
       });
+      avisarProfissional(result, 'Novo agendamento', () => `${primeiroNome(result.client.name)} · ${result.service.name} · ${dataBr(result.date)} às ${horaDe(result.time)}`);
     }
 
     // Clube/pacote com "falta debita": a falta consome a sessão ("faltou" é terminal, não há estorno).
     if (newStatus === 'faltou') {
       await clubeService.aoFaltar(businessId, id)
         .catch((err) => logger.warn({ err, appointmentId: id }, 'Débito da falta no clube falhou'));
+    }
+
+    // Quem cancelou pelo app já sabe; a recepção cancelando avisa a profissional.
+    if (newStatus === 'cancelado' && !opts.porProfissional) {
+      avisarProfissional(result, 'Agendamento cancelado', () => `${primeiroNome(result.client.name)} · ${dataBr(result.date)} às ${horaDe(result.time)}`);
     }
 
     if (newStatus === 'cancelado') {
@@ -171,8 +196,18 @@ export const appointmentsService = {
       if (conflict) throw new ConflictError('Horário já ocupado para este profissional');
     }
 
+    const antes = await appointmentsPrismaRepository.findById(id, businessId);
     const result = await appointmentsPrismaRepository.update(id, businessId, data);
     if (!result) throw new NotFoundError('Agendamento (ou não pode ser editado)');
+    if (antes) {
+      const resumo = () => `${primeiroNome(result.client.name)} · ${dataBr(result.date)} às ${horaDe(result.time)}`;
+      if (antes.professionalId !== result.professionalId) {
+        avisarProfissional(antes, 'Agendamento passou para outra profissional', () => `${primeiroNome(antes.client.name)} · ${dataBr(antes.date)} às ${horaDe(antes.time)}`);
+        avisarProfissional(result, 'Novo agendamento', resumo);
+      } else if (antes.date?.getTime() !== result.date?.getTime() || antes.time?.getTime() !== result.time?.getTime()) {
+        avisarProfissional(result, 'Agendamento reagendado', resumo);
+      }
+    }
     return result;
   },
 

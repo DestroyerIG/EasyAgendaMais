@@ -44,6 +44,8 @@ export interface ComandaDetailDto {
   calc: ComandaCalc;
   whatsappConnected: boolean;
   closedAt: string | null; receiptSentAt: string | null;
+  /** Quando a profissional mandou pelo app para a recepção cobrar (fase 5). */
+  enviadaRecepcaoEm: string | null;
 }
 
 export interface NewExtraItem {

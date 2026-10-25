@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // ─── Core Domain Types ───────────────────────────────────────────────────────
 
-export type UserRole = 'platform_admin' | 'tenant_admin' | 'employee' | 'client';
+export type UserRole = 'platform_admin' | 'tenant_admin' | 'employee' | 'professional' | 'client';
 
 export type PlanId = 'basico' | 'profissional' | 'premium';
 

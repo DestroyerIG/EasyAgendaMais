@@ -69,7 +69,7 @@ export const PLAN_CATALOG: Readonly<Record<PlanId, PlanoCatalogo>> = Object.free
 // `destaques` para a tela poder marcar cada um.
 export const PLAN_EM_BREVE: Readonly<Record<PlanId, string[]>> = Object.freeze({
   basico: [],
-  profissional: ['Acesso das profissionais'],
+  profissional: [],
   premium: ['Várias unidades'],
 });
 
@@ -82,7 +82,7 @@ export const FEATURE_MATRIX: readonly RecursoMatriz[] = Object.freeze([
   { id: 'profissionais', grupo: 'Equipe e operação', titulo: 'Profissionais na grade', basico: '1', profissional: 'Até 5', premium: 'Ilimitadas' },
   { id: 'comissoes', grupo: 'Equipe e operação', titulo: 'Comissões', basico: false, profissional: true, premium: true },
   { id: 'reports', grupo: 'Equipe e operação', titulo: 'Relatórios e exportação', basico: false, profissional: true, premium: true },
-  { id: 'acesso_profissionais', grupo: 'Equipe e operação', titulo: 'Acesso das profissionais', basico: false, profissional: 'em_breve', premium: 'em_breve' },
+  { id: 'acesso_profissionais', grupo: 'Equipe e operação', titulo: 'App da profissional', basico: false, profissional: true, premium: true },
   { id: 'salao_parceiro', grupo: 'Expansão e gestão avançada', titulo: 'Salão-parceiro', basico: false, profissional: false, premium: true },
   { id: 'clube', grupo: 'Expansão e gestão avançada', titulo: 'Clube e pacotes de serviços', basico: false, profissional: false, premium: true },
   { id: 'unidades', grupo: 'Expansão e gestão avançada', titulo: 'Gestão de várias unidades', basico: false, profissional: false, premium: 'em_breve' },

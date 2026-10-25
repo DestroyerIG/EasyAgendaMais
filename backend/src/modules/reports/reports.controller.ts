@@ -8,6 +8,7 @@ import { PeriodoQuerySchema } from './reports.types.js';
 import { comissoesService } from './comissoes.service.js';
 import { relatoriosService } from './relatorios.service.js';
 import { comissoesCsv } from './comissoes.csv.js';
+import { avaliacoesService } from '../avaliacoes/avaliacoes.service.js';
 
 type H = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 
@@ -66,4 +67,8 @@ export const deleteAdvance: H = async (req, res, next) => {
 };
 export const savePayoutModel: H = async (req, res, next) => {
   try { sendSuccess(res, await comissoesService.salvarModelo(req.user.businessId!, ctx(req), req.body.modelo)); } catch (e) { next(e); }
+};
+
+export const getRatings: H = async (req, res, next) => {
+  try { sendSuccess(res, await avaliacoesService.porProfissional(req.user.businessId!, await periodoDe(req, ultimos30))); } catch (e) { next(e); }
 };

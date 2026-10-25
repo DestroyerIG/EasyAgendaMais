@@ -56,7 +56,7 @@ export const comandasRepository = {
       select: {
         id: true, number: true, status: true, businessId: true,
         discountAmount: true, tipAmount: true, paymentMethod: true, closedAt: true,
-        servicesTotal: true, productsTotal: true, depositApplied: true, totalCharged: true, commissionTotal: true, receiptSentAt: true,
+        servicesTotal: true, productsTotal: true, depositApplied: true, totalCharged: true, commissionTotal: true, receiptSentAt: true, enviadaRecepcaoEm: true,
         descontoClube: true,
         appointment: { select: APPOINTMENT_SELECT },
         items: {

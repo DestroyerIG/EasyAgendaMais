@@ -23,6 +23,7 @@ export type Feature =
   | 'exports'
   | 'salao_parceiro'
   | 'clube'
+  | 'app_profissional'
   | 'whatsapp_automation'
   | 'advanced_admin'
   | 'billing'
@@ -38,6 +39,7 @@ export const FEATURE_REQUIREMENTS: Readonly<Record<Feature, PlanId>> = Object.fr
   exports: 'profissional',
   salao_parceiro: 'premium',
   clube: 'premium',
+  app_profissional: 'profissional',
   whatsapp_automation: 'basico',
   advanced_admin: 'basico',
   billing: 'basico',

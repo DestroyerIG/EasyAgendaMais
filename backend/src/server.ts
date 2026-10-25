@@ -42,6 +42,10 @@ import comandaRoutes from './modules/comandas/comandas.routes.js';
 import cashRoutes from './modules/cash/cash.routes.js';
 import reportsRoutes from './modules/reports/reports.routes.js';
 import clubeRoutes from './modules/clube/clube.routes.js';
+import equipeRoutes, { conviteRoutes } from './modules/equipe/equipe.routes.js';
+import bancadaRoutes from './modules/bancada/bancada.routes.js';
+import pushRoutes from './modules/push/push.routes.js';
+import avaliacoesRoutes from './modules/avaliacoes/avaliacoes.routes.js';
 
 // Route modules — stub re-exports
 // @ts-ignore
@@ -342,6 +346,12 @@ app.use(
     limit: '7mb',
   })
 );
+app.use(
+  `${API_V1}/bancada/clientes/:id/fotos`,
+  express.json({
+    limit: '7mb',
+  })
+);
 
 app.use(
   express.json({
@@ -467,6 +477,11 @@ app.use(`${API_V1}/comandas`, comandaRoutes);
 app.use(`${API_V1}/cash`, cashRoutes);
 app.use(`${API_V1}/reports`, reportsRoutes);
 app.use(`${API_V1}/clube`, clubeRoutes);
+app.use(`${API_V1}/equipe`, equipeRoutes);
+app.use(`${API_V1}/convites`, conviteRoutes);
+app.use(`${API_V1}/bancada`, bancadaRoutes);
+app.use(`${API_V1}/push`, pushRoutes);
+app.use(`${API_V1}/avaliacoes`, avaliacoesRoutes);
 
 app.use(`${API_V1}/clients`, crmRoutes);
 app.use(`${API_V1}/clients`, clientPhotoRoutes);

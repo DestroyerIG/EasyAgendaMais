@@ -12,6 +12,7 @@ import { sendComandaReceipt } from './receipt.js';
 import { automacoesGatilhos } from '../whatsappAutomacoes/gatilhos.service.js';
 import { clubeService } from '../clube/clube.service.js';
 import type { CoberturaComandaDto, ComandaDetailDto, NewExtraItem, SaveComandaInput, PaymentMethod } from './comandas.types.js';
+import { avaliacoesService } from '../avaliacoes/avaliacoes.service.js';
 
 type ComandaRow = NonNullable<Awaited<ReturnType<typeof comandasRepository.findComandaById>>>;
 
@@ -112,6 +113,7 @@ async function montarDto(c: ComandaRow): Promise<ComandaDetailDto> {
     whatsappConnected: await whatsappConectado(c.businessId),
     closedAt: c.closedAt ? c.closedAt.toISOString() : null,
     receiptSentAt: c.receiptSentAt ? c.receiptSentAt.toISOString() : null,
+    enviadaRecepcaoEm: c.enviadaRecepcaoEm ? c.enviadaRecepcaoEm.toISOString() : null,
   };
 }
 
@@ -141,9 +143,12 @@ async function resolverExtras(businessId: string, extras: SaveComandaInput['extr
 }
 
 async function enviarComprovante(businessId: string, comandaId: string, dto: ComandaDetailDto, paymentMethod: PaymentMethod | null) {
+  // O link é opcional: se falhar, o comprovante sai sem ele.
+  const linkAvaliacao = await avaliacoesService.novoLink(comandaId)
+    .catch((err) => { logger.warn({ err, comandaId }, 'Link de avaliação não gerado'); return null; });
   const enviado = await sendComandaReceipt(businessId, dto.client.phone, {
     negocio: await nomeDoNegocio(businessId), numero: dto.number, cliente: dto.client.name,
-    profissional: dto.professional.name, itens: dto.items, calc: dto.calc, paymentMethod,
+    profissional: dto.professional.name, itens: dto.items, calc: dto.calc, paymentMethod, linkAvaliacao,
   });
   if (enviado) await comandasRepository.markReceiptSent(comandaId);
   return enviado;
