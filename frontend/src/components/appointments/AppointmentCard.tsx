@@ -37,6 +37,7 @@ import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
 import { linkWhatsapp } from '@/lib/whatsapp';
 import { Icon, StatusChip, STATUS_STRIPE_CLASS } from '@/components/ui';
+import { SeloProntaParaCobrar } from '@/components/comanda/SeloProntaParaCobrar';
 import { formatarDuracao, formatarMinutos, paraMinutos, paraHoraTexto } from './LinhaDoTempo';
 import type { Appointment } from '@/types';
 import { ROTULO_ACAO, type AcaoAgendamento } from './acoes';
@@ -182,6 +183,7 @@ export function CorpoCartaoAgendamento({
         <div className="mt-2 flex items-center gap-1.5">
           <StatusChip status={appointment.status} comPonto={comPontoDeStatus} className="px-2 text-[11px]" />
           {mostrarWhatsapp && appointment.client_confirmed_at && !cancelado && <SeloConfirmouWhatsapp />}
+          {appointment.comanda_status === 'rascunho' && appointment.comanda_enviada_recepcao_em && <SeloProntaParaCobrar />}
           {whatsapp && (
             // O corpo do cartão inteiro escuta pointerdown/up para o gesto de arrastar
             // e para abrir o painel de detalhes num toque parado (AppointmentCard.tsx) —

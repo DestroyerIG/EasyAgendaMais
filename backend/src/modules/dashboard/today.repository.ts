@@ -10,7 +10,7 @@ const INCLUDE = {
   client: { select: { name: true, phone: true } },
   professional: { select: { name: true } },
   service: { select: { name: true, price: true, durationMinutes: true } },
-  comanda: { select: { id: true, status: true, number: true, totalCharged: true, depositApplied: true } },
+  comanda: { select: { id: true, status: true, number: true, totalCharged: true, depositApplied: true, enviadaRecepcaoEm: true } },
 } as const;
 
 export type AgendamentoDia = Prisma.AppointmentGetPayload<{ include: typeof INCLUDE }>;

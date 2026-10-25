@@ -66,6 +66,12 @@ const RECURSOS_EXCLUSIVOS: Record<string, RecursoExclusivo> = {
     texto: (a, p) => `Você tentou abrir o Clube e pacotes. Faça upgrade do plano ${a} para o ${p} para vender assinaturas mensais e pacotes de sessões, com a cobrança por Pix.`,
     plano: (a) => (nivelPlano(a) < 2 ? 'premium' : null),
   },
+  app_profissional: {
+    icone: 'smartphone',
+    titulo: (p) => `O app da profissional faz parte do plano ${p}`,
+    texto: (a, p) => `Você tentou convidar uma profissional para o app. Faça upgrade do plano ${a} para o ${p} para que cada profissional veja a agenda, a ficha das clientes e os próprios números no celular.`,
+    plano: (a) => (nivelPlano(a) < 1 ? 'profissional' : null),
+  },
   profissionais: {
     icone: 'group_add',
     titulo: (p) => `Mais profissionais no plano ${p}`,

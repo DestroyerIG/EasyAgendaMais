@@ -12,6 +12,8 @@ export interface DadosComprovante {
   itens: Array<{ name: string; quantity: number; unitPrice: number; coveredValue?: number | null }>;
   calc: { depositApplied: number; discount: number; tip: number; totalCharged: number };
   paymentMethod: PaymentMethod | null;
+  /** Link da página de avaliação (fase 5). */
+  linkAvaliacao?: string | null;
 }
 
 export function montarComprovante(d: DadosComprovante): string {
@@ -28,6 +30,7 @@ export function montarComprovante(d: DadosComprovante): string {
   if (d.calc.tip > 0) linhas.push(`Gorjeta para ${primeiroNome}: ${brl(d.calc.tip)}`);
   const forma = d.paymentMethod ? ` (${ROTULO_PAGAMENTO[d.paymentMethod]})` : '';
   linhas.push(`*Total pago: ${brl(d.calc.totalCharged)}${forma}*`);
+  if (d.linkAvaliacao) linhas.push('', `Como foi seu atendimento com ${primeiroNome}? Avalie em 1 toque: ${d.linkAvaliacao}`);
   return linhas.join('\n');
 }
 

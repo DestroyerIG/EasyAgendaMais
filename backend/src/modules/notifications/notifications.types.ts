@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
-export const NOTIFICATION_TYPES = ['nova_reserva', 'reserva_expirada', 'pagamento_confirmado', 'clube_adesao', 'clube_atraso'] as const;
+export const NOTIFICATION_TYPES = [
+  'nova_reserva', 'reserva_expirada', 'pagamento_confirmado', 'clube_adesao', 'clube_atraso',
+  'agenda_profissional', 'comanda_pronta', 'avaliacao_baixa',
+] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 export const ListNotificationsQuerySchema = z.object({

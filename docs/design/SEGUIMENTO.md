@@ -121,6 +121,14 @@ Sub-projeto 4 (Clube e pacotes), pendências conhecidas:
 - **Falta não se desfaz:** como `faltou` é status final, uma falta que debitou sessão por engano não devolve a sessão. Hoje o caminho é a dona dar desconto numa próxima comanda.
 - **Uma sessão coberta por comanda:** só o serviço principal é coberto. Serviços extras pagam normal (com o desconto de sócia, se houver).
 
+Sub-projeto 5 (App da profissional), pendências conhecidas:
+- **Migração `20261027120000_app_profissional` pendente de aplicação em produção.** Só adiciona colunas e tabelas (`users.professional_id`, `business_settings.profissional_cobra`, `comandas.enviada_recepcao_em`/`avaliacao_token_hash`, `whatsapp_ratings.origem`, `profissional_convites`, `push_inscricoes`). O `schema.prisma` já tem as colunas, então a migração precisa ir antes do código, com autorização do dono.
+- **Chaves VAPID:** gerar (`npx web-push generate-vapid-keys`) e configurar `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` (ex.: `mailto:suporte@...`) no backend. Sem elas, o botão "Ativar notificações" não aparece e nada quebra.
+- **E-mail do convite:** depende do SMTP do backend. Sem SMTP, a dona copia o link no cadastro da profissional.
+- **Supabase:** o aceite cria o usuário já confirmado com a chave de serviço do backend.
+- **iPhone:** o push só funciona com o app na tela de início (iOS 16.4+). A tela explica.
+- As telas não foram vistas no navegador com dado real, porque o `.env` local aponta para produção. Conferir: convidar e aceitar, a agenda do dia, iniciar e enviar para a recepção (e fechar com a chave ligada), reagendar e cancelar com aviso, Meus números, o link de avaliação no comprovante e o push no celular.
+
 ## Melhorias técnicas pequenas
 
 - O Vitest imprime um aviso de configuração a cada execução. Silenciar exige renomear `vitest.config.ts` para `.mts` ou declarar `"type": "module"`.
@@ -209,3 +217,12 @@ Sub-projeto 4 (Clube e pacotes), pendências conhecidas:
   - Recebimentos do clube no Caixa (linha "Clube"), no faturamento, na evolução e nas comissões.
   - Adesão pública em `/agendar/[slug]/clube/[ofertaId]` e a seção "Clube" na Minha página.
   - Selo do clube na ficha da cliente e no detalhe do agendamento. Saiu o "Em breve" do Clube na comparação de planos.
+- Sub-projeto 5: App da profissional (PWA em `/bancada`), nos planos Equipe e Salão (recurso `app_profissional`). Migração `20261027120000_app_profissional`, **pendente de aplicação em produção** (ver pendências acima). Entrou:
+  - Convite por e-mail no cadastro da profissional (com link para copiar), aceite com senha em `/convite/[token]`, revogar, remover e reativar o acesso.
+  - Bancada: agenda do dia (e de outros dias), destaque da próxima cliente com alergia, ficha e último trabalho, iniciar atendimento e as clientes dela com ficha rápida, nota e foto.
+  - Atendimento: comanda com extras, comissão estimada e "Enviar para a recepção"; com a chave "A profissional cobra no app" (Ajustes), forma de pagamento, desconto, gorjeta e fechar.
+  - Reagendar e cancelar pelo app, com aviso à cliente no WhatsApp e push para a profissional quando a recepção mexe na agenda dela.
+  - Meus números por quinzena (resumo, avaliações, extrato e PDF).
+  - Avaliação da cliente pelo link do comprovante (`/avaliar/[token]`), bloco "Avaliações" em Relatórios e aviso no sino para nota baixa.
+  - PWA instalável (manifesto, ícones, service worker com tela offline) e notificações push (VAPID), também no sino do painel.
+  - Selo "Pronta para cobrar" na Agenda e no Caixa. A profissional que entra no painel vai para `/bancada`.

@@ -93,7 +93,7 @@ interface RefreshResponse {
   user: UserPayload;
 }
 
-interface InternalSessionResult {
+export interface InternalSessionResult {
   token: string;
   refreshToken: string;
   user: UserPayload;
@@ -1007,6 +1007,16 @@ const createInternalSessionForConfirmedUser = async (
 export const authService = {
   isCommonPassword(password: string): boolean {
     return COMMON_PASSWORDS.has(password.toLowerCase());
+  },
+
+  /** Abre a sessão de quem já tem conta confirmada no Supabase (aceite do convite da profissional). */
+  abrirSessaoConfirmada(res: Response, dados: { email: string; supabaseUserId: string }): Promise<InternalSessionResult> {
+    return createInternalSessionForConfirmedUser(res, dados);
+  },
+
+  /** Senha placeholder do usuário local: a senha de verdade fica no Supabase. */
+  senhaPlaceholder(): string {
+    return generateSupabasePasswordHashPlaceholder();
   },
 
   async register(

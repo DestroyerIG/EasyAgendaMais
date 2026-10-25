@@ -1066,4 +1066,42 @@ export const supabaseAuthService = {
       user: mapSupabaseUser(userData),
     };
   },
+
+  /**
+   * Convite da profissional: o link já provou o e-mail, então a conta nasce confirmada.
+   * Se o e-mail já existe no Supabase (aceite anterior que falhou no meio), só troca a senha e confirma.
+   */
+  async createConfirmedUser(email: string, password: string): Promise<{ userId: string }> {
+    const normalizedEmail = normalizeEmail(email);
+    const client = getSupabaseAdminClient();
+    let data: Record<string, unknown> | undefined;
+    let error: unknown;
+
+    try {
+      ({ data, error } = await runSupabaseOperation(
+        { operation: 'createConfirmedUser', context: { email: normalizedEmail } },
+        () => client.auth.admin.createUser({ email: normalizedEmail, password, email_confirm: true })
+      ) as { data: Record<string, unknown>; error: unknown });
+    } catch (operationError: unknown) {
+      throw mapSupabaseError(operationError, 'Não foi possível criar o acesso no provedor de identidade.');
+    }
+
+    const criado = (data?.user as Record<string, unknown> | undefined)?.id as string | undefined;
+    if (!error && criado) return { userId: criado };
+
+    const existente = await this.getUserByEmail(normalizedEmail);
+    if (!existente?.id) {
+      throw mapSupabaseError(error, 'Não foi possível criar o acesso no provedor de identidade.');
+    }
+    try {
+      ({ error } = await runSupabaseOperation(
+        { operation: 'confirmExistingUser', context: { userId: existente.id } },
+        () => client.auth.admin.updateUserById(existente.id as string, { password, email_confirm: true })
+      ) as { data: Record<string, unknown>; error: unknown });
+    } catch (operationError: unknown) {
+      throw mapSupabaseError(operationError, 'Não foi possível criar o acesso no provedor de identidade.');
+    }
+    if (error) throw mapSupabaseError(error, 'Não foi possível criar o acesso no provedor de identidade.');
+    return { userId: existente.id as string };
+  },
 };

@@ -7,6 +7,7 @@ import type { Service, Professional } from '@/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/Toast';
 import { isValidCnpj } from '@/utils/cpfCnpj';
+import { AcessoAppProfissional } from './AcessoAppProfissional';
 
 export interface ServiceFormData {
   name: string;
@@ -434,6 +435,10 @@ export const ServiceProfessionalModal = ({
                 placeholder="00.000.000/0000-00"
               />
             </Field>
+
+            {editingItem && 'photo' in editingItem && (
+              <AcessoAppProfissional professionalId={editingItem.id} ativa={(editingItem as Professional).active !== false} />
+            )}
           </>
         )}
       </form>

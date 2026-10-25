@@ -7,6 +7,7 @@ import { useRegisterTopBarSearch } from '../TopBarSearchContext';
 
 const mockPathname = vi.hoisted(() => ({ value: '/dashboard' }));
 const mockLogout = vi.hoisted(() => vi.fn());
+const mockReplace = vi.hoisted(() => vi.fn());
 const mockUser = vi.hoisted(() => ({
   value: {
     businessName: 'Studio Aurora',
@@ -20,7 +21,7 @@ const mockUser = vi.hoisted(() => ({
 vi.mock('next/navigation', async (importOriginal) => ({
   ...(await importOriginal<typeof import('next/navigation')>()),
   usePathname: () => mockPathname.value,
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), back: vi.fn(), forward: vi.fn(), refresh: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: mockReplace, prefetch: vi.fn(), back: vi.fn(), forward: vi.fn(), refresh: vi.fn() }),
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({
@@ -45,6 +46,7 @@ describe('AppShell', () => {
   beforeEach(() => {
     mockPathname.value = '/dashboard';
     mockLogout.mockReset();
+    mockReplace.mockReset();
     mockUser.value = {
       businessName: 'Studio Aurora',
       plan: 'profissional',
@@ -162,5 +164,12 @@ describe('AppShell', () => {
     } finally {
       erro.mockRestore();
     }
+  });
+
+  it('o papel professional não vê o painel: vai para a bancada', () => {
+    mockUser.value = { ...mockUser.value, role: 'professional' };
+    renderShell();
+    expect(screen.queryByText('conteúdo')).not.toBeInTheDocument();
+    expect(mockReplace).toHaveBeenCalledWith('/bancada');
   });
 });
