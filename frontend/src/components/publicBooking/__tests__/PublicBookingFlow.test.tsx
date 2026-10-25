@@ -149,7 +149,7 @@ describe('PublicBookingFlow', () => {
     await user.click(await screen.findByText('Manutenção Fibra'));
     await clickContinuar(user);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível carregar os profissionais');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível carregar as profissionais');
     expect(screen.getAllByText('Manutenção Fibra').length).toBeGreaterThan(0); // continua na etapa de serviço
   });
 

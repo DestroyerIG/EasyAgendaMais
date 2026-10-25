@@ -18,6 +18,7 @@ import {
 } from '@/lib/comanda';
 import type { Service } from '@/types';
 import { AbrirCaixaInline, ReabrirCaixaInline } from './AbrirCaixaInline';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 interface Extra { kind: 'servico' | 'produto'; refId: string; name: string; legenda: string | null; unitPrice: number; quantity: number }
 interface Opcao { kind: 'servico' | 'produto'; id: string; name: string; price: number; legenda?: string | null }
@@ -49,6 +50,7 @@ export interface ComandaModalProps {
 
 export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaModalProps) {
   const { showToast } = useToast();
+  const { prof, adaptar } = useVocabulario();
   const [dto, setDto] = useState<ComandaDetail | null>(null);
   const [servicos, setServicos] = useState<Service[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -271,7 +273,7 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
                 <div className="flex items-center gap-3 rounded-xl bg-surface px-3 py-2 shadow-sm">
                   <Avatar name={dto.professional.name} size={36} className="font-bold text-brand-text" />
                   <div className="flex flex-col">
-                    <span className="text-[12px] text-muted">Profissional responsável</span>
+                    <span className="text-[12px] text-muted">{prof.S} responsável</span>
                     <span className="text-[13px] font-bold text-ink">{dto.professional.name}</span>
                   </div>
                 </div>
@@ -651,7 +653,7 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
                       <span>Divisão do repasse automático</span>
                     </span>
                     <span className="text-[12px] text-muted">
-                      {dto.commission.origem === 'profissional' ? 'Regra da profissional' : 'Regra do negócio'}
+                      {dto.commission.origem === 'profissional' ? adaptar('Regra da profissional') : 'Regra do negócio'}
                     </span>
                   </div>
                   {semComissao ? (
@@ -679,7 +681,7 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
                       </div>
                       <div className="flex items-center justify-between pt-3">
                         <div className="flex flex-col">
-                          <span className="text-[12px] text-muted">Comissão total profissional</span>
+                          <span className="text-[12px] text-muted">Comissão total {prof.doS}</span>
                           <span className="text-[15px] font-bold text-success-text">{formatCurrency(calc.commissionTotal)}</span>
                         </div>
                         <div className="flex flex-col text-right">
@@ -697,7 +699,7 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
             {mostrarComprovante || mostrarLancamento ? (
               <div className="grid grid-cols-1 gap-4 px-6 pb-6 md:grid-cols-2 lg:px-8">
                 {mostrarComprovante ? (
-                  <CartaoInfo icone="chat" tom="whatsapp" titulo="Comprovante instantâneo" texto="Enviado pelo WhatsApp da cliente" />
+                  <CartaoInfo icone="chat" tom="whatsapp" titulo="Comprovante instantâneo" texto={adaptar('Enviado pelo WhatsApp da cliente')} />
                 ) : null}
                 {mostrarLancamento ? (
                   <CartaoInfo icone="account_balance_wallet" tom="success" titulo="Lançamento em caixa" texto="Entrada no caixa de hoje" />

@@ -12,6 +12,7 @@ import { formatCurrency } from '@/lib/formatters';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { cn } from '@/lib/cn';
 import { ErroBancada } from './ErroBancada';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 // Fechar atendimento pela bancada. Sem a chave "a profissional cobra", ela monta a comanda e manda
 // para a recepção; com a chave, também escolhe a forma e fecha (o caixa precisa estar aberto).
@@ -35,6 +36,7 @@ export function AtendimentoBancada() {
   const params = useSearchParams();
   const router = useRouter();
   const { showToast } = useToast();
+  const { adaptar } = useVocabulario();
   const comandaParam = params?.get('comanda') ?? null;
   const [comandaId, setComandaId] = useState<string | null>(comandaParam);
   const [dto, setDto] = useState<ComandaBancada | null>(null);
@@ -89,7 +91,7 @@ export function AtendimentoBancada() {
   if (vazio) {
     return (
       <EmptyState icon={Scissors} title="Nenhum atendimento em andamento"
-        description="Toque em Iniciar na agenda quando a cliente sentar na sua bancada."
+        description={adaptar('Toque em Iniciar na agenda quando a cliente sentar na sua bancada.')}
         action={{ label: 'Ir para a agenda', onClick: () => router.push('/bancada') }} />
     );
   }

@@ -12,6 +12,7 @@ import { formatCurrency } from '@/lib/formatters';
 import { formatarTelefone, type AgendamentoRelacionadoDto, type ContextoClienteDto, type ConversaResumoDto } from '@/lib/whatsappInbox';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { Avatar } from '@/components/ui/Avatar';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 interface ContextoClienteProps {
   contexto: ContextoClienteDto | null;
@@ -55,6 +56,7 @@ export function CadastroRapidoCliente({ aberto, telefone, onFechar, onCadastrada
   aberto: boolean; telefone: string; onFechar: () => void; onCadastrada: () => void;
 }) {
   const { showToast } = useToast();
+  const { cli } = useVocabulario();
   const salvar = async (data: ClientFormData) => {
     try {
       await api.post('/clients', {
@@ -66,16 +68,17 @@ export function CadastroRapidoCliente({ aberto, telefone, onFechar, onCadastrada
         notes: data.notes || null,
       });
     } catch (e) {
-      showToast(getApiErrorMessage(e, 'Erro ao cadastrar cliente'), 'error');
+      showToast(getApiErrorMessage(e, `Erro ao cadastrar ${cli.s}`), 'error');
       throw e;
     }
-    showToast('Cliente cadastrada!', 'success');
+    showToast(`${cli.S} ${cli.g('cadastrada', 'cadastrado')}!`, 'success');
     onCadastrada();
   };
   return <ClientFormModal isOpen={aberto} onClose={onFechar} onSubmit={salvar} editingClient={null} initialPhone={formatarTelefone(telefone)} />;
 }
 
 function Agendamento({ ag, onAtualizar }: { ag: AgendamentoRelacionadoDto; onAtualizar: () => void }) {
+  const { prof } = useVocabulario();
   const { showToast } = useToast();
   const [confirmando, setConfirmando] = useState(false);
   const status = STATUS_AGENDAMENTO[ag.status] ?? { rotulo: ag.status.replace(/_/g, ' '), classe: 'bg-surface-2 text-muted' };
@@ -108,7 +111,7 @@ function Agendamento({ ag, onAtualizar }: { ag: AgendamentoRelacionadoDto; onAtu
         <p className="min-w-0 break-words pl-6 text-[13px] text-muted">{ag.servico}</p>
         <p className="pl-6 font-mono text-[13px] font-bold text-muted">{formatCurrency(ag.valor)}</p>
         <p className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 break-words pl-6 text-[11px] text-muted">
-          <span>{`Profissional: ${ag.profissional}`}</span>
+          <span>{`${prof.S}: ${ag.profissional}`}</span>
           {ag.sinal != null ? <span>{`Sinal: ${formatCurrency(ag.sinal)}`}</span> : null}
         </p>
       </div>
@@ -134,17 +137,18 @@ function Agendamento({ ag, onAtualizar }: { ag: AgendamentoRelacionadoDto; onAtu
 
 /** Coluna 3 da central (e painel recolhível no celular): quem é a cliente e o que está em andamento. */
 export function ContextoCliente({ contexto, conversa, onAtualizar, onCadastrarCliente }: ContextoClienteProps) {
+  const { cli } = useVocabulario();
   const [cadastrando, setCadastrando] = useState(false);
 
   if (!contexto) {
     if (conversa.clientId) return null; // contexto ainda carregando
     const abrir = onCadastrarCliente ?? (() => setCadastrando(true));
     return (
-      <aside aria-label="Contexto da cliente" className="flex flex-col gap-3 bg-surface-m3-low p-4">
+      <aside aria-label={`Contexto ${cli.doS}`} className="flex flex-col gap-3 bg-surface-m3-low p-4">
         <div className={CARTAO}>
           <h3 className="text-[14px] font-bold text-ink">Contato sem cadastro</h3>
           <p className="font-mono text-[12px] text-muted">{formatarTelefone(conversa.telefone)}</p>
-          <Button size="sm" variant="secondary" onClick={abrir}>Cadastrar cliente</Button>
+          <Button size="sm" variant="secondary" onClick={abrir}>Cadastrar {cli.s}</Button>
         </div>
         {onCadastrarCliente ? null : (
           <CadastroRapidoCliente
@@ -163,9 +167,9 @@ export function ContextoCliente({ contexto, conversa, onAtualizar, onCadastrarCl
   const visitas = contexto.ultimasVisitas.slice(0, 2);
 
   return (
-    <aside aria-label="Contexto da cliente" className="flex min-w-0 flex-col gap-4 bg-surface-m3-low p-4">
+    <aside aria-label={`Contexto ${cli.doS}`} className="flex min-w-0 flex-col gap-4 bg-surface-m3-low p-4">
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-[13px] font-bold leading-5 text-ink">Contexto da Cliente</h3>
+        <h3 className="text-[13px] font-bold leading-5 text-ink">Contexto {cli.doS}</h3>
         {cores ? (
           <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold', cores.fundo, cores.texto)}>
             <span className={cn('h-1.5 w-1.5 rounded-full', cores.ponto)} />

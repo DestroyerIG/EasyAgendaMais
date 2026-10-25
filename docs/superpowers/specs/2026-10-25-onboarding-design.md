@@ -107,3 +107,11 @@ Alterações:
 - **Mensagens do bot já personalizadas:** só os textos padrão mudam; o que a dona editou fica como está.
 - **Contas novas sem e-mail confirmado** não chegam ao onboarding (o fluxo de confirmação não muda).
 - O `.env` local aponta para produção: testes sempre com prisma mockado; a migração só com autorização do dono.
+
+## Ajustes feitos na implementação
+- **Sem `segmento_cadastro`:** a conta só nasce na confirmação do e-mail (a partir de `pending_registrations`), então o segmento escolhido na landing fica no navegador (`localStorage`, chave `easyagenda:segmento-cadastro`) até a etapa 1, que já vem com ele marcado. O `POST /auth/register` não mudou.
+- **Bot com segmento "outro":** `aplicarVocabulario` não mexe na configuração, e as mensagens continuam com "o profissional", como sempre foram.
+- **Helper do frontend:** no lugar de `termo()` entraram `formas()` ("a profissional", "do barbeiro", "dela"/"dele", `g('nova', 'novo')`) e `adaptar(texto)`, que troca "profissional(is)"/"cliente(s)" pelo termo do segmento e acerta o artigo ou pronome antes deles (inclusive "à"/"às"). Adjetivo depois do termo ("cliente atualizada") usa `g()`. No segmento "outro", `adaptar` devolve o texto igual.
+- **Serviços desmarcados:** ao voltar na etapa 3, o serviço que sai da lista é desativado se não tiver agendamento; com agendamento, fica como está.
+- **Primeiros passos:** a rota ficou separada (`GET /onboarding/primeiros-passos`), fora do `GET /dashboard/hoje`.
+- **Sem a vitrine pública:** fora do `AuthProvider` e sem payload, `useVocabulario()` cai no vocabulário padrão.

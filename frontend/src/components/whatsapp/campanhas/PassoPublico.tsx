@@ -5,6 +5,7 @@ import {
   ROTULO_SEGMENTO, type OpcoesCampanhaDto, type PublicoDto, type Segmento,
 } from '@/lib/whatsappCampanhas';
 import { CabecalhoPasso, plural } from './comum';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 interface PassoPublicoProps {
   segmento: Segmento;
@@ -19,6 +20,7 @@ interface PassoPublicoProps {
 const SEGMENTOS = Object.keys(ROTULO_SEGMENTO) as Segmento[];
 
 export function PassoPublico({ segmento, professionalId, serviceId, opcoes, publico, erroPublico, onMudar }: PassoPublicoProps) {
+  const { prof, cli } = useVocabulario();
   return (
     <section aria-labelledby="passo-publico" className="flex flex-col gap-4 rounded-xl bg-surface p-4 shadow-sm sm:p-6">
       <CabecalhoPasso numero={1} id="passo-publico" titulo="Definição do Público-alvo">
@@ -28,16 +30,16 @@ export function PassoPublico({ segmento, professionalId, serviceId, opcoes, publ
         </span>
       </CabecalhoPasso>
 
-      <Field id="camp-segmento" label="Segmento inteligente de clientes">
+      <Field id="camp-segmento" label={`Segmento inteligente de ${cli.p}`}>
         <Select id="camp-segmento" value={segmento} onChange={(e) => onMudar({ segmento: e.target.value as Segmento })}>
           {SEGMENTOS.map((s) => <option key={s} value={s}>{ROTULO_SEGMENTO[s]}</option>)}
         </Select>
       </Field>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field id="camp-profissional" label="Profissional de preferência">
+        <Field id="camp-profissional" label={`${prof.S} de preferência`}>
           <Select id="camp-profissional" value={professionalId ?? ''} onChange={(e) => onMudar({ professionalId: e.target.value || null })}>
-            <option value="">Qualquer profissional</option>
+            <option value="">Qualquer {prof.s}</option>
             {opcoes.profissionais.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
           </Select>
         </Field>
@@ -51,7 +53,7 @@ export function PassoPublico({ segmento, professionalId, serviceId, opcoes, publ
 
       <div className="flex flex-col gap-2 rounded-xl bg-surface-m3-low p-4" aria-live="polite">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-[15px] text-ink">Clientes qualificadas no filtro:</span>
+          <span className="text-[15px] text-ink">{cli.P} {cli.g('qualificadas', 'qualificados')} no filtro:</span>
           <span className="text-[17px] font-bold text-ink">
             {publico ? `${publico.selecionadas} selecionadas` : erroPublico ? '—' : 'Calculando...'}
           </span>
@@ -64,7 +66,7 @@ export function PassoPublico({ segmento, professionalId, serviceId, opcoes, publ
             <Icon name="verified_user" size={18} className="mt-0.5 shrink-0" />
             <p className="text-[13px] font-medium leading-relaxed text-ink">
               <strong className="font-bold text-whatsapp">
-                {`✓ ${publico.receberao} ${plural(publico.receberao, 'cliente', 'clientes')} com consentimento ativo`}
+                {`✓ ${publico.receberao} ${plural(publico.receberao, cli.s, cli.p)} com consentimento ativo`}
               </strong>
               {` ${plural(publico.receberao, 'receberá', 'receberão')} este disparo (${publico.resguardadas} ${plural(publico.resguardadas, 'contato foi resguardado', 'contatos foram resguardados')} por restrição de opt-out).`}
             </p>

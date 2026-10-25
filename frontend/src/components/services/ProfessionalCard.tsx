@@ -3,6 +3,7 @@
 import { Calendar, ChevronRight, Edit2, Trash2 } from 'lucide-react';
 import { Card, Avatar, IconButton, Button } from '@/components/ui';
 import type { Professional } from '@/types';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 interface ProfessionalCardProps {
   professional: Professional;
@@ -11,19 +12,21 @@ interface ProfessionalCardProps {
   onViewAgenda: () => void;
 }
 
-export const ProfessionalCard = ({ professional, onEdit, onDelete, onViewAgenda }: ProfessionalCardProps) => (
+export const ProfessionalCard = ({ professional, onEdit, onDelete, onViewAgenda }: ProfessionalCardProps) => {
+  const { prof } = useVocabulario();
+  return (
   <Card className="flex flex-col gap-4">
     <div className="flex items-start justify-between gap-2">
       <div className="flex items-center gap-4">
         <Avatar name={professional.name} src={professional.photo} size={56} />
         <div>
           <h3 className="text-lg font-bold text-ink">{professional.name}</h3>
-          <p className="text-[13px] font-semibold text-brand-text">Profissional</p>
+          <p className="text-[13px] font-semibold text-brand-text">{prof.S}</p>
         </div>
       </div>
       <div className="flex gap-1">
-        <IconButton icon={Edit2} label="Editar profissional" onClick={onEdit} />
-        <IconButton icon={Trash2} label="Excluir profissional" onClick={onDelete} />
+        <IconButton icon={Edit2} label={`Editar ${prof.s}`} onClick={onEdit} />
+        <IconButton icon={Trash2} label={`Excluir ${prof.s}`} onClick={onDelete} />
       </div>
     </div>
     <Button variant="secondary" fullWidth onClick={onViewAgenda} className="justify-between">
@@ -33,4 +36,5 @@ export const ProfessionalCard = ({ professional, onEdit, onDelete, onViewAgenda 
       <ChevronRight className="h-4 w-4" aria-hidden="true" />
     </Button>
   </Card>
-);
+  );
+};

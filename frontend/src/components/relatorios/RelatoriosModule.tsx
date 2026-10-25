@@ -14,6 +14,7 @@ import { pdfRelatorio } from '@/lib/relatoriosPdf';
 import { Banner, Button, Card, Icon, Skeleton } from '@/components/ui';
 import { SeletorPeriodo } from './SeletorPeriodo';
 import { AvaliacoesRelatorio } from './AvaliacoesRelatorio';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 // Relatórios (sub-projeto 3): indicadores com comparação ao período anterior, mapa de
 // ocupação, origem dos agendamentos e evolução de 6 meses. Tudo com dado real.
@@ -217,6 +218,7 @@ function Celula({ v }: { v: number | null }) {
 }
 
 function MapaOcupacao({ o, carregando }: { o: Ocupacao | null; carregando: boolean }) {
+  const { prof } = useVocabulario();
   const dias = o ? DIAS.filter((d) => d.id !== 'dom' || o.diasAbertos.dom) : DIAS.slice(0, 6);
   const valor = (cs: Ocupacao['media'], dia: ChaveDia, turno: 'manha' | 'tarde') => cs.find((c) => c.dia === dia && c.turno === turno)?.ocupacao ?? null;
   return (
@@ -224,7 +226,7 @@ function MapaOcupacao({ o, carregando }: { o: Ocupacao | null; carregando: boole
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-ink">Mapa de ocupação da grade</h2>
-          <p className="text-[13px] text-muted">Horas agendadas sobre as horas abertas, por profissional, dia da semana e turno (manhã e tarde).</p>
+          <p className="text-[13px] text-muted">Horas agendadas sobre as horas abertas, por {prof.s}, dia da semana e turno (manhã e tarde).</p>
         </div>
         <div className="flex items-center gap-1 text-[12px] text-muted" aria-hidden="true">
           Lotação
@@ -232,14 +234,14 @@ function MapaOcupacao({ o, carregando }: { o: Ocupacao | null; carregando: boole
         </div>
       </div>
       {carregando || !o ? <Skeleton className="h-48 w-full" /> : o.linhas.length === 0 ? (
-        <p className="text-[14px] text-muted">Cadastre profissionais para ver a ocupação.</p>
+        <p className="text-[14px] text-muted">Cadastre {prof.p} para ver a ocupação.</p>
       ) : (
         <>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-[13px]">
               <thead>
                 <tr className="text-left text-[12px] font-semibold text-muted">
-                  <th scope="col" className="px-2 py-1">Profissional</th>
+                  <th scope="col" className="px-2 py-1">{prof.S}</th>
                   {dias.map((d) => <th key={d.id} scope="col" colSpan={2} className="px-1 py-1 text-center">{d.rotulo}</th>)}
                 </tr>
                 <tr className="text-[11px] text-muted">

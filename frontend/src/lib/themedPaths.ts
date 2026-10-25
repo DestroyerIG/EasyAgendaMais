@@ -27,6 +27,8 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/DashboardCards.tsx',
   'src/components/WeeklyChart.tsx',
   'src/components/dashboard',
+  'src/components/onboarding',
+  'src/app/onboarding',
   'src/hooks/useThemeColors.ts',
   'src/components/AppointmentModule.tsx',
   'src/components/appointments',

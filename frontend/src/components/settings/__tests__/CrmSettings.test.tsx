@@ -13,6 +13,8 @@ vi.mock('@/lib/crm', async (orig) => ({
   buscarCrmSettings: vi.fn(),
   salvarCrmSettings: vi.fn(),
 }));
+const { refreshMe } = vi.hoisted(() => ({ refreshMe: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ refreshMe }) }));
 vi.mock('@/lib/tags', async (orig) => ({
   ...(await orig<typeof import('@/lib/tags')>()),
   listarEtiquetas: vi.fn(),
@@ -35,13 +37,15 @@ describe('CrmSettingsSection', () => {
 
     const segmento = await screen.findByLabelText('Segmento do negócio');
     expect(segmento).toHaveValue('unhas');
-    expect(screen.getByText('Define os campos sugeridos da ficha técnica')).toBeInTheDocument();
+    expect(screen.getByText('Define os termos do painel e os campos da ficha técnica')).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Cílios e sobrancelhas' })).toBeInTheDocument();
     await user.selectOptions(segmento, 'cabelo');
     await user.type(screen.getByLabelText('Meta de faturamento diária'), '1.800');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => expect(crm.salvarCrmSettings).toHaveBeenCalledWith({ segment: 'cabelo', dailyRevenueGoal: 1800 }));
+    // O segmento mudou: a sessão recarrega o vocabulário.
+    await waitFor(() => expect(refreshMe).toHaveBeenCalled());
   });
 
   it('meta vazia remove a meta', async () => {

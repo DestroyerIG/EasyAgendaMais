@@ -172,4 +172,25 @@ describe('AppShell', () => {
     expect(screen.queryByText('conteúdo')).not.toBeInTheDocument();
     expect(mockReplace).toHaveBeenCalledWith('/bancada');
   });
+
+  it('dona com o onboarding pendente vai para /onboarding e não vê o painel', () => {
+    mockUser.value = { ...mockUser.value, onboarding: { pendente: true, bloqueante: true, etapa: 2 } };
+    renderShell();
+    expect(screen.queryByText('conteúdo')).not.toBeInTheDocument();
+    expect(mockReplace).toHaveBeenCalledWith('/onboarding');
+  });
+
+  it('onboarding pendente mas já passou das etapas obrigatórias: o painel abre', () => {
+    mockUser.value = { ...mockUser.value, onboarding: { pendente: true, bloqueante: false, etapa: 4 } };
+    renderShell();
+    expect(screen.getByText('conteúdo')).toBeInTheDocument();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('funcionária não é mandada para o onboarding', () => {
+    mockUser.value = { ...mockUser.value, role: 'employee', onboarding: { pendente: true, bloqueante: true, etapa: 1 } };
+    renderShell();
+    expect(screen.getByText('conteúdo')).toBeInTheDocument();
+    expect(mockReplace).not.toHaveBeenCalledWith('/onboarding');
+  });
 });

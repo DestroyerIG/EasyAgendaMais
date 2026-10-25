@@ -12,6 +12,7 @@ import { buscarRetorno, enviarConvites, testarConvite, type OportunidadeDto, typ
 import { CartaoOportunidade, convidadaRecentemente, DIAS_ENTRE_CONVITES, diasDesdeConvite } from './CartaoOportunidade';
 import { PreviaConvite } from './PreviaConvite';
 import { TextoConviteModal } from './TextoConviteModal';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 interface HoraDeVoltarProps {
   conectado: boolean;
@@ -22,6 +23,7 @@ const emFilaOuEnviando = (i: OportunidadeDto) => i.envio?.status === 'na_fila' |
 export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { prof, cli, adaptar } = useVocabulario();
   const showToastRef = useRef(showToast);
   showToastRef.current = showToast;
   const [professionalId, setProfessionalId] = useState<string | null>(null);
@@ -168,7 +170,7 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
           <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface text-whatsapp shadow-sm">
             <Icon name="trending_up" size={24} />
           </span>
-          <div className="flex flex-col pr-4" title={marcadas.length > 0 ? 'Soma do valor da última visita das clientes selecionadas' : 'Soma do valor da última visita de cada cliente'}>
+          <div className="flex flex-col pr-4" title={marcadas.length > 0 ? `Soma do valor da última visita ${cli.dosP} ${cli.g('selecionadas', 'selecionados')}` : adaptar('Soma do valor da última visita de cada cliente')}>
             <span className="text-[11px] font-semibold leading-none text-muted">Recuperação Estimada</span>
             <span className="mt-1 text-[20px] font-extrabold leading-7 text-ink">{dados ? (
                 <span data-testid="recuperacao">{reais}<span className="text-[13px] font-normal text-muted">{centavos}</span></span>
@@ -197,9 +199,9 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
       <div className="flex flex-col justify-between gap-4 rounded-xl bg-surface p-4 shadow-sm lg:flex-row lg:items-center">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap items-center gap-1 rounded-lg bg-surface-m3-low px-2 py-1">
-            <span className="text-[11px] font-semibold text-muted">Profissional:</span>
+            <span className="text-[11px] font-semibold text-muted">{prof.S}:</span>
             <div className="inline-flex flex-wrap rounded-lg bg-surface-2 p-0.5">
-              {[{ id: null, nome: 'Todas' }, ...profissionais].map((p) => {
+              {[{ id: null, nome: prof.g('Todas', 'Todos') }, ...profissionais].map((p) => {
                 const ativo = p.id === professionalId;
                 return (
                   <button
@@ -286,8 +288,8 @@ export function HoraDeVoltar({ conectado }: HoraDeVoltarProps) {
             {itens.length === 0 ? (
               <p className="rounded-xl bg-surface p-8 text-center text-[14px] text-muted shadow-sm">
                 {filtrando
-                  ? 'Nenhuma cliente com esses filtros agora.'
-                  : 'Nenhuma cliente com retorno vencido agora. Quando alguém passar do ciclo, ela aparece aqui.'}
+                  ? adaptar('Nenhuma cliente com esses filtros agora.')
+                  : `${adaptar('Nenhuma cliente com retorno vencido agora.')} Quando alguém passar do ciclo, ${cli.ele} aparece aqui.`}
               </p>
             ) : (
               <div className="flex flex-col gap-2">

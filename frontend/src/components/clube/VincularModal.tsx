@@ -6,6 +6,7 @@ import { formatCurrency } from '@/lib/formatters';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { type FormaPagamentoClube, type Oferta, ROTULO_FORMA_CLUBE, clubeApi } from '@/lib/clube';
 import { Button, Field, Input, Modal, Select } from '@/components/ui';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 // Vende um plano ou pacote no balcão: escolhe a cliente, o plano e como ela pagou.
 // "Pix a receber" manda o copia e cola no WhatsApp e o contrato só começa quando o pagamento for confirmado.
@@ -19,6 +20,7 @@ interface Cliente { id: string; name: string; phone: string }
 type Pagamento = FormaPagamentoClube | 'pix_receber';
 
 export function VincularModal({ onClose, onVinculado }: VincularModalProps) {
+  const { cli, adaptar } = useVocabulario();
   const [ofertas, setOfertas] = useState<Oferta[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [busca, setBusca] = useState('');
@@ -38,9 +40,9 @@ export function VincularModal({ onClose, onVinculado }: VincularModalProps) {
         setOfertaId(ativas[0]?.id ?? '');
         setClientes(Array.isArray(c.data) ? c.data : []);
       })
-      .catch((e) => ativo && setErro(getApiErrorMessage(e, 'Não foi possível carregar clientes e planos.')));
+      .catch((e) => ativo && setErro(getApiErrorMessage(e, adaptar('Não foi possível carregar clientes e planos.'))));
     return () => { ativo = false; };
-  }, []);
+  }, [adaptar]);
 
   const encontradas = useMemo(() => {
     const t = busca.trim().toLowerCase();
@@ -71,7 +73,7 @@ export function VincularModal({ onClose, onVinculado }: VincularModalProps) {
     <Modal
       isOpen
       onClose={onClose}
-      title="Vincular cliente a plano"
+      title={`Vincular ${cli.s} a plano`}
       icon="person_add"
       footer={(
         <>
@@ -81,12 +83,12 @@ export function VincularModal({ onClose, onVinculado }: VincularModalProps) {
       )}
     >
       <div className="space-y-4 text-[14px]">
-        <Field id="vinc-busca" label="Cliente">
+        <Field id="vinc-busca" label={cli.S}>
           <Input id="vinc-busca" value={cliente ? cliente.name : busca} placeholder="Buscar por nome ou telefone"
             onChange={(e) => { setClientId(''); setBusca(e.target.value); }} />
         </Field>
         {!cliente && (
-          <ul aria-label="Clientes encontradas" className="max-h-48 divide-y divide-line overflow-y-auto rounded-control border border-line">
+          <ul aria-label={`${cli.P} ${cli.g('encontradas', 'encontrados')}`} className="max-h-48 divide-y divide-line overflow-y-auto rounded-control border border-line">
             {encontradas.map((c) => (
               <li key={c.id}>
                 <button type="button" onClick={() => setClientId(c.id)} className="flex w-full justify-between px-3 py-2 text-left hover:bg-surface-2">
@@ -95,7 +97,7 @@ export function VincularModal({ onClose, onVinculado }: VincularModalProps) {
                 </button>
               </li>
             ))}
-            {encontradas.length === 0 && <li className="px-3 py-2 text-muted">Nenhuma cliente encontrada.</li>}
+            {encontradas.length === 0 && <li className="px-3 py-2 text-muted">{cli.g('Nenhuma', 'Nenhum')} {cli.s} {cli.g('encontrada', 'encontrado')}.</li>}
           </ul>
         )}
         <Field id="vinc-oferta" label="Plano ou pacote">
@@ -111,7 +113,7 @@ export function VincularModal({ onClose, onVinculado }: VincularModalProps) {
         </Field>
         <p className="text-[13px] text-muted">
           {pagamento === 'pix_receber'
-            ? 'A cliente recebe o Pix copia e cola. O plano começa quando você confirmar o pagamento.'
+            ? adaptar('A cliente recebe o Pix copia e cola. O plano começa quando você confirmar o pagamento.')
             : `O plano começa hoje${oferta?.tipo === 'clube' ? ' e renova todo mês neste dia, com o Pix enviado 3 dias antes' : ''}.${pagamento === 'dinheiro' ? ' Dinheiro entra na gaveta do caixa de hoje.' : ''}`}
         </p>
         {erro && <p role="alert" className="text-danger">{erro}</p>}

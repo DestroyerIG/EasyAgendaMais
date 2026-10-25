@@ -1,5 +1,7 @@
 import api from '@/lib/api';
 
+import type { Vocabulario } from '@/lib/vocabulario';
+
 export interface StorefrontServiceDto {
   id: string;
   name: string;
@@ -17,6 +19,8 @@ export interface StorefrontDto {
   galleryPhotos: string[];
   address: string | null;
   services: StorefrontServiceDto[];
+  /** Termos do segmento do negócio (fase 6). */
+  vocabulario?: Vocabulario;
 }
 
 export interface ProfessionalDto {

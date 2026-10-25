@@ -11,6 +11,7 @@ import {
   type ConfigRegras, type Regra, type RegraDto,
 } from '@/lib/whatsappAutomacoes';
 import { TextoWhatsApp } from '../retorno/PreviaConvite';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 interface ConfigurarRegraModalProps {
   regra: RegraDto;
@@ -151,6 +152,7 @@ interface CamposProps {
 }
 
 function CamposDaRegra({ regra, config, erro, onMudar }: CamposProps) {
+  const { adaptar } = useVocabulario();
   const e = erro ?? undefined;
   switch (regra) {
     case 'confirmacao': {
@@ -174,8 +176,8 @@ function CamposDaRegra({ regra, config, erro, onMudar }: CamposProps) {
       const c = config as ConfigRegras['retorno'];
       return (
         <>
-          <Opcoes id="cfg-retorno" rotulo="Quando convidar a cliente" valor={c.modo}
-            opcoes={[{ valor: 'ciclo', texto: 'No ciclo da cliente' }, { valor: 'dias', texto: 'Personalizado' }]}
+          <Opcoes id="cfg-retorno" rotulo={adaptar('Quando convidar a cliente')} valor={c.modo}
+            opcoes={[{ valor: 'ciclo', texto: adaptar('No ciclo da cliente') }, { valor: 'dias', texto: 'Personalizado' }]}
             onMudar={(modo) => onMudar({ modo })} />
           {c.modo === 'dias' ? (
             <Field id="cfg-dias" label="Dias desde a última visita" hint="De 7 a 180 dias." error={e}>
@@ -192,7 +194,7 @@ function CamposDaRegra({ regra, config, erro, onMudar }: CamposProps) {
     case 'lista_espera': {
       const c = config as ConfigRegras['lista_espera'];
       return (
-        <Opcoes id="cfg-quantas" rotulo="Avisar quantas clientes da fila" valor={c.quantas}
+        <Opcoes id="cfg-quantas" rotulo={adaptar('Avisar quantas clientes da fila')} valor={c.quantas}
           opcoes={[{ valor: 1 as const, texto: 'A primeira' }, { valor: 3 as const, texto: '3 primeiras' }, { valor: 5 as const, texto: '5 primeiras' }]}
           onMudar={(quantas) => onMudar({ quantas })} />
       );

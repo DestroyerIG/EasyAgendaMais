@@ -14,6 +14,7 @@ import { ServiceProfessionalModal } from '@/components/services/ServiceProfessio
 import type { ServiceFormData, ProfessionalFormData } from '@/components/services/ServiceProfessionalModal';
 import { getApiErrorCode, getApiErrorMessage } from '@/utils/handleApiError';
 import { useRouter } from 'next/navigation';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 export const ServiceProfessionalModule = () => {
   const [activeTab, setActiveTab] = useState<'servicos' | 'profissionais' | 'produtos'>('servicos');
@@ -25,6 +26,7 @@ export const ServiceProfessionalModule = () => {
   const [selectedProfessionalForAgenda, setSelectedProfessionalForAgenda] = useState<Professional | null>(null);
   const router = useRouter();
   const { showToast } = useToast();
+  const { prof, cli } = useVocabulario();
 
   const loadData = useCallback(async () => {
     try {
@@ -87,14 +89,14 @@ export const ServiceProfessionalModule = () => {
     try {
       if (editingItem) {
         await api.put(`/business/professionals/${editingItem.id}`, payload);
-        showToast('Profissional atualizado', 'success');
+        showToast(`${prof.S} ${prof.g('atualizada', 'atualizado')}`, 'success');
       } else {
         await api.post('/business/professionals', payload);
-        showToast('Profissional cadastrado', 'success');
+        showToast(`${prof.S} ${prof.g('cadastrada', 'cadastrado')}`, 'success');
       }
       loadData();
     } catch (error: unknown) {
-      showToast(getApiErrorMessage(error, 'Erro ao salvar profissional'), 'error');
+      showToast(getApiErrorMessage(error, `Erro ao salvar ${prof.oS}`), 'error');
       // Limite de profissionais do plano: a comparação abre explicando o upgrade (2D).
       if (!editingItem && getApiErrorCode(error) === 'PLAN_LIMIT') {
         router.push('/planos/comparar?recurso=profissionais');
@@ -146,11 +148,11 @@ export const ServiceProfessionalModule = () => {
     <div className="space-y-8">
       <PageHeader
         title="Serviços e equipe"
-        description="Gerencie o que você oferece e quem atende seus clientes."
+        description={`Gerencie o que você oferece e quem atende ${cli.g('suas', 'seus')} ${cli.p}.`}
         action={
           activeTab === 'produtos' ? undefined : (
             <Button onClick={() => handleOpenModal()}>
-              <Plus className="h-4 w-4" aria-hidden="true" /> {activeTab === 'servicos' ? 'Novo Serviço' : 'Novo Profissional'}
+              <Plus className="h-4 w-4" aria-hidden="true" /> {activeTab === 'servicos' ? 'Novo Serviço' : `${prof.g('Nova', 'Novo')} ${prof.s}`}
             </Button>
           )
         }
@@ -188,8 +190,8 @@ export const ServiceProfessionalModule = () => {
           ) : professionals.length === 0 ? (
             <EmptyState
               icon={Users}
-              title="Nenhum profissional na equipe"
-              action={{ label: 'Novo Profissional', icon: Plus, onClick: () => handleOpenModal() }}
+              title={`${prof.g('Nenhuma', 'Nenhum')} ${prof.s} na equipe`}
+              action={{ label: `${prof.g('Nova', 'Novo')} ${prof.s}`, icon: Plus, onClick: () => handleOpenModal() }}
               actionVariant="secondary"
             />
           ) : (

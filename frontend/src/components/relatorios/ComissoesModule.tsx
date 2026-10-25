@@ -16,6 +16,7 @@ import { Avatar, Banner, Button, Card, Icon, Skeleton } from '@/components/ui';
 import { SeletorPeriodo } from './SeletorPeriodo';
 import { PagarRepasseModal } from './PagarRepasseModal';
 import { AdiantamentoModal } from './AdiantamentoModal';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 // Comissões e salão-parceiro (sub-projeto 3): apuração por profissional no período,
 // adiantamentos, "Marcar como pago", comprovante e exportação para o contador.
@@ -35,6 +36,7 @@ const r$ = (v: number) => formatCurrency(v);
 export function ComissoesModule({ onUpgrade }: ComissoesModuleProps) {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { prof } = useVocabulario();
   const dona = user?.role === 'tenant_admin';
   const [periodo, setPeriodo] = useState<Periodo>(() => quinzenaDe(hojeLocal()));
   const [dados, setDados] = useState<ApuracaoComissoes | null>(null);
@@ -166,16 +168,16 @@ export function ComissoesModule({ onUpgrade }: ComissoesModuleProps) {
               legenda={dados.totais.retencaoMedia === null ? '—' : `Retenção média de ${dados.totais.retencaoMedia}%`}
             />
             <Total
-              rotulo={parceiro ? 'Cota-parte das profissionais' : 'Comissões das profissionais'}
+              rotulo={parceiro ? `Cota-parte ${prof.dosP}` : `Comissões ${prof.dosP}`}
               valor={r$(dados.totais.cotaProfissionais)}
               legenda={`A pagar: ${r$(dados.totais.aPagar)}`}
             />
-            <Total rotulo="Gorjetas" valor={r$(dados.totais.gorjetas)} legenda="100% repassado às profissionais" />
+            <Total rotulo="Gorjetas" valor={r$(dados.totais.gorjetas)} legenda={`100% repassado ${prof.g('às', 'aos')} ${prof.p}`} />
           </div>
 
           <Card className="space-y-4 p-0">
             <h2 className="px-5 pt-5 text-lg font-bold text-ink">
-              {parceiro ? 'Apuração por profissional (Lei do Salão-Parceiro)' : 'Apuração por profissional'}
+              {parceiro ? `Apuração por ${prof.s} (Lei do Salão-Parceiro)` : `Apuração por ${prof.s}`}
             </h2>
             {dados.itens.length === 0 ? (
               <p className="px-5 pb-6 text-[14px] text-muted">Nenhuma comanda fechada neste período.</p>
@@ -185,7 +187,7 @@ export function ComissoesModule({ onUpgrade }: ComissoesModuleProps) {
                   <table className="w-full min-w-[960px] text-[14px]">
                     <thead className="border-y border-line bg-surface-2 text-left text-[12px] font-semibold uppercase tracking-wide text-muted">
                       <tr>
-                        <th scope="col" className="px-5 py-3">Profissional</th>
+                        <th scope="col" className="px-5 py-3">{prof.S}</th>
                         <th scope="col" className="px-3 py-3 text-right">Atend.</th>
                         <th scope="col" className="px-3 py-3 text-right">Serviços</th>
                         <th scope="col" className="px-3 py-3 text-right">Produtos</th>
@@ -225,7 +227,7 @@ export function ComissoesModule({ onUpgrade }: ComissoesModuleProps) {
                       <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-[13px]">
                         <dt className="text-muted">Atendimentos</dt><dd className="text-right tabular-nums">{l.atendimentos}</dd>
                         <dt className="text-muted">Serviços + produtos</dt><dd className="text-right tabular-nums">{r$(l.servicos + l.produtos)}</dd>
-                        <dt className="text-muted">{parceiro ? 'Cota da profissional' : 'Comissão'}</dt><dd className="text-right tabular-nums">{r$(l.comissao)}</dd>
+                        <dt className="text-muted">{parceiro ? `Cota ${prof.doS}` : 'Comissão'}</dt><dd className="text-right tabular-nums">{r$(l.comissao)}</dd>
                         <dt className="text-muted">Gorjetas</dt><dd className="text-right tabular-nums">{r$(l.gorjetas)}</dd>
                         <dt className="text-muted">Adiantamentos</dt><dd className="text-right tabular-nums">{l.adiantamentos ? `− ${r$(l.adiantamentos)}` : '—'}</dd>
                         <dt className="font-semibold text-ink">A pagar</dt><dd className="text-right font-bold tabular-nums text-ink">{r$(l.aPagar)}</dd>

@@ -130,7 +130,7 @@ export default function NailDesignersPage() {
 
               <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
                 <Link
-                  href="/cadastro"
+                  href="/cadastro?segmento=unhas"
                   className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl bg-brand px-8 py-4 text-sm font-bold text-on-brand shadow-md transition-opacity hover:opacity-90"
                 >
                   Testar 14 dias grátis
@@ -235,7 +235,7 @@ export default function NailDesignersPage() {
                       </div>
                     </div>
                     <Link
-                      href="/cadastro"
+                      href="/cadastro?segmento=unhas"
                       className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-on-brand shadow-sm transition-opacity hover:opacity-90"
                     >
                       Quero esse
@@ -336,7 +336,7 @@ export default function NailDesignersPage() {
             </p>
             <div className="mt-6 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
-                href="/cadastro"
+                href="/cadastro?segmento=unhas"
                 className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl bg-brand px-8 py-4 text-sm font-bold text-on-brand shadow-md transition-opacity hover:opacity-90"
               >
                 Experimentar 14 dias grátis agora

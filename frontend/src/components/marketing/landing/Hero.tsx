@@ -57,7 +57,7 @@ export function Hero() {
 
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
           <Link
-            href="/cadastro"
+            href={`/cadastro?segmento=${active}`}
             className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-brand px-8 py-4 text-sm font-bold text-on-brand shadow-md transition-opacity hover:opacity-90"
           >
             Testar 14 dias grátis

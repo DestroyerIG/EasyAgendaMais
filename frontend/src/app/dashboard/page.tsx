@@ -9,6 +9,7 @@ import { SaudacaoDia } from '@/components/dashboard/SaudacaoDia';
 import { PainelPendencias } from '@/components/dashboard/PainelPendencias';
 import { ProximasDuasHoras } from '@/components/dashboard/ProximasDuasHoras';
 import { BotaoCobrarPix } from '@/components/dashboard/BotaoCobrarPix';
+import { PrimeirosPassos } from '@/components/dashboard/PrimeirosPassos';
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Button } from '@/components/ui/Button';
@@ -183,6 +184,7 @@ export default function DashboardPage() {
             data={hoje.saudacao.date}
             businessName={user?.businessName}
           />
+          <PrimeirosPassos ativo={user?.role === 'tenant_admin'} />
           <DashboardCards hoje={hoje} />
           {/* Ordem mobile (hoje-mobile.html, 1 coluna): Pendências, Próximas 2 horas,
               Gráfico — pelos order-1/2/3 abaixo, que no mobile valem para os 3 itens

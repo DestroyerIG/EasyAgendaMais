@@ -16,6 +16,7 @@
 import { formatDateShort, getToday, addDays } from '@/lib/dateUtils';
 import { Avatar, Icon, STATUS_LABEL } from '@/components/ui';
 import { cn } from '@/lib/cn';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 type ViewMode = 'day' | 'week';
 type StatusFilter = 'todos' | 'confirmado' | 'concluido' | 'cancelado';
@@ -111,6 +112,7 @@ export function ChipsProfissional({
   mostrarContagem,
   className,
 }: ChipsProfissionalProps) {
+  const { prof } = useVocabulario();
   if (profissionais.length === 0) return null;
   const comContagem = mostrarContagem ?? !compacto;
 
@@ -123,7 +125,7 @@ export function ChipsProfissional({
   return (
     <div
       role="group"
-      aria-label="Filtrar por profissional"
+      aria-label={`Filtrar por ${prof.s}`}
       className={cn('flex items-center gap-1.5 overflow-x-auto', className)}
     >
       <button

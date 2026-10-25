@@ -26,7 +26,7 @@ Atualizado em 24/10/2026.
 | 3 | Relatórios e Comissões (Salão-Parceiro) | ✅ Concluída | PR #10 |
 | 4 | Clube e pacotes | ✅ Concluída | PR #11 |
 | 5 | App da profissional (PWA) | ✅ Concluída | PR #12 |
-| **6** | **Onboarding guiado, segmentos e vocabulário** | 🔄 Em andamento | branch `feat/onboarding` |
+| **6** | **Onboarding guiado, segmentos e vocabulário** | 🔄 Implementada, aguardando migração e PR | branch `feat/onboarding` |
 
 ## Fase 5 (concluída)
 

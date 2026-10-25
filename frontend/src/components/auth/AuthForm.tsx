@@ -11,6 +11,7 @@ import api from '@/lib/api';
 import { getApiErrorCode, getApiErrorMessage } from '@/utils/handleApiError';
 import { formatCpfCnpj, isValidCpfCnpj, normalizeCpfCnpjDigits } from '@/utils/cpfCnpj';
 import { resolveAuthConfirmRedirectUrl } from '@/lib/supabase/client';
+import { guardarSegmentoDoCadastro } from '@/lib/onboarding';
 import easyAgendaLogo from '@/icons/easyagenda-logo.svg';
 
 type AuthMode = 'login' | 'register';
@@ -59,6 +60,12 @@ export function AuthForm({ mode }: AuthFormProps) {
 
     const searchParams = new URLSearchParams(window.location.search);
     setShowConfirmedNotice(searchParams.get('confirmed') === '1');
+  }, [isLogin]);
+
+  // Segmento escolhido na landing: pré-marca a etapa 1 do onboarding (fase 6).
+  useEffect(() => {
+    if (isLogin || typeof window === 'undefined') return;
+    guardarSegmentoDoCadastro(new URLSearchParams(window.location.search).get('segmento'));
   }, [isLogin]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

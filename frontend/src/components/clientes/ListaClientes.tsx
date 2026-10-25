@@ -41,6 +41,7 @@ import {
 import { definirEtiquetasCliente, listarEtiquetas, type Etiqueta } from '@/lib/tags';
 import { linkWhatsapp, MENSAGENS, preencherMensagem } from '@/lib/whatsappLink';
 import { useRegisterTopBarSearch } from '@/components/shell/TopBarSearchContext';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 const TAMANHO_PAGINA = 10;
 const ESPERA_BUSCA_MS = 300;
@@ -134,6 +135,7 @@ interface Profissional { id: string; name: string }
 
 export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0, onTotalGeral }: ListaClientesProps) {
   const router = useRouter();
+  const { adaptar, cli, prof } = useVocabulario();
   const { showToast } = useToast();
   const buscaRef = useRef<HTMLInputElement>(null);
 
@@ -185,7 +187,7 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
     } catch {
       if (pedido !== ultimoPedido.current) return;
       setErro(true);
-      showToast('Erro ao carregar clientes', 'error');
+      showToast(adaptar('Erro ao carregar clientes'), 'error');
     } finally {
       if (pedido === ultimoPedido.current) setCarregando(false);
     }
@@ -228,7 +230,7 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
     try {
       await exportarClientesCsv();
     } catch {
-      showToast('Erro ao exportar clientes', 'error');
+      showToast(adaptar('Erro ao exportar clientes'), 'error');
     } finally {
       setExportando(false);
     }
@@ -266,7 +268,7 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
           disabled={!temTelefone}
           onClick={() => setWhatsappDe(c)}
           aria-label={`WhatsApp de ${c.name}`}
-          title={temTelefone ? 'Conversar no WhatsApp' : 'Cadastre o telefone da cliente'}
+          title={temTelefone ? 'Conversar no WhatsApp' : adaptar('Cadastre o telefone da cliente')}
           className="flex h-8 w-8 items-center justify-center rounded-lg bg-whatsapp/12 text-whatsapp transition-all hover:bg-whatsapp hover:text-surface disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-whatsapp/12 disabled:hover:text-whatsapp"
         >
           <Icon name="chat" size={18} />
@@ -340,7 +342,7 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
       return (
         <div className="flex flex-col gap-3 p-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full" label={i === 0 ? 'Carregando clientes...' : undefined} />
+            <Skeleton key={i} className="h-14 w-full" label={i === 0 ? adaptar('Carregando clientes...') : undefined} />
           ))}
         </div>
       );
@@ -349,7 +351,7 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
       return (
         <EmptyState
           icon={ICONE_ERRO}
-          title="Não foi possível carregar as clientes"
+          title={adaptar('Não foi possível carregar as clientes')}
           action={{ label: 'Tentar de novo', onClick: () => carregar() }}
           actionVariant="secondary"
         />
@@ -357,12 +359,12 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
     }
     if (itens.length === 0) {
       return temFiltro ? (
-        <EmptyState icon={ICONE_FILTRO} title="Nenhuma cliente encontrada com esses filtros" />
+        <EmptyState icon={ICONE_FILTRO} title={adaptar('Nenhuma cliente encontrada com esses filtros')} />
       ) : (
         <EmptyState
           icon={ICONE_GRUPO}
-          title="Nenhuma cliente cadastrada"
-          action={{ label: '+ Nova cliente', onClick: onNovaCliente }}
+          title={adaptar('Nenhuma cliente cadastrada')}
+          action={{ label: adaptar('+ Nova cliente'), onClick: onNovaCliente }}
           actionVariant="secondary"
         />
       );
@@ -373,7 +375,7 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
           <table className="w-full min-w-[960px] border-collapse text-left">
             <thead>
               <tr className="select-none bg-surface-2 text-[11px] font-semibold uppercase tracking-wider text-muted">
-                <th className="py-3.5 pl-5 pr-3 font-semibold">Cliente</th>
+                <th className="py-3.5 pl-5 pr-3 font-semibold">{cli.S}</th>
                 <th className="px-3 py-3.5 font-semibold">Fase CRM</th>
                 <th className="px-3 py-3.5 font-semibold">Última visita</th>
                 <th className="px-3 py-3.5 font-semibold">Ciclo médio</th>
@@ -542,7 +544,7 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
         <div className="flex flex-col items-center justify-between gap-3 px-5 py-3.5 text-[13px] font-semibold text-muted sm:flex-row">
           <span>
             Mostrando <span className="text-ink">{inicio}–{fim}</span> de <span className="text-ink">{total}</span>{' '}
-            {total === 1 ? 'cliente' : 'clientes'}
+            {total === 1 ? cli.s : cli.p}
           </span>
           <div className="flex items-center gap-1.5">
             <button
@@ -597,7 +599,7 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
             <input
               ref={buscaRef}
               type="text"
-              aria-label="Buscar clientes"
+              aria-label={adaptar('Buscar clientes')}
               placeholder="Buscar por nome, telefone ou e-mail"
               value={textoBusca}
               onChange={(e) => setTextoBusca(e.target.value)}
@@ -686,7 +688,7 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
             </div>
             <div className="relative">
               <select
-                aria-label="Profissional"
+                aria-label={prof.S}
                 value={profissional}
                 onChange={(e) => {
                   setProfissional(e.target.value);
@@ -694,7 +696,7 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
                 }}
                 className={seletor}
               >
-                <option value="">Profissional (todas)</option>
+                <option value="">{prof.S} ({prof.g('todas', 'todos')})</option>
                 {profissionais.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}

@@ -25,7 +25,7 @@ describe('ServiceProfessionalModal (profissional)', () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
     renderModal(onSubmit);
-    await user.type(screen.getByLabelText('Nome do Profissional'), 'Camila');
+    await user.type(screen.getByLabelText('Nome da profissional'), 'Camila');
     await user.type(screen.getByLabelText('Início do almoço'), '12:00');
     await user.click(screen.getByRole('button', { name: /salvar/i }));
     expect(await screen.findByText('Informe início e fim do intervalo')).toBeInTheDocument();
@@ -36,7 +36,7 @@ describe('ServiceProfessionalModal (profissional)', () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
     renderModal(onSubmit);
-    await user.type(screen.getByLabelText('Nome do Profissional'), 'Camila');
+    await user.type(screen.getByLabelText('Nome da profissional'), 'Camila');
     await user.type(screen.getByLabelText('% sobre serviços'), '150');
     await user.click(screen.getByRole('button', { name: /salvar/i }));
     expect(await screen.findByText('Comissão deve ficar entre 0% e 100%')).toBeInTheDocument();
@@ -47,7 +47,7 @@ describe('ServiceProfessionalModal (profissional)', () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     renderModal(onSubmit);
-    await user.type(screen.getByLabelText('Nome do Profissional'), 'Camila');
+    await user.type(screen.getByLabelText('Nome da profissional'), 'Camila');
     await user.type(screen.getByLabelText('Especialidade (opcional)'), 'Nail designer');
     const cnpj = screen.getByLabelText('CNPJ do MEI (opcional)');
     await user.type(cnpj, '11111111111111');
@@ -76,7 +76,7 @@ describe('ServiceProfessionalModal (profissional)', () => {
         />
       </ToastProvider>,
     );
-    await user.type(screen.getByLabelText('Nome do Profissional'), 'Camila');
+    await user.type(screen.getByLabelText('Nome da profissional'), 'Camila');
     await user.type(screen.getByLabelText('Início do almoço'), '12:00');
     await user.type(screen.getByLabelText('Fim do almoço'), '13:00');
     await user.type(screen.getByLabelText('% sobre serviços'), '50');

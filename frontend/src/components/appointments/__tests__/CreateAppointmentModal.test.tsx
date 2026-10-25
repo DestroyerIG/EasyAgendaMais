@@ -84,7 +84,7 @@ describe('CreateAppointmentModal', () => {
   it('pré-seleciona inicial.clientId mesmo quando a lista de clientes chega depois de abrir', () => {
     const props = { ...base, inicial: { clientId: 'c2' }, availableSlots: [], onLoadSlots: vi.fn() };
     const { rerender } = render(<CreateAppointmentModal {...props} clients={[]} />);
-    expect(screen.getByText('Nenhum cliente encontrado')).toBeInTheDocument();
+    expect(screen.getByText('Nenhuma cliente encontrada')).toBeInTheDocument();
     const clientes = [
       { id: 'c1', business_id: 'b', name: 'Ana Lima', phone: '11911110000', last_visit: null, total_spent: 0, created_at: '' },
       { id: 'c2', business_id: 'b', name: 'Beatriz Costa', phone: '11922220000', last_visit: null, total_spent: 0, created_at: '' },

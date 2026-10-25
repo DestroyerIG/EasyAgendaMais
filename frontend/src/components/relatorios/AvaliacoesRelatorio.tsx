@@ -5,6 +5,7 @@ import { Card, Icon, Skeleton } from '@/components/ui';
 import { avaliacoesRelatorioApi, formatarMedia, ROTULO_ORIGEM, type AvaliacoesPorProfissional } from '@/lib/avaliacoes';
 import { dataBr, type Periodo } from '@/lib/relatorios';
 import { cn } from '@/lib/cn';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 // Avaliações das clientes por profissional (fase 5): pelo link do comprovante e pela resposta no WhatsApp.
 
@@ -19,6 +20,7 @@ function Estrelas({ nota }: { nota: number }) {
 }
 
 export function AvaliacoesRelatorio({ periodo }: { periodo: Periodo }) {
+  const { adaptar } = useVocabulario();
   const [dados, setDados] = useState<AvaliacoesPorProfissional | null>(null);
   const [erro, setErro] = useState(false);
   const [aberta, setAberta] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export function AvaliacoesRelatorio({ periodo }: { periodo: Periodo }) {
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h2 className="text-lg font-bold text-ink">Avaliações</h2>
-          <p className="text-[13px] text-muted">O que as clientes acharam de cada profissional no período.</p>
+          <p className="text-[13px] text-muted">{adaptar('O que as clientes acharam de cada profissional no período.')}</p>
         </div>
         {dados && dados.quantidade > 0 && (
           <p className="flex items-center gap-1 text-[15px] font-bold text-ink">

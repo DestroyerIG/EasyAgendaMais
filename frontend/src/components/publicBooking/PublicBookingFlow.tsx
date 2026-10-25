@@ -8,6 +8,7 @@ import { publicBookingApi, type StorefrontDto, type ProfessionalDto, type Storef
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { Button } from '@/components/ui';
 import { ClubeVitrine } from '@/components/clube/AdesaoClube';
+import { termosDe } from '@/lib/vocabulario';
 
 type Step = 'servico' | 'profissional' | 'horario' | 'pagamento';
 
@@ -89,6 +90,7 @@ function BottomBar({ summary, children }: { summary?: ReactNode; children: React
 
 export function PublicBookingFlow({ slug }: { slug: string }) {
   const [storefront, setStorefront] = useState<StorefrontDto | null>(null);
+  const { prof } = termosDe(storefront?.vocabulario);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<Step>('servico');
@@ -142,7 +144,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
       setProfessionals(list);
       setStep('profissional');
     } catch {
-      setError('Não foi possível carregar os profissionais. Tente novamente.');
+      setError(`Não foi possível carregar ${prof.osP}. Tente novamente.`);
     } finally {
       setLoadingNext(false);
     }
@@ -293,7 +295,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
 
         {step === 'profissional' && (
           <>
-            <StepHeader step="profissional" title="Escolha o profissional" />
+            <StepHeader step="profissional" title={`Escolha ${prof.oS}`} />
             <div className="flex flex-col gap-3">
               {professionals.map((p) => (
                 <SelectableCard key={p.id} selected={professionalId === p.id} onClick={() => setProfessionalId(p.id)}>
