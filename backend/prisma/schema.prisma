@@ -105,6 +105,8 @@ model Business {
 
   repasses      Repasse[]
   adiantamentos Adiantamento[]
+  clubeOfertas  ClubeOferta[]
+  clubeContratos ClubeContrato[]
   @@map("businesses")
 }
 
@@ -185,6 +187,7 @@ model Professional {
   waitlistEntries WaitlistEntry[]
   repasses     Repasse[]
   adiantamentos Adiantamento[]
+  clubeOfertas  ClubeOfertaProfissional[]
 
   @@map("professionals")
 }
@@ -206,6 +209,7 @@ model Service {
   appointments Appointment[]
   comandaItems ComandaItem[]
   waitlistEntries WaitlistEntry[]
+  clubeOfertas    ClubeOfertaServico[]
 
   @@map("services")
 }
@@ -235,6 +239,7 @@ model Client {
   waitlistEntries WaitlistEntry[]
   whatsappConversations WhatsappConversation[]
   whatsappEnvios        WhatsappEnvio[]
+  clubeContratos        ClubeContrato[]
 
   @@map("clients")
 }
@@ -555,6 +560,7 @@ model Comanda {
   totalCharged   Decimal   @default(0) @map("total_charged") @db.Decimal(10, 2)
   paymentMethod  String?   @map("payment_method") @db.VarChar(20)
   commissionTotal Decimal  @default(0) @map("commission_total") @db.Decimal(10, 2)
+  descontoClube  Decimal   @default(0) @map("desconto_clube") @db.Decimal(10, 2)
   cashSessionId  String?   @map("cash_session_id") @db.Uuid
   closedAt       DateTime? @map("closed_at")
   closedBy       String?   @map("closed_by") @db.Uuid
@@ -588,9 +594,12 @@ model ComandaItem {
   commissionPct    Decimal  @default(0) @map("commission_pct") @db.Decimal(5, 2)
   commissionAmount Decimal  @default(0) @map("commission_amount") @db.Decimal(10, 2)
   isMain           Boolean  @default(false) @map("is_main")
+  coberturaContratoId String? @map("cobertura_contrato_id") @db.Uuid
+  valorCoberto     Decimal  @default(0) @map("valor_coberto") @db.Decimal(10, 2)
   createdAt        DateTime @default(now()) @map("created_at")
 
   comanda Comanda  @relation(fields: [comandaId], references: [id], onDelete: Cascade)
+  coberturaContrato ClubeContrato? @relation(fields: [coberturaContratoId], references: [id], onDelete: SetNull)
   service Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 
@@ -968,4 +977,136 @@ model RepasseAdiantamento {
 
   @@id([repasseId, adiantamentoId])
   @@map("repasse_adiantamentos")
+}
+
+model ClubeOferta {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId          String   @map("business_id") @db.Uuid
+  tipo                String   @db.VarChar(10)
+  nome                String   @db.VarChar(120)
+  descricao           String?  @db.Text
+  preco               Decimal  @db.Decimal(10, 2)
+  sessoesPorCiclo     Int?     @map("sessoes_por_ciclo")
+  sessoesReferencia   Int      @default(4) @map("sessoes_referencia")
+  intervaloMinimoDias Int      @default(0) @map("intervalo_minimo_dias")
+  totalSessoes        Int?     @map("total_sessoes")
+  validadeDias        Int?     @map("validade_dias")
+  faltaDebita         Boolean  @default(false) @map("falta_debita")
+  descontoExtrasPct   Decimal  @default(0) @map("desconto_extras_pct") @db.Decimal(5, 2)
+  beneficios          String[] @default([])
+  publica             Boolean  @default(false)
+  status              String   @default("ativa") @db.VarChar(12)
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  business      Business                  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  servicos      ClubeOfertaServico[]
+  profissionais ClubeOfertaProfissional[]
+  contratos     ClubeContrato[]
+
+  @@index([businessId, status])
+  @@map("clube_ofertas")
+}
+
+model ClubeOfertaServico {
+  ofertaId  String @map("oferta_id") @db.Uuid
+  serviceId String @map("service_id") @db.Uuid
+
+  oferta  ClubeOferta @relation(fields: [ofertaId], references: [id], onDelete: Cascade)
+  service Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([ofertaId, serviceId])
+  @@map("clube_oferta_servicos")
+}
+
+model ClubeOfertaProfissional {
+  ofertaId       String @map("oferta_id") @db.Uuid
+  professionalId String @map("professional_id") @db.Uuid
+
+  oferta       ClubeOferta  @relation(fields: [ofertaId], references: [id], onDelete: Cascade)
+  professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@id([ofertaId, professionalId])
+  @@map("clube_oferta_profissionais")
+}
+
+model ClubeContrato {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId          String    @map("business_id") @db.Uuid
+  ofertaId            String    @map("oferta_id") @db.Uuid
+  clientId            String    @map("client_id") @db.Uuid
+  tipo                String    @db.VarChar(10)
+  status              String    @db.VarChar(24)
+  origem              String    @default("painel") @db.VarChar(10)
+  preco               Decimal   @db.Decimal(10, 2)
+  valorSessao         Decimal   @map("valor_sessao") @db.Decimal(10, 2)
+  sessoesPorCiclo     Int?      @map("sessoes_por_ciclo")
+  intervaloMinimoDias Int       @default(0) @map("intervalo_minimo_dias")
+  totalSessoes        Int?      @map("total_sessoes")
+  sessoesUsadas       Int       @default(0) @map("sessoes_usadas")
+  validadeDias        Int?      @map("validade_dias")
+  ativadoEm           DateTime? @map("ativado_em") @db.Date
+  cicloInicio         DateTime? @map("ciclo_inicio") @db.Date
+  cicloFim            DateTime? @map("ciclo_fim") @db.Date
+  validoAte           DateTime? @map("valido_ate") @db.Date
+  canceladoEm         DateTime? @map("cancelado_em") @db.Timestamptz(6)
+  cancelaEm           DateTime? @map("cancela_em") @db.Date
+  createdBy           String?   @map("created_by") @db.Uuid
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  business     Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  oferta       ClubeOferta     @relation(fields: [ofertaId], references: [id], onDelete: Cascade)
+  client       Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  cobrancas    ClubeCobranca[]
+  usos         ClubeUso[]
+  comandaItems ComandaItem[]
+
+  @@index([businessId, status])
+  @@index([businessId, clientId])
+  @@index([ofertaId])
+  @@map("clube_contratos")
+}
+
+model ClubeCobranca {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId    String    @map("business_id") @db.Uuid
+  contratoId    String    @map("contrato_id") @db.Uuid
+  competencia   DateTime  @db.Date
+  valor         Decimal   @db.Decimal(10, 2)
+  vencimento    DateTime  @db.Date
+  status        String    @default("pendente") @db.VarChar(12)
+  pixCopiaCola  String?   @map("pix_copia_cola") @db.Text
+  forma         String?   @db.VarChar(20)
+  pagoEm        DateTime? @map("pago_em") @db.Timestamptz(6)
+  confirmadoPor String?   @map("confirmado_por") @db.Uuid
+  cashSessionId String?   @map("cash_session_id") @db.Uuid
+  enviadoEm     DateTime? @map("enviado_em") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  contrato ClubeContrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+
+  @@unique([contratoId, competencia])
+  @@index([businessId, status, vencimento])
+  @@index([businessId, pagoEm])
+  @@index([cashSessionId])
+  @@map("clube_cobrancas")
+}
+
+model ClubeUso {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId    String   @map("business_id") @db.Uuid
+  contratoId    String   @map("contrato_id") @db.Uuid
+  comandaItemId String?  @unique @map("comanda_item_id") @db.Uuid
+  appointmentId String?  @map("appointment_id") @db.Uuid
+  serviceId     String?  @map("service_id") @db.Uuid
+  data          DateTime @db.Date
+  valorSessao   Decimal  @map("valor_sessao") @db.Decimal(10, 2)
+  motivo        String   @default("atendimento") @db.VarChar(12)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  contrato ClubeContrato @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+
+  @@unique([contratoId, appointmentId])
+  @@index([contratoId, data])
+  @@map("clube_usos")
 }

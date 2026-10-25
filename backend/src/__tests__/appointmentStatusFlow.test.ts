@@ -34,6 +34,8 @@ const repo = vi.hoisted(() => ({
   getServiceDetails: vi.fn(),
 }));
 vi.mock('../modules/whatsappAutomacoes/gatilhos.service.js', () => ({ automacoesGatilhos: { aoCancelar: vi.fn().mockResolvedValue(0), aoCriarReservaComSinal: vi.fn().mockResolvedValue(false), toleranciaSinal: vi.fn().mockResolvedValue(15), aoFecharComanda: vi.fn().mockResolvedValue(undefined) } }));
+const clube = vi.hoisted(() => ({ aoFaltar: vi.fn().mockResolvedValue(null) }));
+vi.mock('../modules/clube/clube.service.js', () => ({ clubeService: clube }));
 vi.mock('../modules/appointments/appointments.repository.js', () => ({ appointmentsPrismaRepository: repo }));
 vi.mock('../services/whatsapp/index.js', () => ({ sendWhatsAppMessage: vi.fn() }));
 vi.mock('../modules/notifications/notifications.service.js', () => ({ notificationsService: { notify: vi.fn() } }));
@@ -71,6 +73,20 @@ describe('appointmentsService.updateStatus', () => {
     await appointmentsService.updateStatus('a1', 'b1', 'faltou');
     expect(repo.updateStatus).toHaveBeenCalledWith('a1', 'b1', 'faltou', 'confirmado', { finishedAt: expect.any(Date) });
     expect(repo.getServiceDetails).not.toHaveBeenCalled();
+  });
+
+  it('faltou avisa o clube para debitar a sessão (falta debita)', async () => {
+    repo.findById.mockResolvedValue(agendamento('confirmado'));
+    repo.updateStatus.mockResolvedValue(agendamento('faltou'));
+    await appointmentsService.updateStatus('a1', 'b1', 'faltou');
+    expect(clube.aoFaltar).toHaveBeenCalledWith('b1', 'a1');
+  });
+
+  it('falha no débito do clube não desfaz a falta', async () => {
+    repo.findById.mockResolvedValue(agendamento('confirmado'));
+    repo.updateStatus.mockResolvedValue(agendamento('faltou'));
+    clube.aoFaltar.mockRejectedValueOnce(new Error('db fora'));
+    await expect(appointmentsService.updateStatus('a1', 'b1', 'faltou')).resolves.toMatchObject({ status: 'faltou' });
   });
 
   it('concluir direto é recusado: só a comanda conclui', async () => {

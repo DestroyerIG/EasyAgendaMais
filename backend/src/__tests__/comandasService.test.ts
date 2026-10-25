@@ -11,6 +11,7 @@ const repo = vi.hoisted(() => ({
   markReceiptSent: vi.fn(),
   topExtras: vi.fn(),
   findActiveServicesByIds: vi.fn(),
+  definirCobertura: vi.fn(),
 }));
 vi.mock('../modules/whatsappAutomacoes/gatilhos.service.js', () => ({ automacoesGatilhos: { aoCancelar: vi.fn().mockResolvedValue(0), aoCriarReservaComSinal: vi.fn().mockResolvedValue(false), toleranciaSinal: vi.fn().mockResolvedValue(15), aoFecharComanda: vi.fn().mockResolvedValue(undefined) } }));
 vi.mock('../modules/comandas/comandas.repository.js', () => ({ comandasRepository: repo }));
@@ -25,6 +26,8 @@ const receipt = vi.hoisted(() => ({ sendComandaReceipt: vi.fn() }));
 vi.mock('../modules/comandas/receipt.js', () => receipt);
 vi.mock('../modules/whatsapp/whatsapp.service.js', () => ({ whatsappService: { getStatus: vi.fn().mockResolvedValue({ status: 'connected' }) } }));
 vi.mock('../services/scheduleSettingsService.js', () => ({ getBusinessScheduleSettings: vi.fn().mockResolvedValue({ timezone: 'America/Sao_Paulo' }) }));
+const clube = vi.hoisted(() => ({ cobertura: vi.fn() }));
+vi.mock('../modules/clube/clube.service.js', () => ({ clubeService: clube }));
 vi.mock('../config/prisma.js', () => ({ prisma: { business: { findUnique: vi.fn().mockResolvedValue({ name: 'Studio Aurora' }) } } }));
 
 const { comandasService, RECEIPT_TIMEOUT_MS } = await import('../modules/comandas/comandas.service.js');
@@ -54,6 +57,7 @@ beforeEach(() => {
   settings.get.mockResolvedValue({ serviceCommissionPct: 50, productCommissionPct: 20 });
   repo.findActiveServicesByIds.mockResolvedValue([]);
   products.findActiveByIds.mockResolvedValue([]);
+  clube.cobertura.mockResolvedValue({ escolhida: null, descontoPct: 0 });
 });
 
 describe('abrir comanda', () => {
@@ -91,7 +95,7 @@ describe('salvar rascunho', () => {
     await comandasService.save('k1', 'b1', { extras: [{ kind: 'produto', id: 'pr1', quantity: 2 }], discount: 0, tip: 10, paymentMethod: 'pix' });
     expect(repo.saveDraft).toHaveBeenCalledWith('k1', 'b1', [
       { kind: 'produto', serviceId: null, productId: 'pr1', name: 'Óleo Hidratante de Cutícula 10ml', unitPrice: 25, quantity: 2, durationMinutes: null },
-    ], expect.objectContaining({ productsTotal: 50, tipAmount: 10, paymentMethod: 'pix' }));
+    ], expect.objectContaining({ productsTotal: 50, tipAmount: 10, paymentMethod: 'pix' }), { coberturaContratoId: null, valorCoberto: 0 });
   });
 
   it('produto inexistente ou de outro negócio é recusado', async () => {
@@ -247,5 +251,70 @@ describe('atalhos', () => {
       { kind: 'servico', id: 's8', name: 'Nail Art Simples', price: 20 },
     ]);
     expect(repo.topExtras).toHaveBeenCalledWith('b1', 90, 3);
+  });
+});
+
+describe('comanda com clube/pacote', () => {
+  const coberta = {
+    ok: true as const, contratoId: 'ct1', nome: 'Pacote Fibra 10 sessões', tipo: 'pacote' as const,
+    valorSessao: 85, sessao: 4, de: 10, venceEm: '2027-01-30',
+  };
+  const comandaCoberta = (over: Record<string, unknown> = {}) => comanda({
+    items: [{
+      id: 'i1', kind: 'servico', serviceId: 's1', productId: null, name: 'Manutenção Fibra de Vidro', unitPrice: '110.00',
+      quantity: 1, durationMinutes: 90, isMain: true, coberturaContratoId: 'ct1', valorCoberto: '85.00',
+    }],
+    ...over,
+  });
+
+  it('ao abrir, liga o serviço principal ao contrato que cobre', async () => {
+    repo.findAppointmentForComanda.mockResolvedValue(appt('confirmado'));
+    repo.findComandaByAppointment.mockResolvedValue(null);
+    repo.createComanda.mockResolvedValue({ id: 'k1' });
+    repo.findComandaById.mockResolvedValueOnce(comanda()).mockResolvedValue(comandaCoberta());
+    clube.cobertura.mockResolvedValue({ escolhida: coberta, descontoPct: 0 });
+    const dto = await comandasService.open('a1', 'b1');
+    expect(repo.definirCobertura).toHaveBeenCalledWith('k1', { coberturaContratoId: 'ct1', valorCoberto: 85 });
+    expect(dto.cobertura).toMatchObject({ usando: true, disponivel: { nome: 'Pacote Fibra 10 sessões', sessao: 4, de: 10 } });
+    expect(dto.items[0]).toMatchObject({ coveredValue: 85 });
+    expect(dto.calc).toMatchObject({ servicesTotal: 0, totalCharged: 0, commissionService: 42.5 });
+  });
+
+  it('salvar com a cobertura ligada grava o contrato no item e nada a cobrar do serviço', async () => {
+    repo.findComandaById.mockResolvedValue(comandaCoberta({ appointment: appt('em_atendimento') }));
+    clube.cobertura.mockResolvedValue({ escolhida: coberta, descontoPct: 10 });
+    products.findActiveByIds.mockResolvedValue([{ id: 'pr1', name: 'Óleo', price: '25.00' }]);
+    await comandasService.save('k1', 'b1', { extras: [{ kind: 'produto', id: 'pr1', quantity: 1 }], discount: 0, tip: 0, paymentMethod: 'pix' });
+    expect(repo.saveDraft).toHaveBeenCalledWith('k1', 'b1', expect.any(Array),
+      expect.objectContaining({ servicesTotal: 0, productsTotal: 25, discountAmount: 2.5, descontoClube: 2.5, totalCharged: 22.5 }),
+      { coberturaContratoId: 'ct1', valorCoberto: 85 });
+  });
+
+  it('a dona desliga a cobertura: o serviço volta a ser cobrado', async () => {
+    repo.findComandaById.mockResolvedValue(comandaCoberta());
+    clube.cobertura.mockResolvedValue({ escolhida: coberta, descontoPct: 0 });
+    await comandasService.save('k1', 'b1', { extras: [], discount: 0, tip: 0, paymentMethod: 'pix', usarCobertura: false });
+    expect(repo.saveDraft).toHaveBeenCalledWith('k1', 'b1', [], expect.objectContaining({ servicesTotal: 110, totalCharged: 80 }),
+      { coberturaContratoId: null, valorCoberto: 0 });
+  });
+
+  it('sem contrato válido a comanda explica o motivo', async () => {
+    repo.findComandaById.mockResolvedValue(comanda());
+    clube.cobertura.mockResolvedValue({ escolhida: { ok: false, contratoId: 'ct1', nome: 'Clube Mãos', motivo: 'Clube em atraso desde 15/10' }, descontoPct: 0 });
+    const dto = await comandasService.get('k1', 'b1');
+    expect(dto.cobertura).toMatchObject({ disponivel: null, usando: false, bloqueio: { nome: 'Clube Mãos', motivo: 'Clube em atraso desde 15/10' } });
+    expect(dto.calc.servicesTotal).toBe(110);
+  });
+
+  it('fechar com sessão coberta manda o uso para a transação e não exige forma de pagamento', async () => {
+    repo.findComandaById.mockResolvedValue(comandaCoberta({ appointment: appt('em_atendimento') }));
+    clube.cobertura.mockResolvedValue({ escolhida: coberta, descontoPct: 0 });
+    repo.findCashSession.mockResolvedValue({ id: 'cx1', closedAt: null });
+    repo.closeComandaTx.mockResolvedValue(true);
+    await comandasService.close('k1', 'b1', 'u1', { extras: [], discount: 0, tip: 0, paymentMethod: null });
+    expect(repo.closeComandaTx).toHaveBeenCalledWith(expect.objectContaining({
+      calc: expect.objectContaining({ totalCharged: 0, revenue: 0, commissionService: 42.5, coveredTotal: 85 }),
+      cobertura: { contratoId: 'ct1', comandaItemId: 'i1', clientId: 'c1', serviceId: 's1', professionalId: 'p1', data: '2026-10-13' },
+    }));
   });
 });

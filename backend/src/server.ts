@@ -41,6 +41,7 @@ import productRoutes from './modules/products/products.routes.js';
 import comandaRoutes from './modules/comandas/comandas.routes.js';
 import cashRoutes from './modules/cash/cash.routes.js';
 import reportsRoutes from './modules/reports/reports.routes.js';
+import clubeRoutes from './modules/clube/clube.routes.js';
 
 // Route modules — stub re-exports
 // @ts-ignore
@@ -465,6 +466,7 @@ app.use(`${API_V1}/products`, productRoutes);
 app.use(`${API_V1}/comandas`, comandaRoutes);
 app.use(`${API_V1}/cash`, cashRoutes);
 app.use(`${API_V1}/reports`, reportsRoutes);
+app.use(`${API_V1}/clube`, clubeRoutes);
 
 app.use(`${API_V1}/clients`, crmRoutes);
 app.use(`${API_V1}/clients`, clientPhotoRoutes);

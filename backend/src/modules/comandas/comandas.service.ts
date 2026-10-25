@@ -10,7 +10,8 @@ import { commissionSettings, resolveCommission } from './commissionSettings.js';
 import { comandasRepository } from './comandas.repository.js';
 import { sendComandaReceipt } from './receipt.js';
 import { automacoesGatilhos } from '../whatsappAutomacoes/gatilhos.service.js';
-import type { ComandaDetailDto, NewExtraItem, SaveComandaInput, PaymentMethod } from './comandas.types.js';
+import { clubeService } from '../clube/clube.service.js';
+import type { CoberturaComandaDto, ComandaDetailDto, NewExtraItem, SaveComandaInput, PaymentMethod } from './comandas.types.js';
 
 type ComandaRow = NonNullable<Awaited<ReturnType<typeof comandasRepository.findComandaById>>>;
 
@@ -33,14 +34,47 @@ async function nomeDoNegocio(businessId: string): Promise<string> {
   return b?.name ?? '';
 }
 
+/** Contrato de clube/pacote que cobre o serviço principal hoje, e o desconto de sócia nos extras. */
+async function coberturaDo(c: { businessId: string; appointment: ComandaRow['appointment'] }) {
+  return clubeService.cobertura(c.businessId, {
+    clientId: c.appointment.client.id, serviceId: c.appointment.service.id,
+    professionalId: c.appointment.professional.id, data: isoDate(c.appointment.date),
+  });
+}
+
 async function montarDto(c: ComandaRow): Promise<ComandaDetailDto> {
   const negocio = await commissionSettings.get(c.businessId);
   const commission = resolveCommission(c.appointment.professional, negocio);
+  const fechada = c.status === 'fechada';
+  const principal = c.items.find((i) => i.isMain);
+  let cobertura: CoberturaComandaDto;
+  let cobertoId: string | null = null;
+  if (fechada) {
+    cobertoId = principal?.coberturaContratoId ?? null;
+    const k = principal?.coberturaContrato;
+    cobertura = {
+      disponivel: cobertoId && k ? {
+        contratoId: cobertoId, nome: k.oferta.nome, tipo: k.tipo as 'clube' | 'pacote', sessao: null,
+        de: k.tipo === 'clube' ? k.sessoesPorCiclo : k.totalSessoes, valorSessao: num(principal?.valorCoberto),
+      } : null,
+      bloqueio: null, usando: !!cobertoId, descontoSociaPct: 0,
+    };
+  } else {
+    const { escolhida, descontoPct } = await coberturaDo(c);
+    const ok = escolhida?.ok ? escolhida : null;
+    // Só vale a cobertura gravada se o contrato ainda cobre hoje; o próximo salvamento corrige o item.
+    cobertoId = ok && principal?.coberturaContratoId === ok.contratoId ? ok.contratoId : null;
+    cobertura = {
+      disponivel: ok ? { contratoId: ok.contratoId, nome: ok.nome, tipo: ok.tipo, sessao: ok.sessao, de: ok.de, valorSessao: ok.valorSessao } : null,
+      bloqueio: escolhida && !escolhida.ok ? { nome: escolhida.nome, motivo: escolhida.motivo } : null,
+      usando: !!cobertoId, descontoSociaPct: descontoPct,
+    };
+  }
   const items = c.items.map((i) => ({
     id: i.id, kind: i.kind as 'servico' | 'produto', refId: i.serviceId ?? i.productId, name: i.name,
     unitPrice: num(i.unitPrice), quantity: i.quantity, durationMinutes: i.durationMinutes, isMain: i.isMain,
+    coveredValue: i.isMain && cobertoId ? num(i.valorCoberto) : null,
   }));
-  const fechada = c.status === 'fechada';
   const pctGravado = (kind: 'servico' | 'produto') =>
     c.items.find((i) => i.kind === kind && i.commissionPct != null)?.commissionPct;
   // Comanda fechada mostra o que foi gravado, não o que as configurações dizem hoje.
@@ -49,11 +83,15 @@ async function montarDto(c: ComandaRow): Promise<ComandaDetailDto> {
     commission.productPct = num(pctGravado('produto') ?? commission.productPct);
   }
   const depositAvailable = fechada && c.depositApplied != null ? num(c.depositApplied) : num(c.appointment.depositAmount);
+  // discount_amount guarda o desconto total (manual + sócia); a tela edita só o manual.
+  const descontoManual = Math.max(0, Math.round((num(c.discountAmount) - num(c.descontoClube)) * 100) / 100);
   const calc = calcularComanda({
-    items, depositAvailable, discount: num(c.discountAmount), tip: num(c.tipAmount),
+    items, depositAvailable, discount: fechada ? num(c.discountAmount) : descontoManual, tip: num(c.tipAmount),
     serviceCommissionPct: commission.servicePct, productCommissionPct: commission.productPct,
+    memberDiscountPct: cobertura.descontoSociaPct,
   });
   if (fechada) {
+    calc.memberDiscount = num(c.descontoClube);
     if (c.servicesTotal != null) calc.servicesTotal = num(c.servicesTotal);
     if (c.productsTotal != null) calc.productsTotal = num(c.productsTotal);
     if (c.depositApplied != null) calc.depositApplied = num(c.depositApplied);
@@ -69,8 +107,8 @@ async function montarDto(c: ComandaRow): Promise<ComandaDetailDto> {
     client: c.appointment.client,
     professional: { id: c.appointment.professional.id, name: c.appointment.professional.name },
     items, depositAvailable,
-    discount: calc.discount, tip: calc.tip, paymentMethod: (c.paymentMethod as PaymentMethod | null) ?? null,
-    commission, calc,
+    discount: descontoManual, tip: calc.tip, paymentMethod: (c.paymentMethod as PaymentMethod | null) ?? null,
+    commission, cobertura, calc,
     whatsappConnected: await whatsappConectado(c.businessId),
     closedAt: c.closedAt ? c.closedAt.toISOString() : null,
     receiptSentAt: c.receiptSentAt ? c.receiptSentAt.toISOString() : null,
@@ -121,7 +159,13 @@ export const comandasService = {
       throw new ConflictError('Este agendamento não pode receber comanda');
     }
     const criada = await comandasRepository.createComanda(businessId, appt, { startAppointment: appt.status === 'confirmado' });
-    return montarDto(await carregar(criada.id, businessId));
+    const nova = await carregar(criada.id, businessId);
+    const { escolhida } = await coberturaDo(nova);
+    if (escolhida?.ok && !nova.items.find((i) => i.isMain)?.coberturaContratoId) {
+      await comandasRepository.definirCobertura(nova.id, { coberturaContratoId: escolhida.contratoId, valorCoberto: escolhida.valorSessao });
+      return montarDto(await carregar(criada.id, businessId));
+    }
+    return montarDto(nova);
   },
 
   async get(id: string, businessId: string): Promise<ComandaDetailDto> {
@@ -134,17 +178,22 @@ export const comandasService = {
     const extras = await resolverExtras(businessId, input.extras);
     const negocio = await commissionSettings.get(businessId);
     const commission = resolveCommission(c.appointment.professional, negocio);
-    const principal = c.items.filter((i) => i.isMain).map((i) => ({ kind: 'servico' as const, unitPrice: num(i.unitPrice), quantity: i.quantity }));
+    const { escolhida, descontoPct } = await coberturaDo(c);
+    const cobre = (input.usarCobertura ?? true) && escolhida?.ok ? escolhida : null;
+    const principal = c.items.filter((i) => i.isMain).map((i) => ({
+      kind: 'servico' as const, unitPrice: num(i.unitPrice), quantity: i.quantity, coveredValue: cobre ? cobre.valorSessao : null,
+    }));
     const calc = calcularComanda({
       items: [...principal, ...extras.map((e) => ({ kind: e.kind, unitPrice: e.unitPrice, quantity: e.quantity }))],
       depositAvailable: num(c.appointment.depositAmount), discount: input.discount, tip: input.tip,
       serviceCommissionPct: commission.servicePct, productCommissionPct: commission.productPct,
+      memberDiscountPct: descontoPct,
     });
     const gravou = await comandasRepository.saveDraft(id, businessId, extras, {
       servicesTotal: calc.servicesTotal, productsTotal: calc.productsTotal, depositApplied: calc.depositApplied,
       discountAmount: calc.discount, tipAmount: calc.tip, totalCharged: calc.totalCharged,
-      commissionTotal: calc.commissionTotal, paymentMethod: input.paymentMethod,
-    });
+      commissionTotal: calc.commissionTotal, paymentMethod: input.paymentMethod, descontoClube: calc.memberDiscount,
+    }, { coberturaContratoId: cobre?.contratoId ?? null, valorCoberto: cobre?.valorSessao ?? 0 });
     if (!gravou) throw new ConflictError('Esta comanda já foi fechada');
     return montarDto(await carregar(id, businessId));
   },
@@ -164,16 +213,26 @@ export const comandasService = {
       throw new ConflictError('Este agendamento não pode mais ser concluído');
     }
     // Totais calculados direto da entrada validada (não do que foi relido), para o fechamento gravar exatamente o que foi confirmado.
+    const principal = c.items.find((i) => i.isMain);
+    const contratoId = principal?.coberturaContratoId ?? null;
     const calc = calcularComanda({
-      items: c.items.map((i) => ({ kind: i.kind as 'servico' | 'produto', unitPrice: num(i.unitPrice), quantity: i.quantity })),
+      items: c.items.map((i) => ({
+        kind: i.kind as 'servico' | 'produto', unitPrice: num(i.unitPrice), quantity: i.quantity,
+        coveredValue: i.coberturaContratoId ? num(i.valorCoberto) : null,
+      })),
       depositAvailable: num(c.appointment.depositAmount), discount: input.discount, tip: input.tip,
       serviceCommissionPct: salvo.commission.servicePct, productCommissionPct: salvo.commission.productPct,
+      memberDiscountPct: salvo.cobertura.descontoSociaPct,
     });
     const ok = await comandasRepository.closeComandaTx({
       comandaId: id, businessId, userId, cashSessionId: caixa.id,
       appointmentId: c.appointment.id, appointmentDate: c.appointment.date,
       paymentMethod: input.paymentMethod,
       servicePct: salvo.commission.servicePct, productPct: salvo.commission.productPct, calc,
+      cobertura: contratoId && principal ? {
+        contratoId, comandaItemId: principal.id, clientId: c.appointment.client.id, serviceId: c.appointment.service.id,
+        professionalId: c.appointment.professional.id, data: isoDate(c.appointment.date),
+      } : null,
     });
     if (!ok) throw new ConflictError('Esta comanda já foi fechada');
 

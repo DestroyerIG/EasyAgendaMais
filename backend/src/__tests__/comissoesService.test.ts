@@ -46,6 +46,15 @@ beforeEach(() => {
 });
 
 describe('apuração', () => {
+  it('sessão coberta por clube/pacote conta em Serviços pelo valor por sessão', async () => {
+    repo.comandasFechadas.mockResolvedValue([comanda({
+      servicesTotal: '0', productsTotal: '0', tipAmount: '0',
+      items: [{ kind: 'servico', commissionAmount: '42.50', valorCoberto: '85.00' }],
+    })]);
+    const r = await comissoesService.apuracao('b1', P, EQUIPE);
+    expect(r.itens[0]).toMatchObject({ servicos: 85, faturamento: 85, comissao: 42.5 });
+  });
+
   it('linha pendente com comissão + gorjeta e totais do período', async () => {
     const r = await comissoesService.apuracao('b1', P, EQUIPE);
     expect(r.modelo).toBe('comissao');

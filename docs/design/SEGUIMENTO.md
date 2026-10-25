@@ -18,7 +18,7 @@ Nenhum aberto. Resolvidos no branch `fix/bloqueadores-venda` (2026-10-13):
 2. **O título aparece duas vezes no celular:** uma na barra de cima e outra no cabeçalho da tela. Foi assim que o plano pediu. Se incomodar, dá para esconder um dos dois.
 3. **Verde do WhatsApp com texto branco** fica em 4,36:1 de contraste, um pouco abaixo do mínimo recomendado para texto pequeno. A cor vem do DESIGN.md.
 4. **Blocos alimentados por `conteudoDemo.ts` precisam virar dado real ou sair da tela** antes de publicar para clientes reais — hoje a tela reconstruída de Plano, entre outras (o WhatsApp já não usa `conteudoDemo`, desde o 2C-1), misturam dado real com exemplo fixo de `conteudoDemo.ts` para preencher seções que o backend ainda não alimenta.
-5. **As três áreas "em breve"** (referentes a Clube e pacotes, Relatórios e Minha página, conforme o estado atual do painel) esperam os sub-projetos D a I para virarem funcionalidade real.
+5. **As três áreas "em breve"** (Clube e pacotes, Relatórios e Minha página) já viraram funcionalidade real. O Clube foi a última, no sub-projeto 4.
 6. **Decidir se a tela Hoje mostra centavos** nos valores monetários — pendente de definição visual.
 7. **A paleta por tela (decisão 2, "cada tela usa a paleta do seu próprio arquivo") não foi aplicada.** Os tokens `surface-m3`/`brand-text-m3` (`frontend/src/styles/globals.css:63-64,91-92`) existem e estão documentados no `DESIGN.md`, mas `grep -rnE "(bg|text|border)-(surface-m3|brand-text-m3)" frontend/src` não encontra nenhum uso — as telas usam `text-brand-text` uniforme em vez da cor `text-primary` que os sete arquivos de referência Material 3 usam 44 vezes. Decida na conferência visual se aplica os tokens tela a tela ou se remove os dois do DESIGN.md.
 8. **O Stitch mostra "Retenção casa R$ 55" na comanda de exemplo**, o que só fecha se a gorjeta sair da casa; o sistema segue a decisão de que gorjeta não é faturamento (retenção R$ 75 no mesmo exemplo).
@@ -114,6 +114,13 @@ Sub-projeto 3 (Relatórios e Comissões), pendências conhecidas:
 - **Origem "Hora de voltar e campanhas":** é atribuição por janela de 7 dias depois do envio, e não clique rastreado.
 - **Salão-parceiro:** a tela não gera contrato nem calcula imposto, só mostra o aviso para confirmar com o contador.
 
+Sub-projeto 4 (Clube e pacotes), pendências conhecidas:
+- Migração `20261026120000_clube_pacotes` aplicada em produção em 25/10/2026, com autorização do dono (`migrate status` limpo antes e depois; só adições).
+- As telas não foram vistas no navegador com dado real, porque o `.env` local aponta para produção. Conferir: vender um clube no balcão (pago e Pix a receber), confirmar o Pix, fechar uma comanda coberta, a linha "Clube" no Caixa e a adesão pela página pública.
+- **Confirmação manual:** o Pix cai na conta do salão e o sistema não sabe quando. Se a dona não confirmar, a cliente fica em atraso e a sessão não é debitada. Pix Automático ou gateway do salão ficam para depois.
+- **Falta não se desfaz:** como `faltou` é status final, uma falta que debitou sessão por engano não devolve a sessão. Hoje o caminho é a dona dar desconto numa próxima comanda.
+- **Uma sessão coberta por comanda:** só o serviço principal é coberto. Serviços extras pagam normal (com o desconto de sócia, se houver).
+
 ## Melhorias técnicas pequenas
 
 - O Vitest imprime um aviso de configuração a cada execução. Silenciar exige renomear `vitest.config.ts` para `.mts` ou declarar `"type": "module"`.
@@ -194,3 +201,11 @@ Sub-projeto 3 (Relatórios e Comissões), pendências conhecidas:
     - mapa de ocupação por turno, com insight e horário de pico;
     - origem dos agendamentos e evolução de 6 meses com projeção.
   - CNPJ (MEI) e especialidade no cadastro da profissional.
+- Sub-projeto 4: Clube e pacotes (`/clube` e `/clube/assinantes`), só no plano Salão (recurso `clube`). Migração `20261026120000_clube_pacotes`, aplicada em produção em 25/10/2026. Entrou:
+  - Clube por assinatura mensal (sessões por mês não cumulativas, intervalo mínimo, desconto de sócia) e pacote pré-pago (validade contada da 1ª sessão).
+  - Venda no balcão (paga ou "Pix a receber" com o copia e cola no WhatsApp), confirmação manual idempotente, reenviar cobrança, cancelar e CSV.
+  - Rotina de hora em hora: Pix do próximo ciclo 3 dias antes, atraso que bloqueia o uso e avisa no sino, pacote vencido e adesão pendente cancelada em 7 dias.
+  - Comanda: a sessão coberta sai a R$ 0,00 com a chave "Usar clube/pacote", o motivo quando não cobre, a comissão sobre o valor por sessão e o uso gravado no fechamento.
+  - Recebimentos do clube no Caixa (linha "Clube"), no faturamento, na evolução e nas comissões.
+  - Adesão pública em `/agendar/[slug]/clube/[ofertaId]` e a seção "Clube" na Minha página.
+  - Selo do clube na ficha da cliente e no detalhe do agendamento. Saiu o "Em breve" do Clube na comparação de planos.

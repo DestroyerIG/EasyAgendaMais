@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { AppError, ConflictError } from '../../utils/errors.js';
 import { splitCommission } from './commissionSplit.js';
+import { clubeService } from '../clube/clube.service.js';
 import type { ComandaCalc } from './comandaMath.js';
 import type { NewExtraItem, PaymentMethod } from './comandas.types.js';
 
@@ -56,9 +57,14 @@ export const comandasRepository = {
         id: true, number: true, status: true, businessId: true,
         discountAmount: true, tipAmount: true, paymentMethod: true, closedAt: true,
         servicesTotal: true, productsTotal: true, depositApplied: true, totalCharged: true, commissionTotal: true, receiptSentAt: true,
+        descontoClube: true,
         appointment: { select: APPOINTMENT_SELECT },
         items: {
-          select: { id: true, kind: true, serviceId: true, productId: true, name: true, unitPrice: true, quantity: true, durationMinutes: true, isMain: true, commissionPct: true },
+          select: {
+            id: true, kind: true, serviceId: true, productId: true, name: true, unitPrice: true, quantity: true, durationMinutes: true, isMain: true, commissionPct: true,
+            coberturaContratoId: true, valorCoberto: true,
+            coberturaContrato: { select: { tipo: true, sessoesPorCiclo: true, totalSessoes: true, oferta: { select: { nome: true } } } },
+          },
           orderBy: [{ isMain: 'desc' }, { createdAt: 'asc' }],
         },
       },
@@ -80,16 +86,23 @@ export const comandasRepository = {
   saveDraft(comandaId: string, businessId: string, extras: NewExtraItem[], totals: {
     servicesTotal: number; productsTotal: number; depositApplied: number; discountAmount: number;
     tipAmount: number; totalCharged: number; commissionTotal: number; paymentMethod: PaymentMethod | null;
-  }): Promise<boolean> {
+    descontoClube: number;
+  }, cobertura: { coberturaContratoId: string | null; valorCoberto: number }): Promise<boolean> {
     return prisma.$transaction(async (tx) => {
       const r = await tx.comanda.updateMany({ where: { id: comandaId, businessId, status: 'rascunho' }, data: totals });
       if (r.count !== 1) return false;
+      await tx.comandaItem.updateMany({ where: { comandaId, isMain: true }, data: cobertura });
       await tx.comandaItem.deleteMany({ where: { comandaId, isMain: false } });
       if (extras.length > 0) {
         await tx.comandaItem.createMany({ data: extras.map((e) => ({ ...e, comandaId, isMain: false })) });
       }
       return true;
     });
+  },
+
+  /** Liga o serviço principal ao contrato de clube/pacote que o cobre (ao abrir a comanda). */
+  definirCobertura(comandaId: string, cobertura: { coberturaContratoId: string | null; valorCoberto: number }) {
+    return prisma.comandaItem.updateMany({ where: { comandaId, isMain: true }, data: cobertura });
   },
 
   /** Sessão de caixa do dia, aberta ou já fechada (o chamador distingue pelo closedAt). */
@@ -107,6 +120,8 @@ export const comandasRepository = {
     comandaId: string; businessId: string; userId: string; cashSessionId: string;
     appointmentId: string; appointmentDate: Date; paymentMethod: PaymentMethod | null;
     servicePct: number; productPct: number; calc: ComandaCalc;
+    /** Sessão coberta: grava o uso no contrato dentro desta transação. */
+    cobertura: null | { contratoId: string; comandaItemId: string; clientId: string; serviceId: string; professionalId: string; data: string };
   }): Promise<boolean> {
     const { calc } = args;
     return prisma.$transaction(async (tx) => {
@@ -117,7 +132,7 @@ export const comandasRepository = {
           paymentMethod: args.paymentMethod,
           servicesTotal: calc.servicesTotal, productsTotal: calc.productsTotal, depositApplied: calc.depositApplied,
           discountAmount: calc.discount, tipAmount: calc.tip, totalCharged: calc.totalCharged,
-          commissionTotal: calc.commissionTotal,
+          commissionTotal: calc.commissionTotal, descontoClube: calc.memberDiscount,
         },
       });
       if (r.count !== 1) return false;
@@ -129,13 +144,14 @@ export const comandasRepository = {
 
       // O updateMany acima já tomou o lock da linha: relê os itens aqui dentro, sem confiar em ids de fora.
       const itens = await tx.comandaItem.findMany({
-        where: { comandaId: args.comandaId }, select: { id: true, kind: true, unitPrice: true, quantity: true },
+        where: { comandaId: args.comandaId }, select: { id: true, kind: true, unitPrice: true, quantity: true, coberturaContratoId: true, valorCoberto: true },
         orderBy: [{ isMain: 'desc' }, { createdAt: 'asc' }, { id: 'asc' }],
       });
       for (const kind of ['servico', 'produto'] as const) {
         const doTipo = itens.filter((i) => i.kind === kind);
         const partes = splitCommission(
-          doTipo.map((i) => Math.round(Number(i.unitPrice) * 100) * i.quantity),
+          // Sessão coberta pesa pelo valor por sessão, que é a base da comissão dela.
+          doTipo.map((i) => (i.coberturaContratoId ? Math.round(Number(i.valorCoberto) * 100) : Math.round(Number(i.unitPrice) * 100) * i.quantity)),
           kind === 'servico' ? calc.commissionService : calc.commissionProduct,
         );
         for (let n = 0; n < doTipo.length; n++) {
@@ -151,6 +167,11 @@ export const comandasRepository = {
         data: { status: 'concluido', finishedAt: new Date() },
       });
       if (concluiu.count !== 1) throw new ConflictError('Este agendamento não pode mais ser concluído');
+
+      if (args.cobertura) {
+        const { contratoId, ...alvo } = args.cobertura;
+        await clubeService.gravarUso(tx, args.businessId, contratoId, { ...alvo, appointmentId: args.appointmentId, motivo: 'atendimento' });
+      }
 
       await tx.earning.upsert({
         where: { appointmentId: args.appointmentId },

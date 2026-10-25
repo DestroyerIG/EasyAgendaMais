@@ -73,3 +73,38 @@ describe('calcularComanda', () => {
     expect(r.tip).toBe(0);
   });
 });
+
+describe('calcularComanda com clube/pacote', () => {
+  const coberto = { kind: 'servico' as const, unitPrice: 110, quantity: 1, coveredValue: 85 };
+
+  it('sessão coberta sai a R$ 0, mas o valor por sessão entra na base da comissão', () => {
+    const r = calcularComanda({ ...base, items: [coberto, { kind: 'produto', unitPrice: 25, quantity: 1 }] });
+    expect(r).toMatchObject({
+      servicesTotal: 0, productsTotal: 25, subtotal: 25, totalCharged: 25, revenue: 25,
+      serviceBase: 85, commissionService: 42.5, commissionProduct: 5, coveredTotal: 85, memberDiscount: 0,
+    });
+  });
+
+  it('só a sessão coberta: nada a cobrar e o sinal não é consumido', () => {
+    const r = calcularComanda({ ...base, items: [coberto], depositAvailable: 30 });
+    expect(r).toMatchObject({ subtotal: 0, depositApplied: 0, totalCharged: 0, revenue: 0, commissionService: 42.5 });
+  });
+
+  it('desconto da sócia vale só sobre os itens não cobertos', () => {
+    const r = calcularComanda({
+      ...base, memberDiscountPct: 10,
+      items: [coberto, { kind: 'servico', unitPrice: 50, quantity: 1 }, { kind: 'produto', unitPrice: 25, quantity: 1 }],
+    });
+    expect(r).toMatchObject({ subtotal: 75, memberDiscount: 7.5, discount: 7.5, totalCharged: 67.5, revenue: 67.5 });
+  });
+
+  it('desconto manual + sócia não passa do subtotal', () => {
+    const r = calcularComanda({ ...base, memberDiscountPct: 10, discount: 19, items: [{ kind: 'produto', unitPrice: 20, quantity: 1 }] });
+    expect(r).toMatchObject({ discount: 20, memberDiscount: 2, totalCharged: 0 });
+  });
+
+  it('sem cobertura nem sócia, os campos novos ficam zerados', () => {
+    const r = calcularComanda({ ...base, items: [{ kind: 'servico', unitPrice: 110, quantity: 1 }] });
+    expect(r).toMatchObject({ coveredTotal: 0, memberDiscount: 0, serviceBase: 110, commissionService: 55 });
+  });
+});

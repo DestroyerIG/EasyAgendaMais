@@ -1,6 +1,6 @@
 import api from '@/lib/api';
 
-export type NotificationType = 'nova_reserva' | 'reserva_expirada' | 'pagamento_confirmado';
+export type NotificationType = 'nova_reserva' | 'reserva_expirada' | 'pagamento_confirmado' | 'clube_adesao' | 'clube_atraso';
 
 export interface AppNotification {
   id: string;

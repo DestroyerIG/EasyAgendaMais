@@ -5,6 +5,7 @@ import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { PublicBookingFlow } from '../PublicBookingFlow';
 import { publicBookingApi } from '@/lib/publicBooking';
 
+vi.mock('@/components/clube/AdesaoClube', () => ({ ClubeVitrine: () => null }));
 vi.mock('@/lib/publicBooking', () => ({
   publicBookingApi: {
     getStorefront: vi.fn(),

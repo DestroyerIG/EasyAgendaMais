@@ -7,6 +7,7 @@ import { MapPin, Check } from 'lucide-react';
 import { publicBookingApi, type StorefrontDto, type ProfessionalDto, type StorefrontServiceDto } from '@/lib/publicBooking';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { Button } from '@/components/ui';
+import { ClubeVitrine } from '@/components/clube/AdesaoClube';
 
 type Step = 'servico' | 'profissional' | 'horario' | 'pagamento';
 
@@ -286,6 +287,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                 ))}
               </div>
             )}
+            <ClubeVitrine slug={slug} />
           </>
         )}
 

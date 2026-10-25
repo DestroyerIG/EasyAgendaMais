@@ -11,6 +11,9 @@ vi.mock('../config/prisma.js', () => ({
   prisma: { $transaction: vi.fn(async (cb: (t: typeof tx) => unknown) => cb(tx)) },
 }));
 
+const clube = vi.hoisted(() => ({ gravarUso: vi.fn() }));
+vi.mock('../modules/clube/clube.service.js', () => ({ clubeService: clube }));
+
 const { comandasRepository } = await import('../modules/comandas/comandas.repository.js');
 const { calcularComanda } = await import('../modules/comandas/comandaMath.js');
 
@@ -22,6 +25,7 @@ const args = () => ({
     items: [{ kind: 'servico', unitPrice: 110, quantity: 1 }], depositAvailable: 0, discount: 0, tip: 0,
     serviceCommissionPct: 50, productCommissionPct: 20,
   }),
+  cobertura: null,
 });
 
 beforeEach(() => {
@@ -59,5 +63,31 @@ describe('comandasRepository.closeComandaTx', () => {
     tx.comanda.updateMany.mockResolvedValue({ count: 0 });
     await expect(comandasRepository.closeComandaTx(args())).resolves.toBe(false);
     expect(tx.$queryRaw).not.toHaveBeenCalled();
+  });
+
+  it('sessão coberta: comissão pelo valor por sessão e uso gravado na mesma transação', async () => {
+    tx.comandaItem.findMany.mockResolvedValue([
+      { id: 'i1', kind: 'servico', unitPrice: '110.00', quantity: 1, coberturaContratoId: 'ct1', valorCoberto: '85.00' },
+      { id: 'i2', kind: 'servico', unitPrice: '15.00', quantity: 1, coberturaContratoId: null, valorCoberto: '0' },
+    ]);
+    const calc = calcularComanda({
+      items: [{ kind: 'servico', unitPrice: 110, quantity: 1, coveredValue: 85 }, { kind: 'servico', unitPrice: 15, quantity: 1 }],
+      depositAvailable: 0, discount: 0, tip: 0, serviceCommissionPct: 50, productCommissionPct: 20,
+    });
+    const cobertura = { contratoId: 'ct1', comandaItemId: 'i1', clientId: 'c1', serviceId: 's1', professionalId: 'p1', data: '2026-10-13' };
+    await comandasRepository.closeComandaTx({ ...args(), calc, cobertura });
+    expect(tx.comandaItem.update).toHaveBeenCalledWith({ where: { id: 'i1' }, data: { commissionPct: 50, commissionAmount: 42.5 } });
+    expect(tx.comandaItem.update).toHaveBeenCalledWith({ where: { id: 'i2' }, data: { commissionPct: 50, commissionAmount: 7.5 } });
+    expect(clube.gravarUso).toHaveBeenCalledWith(tx, 'b1', 'ct1', {
+      comandaItemId: 'i1', clientId: 'c1', serviceId: 's1', professionalId: 'p1', data: '2026-10-13', appointmentId: 'a1', motivo: 'atendimento',
+    });
+    expect(tx.earning.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ amount: 15 }) }));
+  });
+
+  it('se o débito falha, o fechamento inteiro desfaz', async () => {
+    clube.gravarUso.mockRejectedValueOnce(Object.assign(new Error('A sessão não pode ser debitada: Pacote sem saldo'), { statusCode: 409 }));
+    const cobertura = { contratoId: 'ct1', comandaItemId: 'i1', clientId: 'c1', serviceId: 's1', professionalId: 'p1', data: '2026-10-13' };
+    await expect(comandasRepository.closeComandaTx({ ...args(), cobertura })).rejects.toThrow('Pacote sem saldo');
+    expect(tx.earning.upsert).not.toHaveBeenCalled();
   });
 });

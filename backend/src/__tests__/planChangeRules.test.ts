@@ -27,7 +27,8 @@ describe('catálogo de planos', () => {
   it('expõe os três planos em ordem e a matriz completa', () => {
     const { planos, matriz } = getPlanCatalog();
     expect(planos.map((p) => p.nome)).toEqual(['Solo', 'Equipe', 'Salão']);
-    expect(planos[2]!.emBreve).toContain('Clube e pacotes');
+    expect(planos[2]!.emBreve).toContain('Várias unidades');
+    expect(planos[2]!.emBreve).not.toContain('Clube e pacotes');
     expect(matriz).toBe(FEATURE_MATRIX);
     expect(PLAN_CATALOG.premium.limiteProfissionais).toBeNull();
   });

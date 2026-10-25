@@ -40,6 +40,7 @@ const ROTULO_AUTOMATICO: Partial<Record<Origem, { rotulo: string; icone: string 
   lembrete: { rotulo: 'Lembrete automático', icone: 'notifications_active' },
   confirmacao: { rotulo: 'Confirmação automática', icone: 'event_available' },
   pix_recibo: { rotulo: 'Sinal Pix e recibo', icone: 'payments' },
+  clube: { rotulo: 'Cobrança do clube', icone: 'card_membership' },
   lista_espera: { rotulo: 'Lista de espera', icone: 'hourglass_top' },
   manual_celular: { rotulo: 'Você pelo celular', icone: 'smartphone' },
   sistema: { rotulo: 'Sistema', icone: 'info' },

@@ -1,6 +1,7 @@
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
 import { todayInTimezone } from '../../utils/businessDate.js';
 import { reportsRepository as repo } from './reports.repository.js';
+import { clubeRepository } from '../clube/clube.repository.js';
 import {
   type Periodo, diaNoFuso, diasEntre, intervaloUtc, mesDe, periodoAnterior, somarDias,
 } from './periodo.js';
@@ -27,6 +28,7 @@ const receita = (k: Comanda) => {
 };
 
 const somaReceita = (lista: Comanda[]) => lista.reduce((t, k) => t + receita(k).total, 0);
+const somaClube = (lista: { valor: unknown }[]) => lista.reduce((t, b) => t + cents(b.valor), 0);
 
 const visitasPorCliente = (lista: { clientId: string; date: Date }[]) => {
   const m = new Map<string, string[]>();
@@ -59,19 +61,21 @@ export const relatoriosService = {
     const ant = periodoAnterior(p);
     const mes = mesDe(hoje);
 
-    const [comandas, comandasAnt, comandasMes, ags, agsAnt, config] = await Promise.all([
+    const [comandas, comandasAnt, comandasMes, ags, agsAnt, config, clube, clubeMes] = await Promise.all([
       repo.comandasFechadas(businessId, intervaloUtc(p, timezone)),
       repo.comandasFechadas(businessId, intervaloUtc(ant, timezone)),
       repo.comandasFechadas(businessId, intervaloUtc({ inicio: mes.inicio, fim: hoje }, timezone)),
       repo.agendamentos(businessId, p),
       repo.agendamentos(businessId, ant),
       repo.configuracao(businessId),
+      clubeRepository.recebimentos(businessId, intervaloUtc(p, timezone)),
+      clubeRepository.recebimentos(businessId, intervaloUtc({ inicio: mes.inicio, fim: hoje }, timezone)),
     ]);
 
-    const fat = somaReceita(comandas);
-    const fatAnt = somaReceita(comandasAnt);
-    const ticket = ticketMedio(fat, comandas.length);
-    const ticketAnt = ticketMedio(fatAnt, comandasAnt.length);
+    const fatComandas = somaReceita(comandas);
+    const fat = fatComandas + somaClube(clube);
+    const ticket = ticketMedio(fatComandas, comandas.length);
+    const ticketAnt = ticketMedio(somaReceita(comandasAnt), comandasAnt.length);
     const conta = (lista: typeof ags, s: string) => lista.filter((a) => a.status === s).length;
     const faltas = taxaFaltas(conta(ags, 'concluido'), conta(ags, 'faltou'));
     const faltasAnt = taxaFaltas(conta(agsAnt, 'concluido'), conta(agsAnt, 'faltou'));
@@ -110,7 +114,7 @@ export const relatoriosService = {
       });
     }
 
-    const fatMes = somaReceita(comandasMes);
+    const fatMes = somaReceita(comandasMes) + somaClube(clubeMes);
     const meta = metaMensal(config.metaDiaria, mes, diasAbertos);
     const projecao = projecaoDoMes(fatMes, hoje, mes);
     const produtos = comandas.reduce((t, k) => t + receita(k).produtos, 0);
@@ -168,9 +172,10 @@ export const relatoriosService = {
       meses.unshift(mesDe(ref));
       ref = somarDias(`${ref.slice(0, 7)}-01`, -1);
     }
-    const [comandas, config] = await Promise.all([
+    const [comandas, config, clube] = await Promise.all([
       repo.comandasFechadas(businessId, intervaloUtc({ inicio: meses[0].inicio, fim: hoje }, timezone)),
       repo.configuracao(businessId),
+      clubeRepository.recebimentos(businessId, intervaloUtc({ inicio: meses[0].inicio, fim: hoje }, timezone)),
     ]);
     const balde = new Map(meses.map((m) => [m.inicio.slice(0, 7), { servicos: 0, produtos: 0 }]));
     for (const k of comandas) {
@@ -180,6 +185,12 @@ export const relatoriosService = {
       const r = receita(k);
       b.servicos += r.servicos;
       b.produtos += r.produtos;
+    }
+    // Mensalidades e pacotes recebidos entram como serviço no mês do pagamento.
+    for (const k of clube) {
+      if (!k.pagoEm) continue;
+      const b = balde.get(diaNoFuso(k.pagoEm, timezone).slice(0, 7));
+      if (b) b.servicos += cents(k.valor);
     }
     const atual = meses[meses.length - 1];
     return {

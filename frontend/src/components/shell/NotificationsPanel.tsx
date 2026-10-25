@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Bell, CalendarPlus, CheckCheck, CircleDollarSign, Clock3, Loader2 } from 'lucide-react';
+import { AlertTriangle, Bell, CalendarPlus, CheckCheck, CircleDollarSign, Clock3, Crown, Loader2 } from 'lucide-react';
 import { notificationsApi, type AppNotification, type NotificationType } from '@/lib/notifications';
 import { EmptyState } from '@/components/ui';
 import { cn } from '@/lib/cn';
@@ -12,6 +12,8 @@ const ICON_BY_TYPE: Record<NotificationType, typeof CalendarPlus> = {
   nova_reserva: CalendarPlus,
   reserva_expirada: Clock3,
   pagamento_confirmado: CircleDollarSign,
+  clube_adesao: Crown,
+  clube_atraso: AlertTriangle,
 };
 
 const formatRelativo = (iso: string) =>

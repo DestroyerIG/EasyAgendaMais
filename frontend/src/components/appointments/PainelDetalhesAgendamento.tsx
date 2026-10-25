@@ -36,6 +36,7 @@ import { formatCurrency, formatPhone } from '@/lib/formatters';
 import { buscarDetalhesAgendamento, reenviarComprovante, type AppointmentDetails } from '@/lib/comanda';
 import { useToast } from '@/components/Toast';
 import { Avatar, Icon, SidePanel, Skeleton, StatusChip } from '@/components/ui';
+import { SeloClube } from '@/components/clube/SeloClube';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { formatarDataAgenda } from './DateNavigationBar';
 import { formatarDuracao } from './LinhaDoTempo';
@@ -252,6 +253,7 @@ export function ConteudoDetalhesAgendamento({ agendamento }: ConteudoDetalhesPro
               {agendamento.client_phone && (
                 <span className="mt-0.5 text-[13px] font-medium text-muted">{formatPhone(agendamento.client_phone)}</span>
               )}
+              {agendamento.client_id && <SeloClube clientId={agendamento.client_id} className="mt-1.5 flex flex-wrap gap-1.5" />}
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">

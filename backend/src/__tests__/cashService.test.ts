@@ -6,6 +6,8 @@ const repo = vi.hoisted(() => ({
   findMovements: vi.fn(), ownerName: vi.fn(),
 }));
 vi.mock('../modules/cash/cash.repository.js', () => ({ cashRepository: repo }));
+const clube = vi.hoisted(() => ({ recebimentosDoCaixa: vi.fn() }));
+vi.mock('../modules/clube/clube.repository.js', () => ({ clubeRepository: clube }));
 vi.mock('../services/scheduleSettingsService.js', () => ({ getBusinessScheduleSettings: vi.fn().mockResolvedValue({ timezone: 'America/Sao_Paulo' }) }));
 
 const { cashService, calcularGaveta } = await import('../modules/cash/cash.service.js');
@@ -24,6 +26,7 @@ beforeEach(() => {
   repo.findAppointmentsByStatus.mockResolvedValue([]);
   repo.findExpenses.mockResolvedValue([]);
   repo.findMovements.mockResolvedValue([]);
+  clube.recebimentosDoCaixa.mockResolvedValue([]);
 });
 
 describe('calcularGaveta', () => {
@@ -80,6 +83,22 @@ describe('cashService.addMovement', () => {
 });
 
 describe('cashService.getDay', () => {
+  it('recebimento de clube/pacote entra na forma, na gaveta e vira linha "Clube"', async () => {
+    repo.findSession.mockResolvedValue(sessao());
+    clube.recebimentosDoCaixa.mockResolvedValue([{
+      id: 'cb1', valor: '149.90', forma: 'dinheiro', pagoEm: new Date('2026-10-13T14:05:00-03:00'),
+      contrato: { tipo: 'clube', client: { name: 'Mariana', phone: '1' }, oferta: { nome: 'Clube Mãos' } },
+    }]);
+    const dia = await cashService.getDay('b1');
+    expect(clube.recebimentosDoCaixa).toHaveBeenCalledWith('b1', 'cx1', { gte: new Date('2026-10-13T03:00:00Z'), lt: new Date('2026-10-14T03:00:00Z') });
+    expect(dia.formas.find((f) => f.chave === 'dinheiro')).toEqual({ chave: 'dinheiro', valor: 149.9, quantidade: 1 });
+    expect(dia.totals).toMatchObject({ entradas: 149.9, entradasQtd: 1 });
+    expect(dia.gaveta.entradasDinheiro).toBe(149.9);
+    expect(dia.linhas).toEqual([expect.objectContaining({
+      appointmentId: null, hora: '14:05', cliente: 'Mariana', servicos: 'Clube · Clube Mãos', pagamento: 'dinheiro', total: 149.9, status: 'Clube',
+    })]);
+  });
+
   it('soma formas de pagamento, separa sinais Pix e monta a gaveta', async () => {
     repo.findSession.mockResolvedValue(sessao());
     repo.findClosedComandas.mockResolvedValue([

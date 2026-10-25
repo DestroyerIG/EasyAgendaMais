@@ -2,6 +2,8 @@ import { ConflictError } from '../../utils/errors.js';
 import { todayInTimezone } from '../../utils/businessDate.js';
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
 import { cashRepository } from './cash.repository.js';
+import { clubeRepository } from '../clube/clube.repository.js';
+import { intervaloUtc } from '../reports/periodo.js';
 import type { CashDayDto, CashMovementInput, CloseCashInput } from './cash.types.js';
 
 type Linha = CashDayDto['linhas'][number];
@@ -10,6 +12,8 @@ const n = (v: unknown) => Number(v ?? 0);
 const cents = (v: number) => Math.round(v * 100);
 const reais = (c: number) => c / 100;
 const hhmm = (d: Date) => d.toISOString().substring(11, 16);
+const horaNoFuso = (d: Date, timeZone: string) =>
+  new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d);
 
 export function calcularGaveta(g: { fundoInicial: number; entradasDinheiro: number; suprimentos: number; sangrias: number; saidasDinheiro: number }) {
   const esperado = reais(cents(g.fundoInicial) + cents(g.entradasDinheiro) + cents(g.suprimentos) - cents(g.sangrias) - cents(g.saidasDinheiro));
@@ -23,21 +27,26 @@ async function hoje(businessId: string) {
 
 export const cashService = {
   async getDay(businessId: string, date?: string): Promise<CashDayDto> {
-    const diaDeHoje = await hoje(businessId);
+    const { timezone } = await getBusinessScheduleSettings(businessId);
+    const diaDeHoje = todayInTimezone(timezone);
     const dia = date ?? diaDeHoje;
     const session = await cashRepository.findSession(businessId, dia);
-    const [comandas, emAtendimento, faltas, despesas, movimentos, responsavel] = await Promise.all([
+    const [comandas, emAtendimento, faltas, despesas, movimentos, responsavel, clube] = await Promise.all([
       session ? cashRepository.findClosedComandas(session.id) : Promise.resolve([]),
       cashRepository.findAppointmentsByStatus(businessId, dia, 'em_atendimento'),
       cashRepository.findAppointmentsByStatus(businessId, dia, 'faltou'),
       cashRepository.findExpenses(businessId, dia),
       session ? cashRepository.findMovements(session.id) : Promise.resolve([]),
       cashRepository.ownerName(businessId),
+      // Recebimentos de clube/pacote: os da sessão e os confirmados no dia sem caixa aberto.
+      clubeRepository.recebimentosDoCaixa(businessId, session?.id ?? null, intervaloUtc({ inicio: dia, fim: dia }, timezone)),
     ]);
 
     const forma = (chave: 'pix' | 'debito' | 'credito' | 'dinheiro') => {
       const lista = comandas.filter((k) => k.paymentMethod === chave);
-      return { chave, valor: reais(lista.reduce((t, k) => t + cents(n(k.totalCharged)), 0)), quantidade: lista.length };
+      const doClube = clube.filter((b) => b.forma === chave);
+      const valor = lista.reduce((t, k) => t + cents(n(k.totalCharged)), 0) + doClube.reduce((t, b) => t + cents(n(b.valor)), 0);
+      return { chave, valor: reais(valor), quantidade: lista.length + doClube.length };
     };
     const comSinal = comandas.filter((k) => n(k.depositApplied) > 0);
     // Sinal retido de quem faltou só entra quando há caixa aberto naquele dia.
@@ -65,6 +74,13 @@ export const cashService = {
         profissional: a.professional.name, servicos: a.service.name, pagamento: 'em_atendimento',
         depositApplied: 0, total: n(a.service.price), status: 'Aberta',
       })),
+      ...clube.map((b): Linha => ({
+        appointmentId: null, comandaId: null, numero: null, hora: b.pagoEm ? horaNoFuso(b.pagoEm, timezone) : '00:00',
+        cliente: b.contrato.client.name, telefone: b.contrato.client.phone, profissional: '',
+        servicos: `${b.contrato.tipo === 'clube' ? 'Clube' : 'Pacote'} · ${b.contrato.oferta.nome}`,
+        pagamento: (b.forma ?? 'pix') as Linha['pagamento'],
+        depositApplied: 0, total: n(b.valor), status: 'Clube',
+      })),
       ...faltas.map((a): Linha => ({
         appointmentId: a.id, comandaId: null, numero: null, hora: hhmm(a.time), cliente: a.client.name, telefone: a.client.phone,
         profissional: a.professional.name, servicos: a.service.name, pagamento: 'faltou',
@@ -91,7 +107,7 @@ export const cashService = {
         difference: session.difference === null ? null : n(session.difference),
       } : null,
       totals: {
-        entradas: reais(entradasCents), entradasQtd: comandas.length + comSinal.length + faltasComSinal.length,
+        entradas: reais(entradasCents), entradasQtd: comandas.length + comSinal.length + faltasComSinal.length + clube.length,
         saidas: reais(saidasCents), saidasQtd: despesas.length, saldo: reais(entradasCents - saidasCents),
       },
       comandasResumo: { total: comandas.length + emAtendimento.length + faltas.length, fechadas: comandas.length, abertas: emAtendimento.length, falta: faltas.length },
