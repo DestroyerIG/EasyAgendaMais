@@ -5,6 +5,7 @@ import { generateAvailableTimeSlots, getBusinessScheduleSettings } from '../../s
 import { buildPixPayload } from '../../utils/pixPayload.js';
 import { notificationsService } from '../notifications/notifications.service.js';
 import logger from '../../utils/logger.js';
+import { vocabularioDe } from '../../config/vocabulario.js';
 import { automacoesGatilhos } from '../whatsappAutomacoes/gatilhos.service.js';
 import type { CreatePublicAppointmentInput, GetPublicAvailabilityQuery, Storefront } from './publicBooking.types.js';
 
@@ -69,6 +70,7 @@ export const publicBookingService = {
         depositPercentage: Number(s.depositPercentage),
         depositAmount: calcDeposit(Number(s.price), Number(s.depositPercentage)),
       })),
+      vocabulario: vocabularioDe(business.settings?.segment),
     };
   },
 

@@ -29,6 +29,8 @@ export interface StorefrontService {
   depositAmount: number;
 }
 
+import type { Vocabulario } from '../../config/vocabulario.js';
+
 export interface Storefront {
   businessId: string;
   name: string;
@@ -37,4 +39,5 @@ export interface Storefront {
   galleryPhotos: string[];
   address: string | null;
   services: StorefrontService[];
+  vocabulario: Vocabulario;
 }

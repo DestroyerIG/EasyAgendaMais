@@ -24,6 +24,12 @@ export const automacoesRepository = {
     return { ativa: settings?.whatsappReminders !== false, texto: bot?.reminderMessage?.trim() ? bot.reminderMessage : null };
   },
 
+  /** Segmento do negócio: o vocabulário dos textos padrão (fase 6). */
+  async segmento(businessId: string): Promise<string | null> {
+    const s = await prisma.businessSettings.findUnique({ where: { businessId }, select: { segment: true } });
+    return s?.segment ?? null;
+  },
+
   async negocio(businessId: string): Promise<{ nome: string; whatsapp: string | null }> {
     const b = await prisma.business.findUnique({ where: { id: businessId }, select: { name: true, whatsapp: true } });
     return { nome: b?.name ?? '', whatsapp: b?.whatsapp ?? null };

@@ -65,6 +65,11 @@ model Business {
   active                       Boolean   @default(true)
   suspendedAt                  DateTime? @map("suspended_at")
   suspendedReason              String?   @map("suspended_reason") @db.VarChar(255)
+
+  // Onboarding guiado (fase 6): próxima etapa (1 a 5; 6 = concluído)
+  onboardingEtapa              Int       @default(1) @map("onboarding_etapa") @db.SmallInt
+  onboardingConcluidoEm        DateTime? @map("onboarding_concluido_em")
+  primeirosPassosDispensadoEm  DateTime? @map("primeiros_passos_dispensado_em")
   createdAt                    DateTime  @default(now()) @map("created_at")
   updatedAt                    DateTime  @default(now()) @updatedAt @map("updated_at")
 
@@ -507,6 +512,7 @@ model BusinessSettings {
   commissionProductPct     Decimal  @default(0) @map("commission_product_pct") @db.Decimal(5, 2)
   modeloRepasse            String   @default("comissao") @map("modelo_repasse") @db.VarChar(20)
   segment                  String   @default("outro") @db.VarChar(20)
+  modoEquipe               String?  @map("modo_equipe") @db.VarChar(10)
   dailyRevenueGoal         Decimal? @map("daily_revenue_goal") @db.Decimal(10, 2)
   googleReviewUrl          String?  @map("google_review_url") @db.VarChar(500)
   profissionalCobra        Boolean  @default(false) @map("profissional_cobra")

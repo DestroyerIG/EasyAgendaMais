@@ -1292,7 +1292,7 @@ const handleChooseServiceStep = async (
   });
 
   if (!professionals.length) {
-    await sendWhatsAppMessage(phone, 'Desculpe, não há profissionais disponíveis no momento.', sendContext);
+    await sendWhatsAppMessage(phone, config.no_professionals_message ?? 'Desculpe, não há profissionais disponíveis no momento.', sendContext);
     await deleteSession(phone, businessId);
     return { ok: true };
   }
@@ -1306,7 +1306,7 @@ const handleChooseServiceStep = async (
     professionals: professionals.map((b) => ({ id: b.id, name: b.name })),
   });
 
-  let msg = `✅ *${sel.name}* selecionado!\n\n👤 *Escolha o profissional:*\n\n`;
+  let msg = `✅ *${sel.name}* selecionado!\n\n👤 *${config.choose_professional_title ?? 'Escolha o profissional'}:*\n\n`;
   professionals.forEach((b, i) => { msg += `${i + 1}️⃣ *${b.name}*\n`; });
   msg += '\n0️⃣ Voltar ao menu';
   await sendWhatsAppMessage(phone, msg, sendContext);
@@ -1331,7 +1331,7 @@ const handleChooseProfessionalStep = async (
   const professionals = (sessionData.professionals as ProfessionalRow[]) || [];
 
   if (!choice || choice < 1 || choice > professionals.length) {
-    let msg = `${config.invalid_option_message}\n\n👤 *Escolha o profissional:*\n\n`;
+    let msg = `${config.invalid_option_message}\n\n👤 *${config.choose_professional_title ?? 'Escolha o profissional'}:*\n\n`;
     professionals.forEach((b, i) => { msg += `${i + 1}️⃣ *${b.name}*\n`; });
     msg += '\n0️⃣ Voltar ao menu';
     await sendWhatsAppMessage(phone, msg, sendContext);
