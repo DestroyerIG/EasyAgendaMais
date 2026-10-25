@@ -270,7 +270,8 @@ function CompararPlanos() {
                 <article
                   key={plano.id}
                   className={cn(
-                    'relative flex flex-col gap-6 rounded-card border bg-surface p-6',
+                    // Subgrid: preço, recursos e botão na mesma altura nos três cards.
+                    'relative flex flex-col gap-6 rounded-card border bg-surface p-6 lg:row-span-3 lg:grid lg:grid-rows-subgrid',
                     ehRecomendado ? 'border-brand shadow-lg' : ehAtual ? 'border-brand/50' : 'border-line'
                   )}
                 >
@@ -279,7 +280,7 @@ function CompararPlanos() {
                       Recomendado
                     </span>
                   )}
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[12px] font-bold uppercase tracking-wider text-muted">{plano.publico}</span>
                       {ehAtual && (
@@ -292,7 +293,7 @@ function CompararPlanos() {
                       </div>
                       <h3 className="text-2xl font-bold text-ink">{plano.nome}</h3>
                     </div>
-                    <p className="text-[14px] text-muted">{plano.descricao}</p>
+                    <p className="flex-1 text-[14px] text-muted">{plano.descricao}</p>
                     <div className="text-3xl font-bold tracking-tight text-ink">
                       {formatCurrency(plano.preco)}
                       <span className="ml-1 text-[14px] font-normal text-muted">/mês</span>

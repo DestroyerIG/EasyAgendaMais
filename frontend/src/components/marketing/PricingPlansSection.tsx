@@ -664,8 +664,9 @@ export function PricingPlansSection({
             <article
               key={plan.id}
               className={[
-                'relative rounded-card border bg-surface p-7 transition-all',
-                recommended ? 'border-2 border-brand shadow-xl' : 'border-line shadow-sm',
+                // Subgrid: cabeçalho, lista e botões alinhados entre os cards, mesmo com listas de tamanhos diferentes.
+                'relative flex flex-col rounded-card border bg-surface p-7 transition-all lg:row-span-3 lg:grid lg:grid-rows-subgrid lg:gap-y-0',
+                recommended ? 'border-brand shadow-xl ring-1 ring-brand' : 'border-line shadow-sm',
                 current ? 'ring-2 ring-whatsapp/60' : '',
               ].join(' ')}
             >
