@@ -26,6 +26,7 @@ Atualizado em 24/10/2026.
 | 3 | Relatórios e Comissões (Salão-Parceiro) | ✅ Concluída | PR #10 |
 | 4 | Clube e pacotes | ✅ Concluída | PR #11 |
 | 5 | App da profissional (PWA) | ✅ Concluída | PR #12 |
+| **6** | **Onboarding guiado, segmentos e vocabulário** | 🔄 Em andamento | branch `feat/onboarding` |
 
 ## Fase 5 (concluída)
 
@@ -49,5 +50,5 @@ A fase 4 (PR #11) foi entregue em 25/10, com a migração já aplicada. A fase 5
 
 A spec da Fundação (`2026-09-17-fundacao-easyagenda-design.md`) dividiu o relançamento em sub-projetos de A a I. Depois a numeração passou a ser 1, 2A a 2D, 3, 4 e 5. Itens daquela lista que ainda não têm fase própria:
 
-- **C:** segmentos, vocabulário por segmento e onboarding guiado.
+- **C:** segmentos, vocabulário por segmento e onboarding guiado. Entra na fase 6 (`docs/superpowers/specs/2026-10-25-onboarding-design.md`).
 - **H:** landing e SuperAdmin. Os planos entram na 2D.
