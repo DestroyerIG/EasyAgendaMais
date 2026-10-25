@@ -171,12 +171,24 @@ const normalizeWebhookEventName = (
 applySecurityMiddleware(app);
 
 // CORS
+// O site abre com e sem "www": as duas formas do FRONTEND_URL valem.
+const comEsemWww = (url: string | undefined): string[] => {
+  if (!url) return [];
+  try {
+    const { protocol, host } = new URL(url);
+    const outro = host.startsWith('www.') ? host.slice(4) : `www.${host}`;
+    return [`${protocol}//${host}`, `${protocol}//${outro}`];
+  } catch {
+    return [url];
+  }
+};
+
 const allowedOrigins = [
   ...(process.env.NODE_ENV !== 'production'
     ? ['http://localhost:3000', 'http://127.0.0.1:3000']
     : []),
-  process.env.FRONTEND_URL,
-].filter((v): v is string => Boolean(v));
+  ...comEsemWww(process.env.FRONTEND_URL),
+];
 
 const vercelProjectPrefix =
   process.env.VERCEL_PROJECT_PREFIX ||
