@@ -15,7 +15,8 @@ Referências do Stitch em `docs/design/stitch/projeto/`:
 1. **Acesso por convite por e-mail.** A dona convida pela tela da profissional; ela cria a própria senha e o login fica ligado ao cadastro dela.
 2. **Fechar atendimento: a dona decide.** Uma chave em Ajustes: "A profissional cobra no app" (fecha a comanda e entra no Caixa) ou "Só prepara a comanda" (padrão: adiciona produtos e foto; a recepção cobra).
 3. **Meus números: só a parte dela.** Líquido a receber no período, composição, extrato por comanda e próximo repasse. Sem faturamento da casa. Avaliações das clientes ficam fora (o sistema não coleta).
-4. **Planos Equipe e Salão.** O Solo tem uma profissional só, a própria dona. Push de notificação fica para depois.
+4. **Planos Equipe e Salão.** O Solo tem uma profissional só, a própria dona.
+5. **Entram também (pedido do dono, 25/10):** avaliações das clientes, push de notificação, e reagendar ou cancelar pelo app.
 
 ## Escopo
 1. **Convite e login:**
@@ -28,13 +29,17 @@ Referências do Stitch em `docs/design/stitch/projeto/`:
    - **Hoje na bancada:** a próxima cliente em destaque (ficha técnica, alerta, último trabalho), o cronograma do dia e "Iniciar atendimento".
    - **Ficha rápida:** cliente, ficha técnica, alerta, fotos recentes, últimas 3 visitas com ela e anotações.
    - **Fechar atendimento:** itens, produtos, foto do trabalho, demonstrativo e "sua comissão estimada"; cobrar ou "Enviar para a recepção", conforme a chave.
-   - **Meus números:** período (quinzena padrão), líquido, composição, adiantamentos, extrato e PDF do extrato.
-5. **Painel:** quem entra com papel `professional` vai para `/bancada`; o painel `/` fica fechado para esse papel.
+   - **Meus números:** período (quinzena padrão), líquido, composição, adiantamentos, extrato, PDF do extrato e as avaliações dela.
+5. **Avaliações das clientes:** o comprovante da comanda no WhatsApp leva o link `/avaliar/[token]`. A cliente dá de 1 a 5 estrelas e um comentário opcional.
+6. **Push de notificação** (Web Push, no app e no painel): a profissional recebe os eventos dela; a dona recebe as notificações do sino.
+7. **Reagendar e cancelar pelo app:** só os agendamentos dela, com aviso à dona e, se ela marcar, à cliente.
+8. **Painel:** quem entra com papel `professional` vai para `/bancada`; o painel `/` fica fechado para esse papel.
 
 ## Fora do escopo
-- Avaliações das clientes, meta de produção com bônus e "Solicitar adiantamento".
-- Push de notificação e uso offline com dados.
-- Agenda de outras profissionais, reagendar e cancelar pelo app (continua com a recepção).
+- Meta de produção com bônus e "Solicitar adiantamento".
+- Uso offline com dados.
+- Agenda de outras profissionais e trocar a profissional de um agendamento (continua com a recepção).
+- Avaliações na página pública (Minha página) e resposta da dona à avaliação.
 - Autoclave e outros avisos de biossegurança do Stitch.
 - Profissional mudar o próprio cadastro, comissão ou horário.
 
@@ -43,6 +48,9 @@ Referências do Stitch em `docs/design/stitch/projeto/`:
 - `profissional_convites`: `id`, `business_id`, `professional_id`, `email`, `token_hash` (sha256), `expira_em`, `aceito_em`, `revogado_em`, `criado_por`, `criado_em`. Um convite aberto por profissional (o novo revoga o anterior).
 - `business_settings.profissional_cobra` (boolean, padrão false).
 - `comandas.enviada_recepcao_em` (timestamp, nulo): quando a profissional preparou e mandou para a recepção.
+- `comandas.avaliacao_token_hash` (char 64, nulo, único): gerado no fechamento, quando o comprovante sai.
+- `avaliacoes`: `id`, `business_id`, `comanda_id` (único), `professional_id`, `client_id`, `nota` (1 a 5), `comentario` (até 500, nulo), `criado_em`.
+- `push_inscricoes`: `id`, `user_id`, `endpoint` (único), `p256dh`, `auth`, `user_agent`, `criado_em`, `ultimo_erro_em`.
 
 ## Regras
 - **Convite:**
@@ -62,6 +70,26 @@ Referências do Stitch em `docs/design/stitch/projeto/`:
   - Desconto e gorjeta: só com `profissional_cobra`.
   - Com `profissional_cobra = false`: "Enviar para a recepção" salva o rascunho, marca `enviada_recepcao_em` e notifica no sino ("Comanda de Mariana pronta para cobrar"). A comanda aparece no painel como hoje, com o selo "Pronta para cobrar".
   - Com `profissional_cobra = true`: fecha pela mesma `closeComanda`, com as mesmas regras de Caixa (caixa fechado não abre pela profissional: "Peça para a recepção abrir o caixa"), clube e comissão.
+- **Avaliações:**
+  - O link vale 14 dias depois do fechamento e serve para uma avaliação só. Vencido ou usado: "Obrigada! Esta avaliação já foi registrada" ou "Este link expirou".
+  - Só sai com o comprovante: comanda sem WhatsApp não gera link.
+  - A página pública mostra o salão, a profissional, o serviço e a data; nada mais da cliente.
+  - Nota até 3 vira notificação no sino da dona (`avaliacao_baixa`). Toda avaliação notifica a profissional (push).
+  - A profissional vê média, quantidade e os comentários dela. A dona vê o bloco "Avaliações" em Relatórios, por profissional, com a lista.
+- **Push:**
+  - Web Push com chaves VAPID (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`). Sem as chaves, o botão "Ativar notificações" não aparece e nada quebra.
+  - A pessoa ativa no aparelho (permissão do navegador); cada aparelho é uma inscrição. Desativar apaga a inscrição.
+  - Profissional recebe: agendamento novo com ela, agendamento dela cancelado ou reagendado pela recepção, avaliação nova.
+  - Dona recebe: as mesmas notificações que entram no sino (o push sai junto do `notify`).
+  - O serviço de push respondeu 404 ou 410: a inscrição é apagada. Outros erros: marca `ultimo_erro_em` e segue.
+  - No iPhone, só funciona com o app adicionado à tela inicial (iOS 16.4+). A tela explica isso.
+- **Reagendar e cancelar:**
+  - Só agendamento dela, de hoje em diante, que ainda não começou (nem em atendimento, concluído, falta ou cancelado).
+  - Reagendar: escolhe dia e horário na agenda dela (mesma disponibilidade e mesmo bloqueio de conflito do painel). Trocar a profissional fica com a recepção.
+  - Cancelar: pede o motivo (lista curta e "Outro"). Usa a mesma transição do painel, então dispara a lista de espera.
+  - O sinal segue a regra do painel: o sistema não devolve. A tela avisa "O sinal pago fica com o salão. Combine a devolução com a recepção".
+  - "Avisar a cliente pelo WhatsApp" vem marcado: manda a mensagem de reagendamento ou cancelamento pela fila do WhatsApp.
+  - A dona é avisada no sino: "Camila reagendou Mariana para 18/09 às 15:00" ou "Camila cancelou Mariana (motivo)".
 - **Meus números:** usa a apuração da fase 3 (`comissoes.service`) para a profissional do login, só leitura. Repasse "pago" mostra a data; "a pagar" mostra "Próximo repasse: combine com o salão". Nada da casa (retenção, faturamento total) aparece.
 
 ## API
@@ -82,6 +110,16 @@ Referências do Stitch em `docs/design/stitch/projeto/`:
 | POST | `/bancada/clientes/:id/fotos` | profissional: foto do trabalho |
 | GET | `/bancada/numeros?inicio&fim` | profissional: apuração dela |
 | GET | `/bancada/numeros/extrato.pdf` | profissional |
+| GET | `/bancada/avaliacoes?inicio&fim` | profissional: média e lista dela |
+| GET | `/bancada/horarios?agendamento&data` | profissional: horários livres dela para reagendar |
+| POST | `/bancada/agendamentos/:id/reagendar` | profissional: `{data, hora, avisarCliente}` |
+| POST | `/bancada/agendamentos/:id/cancelar` | profissional: `{motivo, avisarCliente}` |
+| GET | `/public/avaliar/:token` | público: dados da avaliação, ou 410 |
+| POST | `/public/avaliar/:token` | público: `{nota, comentario}` |
+| GET | `/push/chave` | logado: chave pública VAPID, ou 404 sem chaves |
+| POST | `/push/inscricoes` | logado: inscreve o aparelho |
+| DELETE | `/push/inscricoes` | logado: `{endpoint}` |
+| GET | `/reports/avaliacoes?inicio&fim` | dona: por profissional |
 | PUT | `/business/settings` | dona: ganha `profissionalCobra` |
 
 ## Telas
@@ -89,15 +127,23 @@ Referências do Stitch em `docs/design/stitch/projeto/`:
 - **Ajustes:** chave "A profissional cobra no app", com a explicação dos dois modos.
 - **`/convite/[token]`:** "Camila, o Studio Aurora te convidou para o EasyAgenda+", senha e confirmação, e "Entrar". Convite vencido ou usado: mensagem e "Peça um novo convite ao salão".
 - **`/bancada`:** as quatro telas do Stitch, no celular primeiro, com a mesma marca e os tokens do painel. No computador, coluna central.
-- **Painel:** selo "Pronta para cobrar" na Agenda e no Caixa para comanda com `enviada_recepcao_em`.
+- **Painel:** selo "Pronta para cobrar" na Agenda e no Caixa para comanda com `enviada_recepcao_em`; bloco "Avaliações" em Relatórios; "Ativar notificações" no sino.
+- **`/avaliar/[token]`:** "Como foi seu atendimento com Camila?", cinco estrelas, comentário e "Enviar". Depois: "Obrigada pela avaliação!".
+- **App:** "Reagendar" e "Cancelar" no cartão do agendamento e na ficha rápida; "Ativar notificações" no topo, com a explicação do iPhone.
 
 ## Testes
 - **Regras:** token (validade, uso único, revogado), escopo de clientes, chave de cobrança.
 - **Serviço:** convite (criar, reenviar revoga o anterior, e-mail em uso), aceitar (cria Supabase e local, sessão), remover acesso, iniciar, enviar para a recepção e fechar pela profissional.
 - **Rotas:** a profissional não acessa nenhuma rota do painel (amostra: `/clients`, `/cash`, `/comandas/settings`, `/reports`); `employee` e dona não acessam `/bancada`; cliente de outra profissional dá 404; plano Solo dá 403.
-- **Frontend:** convite, as quatro telas, a chave em Ajustes, o bloco de acesso e o redirecionamento por papel; themeCompliance.
+- **Avaliações:** link gerado só com o comprovante, uso único, vencido, nota fora de 1 a 5, notificação da nota baixa.
+- **Push:** envio junto do `notify`, inscrição apagada no 410, sem chaves VAPID nada é enviado (biblioteca mockada).
+- **Reagendar e cancelar:** agendamento de outra profissional dá 404, status que já começou é recusado, conflito de horário, aviso à cliente só quando marcado, notificação da dona.
+- **Frontend:** convite, as quatro telas, avaliação pública, reagendar e cancelar, ativar notificações, a chave em Ajustes, o bloco de acesso e o redirecionamento por papel; themeCompliance.
 
 ## Riscos
 - **Supabase Auth:** criar o usuário já confirmado depende da chave de serviço no backend. Se faltar, o aceite falha com erro claro e nada local é criado.
 - **Papel novo em código antigo:** qualquer rota que use só `authMiddleware` (sem papel) passaria a aceitar a profissional. A tarefa inclui varrer as rotas e um teste que tenta uma amostra.
+- **Push depende de configuração:** as chaves VAPID precisam ser geradas e postas no backend antes de publicar. Sem elas, o resto funciona.
+- **Avaliação falsa:** o link é por comanda e de uso único, mas quem tiver o link pode avaliar. Por isso o link só vai para o WhatsApp da cliente.
+- **Mensagem à cliente no cancelamento:** sai pela fila, que respeita o opt-out. Se o WhatsApp estiver desconectado, a tela diz que o aviso não foi enviado.
 - **Fechar pelo celular:** com `profissional_cobra`, o dinheiro entra na gaveta pela mão da profissional. O texto da chave em Ajustes deixa isso claro.

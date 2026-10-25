@@ -32,8 +32,9 @@ Atualizado em 24/10/2026.
 Spec: `docs/superpowers/specs/2026-10-25-app-profissional-design.md`. Decisões do dono em 25/10:
 - A profissional entra por convite por e-mail, com senha própria ligada ao cadastro dela.
 - No fechar atendimento, a dona decide em Ajustes se a profissional cobra no app ou só prepara a comanda (padrão).
-- Meus números mostra só a parte dela, sem faturamento da casa e sem avaliações.
-- O app fica nos planos Equipe e Salão. Push de notificação fica para depois.
+- Meus números mostra só a parte dela, sem faturamento da casa.
+- O app fica nos planos Equipe e Salão.
+- Entram também avaliações das clientes, push de notificação e reagendar ou cancelar pelo app.
 
 Referências do Stitch em `docs/design/stitch/projeto/`:
 
