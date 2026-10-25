@@ -1,7 +1,8 @@
 'use client';
 
-import { Scissors, Clock, DollarSign, Edit2, Trash2 } from 'lucide-react';
-import { Card, IconButton } from '@/components/ui';
+import { Clock, DollarSign, Edit2, Trash2 } from 'lucide-react';
+import { Card, Icon, IconButton } from '@/components/ui';
+import { iconeDoServico } from '@/lib/iconeServico';
 import { formatDurationExtenso } from '@/lib/formatters';
 import type { Service } from '@/types';
 
@@ -15,7 +16,7 @@ export const ServiceCard = ({ service, onEdit, onDelete }: ServiceCardProps) => 
   <Card className="flex flex-col gap-4">
     <div className="flex items-start justify-between gap-2">
       <div className="flex h-12 w-12 items-center justify-center rounded-control bg-brand/12 text-brand-text">
-        <Scissors className="h-6 w-6" aria-hidden="true" />
+        <Icon name={iconeDoServico(service.name)} size={24} />
       </div>
       <div className="flex gap-1">
         <IconButton icon={Edit2} label="Editar serviço" onClick={onEdit} />

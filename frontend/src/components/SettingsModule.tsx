@@ -12,8 +12,6 @@ import { formatCpfCnpj, isValidCpfCnpj, normalizeCpfCnpjDigits } from '@/utils/c
 import { BusinessProfileSection } from '@/components/settings/BusinessProfileSection';
 import { AccountSection } from '@/components/settings/AccountSection';
 import { ScheduleSection } from '@/components/settings/ScheduleSection';
-import { RemindersSection } from '@/components/settings/RemindersSection';
-import { IntegrationsSection } from '@/components/settings/IntegrationsSection';
 import { AppearanceSection } from '@/components/settings/AppearanceSection';
 import { ComissaoPadraoSection } from '@/components/settings/ComissaoPadraoSection';
 import { AppProfissionalSection } from '@/components/settings/AppProfissionalSection';
@@ -490,27 +488,16 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <ScheduleSection
-          settingsLoading={settingsLoading}
-          diasAbertos={settings.diasAbertos}
-          openingTime={settings.openingTime}
-          closingTime={settings.closingTime}
-          slotIntervalMinutes={settings.slotIntervalMinutes}
-          allowWalkins={settings.allowWalkins}
-          autoConfirmAppointments={settings.autoConfirmAppointments}
-          onFieldChange={updateSettingsField}
-        />
-
-        <RemindersSection />
-
-        <IntegrationsSection
-          settingsLoading={settingsLoading}
-          whatsappInstanceName={settings.whatsappInstanceName}
-          onFieldChange={updateSettingsField}
-          className="lg:col-span-2"
-        />
-      </div>
+      <ScheduleSection
+        settingsLoading={settingsLoading}
+        diasAbertos={settings.diasAbertos}
+        openingTime={settings.openingTime}
+        closingTime={settings.closingTime}
+        slotIntervalMinutes={settings.slotIntervalMinutes}
+        allowWalkins={settings.allowWalkins}
+        autoConfirmAppointments={settings.autoConfirmAppointments}
+        onFieldChange={updateSettingsField}
+      />
 
       <ComissaoPadraoSection />
 
@@ -530,7 +517,7 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
             <span className="font-semibold">Preferências operacionais</span>
           </div>
           <p className="text-[15px] text-muted">
-            Horários, notificações e integrações técnicas continuam sendo salvos separadamente dos dados cadastrais
+            Horários e preferências da agenda são salvos separadamente dos dados cadastrais
             da conta.
           </p>
         </div>
