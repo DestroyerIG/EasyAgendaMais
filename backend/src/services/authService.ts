@@ -10,6 +10,8 @@ import { getAuthProviderMode } from '../config/authProviderMode.js';
 import { supabaseAuthService } from './supabaseAuthService.js';
 import type { Response } from 'express';
 import type { UserRole } from '../types/domain.js';
+import { onboardingService } from '../modules/onboarding/onboarding.service.js';
+import { vocabularioDe } from '../config/vocabulario.js';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -1610,11 +1612,14 @@ export const authService = {
     }
 
     const normalizedRole = normalizeRole(user.role as string);
+    const negocioId = businessId || (user.business_id as string) || null;
+    // Onboarding guiado e vocabulário do segmento (fase 6). Nunca derruba o /me.
+    const { onboarding, vocabulario } = await onboardingService.resumo(negocioId).catch(() => ({ onboarding: null, vocabulario: vocabularioDe(null) }));
 
     return {
       user: {
         id: user.id as string,
-        businessId: businessId || (user.business_id as string) || null,
+        businessId: negocioId,
         email: user.email as string,
         role: normalizedRole,
         businessName: (user.business_name as string) || null,
@@ -1622,6 +1627,8 @@ export const authService = {
         emailVerified: Boolean(user.email_verified),
         subscriptionStatus: (user.subscription_status as string) || null,
         subscriptionCurrentPeriodEnd: (user.subscription_current_period_end as string) || null,
+        onboarding,
+        vocabulario,
       },
     };
   },

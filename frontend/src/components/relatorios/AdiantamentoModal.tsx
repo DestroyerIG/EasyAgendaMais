@@ -6,6 +6,7 @@ import { getApiErrorMessage } from '@/utils/handleApiError';
 import { type Adiantamento, dataBr, hojeLocal, relatoriosApi } from '@/lib/relatorios';
 import api from '@/lib/api';
 import { Button, Field, Icon, Input, Modal, Select } from '@/components/ui';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 // Lança um adiantamento para a profissional e lista os que ainda estão em aberto. O valor
 // é descontado no próximo repasse; não mexe no Caixa.
@@ -17,6 +18,7 @@ interface AdiantamentoModalProps {
 }
 
 export function AdiantamentoModal({ profissionais: daApuracao, onClose, onSalvo }: AdiantamentoModalProps) {
+  const { prof } = useVocabulario();
   const hoje = hojeLocal();
   const [profissionais, setProfissionais] = useState(daApuracao);
   const [professionalId, setProfessionalId] = useState(daApuracao[0]?.id ?? '');
@@ -92,7 +94,7 @@ export function AdiantamentoModal({ profissionais: daApuracao, onClose, onSalvo 
       )}
     >
       <div className="space-y-4 text-[14px]">
-        <Field id="adiant-prof" label="Profissional">
+        <Field id="adiant-prof" label={prof.S}>
           <Select id="adiant-prof" value={professionalId} onChange={(e) => setProfessionalId(e.target.value)}>
             {profissionais.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
           </Select>

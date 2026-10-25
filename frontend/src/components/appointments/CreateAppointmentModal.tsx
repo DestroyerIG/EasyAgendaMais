@@ -6,6 +6,7 @@ import { formatCurrency, formatDurationExtenso } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
 import { Modal, ModalFooter, Field, Select, Input } from '@/components/ui';
 import type { Client, Professional, Service } from '@/types';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 interface CreateAppointmentModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export function CreateAppointmentModal({
   availableSlots, slotsLoading, onLoadSlots, onSubmit, inicial, editandoId
 }: CreateAppointmentModalProps) {
   const today = new Date().toISOString().split('T')[0];
+  const { prof, cli } = useVocabulario();
   const [formData, setFormData] = useState<AppointmentFormData>({
     clientId: '', professionalId: '', serviceId: '', date: today, time: '',
   });
@@ -136,7 +138,7 @@ export function CreateAppointmentModal({
     >
       <div className="flex flex-col gap-5">
         {/* Cliente */}
-        <Field id="client-search" label="Cliente">
+        <Field id="client-search" label={cli.S}>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
             <Input
@@ -150,7 +152,7 @@ export function CreateAppointmentModal({
           </div>
           <div className="mt-2 max-h-32 space-y-1 overflow-y-auto">
             {filteredClients.length === 0 ? (
-              <p className="p-2 text-[13px] text-muted">Nenhum cliente encontrado</p>
+              <p className="p-2 text-[13px] text-muted">{cli.g('Nenhuma', 'Nenhum')} {cli.s} {cli.g('encontrada', 'encontrado')}</p>
             ) : (
               filteredClients.map(client => (
                 <button
@@ -175,15 +177,15 @@ export function CreateAppointmentModal({
         {/* Profissional */}
         <Field
           id="professionalId"
-          label="Profissional"
-          hint={professionals.length === 0 ? 'Nenhum profissional cadastrado' : undefined}
+          label={prof.S}
+          hint={professionals.length === 0 ? `${prof.g('Nenhuma', 'Nenhum')} ${prof.s} ${prof.g('cadastrada', 'cadastrado')}` : undefined}
         >
           <Select
             id="professionalId"
             value={formData.professionalId}
             onChange={e => handleChange('professionalId', e.target.value)}
           >
-            <option value="">Selecione um profissional</option>
+            <option value="">Selecione {prof.umS}</option>
             {professionals.map(professional => (
               <option key={professional.id} value={professional.id}>
                 {professional.name}
@@ -227,7 +229,7 @@ export function CreateAppointmentModal({
           {!formData.professionalId ? (
             <div className="flex items-center gap-2 rounded-control border border-line bg-warning/12 p-3">
               <AlertCircle className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
-              <p className="text-[13px] text-warning">Selecione um profissional para ver horários</p>
+              <p className="text-[13px] text-warning">Selecione {prof.umS} para ver horários</p>
             </div>
           ) : slotsLoading ? (
             <div className="flex items-center justify-center py-4">

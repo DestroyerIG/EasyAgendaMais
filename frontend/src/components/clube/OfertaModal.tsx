@@ -7,6 +7,7 @@ import { getApiErrorMessage } from '@/utils/handleApiError';
 import { cn } from '@/lib/cn';
 import { type Oferta, type OfertaInput, type TipoOferta, clubeApi } from '@/lib/clube';
 import { Button, Field, Input, Modal, Select, Switch, Textarea } from '@/components/ui';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 // Criar ou editar um clube (assinatura mensal) ou pacote (sessões pagas antes).
 // Preço, sessões e valor por sessão ficam gravados em cada contrato vendido: editar não muda quem já comprou.
@@ -24,6 +25,7 @@ const moeda = (v: number) => (v ? v.toFixed(2).replace('.', ',') : '');
 
 export function OfertaModal({ oferta, onClose, onSalva }: OfertaModalProps) {
   const [tipo, setTipo] = useState<TipoOferta>(oferta?.tipo ?? 'clube');
+  const { prof, adaptar } = useVocabulario();
   const [nome, setNome] = useState(oferta?.nome ?? '');
   const [descricao, setDescricao] = useState(oferta?.descricao ?? '');
   const [preco, setPreco] = useState(moeda(oferta?.preco ?? 0));
@@ -52,7 +54,7 @@ export function OfertaModal({ oferta, onClose, onSalva }: OfertaModalProps) {
         setListaServicos((Array.isArray(s.data) ? s.data : []).filter((x) => x.active !== false || servicos.includes(x.id)));
         setListaProfissionais((Array.isArray(p.data) ? p.data : []).filter((x) => x.active !== false || profissionais.includes(x.id)));
       })
-      .catch((e) => ativo && setErro(getApiErrorMessage(e, 'Não foi possível carregar serviços e profissionais.')));
+      .catch((e) => ativo && setErro(getApiErrorMessage(e, adaptar('Não foi possível carregar serviços e profissionais.'))));
     return () => { ativo = false; };
     // Carrega uma vez; as seleções iniciais só servem para não esconder itens inativos já escolhidos.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -205,7 +207,7 @@ export function OfertaModal({ oferta, onClose, onSalva }: OfertaModalProps) {
         </p>
 
         <fieldset className="space-y-2">
-          <legend className="text-[13px] font-semibold text-ink">Profissionais</legend>
+          <legend className="text-[13px] font-semibold text-ink">{prof.P}</legend>
           <p className="text-[12px] text-muted">Sem marcar nenhuma, vale com todas.</p>
           <div className="flex flex-wrap gap-2">
             {listaProfissionais.map((p) => (
@@ -231,7 +233,7 @@ export function OfertaModal({ oferta, onClose, onSalva }: OfertaModalProps) {
           description="Marcar o agendamento como faltou consome uma sessão do saldo." />
         {tipo === 'clube' && (
           <Switch checked={publica} onCheckedChange={setPublica} label="Mostrar na Minha página"
-            description="A cliente assina pela página pública e paga o primeiro Pix. A assinatura começa quando você confirmar." />
+            description={adaptar('A cliente assina pela página pública e paga o primeiro Pix. A assinatura começa quando você confirmar.')} />
         )}
 
         {erro && <p role="alert" className="text-danger">{erro}</p>}

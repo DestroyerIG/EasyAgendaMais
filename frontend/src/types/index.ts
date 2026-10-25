@@ -1,3 +1,5 @@
+import type { Vocabulario } from '@/lib/vocabulario';
+
 // Interfaces TypeScript do EasyAgenda
 
 export interface DashboardData {
@@ -112,6 +114,10 @@ export interface User {
     emailVerified?: boolean;
     subscriptionStatus?: 'active' | 'trialing' | 'pending' | 'past_due' | 'unpaid' | 'canceled' | 'incomplete';
     subscriptionCurrentPeriodEnd?: string | null;
+    /** Onboarding guiado (fase 6): só para a dona; `null` sem negócio. */
+    onboarding?: { pendente: boolean; bloqueante: boolean; etapa: number } | null;
+    /** Termos do segmento do negócio (fase 6). */
+    vocabulario?: Vocabulario;
 }
 
 export interface Expense {

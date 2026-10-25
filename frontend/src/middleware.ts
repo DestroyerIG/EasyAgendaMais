@@ -22,6 +22,7 @@ const PROTECTED_PATHS = [
   '/pagamento',
   '/admin',
   '/bancada',
+  '/onboarding',
 ];
 const AUTH_PAGES = ['/login', '/cadastro'];
 
@@ -115,6 +116,8 @@ export const config = {
     '/admin/:path*',
     '/bancada',
     '/bancada/:path*',
+    '/onboarding',
+    '/onboarding/:path*',
     '/login',
     '/cadastro',
     '/esqueci-senha',

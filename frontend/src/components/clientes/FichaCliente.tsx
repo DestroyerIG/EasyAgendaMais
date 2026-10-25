@@ -42,6 +42,7 @@ import { listarEtiquetas, type Etiqueta } from '@/lib/tags';
 import { linkWhatsapp, MENSAGENS, preencherMensagem } from '@/lib/whatsappLink';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import type { Client } from '@/types';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 const ROTULO_CANAL: Record<NonNullable<ConsentimentoDto['canal']>, string> = {
   painel: 'Painel',
@@ -61,6 +62,7 @@ type Estado = 'carregando' | 'pronto' | 'nao_encontrada' | 'erro';
 
 export function FichaCliente({ clienteId, nomeNegocio }: FichaClienteProps) {
   const { showToast } = useToast();
+  const { adaptar, cli } = useVocabulario();
   const [perfil, setPerfil] = useState<ClientProfileDto | null>(null);
   const [estado, setEstado] = useState<Estado>('carregando');
 
@@ -100,7 +102,7 @@ export function FichaCliente({ clienteId, nomeNegocio }: FichaClienteProps) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-2xl bg-surface px-4 py-16 text-center shadow-sm">
         <Icon name="person_off" size={40} className="text-muted" />
-        <p className="text-[16px] font-bold text-ink">Cliente não encontrada</p>
+        <p className="text-[16px] font-bold text-ink">{cli.S} não {cli.g('encontrada', 'encontrado')}</p>
         <p className="max-w-sm text-[14px] text-muted">Ela pode ter sido removida ou o link está incorreto.</p>
         <Link href="/clientes" className="mt-1 text-[14px] font-bold text-brand-text hover:underline">
           Voltar para clientes
@@ -159,12 +161,12 @@ export function FichaCliente({ clienteId, nomeNegocio }: FichaClienteProps) {
       const { data } = await api.get<Client[]>('/clients');
       const completo = Array.isArray(data) ? data.find((c) => c.id === cliente.id) : undefined;
       if (!completo) {
-        showToast('Cliente não encontrada', 'error');
+        showToast(`${cli.S} não ${cli.g('encontrada', 'encontrado')}`, 'error');
         return;
       }
       setCadastro(completo);
     } catch {
-      showToast('Erro ao carregar cliente', 'error');
+      showToast(adaptar('Erro ao carregar cliente'), 'error');
     }
   };
 
@@ -178,10 +180,10 @@ export function FichaCliente({ clienteId, nomeNegocio }: FichaClienteProps) {
         address: data.address || null,
         notes: data.notes || null,
       });
-      showToast('Cliente atualizada com sucesso', 'success');
+      showToast(`${cli.S} ${cli.g('atualizada', 'atualizado')} com sucesso`, 'success');
       carregar(true);
     } catch (error) {
-      showToast(getApiErrorMessage(error, 'Erro ao atualizar cliente'), 'error');
+      showToast(getApiErrorMessage(error, adaptar('Erro ao atualizar cliente')), 'error');
       throw error;
     }
   };
@@ -334,7 +336,7 @@ export function FichaCliente({ clienteId, nomeNegocio }: FichaClienteProps) {
               variant="whatsapp"
               onClick={() => setWhatsappAberto(true)}
               disabled={!temTelefone}
-              title={temTelefone ? undefined : 'Cadastre o telefone da cliente'}
+              title={temTelefone ? undefined : adaptar('Cadastre o telefone da cliente')}
               className="rounded-xl px-3 sm:px-4"
             >
               <Icon name="chat" size={18} />
@@ -352,7 +354,7 @@ export function FichaCliente({ clienteId, nomeNegocio }: FichaClienteProps) {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  aria-label="Mais opções da cliente"
+                  aria-label={adaptar('Mais opções da cliente')}
                   className="flex h-11 w-11 items-center justify-center rounded-xl bg-surface-2 text-ink transition-colors hover:bg-line/60"
                 >
                   <Icon name="more_vert" size={20} />
@@ -377,7 +379,7 @@ export function FichaCliente({ clienteId, nomeNegocio }: FichaClienteProps) {
       </section>
 
       {/* Indicadores: 2×2 no celular, 4 em linha no desktop largo */}
-      <section aria-label="Indicadores da cliente" className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+      <section aria-label={adaptar('Indicadores da cliente')} className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         {indicador(
           'indicador-ciclo',
           'Ciclo médio de retorno',
@@ -467,8 +469,8 @@ export function FichaCliente({ clienteId, nomeNegocio }: FichaClienteProps) {
       >
         <p className="text-[14px] text-ink">
           {confirmacao === 'revogar'
-            ? 'A cliente deixa de receber mensagens e lembretes pelo WhatsApp.'
-            : 'A cliente autorizou receber mensagens e lembretes pelo WhatsApp?'}
+            ? adaptar('A cliente deixa de receber mensagens e lembretes pelo WhatsApp.')
+            : adaptar('A cliente autorizou receber mensagens e lembretes pelo WhatsApp?')}
         </p>
       </Modal>
 

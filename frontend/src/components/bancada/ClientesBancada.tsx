@@ -7,10 +7,12 @@ import { Avatar, EmptyState, Skeleton } from '@/components/ui';
 import { bancadaApi, type ClienteDela } from '@/lib/bancada';
 import { formatPhone } from '@/lib/formatters';
 import { ErroBancada } from './ErroBancada';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 // Clientes dela: quem tem (ou teve) agendamento com a profissional do login.
 
 export function ClientesBancada() {
+  const { cli, adaptar } = useVocabulario();
   const [busca, setBusca] = useState('');
   const [lista, setLista] = useState<ClienteDela[] | null>(null);
   const [erro, setErro] = useState<unknown>(null);
@@ -27,7 +29,7 @@ export function ClientesBancada() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-bold text-ink">Suas clientes</h1>
+      <h1 className="text-xl font-bold text-ink">{adaptar('Suas clientes')}</h1>
       <label className="relative block">
         <span className="sr-only">Buscar por nome ou telefone</span>
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
@@ -45,8 +47,8 @@ export function ClientesBancada() {
           <Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full" />
         </div>
       ) : lista.length === 0 ? (
-        <EmptyState icon={Users} title={busca ? 'Nenhuma cliente encontrada' : 'Nenhuma cliente ainda'}
-          description="Aparecem aqui as clientes que já marcaram com você." />
+        <EmptyState icon={Users} title={busca ? `${cli.g('Nenhuma', 'Nenhum')} ${cli.s} ${cli.g('encontrada', 'encontrado')}` : adaptar('Nenhuma cliente ainda')}
+          description={adaptar('Aparecem aqui as clientes que já marcaram com você.')} />
       ) : (
         <ul className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
           {lista.map((c) => (

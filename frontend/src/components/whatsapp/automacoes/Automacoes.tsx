@@ -17,6 +17,7 @@ import { CartoesResultado } from './CartoesResultado';
 import { ConfigurarRegraModal } from './ConfigurarRegraModal';
 import { HistoricoDisparosModal } from './HistoricoDisparosModal';
 import { NovaAutomacaoModal } from './NovaAutomacaoModal';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 interface AutomacoesProps {
   conectado: boolean;
@@ -104,13 +105,14 @@ const CONTEUDO: { [R in Regra]: ConteudoRegra<R> } = {
   },
 };
 
-function conteudoDe<R extends Regra>(regra: R, config: ConfigRegras[R], porRegra: PorRegra | null) {
+// Os textos são escritos com "a cliente"; `adaptar` troca pelo vocabulário do segmento.
+function conteudoDe<R extends Regra>(regra: R, config: ConfigRegras[R], porRegra: PorRegra | null, adaptar: (t: string) => string) {
   const c: ConteudoRegra<R> = CONTEUDO[regra];
   return {
-    titulo: c.titulo(config),
-    descricao: c.descricao(config),
+    titulo: adaptar(c.titulo(config)),
+    descricao: adaptar(c.descricao(config)),
     icone: c.icone,
-    quando: c.quando(config),
+    quando: adaptar(c.quando(config)),
     numero: porRegra ? c.numero(porRegra[regra]) : '—',
   };
 }
@@ -122,6 +124,7 @@ const botaoSecundario =
 
 export function Automacoes({ conectado, onAbrirConexao, nomeNegocio }: AutomacoesProps) {
   const { showToast } = useToast();
+  const { adaptar } = useVocabulario();
   const showToastRef = useRef(showToast);
   showToastRef.current = showToast;
   const [regras, setRegras] = useState<RegraDto[] | null>(null);
@@ -258,7 +261,7 @@ export function Automacoes({ conectado, onAbrirConexao, nomeNegocio }: Automacoe
             <CartaoRegra
               key={r.regra}
               regra={r}
-              {...conteudoDe(r.regra, r.config, painel?.porRegra ?? null)}
+              {...conteudoDe(r.regra, r.config, painel?.porRegra ?? null, adaptar)}
               onAlternar={(ativa) => void alternar(r.regra, ativa)}
               onConfigurar={() => setConfigurando(r.regra)}
               className={i === regras.length - 1 && regras.length % 2 === 1 ? 'lg:col-span-2 xl:col-span-1' : undefined}
@@ -309,7 +312,7 @@ export function Automacoes({ conectado, onAbrirConexao, nomeNegocio }: Automacoe
         <ConfigurarRegraModal
           regra={regraConfigurando}
           aberto
-          titulo={conteudoDe(regraConfigurando.regra, regraConfigurando.config, null).titulo}
+          titulo={conteudoDe(regraConfigurando.regra, regraConfigurando.config, null, adaptar).titulo}
           nomeNegocio={nomeNegocio}
           onFechar={() => setConfigurando(null)}
           onSalvo={(nova) => { substituir(nova); setConfigurando(null); }}
@@ -321,7 +324,7 @@ export function Automacoes({ conectado, onAbrirConexao, nomeNegocio }: Automacoe
       <NovaAutomacaoModal
         regras={regras ?? []}
         aberto={modal === 'nova'}
-        descrever={(r) => conteudoDe(r.regra, r.config, null)}
+        descrever={(r) => conteudoDe(r.regra, r.config, null, adaptar)}
         onFechar={() => setModal(null)}
         onAtivar={(regra) => void alternar(regra, true)}
       />

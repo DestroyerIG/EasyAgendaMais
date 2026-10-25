@@ -6,6 +6,8 @@ import { Prisma } from '@prisma/client';
 import logger from '../../utils/logger.js';
 import { prisma } from '../../config/prisma.js';
 import { DEFAULT_BOT_CONFIG, FALLBACK_BOT_CONFIG, DEFAULT_MENU_OPTIONS, BotConfig, MenuOption } from './whatsappConstants.js';
+import { aplicarVocabulario } from './whatsappVocabulario.js';
+import { vocabularioDe } from '../../config/vocabulario.js';
 
 // ── Menu option row shape returned by the DB ──────────────────────────────────
 
@@ -25,6 +27,13 @@ interface MenuOptionRow {
  * Busca configuração de mensagens do bot (todas as mensagens configuráveis).
  */
 export const getBotConfig = async (businessId: string): Promise<BotConfig> => {
+  const config = await lerBotConfig(businessId);
+  // Vocabulário do segmento (fase 6) nas mensagens padrão. Sem o segmento, fica o texto de sempre.
+  const s = await prisma.businessSettings.findUnique({ where: { businessId }, select: { segment: true } }).catch(() => null);
+  return aplicarVocabulario(config, vocabularioDe(s?.segment));
+};
+
+const lerBotConfig = async (businessId: string): Promise<BotConfig> => {
   try {
     const dbConfig = await prisma.whatsappBotConfig.findFirst({
       where: { businessId },

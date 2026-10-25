@@ -33,6 +33,7 @@ import {
 } from '@/lib/waitlist';
 import type { Client, Professional, Service } from '@/types';
 import { getApiErrorMessage } from '@/utils/handleApiError';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 export const PERIODO_ROTULO: Record<PeriodoEspera, string> = {
   manha: 'Manhã',
@@ -99,6 +100,7 @@ const FORM_VAZIO: FormInscricao = { clientId: '', serviceId: '', professionalId:
 
 function FormularioInscricao({ onInscrita, onCancelar }: { onInscrita: () => void; onCancelar: () => void }) {
   const { showToast } = useToast();
+  const { prof, cli } = useVocabulario();
   const [clientes, setClientes] = useState<Client[]>([]);
   const [servicos, setServicos] = useState<Service[]>([]);
   const [profissionais, setProfissionais] = useState<Professional[]>([]);
@@ -118,7 +120,7 @@ function FormularioInscricao({ onInscrita, onCancelar }: { onInscrita: () => voi
         setProfissionais(Array.isArray(p?.data) ? p.data : []);
       })
       .catch((error: unknown) => {
-        if (ativo) setErroDados(getApiErrorMessage(error, 'Não foi possível carregar clientes, serviços e profissionais.'));
+        if (ativo) setErroDados(getApiErrorMessage(error, `Não foi possível carregar ${cli.p}, serviços e ${prof.p}.`));
       })
       .finally(() => {
         if (ativo) setCarregandoDados(false);
@@ -126,7 +128,7 @@ function FormularioInscricao({ onInscrita, onCancelar }: { onInscrita: () => voi
     return () => {
       ativo = false;
     };
-  }, []);
+  }, [cli.p, prof.p]);
 
   const termo = busca.trim().toLowerCase();
   const filtradas = clientes.filter((c) => c.name.toLowerCase().includes(termo) || c.phone.includes(termo));
@@ -145,7 +147,7 @@ function FormularioInscricao({ onInscrita, onCancelar }: { onInscrita: () => voi
       showToast('Cliente inscrita na lista de espera.', 'success');
       onInscrita();
     } catch (error: unknown) {
-      showToast(getApiErrorMessage(error, 'Não foi possível inscrever a cliente.'), 'error');
+      showToast(getApiErrorMessage(error, `Não foi possível inscrever ${cli.oS}.`), 'error');
     } finally {
       setSalvando(false);
     }
@@ -174,7 +176,7 @@ function FormularioInscricao({ onInscrita, onCancelar }: { onInscrita: () => voi
             <span className="text-[13px] text-ink">{erroDados}</span>
           </Banner>
         ) : filtradas.length === 0 ? (
-          <p className="p-2 text-[13px] text-muted">Nenhuma cliente encontrada</p>
+          <p className="p-2 text-[13px] text-muted">{cli.g('Nenhuma', 'Nenhum')} {cli.s} {cli.g('encontrada', 'encontrado')}</p>
         ) : (
           filtradas.map((c) => (
             <button
@@ -201,9 +203,9 @@ function FormularioInscricao({ onInscrita, onCancelar }: { onInscrita: () => voi
           ))}
         </Select>
       </Field>
-      <Field id="espera-profissional" label="Profissional">
+      <Field id="espera-profissional" label={prof.S}>
         <Select id="espera-profissional" value={form.professionalId} onChange={(e) => mudar('professionalId', e.target.value)}>
-          <option value="">Qualquer profissional</option>
+          <option value="">Qualquer {prof.s}</option>
           {profissionais.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
@@ -250,6 +252,7 @@ function FormularioOferta({
   onVoltar: () => void;
 }) {
   const { showToast } = useToast();
+  const { cli } = useVocabulario();
   const [data, setData] = useState(vagaInicial?.date ?? item.desiredDate ?? '');
   const [hora, setHora] = useState(vagaInicial?.time ?? '');
   const [enviando, setEnviando] = useState(false);
@@ -268,7 +271,7 @@ function FormularioOferta({
       const { whatsappUrl } = await ofertarVaga(item.id, { date: data, time: hora, ...(professionalId ? { professionalId } : {}) });
       if (!whatsappUrl) {
         janela?.close();
-        showToast('Vaga marcada como oferecida, mas a cliente não tem um WhatsApp válido.', 'info');
+        showToast(`Vaga marcada como oferecida, mas ${cli.oS} não tem um WhatsApp válido.`, 'info');
         onOfertada();
       } else if (janela) {
         janela.opener = null;
@@ -333,6 +336,7 @@ export function ListaEsperaPanel({
 }: ListaEsperaPanelProps) {
   const router = useRouter();
   const { showToast } = useToast();
+  const { prof } = useVocabulario();
   const periodoInicial = filtroInicial?.period;
   const dataInicial = filtroInicial?.date;
   const [filtro, setFiltro] = useState<FiltroEspera>(() => limparFiltro({ period: periodoInicial, date: dataInicial }));
@@ -497,7 +501,7 @@ export function ListaEsperaPanel({
                     <div className="flex min-w-0 flex-col gap-0.5">
                       <span className="truncate text-[15px] font-bold text-ink">{item.cliente.name}</span>
                       <span className="text-[13px] text-muted">
-                        {item.servico.name} · {item.profissional?.name ?? 'Qualquer profissional'}
+                        {item.servico.name} · {item.profissional?.name ?? `Qualquer ${prof.s}`}
                       </span>
                       <span className="flex items-center gap-1 text-[13px] text-muted">
                         <Icon name="event" size={15} />

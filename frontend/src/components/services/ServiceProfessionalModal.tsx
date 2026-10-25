@@ -8,6 +8,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/Toast';
 import { isValidCnpj } from '@/utils/cpfCnpj';
 import { AcessoAppProfissional } from './AcessoAppProfissional';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 export interface ServiceFormData {
   name: string;
@@ -82,6 +83,7 @@ export const ServiceProfessionalModal = ({
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
+  const { prof } = useVocabulario();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -223,7 +225,7 @@ export const ServiceProfessionalModal = ({
 
   const title = activeTab === 'servicos'
     ? (editingItem ? 'Editar Serviço' : 'Novo Serviço')
-    : (editingItem ? 'Editar Profissional' : 'Novo Profissional');
+    : (editingItem ? `Editar ${prof.s}` : `${prof.g('Nova', 'Novo')} ${prof.s}`);
 
   const isLoading = submitting || uploading;
 
@@ -296,7 +298,7 @@ export const ServiceProfessionalModal = ({
           </>
         ) : (
           <>
-            <Field id="professional-name" label="Nome do Profissional">
+            <Field id="professional-name" label={`Nome ${prof.doS}`}>
               <Input
                 id="professional-name"
                 required

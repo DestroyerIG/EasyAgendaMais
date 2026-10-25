@@ -26,10 +26,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [moreOpen, setMoreOpen] = useState(false);
   // O papel `professional` usa só o app da bancada (fase 5): o painel fica fechado para ele.
   const ehProfissional = user?.role === 'professional';
+  // Conta nova da dona: as etapas 1 a 3 do onboarding vêm antes do painel (fase 6).
+  const onboardingPendente = user?.role === 'tenant_admin' && user.onboarding?.bloqueante === true;
 
   useEffect(() => {
     if (ehProfissional) router.replace('/bancada');
-  }, [ehProfissional, router]);
+    else if (onboardingPendente) router.replace('/onboarding');
+  }, [ehProfissional, onboardingPendente, router]);
 
   const activeId = getActiveNavItem(pathname);
   const businessName = user?.businessName || 'Seu negócio';
@@ -40,7 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     void logout();
   };
 
-  if (ehProfissional) return <div className="app-theme min-h-screen" />;
+  if (ehProfissional || onboardingPendente) return <div className="app-theme min-h-screen" />;
 
   return (
     <div className="app-theme min-h-screen">

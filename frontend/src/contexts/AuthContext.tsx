@@ -236,7 +236,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       try {
         const response = await api.post('/auth/login', { email, password });
-        const userData = extractUserFromResponse(response.data) ?? (await refreshMe());
+        const doLogin = extractUserFromResponse(response.data);
+        // O login não traz o onboarding nem o vocabulário (fase 6): a dona carrega o /auth/me completo.
+        const userData = doLogin && doLogin.role !== 'tenant_admin' ? doLogin : (await refreshMe()) ?? doLogin;
 
         if (!userData) {
           throw new Error('Sessão não foi carregada após o login.');
@@ -245,7 +247,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(userData);
         const postAuthRoute = userData.role === 'platform_admin' || userData.role === 'professional'
           ? resolvePostAuthRoute(userData.role, options?.redirectTo)
-          : await resolveTenantPostLoginRoute(options?.redirectTo);
+          : await resolveTenantPostLoginRoute(userData.onboarding?.bloqueante ? '/onboarding' : options?.redirectTo);
 
         const currentPath = typeof window !== 'undefined' ? window.location.pathname : null;
         console.log('[auth] auth_guard_decision', {

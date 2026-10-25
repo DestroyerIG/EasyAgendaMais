@@ -44,6 +44,7 @@ import { SeloConfirmouWhatsapp } from './AppointmentCard';
 import { ACOES_POR_STATUS, ROTULO_ACAO, type AcaoAgendamento } from './acoes';
 import { linkWhatsapp } from '@/lib/whatsapp';
 import type { Appointment } from '@/types';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 /** Largura do painel no computador. */
 export const LARGURA_PAINEL = 'sm:max-w-[440px]';
@@ -93,6 +94,7 @@ type EstadoDetalhes = { fase: 'carregando' } | { fase: 'pronto'; dados: Appointm
 
 /** GET /appointments/:id/details, refeito a cada troca de agendamento. */
 function useDetalhes(id: string): EstadoDetalhes {
+  const { adaptar } = useVocabulario();
   const { showToast } = useToast();
   const [estado, setEstado] = useState<EstadoDetalhes>({ fase: 'carregando' });
 
@@ -106,12 +108,12 @@ function useDetalhes(id: string): EstadoDetalhes {
       .catch(() => {
         if (cancelado) return;
         setEstado({ fase: 'erro' });
-        showToast('Não foi possível carregar o histórico da cliente', 'error');
+        showToast(adaptar('Não foi possível carregar o histórico da cliente'), 'error');
       });
     return () => {
       cancelado = true;
     };
-  }, [id, showToast]);
+  }, [id, showToast, adaptar]);
 
   return estado;
 }
@@ -136,13 +138,14 @@ function Indicador({ titulo, valor, unidade, rodape }: { titulo: string; valor: 
 }
 
 function IndicadoresDaCliente({ stats }: { stats: AppointmentDetails['client_stats'] }) {
+  const { adaptar } = useVocabulario();
   if (stats.last_visit_days_ago === null) {
     return (
       <div className="flex items-start gap-2.5 rounded-control border border-line bg-bg p-3">
         <Icon name="waving_hand" size={20} className="mt-0.5 shrink-0 text-brand-text" />
         <div className="flex flex-col">
           <span className="text-[13px] font-bold text-ink">Primeira visita</span>
-          <span className="text-[12px] text-muted">Ainda não há atendimentos concluídos desta cliente</span>
+          <span className="text-[12px] text-muted">{adaptar('Ainda não há atendimentos concluídos desta cliente')}</span>
         </div>
       </div>
     );
@@ -218,6 +221,7 @@ export interface ConteudoDetalhesProps {
 
 /** O miolo do painel, sem a moldura. */
 export function ConteudoDetalhesAgendamento({ agendamento }: ConteudoDetalhesProps) {
+  const { prof, adaptar } = useVocabulario();
   const estado = useDetalhes(agendamento.id);
   const cliente = agendamento.client_name || 'Cliente';
   const whatsapp = linkWhatsapp(agendamento.client_phone);
@@ -280,7 +284,7 @@ export function ConteudoDetalhesAgendamento({ agendamento }: ConteudoDetalhesPro
 
         {estado.fase === 'carregando' && (
           <div className="grid grid-cols-2 gap-2.5 pt-1">
-            <Skeleton className="h-[88px]" label="Carregando histórico da cliente" />
+            <Skeleton className="h-[88px]" label={adaptar('Carregando histórico da cliente')} />
             <Skeleton className="h-[88px]" />
           </div>
         )}
@@ -308,7 +312,7 @@ export function ConteudoDetalhesAgendamento({ agendamento }: ConteudoDetalhesPro
           </div>
           {agendamento.professional_name && (
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[13px] text-muted">Profissional:</span>
+              <span className="text-[13px] text-muted">{prof.S}:</span>
               <span className="flex items-center gap-1.5 text-[14px] font-bold text-ink">
                 <span aria-hidden="true" className="flex shrink-0">
                   <Avatar name={agendamento.professional_name} size={20} className="bg-brand/20 text-[10px] font-bold text-brand-text" />

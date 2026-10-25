@@ -17,6 +17,7 @@ import { formatCurrency, formatPhone } from '@/lib/formatters';
 import { materialIcon } from '@/lib/materialIconAdapter';
 import { buscarFases, type ClienteInsight, type Fase, type FasesDto } from '@/lib/crm';
 import { linkWhatsapp, MENSAGENS, preencherMensagem, type TipoMensagem } from '@/lib/whatsappLink';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 const ICONE_ERRO = materialIcon('error');
 
@@ -47,6 +48,7 @@ export interface FasesClientesProps {
 
 export function FasesClientes({ nomeNegocio, versao = 0 }: FasesClientesProps) {
   const router = useRouter();
+  const { cli, adaptar } = useVocabulario();
   const [dados, setDados] = useState<FasesDto | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(false);
@@ -97,7 +99,7 @@ export function FasesClientes({ nomeNegocio, versao = 0 }: FasesClientesProps) {
   const { kpis } = dados;
   const kpiCartoes: Array<{ rotulo: string; valor: string; apoio?: string; icone: string }> = [
     {
-      rotulo: 'Total de clientes ativas',
+      rotulo: `Total de ${cli.p} ${cli.g('ativas', 'ativos')}`,
       valor: String(kpis.ativas),
       apoio: `+${kpis.ativasNovasNoMes} este mês`,
       icone: 'groups',
@@ -129,7 +131,7 @@ export function FasesClientes({ nomeNegocio, versao = 0 }: FasesClientesProps) {
       <button
         type="button"
         disabled={!temTelefone}
-        title={temTelefone ? undefined : 'Cadastre o telefone da cliente'}
+        title={temTelefone ? undefined : adaptar('Cadastre o telefone da cliente')}
         onClick={() => setWhatsappDe({ cliente: c, tipo })}
         className={classeAcao}
       >
@@ -177,13 +179,13 @@ export function FasesClientes({ nomeNegocio, versao = 0 }: FasesClientesProps) {
                   <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold', cores.fundo, cores.texto)}>{col.contagem}</span>
                 </h2>
                 <span className="text-[12px] font-semibold tabular-nums text-ink">
-                  {col.contagem} {col.contagem === 1 ? 'cliente' : 'clientes'} · {formatCurrency(col.ltvTotal)}
+                  {col.contagem} {col.contagem === 1 ? cli.s : cli.p} · {formatCurrency(col.ltvTotal)}
                 </span>
                 <span className="text-[11px] text-muted">{FRASE_FASE[col.fase]}</span>
               </header>
 
               {col.cartoes.length === 0 ? (
-                <p className="rounded-lg bg-surface p-4 text-center text-[12px] text-muted">Nenhuma cliente nesta fase</p>
+                <p className="rounded-lg bg-surface p-4 text-center text-[12px] text-muted">{adaptar('Nenhuma cliente nesta fase')}</p>
               ) : (
                 col.cartoes.map((c) => (
                   <article

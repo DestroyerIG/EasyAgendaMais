@@ -10,6 +10,7 @@ import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
 import { equipeApi, rotuloAcesso, type Acesso } from '@/lib/equipe';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { cn } from '@/lib/cn';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 // Bloco "Acesso ao app" no cadastro da profissional (fase 5). Só a dona convida e tira o acesso.
 
@@ -25,6 +26,7 @@ export function AcessoAppProfissional({ professionalId, ativa = true }: { profes
   const { user } = useAuth();
   const { canAccess } = useSubscriptionAccess();
   const { showToast } = useToast();
+  const { prof } = useVocabulario();
   const [acesso, setAcesso] = useState<Acesso | null>(null);
   const [email, setEmail] = useState('');
   const [link, setLink] = useState<string | null>(null);
@@ -49,7 +51,7 @@ export function AcessoAppProfissional({ professionalId, ativa = true }: { profes
     return (
       <section className="rounded-card border border-line bg-surface-2 p-4">
         <p className="flex items-center gap-2 text-[14px] font-semibold text-ink">
-          <Smartphone className="h-4 w-4 text-brand" aria-hidden="true" /> App da profissional
+          <Smartphone className="h-4 w-4 text-brand" aria-hidden="true" /> App {prof.doS}
         </p>
         <p className="mt-1 text-[13px] text-muted">
           Ela vê a agenda, a ficha das clientes e os próprios números no celular. Disponível nos planos Equipe e Salão.
@@ -113,14 +115,14 @@ export function AcessoAppProfissional({ professionalId, ativa = true }: { profes
 
       {podeConvidar && ativa && (
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Input type="email" aria-label="E-mail da profissional" placeholder="E-mail dela" value={email}
+          <Input type="email" aria-label={`E-mail ${prof.doS}`} placeholder={`E-mail ${prof.dele}`} value={email}
             onChange={(e) => setEmail(e.target.value)} className="flex-1" />
           <Button type="button" variant="secondary" onClick={convidar} loading={ocupado} disabled={!email.includes('@')}>
             <Mail className="h-4 w-4" aria-hidden="true" /> {estado === 'sem_acesso' ? 'Convidar para o app' : 'Reenviar convite'}
           </Button>
         </div>
       )}
-      {!ativa && estado === 'sem_acesso' && <p className="text-[13px] text-muted">Reative a profissional para convidar.</p>}
+      {!ativa && estado === 'sem_acesso' && <p className="text-[13px] text-muted">Reative {prof.oS} para convidar.</p>}
 
       {link && (
         <div className="flex items-center gap-2 rounded-control bg-surface-2 p-2">

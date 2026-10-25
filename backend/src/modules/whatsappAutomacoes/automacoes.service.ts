@@ -4,6 +4,8 @@ import { AppError, ValidationError } from '../../utils/errors.js';
 import { automacoesRepository } from './automacoes.repository.js';
 import { CONFIG_SCHEMA, TEXTO_PADRAO, TEXTO_PADRAO_LEMBRETE_2H, VARIAVEIS, lerConfig, renderizarTexto } from './automacoes.rules.js';
 import { REGRAS, type ConfigRegras, type Regra, type RegraDto } from './automacoes.types.js';
+import { vocabularioDe, type Vocabulario } from '../../config/vocabulario.js';
+import { textoComCliente, textoComProfissional } from '../../services/whatsapp/whatsappVocabulario.js';
 
 export interface AtualizarAutomacao<R extends Regra> {
   ativa?: boolean;
@@ -13,17 +15,17 @@ export interface AtualizarAutomacao<R extends Regra> {
 
 interface Linha { ativa: boolean; texto: string | null; config: unknown }
 
-function textoPadraoDe(regra: Regra, config: ConfigRegras[Regra]): string {
-  if (regra === 'lembrete' && (config as ConfigRegras['lembrete']).modo === '2h') return TEXTO_PADRAO_LEMBRETE_2H;
-  return TEXTO_PADRAO[regra];
+function textoPadraoDe(regra: Regra, config: ConfigRegras[Regra], v: Vocabulario): string {
+  if (regra === 'lembrete' && (config as ConfigRegras['lembrete']).modo === '2h') return textoComProfissional(TEXTO_PADRAO_LEMBRETE_2H, v);
+  return textoComCliente(TEXTO_PADRAO[regra], v);
 }
 
-function montar<R extends Regra>(regra: R, linha: Linha | undefined, legado: { ativa: boolean; texto: string | null }): RegraDto<R> {
+function montar<R extends Regra>(regra: R, linha: Linha | undefined, legado: { ativa: boolean; texto: string | null }, v: Vocabulario): RegraDto<R> {
   // Linha salva do lembrete ganha do legado; sem linha, o lembrete herda o legado.
   const ativa = linha ? linha.ativa : regra === 'lembrete' ? legado.ativa : false;
   const textoSalvo = linha ? linha.texto : regra === 'lembrete' ? legado.texto : null;
   const config = lerConfig(regra, linha?.config);
-  const textoPadrao = textoPadraoDe(regra, config);
+  const textoPadrao = textoPadraoDe(regra, config, v);
   const personalizado = !!textoSalvo && textoSalvo.trim() !== '';
   return { regra, ativa, texto: personalizado ? textoSalvo! : textoPadrao, textoPadrao, personalizado, config, variaveis: VARIAVEIS[regra] };
 }
@@ -38,9 +40,14 @@ const EXEMPLO: Record<string, string> = {
 
 export const automacoes = {
   async obterTodas(businessId: string): Promise<RegraDto[]> {
-    const [linhas, legado] = await Promise.all([automacoesRepository.listar(businessId), automacoesRepository.legadoLembrete(businessId)]);
+    const [linhas, legado, segmento] = await Promise.all([
+      automacoesRepository.listar(businessId),
+      automacoesRepository.legadoLembrete(businessId),
+      Promise.resolve().then(() => automacoesRepository.segmento(businessId)).catch(() => null),
+    ]);
     const porRegra = new Map(linhas.map((l) => [l.regra, l]));
-    return REGRAS.map((r) => montar(r, porRegra.get(r), legado));
+    const v = vocabularioDe(segmento);
+    return REGRAS.map((r) => montar(r, porRegra.get(r), legado, v));
   },
 
   async obter<R extends Regra>(businessId: string, regra: R): Promise<RegraDto<R>> {

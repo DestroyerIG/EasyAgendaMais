@@ -70,6 +70,9 @@ export interface BotConfig {
   promotions_message: string;
   instagram_message: string;
   politica_message: string;
+  /** Calculados pelo vocabulário do segmento (fase 6), não ficam no banco. */
+  choose_professional_title?: string;
+  no_professionals_message?: string;
 }
 
 /**
