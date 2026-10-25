@@ -115,7 +115,7 @@ Sub-projeto 3 (Relatórios e Comissões), pendências conhecidas:
 - **Salão-parceiro:** a tela não gera contrato nem calcula imposto, só mostra o aviso para confirmar com o contador.
 
 Sub-projeto 4 (Clube e pacotes), pendências conhecidas:
-- Migração `20261026120000_clube_pacotes` **ainda não aplicada**. Só adições (tabelas novas e colunas novas em `comandas` e `comanda_itens`). Aplicar só com autorização do dono, com `migrate status` antes e depois.
+- Migração `20261026120000_clube_pacotes` aplicada em produção em 25/10/2026, com autorização do dono (`migrate status` limpo antes e depois; só adições).
 - As telas não foram vistas no navegador com dado real, porque o `.env` local aponta para produção. Conferir: vender um clube no balcão (pago e Pix a receber), confirmar o Pix, fechar uma comanda coberta, a linha "Clube" no Caixa e a adesão pela página pública.
 - **Confirmação manual:** o Pix cai na conta do salão e o sistema não sabe quando. Se a dona não confirmar, a cliente fica em atraso e a sessão não é debitada. Pix Automático ou gateway do salão ficam para depois.
 - **Falta não se desfaz:** como `faltou` é status final, uma falta que debitou sessão por engano não devolve a sessão. Hoje o caminho é a dona dar desconto numa próxima comanda.
@@ -201,7 +201,7 @@ Sub-projeto 4 (Clube e pacotes), pendências conhecidas:
     - mapa de ocupação por turno, com insight e horário de pico;
     - origem dos agendamentos e evolução de 6 meses com projeção.
   - CNPJ (MEI) e especialidade no cadastro da profissional.
-- Sub-projeto 4: Clube e pacotes (`/clube` e `/clube/assinantes`), só no plano Salão (recurso `clube`). Migração `20261026120000_clube_pacotes`, ainda não aplicada. Entrou:
+- Sub-projeto 4: Clube e pacotes (`/clube` e `/clube/assinantes`), só no plano Salão (recurso `clube`). Migração `20261026120000_clube_pacotes`, aplicada em produção em 25/10/2026. Entrou:
   - Clube por assinatura mensal (sessões por mês não cumulativas, intervalo mínimo, desconto de sócia) e pacote pré-pago (validade contada da 1ª sessão).
   - Venda no balcão (paga ou "Pix a receber" com o copia e cola no WhatsApp), confirmação manual idempotente, reenviar cobrança, cancelar e CSV.
   - Rotina de hora em hora: Pix do próximo ciclo 3 dias antes, atraso que bloqueia o uso e avisa no sino, pacote vencido e adesão pendente cancelada em 7 dias.

@@ -24,7 +24,7 @@ Atualizado em 24/10/2026.
 | 2C-2c | WhatsApp: Campanhas | ✅ Concluída | PR #8 |
 | 2D | Ajustes › Plano e cobrança, comparação e upgrade | ✅ Concluída | PR #9 |
 | 3 | Relatórios e Comissões (Salão-Parceiro) | ✅ Concluída | PR #10 |
-| **4** | **Clube e pacotes** | 🔄 Implementada, aguardando migração e PR | branch `feat/clube-pacotes` |
+| **4** | **Clube e pacotes** | 🔄 Em revisão (migração aplicada) | branch `feat/clube-pacotes` |
 | 5 | App da profissional (PWA) | ⏳ A fazer | — |
 
 ## Próxima fase: 4
@@ -42,7 +42,7 @@ Referências do Stitch em `docs/design/stitch/projeto/`:
 - `studio-aurora-comanda-com-debito-de-pacote-janela-completa--f852ab.html`
 - `studio-aurora-pagina-de-adesao-ao-clube-corrigida--257172.html` (mobile `…--f22861.html`)
 
-A implementação da fase 4 terminou em 25/10. Falta aplicar a migração `20261026120000_clube_pacotes` (com autorização do dono) e abrir o PR. O plano está em `docs/superpowers/plans/2026-10-24-clube-pacotes.md`.
+A implementação da fase 4 terminou em 25/10. A migração `20261026120000_clube_pacotes` foi aplicada em produção no mesmo dia, com autorização do dono, e o PR está aberto para revisão. O plano está em `docs/superpowers/plans/2026-10-24-clube-pacotes.md`.
 
 A fase 3 (PR #10) foi entregue em 24/10, com a migração já aplicada. A conferência das telas com dados reais continua pendente em `SEGUIMENTO.md`.
 
