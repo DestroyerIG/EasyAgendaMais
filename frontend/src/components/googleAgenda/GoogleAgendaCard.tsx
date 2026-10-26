@@ -27,21 +27,41 @@ export function GoogleAgendaCard({ para }: { para: ParaGoogle }) {
   const [confirmando, setConfirmando] = useState(false);
   const [desconectando, setDesconectando] = useState(false);
 
+  // Na volta do Google (?google=confirmar&t=...), confirma a conexão com a sessão de quem está
+  // logado antes de mostrar o estado; ?google=erro avisa. Depois limpa a URL.
   useEffect(() => {
-    googleAgendaApi.conexao().then(setEstado).catch(() => setEstado({ configurado: false, conexao: null }));
-  }, []);
-
-  // Volta do Google: ?google=ok|erro. Mostra uma vez e limpa a URL.
-  useEffect(() => {
-    const resultado = new URLSearchParams(window.location.search).get('google');
-    if (!resultado) return;
-    if (resultado === 'ok') showToast('Google Agenda conectado.', 'success');
-    else showToast('Não foi possível conectar o Google Agenda. Tente de novo.', 'error');
-    try {
-      const url = new URL(window.location.href);
-      url.searchParams.delete('google');
-      window.history.replaceState(null, '', url.toString());
-    } catch { /* URL de teste sem href completo */ }
+    const params = new URLSearchParams(window.location.search);
+    const resultado = params.get('google');
+    const t = params.get('t');
+    const erroAoConectar = 'Não foi possível conectar o Google Agenda. Tente de novo.';
+    if (resultado) {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('google');
+        url.searchParams.delete('t');
+        window.history.replaceState(null, '', url.toString());
+      } catch { /* URL de teste sem href completo */ }
+    }
+    (async () => {
+      if (resultado === 'confirmar' && t) {
+        try {
+          setEstado(await googleAgendaApi.confirmar(t));
+          showToast('Google Agenda conectado.', 'success');
+          return;
+        } catch (e) {
+          showToast(getApiErrorMessage(e, erroAoConectar), 'error');
+        }
+      } else if (resultado === 'ok') {
+        showToast('Google Agenda conectado.', 'success');
+      } else if (resultado) {
+        showToast(erroAoConectar, 'error');
+      }
+      try {
+        setEstado(await googleAgendaApi.conexao());
+      } catch {
+        setEstado({ configurado: false, conexao: null });
+      }
+    })();
   }, [showToast]);
 
   if (estado === null) return <Skeleton className="h-28 w-full" label="Carregando Google Agenda..." />;

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
 const api = vi.hoisted(() => ({
-  conexao: vi.fn(), conectar: vi.fn(), definirProfissional: vi.fn(), desconectar: vi.fn(), ocupado: vi.fn(),
+  conexao: vi.fn(), conectar: vi.fn(), confirmar: vi.fn(), definirProfissional: vi.fn(), desconectar: vi.fn(), ocupado: vi.fn(),
 }));
 vi.mock('@/lib/googleAgenda', async (orig) => ({ ...(await orig<typeof import('@/lib/googleAgenda')>()), googleAgendaApi: api }));
 const toast = vi.hoisted(() => vi.fn());
@@ -119,5 +119,23 @@ describe('GoogleAgendaCard', () => {
     Object.defineProperty(window, 'location', { configurable: true, value: { ...LOCATION_ORIGINAL, assign, search: '?google=erro' } });
     render(<GoogleAgendaCard para="negocio" />);
     await waitFor(() => expect(toast).toHaveBeenCalledWith('Não foi possível conectar o Google Agenda. Tente de novo.', 'error'));
+  });
+
+  it('volta do Google confirma a conexão com a sessão de quem está logado', async () => {
+    api.conexao.mockResolvedValue({ configurado: true, conexao: null, profissionais: [] });
+    api.confirmar.mockResolvedValue(conectada);
+    Object.defineProperty(window, 'location', { configurable: true, value: { ...LOCATION_ORIGINAL, assign, search: '?google=confirmar&t=abcdefghijklmnopqrstuvwxyz' } });
+    render(<GoogleAgendaCard para="negocio" />);
+    await waitFor(() => expect(api.confirmar).toHaveBeenCalledWith('abcdefghijklmnopqrstuvwxyz'));
+    expect(await screen.findByText('ana@gmail.com')).toBeInTheDocument();
+    expect(toast).toHaveBeenCalledWith('Google Agenda conectado.', 'success');
+  });
+
+  it('confirmação recusada mostra o erro', async () => {
+    api.conexao.mockResolvedValue({ configurado: true, conexao: null, profissionais: [] });
+    api.confirmar.mockRejectedValue(Object.assign(new Error('403'), { isAxiosError: true, response: { status: 403, data: { error: { message: 'Esta conexão foi pedida por outra conta. Conecte de novo por aqui.' } } } }));
+    Object.defineProperty(window, 'location', { configurable: true, value: { ...LOCATION_ORIGINAL, assign, search: '?google=confirmar&t=abcdefghijklmnopqrstuvwxyz' } });
+    render(<GoogleAgendaCard para="negocio" />);
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('Esta conexão foi pedida por outra conta. Conecte de novo por aqui.', 'error'));
   });
 });

@@ -180,3 +180,8 @@
 - **Encaixe com aviso:** a rota de horários do painel (`/appointments/available-slots`) não aplica o ocupado do Google, para a recepção poder encaixar; o modal marca esses horários e avisa. Bancada, página pública e bot continuam bloqueando.
 - **Aviso de reconectar da dona:** só pelo sino, que já manda o push para a equipe.
 - **Reconectar** a mesma pessoa apaga a conexão antiga e cria uma agenda nova; a antiga fica parada no Google.
+- **Conexão confirmada pelo navegador logado:** o callback do Google só troca o código e deixa a conexão pendente por 10 minutos; o app confirma com `POST /google-agenda/confirmar` e a sessão de quem está logado. Se não for a mesma pessoa que pediu, recusa e revoga o acesso (evita ligar a agenda de alguém a outra conta por um link).
+- **Reconectar a mesma conta Google reaproveita a agenda** "EasyAgenda+" e a escolha da dona; os eventos têm id fixo derivado do agendamento, então são reencontrados em vez de duplicados.
+- **Erro num evento** não trava os outros e fica em `ultimo_erro`; agenda apagada no Google leva a conexão para "reconectar".
+- **Sessão do Supabase** no navegador é encerrada logo depois de virar a sessão do app.
+- **Rotas do BFF** (`/api/auth/oauth/*` e `/api/google-agenda/*`) no Next, como o resto do app.

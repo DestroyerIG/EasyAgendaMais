@@ -17,6 +17,9 @@ export const callback: H = async (req, res, next) => {
     res.redirect(302, await googleAgendaService.callback(req.query['code'] as string | undefined, req.query['state'] as string | undefined));
   } catch (e) { next(e); }
 };
+export const confirmar: H = async (req, res, next) => {
+  try { sendSuccess(res, await googleAgendaService.confirmar(usuario(req), req.body.t)); } catch (e) { next(e); }
+};
 export const verConexao: H = async (req, res, next) => {
   try { sendSuccess(res, await googleAgendaService.minhaConexao(usuario(req))); } catch (e) { next(e); }
 };

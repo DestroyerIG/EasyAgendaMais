@@ -25,6 +25,8 @@ export const googleAgendaApi = {
   conexao: async () => (await api.get<EstadoGoogleAgenda>('/google-agenda/conexao')).data,
   conectar: async (para: ParaGoogle) =>
     (await api.get<{ url: string }>('/google-agenda/conectar', { params: { para } })).data,
+  /** Confirma, com a sessão de quem está logado, a conexão que voltou do Google. */
+  confirmar: async (t: string) => (await api.post<EstadoGoogleAgenda>('/google-agenda/confirmar', { t })).data,
   definirProfissional: async (professionalId: string | null) =>
     (await api.put<EstadoGoogleAgenda>('/google-agenda/conexao', { professionalId })).data,
   desconectar: async () => (await api.delete<{ desconectado: boolean }>('/google-agenda/conexao')).data,

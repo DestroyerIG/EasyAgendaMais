@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import logger from '../../utils/logger.js';
 import { ForbiddenError, NotFoundError } from '../../utils/errors.js';
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
@@ -18,6 +19,14 @@ const frontend = () => (process.env.FRONTEND_URL || process.env.APP_URL || 'http
 const telaDe = (para: Para) => (para === 'profissional' ? '/bancada' : '/configuracoes');
 
 const DIA_MS = 24 * 60 * 60 * 1000;
+
+// Conexões que voltaram do Google e esperam a confirmação do navegador logado (uma instância só).
+const VALIDADE_PENDENTE_MS = 10 * 60 * 1000;
+const pendentes = new Map<string, { userId: string; para: Para; refreshToken: string; email: string; exp: number }>();
+function limparPendentes() {
+  const agora = Date.now();
+  for (const [t, p] of pendentes) if (p.exp < agora) pendentes.delete(t);
+}
 
 type ConexaoComToken = ConexaoSync & { calendarioId: string; refreshTokenCifrado: string };
 
@@ -83,43 +92,72 @@ export const googleAgendaService = {
     return { url: googleApi.urlConsentimento(assinarState(user.userId, para)) };
   },
 
-  /** Volta do Google: devolve para onde redirecionar o navegador. Nunca lança. */
+  /**
+   * Volta do Google: troca o código e deixa a conexão pendente por 10 minutos. Quem confirma é o
+   * navegador logado (POST /confirmar), e só se for a mesma pessoa que pediu: um link de conexão
+   * gerado por outra conta não liga a agenda de ninguém. Devolve para onde redirecionar. Nunca lança.
+   */
   async callback(code: string | undefined, state: string | undefined): Promise<string> {
     const lido = state ? lerState(state) : null;
     const para: Para = lido?.para ?? 'negocio';
-    const erro = `${frontend()}${telaDe(para)}?google=erro`;
-    if (!lido || !code || !googleConfigurado()) return erro;
-
+    const tela = `${frontend()}${telaDe(para)}`;
+    if (!lido || !code || !googleConfigurado()) return `${tela}?google=erro`;
     try {
-      const u = await repo.usuario(lido.userId);
-      if (!u) return erro;
-      if (para === 'negocio' && u.role !== 'tenant_admin') return erro;
-      if (para === 'profissional' && !u.professionalId) return erro;
-
       const { refreshToken, email } = await googleApi.trocarCodigo(code);
-      const token = await googleApi.accessToken(refreshToken);
-      const { timezone } = await getBusinessScheduleSettings(u.businessId);
-      const nome = para === 'negocio' ? `EasyAgenda+ · ${u.business.name}` : 'EasyAgenda+';
-      const calendarioId = await googleApi.criarAgenda(token, nome, timezone);
+      limparPendentes();
+      const t = randomBytes(24).toString('base64url');
+      pendentes.set(t, { userId: lido.userId, para, refreshToken, email, exp: Date.now() + VALIDADE_PENDENTE_MS });
+      return `${tela}?google=confirmar&t=${t}`;
+    } catch (e) {
+      logger.warn({ err: e, userId: lido.userId }, 'Google Agenda: falha ao trocar o código');
+      return `${tela}?google=erro`;
+    }
+  },
 
-      // A dona que atende sozinha já é a única profissional da grade.
-      let professionalId = para === 'profissional' ? u.professionalId : null;
-      if (para === 'negocio') {
+  async confirmar(user: UsuarioLogado, t: string) {
+    const p = pendentes.get(t);
+    pendentes.delete(t);
+    if (!p || p.exp < Date.now()) throw new NotFoundError('Conexão pendente com o Google Agenda');
+    if (p.userId !== user.userId) {
+      void Promise.resolve().then(() => googleApi.revogar(p.refreshToken)).catch(() => undefined);
+      throw new ForbiddenError('Esta conexão foi pedida por outra conta. Conecte de novo por aqui.');
+    }
+
+    const u = await repo.usuario(user.userId);
+    if (!u) throw new NotFoundError('Usuário');
+    if (p.para === 'negocio' && u.role !== 'tenant_admin') throw new ForbiddenError('Só a dona conecta a agenda do negócio');
+    if (p.para === 'profissional' && !u.professionalId) throw new ForbiddenError('Conecte pelo app da profissional');
+
+    const token = await googleApi.accessToken(p.refreshToken);
+    const anterior = await repo.conexaoDoUsuario(u.id);
+    // Reconectar a mesma conta Google reaproveita a agenda: os eventos têm id fixo e são reencontrados.
+    let calendarioId = anterior && anterior.googleEmail === p.email && await googleApi.agendaExiste(token, anterior.calendarioId)
+      ? anterior.calendarioId
+      : null;
+    if (!calendarioId) {
+      const { timezone } = await getBusinessScheduleSettings(u.businessId);
+      const nome = p.para === 'negocio' ? `EasyAgenda+ · ${u.business.name}` : 'EasyAgenda+';
+      calendarioId = await googleApi.criarAgenda(token, nome, timezone);
+    }
+
+    let professionalId = p.para === 'profissional' ? u.professionalId : null;
+    if (p.para === 'negocio') {
+      if (anterior?.tipo === 'negocio') {
+        professionalId = anterior.professionalId;
+      } else {
+        // A dona que atende sozinha já é a única profissional da grade.
         const ativas = await repo.profissionaisAtivos(u.businessId);
         professionalId = ativas.length === 1 ? ativas[0].id : null;
       }
-
-      const conexao = await repo.salvarConexao({
-        businessId: u.businessId, userId: u.id, tipo: para, professionalId,
-        googleEmail: email, refreshTokenCifrado: cifrar(refreshToken), calendarioId,
-      });
-      void googleAgendaService.sincronizarSaida({ conexaoId: conexao.id });
-      void googleAgendaService.atualizarOcupado(conexao.id);
-      return `${frontend()}${telaDe(para)}?google=ok`;
-    } catch (e) {
-      logger.warn({ err: e, userId: lido.userId }, 'Google Agenda: falha ao conectar');
-      return erro;
     }
+
+    const conexao = await repo.salvarConexao({
+      businessId: u.businessId, userId: u.id, tipo: p.para, professionalId,
+      googleEmail: p.email, refreshTokenCifrado: cifrar(p.refreshToken), calendarioId,
+    });
+    void googleAgendaService.sincronizarSaida({ conexaoId: conexao.id });
+    void googleAgendaService.atualizarOcupado(conexao.id);
+    return googleAgendaService.minhaConexao(user);
   },
 
   async minhaConexao(user: UsuarioLogado) {

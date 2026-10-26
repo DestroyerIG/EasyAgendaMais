@@ -15,7 +15,7 @@ vi.mock('../modules/googleAgenda/googleAgenda.repository.js', () => ({ googleAge
 const api = vi.hoisted(() => ({
   urlConsentimento: vi.fn((s: string) => `https://accounts.google.com/o/oauth2/v2/auth?state=${s}`),
   trocarCodigo: vi.fn(), accessToken: vi.fn(), criarAgenda: vi.fn(), salvarEvento: vi.fn(),
-  apagarEvento: vi.fn(), ocupado: vi.fn(), revogar: vi.fn(),
+  apagarEvento: vi.fn(), ocupado: vi.fn(), revogar: vi.fn(), agendaExiste: vi.fn(),
 }));
 vi.mock('../modules/googleAgenda/googleAgenda.api.js', async (orig) => ({
   ...(await orig<typeof import('../modules/googleAgenda/googleAgenda.api.js')>()), googleApi: api,
@@ -67,6 +67,7 @@ describe('Google Agenda: conexão', () => {
     api.criarAgenda.mockResolvedValue('cal1');
     repo.salvarConexao.mockImplementation(async (d: Record<string, unknown>) => ({ id: 'c1', ...d }));
     repo.profissionaisAtivos.mockResolvedValue([{ id: P1, name: 'Camila' }, { id: 'p2', name: 'Bia' }]);
+    repo.conexoesDoNegocio.mockResolvedValue([]);
     vi.spyOn(googleAgendaService, 'sincronizarSaida').mockResolvedValue(undefined);
     vi.spyOn(googleAgendaService, 'atualizarOcupado').mockResolvedValue(undefined);
   });
@@ -88,14 +89,27 @@ describe('Google Agenda: conexão', () => {
     expect(rules.lerState(`${carga}.${assinatura.slice(0, -2)}xx`, agora)).toBeNull();
   });
 
-  it('callback cria conexão, agenda e dispara a cópia', async () => {
-    repo.usuario.mockResolvedValue(dona);
-    const state = rules.assinarState('u1', 'negocio');
+  /** Volta do Google e confirmação pelo navegador de quem está logado. */
+  async function conectarPeloGoogle(userId: string, para: 'negocio' | 'profissional', quemConfirma = userId) {
+    const volta = await request.get('/api/v1/google-agenda/callback').query({ code: 'cod', state: rules.assinarState(userId, para) });
+    const t = new URL(volta.headers.location).searchParams.get('t') ?? '';
+    const role = para === 'negocio' ? 'tenant_admin' : 'professional';
+    return { volta, t, res: await request.post('/api/v1/google-agenda/confirmar').set('x-user', quemConfirma).set('x-role', role).send({ t }) };
+  }
 
-    const res = await request.get('/api/v1/google-agenda/callback').query({ code: 'cod', state });
-
+  it('callback troca o código e manda confirmar no navegador, sem conectar ainda', async () => {
+    const res = await request.get('/api/v1/google-agenda/callback').query({ code: 'cod', state: rules.assinarState('u1', 'negocio') });
     expect(res.status).toBe(302);
-    expect(res.headers.location).toBe('https://app.test/configuracoes?google=ok');
+    expect(res.headers.location).toMatch(/^https:\/\/app\.test\/configuracoes\?google=confirmar&t=[\w-]{20,}$/);
+    expect(api.trocarCodigo).toHaveBeenCalledWith('cod');
+    expect(repo.salvarConexao).not.toHaveBeenCalled();
+  });
+
+  it('confirmar cria conexão, agenda e dispara a cópia', async () => {
+    repo.usuario.mockResolvedValue(dona);
+    const { res } = await conectarPeloGoogle('u1', 'negocio');
+
+    expect(res.status).toBe(200);
     expect(api.criarAgenda).toHaveBeenCalledWith('tok', 'EasyAgenda+ · Studio Aurora', 'America/Sao_Paulo');
     const salvo = repo.salvarConexao.mock.calls[0][0];
     expect(salvo).toMatchObject({ businessId: 'b1', userId: 'u1', tipo: 'negocio', googleEmail: 'ana@gmail.com', calendarioId: 'cal1' });
@@ -105,13 +119,11 @@ describe('Google Agenda: conexão', () => {
     expect(googleAgendaService.atualizarOcupado).toHaveBeenCalledWith('c1');
   });
 
-  it('callback de profissional usa o nome curto e liga o professionalId do usuário', async () => {
+  it('confirmar de profissional usa o nome curto e liga o professionalId do usuário', async () => {
     repo.usuario.mockResolvedValue(camila);
-    const state = rules.assinarState('u2', 'profissional');
+    const { volta } = await conectarPeloGoogle('u2', 'profissional');
 
-    const res = await request.get('/api/v1/google-agenda/callback').query({ code: 'cod', state });
-
-    expect(res.headers.location).toBe('https://app.test/bancada?google=ok');
+    expect(volta.headers.location).toMatch(/^https:\/\/app\.test\/bancada\?google=confirmar&t=/);
     expect(api.criarAgenda).toHaveBeenCalledWith('tok', 'EasyAgenda+', 'America/Sao_Paulo');
     expect(repo.salvarConexao.mock.calls[0][0]).toMatchObject({ tipo: 'profissional', professionalId: P1 });
   });
@@ -119,13 +131,55 @@ describe('Google Agenda: conexão', () => {
   it('no Solo com uma profissional, a dona já vem ligada a ela', async () => {
     repo.usuario.mockResolvedValue(dona);
     repo.profissionaisAtivos.mockResolvedValue([{ id: P1, name: 'Ana' }]);
-    await request.get('/api/v1/google-agenda/callback').query({ code: 'cod', state: rules.assinarState('u1', 'negocio') });
+    await conectarPeloGoogle('u1', 'negocio');
     expect(repo.salvarConexao.mock.calls[0][0].professionalId).toBe(P1);
 
     repo.salvarConexao.mockClear();
     repo.profissionaisAtivos.mockResolvedValue([{ id: P1, name: 'Ana' }, { id: 'p2', name: 'Bia' }]);
-    await request.get('/api/v1/google-agenda/callback').query({ code: 'cod', state: rules.assinarState('u1', 'negocio') });
+    await conectarPeloGoogle('u1', 'negocio');
     expect(repo.salvarConexao.mock.calls[0][0].professionalId).toBeNull();
+  });
+
+  it('a conexão pedida por uma conta não é confirmada no navegador de outra', async () => {
+    repo.usuario.mockResolvedValue(dona);
+    const { res } = await conectarPeloGoogle('u1', 'negocio', 'u9');
+    expect(res.status).toBe(403);
+    expect(repo.salvarConexao).not.toHaveBeenCalled();
+    expect(api.revogar).toHaveBeenCalledWith('r1');
+  });
+
+  it('confirmar duas vezes ou com t desconhecido é recusado', async () => {
+    repo.usuario.mockResolvedValue(dona);
+    const { t } = await conectarPeloGoogle('u1', 'negocio');
+    const de_novo = await request.post('/api/v1/google-agenda/confirmar').set('x-user', 'u1').send({ t });
+    expect(de_novo.status).toBe(404);
+    const lixo = await request.post('/api/v1/google-agenda/confirmar').set('x-user', 'u1').send({ t: 'x'.repeat(30) });
+    expect(lixo.status).toBe(404);
+  });
+
+  it('reconectar a mesma conta reaproveita a agenda e a escolha da dona', async () => {
+    repo.usuario.mockResolvedValue(dona);
+    repo.conexaoDoUsuario.mockResolvedValue({ id: 'c0', tipo: 'negocio', googleEmail: 'ana@gmail.com', calendarioId: 'cal-velho', professionalId: 'p2' });
+    api.agendaExiste.mockResolvedValue(true);
+    await conectarPeloGoogle('u1', 'negocio');
+    expect(api.agendaExiste).toHaveBeenCalledWith('tok', 'cal-velho');
+    expect(api.criarAgenda).not.toHaveBeenCalled();
+    expect(repo.salvarConexao.mock.calls[0][0]).toMatchObject({ calendarioId: 'cal-velho', professionalId: 'p2' });
+  });
+
+  it('reconectar com a agenda apagada ou outra conta cria uma nova', async () => {
+    repo.usuario.mockResolvedValue(dona);
+    repo.conexaoDoUsuario.mockResolvedValue({ id: 'c0', tipo: 'negocio', googleEmail: 'ana@gmail.com', calendarioId: 'cal-velho', professionalId: null });
+    api.agendaExiste.mockResolvedValue(false);
+    await conectarPeloGoogle('u1', 'negocio');
+    expect(api.criarAgenda).toHaveBeenCalled();
+
+    api.criarAgenda.mockClear();
+    api.agendaExiste.mockClear();
+    repo.conexaoDoUsuario.mockResolvedValue({ id: 'c0', tipo: 'negocio', googleEmail: 'outra@gmail.com', calendarioId: 'cal-velho', professionalId: null });
+    await conectarPeloGoogle('u1', 'negocio');
+    expect(api.agendaExiste).not.toHaveBeenCalled();
+    expect(api.criarAgenda).toHaveBeenCalled();
   });
 
   it('callback com state inválido volta com erro sem chamar o Google', async () => {
