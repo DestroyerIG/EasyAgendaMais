@@ -27,7 +27,7 @@ Atualizado em 26/10/2026.
 | 4 | Clube e pacotes | ✅ Concluída | PR #11 |
 | 5 | App da profissional (PWA) | ✅ Concluída | PR #12 |
 | 6 | Onboarding guiado, segmentos e vocabulário | ✅ Concluída | PR #17 |
-| **7** | **Login com Google e Google Agenda** | 🔄 Implementada, aguardando migração, configuração do Google e PR | branch `feat/google` |
+| **7** | **Login com Google e Google Agenda** | 🔄 Migração aplicada; aguardando merge do PR e teste no navegador | branch `feat/google` |
 
 ## Fase 5 (concluída)
 

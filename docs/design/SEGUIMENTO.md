@@ -136,7 +136,7 @@ Sub-projeto 6 (Onboarding guiado, segmentos e vocabulário), pendências conheci
 - As telas não foram vistas no navegador com dado real, porque o `.env` local aponta para produção. Conferir: criar uma conta nova pela landing com `?segmento=`, passar pelas 5 etapas (sozinha e equipe), pular as etapas 4 e 5, o cartão "Termine de configurar", trocar o segmento em Ajustes › CRM e ver os termos mudarem no painel e na página pública.
 
 Sub-projeto 7 (Login com Google e Google Agenda), pendências conhecidas:
-- **Migração `20261029120000_google_agenda` ainda não aplicada.** Cria as três tabelas do Google Agenda. Aplicar só com autorização do dono, antes do deploy do backend.
+- **Migração `20261029120000_google_agenda` aplicada em produção em 26/10.** Cria as três tabelas do Google Agenda.
 - **Configuração externa:** Google Cloud, Supabase e variáveis, no passo a passo `docs/google-configuracao.md`. Sem ela, nada aparece.
 - **Verificação do Google** para os escopos de agenda: até aprovar, só os usuários de teste (até 100) conectam a agenda. O login não depende dela.
 - **Conferir no primeiro teste real:** o retorno do login (`/auth/callback`) trata o fluxo implícito (`#access_token`) e o PKCE (`?code=`) do Supabase; confirmar qual deles o projeto usa.
