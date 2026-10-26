@@ -15,6 +15,7 @@ import { ScheduleSection } from '@/components/settings/ScheduleSection';
 import { AppearanceSection } from '@/components/settings/AppearanceSection';
 import { ComissaoPadraoSection } from '@/components/settings/ComissaoPadraoSection';
 import { AppProfissionalSection } from '@/components/settings/AppProfissionalSection';
+import { GoogleAgendaSection } from '@/components/settings/GoogleAgendaSection';
 import { CrmSettingsSection } from '@/components/settings/CrmSettingsSection';
 import { EtiquetasSection } from '@/components/settings/EtiquetasSection';
 import {
@@ -498,6 +499,8 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
         autoConfirmAppointments={settings.autoConfirmAppointments}
         onFieldChange={updateSettingsField}
       />
+
+      <GoogleAgendaSection />
 
       <ComissaoPadraoSection />
 

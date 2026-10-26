@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AlertTriangle, CalendarClock, ChevronLeft, ChevronRight, Clock, Play, Scissors, UserRound, XCircle } from 'lucide-react';
 import { Button, EmptyState, Skeleton, StatusChip } from '@/components/ui';
 import { AtivarNotificacoes } from '@/components/push/AtivarNotificacoes';
+import { GoogleAgendaCard } from '@/components/googleAgenda/GoogleAgendaCard';
 import { useToast } from '@/components/Toast';
 import {
   bancadaApi, horaAgora, podeCancelar, podeReagendar, rotuloEmMinutos,
@@ -116,6 +117,7 @@ export function HojeBancada() {
       </div>
 
       {data === hoje && <AtivarNotificacoes />}
+      {data === hoje && <GoogleAgendaCard para="profissional" />}
 
       {destaque && proxima && (
         <section aria-label="Próxima cliente" className="rounded-card border border-brand/40 bg-surface p-4">

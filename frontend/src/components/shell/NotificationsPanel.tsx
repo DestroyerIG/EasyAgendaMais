@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { AlertTriangle, Bell, CalendarClock, CalendarPlus, CheckCheck, CircleDollarSign, Clock3, Crown, Loader2, Receipt, Star } from 'lucide-react';
+import { AlertTriangle, Bell, CalendarClock, CalendarPlus, CalendarX, CheckCheck, CircleDollarSign, Clock3, Crown, Loader2, Receipt, Star } from 'lucide-react';
 import { notificationsApi, type AppNotification, type NotificationType } from '@/lib/notifications';
 import { EmptyState } from '@/components/ui';
 import { AtivarNotificacoes } from '@/components/push/AtivarNotificacoes';
@@ -18,6 +18,7 @@ const ICON_BY_TYPE: Record<NotificationType, typeof CalendarPlus> = {
   agenda_profissional: CalendarClock,
   comanda_pronta: Receipt,
   avaliacao_baixa: Star,
+  google_agenda: CalendarX,
 };
 
 const formatRelativo = (iso: string) =>
