@@ -7,6 +7,7 @@ import { cn } from '@/lib/cn';
 import { Modal, ModalFooter, Field, Select, Input } from '@/components/ui';
 import type { Client, Professional, Service } from '@/types';
 import { useVocabulario } from '@/hooks/useVocabulario';
+import { cruzaOcupado, googleAgendaApi, type Faixa } from '@/lib/googleAgenda';
 
 interface CreateAppointmentModalProps {
   isOpen: boolean;
@@ -53,6 +54,17 @@ export function CreateAppointmentModal({
   // A lista de horários que estava na tela quando o recarregamento foi pedido: o pendente
   // só é conferido contra uma lista nova, nunca contra essa, que é da busca anterior.
   const slotsDoPedido = useRef<string[] | null>(null);
+  // Compromissos do Google Agenda do dia (fase 7): o painel deixa encaixar, mas avisa.
+  const [ocupadoGoogle, setOcupadoGoogle] = useState<Record<string, Faixa[]>>({});
+
+  useEffect(() => {
+    if (!isOpen || !formData.date) return;
+    let ativo = true;
+    googleAgendaApi.ocupado(formData.date)
+      .then((o) => { if (ativo) setOcupadoGoogle(o ?? {}); })
+      .catch(() => { if (ativo) setOcupadoGoogle({}); });
+    return () => { ativo = false; };
+  }, [isOpen, formData.date]);
 
   // Cada abertura começa do zero, já com o que o horário livre sabia (profissional, data).
   useEffect(() => {
@@ -118,6 +130,10 @@ export function CreateAppointmentModal({
   );
 
   const isValid = formData.clientId && formData.professionalId && formData.serviceId && formData.time;
+  const duracaoEscolhida = services.find((s) => s.id === formData.serviceId)?.duration_minutes ?? 30;
+  const ocupadoDaProfissional = ocupadoGoogle[formData.professionalId];
+  const nomeDaProfissional = professionals.find((p) => p.id === formData.professionalId)?.name ?? '';
+  const horarioNoGoogle = Boolean(formData.time) && cruzaOcupado(ocupadoDaProfissional, formData.time, duracaoEscolhida);
 
   return (
     <Modal
@@ -255,8 +271,17 @@ export function CreateAppointmentModal({
                   )}
                 >
                   {slot}
+                  {cruzaOcupado(ocupadoDaProfissional, slot, duracaoEscolhida) && (
+                    <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-warning align-middle" aria-hidden="true" />
+                  )}
                 </button>
               ))}
+            </div>
+          )}
+          {horarioNoGoogle && (
+            <div className="mt-2 flex items-center gap-2 rounded-control border border-line bg-warning/12 p-3">
+              <AlertCircle className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
+              <p className="text-[13px] text-warning">{`Esse horário está ocupado no Google Agenda de ${nomeDaProfissional}`}</p>
             </div>
           )}
         </Field>

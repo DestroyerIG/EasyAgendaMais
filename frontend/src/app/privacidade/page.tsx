@@ -8,7 +8,7 @@ export const metadata = {
   description: 'Como o EasyAgenda+ coleta, usa e protege os seus dados pessoais, em conformidade com a LGPD.',
 };
 
-const LAST_UPDATE = '28 de maio de 2026';
+const LAST_UPDATE = '26 de outubro de 2026';
 
 const sections = [
   {
@@ -61,19 +61,28 @@ const sections = [
     ],
   },
   {
-    title: '8. Cookies e tecnologias semelhantes',
+    title: '8. Dados do Google',
+    paragraphs: [
+      'Login com Google: quando você entra com o Google, recebemos apenas seu nome, e-mail e a confirmação de que o e-mail é seu, para criar ou acessar sua conta.',
+      'Google Agenda: se você conectar o Google Agenda, o EasyAgenda+ cria uma agenda separada chamada "EasyAgenda+" na sua conta e grava nela os seus agendamentos. Da sua agenda principal, lemos apenas se cada horário está ocupado ou livre, para não oferecer às clientes um horário em que você tem compromisso. Não lemos títulos, descrições, convidados nem qualquer outro detalhe dos seus eventos.',
+      'O acesso fica guardado de forma cifrada e é usado só para essas finalidades. Você pode desconectar a qualquer momento em Ajustes (ou no app da profissional); ao desconectar, revogamos o acesso no Google e apagamos o que guardamos. A agenda "EasyAgenda+" continua na sua conta, e você pode apagá-la pelo próprio Google Agenda.',
+      'O uso das informações recebidas das APIs do Google segue a Política de Dados do Usuário dos Serviços de API do Google (Google API Services User Data Policy), incluindo os requisitos de uso limitado (Limited Use). Esses dados não são vendidos, não são usados para publicidade e não são transferidos a terceiros.',
+    ],
+  },
+  {
+    title: '9. Cookies e tecnologias semelhantes',
     paragraphs: [
       'Utilizamos cookies e tecnologias semelhantes para autenticação, manutenção de sessão e melhoria da experiência. Você pode gerenciar as preferências de cookies no seu navegador, ciente de que isso pode afetar funcionalidades da plataforma.',
     ],
   },
   {
-    title: '9. Alterações desta política',
+    title: '10. Alterações desta política',
     paragraphs: [
       'Esta Política de Privacidade pode ser atualizada periodicamente. A versão vigente estará sempre disponível nesta página, com a data da última atualização.',
     ],
   },
   {
-    title: '10. Contato',
+    title: '11. Contato',
     paragraphs: [
       'Para dúvidas, solicitações ou exercício de direitos relativos aos seus dados pessoais, entre em contato pelo e-mail contato@easyconnectcg.com.br.',
     ],

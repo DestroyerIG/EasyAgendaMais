@@ -1068,6 +1068,15 @@ export const authService = {
             },
             'Login negado: credenciais inválidas no Supabase Auth'
           );
+          // Conta criada pelo Google não tem senha no Supabase: explica em vez de "senha incorreta".
+          const local = await authRepository.findAnyUserByEmail(normalizedEmail).catch(() => null) as Record<string, unknown> | null;
+          if (local?.auth_provider === 'google') {
+            throw new AppError(
+              'Essa conta entra com o Google. Use "Continuar com Google" ou crie uma senha em "Esqueci minha senha".',
+              401,
+              'CONTA_GOOGLE'
+            );
+          }
           throw new UnauthorizedError('Email ou senha incorretos');
         }
 
@@ -1473,6 +1482,72 @@ export const authService = {
       subscriptionStatus,
       paymentRequired,
     };
+  },
+
+  /**
+   * Login com Google (fase 7). Conta existente (pelo id do Supabase ou pelo e-mail) entra pelo mesmo
+   * caminho da confirmação do cadastro; sem conta, pede os dados do negócio antes de criar.
+   */
+  async oauthSessao(res: Response, accessToken: string): Promise<Record<string, unknown>> {
+    const identity = await supabaseAuthService.getVerifiedIdentityFromAccessToken(accessToken);
+    if (!identity.emailVerified) {
+      throw new AppError('Conta não verificada. Verifique seu e-mail antes de fazer login.', 403, 'EMAIL_NOT_VERIFIED');
+    }
+
+    const existente = (await authRepository.findUserBySupabaseUserId(identity.userId)
+      ?? await authRepository.findUserByEmailIncludingBlocked(identity.email)) as Record<string, unknown> | null;
+
+    if (!existente) {
+      const meta = ((identity.user as unknown as Record<string, unknown> | null)?.user_metadata ?? {}) as Record<string, unknown>;
+      const nome = typeof meta.full_name === 'string' ? meta.full_name : typeof meta.name === 'string' ? meta.name : '';
+      return { completarCadastro: true, email: identity.email, nome };
+    }
+    if (existente.blocked) throw new UnauthorizedError('Conta bloqueada');
+
+    const sessao = await this.confirmSignup(res, { accessToken });
+    // A reconciliação marca o provedor como "supabase"; quem nasceu pelo Google continua "google".
+    if (existente.auth_provider === 'google') {
+      await authRepository.updateUserIdentitySync(null, {
+        userId: existente.id as string, supabaseUserId: identity.userId, authProvider: 'google',
+      });
+    }
+    return { ...sessao, completarCadastro: false };
+  },
+
+  /** Conta nova pelo Google: grava o cadastro pendente com os dados do formulário e confirma na hora. */
+  async oauthCompletar(
+    res: Response,
+    dados: { accessToken: string; businessName: string; ownerName: string; whatsapp: string; cpfCnpj: string; desiredPlan: string }
+  ): Promise<Record<string, unknown>> {
+    const identity = await supabaseAuthService.getVerifiedIdentityFromAccessToken(dados.accessToken);
+    if (!identity.emailVerified) {
+      throw new AppError('Conta não verificada. Verifique seu e-mail antes de fazer login.', 403, 'EMAIL_NOT_VERIFIED');
+    }
+
+    const existente = (await authRepository.findUserBySupabaseUserId(identity.userId)
+      ?? await authRepository.findUserByEmailIncludingBlocked(identity.email)) as Record<string, unknown> | null;
+    if (existente) return this.oauthSessao(res, dados.accessToken);
+
+    // O upsert por e-mail substitui um cadastro por senha que nunca foi confirmado.
+    await authRepository.upsertPendingRegistration(null, {
+      email: normalizeEmail(identity.email),
+      supabaseUserId: identity.userId,
+      businessName: dados.businessName,
+      ownerName: dados.ownerName,
+      whatsapp: dados.whatsapp,
+      cpfCnpj: dados.cpfCnpj,
+      desiredPlan: dados.desiredPlan,
+      passwordHash: generateSupabasePasswordHashPlaceholder(),
+    });
+
+    const sessao = await this.confirmSignup(res, { accessToken: dados.accessToken });
+    const criado = await authRepository.findUserBySupabaseUserId(identity.userId) as Record<string, unknown> | null;
+    if (criado) {
+      await authRepository.updateUserIdentitySync(null, {
+        userId: criado.id as string, supabaseUserId: identity.userId, authProvider: 'google',
+      });
+    }
+    return { ...sessao, completarCadastro: false };
   },
 
   async resendVerificationEmail(

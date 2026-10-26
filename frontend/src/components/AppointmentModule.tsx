@@ -91,6 +91,7 @@ import type { Appointment, AppointmentStatus as StatusDoAgendamento, Client, Pro
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { ListaEsperaPanel } from '@/components/waitlist/ListaEsperaPanel';
 import type { WaitlistItem } from '@/lib/waitlist';
+import { googleAgendaApi, type Faixa } from '@/lib/googleAgenda';
 
 // M1 da revisão final: Material Symbols no lugar dos dois ícones lucide restantes deste
 // arquivo (o resto da tela já usa o mesmo conjunto via o adaptador).
@@ -251,6 +252,17 @@ export function AppointmentModule() {
   // funcionamento configurado do negócio, que define a faixa de horas desenhada.
   const [profissionalFiltro, setProfissionalFiltro] = useState<string | null>(null);
   const [horarioFuncionamento, setHorarioFuncionamento] = useState<HorarioFuncionamento | null>(null);
+
+  // Compromissos do Google Agenda do dia (fase 7), desenhados como "Ocupado (Google)" na grade.
+  const [ocupadoGoogle, setOcupadoGoogle] = useState<Record<string, Faixa[]>>({});
+  useEffect(() => {
+    if (!selectedDate || viewMode !== 'day') return;
+    let ativo = true;
+    googleAgendaApi.ocupado(selectedDate)
+      .then((o) => { if (ativo) setOcupadoGoogle(o ?? {}); })
+      .catch(() => { if (ativo) setOcupadoGoogle({}); });
+    return () => { ativo = false; };
+  }, [selectedDate, viewMode]);
 
   const loadAppointments = useCallback(async () => {
     if (!selectedDate) return;
@@ -806,6 +818,7 @@ export function AppointmentModule() {
                     onAcao={handleAcao}
                     onNovoAgendamento={openModal}
                     intervalos={intervalos}
+                    ocupadoGoogle={viewMode === 'day' && date === selectedDate ? ocupadoGoogle : undefined}
                     onAbrirDetalhes={a => setDetalhesId(a.id)}
                   />
                 </div>

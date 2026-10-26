@@ -28,7 +28,7 @@ const api = axios.create({
 
 let refreshPromise: Promise<void> | null = null;
 
-const shouldSkipRefreshByUrl = (url: string) => {
+export const shouldSkipRefreshByUrl = (url: string) => {
   return (
     url.includes('/auth/login') ||
     url.includes('/auth/register') ||
@@ -37,7 +37,8 @@ const shouldSkipRefreshByUrl = (url: string) => {
     url.includes('/auth/verify-email-session') ||
     url.includes('/auth/resend-verification') ||
     url.includes('/auth/refresh') ||
-    url.includes('/auth/logout')
+    url.includes('/auth/logout') ||
+    url.includes('/auth/oauth/')
   );
 };
 

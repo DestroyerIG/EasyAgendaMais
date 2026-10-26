@@ -13,6 +13,7 @@ import { formatCpfCnpj, isValidCpfCnpj, normalizeCpfCnpjDigits } from '@/utils/c
 import { resolveAuthConfirmRedirectUrl } from '@/lib/supabase/client';
 import { guardarSegmentoDoCadastro } from '@/lib/onboarding';
 import easyAgendaLogo from '@/icons/easyagenda-logo.svg';
+import { BotaoGoogle } from './BotaoGoogle';
 
 type AuthMode = 'login' | 'register';
 
@@ -33,6 +34,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
   const [showConfirmedNotice, setShowConfirmedNotice] = useState(false);
+  const [planoDaUrl, setPlanoDaUrl] = useState<string | null>(null);
   const [verificationNotice, setVerificationNotice] = useState<string | null>(null);
   const [verificationEmail, setVerificationEmail] = useState('');
   const [verificationSent, setVerificationSent] = useState(false);
@@ -67,6 +69,12 @@ export function AuthForm({ mode }: AuthFormProps) {
     if (isLogin || typeof window === 'undefined') return;
     guardarSegmentoDoCadastro(new URLSearchParams(window.location.search).get('segmento'));
   }, [isLogin]);
+
+  // O plano escolhido na página de preços acompanha a ida e a volta do Google.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setPlanoDaUrl(new URLSearchParams(window.location.search).get('plan'));
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -276,6 +284,8 @@ export function AuthForm({ mode }: AuthFormProps) {
               tem o onSubmit e envia o form puro — sem isso o padrão HTML é GET para a
               própria URL, o que vazava a senha em texto puro na barra de endereço (achado
               do usuário). */}
+          <BotaoGoogle plano={planoDaUrl} />
+
           <form
             onSubmit={handleSubmit}
             method="post"

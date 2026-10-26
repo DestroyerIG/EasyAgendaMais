@@ -113,6 +113,7 @@ model Business {
   clubeOfertas  ClubeOferta[]
   clubeContratos ClubeContrato[]
   profissionalConvites ProfissionalConvite[]
+  googleAgendaConexoes GoogleAgendaConexao[]
   @@map("businesses")
 }
 
@@ -156,6 +157,7 @@ model User {
   professional                  Professional?          @relation(fields: [professionalId], references: [id], onDelete: SetNull)
   convitesCriados               ProfissionalConvite[]  @relation("ConviteCriadoPor")
   pushInscricoes                PushInscricao[]
+  googleAgendaConexao           GoogleAgendaConexao?
 
   @@map("users")
 }
@@ -201,6 +203,7 @@ model Professional {
   clubeOfertas  ClubeOfertaProfissional[]
   usuario       User?
   convites      ProfissionalConvite[]
+  googleAgendaConexoes GoogleAgendaConexao[]
 
   @@map("professionals")
 }
@@ -289,6 +292,7 @@ model Appointment {
   photos         ClientPhoto[]
   waitlistEntry  WaitlistEntry?
   whatsappRespostasPendentes WhatsappRespostaPendente[]
+  googleAgendaEventos GoogleAgendaEvento[]
 
   @@map("appointments")
 }
@@ -1169,4 +1173,59 @@ model PushInscricao {
 
   @@index([userId])
   @@map("push_inscricoes")
+}
+
+// Google Agenda (fase 7). Uma conexão por usuário; a do negócio é única por negócio (índice parcial na migração).
+model GoogleAgendaConexao {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId          String    @map("business_id") @db.Uuid
+  userId              String    @unique @map("user_id") @db.Uuid
+  /// negocio | profissional
+  tipo                String    @db.VarChar(15)
+  /// A pessoa da grade cujo ocupado bloqueia horário (nulo: a dona não atende).
+  professionalId      String?   @map("professional_id") @db.Uuid
+  googleEmail         String    @map("google_email") @db.VarChar(255)
+  refreshTokenCifrado String    @map("refresh_token_cifrado") @db.Text
+  calendarioId        String    @map("calendario_id") @db.VarChar(255)
+  /// ativa | reconectar ("pausada pelo plano" é calculado, não gravado)
+  status              String    @default("ativa") @db.VarChar(15)
+  ultimoErro          String?   @map("ultimo_erro") @db.VarChar(255)
+  ultimaSyncEm        DateTime? @map("ultima_sync_em")
+  criadaEm            DateTime  @default(now()) @map("criada_em")
+
+  business     Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  professional Professional?         @relation(fields: [professionalId], references: [id], onDelete: SetNull)
+  eventos      GoogleAgendaEvento[]
+  ocupados     GoogleAgendaOcupado[]
+
+  @@index([businessId])
+  @@map("google_agenda_conexoes")
+}
+
+model GoogleAgendaEvento {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conexaoId     String   @map("conexao_id") @db.Uuid
+  appointmentId String   @map("appointment_id") @db.Uuid
+  googleEventId String   @map("google_event_id") @db.VarChar(255)
+  /// O updated_at do agendamento na última gravação no Google.
+  versao        DateTime
+
+  conexao     GoogleAgendaConexao @relation(fields: [conexaoId], references: [id], onDelete: Cascade)
+  appointment Appointment         @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@unique([conexaoId, appointmentId])
+  @@map("google_agenda_eventos")
+}
+
+model GoogleAgendaOcupado {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conexaoId String   @map("conexao_id") @db.Uuid
+  inicio    DateTime @db.Timestamptz(6)
+  fim       DateTime @db.Timestamptz(6)
+
+  conexao GoogleAgendaConexao @relation(fields: [conexaoId], references: [id], onDelete: Cascade)
+
+  @@index([conexaoId, inicio])
+  @@map("google_agenda_ocupado")
 }

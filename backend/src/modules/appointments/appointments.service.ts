@@ -6,6 +6,7 @@ import {
   ForbiddenError,
 } from '../../utils/errors.js';
 import { appointmentsPrismaRepository } from './appointments.repository.js';
+import { googleAgendaService } from '../googleAgenda/googleAgenda.service.js';
 import { generateAvailableTimeSlots, getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
 import type {
   CreateAppointmentInput,
@@ -93,6 +94,7 @@ export const appointmentsService = {
     if (result.status === 'confirmado') {
       avisarProfissional(result, 'Novo agendamento', () => `${primeiroNome(result.client.name)} · ${result.service.name} · ${dataBr(result.date)} às ${horaDe(result.time)}`);
     }
+    void googleAgendaService.sincronizarSaida({ appointmentId: result.id });
     return result;
   },
 
@@ -167,6 +169,7 @@ export const appointmentsService = {
     }
 
     logger.info({ appointmentId: id, from: currentStatus, to: newStatus }, 'Status atualizado');
+    void googleAgendaService.sincronizarSaida({ appointmentId: id });
     return result;
   },
 
@@ -208,6 +211,7 @@ export const appointmentsService = {
         avisarProfissional(result, 'Agendamento reagendado', resumo);
       }
     }
+    void googleAgendaService.sincronizarSaida({ appointmentId: id });
     return result;
   },
 
@@ -219,9 +223,14 @@ export const appointmentsService = {
     logger.info({ appointmentId: id, businessId }, 'Agendamento cancelado');
   },
 
+  /**
+   * `ignorarGoogle`: o painel recebe também os horários ocupados no Google Agenda, que a tela
+   * marca com aviso (a recepção pode encaixar). A bancada e a página pública não ignoram.
+   */
   async getAvailableSlots(
     businessId: string,
-    query: GetAvailableSlotsQuery
+    query: GetAvailableSlotsQuery,
+    opts: { ignorarGoogle?: boolean } = {}
   ): Promise<unknown> {
     const { professionalId, date, serviceId } = query;
 
@@ -238,11 +247,12 @@ export const appointmentsService = {
     );
 
     const pausa = await appointmentsPrismaRepository.getProfessionalBreak(professionalId, businessId);
+    const doGoogle = opts.ignorarGoogle ? [] : await googleAgendaService.bloqueiosDoDia(businessId, professionalId, date);
 
     return (generateAvailableTimeSlots as Function)(businessSettings, date, {
       serviceDurationMinutes: duration,
       bookedTimes,
-      blockedRanges: pausa ? [pausa] : [],
+      blockedRanges: [...(pausa ? [pausa] : []), ...doGoogle],
     });
   },
 

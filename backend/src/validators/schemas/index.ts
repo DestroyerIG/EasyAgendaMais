@@ -5,6 +5,8 @@
 
 export {
 	registerSchema,
+	oauthSessaoSchema,
+	oauthCompletarSchema,
 	loginSchema,
 	verifyEmailSchema,
 	verifyEmailSessionSchema,

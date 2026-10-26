@@ -13,6 +13,7 @@ const busca = vi.hoisted(() => ({ atual: new URLSearchParams() }));
 
 vi.mock('@/components/Toast', () => ({ useToast: () => ({ showToast }) }));
 vi.mock('@/components/push/AtivarNotificacoes', () => ({ AtivarNotificacoes: () => null }));
+vi.mock('@/components/googleAgenda/GoogleAgendaCard', () => ({ GoogleAgendaCard: () => null }));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push, replace: vi.fn(), refresh: vi.fn() }),
   useSearchParams: () => busca.atual,

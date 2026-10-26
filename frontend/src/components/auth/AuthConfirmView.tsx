@@ -142,6 +142,9 @@ const getPaymentRedirectUrl = (payload: unknown) => {
     : '/dashboard';
 };
 
+/** Para onde vai quem acabou de ter a conta confirmada (também usado no login com Google). */
+export const destinoAposConfirmar = getPaymentRedirectUrl;
+
 export function AuthConfirmView() {
   const [status, setStatus] = useState<ConfirmationStatus>('loading');
   const [message, setMessage] = useState('Confirmando seu e-mail...');

@@ -57,6 +57,7 @@ import {
 import { appointmentService } from '../appointmentService.js';
 import { appointmentsPrismaRepository } from '../../modules/appointments/appointments.repository.js';
 import { businessSettingsRepository } from '../../repositories/businessSettingsRepository.js';
+import { googleAgendaService } from '../../modules/googleAgenda/googleAgenda.service.js';
 
 // ==================== LOCAL INTERFACES ====================
 
@@ -1422,6 +1423,7 @@ const handleChooseDateStep = async (
   const serviceDuration = (sessionData.serviceDuration as number) || (businessSettings.slotIntervalMinutes ?? 30);
 
   const pausa = await appointmentsPrismaRepository.getProfessionalBreak(professionalId, businessId);
+  const doGoogle = await googleAgendaService.bloqueiosDoDia(businessId, professionalId, selectedDate);
 
   const availableSlots = generateAvailableTimeSlots(
     businessSettings,
@@ -1429,7 +1431,7 @@ const handleChooseDateStep = async (
     {
       serviceDurationMinutes: serviceDuration,
       bookedTimes,
-      blockedRanges: pausa ? [pausa] : [],
+      blockedRanges: [...(pausa ? [pausa] : []), ...doGoogle],
       currentDate: options?.now || new Date(),
     }
   );

@@ -8,6 +8,7 @@ import logger from '../../utils/logger.js';
 import { vocabularioDe } from '../../config/vocabulario.js';
 import { automacoesGatilhos } from '../whatsappAutomacoes/gatilhos.service.js';
 import type { CreatePublicAppointmentInput, GetPublicAvailabilityQuery, Storefront } from './publicBooking.types.js';
+import { googleAgendaService } from '../googleAgenda/googleAgenda.service.js';
 
 
 const calcDeposit = (price: number, depositPercentage: number): number =>
@@ -40,11 +41,12 @@ const computeAvailableSlots = async (
   const bookedTimes = await appointmentsPrismaRepository.getBookedSlots(businessId, professionalId, date);
 
   const pausa = await appointmentsPrismaRepository.getProfessionalBreak(professionalId, businessId);
+  const doGoogle = await googleAgendaService.bloqueiosDoDia(businessId, professionalId, date);
 
   return generateAvailableTimeSlots(businessSettings, date, {
     serviceDurationMinutes,
     bookedTimes,
-    blockedRanges: pausa ? [pausa] : [],
+    blockedRanges: [...(pausa ? [pausa] : []), ...doGoogle],
   });
 };
 
@@ -156,6 +158,7 @@ export const publicBookingService = {
     );
 
     logger.info({ appointmentId: appointment.id, businessId: business.id }, 'Reserva pública criada, aguardando pagamento');
+    void googleAgendaService.sincronizarSaida({ appointmentId: appointment.id });
 
     // Fora da transação da reserva: se gravar o consentimento falhar, a reserva continua valendo.
     if (data.whatsappConsent === true) {

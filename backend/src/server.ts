@@ -46,6 +46,7 @@ import equipeRoutes, { conviteRoutes } from './modules/equipe/equipe.routes.js';
 import onboardingRoutes from './modules/onboarding/onboarding.routes.js';
 import bancadaRoutes from './modules/bancada/bancada.routes.js';
 import pushRoutes from './modules/push/push.routes.js';
+import googleAgendaRoutes from './modules/googleAgenda/googleAgenda.routes.js';
 import avaliacoesRoutes from './modules/avaliacoes/avaliacoes.routes.js';
 
 // Route modules — stub re-exports
@@ -495,6 +496,7 @@ app.use(`${API_V1}/onboarding`, onboardingRoutes);
 app.use(`${API_V1}/convites`, conviteRoutes);
 app.use(`${API_V1}/bancada`, bancadaRoutes);
 app.use(`${API_V1}/push`, pushRoutes);
+app.use(`${API_V1}/google-agenda`, googleAgendaRoutes);
 app.use(`${API_V1}/avaliacoes`, avaliacoesRoutes);
 
 app.use(`${API_V1}/clients`, crmRoutes);
