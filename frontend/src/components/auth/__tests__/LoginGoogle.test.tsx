@@ -3,12 +3,13 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
 const mockSignIn = vi.fn();
 const mockGetSession = vi.fn();
+const mockSignOut = vi.fn();
 const mockPost = vi.fn();
 const mockReplace = vi.fn();
 const mockRefreshMe = vi.fn();
 
 vi.mock('@/lib/supabase/client', () => ({
-  getSupabaseClient: () => ({ auth: { signInWithOAuth: mockSignIn, getSession: mockGetSession } }),
+  getSupabaseClient: () => ({ auth: { signInWithOAuth: mockSignIn, getSession: mockGetSession, signOut: mockSignOut } }),
   resolveAuthConfirmRedirectUrl: () => 'http://localhost/auth/confirm',
 }));
 
@@ -40,6 +41,7 @@ describe('Login com Google', () => {
     process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ATIVO = '1';
     mockGetSession.mockResolvedValue({ data: { session: { access_token: 'token-do-supabase-com-mais-de-20' } } });
     mockSignIn.mockResolvedValue({ data: {}, error: null });
+    mockSignOut.mockResolvedValue({ error: null });
     sessionStorage.clear();
   });
   afterEach(() => {
@@ -79,6 +81,8 @@ describe('Login com Google', () => {
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/dashboard'));
     expect(mockPost).toHaveBeenCalledWith('/auth/oauth/sessao', { accessToken: 'token-do-supabase-com-mais-de-20' });
     expect(mockRefreshMe).toHaveBeenCalled();
+    // A sessão do Google não fica no navegador depois de virar a sessão do app.
+    expect(mockSignOut).toHaveBeenCalledWith({ scope: 'local' });
   });
 
   it('callback sem conta vai para completar', async () => {
@@ -87,6 +91,8 @@ describe('Login com Google', () => {
     render(<OAuthCallbackView />);
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/cadastro/completar?plan=premium'));
     expect(JSON.parse(sessionStorage.getItem('easyagenda:oauth-completar') || '{}')).toEqual({ email: 'dona@x.com', nome: 'Ana Souza' });
+    // O completar ainda precisa da sessão do Google.
+    expect(mockSignOut).not.toHaveBeenCalled();
   });
 
   it('completar envia os dados sem e-mail e senha', async () => {
@@ -110,6 +116,7 @@ describe('Login com Google', () => {
       whatsapp: '11999999999', cpfCnpj: '52998224725', desiredPlan: 'premium',
     }));
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/pagamento?from=confirm&plan=premium'));
+    expect(mockSignOut).toHaveBeenCalledWith({ scope: 'local' });
   });
 
   it('completar sem sessão do Google volta ao cadastro', async () => {

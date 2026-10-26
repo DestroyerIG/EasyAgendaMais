@@ -12,7 +12,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { formatCpfCnpj, isValidCpfCnpj, normalizeCpfCnpjDigits } from '@/utils/cpfCnpj';
 import { destinoAposConfirmar } from './AuthConfirmView';
-import { CHAVE_OAUTH_COMPLETAR } from './OAuthCallbackView';
+import { CHAVE_OAUTH_COMPLETAR, encerrarSessaoDoGoogle } from './OAuthCallbackView';
 
 // Conta nova pelo Google (fase 7): os dados do cadastro, sem e-mail (vem do Google) e sem senha.
 export function CompletarCadastroView() {
@@ -70,6 +70,7 @@ export function CompletarCadastroView() {
         whatsapp: form.whatsapp, cpfCnpj, desiredPlan: plano,
       });
       sessionStorage.removeItem(CHAVE_OAUTH_COMPLETAR);
+      await encerrarSessaoDoGoogle();
       await refreshMe();
       router.replace(destinoAposConfirmar(data));
     } catch (erro) {

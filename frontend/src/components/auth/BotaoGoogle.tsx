@@ -41,7 +41,7 @@ export function BotaoGoogle({ plano }: { plano?: string | null }) {
         type="button"
         onClick={entrar}
         disabled={indo}
-        className="flex h-11 w-full items-center justify-center gap-3 rounded-control border border-line bg-white text-[15px] font-semibold text-[#1f1f1f] transition-colors hover:bg-[#f7f7f7] disabled:opacity-60"
+        className="flex h-11 w-full items-center justify-center gap-3 rounded-control border border-line bg-surface text-[15px] font-semibold text-ink transition-colors hover:bg-surface-2 disabled:opacity-60"
       >
         <LogoGoogle />
         Continuar com Google

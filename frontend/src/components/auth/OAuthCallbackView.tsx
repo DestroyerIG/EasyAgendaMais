@@ -37,6 +37,16 @@ export async function sessaoDoGoogle(): Promise<string | null> {
   return data.session?.access_token ?? null;
 }
 
+/**
+ * A sessão do Supabase só serve para trocar pela sessão do app. Depois disso sai do navegador, para
+ * ninguém reabrir a conta pelo /auth/callback num computador compartilhado.
+ */
+export async function encerrarSessaoDoGoogle(): Promise<void> {
+  try {
+    await getSupabaseClient().auth.signOut({ scope: 'local' });
+  } catch { /* não impede a entrada */ }
+}
+
 export function OAuthCallbackView() {
   const router = useRouter();
   const { refreshMe } = useAuth();
@@ -61,6 +71,7 @@ export function OAuthCallbackView() {
           router.replace(`/cadastro/completar${plano ? `?plan=${encodeURIComponent(plano)}` : ''}`);
           return;
         }
+        await encerrarSessaoDoGoogle();
         await refreshMe();
         router.replace(destinoAposConfirmar(resposta));
       } catch (e) {
