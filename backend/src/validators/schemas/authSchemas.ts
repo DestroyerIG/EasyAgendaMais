@@ -39,6 +39,16 @@ export const registerSchema = z.object({
   emailRedirectTo: authConfirmRedirectSchema,
 });
 
+// Login com Google (fase 7): o token é a sessão do Supabase devolvida pelo OAuth.
+const oauthAccessTokenSchema = z.string().min(20, 'Sessão do Google inválida').max(4096);
+
+export const oauthSessaoSchema = z.object({ accessToken: oauthAccessTokenSchema });
+
+/** Os dados do cadastro, sem e-mail e senha: o e-mail vem do Google. */
+export const oauthCompletarSchema = registerSchema
+  .omit({ email: true, password: true, emailRedirectTo: true })
+  .extend({ accessToken: oauthAccessTokenSchema });
+
 export const loginSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(1, 'Senha é obrigatória'),

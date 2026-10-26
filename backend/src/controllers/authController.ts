@@ -7,9 +7,13 @@ import {
   verifyEmailSchema,
   verifyEmailSessionSchema,
   resendVerificationSchema,
+  oauthSessaoSchema,
+  oauthCompletarSchema,
 } from '../validators/schemas/index.js';
 
 export {
+  oauthSessaoSchema,
+  oauthCompletarSchema,
   registerSchema,
   loginSchema,
   verifyEmailSchema,
@@ -42,6 +46,22 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
   try {
     const data = await authService.login(res, req.body);
     sendSuccess(res, data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const oauthSessao = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    sendSuccess(res, await authService.oauthSessao(res, req.body.accessToken as string));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const oauthCompletar = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    sendSuccess(res, await authService.oauthCompletar(res, req.body));
   } catch (error) {
     next(error);
   }

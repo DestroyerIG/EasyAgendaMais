@@ -15,6 +15,10 @@ import {
 	verifyEmailSchema,
 	verifyEmailSessionSchema,
 	resendVerificationSchema,
+	oauthSessao,
+	oauthCompletar,
+	oauthSessaoSchema,
+	oauthCompletarSchema,
 } from '../controllers/authController.js';
 // @ts-ignore
 import { validate } from '../middleware/validate.js';
@@ -29,6 +33,8 @@ router.get('/verify-email', validate({ query: verifyEmailSchema }), verifyEmail)
 router.post('/verify-email-session', validate({ body: verifyEmailSessionSchema }), verifyEmailSession);
 router.post('/confirm', validate({ body: verifyEmailSessionSchema }), confirmSignup);
 router.post('/resend-verification', validate({ body: resendVerificationSchema }), resendVerification);
+router.post('/oauth/sessao', validate({ body: oauthSessaoSchema }), oauthSessao);
+router.post('/oauth/completar', validate({ body: oauthCompletarSchema }), oauthCompletar);
 router.post('/refresh', refreshAccessToken);
 router.post('/logout', logout);
 router.get('/me', authMiddleware, me);
