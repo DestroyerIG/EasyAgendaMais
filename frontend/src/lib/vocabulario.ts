@@ -67,6 +67,7 @@ const PARA_MASCULINO: Record<string, string> = {
   pelas: 'pelos', Pelas: 'Pelos', todas: 'todos', Todas: 'Todos',
   desta: 'deste', Desta: 'Deste', dessa: 'desse', Dessa: 'Desse', nesta: 'neste', Nesta: 'Neste', nessa: 'nesse', Nessa: 'Nesse',
   cada: 'cada', Cada: 'Cada', duas: 'dois', Duas: 'Dois',
+  quantas: 'quantos', Quantas: 'Quantos', algumas: 'alguns', Algumas: 'Alguns', alguma: 'algum', Alguma: 'Algum',
 };
 const DETERMINANTE = Object.keys(PARA_MASCULINO).sort((x, y) => y.length - x.length).join('|');
 
@@ -74,15 +75,16 @@ const DETERMINANTE = Object.keys(PARA_MASCULINO).sort((x, y) => y.length - x.len
 function adaptarTermo(texto: string, palavra: string, plural: string, t: Termo): string {
   const masculino = t.genero === 'm';
   // Fronteira de palavra que entende acento (o \b do JS não vê "à"/"às" como letra).
-  const re = new RegExp(`(?:(?<![\\p{L}\\p{N}])(${DETERMINANTE}) )?(?<![\\p{L}\\p{N}])(${palavra}|${plural})(?![\\p{L}\\p{N}])`, 'giu');
-  return texto.replace(re, (_todo, det: string | undefined, nome: string) => {
+  // Os determinantes vêm em sequência ("todas as clientes"): todos concordam com o termo.
+  const re = new RegExp(`((?:(?<![\\p{L}\\p{N}])(?:${DETERMINANTE}) )*)(?<![\\p{L}\\p{N}])(${palavra}|${plural})(?![\\p{L}\\p{N}])`, 'giu');
+  return texto.replace(re, (_todo, dets: string, nome: string) => {
     const ehPlural = nome.toLowerCase() === plural;
     const maiusc = nome.charAt(0) === nome.charAt(0).toUpperCase();
     const termo = ehPlural ? t.plural : t.singular;
     const novoNome = maiusc ? maiuscula(termo) : termo;
-    if (!det) return novoNome;
-    const novoDet = masculino ? (PARA_MASCULINO[det] ?? det) : det;
-    return `${novoDet} ${novoNome}`;
+    if (!dets || !masculino) return `${dets}${novoNome}`;
+    const novosDets = dets.split(' ').map((d) => (d ? (PARA_MASCULINO[d] ?? d) : d)).join(' ');
+    return `${novosDets}${novoNome}`;
   });
 }
 

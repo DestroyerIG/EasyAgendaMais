@@ -138,7 +138,7 @@ export function AtendimentoBancada() {
     setEnviandoFoto(true);
     try {
       await bancadaApi.enviarFoto(dto.client.id, arquivo, { appointmentId: dto.appointment.id, caption: principal?.name });
-      showToast('Foto salva na galeria da cliente.', 'success');
+      showToast(adaptar('Foto salva na galeria da cliente.'), 'success');
     } catch (e) {
       showToast(e instanceof Error && !('isAxiosError' in e) ? e.message : getApiErrorMessage(e, 'Não foi possível enviar a foto.'), 'error');
     } finally {
@@ -268,7 +268,7 @@ export function AtendimentoBancada() {
         <Button variant="secondary" fullWidth onClick={() => fotoRef.current?.click()} loading={enviandoFoto}>
           <Camera className="h-4 w-4" aria-hidden="true" /> Foto do trabalho
         </Button>
-        <p className="mt-1.5 text-[12px] text-muted">A foto vai para a galeria da cliente.</p>
+        <p className="mt-1.5 text-[12px] text-muted">{adaptar('A foto vai para a galeria da cliente.')}</p>
       </section>
 
       {cobra && !fechada && (

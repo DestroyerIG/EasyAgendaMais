@@ -36,7 +36,8 @@ const r$ = (v: number) => formatCurrency(v);
 export function ComissoesModule({ onUpgrade }: ComissoesModuleProps) {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { prof } = useVocabulario();
+  const termos = useVocabulario();
+  const { prof } = termos;
   const dona = user?.role === 'tenant_admin';
   const [periodo, setPeriodo] = useState<Periodo>(() => quinzenaDe(hojeLocal()));
   const [dados, setDados] = useState<ApuracaoComissoes | null>(null);
@@ -139,7 +140,7 @@ export function ComissoesModule({ onUpgrade }: ComissoesModuleProps) {
             <Icon name="ios_share" size={18} />
             Exportar CSV
           </Button>
-          <Button size="sm" onClick={() => dados && pdfComissoes(dados, negocio)} disabled={!dados?.itens.length}>
+          <Button size="sm" onClick={() => dados && pdfComissoes(dados, negocio, termos)} disabled={!dados?.itens.length}>
             <Icon name="picture_as_pdf" size={18} />
             PDF para o contador
           </Button>
@@ -213,7 +214,7 @@ export function ComissoesModule({ onUpgrade }: ComissoesModuleProps) {
                           <td className="px-3 py-3 text-right font-bold tabular-nums text-ink">{r$(l.aPagar)}</td>
                           <td className="px-5 py-3">
                             <Acoes l={l} dona={dona} desfazendo={desfazendo === l.repasse?.id}
-                              onPagar={() => setPagando(l)} onDesfazer={() => desfazer(l)} onComprovante={() => pdfComprovante(dados, l, negocio)} />
+                              onPagar={() => setPagando(l)} onDesfazer={() => desfazer(l)} onComprovante={() => pdfComprovante(dados, l, negocio, termos)} />
                           </td>
                         </tr>
                       ))}
@@ -233,7 +234,7 @@ export function ComissoesModule({ onUpgrade }: ComissoesModuleProps) {
                         <dt className="font-semibold text-ink">A pagar</dt><dd className="text-right font-bold tabular-nums text-ink">{r$(l.aPagar)}</dd>
                       </dl>
                       <Acoes l={l} dona={dona} desfazendo={desfazendo === l.repasse?.id}
-                        onPagar={() => setPagando(l)} onDesfazer={() => desfazer(l)} onComprovante={() => pdfComprovante(dados, l, negocio)} />
+                        onPagar={() => setPagando(l)} onDesfazer={() => desfazer(l)} onComprovante={() => pdfComprovante(dados, l, negocio, termos)} />
                     </li>
                   ))}
                 </ul>
@@ -244,7 +245,7 @@ export function ComissoesModule({ onUpgrade }: ComissoesModuleProps) {
           {parceiro ? (
             <p className="flex items-start gap-2 rounded-card border border-line bg-surface-2 p-4 text-[13px] text-muted">
               <Icon name="info" size={18} className="mt-0.5 shrink-0" />
-              {AVISO_SALAO_PARCEIRO}
+              {termos.adaptar(AVISO_SALAO_PARCEIRO)}
             </p>
           ) : (
             <p className="text-[13px] text-muted">

@@ -11,6 +11,7 @@ import {
   type FiltroConversa,
   type ListaConversasDto,
 } from '@/lib/whatsappInbox';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 const FILTROS: Array<{ id: FiltroConversa; rotulo: string }> = [
   { id: 'todas', rotulo: 'Todas' },
@@ -178,6 +179,7 @@ export function FiltrosConversa({ filtro, onFiltro, contadores }: FiltrosConvers
 export function FilaConversas({
   filtro, dados, selecionadaId, onSelecionar, onMarcarLidas, onCarregarMais, erro = false, carregandoMais = false, onTentarNovamente,
 }: FilaConversasProps) {
+  const { adaptar } = useVocabulario();
   const [busca, setBusca] = useState('');
   const corpo = () => {
     if (!dados) {
@@ -201,7 +203,7 @@ export function FilaConversas({
       const semNenhuma = dados.contadores.todas === 0 && filtro === 'todas';
       return (
         <p className="px-4 py-10 text-center text-[14px] text-muted">
-          {semNenhuma ? 'Nenhuma conversa ainda. As mensagens das clientes aparecem aqui.' : 'Nenhuma conversa neste filtro.'}
+          {semNenhuma ? adaptar('Nenhuma conversa ainda. As mensagens das clientes aparecem aqui.') : 'Nenhuma conversa neste filtro.'}
         </p>
       );
     }

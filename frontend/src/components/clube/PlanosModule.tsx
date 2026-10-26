@@ -10,12 +10,14 @@ import { cn } from '@/lib/cn';
 import { type Oferta, type StatusOferta, type TipoOferta, clubeApi, regraDeUso } from '@/lib/clube';
 import { Banner, Button, Card, EmptyState, Icon, Skeleton } from '@/components/ui';
 import { OfertaModal } from './OfertaModal';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 // Aba "Planos e pacotes": cartões das ofertas, com filtros e o modal de criar/editar.
 
 type Filtro = 'todos' | TipoOferta;
 
 export function PlanosModule() {
+  const { adaptar } = useVocabulario();
   const { user } = useAuth();
   const { showToast } = useToast();
   const dona = user?.role === 'tenant_admin';
@@ -102,7 +104,7 @@ export function PlanosModule() {
         <EmptyState
           icon={Crown}
           title={ofertas.length === 0 ? 'Nenhum plano criado ainda' : 'Nada neste filtro'}
-          description="Clube: a cliente paga todo mês e usa as sessões do mês. Pacote: paga antes e vai usando até acabar."
+          description={adaptar('Clube: a cliente paga todo mês e usa as sessões do mês. Pacote: paga antes e vai usando até acabar.')}
           action={dona && ofertas.length === 0 ? { label: 'Criar o primeiro', onClick: () => setEditando('nova') } : undefined}
         />
       ) : (
@@ -125,6 +127,7 @@ export function PlanosModule() {
 interface CartaoProps { o: Oferta; dona: boolean; onEditar: () => void; onStatus: (s: StatusOferta) => void }
 
 function CartaoOferta({ o, dona, onEditar, onStatus }: CartaoProps) {
+  const { prof, adaptar } = useVocabulario();
   const clube = o.tipo === 'clube';
   return (
     <Card className={cn('flex flex-col gap-4', o.status !== 'ativa' && 'opacity-70')}>
@@ -148,7 +151,7 @@ function CartaoOferta({ o, dona, onEditar, onStatus }: CartaoProps) {
         {o.descontoExtrasPct > 0 && <li className="flex gap-2"><Icon name="sell" size={18} className="shrink-0 text-muted" />{String(o.descontoExtrasPct).replace('.', ',')}% de desconto nos outros itens</li>}
         {o.beneficios.map((b) => <li key={b} className="flex gap-2"><Icon name="star" size={18} className="shrink-0 text-muted" />{b}</li>)}
         <li className="flex gap-2"><Icon name="badge" size={18} className="shrink-0 text-muted" />
-          {o.profissionais.length ? `Profissionais: ${o.profissionais.map((p) => p.nome).join(', ')}` : 'Todas as profissionais'}
+          {o.profissionais.length ? `${prof.P}: ${o.profissionais.map((p) => p.nome).join(', ')}` : adaptar('Todas as profissionais')}
         </li>
       </ul>
       <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-[13px]">

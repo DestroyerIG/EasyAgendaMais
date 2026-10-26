@@ -209,7 +209,7 @@ export function Automacoes({ conectado, onAbrirConexao, nomeNegocio }: Automacoe
           </div>
           <h1 className="text-[28px] font-bold leading-9 tracking-tight text-ink md:text-[32px] md:leading-10">Automações do WhatsApp</h1>
           <p className="text-[15px] leading-[22.5px] text-muted">
-            Mensagens inteligentes enviadas no momento exato de cada etapa da cliente. Fluxos programados de resposta instantânea sem sobrecarregar sua recepção.
+            {adaptar('Mensagens inteligentes enviadas no momento exato de cada etapa da cliente.')} Fluxos programados de resposta instantânea sem sobrecarregar sua recepção.
           </p>
         </div>
         <div className="flex items-center gap-2 self-start md:self-auto">

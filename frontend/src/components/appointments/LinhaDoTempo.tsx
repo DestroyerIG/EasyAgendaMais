@@ -41,6 +41,7 @@ import { formatCurrency } from '@/lib/formatters';
 import { Avatar, Icon, StatusChip, STATUS_STRIPE_CLASS } from '@/components/ui';
 import type { Appointment } from '@/types';
 import { ACOES_POR_STATUS, ROTULO_ACAO, type AcaoAgendamento } from './acoes';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 /** O que um clique num horário livre já sabe do novo agendamento. */
 export interface InicialNovoAgendamento {
@@ -298,11 +299,11 @@ export const chaveProfissional = (agendamento: Appointment): string =>
   agendamento.professional_id || agendamento.professional_name || 'sem-profissional';
 
 /** Uma coluna por profissional que tem agendamento no período, em ordem alfabética. */
-export function agruparPorProfissional(agendamentos: Appointment[]): ColunaProfissional[] {
+export function agruparPorProfissional(agendamentos: Appointment[], semProfissional = 'Sem profissional'): ColunaProfissional[] {
   const colunas = new Map<string, ColunaProfissional>();
 
   agendamentos.forEach((agendamento) => {
-    const nome = agendamento.professional_name || 'Sem profissional';
+    const nome = agendamento.professional_name || semProfissional;
     const id = chaveProfissional(agendamento);
     const coluna = colunas.get(id) || { id, nome, agendamentos: [] };
     coluna.agendamentos.push(agendamento);
@@ -546,6 +547,7 @@ export function LinhaDoTempo({
 }: LinhaDoTempoProps) {
   // O relógio do aparelho só é lido depois da montagem: no servidor ele daria outra
   // hora e outro fuso, e a marca "Agora" apareceria em duas posições diferentes.
+  const { prof } = useVocabulario();
   const [relogio, setRelogio] = useState<{ minutos: number; fuso: string } | null>(null);
 
   useEffect(() => {
@@ -560,7 +562,7 @@ export function LinhaDoTempo({
   // pessoa tem dia, não porque sobrou atendimento dela depois do filtro: a agenda dela
   // continua com os mesmos buracos, e apagar a coluna esconderia esses buracos.
   const doDia = agendamentosDoDia ?? agendamentos;
-  const colunas = agruparPorProfissional(doDia);
+  const colunas = agruparPorProfissional(doDia, `Sem ${prof.s}`);
   if (colunas.length === 0) return null;
 
   /** Os blocos de cada coluna: só os atendimentos que passaram pelo filtro. */

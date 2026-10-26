@@ -126,7 +126,7 @@ export function FichaCliente({ clienteId, nomeNegocio }: FichaClienteProps) {
   if (estado === 'carregando' || !perfil) {
     return (
       <div className="flex flex-col gap-6">
-        <Skeleton className="h-36 w-full" label="Carregando ficha da cliente..." />
+        <Skeleton className="h-36 w-full" label={adaptar('Carregando ficha da cliente...')} />
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-28 w-full" />

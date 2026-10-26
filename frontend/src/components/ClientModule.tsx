@@ -20,11 +20,13 @@ import { getApiErrorMessage } from '@/utils/handleApiError';
 import { cn } from '@/lib/cn';
 import type { ClienteInsight } from '@/lib/crm';
 import type { Client } from '@/types';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 type Visao = 'lista' | 'fases';
 
 export const ClientModule = () => {
   const { user } = useAuth();
+  const { cli } = useVocabulario();
   const { showToast } = useToast();
   const [visao, setVisao] = useState<Visao>('lista');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -113,7 +115,7 @@ export const ClientModule = () => {
           </div>
           {totalGeral !== null && (
             <p className="mt-1 text-[14px] text-muted">
-              {totalGeral} {totalGeral === 1 ? 'cliente cadastrada' : 'clientes cadastradas'}
+              {totalGeral} {totalGeral === 1 ? `cliente ${cli.g('cadastrada', 'cadastrado')}` : `clientes ${cli.g('cadastradas', 'cadastrados')}`}
             </p>
           )}
         </div>

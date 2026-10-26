@@ -5,6 +5,7 @@ import {
   type ApuracaoComissoes, type LinhaComissao, type VisaoGeral, type Evolucao,
   AVISO_SALAO_PARCEIRO, ROTULO_FORMA, dataBr, formatarCnpj, rotuloMes, rotuloPeriodo,
 } from '@/lib/relatorios';
+import { termosDe, type Termos } from '@/lib/vocabulario';
 
 // PDFs das telas de Relatórios e Comissões, gerados no navegador como o relatório do Caixa.
 
@@ -25,13 +26,13 @@ function cabecalho(doc: Doc, titulo: string, subtitulo: string) {
 
 const STATUS: Record<LinhaComissao['status'], string> = { pendente: 'Pendente', pago: 'Pago', sem_valor: 'Sem valor' };
 
-export function pdfComissoes(a: ApuracaoComissoes, negocio: string) {
+export function pdfComissoes(a: ApuracaoComissoes, negocio: string, t: Termos = termosDe(null)) {
   const doc = new jsPDF({ orientation: 'landscape' }) as Doc;
   const parceiro = a.modelo === 'salao_parceiro';
   cabecalho(doc, `${negocio} — Comissões`, `${rotuloPeriodo(a.periodo)} · ${parceiro ? 'Salão-parceiro' : 'Comissão tradicional'}`);
   autoTable(doc, {
     startY: 34,
-    head: [['Profissional', 'CNPJ', 'Atend.', 'Serviços', 'Produtos', parceiro ? 'Cota salão' : 'Fica no salão', parceiro ? 'Cota prof.' : 'Comissão', 'Gorjetas', 'Adiant.', 'A pagar', 'Status']],
+    head: [[t.prof.S, 'CNPJ', 'Atend.', 'Serviços', 'Produtos', parceiro ? 'Cota salão' : 'Fica no salão', parceiro ? 'Cota prof.' : 'Comissão', 'Gorjetas', 'Adiant.', 'A pagar', 'Status']],
     body: a.itens.map((i) => [
       i.professional.nome, formatarCnpj(i.professional.cnpj) ?? '—', String(i.atendimentos), r$(i.servicos), r$(i.produtos),
       r$(i.cotaSalao), r$(i.comissao), r$(i.gorjetas), i.adiantamentos ? `− ${r$(i.adiantamentos)}` : '—', r$(i.aPagar), STATUS[i.status],
@@ -47,12 +48,12 @@ export function pdfComissoes(a: ApuracaoComissoes, negocio: string) {
   if (parceiro) {
     doc.setFontSize(8);
     doc.setTextColor(100);
-    doc.text(doc.splitTextToSize(AVISO_SALAO_PARCEIRO, 260), 14, doc.lastAutoTable.finalY + 18);
+    doc.text(doc.splitTextToSize(t.adaptar(AVISO_SALAO_PARCEIRO), 260), 14, doc.lastAutoTable.finalY + 18);
   }
   doc.save(`comissoes-${a.periodo.inicio}-a-${a.periodo.fim}.pdf`);
 }
 
-export function pdfComprovante(a: ApuracaoComissoes, i: LinhaComissao, negocio: string) {
+export function pdfComprovante(a: ApuracaoComissoes, i: LinhaComissao, negocio: string, t: Termos = termosDe(null)) {
   if (!i.repasse) return;
   const doc = new jsPDF() as Doc;
   const parceiro = a.modelo === 'salao_parceiro';
@@ -60,13 +61,13 @@ export function pdfComprovante(a: ApuracaoComissoes, i: LinhaComissao, negocio: 
   autoTable(doc, {
     startY: 34,
     body: [
-      ['Profissional', i.professional.nome],
+      [t.prof.S, i.professional.nome],
       ['CNPJ (MEI)', formatarCnpj(i.professional.cnpj) ?? 'Não informado'],
       ['Período', rotuloPeriodo(a.periodo)],
       ['Atendimentos', String(i.atendimentos)],
       ['Serviços', r$(i.servicos)],
       ['Produtos', r$(i.produtos)],
-      [parceiro ? 'Cota da profissional' : 'Comissão', r$(i.comissao)],
+      [parceiro ? `Cota ${t.prof.doS}` : 'Comissão', r$(i.comissao)],
       ['Gorjetas', r$(i.gorjetas)],
       ['Adiantamentos descontados', r$(i.adiantamentos)],
       ['Valor pago', r$(i.repasse.valorPago)],
@@ -80,7 +81,7 @@ export function pdfComprovante(a: ApuracaoComissoes, i: LinhaComissao, negocio: 
   if (parceiro) {
     doc.setFontSize(8);
     doc.setTextColor(100);
-    doc.text(doc.splitTextToSize(AVISO_SALAO_PARCEIRO, 180), 14, doc.lastAutoTable.finalY + 10);
+    doc.text(doc.splitTextToSize(t.adaptar(AVISO_SALAO_PARCEIRO), 180), 14, doc.lastAutoTable.finalY + 10);
   }
   doc.setTextColor(0);
   doc.setFontSize(10);

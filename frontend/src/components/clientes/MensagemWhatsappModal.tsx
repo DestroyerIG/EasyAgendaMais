@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Button, Icon, Modal, Textarea } from '@/components/ui';
 import { linkWhatsapp } from '@/lib/whatsappLink';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 export interface MensagemWhatsappModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export function MensagemWhatsappModal({
   mensagemInicial,
   contexto,
 }: MensagemWhatsappModalProps) {
+  const { adaptar } = useVocabulario();
   const [texto, setTexto] = useState(mensagemInicial);
 
   // Cada abertura começa da mensagem pronta, não do rascunho de outra cliente.
@@ -74,7 +76,7 @@ export function MensagemWhatsappModal({
         ) : (
           <p className="flex items-center gap-1.5 text-[12px] font-semibold text-warning-text">
             <Icon name="error" size={15} />
-            Cadastre o telefone da cliente
+            {adaptar('Cadastre o telefone da cliente')}
           </p>
         )}
       </div>

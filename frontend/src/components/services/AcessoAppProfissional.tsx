@@ -81,7 +81,7 @@ export function AcessoAppProfissional({ professionalId, ativa = true }: { profes
       const r = await equipeApi.convidar(professionalId, email.trim());
       setAcesso(r);
       setLink(r.link);
-      showToast(r.emailEnviado ? `Convite enviado para ${r.email}` : 'Convite criado. Copie o link e mande para ela.', r.emailEnviado ? 'success' : 'info');
+      showToast(r.emailEnviado ? `Convite enviado para ${r.email}` : `Convite criado. Copie o link e mande para ${prof.ele}.`, r.emailEnviado ? 'success' : 'info');
     } catch (e) {
       showToast(getApiErrorMessage(e, 'Não foi possível enviar o convite.'), 'error');
     } finally {

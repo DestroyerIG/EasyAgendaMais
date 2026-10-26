@@ -55,7 +55,7 @@ export function VincularModal({ onClose, onVinculado }: VincularModalProps) {
 
   const salvar = async () => {
     setErro(null);
-    if (!clientId) return setErro('Escolha a cliente.');
+    if (!clientId) return setErro(adaptar('Escolha a cliente.'));
     if (!ofertaId) return setErro('Escolha o plano ou pacote.');
     setSalvando(true);
     try {
@@ -63,7 +63,7 @@ export function VincularModal({ onClose, onVinculado }: VincularModalProps) {
       await clubeApi.vincular({ ofertaId, clientId, pagamento: { forma: pendente ? 'pix' : pagamento, pago: !pendente } });
       onVinculado(pendente);
     } catch (e) {
-      setErro(getApiErrorMessage(e, 'Não foi possível vincular a cliente.'));
+      setErro(getApiErrorMessage(e, adaptar('Não foi possível vincular a cliente.')));
     } finally {
       setSalvando(false);
     }

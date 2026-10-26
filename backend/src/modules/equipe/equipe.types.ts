@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { passwordSchema } from '../../validators/schemas/common.js';
 import type { EstadoAcesso } from './equipe.rules.js';
+import type { Vocabulario } from '../../config/vocabulario.js';
 
 export const ConvidarSchema = z.object({
   email: z.string().trim().toLowerCase().email('Informe um e-mail válido').max(255),
@@ -28,4 +29,6 @@ export interface ConvitePublicoDto {
   negocio: string;
   profissional: string;
   email: string;
+  /** Termos do segmento do negócio, para a tela do convite (fora do login). */
+  vocabulario: Vocabulario;
 }

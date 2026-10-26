@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRequireRole } from '@/hooks/useRequireRole';
 import { registrarServiceWorker } from '@/lib/push';
 import { cn } from '@/lib/cn';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 // Casca do app da profissional (fase 5): celular primeiro, coluna central no computador,
 // barra inferior Agenda · Clientes · Atendimento · Números.
@@ -20,6 +21,7 @@ export const ABAS_BANCADA = [
 ] as const;
 
 export function BancadaShell({ children }: { children: ReactNode }) {
+  const { prof } = useVocabulario();
   const pathname = usePathname() ?? '/bancada';
   const { logout } = useAuth();
   const { isChecking, isAuthorized, user } = useRequireRole({
@@ -44,7 +46,7 @@ export function BancadaShell({ children }: { children: ReactNode }) {
           <img src="/icons/icon-192.png" alt="" className="h-8 w-8 rounded-lg" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-[15px] font-bold text-ink">{user?.businessName || 'EasyAgenda+'}</p>
-            <p className="text-[11px] font-medium text-muted">App da profissional</p>
+            <p className="text-[11px] font-medium text-muted">App {prof.doS}</p>
           </div>
           <button
             type="button"

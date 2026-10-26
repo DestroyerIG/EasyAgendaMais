@@ -11,18 +11,20 @@ import { BottomNav } from './BottomNav';
 import { MoreSheet } from './MoreSheet';
 import { TrialBanner } from './TrialBanner';
 import { TopBarSearchProvider } from './TopBarSearchContext';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 // Cargo exibido na pílula de usuário da barra superior — só os papéis que chegam
 // à casca do painel (tenant_admin e employee; platform_admin vai para /admin).
+// O employee aparece com o termo do segmento ("Barbeiro", "Nail designer").
 const ROLE_LABEL: Record<string, string> = {
   tenant_admin: 'Administradora',
-  employee: 'Profissional',
 };
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { prof } = useVocabulario();
   const [moreOpen, setMoreOpen] = useState(false);
   // O papel `professional` usa só o app da bancada (fase 5): o painel fica fechado para ele.
   const ehProfissional = user?.role === 'professional';
@@ -37,7 +39,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const activeId = getActiveNavItem(pathname);
   const businessName = user?.businessName || 'Seu negócio';
   const planLabel = getPlanShellLabel(user?.plan || '');
-  const roleLabel = (user?.role && ROLE_LABEL[user.role]) || 'Administradora';
+  const roleLabel = user?.role === 'employee' ? prof.S : (user?.role && ROLE_LABEL[user.role]) || 'Administradora';
   const title = NAV_ITEMS.find((item) => item.id === activeId)?.label ?? 'EasyAgenda+';
   const handleLogout = () => {
     void logout();

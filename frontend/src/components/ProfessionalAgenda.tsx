@@ -7,6 +7,7 @@ import type { Appointment, Professional } from '@/types';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, Avatar, IconButton, Button, EmptyState, Skeleton } from '@/components/ui';
 import { CorpoCartaoAgendamento } from '@/components/appointments/AppointmentCard';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 interface ProfessionalAgendaProps {
     professional: Professional;
@@ -31,6 +32,7 @@ const addDays = (dateStr: string, days: number) => {
 };
 
 export function ProfessionalAgenda({ professional }: ProfessionalAgendaProps) {
+    const { prof } = useVocabulario();
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState(getToday());
@@ -101,7 +103,7 @@ export function ProfessionalAgenda({ professional }: ProfessionalAgendaProps) {
                 <EmptyState
                     icon={Calendar}
                     title="Nenhum agendamento para hoje"
-                    description="Este profissional está livre no momento."
+                    description={`${prof.g('Esta', 'Este')} ${prof.s} está livre no momento.`}
                 />
             ) : (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

@@ -17,6 +17,7 @@ import {
   type EtiquetaComContagem,
 } from '@/lib/tags';
 import { getApiErrorMessage } from '@/utils/handleApiError';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 const ICONE_EDITAR = materialIcon('edit');
 const ICONE_APAGAR = materialIcon('delete');
@@ -65,6 +66,7 @@ function SeletorCor({ rotulo, valor, onChange }: { rotulo: string; valor: CorEti
 /** Ajustes: as etiquetas manuais das clientes (nome, cor e quantas clientes usam cada uma). */
 export function EtiquetasSection() {
   const { showToast } = useToast();
+  const { adaptar } = useVocabulario();
   const [etiquetas, setEtiquetas] = useState<EtiquetaComContagem[]>([]);
   const [loading, setLoading] = useState(true);
   const [novoNome, setNovoNome] = useState('');
@@ -130,7 +132,7 @@ export function EtiquetasSection() {
   };
 
   const apagar = async (etiqueta: EtiquetaComContagem) => {
-    if (!window.confirm('Remover a etiqueta de todas as clientes?')) return;
+    if (!window.confirm(adaptar('Remover a etiqueta de todas as clientes?'))) return;
     setApagandoId(etiqueta.id);
     try {
       await removerEtiqueta(etiqueta.id);

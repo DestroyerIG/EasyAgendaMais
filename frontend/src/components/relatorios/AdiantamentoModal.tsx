@@ -57,7 +57,7 @@ export function AdiantamentoModal({ profissionais: daApuracao, onClose, onSalvo 
 
   const salvar = async () => {
     const numero = Number(valor.replace(',', '.'));
-    if (!professionalId) return setErro('Escolha a profissional.');
+    if (!professionalId) return setErro(`Escolha ${prof.oS}.`);
     if (!(numero > 0)) return setErro('Informe um valor maior que zero.');
     setEnviando(true);
     setErro(null);

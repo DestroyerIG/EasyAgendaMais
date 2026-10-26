@@ -5,6 +5,7 @@ import { Button, Field, Icon, Input, Select, Switch } from '@/components/ui';
 import { CascaOnboarding } from './CascaOnboarding';
 import { DIAS, INTERVALOS, type DiaSemana, type Horarios, type ModoEquipe } from '@/lib/onboarding';
 import { cn } from '@/lib/cn';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 const minutos = (hhmm: string) => {
   const [h = 0, m = 0] = hhmm.split(':').map(Number);
@@ -27,6 +28,7 @@ export function erroDosHorarios(h: Horarios): string | null {
 export function EtapaHorarios({ inicial, modoEquipe, salvando, onVoltar, onSalvar }: {
   inicial: Horarios; modoEquipe: ModoEquipe | null; salvando: boolean; onVoltar: () => void; onSalvar: (h: Horarios) => void;
 }) {
+  const { prof } = useVocabulario();
   const [h, setH] = useState<Horarios>(inicial);
   const [comPausa, setComPausa] = useState(inicial.pausa !== null);
   const [pausa, setPausa] = useState(inicial.pausa ?? { inicio: '12:00', fim: '13:00' });
@@ -110,7 +112,7 @@ export function EtapaHorarios({ inicial, modoEquipe, salvando, onVoltar, onSalva
           )}
         </section>
       ) : (
-        <p className="text-[14px] text-muted">A pausa de cada profissional fica no cadastro dela, em Serviços › Equipe.</p>
+        <p className="text-[14px] text-muted">{`A pausa de cada ${prof.s} fica no cadastro ${prof.dele}, em Serviços › Equipe.`}</p>
       )}
 
       {erro && <p role="alert" className="text-[14px] font-semibold text-danger">{erro}</p>}
