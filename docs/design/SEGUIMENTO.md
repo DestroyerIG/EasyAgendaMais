@@ -135,6 +135,15 @@ Sub-projeto 6 (Onboarding guiado, segmentos e vocabulário), pendências conheci
 - **Mensagens do bot já editadas pela dona** não mudam com o segmento; só os textos que ainda estão no padrão.
 - As telas não foram vistas no navegador com dado real, porque o `.env` local aponta para produção. Conferir: criar uma conta nova pela landing com `?segmento=`, passar pelas 5 etapas (sozinha e equipe), pular as etapas 4 e 5, o cartão "Termine de configurar", trocar o segmento em Ajustes › CRM e ver os termos mudarem no painel e na página pública.
 
+Sub-projeto 7 (Login com Google e Google Agenda), pendências conhecidas:
+- **Migração `20261029120000_google_agenda` ainda não aplicada.** Cria as três tabelas do Google Agenda. Aplicar só com autorização do dono, antes do deploy do backend.
+- **Configuração externa:** Google Cloud, Supabase e variáveis, no passo a passo `docs/google-configuracao.md`. Sem ela, nada aparece.
+- **Verificação do Google** para os escopos de agenda: até aprovar, só os usuários de teste (até 100) conectam a agenda. O login não depende dela.
+- **Conferir no primeiro teste real:** o retorno do login (`/auth/callback`) trata o fluxo implícito (`#access_token`) e o PKCE (`?code=`) do Supabase; confirmar qual deles o projeto usa.
+- **Ocupado na grade:** o "Ocupado (Google)" aparece só na visão de dia e nas colunas de quem tem agendamento no dia; o aviso no modal vale para qualquer profissional.
+- **Bot do WhatsApp:** remarcações e cancelamentos pelo bot chegam ao Google pelo cron, em até 1 minuto.
+- **Uma instância:** o `state` do OAuth é de uso único em memória. Com mais de uma instância do backend, mover para o banco.
+
 ## Melhorias técnicas pequenas
 
 - O Vitest imprime um aviso de configuração a cada execução. Silenciar exige renomear `vitest.config.ts` para `.mts` ou declarar `"type": "module"`.

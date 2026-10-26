@@ -171,3 +171,12 @@
 - **Agenda principal** é a única lida para o ocupado. Outras agendas pessoais dela ficam de fora.
 - **Telefone da cliente fora do evento**, por privacidade.
 - **Cancelar apaga o evento;** falta e concluído mantêm.
+
+## Ajustes feitos na implementação
+- **`password_hash` continua obrigatório:** a conta criada pelo Google usa o `senhaPlaceholder()`, como todas as contas (a senha real fica no Supabase). O cadastro pelo Google grava o pendente e reaproveita a confirmação do cadastro (`confirmSignup`), e o `auth_provider` fica `google`.
+- **Plano no cadastro:** o parâmetro é `?plan=`, o mesmo da página de preços; a tela de completar tem a escolha do plano.
+- **"Pausada pelo plano" é calculado** (`conexaoEfetiva`), não gravado; a coluna `status` só guarda `ativa` ou `reconectar`.
+- **Ocupado do painel:** vem de `GET /google-agenda/ocupado?data=`, não do `/appointments`.
+- **Encaixe com aviso:** a rota de horários do painel (`/appointments/available-slots`) não aplica o ocupado do Google, para a recepção poder encaixar; o modal marca esses horários e avisa. Bancada, página pública e bot continuam bloqueando.
+- **Aviso de reconectar da dona:** só pelo sino, que já manda o push para a equipe.
+- **Reconectar** a mesma pessoa apaga a conexão antiga e cria uma agenda nova; a antiga fica parada no Google.
