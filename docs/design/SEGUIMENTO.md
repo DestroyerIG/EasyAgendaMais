@@ -129,7 +129,7 @@ Sub-projeto 5 (App da profissional), pendências conhecidas:
 - As telas não foram vistas no navegador com dado real, porque o `.env` local aponta para produção. Conferir: convidar e aceitar, a agenda do dia, iniciar e enviar para a recepção (e fechar com a chave ligada), reagendar e cancelar com aviso, Meus números, o link de avaliação no comprovante e o push no celular.
 
 Sub-projeto 6 (Onboarding guiado, segmentos e vocabulário), pendências conhecidas:
-- **Migração `20261028120000_onboarding` ainda não aplicada.** Ela cria as colunas e marca todos os negócios que já existem como onboarding concluído (backfill). Aplicar só com autorização do dono, antes do deploy do backend.
+- **Migração `20261028120000_onboarding` aplicada em produção em 26/10.** Ela cria as colunas e marca todos os negócios que já existem como onboarding concluído (backfill).
 - **Vocabulário fora das telas principais:** a troca cobre o painel (agenda, clientes, comanda, caixa, relatórios, comissões, clube, WhatsApp, Ajustes), a bancada, a página pública e as mensagens padrão do bot. Ainda dizem "profissional"/"cliente" fixo: textos de `lib/` usados em PDF e CSV (`relatoriosPdf`, `bancadaPdf`, `relatorios`, `comanda`), os motivos de `lib/bancada`, as campanhas e os modelos de `lib/whatsappAutomacoes`, `FinanceModule`, `ProfessionalAgenda`, `CentralConversas`, `FilaConversas`, `PreviaConvite`, `EtiquetasSection`, `GaleriaCliente` e `ConfirmarCobrancaModal`. Landing, planos e SuperAdmin ficam genéricos de propósito.
 - **Texto padrão do painel:** sem segmento ("outro"), o painel passou a dizer "a profissional" em todo lugar ("Nova profissional", "Nenhuma cliente encontrada"), onde antes misturava os gêneros.
 - **Mensagens do bot já editadas pela dona** não mudam com o segmento; só os textos que ainda estão no padrão.
@@ -232,7 +232,7 @@ Sub-projeto 6 (Onboarding guiado, segmentos e vocabulário), pendências conheci
   - Avaliação da cliente pelo link do comprovante (`/avaliar/[token]`), bloco "Avaliações" em Relatórios e aviso no sino para nota baixa.
   - PWA instalável (manifesto, ícones, service worker com tela offline) e notificações push (VAPID), também no sino do painel.
   - Selo "Pronta para cobrar" na Agenda e no Caixa. A profissional que entra no painel vai para `/bancada`.
-- Sub-projeto 6: Onboarding guiado (`/onboarding`), segmentos e vocabulário por segmento. Migração `20261028120000_onboarding`, **ainda não aplicada**. Entrou:
+- Sub-projeto 6: Onboarding guiado (`/onboarding`), segmentos e vocabulário por segmento. Migração `20261028120000_onboarding`, aplicada em 26/10. Entrou:
   - Cinco etapas do Stitch: negócio (segmento e sozinha/equipe), horários, serviços sugeridos por segmento (com sinal e chave Pix), página de agendamento e WhatsApp com o link. As etapas 1 a 3 são obrigatórias e o painel só abre depois delas; 4 e 5 podem ser puladas.
   - Quem atende sozinha já sai com o próprio cadastro de profissional, com a pausa dela.
   - O segmento escolhido na landing chega marcado na etapa 1. Contas que já existiam não passam pelo onboarding.
