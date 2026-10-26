@@ -11,6 +11,7 @@ const usuario = vi.hoisted(() => ({ atual: { role: 'tenant_admin', vocabulario: 
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: usuario.atual }) }));
 
 const { GoogleAgendaCard } = await import('../GoogleAgendaCard');
+const LOCATION_ORIGINAL = window.location;
 
 const BARBEARIA = {
   segmento: 'barbearia',
@@ -34,10 +35,10 @@ describe('GoogleAgendaCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     usuario.atual = { role: 'tenant_admin', vocabulario: null };
-    Object.defineProperty(window, 'location', { configurable: true, value: { ...window.location, assign, search: '' } });
+    Object.defineProperty(window, 'location', { configurable: true, value: { ...LOCATION_ORIGINAL, assign, search: '' } });
   });
   afterEach(() => {
-    Object.defineProperty(window, 'location', { configurable: true, value: globalThis.location });
+    Object.defineProperty(window, 'location', { configurable: true, value: LOCATION_ORIGINAL });
   });
 
   it('não aparece sem configuração', async () => {
@@ -111,11 +112,11 @@ describe('GoogleAgendaCard', () => {
 
   it('volta do Google mostra o resultado', async () => {
     api.conexao.mockResolvedValue({ configurado: true, conexao: null, profissionais: [] });
-    Object.defineProperty(window, 'location', { configurable: true, value: { ...globalThis.location, assign, search: '?google=ok' } });
+    Object.defineProperty(window, 'location', { configurable: true, value: { ...LOCATION_ORIGINAL, assign, search: '?google=ok' } });
     const { unmount } = render(<GoogleAgendaCard para="negocio" />);
     await waitFor(() => expect(toast).toHaveBeenCalledWith('Google Agenda conectado.', 'success'));
     unmount();
-    Object.defineProperty(window, 'location', { configurable: true, value: { ...globalThis.location, assign, search: '?google=erro' } });
+    Object.defineProperty(window, 'location', { configurable: true, value: { ...LOCATION_ORIGINAL, assign, search: '?google=erro' } });
     render(<GoogleAgendaCard para="negocio" />);
     await waitFor(() => expect(toast).toHaveBeenCalledWith('Não foi possível conectar o Google Agenda. Tente de novo.', 'error'));
   });
