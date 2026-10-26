@@ -141,6 +141,18 @@ describe('equipeService', () => {
     await expect(equipeService.verConvite(TOKEN)).rejects.toMatchObject({ statusCode: 410 });
   });
 
+  it('convite válido traz o vocabulário do segmento (padrão sem segmento)', async () => {
+    repo.conviteDoToken.mockResolvedValue(conviteDoToken({
+      expiraEm: new Date(Date.now() + dia),
+      business: { name: 'Navalha', plan: 'profissional', subscriptionStatus: 'active', settings: { segment: 'barbearia' } },
+    }));
+    const c = await equipeService.verConvite(TOKEN);
+    expect(c.vocabulario.profissional.singular).toBe('barbeiro');
+    expect(c.vocabulario.cliente.genero).toBe('m');
+    repo.conviteDoToken.mockResolvedValue(conviteDoToken({ expiraEm: new Date(Date.now() + dia) }));
+    expect((await equipeService.verConvite(TOKEN)).vocabulario.segmento).toBe('outro');
+  });
+
   it('plano Solo: o convite não abre', async () => {
     repo.conviteDoToken.mockResolvedValue(conviteDoToken({
       expiraEm: new Date(Date.now() + dia), business: { name: 'S', plan: 'basico', subscriptionStatus: 'active' },

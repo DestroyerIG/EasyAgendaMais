@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { Button, StatusChip, type AppointmentStatus } from '@/components/ui';
-import { ROTULO_SEGMENTO, ROTULO_STATUS, type CampanhaDto, type StatusCampanha } from '@/lib/whatsappCampanhas';
+import { useVocabulario } from '@/hooks/useVocabulario';
+import { rotuloSegmento, ROTULO_STATUS, type CampanhaDto, type StatusCampanha } from '@/lib/whatsappCampanhas';
 
 // O StatusChip é do kit de agenda: aqui só emprestamos as cores; o texto vem de ROTULO_STATUS.
 const COR_STATUS: Record<StatusCampanha, AppointmentStatus> = {
@@ -26,6 +27,7 @@ interface CartaoCampanhaProps {
 
 export function CartaoCampanha({ campanha, cancelando, onEditar, onCancelar, onDetalhes }: CartaoCampanhaProps) {
   const [confirmando, setConfirmando] = useState(false);
+  const termos = useVocabulario();
   const { status } = campanha;
   const rascunho = status === 'rascunho';
   const pct = campanha.total > 0 ? Math.min(100, Math.round((campanha.enviadas / campanha.total) * 100)) : 0;
@@ -35,7 +37,7 @@ export function CartaoCampanha({ campanha, cancelando, onEditar, onCancelar, onD
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="truncate text-[15px] font-bold text-ink">{campanha.nome}</h3>
-          <p className="text-[13px] text-muted">{ROTULO_SEGMENTO[campanha.segmento]}</p>
+          <p className="text-[13px] text-muted">{rotuloSegmento(campanha.segmento, termos)}</p>
         </div>
         <StatusChip status={COR_STATUS[status]} rotulo={ROTULO_STATUS[status]} />
       </div>

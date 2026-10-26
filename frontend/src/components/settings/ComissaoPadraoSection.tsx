@@ -5,8 +5,10 @@ import { Button, Card, Field, Icon, Input, Skeleton } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { buscarRegraComissao, salvarRegraComissao } from '@/lib/comanda';
 import { getApiErrorMessage } from '@/utils/handleApiError';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 export function ComissaoPadraoSection() {
+  const { prof } = useVocabulario();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -49,7 +51,7 @@ export function ComissaoPadraoSection() {
       <div>
         <h2 className="text-lg font-bold text-ink">Comissão padrão</h2>
         <p className="mt-1 text-[15px] text-muted">
-          Usada na divisão do repasse de cada comanda. Cada profissional pode ter a própria regra no cadastro.
+          Usada na divisão do repasse de cada comanda. {`Cada ${prof.s} pode ter a própria regra no cadastro.`}
         </p>
       </div>
       {loading ? (

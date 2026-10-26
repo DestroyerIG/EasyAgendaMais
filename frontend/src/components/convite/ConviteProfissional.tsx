@@ -6,6 +6,7 @@ import { Check, KeyRound, Lock } from 'lucide-react';
 import { Button, PasswordInput } from '@/components/ui';
 import { conviteApi, type ConvitePublico } from '@/lib/equipe';
 import { primeiroNome } from '@/lib/bancada';
+import { termosDe } from '@/lib/vocabulario';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { cn } from '@/lib/cn';
 
@@ -71,7 +72,7 @@ export function ConviteProfissional({ token }: { token: string }) {
                 {primeiroNome(convite.profissional)}, o {convite.negocio} te convidou para o EasyAgenda+
               </h1>
               <p className="mt-1 text-[14px] text-muted">
-                Crie sua senha para ver sua agenda, suas clientes e seus números no celular.
+                {termosDe(convite.vocabulario).adaptar('Crie sua senha para ver sua agenda, suas clientes e seus números no celular.')}
               </p>
             </div>
             <p className="rounded-control bg-surface-2 px-3 py-2 text-[14px] text-ink">

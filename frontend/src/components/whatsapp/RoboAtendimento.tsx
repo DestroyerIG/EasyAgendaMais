@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent, Icon } from '@/components/ui';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 type SubAba = 'menu' | 'mensagens' | 'simulador';
 
@@ -19,6 +20,7 @@ interface RoboAtendimentoProps {
 
 /** Seção "Robô de atendimento" da aba Conexão: os painéis do robô (Menu, Mensagens, Simulador) em sub-abas. */
 export function RoboAtendimento({ menu, mensagens, simulador }: RoboAtendimentoProps) {
+  const { adaptar } = useVocabulario();
   const [sub, setSub] = useState<SubAba>('menu');
   const conteudo: Record<SubAba, ReactNode> = { menu, mensagens, simulador };
 
@@ -26,7 +28,7 @@ export function RoboAtendimento({ menu, mensagens, simulador }: RoboAtendimentoP
     <section aria-labelledby="robo-atendimento-titulo" className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h2 id="robo-atendimento-titulo" className="text-[20px] font-bold leading-7 text-ink">Robô de atendimento</h2>
-        <p className="text-[14px] leading-5 text-muted">Menu, mensagens e simulador do robô que responde as clientes no WhatsApp.</p>
+        <p className="text-[14px] leading-5 text-muted">{adaptar('Menu, mensagens e simulador do robô que responde às clientes no WhatsApp.')}</p>
       </div>
       <Tabs value={sub} onValueChange={(v) => setSub(v as SubAba)}>
         <TabsList>

@@ -11,6 +11,7 @@ import { formatarMedia } from '@/lib/avaliacoes';
 import { ROTULO_FORMA, dataBr, hojeLocal, quinzenaDe, quinzenaVizinha, rotuloPeriodo, type Periodo } from '@/lib/relatorios';
 import { formatCurrency } from '@/lib/formatters';
 import { ErroBancada } from './ErroBancada';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 // Meus números: só a parte dela (comissões, gorjetas, adiantamentos), extrato e avaliações.
 
@@ -35,6 +36,7 @@ function Linha({ rotulo, valor, sinal = '' }: { rotulo: string; valor: number; s
 
 export function MeusNumeros() {
   const { user } = useAuth();
+  const { adaptar } = useVocabulario();
   const { showToast } = useToast();
   const [periodo, setPeriodo] = useState<Periodo>(() => quinzenaDe(hojeLocal()));
   const [dados, setDados] = useState<Numeros | null>(null);
@@ -114,7 +116,7 @@ export function MeusNumeros() {
               )}
             </div>
             {avaliacoes.length === 0 ? (
-              <p className="mt-2 text-[13px] text-muted">Nenhuma avaliação neste período. O link vai no comprovante da cliente.</p>
+              <p className="mt-2 text-[13px] text-muted">{adaptar('Nenhuma avaliação neste período. O link vai no comprovante da cliente.')}</p>
             ) : (
               <ul className="mt-2 divide-y divide-line">
                 {avaliacoes.slice(0, 20).map((a) => (

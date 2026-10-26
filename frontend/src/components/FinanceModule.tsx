@@ -45,6 +45,7 @@ import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { SeloProntaParaCobrar } from '@/components/comanda/SeloProntaParaCobrar';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 interface FinanceSummary {
   today: { earnings: number; expenses: number; profit: number };
@@ -128,6 +129,7 @@ export const FinanceModule = ({
   onUpgrade,
   onManageBilling,
 }: FinanceModuleProps) => {
+  const { prof } = useVocabulario();
   const [summary, setSummary] = useState<FinanceSummary | null>(null);
   const [reportData, setReportData] = useState<MonthlyReportDay[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -568,7 +570,7 @@ export const FinanceModule = ({
                         <tr className="border-b border-line bg-surface-2 text-[11px] font-bold uppercase tracking-wider text-muted">
                           <th className="px-3.5 py-3">Hora</th>
                           <th className="px-3.5 py-3">Cliente</th>
-                          <th className="px-3.5 py-3">Profissional</th>
+                          <th className="px-3.5 py-3">{prof.S}</th>
                           <th className="px-3.5 py-3">Serviços</th>
                           <th className="px-3.5 py-3">Pagamento</th>
                           <th className="px-3.5 py-3 text-right">Total</th>

@@ -7,6 +7,7 @@ import { SecaoRecolhivel } from '@/components/clientes/SecaoRecolhivel';
 import { formatDataPura } from '@/lib/formatters';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { enviarFoto, listarFotos, removerFoto, TAMANHO_MAX_FOTO, type FotoCliente } from '@/lib/clientPhotos';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 const TIPOS_ACEITOS = 'image/jpeg,image/png,image/webp';
 // Depois de recarregar por link vencido, só aceita outra recarga passado este tempo.
@@ -25,6 +26,7 @@ const legendaDa = (f: FotoCliente) => f.caption || f.serviceName || 'Foto do pro
  */
 export function GaleriaCliente({ clienteId }: GaleriaClienteProps) {
   const { showToast } = useToast();
+  const { adaptar } = useVocabulario();
   const [fotos, setFotos] = useState<FotoCliente[] | null>(null);
   const [erro, setErro] = useState(false);
   const recarregouPorFalha = useRef(false);
@@ -243,7 +245,7 @@ export function GaleriaCliente({ clienteId }: GaleriaClienteProps) {
           </>
         }
       >
-        <p className="text-[14px] text-ink">A foto será apagada da ficha da cliente. Essa ação não pode ser desfeita.</p>
+        <p className="text-[14px] text-ink">{adaptar('A foto será apagada da ficha da cliente. Essa ação não pode ser desfeita.')}</p>
       </Modal>
     </SecaoRecolhivel>
   );

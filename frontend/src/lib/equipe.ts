@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import type { Vocabulario } from '@/lib/vocabulario';
 
 // Acesso das profissionais ao app (fase 5). Espelha backend/src/modules/equipe.
 
@@ -13,7 +14,7 @@ export interface Acesso {
 
 export interface ConviteCriado extends Acesso { link: string; emailEnviado: boolean }
 
-export interface ConvitePublico { negocio: string; profissional: string; email: string }
+export interface ConvitePublico { negocio: string; profissional: string; email: string; vocabulario?: Vocabulario }
 
 export const equipeApi = {
   acessos: async () => (await api.get<Acesso[]>('/equipe/acessos')).data,

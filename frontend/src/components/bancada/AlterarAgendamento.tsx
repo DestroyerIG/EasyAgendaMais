@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { CalendarClock, XCircle } from 'lucide-react';
 import { Banner, Modal, ModalFooter } from '@/components/ui';
 import { useToast } from '@/components/Toast';
+import { useVocabulario } from '@/hooks/useVocabulario';
 import { bancadaApi, MOTIVOS_CANCELAMENTO, primeiroNome, type ItemAgenda } from '@/lib/bancada';
 import { somarDias } from '@/lib/relatorios';
 import { getApiErrorMessage } from '@/utils/handleApiError';
@@ -35,6 +36,7 @@ function AvisarCliente({ checked, onChange, nome }: { checked: boolean; onChange
 
 export function ReagendarModal({ agendamento, data, hoje, onClose, onDone }: Props) {
   const { showToast } = useToast();
+  const { prof } = useVocabulario();
   const [dia, setDia] = useState(data < hoje ? hoje : data);
   const [horarios, setHorarios] = useState<string[] | null>(null);
   const [hora, setHora] = useState<string | null>(null);
@@ -122,7 +124,7 @@ export function ReagendarModal({ agendamento, data, hoje, onClose, onDone }: Pro
           )}
         </div>
         <AvisarCliente checked={avisar} onChange={setAvisar} nome={nome} />
-        <p className="text-[12px] text-muted">A recepção recebe o aviso no sino. Trocar de profissional fica com a recepção.</p>
+        <p className="text-[12px] text-muted">A recepção recebe o aviso no sino. Trocar de {prof.s} fica com a recepção.</p>
         {erro && <p role="alert" className="text-sm text-danger">{erro}</p>}
       </div>
     </Modal>
@@ -131,13 +133,14 @@ export function ReagendarModal({ agendamento, data, hoje, onClose, onDone }: Pro
 
 export function CancelarModal({ agendamento, data, onClose, onDone }: Props) {
   const { showToast } = useToast();
+  const { adaptar } = useVocabulario();
   const [motivo, setMotivo] = useState<string>(MOTIVOS_CANCELAMENTO[0]);
   const [outro, setOutro] = useState('');
   const [avisar, setAvisar] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const nome = primeiroNome(agendamento.cliente.name);
-  const motivoFinal = motivo === 'Outro' ? outro.trim() : motivo;
+  const motivoFinal = motivo === 'Outro' ? outro.trim() : adaptar(motivo);
   const temSinal = agendamento.deposito > 0 && agendamento.status === 'confirmado';
 
   const cancelar = async () => {
@@ -180,7 +183,7 @@ export function CancelarModal({ agendamento, data, onClose, onDone }: Props) {
             {MOTIVOS_CANCELAMENTO.map((m) => (
               <label key={m} className="flex items-center gap-3 rounded-control border border-line bg-surface px-3 py-2.5 text-[14px] text-ink">
                 <input type="radio" name="motivo" value={m} checked={motivo === m} onChange={() => setMotivo(m)} className="h-4 w-4 accent-brand" />
-                {m}
+                {adaptar(m)}
               </label>
             ))}
           </div>

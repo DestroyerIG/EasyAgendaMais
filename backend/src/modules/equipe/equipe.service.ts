@@ -5,6 +5,7 @@ import { emailService } from '../../services/emailService.js';
 import { evaluateFeatureAccess } from '../../services/featureAccessService.js';
 import { AppError, ConflictError, ForbiddenError, NotFoundError } from '../../utils/errors.js';
 import logger from '../../utils/logger.js';
+import { vocabularioDe } from '../../config/vocabulario.js';
 import { equipeRepository as repo } from './equipe.repository.js';
 import { estadoAcesso, expiraEm, gerarToken, hashToken, situacaoConvite } from './equipe.rules.js';
 import type { AcessoDto, ConviteCriadoDto, ConvitePublicoDto } from './equipe.types.js';
@@ -100,7 +101,7 @@ export const equipeService = {
 
   async verConvite(token: string): Promise<ConvitePublicoDto> {
     const c = await conviteValido(token);
-    return { negocio: c.business.name, profissional: c.professional.name, email: c.email };
+    return { negocio: c.business.name, profissional: c.professional.name, email: c.email, vocabulario: vocabularioDe(c.business.settings?.segment) };
   },
 
   /** Cria o login no Supabase (já confirmado) e o usuário local, e abre a sessão. */

@@ -46,7 +46,7 @@ export function AppProfissionalSection() {
       <div>
         <h2 className="text-lg font-bold text-ink">App {prof.doS}</h2>
         <p className="mt-1 text-[15px] text-muted">
-          Convide cada profissional pelo cadastro dela em Serviços e equipe.
+          {`Convide cada ${prof.s} pelo cadastro ${prof.dele} em Serviços e equipe.`}
         </p>
       </div>
       {cobra === null ? (

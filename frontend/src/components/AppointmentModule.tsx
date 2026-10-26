@@ -33,6 +33,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
 import { useToast } from '@/components/Toast';
+import { useVocabulario } from '@/hooks/useVocabulario';
 import { getToday } from '@/lib/dateUtils';
 import { formatDate } from '@/lib/dateUtils';
 import { formatCurrency } from '@/lib/formatters';
@@ -203,6 +204,7 @@ type AgendaTab = 'agenda' | 'aguardando-pix';
 type InicialDoModal = InicialNovoAgendamento & { clientId?: string; serviceId?: string };
 
 export function AppointmentModule() {
+  const { prof } = useVocabulario();
   // ?aba=aguardando-pix (vindo do "Ver pendências" da tela Hoje) abre direto na aba do Pix.
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -455,7 +457,7 @@ export function AppointmentModule() {
   // (senão escolher uma pessoa apagaria as outras e não daria para voltar) nem a de
   // status podem apagar uma pessoa da fileira. Só a contagem de cada chip segue o filtro
   // de status, porque ela descreve o que o clique vai mostrar; um chip pode ler "(0)".
-  const chipsProfissional: ProfissionalChip[] = agruparPorProfissional(appointments).map((coluna, indice) => ({
+  const chipsProfissional: ProfissionalChip[] = agruparPorProfissional(appointments, `Sem ${prof.s}`).map((coluna, indice) => ({
     id: coluna.id,
     nome: coluna.nome,
     total: porStatus.filter(a => chaveProfissional(a) === coluna.id).length,
@@ -519,7 +521,7 @@ export function AppointmentModule() {
     return acc;
   }, {});
   const faixa = calcularFaixaHoras(doDia, duracaoMinutos, horarioFuncionamento);
-  const colunas = agruparPorProfissional(doDia);
+  const colunas = agruparPorProfissional(doDia, `Sem ${prof.s}`);
   // Duas larguras, dois números legítimos: a linha do tempo do computador desenha os
   // buracos das pontas, então o KPI dele conta o conjunto completo; a lista do celular
   // não desenha as pontas, então a linha dela conta pela mesma chamada, sobre o mesmo

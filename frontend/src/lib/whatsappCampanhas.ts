@@ -1,5 +1,6 @@
 import api from '@/lib/api';
 import type { EnvioDto } from '@/lib/whatsappRetorno';
+import type { Termos } from '@/lib/vocabulario';
 
 export type Segmento = 'em_risco' | 'reativacao' | 'aniversariantes' | 'vips' | 'todas';
 export type Cadencia = 10 | 25 | 60;
@@ -12,6 +13,10 @@ export const ROTULO_SEGMENTO: Record<Segmento, string> = {
   vips: 'Top 10% mais frequentes (VIPs)',
   todas: 'Todas as clientes',
 };
+
+/** Rótulo do segmento no vocabulário do negócio ("Inativos", "Todos os clientes" na barbearia). */
+export const rotuloSegmento = (s: Segmento, t: Termos) =>
+  t.adaptar(ROTULO_SEGMENTO[s].replace('Inativas', t.cli.g('Inativas', 'Inativos')));
 
 export const ROTULO_STATUS: Record<StatusCampanha, string> = {
   rascunho: 'Rascunho',

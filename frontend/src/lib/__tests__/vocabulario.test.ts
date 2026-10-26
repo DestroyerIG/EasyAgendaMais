@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { termosDe, VOCABULARIO_PADRAO, type Vocabulario } from '@/lib/vocabulario';
+import { rotuloSegmento } from '@/lib/whatsappCampanhas';
 
 const BARBEARIA: Vocabulario = {
   segmento: 'barbearia',
@@ -51,5 +52,28 @@ describe('termosDe', () => {
     const t = termosDe(UNHAS);
     expect(t.adaptar('A profissional atende a cliente')).toBe('A nail designer atende a cliente');
     expect(t.neg.noS).toBe('no estúdio');
+  });
+});
+
+describe('textos fora das telas principais', () => {
+  it('"quantas" e "algumas" concordam com o termo', () => {
+    const t = termosDe(BARBEARIA);
+    expect(t.adaptar('Avisar quantas clientes da fila')).toBe('Avisar quantos clientes da fila');
+    expect(t.adaptar('Algumas profissionais')).toBe('Alguns barbeiros');
+    expect(t.adaptar('Remover de todas as clientes? Todas as profissionais')).toBe('Remover de todos os clientes? Todos os barbeiros');
+  });
+
+  it('motivo de cancelamento e aviso do salão-parceiro', () => {
+    const t = termosDe(BARBEARIA);
+    expect(t.adaptar('Imprevisto da profissional')).toBe('Imprevisto do barbeiro');
+    expect(t.adaptar('Pedido da cliente')).toBe('Pedido do cliente');
+    expect(t.adaptar('a cota-parte da profissional não entra')).toBe('a cota-parte do barbeiro não entra');
+  });
+
+  it('rótulo do público da campanha', () => {
+    expect(rotuloSegmento('todas', termosDe(BARBEARIA))).toBe('Todos os clientes');
+    expect(rotuloSegmento('reativacao', termosDe(BARBEARIA))).toBe('Inativos há mais de 60 dias (Reativação)');
+    expect(rotuloSegmento('reativacao', termosDe(UNHAS))).toBe('Inativas há mais de 60 dias (Reativação)');
+    expect(rotuloSegmento('todas', termosDe(null))).toBe('Todas as clientes');
   });
 });

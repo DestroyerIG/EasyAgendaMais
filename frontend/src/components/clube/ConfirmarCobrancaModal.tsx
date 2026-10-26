@@ -5,12 +5,14 @@ import { formatCurrency } from '@/lib/formatters';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { type Contrato, type FormaPagamentoClube, ROTULO_FORMA_CLUBE, clubeApi, dataCurta } from '@/lib/clube';
 import { Button, Field, Modal, Select } from '@/components/ui';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 // A dona confirma que o Pix (ou outra forma) caiu. Confirmar duas vezes não duplica.
 
 interface Props { contrato: Contrato; onClose: () => void; onConfirmado: () => void }
 
 export function ConfirmarCobrancaModal({ contrato, onClose, onConfirmado }: Props) {
+  const { adaptar } = useVocabulario();
   const cobranca = contrato.cobrancaPendente!;
   const [forma, setForma] = useState<FormaPagamentoClube>('pix');
   const [enviando, setEnviando] = useState(false);
@@ -51,7 +53,7 @@ export function ConfirmarCobrancaModal({ contrato, onClose, onConfirmado }: Prop
             <dd className="text-xl font-bold tabular-nums text-ink">{formatCurrency(cobranca.valor)}</dd>
           </div>
         </dl>
-        <Field id="forma-cobranca" label="Como a cliente pagou">
+        <Field id="forma-cobranca" label={adaptar('Como a cliente pagou')}>
           <Select id="forma-cobranca" value={forma} onChange={(e) => setForma(e.target.value as FormaPagamentoClube)}>
             {(Object.keys(ROTULO_FORMA_CLUBE) as FormaPagamentoClube[]).map((f) => <option key={f} value={f}>{ROTULO_FORMA_CLUBE[f]}</option>)}
           </Select>

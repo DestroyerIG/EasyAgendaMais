@@ -2,7 +2,7 @@
 
 import { Field, Icon, Select } from '@/components/ui';
 import {
-  ROTULO_SEGMENTO, type OpcoesCampanhaDto, type PublicoDto, type Segmento,
+  ROTULO_SEGMENTO, rotuloSegmento, type OpcoesCampanhaDto, type PublicoDto, type Segmento,
 } from '@/lib/whatsappCampanhas';
 import { CabecalhoPasso, plural } from './comum';
 import { useVocabulario } from '@/hooks/useVocabulario';
@@ -20,7 +20,8 @@ interface PassoPublicoProps {
 const SEGMENTOS = Object.keys(ROTULO_SEGMENTO) as Segmento[];
 
 export function PassoPublico({ segmento, professionalId, serviceId, opcoes, publico, erroPublico, onMudar }: PassoPublicoProps) {
-  const { prof, cli } = useVocabulario();
+  const termos = useVocabulario();
+  const { prof, cli } = termos;
   return (
     <section aria-labelledby="passo-publico" className="flex flex-col gap-4 rounded-xl bg-surface p-4 shadow-sm sm:p-6">
       <CabecalhoPasso numero={1} id="passo-publico" titulo="Definição do Público-alvo">
@@ -32,7 +33,7 @@ export function PassoPublico({ segmento, professionalId, serviceId, opcoes, publ
 
       <Field id="camp-segmento" label={`Segmento inteligente de ${cli.p}`}>
         <Select id="camp-segmento" value={segmento} onChange={(e) => onMudar({ segmento: e.target.value as Segmento })}>
-          {SEGMENTOS.map((s) => <option key={s} value={s}>{ROTULO_SEGMENTO[s]}</option>)}
+          {SEGMENTOS.map((s) => <option key={s} value={s}>{rotuloSegmento(s, termos)}</option>)}
         </Select>
       </Field>
 

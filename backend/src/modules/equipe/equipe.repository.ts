@@ -54,7 +54,7 @@ export const equipeRepository = {
       select: {
         id: true, businessId: true, professionalId: true, email: true, expiraEm: true, aceitoEm: true, revogadoEm: true,
         professional: { select: { name: true, active: true, usuario: { select: { id: true } } } },
-        business: { select: { name: true, plan: true, subscriptionStatus: true } },
+        business: { select: { name: true, plan: true, subscriptionStatus: true, settings: { select: { segment: true } } } },
       },
     });
   },

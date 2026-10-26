@@ -4,6 +4,7 @@ import { Icon } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { formatarTelefone } from '@/lib/whatsappInbox';
 import type { OportunidadeDto } from '@/lib/whatsappRetorno';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 const PREFIXO_LINK = 'Se preferir, agende sozinha por aqui: ';
 
@@ -45,6 +46,7 @@ interface PreviaConviteProps {
 export function PreviaConvite({
   escolhida, nomeNegocio, incluirLink, linkDisponivel, numeroNegocio, conectado, testando = false, onAlternarLink, onTestar,
 }: PreviaConviteProps) {
+  const { adaptar, cli } = useVocabulario();
   const podeTestar = conectado && !testando && !!escolhida && !!numeroNegocio;
   const linkLigado = linkDisponivel && incluirLink;
   const { corpo, link } = separarLink(escolhida?.texto ?? '');
@@ -108,7 +110,7 @@ export function PreviaConvite({
               ) : null}
             </>
           ) : (
-            <p className="self-center text-center text-[13px] text-muted">Escolha uma cliente para ver a mensagem.</p>
+            <p className="self-center text-center text-[13px] text-muted">{adaptar('Escolha uma cliente para ver a mensagem.')}</p>
           )}
         </div>
       </div>
@@ -118,7 +120,7 @@ export function PreviaConvite({
           <div className="flex flex-col">
             <span id="rotulo-link" className="text-[13px] font-bold text-ink">Link de auto-agendamento</span>
             <span className="text-[11px] font-semibold text-muted">
-              {linkDisponivel ? 'Insere atalho direto para a cliente confirmar sozinha' : 'Publique sua página em Minha página'}
+              {linkDisponivel ? adaptar(`Insere atalho direto para a cliente confirmar ${cli.g('sozinha', 'sozinho')}`) : 'Publique sua página em Minha página'}
             </span>
           </div>
           <button

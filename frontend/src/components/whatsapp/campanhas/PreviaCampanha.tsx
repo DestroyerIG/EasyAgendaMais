@@ -4,6 +4,7 @@ import { getInitials, Icon } from '@/components/ui';
 import { formatarTelefoneLocal } from '@/lib/whatsappInbox';
 import { previsaoDuracao, RODAPE_SAIR, type Cadencia, type PublicoDto } from '@/lib/whatsappCampanhas';
 import { TextoWhatsApp } from '../retorno/PreviaConvite';
+import { useVocabulario } from '@/hooks/useVocabulario';
 
 interface PreviaCampanhaProps {
   publico: PublicoDto | null;
@@ -23,6 +24,7 @@ function separarRodape(texto: string): { corpo: string; rodape: boolean } {
 }
 
 export function PreviaCampanha({ publico, erro = false, nomeNegocio, dia, hora, cadencia }: PreviaCampanhaProps) {
+  const { adaptar } = useVocabulario();
   const amostra = publico?.amostra ?? null;
   const { corpo, rodape } = separarRodape(amostra?.texto ?? '');
   const total = publico?.receberao ?? 0;
@@ -87,7 +89,7 @@ export function PreviaCampanha({ publico, erro = false, nomeNegocio, dia, hora, 
                 </div>
               </div>
             ) : (
-              <p className="self-center rounded-md bg-surface/80 px-3 py-1 text-center text-[13px] text-muted">Nenhuma cliente neste público</p>
+              <p className="self-center rounded-md bg-surface/80 px-3 py-1 text-center text-[13px] text-muted">{adaptar('Nenhuma cliente neste público')}</p>
             )}
           </div>
 
