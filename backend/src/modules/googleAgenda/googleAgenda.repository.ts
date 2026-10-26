@@ -1,0 +1,69 @@
+import { prisma } from '../../config/prisma.js';
+
+// Google Agenda (fase 7): acesso ao banco.
+
+export interface DadosConexao {
+  businessId: string;
+  userId: string;
+  tipo: 'negocio' | 'profissional';
+  professionalId: string | null;
+  googleEmail: string;
+  refreshTokenCifrado: string;
+  calendarioId: string;
+}
+
+export const googleAgendaRepository = {
+  usuario(userId: string) {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, businessId: true, role: true, professionalId: true, business: { select: { name: true, plan: true } } },
+    });
+  },
+
+  profissionaisAtivos(businessId: string) {
+    return prisma.professional.findMany({
+      where: { businessId, active: true }, select: { id: true, name: true }, orderBy: { name: 'asc' },
+    });
+  },
+
+  profissionalDoNegocio(businessId: string, id: string) {
+    return prisma.professional.findFirst({ where: { id, businessId }, select: { id: true } });
+  },
+
+  conexaoDoUsuario(userId: string) {
+    return prisma.googleAgendaConexao.findUnique({ where: { userId } });
+  },
+
+  conexaoPorId(id: string) {
+    return prisma.googleAgendaConexao.findUnique({ where: { id }, include: { business: { select: { name: true, plan: true } } } });
+  },
+
+  conexoesDoNegocio(businessId: string) {
+    return prisma.googleAgendaConexao.findMany({ where: { businessId } });
+  },
+
+  /** Conexões com status gravado "ativa", com o plano do negócio para calcular a pausa. */
+  conexoesAtivas(filtro: { id?: string; businessId?: string } = {}) {
+    return prisma.googleAgendaConexao.findMany({
+      where: { status: 'ativa', ...filtro },
+      include: { business: { select: { name: true, plan: true } } },
+    });
+  },
+
+  /** Reconectar a mesma conta troca o token e a agenda e recomeça os eventos. */
+  async salvarConexao(d: DadosConexao) {
+    return prisma.$transaction(async (tx) => {
+      const antiga = await tx.googleAgendaConexao.findUnique({ where: { userId: d.userId }, select: { id: true } });
+      if (antiga) await tx.googleAgendaConexao.delete({ where: { id: antiga.id } });
+      return tx.googleAgendaConexao.create({ data: { ...d, status: 'ativa' } });
+    });
+  },
+
+  atualizarConexao(id: string, patch: { professionalId?: string | null; status?: string; ultimoErro?: string | null; ultimaSyncEm?: Date }) {
+    return prisma.googleAgendaConexao.update({ where: { id }, data: patch });
+  },
+
+  apagarConexao(id: string) {
+    return prisma.googleAgendaConexao.delete({ where: { id } });
+  },
+};
