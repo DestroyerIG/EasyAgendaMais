@@ -3,16 +3,55 @@ import { ForbiddenError, NotFoundError } from '../../utils/errors.js';
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
 import { notificationsService } from '../notifications/notifications.service.js';
 import { pushService } from '../push/push.service.js';
-import { googleApi } from './googleAgenda.api.js';
+import { GoogleTokenInvalido, googleApi } from './googleAgenda.api.js';
 import { cifrar, decifrar, googleConfigurado } from './googleAgenda.crypto.js';
 import { googleAgendaRepository as repo } from './googleAgenda.repository.js';
-import { assinarState, conexaoEfetiva, lerState, type Para } from './googleAgenda.rules.js';
+import {
+  assinarState, conexaoEfetiva, conexoesQueVeem, deveTerEvento, lerState, montarEvento,
+  type AgendamentoSync, type ConexaoSync, type Para,
+} from './googleAgenda.rules.js';
 import type { UsuarioLogado } from './googleAgenda.types.js';
 
 // Google Agenda (fase 7): a dona conecta a agenda do negócio, cada profissional conecta a dela.
 
 const frontend = () => (process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000').replace(/\/+$/, '');
 const telaDe = (para: Para) => (para === 'profissional' ? '/bancada' : '/configuracoes');
+
+const DIA_MS = 24 * 60 * 60 * 1000;
+
+type ConexaoComToken = ConexaoSync & { calendarioId: string; refreshTokenCifrado: string };
+
+/** O Google recusou o token: a conexão vai para "reconectar" e avisa uma vez (na troca de status). */
+async function marcarReconectar(c: ConexaoComToken, e: unknown) {
+  await repo.atualizarConexao(c.id, { status: 'reconectar', ultimoErro: (e as Error).message?.slice(0, 255) ?? null });
+  await googleAgendaService.avisarReconectar(c);
+}
+
+async function sincronizarConexao(c: ConexaoComToken, agendamentos: AgendamentoSync[], fuso: string) {
+  if (conexaoEfetiva(c, c.business.plan) !== 'ativa') return;
+  try {
+    const eventos = new Map((await repo.eventosDaConexao(c.id)).map((ev) => [ev.appointmentId, ev]));
+    let token: string | null = null;
+    const acesso = async () => (token ??= await googleApi.accessToken(decifrar(c.refreshTokenCifrado)));
+    const ctx = { fuso, frontendUrl: frontend() };
+
+    for (const ag of agendamentos) {
+      const ev = eventos.get(ag.id);
+      const deve = deveTerEvento(ag.status) && conexoesQueVeem(ag, [c]).length > 0;
+      if (deve && (!ev || ev.versao.getTime() !== ag.updatedAt.getTime())) {
+        const id = await googleApi.salvarEvento(await acesso(), c.calendarioId, montarEvento(ag, c.tipo, ctx), ev?.googleEventId);
+        await repo.salvarEvento({ conexaoId: c.id, appointmentId: ag.id, googleEventId: id, versao: ag.updatedAt });
+      } else if (!deve && ev) {
+        await googleApi.apagarEvento(await acesso(), c.calendarioId, ev.googleEventId);
+        await repo.apagarEvento(c.id, ag.id);
+      }
+    }
+    await repo.atualizarConexao(c.id, { ultimaSyncEm: new Date(), ultimoErro: null });
+  } catch (e) {
+    if (e instanceof GoogleTokenInvalido) return marcarReconectar(c, e);
+    logger.warn({ err: e, conexaoId: c.id }, 'Google Agenda: falha ao sincronizar a conexão');
+  }
+}
 
 export const googleAgendaService = {
   conectarUrl(user: UsuarioLogado, para: Para): { url: string } {
@@ -118,9 +157,35 @@ export const googleAgendaService = {
     }
   },
 
-  /** Agendamentos para o Google (Task 5). */
-  async sincronizarSaida(_opts: { appointmentId?: string; conexaoId?: string } = {}): Promise<void> {
-    void _opts;
+  /**
+   * Agendamentos para o Google: cria, atualiza (pela versão = updated_at) e apaga eventos de ontem a
+   * +90 dias. Roda no cron a cada minuto e na hora depois de gravar um agendamento. Nunca lança.
+   */
+  async sincronizarSaida(opts: { appointmentId?: string; conexaoId?: string } = {}): Promise<void> {
+    if (!googleConfigurado()) return;
+    try {
+      let filtro: { id?: string; businessId?: string } = opts.conexaoId ? { id: opts.conexaoId } : {};
+      if (opts.appointmentId) {
+        const ag = await repo.agendamentoPorId(opts.appointmentId);
+        if (!ag) return;
+        filtro = { businessId: ag.businessId };
+      }
+      const conexoes = await repo.conexoesAtivas(filtro);
+      const porNegocio = new Map<string, typeof conexoes>();
+      for (const c of conexoes) porNegocio.set(c.businessId, [...(porNegocio.get(c.businessId) ?? []), c]);
+
+      const hoje = new Date();
+      const janela = {
+        de: new Date(hoje.getTime() - DIA_MS), ate: new Date(hoje.getTime() + 90 * DIA_MS), appointmentId: opts.appointmentId,
+      };
+      for (const [businessId, doNegocio] of porNegocio) {
+        const agendamentos = await repo.agendamentosDaJanela(businessId, janela);
+        const { timezone } = await getBusinessScheduleSettings(businessId);
+        for (const c of doNegocio) await sincronizarConexao(c, agendamentos, timezone);
+      }
+    } catch (e) {
+      logger.warn({ err: e }, 'Google Agenda: falha na sincronização de saída');
+    }
   },
 
   /** Ocupado do Google (Task 6). */

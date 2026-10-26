@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { FEATURE_REQUIREMENTS, PLAN_LEVELS, normalizePlan } from '../../config/planPermissions.js';
 import { chaveDoToken } from './googleAgenda.crypto.js';
+import type { EventoGoogle } from './googleAgenda.api.js';
 
 // Regras puras do Google Agenda (fase 7).
 
@@ -53,4 +54,63 @@ export function conexaoEfetiva(c: { tipo: string; status: string }, plano: unkno
     return 'pausada_plano';
   }
   return 'ativa';
+}
+
+// ─── Saída: agendamentos para o Google ──────────────────────────────────────────
+
+export interface AgendamentoSync {
+  id: string;
+  businessId: string;
+  professionalId: string;
+  status: string;
+  updatedAt: Date;
+  /** Coluna DATE (meia-noite UTC) e TIME (1970-01-01 em UTC), como o Prisma devolve. */
+  date: Date;
+  time: Date;
+  client: { name: string };
+  service: { name: string; durationMinutes: number };
+  professional: { name: string };
+}
+
+export interface ConexaoSync {
+  id: string;
+  businessId: string;
+  tipo: string;
+  professionalId: string | null;
+  status: string;
+  business: { plan: string };
+}
+
+/** Cancelado some do Google; os outros status continuam lá. */
+export const deveTerEvento = (status: string) => status !== 'cancelado';
+
+/** A do negócio vê todos; a da profissional, só os dela. Só conexões efetivamente ativas. */
+export function conexoesQueVeem<C extends ConexaoSync>(ag: { businessId: string; professionalId: string }, conexoes: C[]): C[] {
+  return conexoes.filter((c) => c.businessId === ag.businessId
+    && conexaoEfetiva(c, c.business.plan) === 'ativa'
+    && (c.tipo === 'negocio' || c.professionalId === ag.professionalId));
+}
+
+const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] || nome;
+// Data e hora "de parede" do negócio, sem fuso: o Google aplica o timeZone do evento.
+const local = (d: Date) => d.toISOString().slice(0, 19);
+
+export function montarEvento(
+  ag: AgendamentoSync,
+  tipo: string,
+  ctx: { fuso: string; frontendUrl: string },
+): EventoGoogle {
+  const inicio = new Date(Date.UTC(
+    ag.date.getUTCFullYear(), ag.date.getUTCMonth(), ag.date.getUTCDate(), ag.time.getUTCHours(), ag.time.getUTCMinutes(),
+  ));
+  const fim = new Date(inicio.getTime() + ag.service.durationMinutes * 60_000);
+  const partes = [primeiroNome(ag.client.name), ag.service.name];
+  if (tipo === 'negocio') partes.push(ag.professional.name);
+  return {
+    titulo: partes.join(' · '),
+    descricao: `Ver no EasyAgenda+: ${ctx.frontendUrl}/agendamentos?id=${ag.id}`,
+    inicio: local(inicio),
+    fim: local(fim),
+    fuso: ctx.fuso,
+  };
 }

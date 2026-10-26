@@ -66,4 +66,38 @@ export const googleAgendaRepository = {
   apagarConexao(id: string) {
     return prisma.googleAgendaConexao.delete({ where: { id } });
   },
+
+  agendamentoPorId(id: string) {
+    return prisma.appointment.findUnique({ where: { id }, select: { id: true, businessId: true } });
+  },
+
+  /** Agendamentos do negócio na janela (todas as profissionais: a troca de profissional precisa aparecer). */
+  agendamentosDaJanela(businessId: string, j: { de: Date; ate: Date; appointmentId?: string }) {
+    return prisma.appointment.findMany({
+      where: { businessId, date: { gte: j.de, lte: j.ate }, ...(j.appointmentId ? { id: j.appointmentId } : {}) },
+      select: {
+        id: true, businessId: true, professionalId: true, status: true, updatedAt: true, date: true, time: true,
+        client: { select: { name: true } }, service: { select: { name: true, durationMinutes: true } },
+        professional: { select: { name: true } },
+      },
+    });
+  },
+
+  eventosDaConexao(conexaoId: string) {
+    return prisma.googleAgendaEvento.findMany({
+      where: { conexaoId }, select: { appointmentId: true, googleEventId: true, versao: true },
+    });
+  },
+
+  salvarEvento(d: { conexaoId: string; appointmentId: string; googleEventId: string; versao: Date }) {
+    return prisma.googleAgendaEvento.upsert({
+      where: { conexaoId_appointmentId: { conexaoId: d.conexaoId, appointmentId: d.appointmentId } },
+      create: d,
+      update: { googleEventId: d.googleEventId, versao: d.versao },
+    });
+  },
+
+  apagarEvento(conexaoId: string, appointmentId: string) {
+    return prisma.googleAgendaEvento.deleteMany({ where: { conexaoId, appointmentId } });
+  },
 };

@@ -16,6 +16,7 @@ import { renderizarTexto } from '../modules/whatsappAutomacoes/automacoes.rules.
 import { automacoesRotinas, linkMapa } from '../modules/whatsappAutomacoes/rotinas.service.js';
 import { rotinasRepository } from '../modules/whatsappAutomacoes/rotinas.repository.js';
 import { clubeService } from '../modules/clube/clube.service.js';
+import { googleAgendaService } from '../modules/googleAgenda/googleAgenda.service.js';
 
 // Agendamentos gravam `time`/`date` no relógio local do negócio (BR), não UTC.
 // Render roda em UTC, então o alvo precisa ser calculado no fuso de negócio.
@@ -188,6 +189,11 @@ export const expirePendingAppointments = async (now: Date = new Date()): Promise
 };
 
 export const startReminderCron = (): void => {
+  // Google Agenda (fase 7): agendamentos para o Google a cada minuto.
+  cron.schedule('* * * * *', async () => {
+    await googleAgendaService.sincronizarSaida();
+  }, { noOverlap: true });
+
   cron.schedule('* * * * *', async () => {
     try {
       await filaEnvios.processar();
