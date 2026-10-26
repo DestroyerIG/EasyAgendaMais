@@ -242,11 +242,12 @@ export const appointmentsService = {
     );
 
     const pausa = await appointmentsPrismaRepository.getProfessionalBreak(professionalId, businessId);
+    const doGoogle = await googleAgendaService.bloqueiosDoDia(businessId, professionalId, date);
 
     return (generateAvailableTimeSlots as Function)(businessSettings, date, {
       serviceDurationMinutes: duration,
       bookedTimes,
-      blockedRanges: pausa ? [pausa] : [],
+      blockedRanges: [...(pausa ? [pausa] : []), ...doGoogle],
     });
   },
 

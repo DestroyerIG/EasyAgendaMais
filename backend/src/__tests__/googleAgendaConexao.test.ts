@@ -9,7 +9,7 @@ const repo = vi.hoisted(() => ({
   usuario: vi.fn(), profissionaisAtivos: vi.fn(), profissionalDoNegocio: vi.fn(), conexaoDoUsuario: vi.fn(),
   conexoesDoNegocio: vi.fn(), salvarConexao: vi.fn(), atualizarConexao: vi.fn(), apagarConexao: vi.fn(),
   conexaoPorId: vi.fn(), conexoesAtivas: vi.fn(), eventosDaConexao: vi.fn(), agendamentosDaJanela: vi.fn(),
-  salvarEvento: vi.fn(), apagarEvento: vi.fn(), substituirOcupado: vi.fn(), ocupadoDoDia: vi.fn(),
+  salvarEvento: vi.fn(), apagarEvento: vi.fn(), substituirOcupado: vi.fn(), ocupadoDoDia: vi.fn(), ocupadosDoNegocio: vi.fn(),
 }));
 vi.mock('../modules/googleAgenda/googleAgenda.repository.js', () => ({ googleAgendaRepository: repo }));
 const api = vi.hoisted(() => ({
@@ -200,6 +200,18 @@ describe('Google Agenda: conexão', () => {
         { professionalId: 'p2', nome: 'Bia', status: null },
       ],
     });
+  });
+
+  it('ocupado do dia para a dona e a recepção, não para a profissional', async () => {
+    repo.ocupadosDoNegocio.mockResolvedValue([{
+      inicio: new Date('2026-11-10T18:00:00Z'), fim: new Date('2026-11-10T19:00:00Z'),
+      conexao: { tipo: 'profissional', status: 'ativa', professionalId: P1, business: { plan: 'profissional' } },
+    }]);
+    const res = await request.get('/api/v1/google-agenda/ocupado').set('x-role', 'employee').query({ data: '2026-11-10' });
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual({ [P1]: [{ start: '15:00', end: '16:00' }] });
+    const prof = await request.get('/api/v1/google-agenda/ocupado').set('x-role', 'professional').query({ data: '2026-11-10' });
+    expect(prof.status).toBe(403);
   });
 
   it('avisarReconectar avisa a dona no sino (que já vai por push) e a profissional por push', async () => {

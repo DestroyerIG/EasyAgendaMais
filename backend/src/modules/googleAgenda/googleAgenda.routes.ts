@@ -3,14 +3,15 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { authMiddleware } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
-import { CallbackQuerySchema, ConectarQuerySchema, DefinirProfissionalSchema } from './googleAgenda.types.js';
-import { callback, conectar, definirProfissional, desconectar, verConexao } from './googleAgenda.controller.js';
+import { CallbackQuerySchema, ConectarQuerySchema, DefinirProfissionalSchema, OcupadoQuerySchema } from './googleAgenda.types.js';
+import { callback, conectar, definirProfissional, desconectar, ocupado, verConexao } from './googleAgenda.controller.js';
 
 // Google Agenda (fase 7). A dona conecta em qualquer plano; a profissional, pelo app (Equipe e Salão).
 const router = express.Router();
 const logado = [authMiddleware, requireRole(['tenant_admin', 'employee', 'professional'])];
 const conecta = [authMiddleware, requireRole(['tenant_admin', 'professional'])];
 const dona = [authMiddleware, requireRole(['tenant_admin'])];
+const painel = [authMiddleware, requireRole(['tenant_admin', 'employee'])];
 
 const callbackLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -22,6 +23,7 @@ const callbackLimiter = rateLimit({
 
 router.get('/conexao', ...logado, verConexao);
 router.get('/conectar', ...conecta, validate({ query: ConectarQuerySchema }), conectar);
+router.get('/ocupado', ...painel, validate({ query: OcupadoQuerySchema }), ocupado);
 router.put('/conexao', ...dona, validate({ body: DefinirProfissionalSchema }), definirProfissional);
 router.delete('/conexao', ...conecta, desconectar);
 // Público: o Google volta para cá; quem é a pessoa vem do state assinado.

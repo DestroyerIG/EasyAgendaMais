@@ -189,9 +189,13 @@ export const expirePendingAppointments = async (now: Date = new Date()): Promise
 };
 
 export const startReminderCron = (): void => {
-  // Google Agenda (fase 7): agendamentos para o Google a cada minuto.
+  // Google Agenda (fase 7): agendamentos para o Google a cada minuto (os dois nunca lançam).
   cron.schedule('* * * * *', async () => {
     await googleAgendaService.sincronizarSaida();
+  }, { noOverlap: true });
+  // E os compromissos do Google, que bloqueiam horário, a cada 5 minutos.
+  cron.schedule('*/5 * * * *', async () => {
+    await googleAgendaService.atualizarOcupado();
   }, { noOverlap: true });
 
   cron.schedule('* * * * *', async () => {

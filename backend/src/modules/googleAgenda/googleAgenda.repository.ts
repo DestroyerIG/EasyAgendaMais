@@ -100,4 +100,22 @@ export const googleAgendaRepository = {
   apagarEvento(conexaoId: string, appointmentId: string) {
     return prisma.googleAgendaEvento.deleteMany({ where: { conexaoId, appointmentId } });
   },
+
+  async substituirOcupado(conexaoId: string, ocupados: Array<{ inicio: Date; fim: Date }>) {
+    await prisma.$transaction([
+      prisma.googleAgendaOcupado.deleteMany({ where: { conexaoId } }),
+      prisma.googleAgendaOcupado.createMany({ data: ocupados.map((o) => ({ conexaoId, inicio: o.inicio, fim: o.fim })) }),
+    ]);
+  },
+
+  /** Ocupados das conexões do negócio que cruzam a janela, com o que decide se a conexão bloqueia. */
+  ocupadosDoNegocio(businessId: string, de: Date, ate: Date) {
+    return prisma.googleAgendaOcupado.findMany({
+      where: { inicio: { lt: ate }, fim: { gt: de }, conexao: { businessId } },
+      select: {
+        inicio: true, fim: true,
+        conexao: { select: { tipo: true, status: true, professionalId: true, business: { select: { plan: true } } } },
+      },
+    });
+  },
 };

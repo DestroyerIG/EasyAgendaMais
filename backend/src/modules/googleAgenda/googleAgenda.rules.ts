@@ -114,3 +114,29 @@ export function montarEvento(
     fuso: ctx.fuso,
   };
 }
+
+// ─── Entrada: ocupado do Google ─────────────────────────────────────────────────
+
+/** "YYYY-MM-DD HH:mm" do instante no fuso do negócio. */
+function relogioNoFuso(d: Date, fuso: string): { dia: string; hora: string } {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+    timeZone: fuso, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(d).map((x) => [x.type, x.value]));
+  return { dia: `${p.year}-${p.month}-${p.day}`, hora: `${p.hour}:${p.minute}` };
+}
+
+/** Recorta os ocupados ao dia pedido, em HH:mm do fuso do negócio (formato do blockedRanges). */
+export function faixasDoDia(
+  ocupados: Array<{ inicio: Date; fim: Date }>, data: string, fuso: string,
+): Array<{ start: string; end: string }> {
+  const faixas: Array<{ start: string; end: string }> = [];
+  for (const o of ocupados) {
+    const ini = relogioNoFuso(o.inicio, fuso);
+    const fim = relogioNoFuso(o.fim, fuso);
+    if (fim.dia < data || ini.dia > data) continue;
+    const start = ini.dia < data ? '00:00' : ini.hora;
+    const end = fim.dia > data ? '23:59' : fim.hora;
+    if (start < end) faixas.push({ start, end });
+  }
+  return faixas;
+}

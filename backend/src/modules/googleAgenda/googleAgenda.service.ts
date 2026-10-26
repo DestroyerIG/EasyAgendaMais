@@ -7,7 +7,7 @@ import { GoogleTokenInvalido, googleApi } from './googleAgenda.api.js';
 import { cifrar, decifrar, googleConfigurado } from './googleAgenda.crypto.js';
 import { googleAgendaRepository as repo } from './googleAgenda.repository.js';
 import {
-  assinarState, conexaoEfetiva, conexoesQueVeem, deveTerEvento, lerState, montarEvento,
+  assinarState, conexaoEfetiva, conexoesQueVeem, deveTerEvento, faixasDoDia, lerState, montarEvento,
   type AgendamentoSync, type ConexaoSync, type Para,
 } from './googleAgenda.rules.js';
 import type { UsuarioLogado } from './googleAgenda.types.js';
@@ -188,8 +188,64 @@ export const googleAgendaService = {
     }
   },
 
-  /** Ocupado do Google (Task 6). */
-  async atualizarOcupado(_conexaoId?: string): Promise<void> {
-    void _conexaoId;
+  /** Lê o ocupado da agenda principal (agora a +60 dias) e substitui o guardado. Nunca lança. */
+  async atualizarOcupado(conexaoId?: string): Promise<void> {
+    if (!googleConfigurado()) return;
+    try {
+      const conexoes = await repo.conexoesAtivas(conexaoId ? { id: conexaoId } : {});
+      for (const c of conexoes) {
+        if (!c.professionalId || conexaoEfetiva(c, c.business.plan) !== 'ativa') {
+          await repo.substituirOcupado(c.id, []);
+          continue;
+        }
+        try {
+          const token = await googleApi.accessToken(decifrar(c.refreshTokenCifrado));
+          const agora = new Date();
+          const ocupados = await googleApi.ocupado(token, agora, new Date(agora.getTime() + 60 * DIA_MS));
+          await repo.substituirOcupado(c.id, ocupados);
+        } catch (e) {
+          if (e instanceof GoogleTokenInvalido) {
+            await repo.substituirOcupado(c.id, []);
+            await marcarReconectar(c, e);
+          } else {
+            logger.warn({ err: e, conexaoId: c.id }, 'Google Agenda: falha ao ler o ocupado');
+          }
+        }
+      }
+    } catch (e) {
+      logger.warn({ err: e }, 'Google Agenda: falha ao atualizar o ocupado');
+    }
+  },
+
+  /** Faixas do Google que bloqueiam a profissional no dia (vazio sem conexão ativa). */
+  async bloqueiosDoDia(businessId: string, professionalId: string, data: string): Promise<Array<{ start: string; end: string }>> {
+    const porProfissional = await googleAgendaService.ocupadoDoDia(businessId, data);
+    return porProfissional[professionalId] ?? [];
+  },
+
+  /** Ocupado do dia por profissional, para a disponibilidade e a agenda do painel. */
+  async ocupadoDoDia(businessId: string, data: string): Promise<Record<string, Array<{ start: string; end: string }>>> {
+    if (!googleConfigurado()) return {};
+    try {
+      // Janela folgada em UTC; faixasDoDia recorta no fuso do negócio.
+      const meiaNoite = new Date(`${data}T00:00:00Z`).getTime();
+      const ocupados = await repo.ocupadosDoNegocio(businessId, new Date(meiaNoite - DIA_MS), new Date(meiaNoite + 2 * DIA_MS));
+      const { timezone } = await getBusinessScheduleSettings(businessId);
+      const porProfissional = new Map<string, Array<{ inicio: Date; fim: Date }>>();
+      for (const o of ocupados) {
+        const id = o.conexao.professionalId;
+        if (!id || conexaoEfetiva(o.conexao, o.conexao.business.plan) !== 'ativa') continue;
+        porProfissional.set(id, [...(porProfissional.get(id) ?? []), o]);
+      }
+      const resultado: Record<string, Array<{ start: string; end: string }>> = {};
+      for (const [id, lista] of porProfissional) {
+        const faixas = faixasDoDia(lista, data, timezone);
+        if (faixas.length) resultado[id] = faixas;
+      }
+      return resultado;
+    } catch (e) {
+      logger.warn({ err: e, businessId }, 'Google Agenda: falha ao ler o ocupado do dia');
+      return {};
+    }
   },
 };

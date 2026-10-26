@@ -23,6 +23,9 @@ export const verConexao: H = async (req, res, next) => {
 export const definirProfissional: H = async (req, res, next) => {
   try { sendSuccess(res, await googleAgendaService.definirProfissional(usuario(req), req.body.professionalId)); } catch (e) { next(e); }
 };
+export const ocupado: H = async (req, res, next) => {
+  try { sendSuccess(res, await googleAgendaService.ocupadoDoDia(req.user.businessId!, req.query['data'] as string)); } catch (e) { next(e); }
+};
 export const desconectar: H = async (req, res, next) => {
   try { sendSuccess(res, await googleAgendaService.desconectar(usuario(req))); } catch (e) { next(e); }
 };

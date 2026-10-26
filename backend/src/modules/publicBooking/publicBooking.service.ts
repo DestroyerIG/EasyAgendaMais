@@ -41,11 +41,12 @@ const computeAvailableSlots = async (
   const bookedTimes = await appointmentsPrismaRepository.getBookedSlots(businessId, professionalId, date);
 
   const pausa = await appointmentsPrismaRepository.getProfessionalBreak(professionalId, businessId);
+  const doGoogle = await googleAgendaService.bloqueiosDoDia(businessId, professionalId, date);
 
   return generateAvailableTimeSlots(businessSettings, date, {
     serviceDurationMinutes,
     bookedTimes,
-    blockedRanges: pausa ? [pausa] : [],
+    blockedRanges: [...(pausa ? [pausa] : []), ...doGoogle],
   });
 };
 
