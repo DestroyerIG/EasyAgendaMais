@@ -71,10 +71,24 @@ export const googleAgendaRepository = {
     return prisma.appointment.findUnique({ where: { id }, select: { id: true, businessId: true } });
   },
 
-  /** Agendamentos do negócio na janela (todas as profissionais: a troca de profissional precisa aparecer). */
-  agendamentosDaJanela(businessId: string, j: { de: Date; ate: Date; appointmentId?: string }) {
+  /**
+   * Agendamentos do negócio na janela (todas as profissionais: a troca de profissional precisa
+   * aparecer), mais os que já têm evento nas conexões e mudaram nos últimos 2 dias, mesmo fora da
+   * janela. Pedindo um agendamento só, ele vem onde estiver.
+   */
+  agendamentosDaJanela(businessId: string, j: { de: Date; ate: Date; appointmentId?: string; conexaoIds?: string[] }) {
+    const recentes = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    const where = j.appointmentId
+      ? { businessId, id: j.appointmentId }
+      : {
+        businessId,
+        OR: [
+          { date: { gte: j.de, lte: j.ate } },
+          { updatedAt: { gte: recentes }, googleAgendaEventos: { some: { conexaoId: { in: j.conexaoIds ?? [] } } } },
+        ],
+      };
     return prisma.appointment.findMany({
-      where: { businessId, date: { gte: j.de, lte: j.ate }, ...(j.appointmentId ? { id: j.appointmentId } : {}) },
+      where,
       select: {
         id: true, businessId: true, professionalId: true, status: true, updatedAt: true, date: true, time: true,
         client: { select: { name: true } }, service: { select: { name: true, durationMinutes: true } },

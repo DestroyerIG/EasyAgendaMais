@@ -3,7 +3,7 @@ import { ForbiddenError, NotFoundError } from '../../utils/errors.js';
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
 import { notificationsService } from '../notifications/notifications.service.js';
 import { pushService } from '../push/push.service.js';
-import { GoogleTokenInvalido, googleApi } from './googleAgenda.api.js';
+import { GoogleIndisponivel, GoogleNaoEncontrado, GoogleTokenInvalido, eventoIdDe, googleApi } from './googleAgenda.api.js';
 import { cifrar, decifrar, googleConfigurado } from './googleAgenda.crypto.js';
 import { googleAgendaRepository as repo } from './googleAgenda.repository.js';
 import {
@@ -27,29 +27,48 @@ async function marcarReconectar(c: ConexaoComToken, e: unknown) {
   await googleAgendaService.avisarReconectar(c);
 }
 
+// Uma sincronização por conexão de cada vez: o cron e a sincronização imediata não disputam o mesmo evento.
+const emSincronizacao = new Set<string>();
+
+const mensagem = (e: unknown) => ((e as Error)?.message ?? String(e)).slice(0, 255);
+
 async function sincronizarConexao(c: ConexaoComToken, agendamentos: AgendamentoSync[], fuso: string) {
-  if (conexaoEfetiva(c, c.business.plan) !== 'ativa') return;
+  if (conexaoEfetiva(c, c.business.plan) !== 'ativa' || emSincronizacao.has(c.id)) return;
+  emSincronizacao.add(c.id);
   try {
     const eventos = new Map((await repo.eventosDaConexao(c.id)).map((ev) => [ev.appointmentId, ev]));
     let token: string | null = null;
     const acesso = async () => (token ??= await googleApi.accessToken(decifrar(c.refreshTokenCifrado)));
     const ctx = { fuso, frontendUrl: frontend() };
+    let falha: string | null = null;
 
     for (const ag of agendamentos) {
       const ev = eventos.get(ag.id);
       const deve = deveTerEvento(ag.status) && conexoesQueVeem(ag, [c]).length > 0;
-      if (deve && (!ev || ev.versao.getTime() !== ag.updatedAt.getTime())) {
-        const id = await googleApi.salvarEvento(await acesso(), c.calendarioId, montarEvento(ag, c.tipo, ctx), ev?.googleEventId);
-        await repo.salvarEvento({ conexaoId: c.id, appointmentId: ag.id, googleEventId: id, versao: ag.updatedAt });
-      } else if (!deve && ev) {
-        await googleApi.apagarEvento(await acesso(), c.calendarioId, ev.googleEventId);
-        await repo.apagarEvento(c.id, ag.id);
+      try {
+        if (deve && (!ev || ev.versao.getTime() !== ag.updatedAt.getTime())) {
+          const id = await googleApi.gravarEvento(
+            await acesso(), c.calendarioId, ev?.googleEventId ?? eventoIdDe(ag.id), montarEvento(ag, c.tipo, ctx),
+          );
+          await repo.salvarEvento({ conexaoId: c.id, appointmentId: ag.id, googleEventId: id, versao: ag.updatedAt });
+        } else if (!deve && ev) {
+          await googleApi.apagarEvento(await acesso(), c.calendarioId, ev.googleEventId);
+          await repo.apagarEvento(c.id, ag.id);
+        }
+      } catch (e) {
+        // Token recusado, agenda apagada ou limite do Google valem para a conexão toda.
+        if (e instanceof GoogleTokenInvalido || e instanceof GoogleNaoEncontrado || e instanceof GoogleIndisponivel) throw e;
+        falha = mensagem(e);
+        logger.warn({ err: e, conexaoId: c.id, appointmentId: ag.id }, 'Google Agenda: falha num evento');
       }
     }
-    await repo.atualizarConexao(c.id, { ultimaSyncEm: new Date(), ultimoErro: null });
+    await repo.atualizarConexao(c.id, { ultimaSyncEm: new Date(), ultimoErro: falha });
   } catch (e) {
     if (e instanceof GoogleTokenInvalido) return marcarReconectar(c, e);
+    if (e instanceof GoogleNaoEncontrado) return marcarReconectar(c, new Error('A agenda EasyAgenda+ foi apagada no Google'));
     logger.warn({ err: e, conexaoId: c.id }, 'Google Agenda: falha ao sincronizar a conexão');
+  } finally {
+    emSincronizacao.delete(c.id);
   }
 }
 
@@ -175,11 +194,12 @@ export const googleAgendaService = {
       for (const c of conexoes) porNegocio.set(c.businessId, [...(porNegocio.get(c.businessId) ?? []), c]);
 
       const hoje = new Date();
-      const janela = {
-        de: new Date(hoje.getTime() - DIA_MS), ate: new Date(hoje.getTime() + 90 * DIA_MS), appointmentId: opts.appointmentId,
-      };
       for (const [businessId, doNegocio] of porNegocio) {
-        const agendamentos = await repo.agendamentosDaJanela(businessId, janela);
+        // Também os já sincronizados que mudaram fora da janela (remarcados para longe ou para trás).
+        const agendamentos = await repo.agendamentosDaJanela(businessId, {
+          de: new Date(hoje.getTime() - DIA_MS), ate: new Date(hoje.getTime() + 90 * DIA_MS),
+          appointmentId: opts.appointmentId, conexaoIds: doNegocio.map((c) => c.id),
+        });
         const { timezone } = await getBusinessScheduleSettings(businessId);
         for (const c of doNegocio) await sincronizarConexao(c, agendamentos, timezone);
       }

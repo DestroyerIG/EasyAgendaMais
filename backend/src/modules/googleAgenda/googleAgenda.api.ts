@@ -23,6 +23,17 @@ export class GoogleIndisponivel extends Error {
   constructor(msg = 'Google Agenda indisponível') { super(msg); this.name = 'GoogleIndisponivel'; }
 }
 
+/** A agenda (ou o evento) não existe mais no Google: a pessoa apagou. */
+export class GoogleNaoEncontrado extends Error {
+  constructor(msg = 'Não encontrado no Google Agenda') { super(msg); this.name = 'GoogleNaoEncontrado'; }
+}
+
+/**
+ * Id do evento derivado do agendamento (o Google aceita 0-9 e a-v, de 5 a 1024 caracteres): duas
+ * gravações do mesmo agendamento nunca viram dois eventos, e reconectar reencontra os eventos.
+ */
+export const eventoIdDe = (appointmentId: string) => appointmentId.replace(/-/g, '').toLowerCase();
+
 export interface EventoGoogle {
   titulo: string;
   descricao: string;
@@ -41,6 +52,7 @@ const cliente = () => ({
 function erroDoStatus(status: number, corpo: unknown): Error {
   const codigo = (corpo as { error?: unknown } | null)?.error;
   if (status === 401 || codigo === 'invalid_grant') return new GoogleTokenInvalido();
+  if (status === 404 || status === 410) return new GoogleNaoEncontrado();
   if (status === 429 || status >= 500) return new GoogleIndisponivel();
   return new Error(`Google respondeu ${status}`);
 }
@@ -71,6 +83,8 @@ function emailDoIdToken(idToken: unknown): string {
 }
 
 const corpoDoEvento = (e: EventoGoogle) => ({
+  // "confirmed" também traz de volta um evento que a pessoa apagou no Google.
+  status: 'confirmed',
   summary: e.titulo,
   description: e.descricao,
   start: { dateTime: e.inicio, timeZone: e.fuso },
@@ -128,12 +142,28 @@ export const googleApi = {
     return corpo.id;
   },
 
-  async salvarEvento(token: string, calendarioId: string, evento: EventoGoogle, googleEventId?: string): Promise<string> {
+  /** Cria o evento com o id dado; se ele já existe (409), atualiza. */
+  async gravarEvento(token: string, calendarioId: string, eventoId: string, evento: EventoGoogle): Promise<string> {
     const base = `${CALENDAR}/calendars/${encodeURIComponent(calendarioId)}/events`;
-    const corpo = await chamar(googleEventId ? `${base}/${encodeURIComponent(googleEventId)}` : base, {
-      method: googleEventId ? 'PUT' : 'POST', headers: json(token), body: JSON.stringify(corpoDoEvento(evento)),
+    const r = await fetch(base, {
+      method: 'POST', headers: json(token), body: JSON.stringify({ id: eventoId, ...corpoDoEvento(evento) }),
+    });
+    if (r.ok) return ((await lerJson(r)) as { id: string }).id;
+    if (r.status !== 409) throw erroDoStatus(r.status, await lerJson(r));
+    const corpo = await chamar(`${base}/${encodeURIComponent(eventoId)}`, {
+      method: 'PUT', headers: json(token), body: JSON.stringify(corpoDoEvento(evento)),
     }) as { id: string };
     return corpo.id;
+  },
+
+  async agendaExiste(token: string, calendarioId: string): Promise<boolean> {
+    try {
+      await chamar(`${CALENDAR}/calendars/${encodeURIComponent(calendarioId)}`, { method: 'GET', headers: comToken(token) });
+      return true;
+    } catch (e) {
+      if (e instanceof GoogleNaoEncontrado) return false;
+      throw e;
+    }
   },
 
   async apagarEvento(token: string, calendarioId: string, googleEventId: string): Promise<void> {

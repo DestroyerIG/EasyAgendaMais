@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { googleApi, GoogleTokenInvalido, GoogleIndisponivel } from '../modules/googleAgenda/googleAgenda.api.js';
+import { googleApi, GoogleTokenInvalido, GoogleIndisponivel, GoogleNaoEncontrado, eventoIdDe } from '../modules/googleAgenda/googleAgenda.api.js';
 
 const resposta = (status: number, corpo: unknown = {}) =>
   ({ ok: status >= 200 && status < 300, status, json: async () => corpo, text: async () => JSON.stringify(corpo) }) as Response;
@@ -53,9 +53,37 @@ describe('cliente da API do Google', () => {
     await expect(googleApi.criarAgenda('tok', 'EasyAgenda+', 'America/Sao_Paulo')).rejects.toBeInstanceOf(GoogleIndisponivel);
   });
 
+  const EV = { titulo: 't', descricao: 'd', inicio: '2026-11-10T10:00:00', fim: '2026-11-10T11:00:00', fuso: 'America/Sao_Paulo' };
+
   it('401 numa chamada da agenda lança GoogleTokenInvalido', async () => {
     fetchMock.mockResolvedValue(resposta(401));
-    await expect(googleApi.salvarEvento('tok', 'cal', { titulo: 't', descricao: 'd', inicio: '2026-11-10T10:00:00', fim: '2026-11-10T11:00:00', fuso: 'America/Sao_Paulo' }))
-      .rejects.toBeInstanceOf(GoogleTokenInvalido);
+    await expect(googleApi.gravarEvento('tok', 'cal', 'abc12345', EV)).rejects.toBeInstanceOf(GoogleTokenInvalido);
+  });
+
+  it('id do evento sai do agendamento, no alfabeto que o Google aceita', () => {
+    expect(eventoIdDe('5F1C2A3B-0D4E-4F60-8A9B-0C1D2E3F4A5B')).toBe('5f1c2a3b0d4e4f608a9b0c1d2e3f4a5b');
+  });
+
+  it('gravarEvento cria com o id do agendamento e, se já existe (409), atualiza', async () => {
+    fetchMock.mockResolvedValueOnce(resposta(409)).mockResolvedValueOnce(resposta(200, { id: 'abc12345' }));
+    await expect(googleApi.gravarEvento('tok', 'cal', 'abc12345', EV)).resolves.toBe('abc12345');
+    const [urlPost, post] = fetchMock.mock.calls[0];
+    expect(post.method).toBe('POST');
+    expect(urlPost).toMatch(/\/calendars\/cal\/events$/);
+    expect(JSON.parse(post.body)).toMatchObject({ id: 'abc12345', status: 'confirmed' });
+    const [urlPut, put] = fetchMock.mock.calls[1];
+    expect(put.method).toBe('PUT');
+    expect(urlPut).toMatch(/\/events\/abc12345$/);
+  });
+
+  it('404 na agenda lança GoogleNaoEncontrado', async () => {
+    fetchMock.mockResolvedValue(resposta(404));
+    await expect(googleApi.gravarEvento('tok', 'cal', 'abc12345', EV)).rejects.toBeInstanceOf(GoogleNaoEncontrado);
+  });
+
+  it('agendaExiste confere a agenda pelo id', async () => {
+    fetchMock.mockResolvedValueOnce(resposta(200, { id: 'cal' })).mockResolvedValueOnce(resposta(404));
+    await expect(googleApi.agendaExiste('tok', 'cal')).resolves.toBe(true);
+    await expect(googleApi.agendaExiste('tok', 'cal')).resolves.toBe(false);
   });
 });

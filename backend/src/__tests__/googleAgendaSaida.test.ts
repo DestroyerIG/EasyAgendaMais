@@ -9,7 +9,7 @@ const repo = vi.hoisted(() => ({
   salvarEvento: vi.fn(), apagarEvento: vi.fn(), atualizarConexao: vi.fn(),
 }));
 vi.mock('../modules/googleAgenda/googleAgenda.repository.js', () => ({ googleAgendaRepository: repo }));
-const api = vi.hoisted(() => ({ accessToken: vi.fn(), salvarEvento: vi.fn(), apagarEvento: vi.fn() }));
+const api = vi.hoisted(() => ({ accessToken: vi.fn(), gravarEvento: vi.fn(), apagarEvento: vi.fn() }));
 vi.mock('../modules/googleAgenda/googleAgenda.api.js', async (orig) => ({
   ...(await orig<typeof import('../modules/googleAgenda/googleAgenda.api.js')>()), googleApi: api,
 }));
@@ -28,7 +28,7 @@ process.env.FRONTEND_URL = 'https://app.test';
 const { montarEvento, conexoesQueVeem } = await import('../modules/googleAgenda/googleAgenda.rules.js');
 const { googleAgendaService } = await import('../modules/googleAgenda/googleAgenda.service.js');
 const { cifrar } = await import('../modules/googleAgenda/googleAgenda.crypto.js');
-const { GoogleTokenInvalido, GoogleIndisponivel } = await import('../modules/googleAgenda/googleAgenda.api.js');
+const { GoogleTokenInvalido, GoogleIndisponivel, GoogleNaoEncontrado } = await import('../modules/googleAgenda/googleAgenda.api.js');
 
 const V1 = new Date('2026-11-01T10:00:00Z');
 const V2 = new Date('2026-11-02T10:00:00Z');
@@ -47,7 +47,7 @@ describe('Google Agenda: saída', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     api.accessToken.mockResolvedValue('tok');
-    api.salvarEvento.mockResolvedValue('ev-novo');
+    api.gravarEvento.mockResolvedValue('a1');
     repo.eventosDaConexao.mockResolvedValue([]);
     repo.agendamentosDaJanela.mockResolvedValue([ag()]);
     repo.conexoesAtivas.mockResolvedValue([conexao()]);
@@ -79,8 +79,8 @@ describe('Google Agenda: saída', () => {
 
   it('cria evento para agendamento sem evento e grava a versao', async () => {
     await googleAgendaService.sincronizarSaida();
-    expect(api.salvarEvento).toHaveBeenCalledWith('tok', 'cal-n', expect.objectContaining({ titulo: 'Mariana · Design de Sobrancelha · Camila' }), undefined);
-    expect(repo.salvarEvento).toHaveBeenCalledWith({ conexaoId: 'cn', appointmentId: 'a1', googleEventId: 'ev-novo', versao: V1 });
+    expect(api.gravarEvento).toHaveBeenCalledWith('tok', 'cal-n', 'a1', expect.objectContaining({ titulo: 'Mariana · Design de Sobrancelha · Camila' }));
+    expect(repo.salvarEvento).toHaveBeenCalledWith({ conexaoId: 'cn', appointmentId: 'a1', googleEventId: 'a1', versao: V1 });
     expect(repo.atualizarConexao).toHaveBeenCalledWith('cn', expect.objectContaining({ ultimaSyncEm: expect.any(Date) }));
   });
 
@@ -88,15 +88,15 @@ describe('Google Agenda: saída', () => {
     repo.eventosDaConexao.mockResolvedValue([{ appointmentId: 'a1', googleEventId: 'ev1', versao: V1 }]);
     await googleAgendaService.sincronizarSaida();
     expect(api.accessToken).not.toHaveBeenCalled();
-    expect(api.salvarEvento).not.toHaveBeenCalled();
+    expect(api.gravarEvento).not.toHaveBeenCalled();
   });
 
   it('atualiza quando updated_at mudou', async () => {
     repo.eventosDaConexao.mockResolvedValue([{ appointmentId: 'a1', googleEventId: 'ev1', versao: V1 }]);
     repo.agendamentosDaJanela.mockResolvedValue([ag({ updatedAt: V2 })]);
-    api.salvarEvento.mockResolvedValue('ev1');
+    api.gravarEvento.mockResolvedValue('ev1');
     await googleAgendaService.sincronizarSaida();
-    expect(api.salvarEvento).toHaveBeenCalledWith('tok', 'cal-n', expect.anything(), 'ev1');
+    expect(api.gravarEvento).toHaveBeenCalledWith('tok', 'cal-n', 'ev1', expect.anything());
     expect(repo.salvarEvento).toHaveBeenCalledWith(expect.objectContaining({ versao: V2 }));
   });
 
@@ -106,7 +106,7 @@ describe('Google Agenda: saída', () => {
     await googleAgendaService.sincronizarSaida();
     expect(api.apagarEvento).toHaveBeenCalledWith('tok', 'cal-n', 'ev1');
     expect(repo.apagarEvento).toHaveBeenCalledWith('cn', 'a1');
-    expect(api.salvarEvento).not.toHaveBeenCalled();
+    expect(api.gravarEvento).not.toHaveBeenCalled();
   });
 
   it('troca de profissional move o evento', async () => {
@@ -120,12 +120,13 @@ describe('Google Agenda: saída', () => {
 
     expect(api.apagarEvento).toHaveBeenCalledWith('tok', 'cal-1', 'ev1');
     expect(repo.apagarEvento).toHaveBeenCalledWith('c1', 'a1');
-    expect(api.salvarEvento).toHaveBeenCalledWith('tok', 'cal-2', expect.anything(), undefined);
+    expect(api.gravarEvento).toHaveBeenCalledWith('tok', 'cal-2', 'a1', expect.anything());
   });
 
-  it('busca só a janela de ontem a +90 dias', async () => {
+  it('busca a janela de ontem a +90 dias e os já sincronizados pelas conexões', async () => {
     await googleAgendaService.sincronizarSaida();
     const [, janela] = repo.agendamentosDaJanela.mock.calls[0];
+    expect(janela.conexaoIds).toEqual(['cn']);
     const dias = (d: Date) => Math.round((d.getTime() - Date.now()) / 86_400_000);
     expect(dias(janela.de)).toBe(-1);
     expect(dias(janela.ate)).toBe(90);
@@ -152,8 +153,44 @@ describe('Google Agenda: saída', () => {
   });
 
   it('GoogleIndisponivel não muda status', async () => {
-    api.salvarEvento.mockRejectedValue(new GoogleIndisponivel());
+    api.gravarEvento.mockRejectedValue(new GoogleIndisponivel());
     await expect(googleAgendaService.sincronizarSaida()).resolves.toBeUndefined();
     expect(repo.atualizarConexao).not.toHaveBeenCalledWith('cn', expect.objectContaining({ status: 'reconectar' }));
+  });
+
+  it('remarcado para fora da janela ainda atualiza o evento', async () => {
+    repo.eventosDaConexao.mockResolvedValue([{ appointmentId: 'a1', googleEventId: 'a1', versao: V1 }]);
+    repo.agendamentosDaJanela.mockResolvedValue([ag({ date: new Date('2027-06-10T00:00:00Z'), updatedAt: V2 })]);
+    await googleAgendaService.sincronizarSaida();
+    expect(api.gravarEvento).toHaveBeenCalledWith('tok', 'cal-n', 'a1', expect.objectContaining({ inicio: '2027-06-10T14:00:00' }));
+  });
+
+  it('erro num evento não trava os outros e fica registrado', async () => {
+    repo.agendamentosDaJanela.mockResolvedValue([ag(), ag({ id: 'a2' })]);
+    api.gravarEvento.mockRejectedValueOnce(new Error('Google respondeu 400')).mockResolvedValueOnce('a2');
+    await googleAgendaService.sincronizarSaida();
+    expect(repo.salvarEvento).toHaveBeenCalledTimes(1);
+    expect(repo.salvarEvento).toHaveBeenCalledWith(expect.objectContaining({ appointmentId: 'a2' }));
+    expect(repo.atualizarConexao).toHaveBeenCalledWith('cn', expect.objectContaining({ ultimoErro: expect.stringContaining('400') }));
+  });
+
+  it('agenda apagada no Google marca reconectar e avisa', async () => {
+    const avisar = vi.spyOn(googleAgendaService, 'avisarReconectar').mockResolvedValue(undefined);
+    api.gravarEvento.mockRejectedValue(new GoogleNaoEncontrado());
+    await googleAgendaService.sincronizarSaida();
+    expect(repo.atualizarConexao).toHaveBeenCalledWith('cn', expect.objectContaining({ status: 'reconectar' }));
+    expect(avisar).toHaveBeenCalledTimes(1);
+  });
+
+  it('duas sincronizações ao mesmo tempo não gravam o evento duas vezes', async () => {
+    let liberar: (v: string) => void = () => {};
+    api.gravarEvento.mockImplementationOnce(() => new Promise<string>((r) => { liberar = r; }));
+    const primeira = googleAgendaService.sincronizarSaida();
+    await vi.waitFor(() => expect(api.gravarEvento).toHaveBeenCalledTimes(1));
+    repo.agendamentoPorId.mockResolvedValue({ id: 'a1', businessId: 'b1' });
+    await googleAgendaService.sincronizarSaida({ appointmentId: 'a1' });
+    liberar('a1');
+    await primeira;
+    expect(api.gravarEvento).toHaveBeenCalledTimes(1);
   });
 });
