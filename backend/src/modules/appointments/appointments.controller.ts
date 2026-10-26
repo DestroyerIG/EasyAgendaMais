@@ -96,9 +96,11 @@ export const getAvailableSlots = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    // A agenda do painel mostra o ocupado do Google e deixa encaixar com aviso.
     const data = await appointmentsService.getAvailableSlots(
       req.user.businessId!,
-      req.query as never
+      req.query as never,
+      { ignorarGoogle: true }
     );
     sendSuccess(res, data);
   } catch (error) {

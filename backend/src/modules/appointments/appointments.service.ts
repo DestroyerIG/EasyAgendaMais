@@ -223,9 +223,14 @@ export const appointmentsService = {
     logger.info({ appointmentId: id, businessId }, 'Agendamento cancelado');
   },
 
+  /**
+   * `ignorarGoogle`: o painel recebe também os horários ocupados no Google Agenda, que a tela
+   * marca com aviso (a recepção pode encaixar). A bancada e a página pública não ignoram.
+   */
   async getAvailableSlots(
     businessId: string,
-    query: GetAvailableSlotsQuery
+    query: GetAvailableSlotsQuery,
+    opts: { ignorarGoogle?: boolean } = {}
   ): Promise<unknown> {
     const { professionalId, date, serviceId } = query;
 
@@ -242,7 +247,7 @@ export const appointmentsService = {
     );
 
     const pausa = await appointmentsPrismaRepository.getProfessionalBreak(professionalId, businessId);
-    const doGoogle = await googleAgendaService.bloqueiosDoDia(businessId, professionalId, date);
+    const doGoogle = opts.ignorarGoogle ? [] : await googleAgendaService.bloqueiosDoDia(businessId, professionalId, date);
 
     return (generateAvailableTimeSlots as Function)(businessSettings, date, {
       serviceDurationMinutes: duration,

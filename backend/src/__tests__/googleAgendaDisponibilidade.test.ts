@@ -49,6 +49,12 @@ describe('disponibilidade com o Google Agenda', () => {
     expect(gerar.mock.calls[0][2]).toMatchObject({ blockedRanges: [PAUSA, ...GOOGLE] });
   });
 
+  it('painel pode ignorar o Google para encaixar com aviso', async () => {
+    await appointmentsService.getAvailableSlots('b1', { professionalId: 'p1', date: '2099-11-10' } as never, { ignorarGoogle: true });
+    expect(google.bloqueiosDoDia).not.toHaveBeenCalled();
+    expect(gerar.mock.calls[0][2]).toMatchObject({ blockedRanges: [PAUSA] });
+  });
+
   it('sem pausa, só o Google', async () => {
     apptRepo.getProfessionalBreak.mockResolvedValue(null);
     await appointmentsService.getAvailableSlots('b1', { professionalId: 'p1', date: '2099-11-10' } as never);

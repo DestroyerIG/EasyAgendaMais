@@ -526,6 +526,8 @@ export interface LinhaDoTempoProps {
   onNovoAgendamento: (inicial?: InicialNovoAgendamento) => void;
   /** Almoço de cada profissional, por id: desenhado na coluna e ocupado nas vagas. */
   intervalos?: IntervalosPorProfissional;
+  /** Compromissos do Google Agenda de cada profissional, por id (fase 7): bloco sem título. */
+  ocupadoGoogle?: Record<string, Array<{ start: string; end: string }>>;
   /** Clique no bloco abre o painel de detalhes (agendamento-detalhes.html). */
   onAbrirDetalhes?: (agendamento: Appointment) => void;
   className?: string;
@@ -542,6 +544,7 @@ export function LinhaDoTempo({
   onAcao,
   onNovoAgendamento,
   intervalos,
+  ocupadoGoogle,
   onAbrirDetalhes,
   className,
 }: LinhaDoTempoProps) {
@@ -653,9 +656,11 @@ export function LinhaDoTempo({
           const posicaoAlmoco = almoco
             ? posicaoDoBloco(almoco.inicio, almoco.fim - almoco.inicio, faixa.inicioMinutos, alturaHora)
             : null;
+          const doGoogle = (ocupadoGoogle?.[coluna.id] ?? []).map((f) => ({ inicio: paraMinutos(f.start), fim: paraMinutos(f.end) }));
           return (
           <div
             key={coluna.id}
+            data-coluna={coluna.id}
             className={cn('relative p-1', indice < colunas.length - 1 && 'border-r border-line/70')}
           >
             {posicaoAlmoco && (
@@ -671,12 +676,28 @@ export function LinhaDoTempo({
                 </span>
               </div>
             )}
+            {doGoogle.map((b) => {
+              const pos = posicaoDoBloco(b.inicio, b.fim - b.inicio, faixa.inicioMinutos, alturaHora);
+              // Compromisso pessoal do Google Agenda: só o ocupado, nunca o título (fase 7).
+              return (
+                <div
+                  key={`google-${b.inicio}`}
+                  className="absolute left-1 right-1 flex items-center justify-center overflow-hidden rounded-control border border-dashed border-line bg-surface-2"
+                  style={{ top: pos.top, height: pos.altura }}
+                >
+                  <span className="flex items-center gap-1.5 rounded-md border border-line bg-surface px-3 py-1 text-[12px] font-semibold text-muted">
+                    <Icon name="event_busy" size={16} />
+                    Ocupado (Google)
+                  </span>
+                </div>
+              );
+            })}
             {calcularVagasLivres(
               coluna.agendamentos,
               faixa,
               duracaoPadraoMinutos,
               undefined,
-              almoco ? [almoco] : [],
+              [...(almoco ? [almoco] : []), ...doGoogle],
             ).map((vaga) => (
               <BlocoVagaLivre
                 key={`vaga-${vaga.inicioMinutos}`}
