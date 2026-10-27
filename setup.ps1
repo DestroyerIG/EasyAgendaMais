@@ -1,5 +1,7 @@
-# Script de Configuração Rápida do EasyAgenda+ SaaS
-# Execute este script após instalar o PostgreSQL
+﻿# Script de Configuração Rápida do EasyAgenda+ SaaS
+# Execute este script após instalar o PostgreSQL.
+# Cria um banco LOCAL, aplica as migrações do Prisma e gera backend\.env e frontend\.env.local.
+# Se já existirem, os dois .env são copiados para .bak-<data> antes de serem substituídos.
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Green
@@ -82,30 +84,12 @@ try {
 
     Write-Host "Banco criado com sucesso!" -ForegroundColor Green
 
-    # 5. Executar SQL base + migrations
-    $sqlFiles = @(
-        "backend/src/config/database.sql",
-        "backend/src/config/migration_v3.sql",
-        "backend/src/config/migration_v4.sql",
-        "backend/src/config/migration_v5.sql",
-        "backend/src/config/migration_v6.sql",
-        "backend/src/config/migration_v7.sql",
-        "backend/src/config/migration_v8.sql",
-        "backend/src/config/migration_v9.sql",
-        "backend/src/config/migration_v10.sql",
-        "backend/src/config/migration_v11.sql",
-        "backend/src/config/migration_v12.sql",
-        "backend/src/config/migration_v13.sql",
-        "backend/src/config/migration_v14.sql",
-        "backend/src/config/migration_v15.sql"
-    )
-
-    foreach ($sqlFile in $sqlFiles) {
-        if (-not (Test-Path $sqlFile)) {
-            Write-Host "Arquivo SQL nao encontrado: $sqlFile" -ForegroundColor Red
-            Read-Host "Pressione ENTER para sair"
-            exit
-        }
+    # 5. Aplicar o stub do Supabase e as migracoes do Prisma
+    $stubFile = "backend/prisma/local/supabase-stub.sql"
+    if (-not (Test-Path $stubFile)) {
+        Write-Host "Arquivo nao encontrado: $stubFile" -ForegroundColor Red
+        Read-Host "Pressione ENTER para sair"
+        exit
     }
 
     Write-Host "Garantindo extensao pgcrypto..." -ForegroundColor Cyan
@@ -118,40 +102,74 @@ try {
         exit
     }
 
-    foreach ($sqlFile in $sqlFiles) {
-        $sqlName = Split-Path $sqlFile -Leaf
-        Write-Host "Aplicando $sqlName..." -ForegroundColor Cyan
-        $result = & psql -h $pgHost -p $pgPort -U $pgUser -d $projectDatabase -v ON_ERROR_STOP=1 -f $sqlFile 2>&1
+    # Schemas, roles e funcoes do Supabase que as migracoes referenciam
+    Write-Host "Aplicando supabase-stub.sql..." -ForegroundColor Cyan
+    $result = & psql -h $pgHost -p $pgPort -U $pgUser -d $projectDatabase -v ON_ERROR_STOP=1 -f $stubFile 2>&1
 
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "Erro ao aplicar $sqlName" -ForegroundColor Red
-            Write-Host $result -ForegroundColor Red
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Erro ao aplicar supabase-stub.sql" -ForegroundColor Red
+        Write-Host $result -ForegroundColor Red
+        Read-Host "Pressione ENTER para sair"
+        exit
+    }
+
+    $escapedPassword = [Uri]::EscapeDataString($pgPasswordText)
+    $databaseUrl = "postgresql://${pgUser}:${escapedPassword}@${pgHost}:${pgPort}/${projectDatabase}"
+
+    if (-not (Test-Path "backend/node_modules")) {
+        Write-Host "Instalando dependencias do backend..." -ForegroundColor Cyan
+        Push-Location backend
+        & npm install
+        $npmExit = $LASTEXITCODE
+        Pop-Location
+        if ($npmExit -ne 0) {
+            Write-Host "Erro no npm install do backend" -ForegroundColor Red
             Read-Host "Pressione ENTER para sair"
             exit
         }
     }
 
-    Write-Host "Schema e migrations aplicados com sucesso!" -ForegroundColor Green
+    Write-Host "Aplicando migracoes do Prisma..." -ForegroundColor Cyan
+    $env:DATABASE_URL = $databaseUrl
+    $env:DIRECT_URL = $databaseUrl
+    Push-Location backend
+    & npx prisma migrate deploy
+    $migrateExit = $LASTEXITCODE
+    Pop-Location
+    Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
+    Remove-Item Env:DIRECT_URL -ErrorAction SilentlyContinue
+
+    if ($migrateExit -ne 0) {
+        Write-Host "Erro ao aplicar as migracoes do Prisma" -ForegroundColor Red
+        Read-Host "Pressione ENTER para sair"
+        exit
+    }
+
+    Write-Host "Schema e migracoes aplicados com sucesso!" -ForegroundColor Green
 
     # 6. Criar .env backend
     $envFile = "backend\.env"
-    $escapedPassword = [Uri]::EscapeDataString($pgPasswordText)
-    $databaseUrl = "postgresql://${pgUser}:${escapedPassword}@${pgHost}:${pgPort}/${projectDatabase}"
+    if (Test-Path $envFile) {
+        $backupFile = "$envFile.bak-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+        Copy-Item $envFile $backupFile
+        Write-Host "backend\.env existente copiado para $backupFile" -ForegroundColor Yellow
+    }
     $jwtSecret = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 32 | ForEach-Object { [char]$_ })
 
     @"
 PORT=5000
 DATABASE_URL=$databaseUrl
+DIRECT_URL=$databaseUrl
 JWT_SECRET=$jwtSecret
 NODE_ENV=development
 LOG_LEVEL=info
 FRONTEND_URL=http://localhost:3000
 APP_URL=http://localhost:3000
-AUTH_PROVIDER_MODE=dual
-EMAIL_VERIFICATION_TTL_MINUTES=60
+BUSINESS_TIMEZONE=America/Sao_Paulo
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
-AUTH_SUPABASE_REDIRECT_TO=http://localhost:3000/auth/confirm
+SUPABASE_SERVICE_ROLE_KEY=
+AUTH_SUPABASE_REDIRECT_TO=http://localhost:3000/auth/callback
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_USER=
@@ -170,13 +188,37 @@ ASAAS_BASE_URL=https://api.asaas.com/v3
 ASAAS_WEBHOOK_TOKEN=
 ASAAS_BILLING_DESCRIPTION=EasyAgenda+ - Plano {plan} ({business})
 ASAAS_TIMEOUT_MS=12000
+WHATSAPP_PROVIDER=evolution
+EVOLUTION_API_URL=
+EVOLUTION_API_KEY=
+BACKEND_WEBHOOK_BASE_URL=
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_AGENDA_REDIRECT_URI=http://localhost:5000/api/v1/google-agenda/callback
+GOOGLE_TOKEN_KEY=
 "@ | Out-File -FilePath $envFile -Encoding UTF8
 
     Write-Host ".env backend criado com sucesso!" -ForegroundColor Green
 
     # 7. Criar .env.local frontend
     $envLocalFile = "frontend\.env.local"
-    "NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1" | Out-File -FilePath $envLocalFile -Encoding UTF8
+    if (Test-Path $envLocalFile) {
+        $backupLocal = "$envLocalFile.bak-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+        Copy-Item $envLocalFile $backupLocal
+        Write-Host "frontend\.env.local existente copiado para $backupLocal" -ForegroundColor Yellow
+    }
+    @"
+BACKEND_API_URL=http://localhost:5000/api/v1
+NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+BACKEND_ORIGIN=http://localhost:5000
+NEXT_PUBLIC_GOOGLE_LOGIN_ATIVO=
+"@ | Out-File -FilePath $envLocalFile -Encoding UTF8
 
     Write-Host ".env.local frontend criado com sucesso!" -ForegroundColor Green
 

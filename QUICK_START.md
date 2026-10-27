@@ -1,35 +1,37 @@
 # Quick Start
 
-Fluxo curto para subir o projeto em desenvolvimento.
+Caminho curto para subir o projeto em desenvolvimento.
 
 ## Pré-requisitos
 
-- Node.js 20+
-- npm 10+
-- PostgreSQL 14+ (recomendado 16)
-- Conta/projeto Supabase configurado para Auth
+- Node.js 20+ e npm 10+
+- PostgreSQL 14+ (recomendado 16) ou um projeto Supabase
+- Projeto Supabase para o Auth
 
-## 1. Instalar Dependências
+## 1. Instalar
 
 ```bash
 git clone <url-do-repositorio>
-cd easyagenda-saas
+cd EasyBarber
 npm run install:all
 ```
 
-## 2. Configurar Ambiente
+O `postinstall` do backend já roda `prisma generate`.
+
+## 2. Configurar o ambiente
 
 ```bash
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env.local
 ```
 
-No mínimo, configure no `backend/.env`:
+Mínimo no `backend/.env`:
 
 ```env
 PORT=5000
 NODE_ENV=development
 DATABASE_URL=postgresql://postgres:senha@localhost:5432/easyagenda
+DIRECT_URL=postgresql://postgres:senha@localhost:5432/easyagenda
 JWT_SECRET=troque_por_uma_chave_forte
 FRONTEND_URL=http://localhost:3000
 APP_URL=http://localhost:3000
@@ -39,7 +41,7 @@ SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 AUTH_SUPABASE_REDIRECT_TO=http://localhost:3000/auth/confirm
 ```
 
-No `frontend/.env.local`:
+Mínimo no `frontend/.env.local`:
 
 ```env
 BACKEND_API_URL=http://localhost:5000/api/v1
@@ -49,64 +51,30 @@ NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
 ```
 
-## 3. Preparar Banco
+WhatsApp, pagamento, push e Google são opcionais. Sem as variáveis deles, esses recursos só não aparecem.
 
-Crie o banco se ainda não existir:
+> Confira para qual banco o `DATABASE_URL` aponta. Não rode migração contra produção sem querer.
+
+## 3. Preparar o banco
 
 ```bash
 createdb -h localhost -p 5432 -U postgres --encoding=UTF8 easyagenda
 psql -h localhost -p 5432 -U postgres -d easyagenda -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+psql -h localhost -p 5432 -U postgres -d easyagenda -f backend/prisma/local/supabase-stub.sql
+cd backend && npm run db:sync
 ```
 
-Aplique o schema:
+O stub só é necessário em Postgres local. Detalhes em `POSTGRESQL_SETUP.md`.
+
+## 4. Subir
 
 ```bash
-for file in \
-  backend/src/config/database.sql \
-  backend/src/config/migration_v3.sql \
-  backend/src/config/migration_v4.sql \
-  backend/src/config/migration_v5.sql \
-  backend/src/config/migration_v6.sql \
-  backend/src/config/migration_v7.sql \
-  backend/src/config/migration_v8.sql \
-  backend/src/config/migration_v9.sql \
-  backend/src/config/migration_v10.sql \
-  backend/src/config/migration_v11.sql \
-  backend/src/config/migration_v12.sql \
-  backend/src/config/migration_v13.sql \
-  backend/src/config/migration_v14.sql \
-  backend/src/config/migration_v15.sql \
-  backend/src/config/migration_v16_supabase_only_auth.sql \
-  backend/src/config/migration_v17_subscription_access_gate.sql \
-  backend/src/config/migration_v18_asaas_customer_id.sql \
-  backend/src/config/migration_v19_business_days_and_intervals.sql
-do
-  psql -h localhost -p 5432 -U postgres -d easyagenda -v ON_ERROR_STOP=1 -f "$file"
-done
+cd backend && npm run dev     # terminal 1
+cd frontend && npm run dev    # terminal 2
 ```
-
-No Windows PowerShell, use os comandos detalhados em POSTGRESQL_SETUP.md.
-
-## 4. Subir Serviços
-
-Terminal 1:
-
-```bash
-cd backend
-npm run dev
-```
-
-Terminal 2:
-
-```bash
-cd frontend
-npm run dev
-```
-
-URLs:
 
 - Frontend: http://localhost:3000
-- Backend health: http://localhost:5000/health
+- Backend: http://localhost:5000/health
 - API: http://localhost:5000/api/v1
 
 ## 5. Validar
@@ -115,17 +83,16 @@ URLs:
 curl http://localhost:5000/health
 ```
 
-Depois teste:
+Depois:
 
-- Cadastro em `/cadastro`.
-- Confirmação de e-mail via Supabase.
-- Login em `/login`.
-- Acesso ao `/dashboard`.
+1. Cadastre uma conta em `/cadastro` e confirme o e-mail.
+2. Faça login em `/login`.
+3. Passe pelas 5 etapas do onboarding.
+4. Chegue à tela Hoje.
 
-## Docker Compose
+## Testes
 
 ```bash
-docker compose up --build
+cd backend && npm test && npm run typecheck
+cd frontend && npm test && npm run build
 ```
-
-Atenção: o compose atual aplica automaticamente até `migration_v15.sql` no primeiro bootstrap do volume. Para usar o schema atual completo, aplique v16, v17, v18 e v19 manualmente no banco do container, conforme POSTGRESQL_SETUP.md.

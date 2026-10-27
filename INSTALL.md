@@ -1,191 +1,124 @@
-# Instalação Completa
+# Instalação completa
 
-Guia completo para instalar o EasyAgenda+ SaaS 2.0 em ambiente local.
+Guia detalhado do ambiente de desenvolvimento. Para o caminho curto, veja `QUICK_START.md`.
 
 ## 1. Pré-requisitos
 
-- Node.js 20+
-- npm 10+
-- PostgreSQL 14+ (recomendado 16)
+- Node.js 20+ e npm 10+
 - Git
-- Projeto Supabase com Auth habilitado
-
-Verifique:
-
-```bash
-node -v
-npm -v
-psql --version
-git --version
-```
+- PostgreSQL 14+ (recomendado 16) com `psql`, ou um projeto Supabase
+- Projeto Supabase (Auth, e também Storage para fotos, logo e galeria)
+- Opcionais, conforme o que for testar:
+  - servidor Evolution API v2 (WhatsApp);
+  - contas de teste no Stripe e no Asaas (assinatura);
+  - projeto no Google Cloud (login com Google e Google Agenda).
 
 ## 2. Clonar
 
 ```bash
 git clone <url-do-repositorio>
-cd easyagenda-saas
+cd EasyBarber
 ```
 
-## 3. Instalar Dependências
+## 3. Instalar dependências
 
 ```bash
 npm run install:all
 ```
 
-Equivalente manual:
+Ou separado:
 
 ```bash
-cd backend && npm install
+cd backend && npm install     # o postinstall roda prisma generate
 cd ../frontend && npm install
 ```
 
-## 4. Variáveis de Ambiente
-
-### Backend
+## 4. Variáveis de ambiente
 
 ```bash
 cp backend/.env.example backend/.env
-```
-
-Campos mínimos:
-
-```env
-PORT=5000
-NODE_ENV=development
-LOG_LEVEL=info
-DATABASE_URL=postgresql://postgres:senha@localhost:5432/easyagenda
-JWT_SECRET=troque_por_uma_chave_forte
-FRONTEND_URL=http://localhost:3000
-APP_URL=http://localhost:3000
-SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_ANON_KEY=<anon-key>
-SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
-AUTH_SUPABASE_REDIRECT_TO=http://localhost:3000/auth/confirm
-```
-
-O `SUPABASE_SERVICE_ROLE_KEY` é necessário para scripts administrativos como `seed:auth-admin` e `seed:system-users`.
-
-Variáveis opcionais por módulo:
-
-- Stripe: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` e price IDs.
-- Asaas Pix: `ASAAS_API_KEY`, `ASAAS_BASE_URL`, `ASAAS_WEBHOOK_TOKEN`.
-- WhatsApp: `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE_NAME`, `BACKEND_WEBHOOK_BASE_URL` (alias legado: `EVOLUTION_WEBHOOK_URL`).
-- Lembretes: `BUSINESS_TIMEZONE` (padrão `America/Sao_Paulo`); servidor em UTC precisa do fuso do negócio.
-- SMTP: opcional; não é usado para confirmação de autenticação no fluxo atual.
-
-`AUTH_PROVIDER_MODE` é obsoleto. Supabase Auth é obrigatório.
-
-### Frontend
-
-```bash
 cp frontend/.env.example frontend/.env.local
 ```
 
-Campos mínimos:
+Os dois arquivos de exemplo estão comentados. Por grupo:
 
-```env
-BACKEND_API_URL=http://localhost:5000/api/v1
-NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+### Backend
+
+| Grupo | Variáveis | Obrigatório |
+|---|---|---|
+| Servidor | `PORT`, `NODE_ENV`, `LOG_LEVEL` | Sim |
+| Banco | `DATABASE_URL`, `DIRECT_URL` | Sim |
+| Sessão e URLs | `JWT_SECRET`, `FRONTEND_URL`, `APP_URL` | Sim |
+| Supabase Auth | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `AUTH_SUPABASE_REDIRECT_TO` | Sim |
+| Fuso | `BUSINESS_TIMEZONE` (padrão `America/Sao_Paulo`) | Não |
+| Stripe | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID_*` | Para cartão |
+| Asaas | `ASAAS_API_KEY`, `ASAAS_BASE_URL`, `ASAAS_WEBHOOK_TOKEN` | Para Pix da assinatura |
+| WhatsApp | `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `BACKEND_WEBHOOK_BASE_URL` | Para WhatsApp |
+| Push | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Para notificações push |
+| Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_AGENDA_REDIRECT_URI`, `GOOGLE_TOKEN_KEY` | Para Google Agenda |
+| SMTP | `SMTP_*` | Não (convite da profissional e e-mails do sistema) |
+
+Gerar as chaves VAPID uma vez:
+
+```bash
+cd backend && npx web-push generate-vapid-keys
 ```
 
-## 5. Banco PostgreSQL
+`VAPID_SUBJECT` é um `mailto:` ou a URL do site.
 
-Crie o banco:
+### Frontend
+
+| Variável | Para quê |
+|---|---|
+| `BACKEND_API_URL` | Backend usado pelo BFF (servidor) |
+| `NEXT_PUBLIC_API_URL` | Backend visto pelo navegador |
+| `NEXT_PUBLIC_APP_URL` | URL do site |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Auth |
+| `NEXT_PUBLIC_GOOGLE_LOGIN_ATIVO` | `1` mostra "Continuar com Google" |
+| `BACKEND_ORIGIN` | Origem do backend no CSP (opcional) |
+| `AUTH_BFF_UPSTREAM_TIMEOUT_MS` | Tempo limite do BFF |
+| `NEXT_PUBLIC_SUPPORT_WHATSAPP` | Número do financeiro em Plano e cobrança |
+| `NEXT_PUBLIC_WHATSAPP_CONTACT_URL` | Contato da landing |
+
+### Supabase
+
+- **Authentication › URL Configuration › Redirect URLs:** `http://localhost:3000/auth/confirm`, `http://localhost:3000/auth/callback` e `http://localhost:3000/auth/redefinir-senha`.
+- Para o login com Google, siga `docs/google-configuracao.md`.
+
+## 5. Banco
+
+Siga `POSTGRESQL_SETUP.md`. Em resumo, para um Postgres local:
 
 ```bash
 createdb -h localhost -p 5432 -U postgres --encoding=UTF8 easyagenda
 psql -h localhost -p 5432 -U postgres -d easyagenda -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
-```
-
-Aplique os arquivos SQL nesta ordem:
-
-1. `backend/src/config/database.sql`
-2. `backend/src/config/migration_v3.sql`
-3. `backend/src/config/migration_v4.sql`
-4. `backend/src/config/migration_v5.sql`
-5. `backend/src/config/migration_v6.sql`
-6. `backend/src/config/migration_v7.sql`
-7. `backend/src/config/migration_v8.sql`
-8. `backend/src/config/migration_v9.sql`
-9. `backend/src/config/migration_v10.sql`
-10. `backend/src/config/migration_v11.sql`
-11. `backend/src/config/migration_v12.sql`
-12. `backend/src/config/migration_v13.sql`
-13. `backend/src/config/migration_v14.sql`
-14. `backend/src/config/migration_v15.sql`
-15. `backend/src/config/migration_v16_supabase_only_auth.sql`
-16. `backend/src/config/migration_v17_subscription_access_gate.sql`
-17. `backend/src/config/migration_v18_asaas_customer_id.sql`
-18. `backend/src/config/migration_v19_business_days_and_intervals.sql`
-
-Linux/macOS:
-
-```bash
-for file in backend/src/config/database.sql backend/src/config/migration_v3.sql backend/src/config/migration_v4.sql backend/src/config/migration_v5.sql backend/src/config/migration_v6.sql backend/src/config/migration_v7.sql backend/src/config/migration_v8.sql backend/src/config/migration_v9.sql backend/src/config/migration_v10.sql backend/src/config/migration_v11.sql backend/src/config/migration_v12.sql backend/src/config/migration_v13.sql backend/src/config/migration_v14.sql backend/src/config/migration_v15.sql backend/src/config/migration_v16_supabase_only_auth.sql backend/src/config/migration_v17_subscription_access_gate.sql backend/src/config/migration_v18_asaas_customer_id.sql backend/src/config/migration_v19_business_days_and_intervals.sql; do
-  psql -h localhost -p 5432 -U postgres -d easyagenda -v ON_ERROR_STOP=1 -f "$file"
-done
-```
-
-PowerShell:
-
-```powershell
-$files = @(
-  "backend/src/config/database.sql",
-  "backend/src/config/migration_v3.sql",
-  "backend/src/config/migration_v4.sql",
-  "backend/src/config/migration_v5.sql",
-  "backend/src/config/migration_v6.sql",
-  "backend/src/config/migration_v7.sql",
-  "backend/src/config/migration_v8.sql",
-  "backend/src/config/migration_v9.sql",
-  "backend/src/config/migration_v10.sql",
-  "backend/src/config/migration_v11.sql",
-  "backend/src/config/migration_v12.sql",
-  "backend/src/config/migration_v13.sql",
-  "backend/src/config/migration_v14.sql",
-  "backend/src/config/migration_v15.sql",
-  "backend/src/config/migration_v16_supabase_only_auth.sql",
-  "backend/src/config/migration_v17_subscription_access_gate.sql",
-  "backend/src/config/migration_v18_asaas_customer_id.sql",
-  "backend/src/config/migration_v19_business_days_and_intervals.sql"
-)
-foreach ($file in $files) {
-  psql -h localhost -p 5432 -U postgres -d easyagenda -v ON_ERROR_STOP=1 -f $file
-}
+psql -h localhost -p 5432 -U postgres -d easyagenda -f backend/prisma/local/supabase-stub.sql
+cd backend && npm run db:sync
 ```
 
 ## 6. Executar
 
-Backend:
-
 ```bash
-cd backend
-npm run dev
+cd backend && npm run dev
+cd frontend && npm run dev
 ```
 
-Frontend:
+## 7. Seeds administrativos
+
+Com o Supabase e o banco prontos:
 
 ```bash
-cd frontend
-npm run dev
+npm run seed:auth-admin       # admin da plataforma (SuperAdmin)
+npm run seed:system-users     # usuários de sistema
 ```
 
-## 7. Seeds Administrativos
-
-Depois de configurar Supabase e banco:
+## 8. Testes e checagens
 
 ```bash
-npm run seed:auth-admin
-npm run seed:system-users
+cd backend && npm test && npm run typecheck
+cd frontend && npm test && npm run build
 ```
 
-## 8. Docker
+## 9. Docker
 
-```bash
-docker compose up --build
-```
-
-Observação: o compose atual inicializa o banco até `migration_v15.sql`; aplique v16-v19 manualmente em bancos criados por ele.
+Com um `.env` na raiz com as chaves do Supabase, rode `docker compose up --build`. Isso sobe o Postgres, aplica as migrações do Prisma e inicia o backend (:5000) e o frontend (:3000). No Windows sem Docker, o `setup.ps1` prepara um Postgres local. Os detalhes estão em `POSTGRESQL_SETUP.md` › Docker Compose e `setup.ps1`.

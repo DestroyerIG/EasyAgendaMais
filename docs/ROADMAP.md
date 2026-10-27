@@ -4,8 +4,9 @@ As fases do relançamento e o estado de cada uma.
 
 - Cada fase tem spec em `docs/superpowers/specs/` e plano em `docs/superpowers/plans/`.
 - As pendências de cada fase entregue ficam em `docs/design/SEGUIMENTO.md`.
+- O que o sistema faz hoje, tela por tela, está em `docs/FUNCIONALIDADES.md`.
 
-Atualizado em 26/10/2026.
+Atualizado em 27/10/2026.
 
 ## Fases
 
@@ -27,7 +28,22 @@ Atualizado em 26/10/2026.
 | 4 | Clube e pacotes | ✅ Concluída | PR #11 |
 | 5 | App da profissional (PWA) | ✅ Concluída | PR #12 |
 | 6 | Onboarding guiado, segmentos e vocabulário | ✅ Concluída | PR #17 |
-| **7** | **Login com Google e Google Agenda** | 🔄 Migração aplicada; aguardando merge do PR e teste no navegador | branch `feat/google` |
+| 7 | Login com Google e Google Agenda | ✅ Concluída | PR #20 |
+
+## Fase 7 (concluída)
+
+Spec: `docs/superpowers/specs/2026-10-26-google-login-agenda-design.md`. Guia de configuração: `docs/google-configuracao.md`.
+
+- PR #20 juntado em 26/10, com a migração `20261029120000_google_agenda` aplicada em produção no mesmo dia.
+- O login com Google e a conexão do Google Agenda funcionaram em produção (https://www.easybarber.tech).
+- Falta publicar e verificar o app no Google. Em modo Teste, só os usuários de teste conectam a agenda, e o acesso expira em 7 dias.
+- Para a verificação, o domínio próprio precisa estar verificado no Search Console. O dono vai trocar o domínio `easybarber.tech` e só depois faz os ajustes de domínio (`FRONTEND_URL`, backend em subdomínio próprio, domínio autorizado na marca do app).
+
+## Próximos passos
+
+- **H:** landing e SuperAdmin, ainda sem fase.
+- Verificação do app no Google, depois da troca de domínio.
+- Conferência das telas com dado real e pendências abertas em `docs/design/SEGUIMENTO.md`.
 
 ## Fase 5 (concluída)
 
@@ -45,7 +61,7 @@ Referências do Stitch em `docs/design/stitch/projeto/`:
 - `fechar-atendimento-pwa-profissional--29883f.html`
 - `meus-numeros-e-comissoes-pwa-profissional--6e6598.html` e `studio-aurora-meus-ganhos-visao-profissional--98d611.html`
 
-A fase 4 (PR #11) foi entregue em 25/10, com a migração já aplicada. A fase 5 (PR #12) também, com a migração `20261027120000_app_profissional` aplicada em 25/10; faltam as chaves VAPID para o push. A conferência das telas com dados reais continua pendente em `SEGUIMENTO.md`.
+A fase 4 (PR #11) foi entregue em 25/10, com a migração já aplicada. A fase 5 (PR #12) também, com a migração `20261027120000_app_profissional` aplicada em 25/10. O dono informou em 26/10 que as chaves VAPID do push já estão em produção, mas isso ainda não foi conferido: basta ver se o botão "Ativar notificações" aparece. A conferência das telas com dados reais continua pendente em `SEGUIMENTO.md`.
 
 ## Itens da lista original (A a I) ainda em aberto
 
