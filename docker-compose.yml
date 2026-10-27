@@ -1,23 +1,17 @@
+# Ambiente local completo: Postgres + migrações do Prisma + backend + frontend.
+# Não é o deploy de produção (Render + Vercel + Supabase, ver DEPLOY.md).
+#
+# O login usa o Supabase Auth: preencha SUPABASE_URL, SUPABASE_ANON_KEY e
+# SUPABASE_SERVICE_ROLE_KEY num .env na raiz (ao lado deste arquivo) antes do
+# `docker compose up --build`. Nunca aponte o DATABASE_URL daqui para produção.
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./backend/src/config/database.sql:/docker-entrypoint-initdb.d/01-init.sql
-      - ./backend/src/config/migration_v3.sql:/docker-entrypoint-initdb.d/02-migration-v3.sql
-      - ./backend/src/config/migration_v4.sql:/docker-entrypoint-initdb.d/03-migration-v4.sql
-      - ./backend/src/config/migration_v5.sql:/docker-entrypoint-initdb.d/04-migration-v5.sql
-      - ./backend/src/config/migration_v6.sql:/docker-entrypoint-initdb.d/05-migration-v6.sql
-      - ./backend/src/config/migration_v7.sql:/docker-entrypoint-initdb.d/06-migration-v7.sql
-      - ./backend/src/config/migration_v8.sql:/docker-entrypoint-initdb.d/07-migration-v8.sql
-      - ./backend/src/config/migration_v9.sql:/docker-entrypoint-initdb.d/08-migration-v9.sql
-      - ./backend/src/config/migration_v10.sql:/docker-entrypoint-initdb.d/09-migration-v10.sql
-      - ./backend/src/config/migration_v11.sql:/docker-entrypoint-initdb.d/10-migration-v11.sql
-      - ./backend/src/config/migration_v12.sql:/docker-entrypoint-initdb.d/11-migration-v12.sql
-      - ./backend/src/config/migration_v13.sql:/docker-entrypoint-initdb.d/12-migration-v13.sql
-      - ./backend/src/config/migration_v14.sql:/docker-entrypoint-initdb.d/13-migration-v14.sql
-      - ./backend/src/config/migration_v15.sql:/docker-entrypoint-initdb.d/14-migration-v15.sql
+      # Schemas, roles e funções do Supabase que as migrações referenciam.
+      - ./backend/prisma/local/supabase-stub.sql:/docker-entrypoint-initdb.d/01-supabase-stub.sql:ro
     environment:
       POSTGRES_DB: easyagenda
       POSTGRES_USER: easyagenda
@@ -25,45 +19,84 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U easyagenda"]
+      test: ["CMD-SHELL", "pg_isready -U easyagenda -d easyagenda"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  backend:
-    build: ./backend
-    restart: unless-stopped
+  # Aplica as migrações de backend/prisma/migrations e termina.
+  migrate:
+    build:
+      context: ./backend
+      target: builder
     depends_on:
       db:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://easyagenda:${DB_PASSWORD:-changeme}@db:5432/easyagenda
-      JWT_SECRET: ${JWT_SECRET}
+      DIRECT_URL: postgresql://easyagenda:${DB_PASSWORD:-changeme}@db:5432/easyagenda
+    command: ["npx", "prisma", "migrate", "deploy"]
+    restart: "no"
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://easyagenda:${DB_PASSWORD:-changeme}@db:5432/easyagenda
+      DIRECT_URL: postgresql://easyagenda:${DB_PASSWORD:-changeme}@db:5432/easyagenda
+      JWT_SECRET: ${JWT_SECRET:-troque-este-segredo-local}
       NODE_ENV: production
       PORT: 5000
+      LOG_LEVEL: info
       FRONTEND_URL: http://localhost:3000
       APP_URL: http://localhost:3000
-      LOG_LEVEL: info
-      AUTH_PROVIDER_MODE: ${AUTH_PROVIDER_MODE:-dual}
-      EMAIL_VERIFICATION_TTL_MINUTES: 60
+      BUSINESS_TIMEZONE: ${BUSINESS_TIMEZONE:-America/Sao_Paulo}
       SUPABASE_URL: ${SUPABASE_URL:-}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
-      AUTH_SUPABASE_REDIRECT_TO: ${AUTH_SUPABASE_REDIRECT_TO:-http://localhost:3000/auth/confirm}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      AUTH_SUPABASE_REDIRECT_TO: ${AUTH_SUPABASE_REDIRECT_TO:-http://localhost:3000/auth/callback}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-EasyAgenda+ <no-reply@easyagenda.local>}
+      WHATSAPP_PROVIDER: ${WHATSAPP_PROVIDER:-evolution}
+      EVOLUTION_API_URL: ${EVOLUTION_API_URL:-}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-}
+      BACKEND_WEBHOOK_BASE_URL: ${BACKEND_WEBHOOK_BASE_URL:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_AGENDA_REDIRECT_URI: ${GOOGLE_AGENDA_REDIRECT_URI:-http://localhost:5000/api/v1/google-agenda/callback}
+      GOOGLE_TOKEN_KEY: ${GOOGLE_TOKEN_KEY:-}
     ports:
       - "5000:5000"
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      # As NEXT_PUBLIC_* entram no bundle na hora do build.
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:5000/api/v1
+        NEXT_PUBLIC_APP_URL: http://localhost:3000
+        NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_URL:-}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+        NEXT_PUBLIC_GOOGLE_LOGIN_ATIVO: ${NEXT_PUBLIC_GOOGLE_LOGIN_ATIVO:-}
+        BACKEND_ORIGIN: http://localhost:5000
     restart: unless-stopped
     depends_on:
       - backend
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:5000/api/v1
+      # O BFF roda dentro do container e fala com o backend pela rede do compose.
+      BACKEND_API_URL: http://backend:5000/api/v1
+      FRONTEND_URL: http://localhost:3000
+      BACKEND_ORIGIN: http://localhost:5000
     ports:
       - "3000:3000"
 

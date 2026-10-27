@@ -37,29 +37,27 @@ psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT current_database(
 
 Verifique serviço, host, porta, usuário e senha.
 
-### Schema incompleto
-
-Valide tabelas críticas:
+### Schema incompleto ou migração pendente
 
 ```bash
-psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT to_regclass('public.auth_signup_pending');"
-psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT to_regclass('public.billing_events');"
-psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT to_regclass('public.whatsapp_menu_options');"
-psql -h localhost -p 5432 -U postgres -d easyagenda -c "SELECT column_name FROM information_schema.columns WHERE table_name = 'business_settings' AND column_name = 'dias_abertos';"
+cd backend
+npm run db:migrate:status
 ```
 
-Se alguma retornar vazio, aplique migrations até `migration_v19_business_days_and_intervals.sql`.
+- Migração pendente: `npm run db:migrate:deploy` (em produção, só com autorização).
+- Postgres local reclamando de `auth`, `storage` ou `authenticated`: aplique `backend/prisma/local/supabase-stub.sql` antes das migrações.
+- Coluna inexistente logo depois de um deploy: o código subiu antes da migração.
+
+Detalhes em `POSTGRESQL_SETUP.md`.
 
 ### Docker
 
-O compose atual aplica automaticamente até v15 no primeiro volume. Aplique v16-v19 manualmente:
-
-```bash
-cat backend/src/config/migration_v16_supabase_only_auth.sql | docker compose exec -T db psql -U easyagenda -d easyagenda -v ON_ERROR_STOP=1
-cat backend/src/config/migration_v17_subscription_access_gate.sql | docker compose exec -T db psql -U easyagenda -d easyagenda -v ON_ERROR_STOP=1
-cat backend/src/config/migration_v18_asaas_customer_id.sql | docker compose exec -T db psql -U easyagenda -d easyagenda -v ON_ERROR_STOP=1
-cat backend/src/config/migration_v19_business_days_and_intervals.sql | docker compose exec -T db psql -U easyagenda -d easyagenda -v ON_ERROR_STOP=1
-```
+| Sintoma | O que conferir |
+|---|---|
+| `backend` não sobe e o `migrate` saiu com erro | `docker compose logs migrate`. Se o volume veio de uma versão antiga do compose, recomece com `docker compose down -v` |
+| Função ou schema `auth`/`storage` não existe | O stub só roda na primeira subida do volume. Recomece com `docker compose down -v` |
+| Login falha no painel | `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` no `.env` da raiz, e `docker compose build frontend` depois de mudar as chaves |
+| `setup.ps1` para em "psql nao encontrado" | Coloque a pasta `bin` do PostgreSQL no PATH |
 
 ## Cadastro, Confirmação e Login
 
@@ -113,25 +111,43 @@ Verifique:
 
 ## WhatsApp
 
-Checklist:
+Guia completo em `WHATSAPP_BOT.md` › Troubleshooting. Checklist rápido:
 
-- `EVOLUTION_API_URL` acessível pelo backend.
-- `EVOLUTION_API_KEY` correta.
-- Webhook da Evolution aponta para `/api/v1/whatsapp/webhook`.
-- Eventos recomendados: `MESSAGES_UPSERT` e `CONNECTION_UPDATE`.
-- `MESSAGES_SET` desabilitado.
-- `businesses.whatsapp_instance_name` configurado para o tenant.
-- Plano/status permite `whatsapp_automation`.
+- `EVOLUTION_API_URL` acessível pelo backend e `EVOLUTION_API_KEY` correta.
+- `BACKEND_WEBHOOK_BASE_URL` aponta para o **backend** (`/api/v1/whatsapp/webhook`), sem sufixo de evento.
+- Eventos `MESSAGES_UPSERT`, `MESSAGES_UPDATE` e `CONNECTION_UPDATE` ligados, e `MESSAGES_SET` desligado.
+- `businesses.whatsapp_instance_name` do negócio certo.
 
-## Lembretes não enviados
+## Mensagens automáticas não saem
 
-Checklist:
+- O processo do backend precisa estar acordado (hospedagem que hiberna precisa de keep-alive).
+- Só uma instância do backend deve rodar as rotinas.
+- `BUSINESS_TIMEZONE` correto: o servidor roda em UTC.
+- A regra está ligada em WhatsApp › Automações. O interruptor antigo de Ajustes não existe mais.
+- A fila só envia das 08:00 às 20:00, até 25 por hora (ou a cadência da campanha), com intervalo de 45 a 90 s.
+- A cliente não está em opt-out (SAIR) nem com o consentimento revogado.
+- O WhatsApp está conectado. Itens de campanha esperam a reconexão.
 
-- Processo do backend acordado quando o cron deveria rodar (hospedagem que hiberna precisa de keep-alive, ex.: UptimeRobot).
-- `BUSINESS_TIMEZONE` correto (servidor em UTC; sem o fuso o alvo do lembrete sai errado).
-- Agendamento com status `confirmado` e `reminderSent=false`.
-- Janela: o cron busca agendamentos ~2h à frente, a cada 10 minutos.
-- WhatsApp conectado e envio funcionando para o tenant.
+## Google Agenda e login com Google
+
+- O botão "Continuar com Google" não aparece: falta `NEXT_PUBLIC_GOOGLE_LOGIN_ATIVO=1` no frontend.
+- O cartão do Google Agenda não aparece: faltam `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_AGENDA_REDIRECT_URI` ou `GOOGLE_TOKEN_KEY` no backend.
+- `redirect_uri_mismatch`: a URL do callback no Google Cloud precisa ser igual a `GOOGLE_AGENDA_REDIRECT_URI`.
+- "Acesso bloqueado" ou expiração em 7 dias: o app está em modo Teste no Google, então só os usuários de teste conectam. Publique e verifique o app (`docs/google-configuracao.md`).
+- Login com Google volta para `/login`: confira a redirect URL `https://<site>/auth/callback` no Supabase.
+- Conexões pararam depois de trocar a `GOOGLE_TOKEN_KEY`: a chave não pode mudar. Cada pessoa precisa reconectar.
+
+## Notificações push
+
+- O botão "Ativar notificações" não aparece: faltam `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` no backend, ou o navegador não suporta push.
+- O push só funciona em HTTPS (ou `localhost`).
+- No iPhone, o push só funciona com o app instalado na tela inicial.
+
+## App da profissional
+
+- A profissional cai no painel em vez da bancada: o usuário dela precisa ter o papel `professional` e estar ligado ao cadastro (`users.professional_id`). Isso acontece pelo aceite do convite.
+- Erro 402 na bancada: o negócio não está no Equipe ou no Salão.
+- O convite não chega: confira o SMTP. O link também pode ser copiado na tela da profissional.
 
 ## Rate Limit
 
@@ -144,18 +160,9 @@ Limites principais:
 
 ## Testes
 
-Backend:
-
 ```bash
-cd backend
-npm test
+cd backend && npm test && npm run typecheck
+cd frontend && npm test && npm run build
 ```
 
-Frontend:
-
-```bash
-cd frontend
-npm run build
-```
-
-`npm run lint` existe no frontend, mas depende do suporte do Next/ESLint instalado na versão atual.
+Depois de um `git pull`, o backend pode precisar de `npm install` e `npx prisma generate` antes do `typecheck` e dos testes.

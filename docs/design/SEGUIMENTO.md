@@ -65,7 +65,7 @@ Sub-projeto 2C-2a (WhatsApp: Hora de voltar), pendências conhecidas:
 - Um envio interrompido (processo caiu no meio) vira `falhou` após 10 min e não é reenviado, de propósito, para não duplicar mensagem.
 
 Sub-projeto 2C-2b (WhatsApp: Automações), pendências conhecidas:
-- **Migração `20261021120000_whatsapp_automacoes` PENDENTE de aplicação em produção.** Ela cria `whatsapp_automacoes` e `whatsapp_respostas_pendentes` (com RLS), e acrescenta `appointments.client_confirmed_at`/`confirmation_sent_at`, `whatsapp_envios.prioridade`/`appointment_id` e `business_settings.google_review_url`. Como o `schema.prisma` já tem essas colunas, qualquer consulta de agendamento quebra em produção se o código subir antes da migração. Aplicar a migração primeiro e só então publicar o código, com autorização do dono.
+- Migração `20261021120000_whatsapp_automacoes` aplicada em produção. O registro não ficou aqui, mas o `prisma migrate deploy` aplica as pendentes em ordem, e as migrações seguintes (a partir de `20261023120000_whatsapp_campanhas`) foram aplicadas assim. Ela cria `whatsapp_automacoes` e `whatsapp_respostas_pendentes` (com RLS), e acrescenta `appointments.client_confirmed_at`/`confirmation_sent_at`, `whatsapp_envios.prioridade`/`appointment_id` e `business_settings.google_review_url`.
 - As rotinas (confirmação, radar de retorno, aniversário, avaliação, lembrete) não checam a permissão de plano `whatsapp_automation`, igual ao lembrete que já está em produção. Um negócio que perder o plano com uma regra ligada continua disparando. As rotas da tela checam o plano.
 - O SQL cru das métricas (`metricas.repository.ts`: receita recuperada, taxa de resposta, faltas evitadas, vagas preenchidas) nunca rodou num banco real. Os testes mockam o repositório. Conferir os números na primeira semana em produção.
 - `created_at` sem fuso nas consultas das métricas depende de a sessão do banco estar em UTC.
@@ -143,6 +143,12 @@ Sub-projeto 7 (Login com Google e Google Agenda), pendências conhecidas:
 - **Ocupado na grade:** o "Ocupado (Google)" aparece só na visão de dia e nas colunas de quem tem agendamento no dia; o aviso no modal vale para qualquer profissional.
 - **Bot do WhatsApp:** remarcações e cancelamentos pelo bot chegam ao Google pelo cron, em até 1 minuto.
 - **Uma instância:** o `state` do OAuth é de uso único em memória. Com mais de uma instância do backend, mover para o banco.
+- **Testado em produção em 26/10:** o login com Google e a conexão do Google Agenda funcionaram em https://www.easybarber.tech. O app continua em modo Teste no Google, e o acesso dos usuários de teste expira em 7 dias.
+- **Domínio:** o dono vai trocar o domínio `easybarber.tech`. Depois da troca, faltam: `FRONTEND_URL` do Render no domínio novo, o backend num subdomínio próprio, o domínio autorizado na marca do app no Google e a verificação do app.
+
+## Infraestrutura
+
+- **Resolvido em 27/10:** o `docker-compose.yml` e o `setup.ps1` passaram a usar o Prisma (`supabase-stub.sql` + `prisma migrate deploy`), sem os SQL antigos e sem `AUTH_PROVIDER_MODE`. Os Dockerfiles foram corrigidos: no backend, o `npm ci` de produção falhava no `prisma generate`; no frontend, faltavam o caminho do standalone, a pasta `public` e as `NEXT_PUBLIC_*` no build. Falta subir o compose do zero numa máquina com o Docker rodando, porque a validação foi só de sintaxe.
 
 ## Melhorias técnicas pequenas
 

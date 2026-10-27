@@ -7,6 +7,7 @@ Este arquivo é um registro histórico das principais refatorações do projeto.
 Para onboarding, execução e deploy, priorize:
 
 - README.md
+- docs/FUNCIONALIDADES.md
 - QUICK_START.md
 - INSTALL.md
 - POSTGRESQL_SETUP.md

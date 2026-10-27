@@ -1,70 +1,54 @@
 # Start Here
 
-Guia de entrada para devs que acabaram de clonar o EasyAgenda+ SaaS 2.0.
+Guia de entrada para quem acabou de clonar o EasyAgenda+.
 
-## Ordem Recomendada de Leitura
+## Ordem de leitura
 
-1. README.md
-2. QUICK_START.md
-3. POSTGRESQL_SETUP.md
-4. API_DOCS.md
-5. DEPLOY.md
+1. `README.md`: visão geral, stack e comandos.
+2. `docs/FUNCIONALIDADES.md`: o que o sistema faz, tela por tela.
+3. `docs/ROADMAP.md`: fases do relançamento e o estado de cada uma.
+4. `QUICK_START.md`: subir local.
+5. `PROJECT_STRUCTURE.md`: onde fica cada coisa no código.
+6. `API_DOCS.md`: endpoints.
+7. `DEPLOY.md`: produção.
 
-## Decisão Rápida
+## Decisão rápida
 
-- Rodar local para desenvolver: QUICK_START.md.
-- Instalar tudo com mais contexto: INSTALL.md.
-- Preparar ou corrigir banco: POSTGRESQL_SETUP.md.
-- Entender endpoints REST: API_DOCS.md.
-- Publicar em produção: DEPLOY.md.
-- Diagnosticar falhas: TROUBLESHOOTING.md.
+| Quero... | Leia |
+|---|---|
+| Rodar local | `QUICK_START.md` |
+| Instalar com mais contexto | `INSTALL.md` |
+| Preparar ou migrar o banco | `POSTGRESQL_SETUP.md` |
+| Entender um endpoint | `API_DOCS.md` |
+| Entender planos e permissões | `PLANOS.md` |
+| Mexer no WhatsApp | `WHATSAPP_BOT.md` |
+| Configurar o Google | `docs/google-configuracao.md` |
+| Mudar uma tela | `docs/design/DESIGN.md` e `docs/design/stitch/` |
+| Ver o que ficou pendente | `docs/design/SEGUIMENTO.md` |
+| Publicar | `DEPLOY.md` |
+| Diagnosticar um erro | `TROUBLESHOOTING.md` e `FIX_CADASTRO.md` |
 
-## Checklist de Onboarding
+## Checklist de onboarding
 
 - Instalar Node.js 20+, npm 10+, PostgreSQL 14+ e Git.
-- Instalar dependências com `npm run install:all`.
+- `npm run install:all`.
 - Criar `backend/.env` e `frontend/.env.local` a partir dos exemplos.
-- Configurar Supabase Auth: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` e redirects.
-- Criar banco PostgreSQL em UTF-8 e habilitar `pgcrypto`.
-- Aplicar `database.sql` e as migrations atuais até `migration_v19_business_days_and_intervals.sql`.
+- Configurar o Supabase Auth (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` e as redirect URLs).
+- Preparar o banco com o Prisma (`npm run db:sync` no backend). Os SQL antigos não são mais usados.
 - Subir backend e frontend.
-- Validar `GET /health`, cadastro, confirmação de e-mail e login.
+- Validar `GET /health`, cadastro, confirmação de e-mail, login, onboarding e a tela Hoje.
 
-## Primeiros Comandos.
+## Como o trabalho é organizado
 
-```bash
-npm run install:all
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env.local
-```
+- Cada fase tem uma spec em `docs/superpowers/specs/` e um plano em `docs/superpowers/plans/`.
+- O código vai por PR para a `main`. Ao fechar uma fase, atualize o `docs/ROADMAP.md`, o `docs/FUNCIONALIDADES.md` e as pendências em `docs/design/SEGUIMENTO.md`.
+- Migração em produção só com autorização do dono, e sempre antes do deploy do código.
+- As telas seguem o Google Stitch (`docs/design/stitch/projeto/`) com dado real. Nada de número inventado na tela.
 
-```bash
-cd backend && npm run dev
-```
+## Atenções importantes
 
-```bash
-cd frontend && npm run dev
-```
-
-## Atenções Importantes
-
-- A API canônica é `/api/v1`; chamadas para `/api/*` são redirecionadas com HTTP 301.
-- Supabase Auth é obrigatório para cadastro, confirmação de e-mail e login.
-- `AUTH_PROVIDER_MODE` é obsoleto e deve ser removido de ambientes novos.
-- SMTP é opcional e não é usado para verificação de autenticação.
-- `database.sql` sozinho não cobre o schema atual; aplique todas as migrations listadas em POSTGRESQL_SETUP.md.
-- O `docker-compose.yml` e `setup.ps1` atuais aplicam automaticamente até `migration_v15.sql`; em bancos criados por eles, aplique v16, v17, v18 e v19 manualmente até esses scripts serem atualizados.
-
-## Mapa de Docs
-
-- README.md: visão geral, stack, fluxos e comandos principais.
-- QUICK_START.md: caminho curto para subir local.
-- INSTALL.md: instalação completa.
-- POSTGRESQL_SETUP.md: banco, migrations e comandos SQL.
-- PROJECT_STRUCTURE.md: organização técnica do repositório.
-- API_DOCS.md: endpoints, auth, respostas e webhooks.
-- PLANOS.md: planos, features e status de assinatura.
-- WHATSAPP_BOT.md: integração Evolution API e bot.
-- DEPLOY.md: produção, envs, build, webhooks e rollback.
-- TROUBLESHOOTING.md: diagnóstico de erros comuns.
-- FIX_CADASTRO.md: checklist rápido para problemas de cadastro/login.
+- A API canônica é `/api/v1`. Chamadas para `/api/*` são redirecionadas com HTTP 301.
+- O frontend chama o backend pelo BFF (`frontend/src/app/api/*`), nunca direto.
+- O Supabase Auth é obrigatório para cadastro, confirmação de e-mail e login.
+- `AUTH_PROVIDER_MODE` é obsoleto.
+- Ambiente local com Docker: `docker compose up --build` (Postgres, migrações do Prisma, backend e frontend).

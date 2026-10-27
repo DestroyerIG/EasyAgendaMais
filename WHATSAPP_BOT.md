@@ -1,28 +1,29 @@
-# WhatsApp Bot
+# WhatsApp
 
-Guia técnico do módulo WhatsApp.
+Guia técnico do WhatsApp: conexão, robô, central de conversas, fila de envios, Hora de voltar, automações e campanhas. Atualizado em 27/10/2026.
+
+O que a dona vê em cada aba está em `docs/FUNCIONALIDADES.md` › WhatsApp. As decisões de produto estão nas specs `2026-10-16-whatsapp-conversas`, `2026-10-20-hora-de-voltar` e `2026-10-21-automacoes-campanhas` em `docs/superpowers/specs/`.
 
 ## Arquitetura
 
-Implementação atual:
-
-- Backend EasyAgenda+ consome Evolution API v2 por HTTP.
-- Evolution API roda como serviço externo.
-- Frontend chama apenas endpoints internos do backend.
-
-Fluxo:
-
 ```text
-Frontend -> Backend EasyAgenda+ -> Evolution API v2
+Frontend → BFF (Next.js) → Backend EasyAgenda+ → Evolution API v2 → WhatsApp
+                                  ↑
+                    Webhook da Evolution (mensagens e conexão)
 ```
 
-## Pré-requisitos
+- A Evolution API roda como serviço externo. Cada negócio tem a própria instância (`businesses.whatsapp_instance_name`, única).
+- O WhatsApp está no plano Solo em diante (recurso `whatsapp_automation`).
 
-- Backend rodando.
-- Banco com migrations até `migration_v19_business_days_and_intervals.sql`.
-- Plano com feature `whatsapp_automation` liberada.
-- Evolution API v2 acessível por URL pública.
-- Webhook configurado para o backend.
+| Parte | Onde |
+|---|---|
+| Conexão, webhook e robô | `backend/src/modules/whatsapp/`, `backend/src/services/whatsapp/`, `backend/src/bot/` |
+| Central de conversas | `backend/src/modules/whatsappInbox/` |
+| Fila de envios | `backend/src/modules/whatsappFila/` |
+| Fotos de perfil | `backend/src/modules/whatsappAvatar/` |
+| Hora de voltar | `backend/src/modules/whatsappRetorno/` |
+| Automações | `backend/src/modules/whatsappAutomacoes/` |
+| Campanhas | `backend/src/modules/whatsappCampanhas/` |
 
 ## Variáveis
 
@@ -30,144 +31,134 @@ Frontend -> Backend EasyAgenda+ -> Evolution API v2
 WHATSAPP_PROVIDER=evolution
 EVOLUTION_API_URL=https://sua-evolution.com
 EVOLUTION_API_KEY=sua_chave
-EVOLUTION_INSTANCE_NAME=easyagenda
 BACKEND_WEBHOOK_BASE_URL=https://sua-api.com/api/v1/whatsapp/webhook
-EVOLUTION_WEBHOOK_URL=
 EVOLUTION_API_TIMEOUT_MS=10000
 WHATSAPP_WEBHOOK_BODY_LIMIT=6mb
 WHATSAPP_SESSION_TIMEOUT_MS=1800000
-WHATSAPP_INSTANCE_BUSINESS_MAP=
+BUSINESS_TIMEZONE=America/Sao_Paulo
 ```
 
-`BACKEND_WEBHOOK_BASE_URL` é o nome preferido para a URL pública do webhook. `EVOLUTION_WEBHOOK_URL` é mantido como alias legado e só é usado como fallback quando o novo nome está vazio. Sem barra final.
+- `BACKEND_WEBHOOK_BASE_URL` é a URL **do backend**, nunca a do frontend, e sem barra final. É só a base: com `webhook_by_events=true` a Evolution acrescenta `/{evento}`. `EVOLUTION_WEBHOOK_URL` é o nome antigo, usado se o novo estiver vazio.
+- `EVOLUTION_INSTANCE_NAME`, `WHATSAPP_INSTANCE_BUSINESS_MAP` e `WHATSAPP_DEFAULT_BUSINESS_ID` são legados, só para desenvolvimento e teste. Em produção, deixe vazias.
+- `FRONTEND_URL` é usada nos links das mensagens (página pública, avaliação). Sem ela, a linha do link some.
 
-`WHATSAPP_INSTANCE_BUSINESS_MAP` aceita JSON ou `key=value`, mas é fallback legado. A fonte de verdade multi-tenant é `businesses.whatsapp_instance_name`.
-
-## Webhooks Evolution
-
-Endpoints aceitos:
+## Webhook
 
 - `POST /api/v1/whatsapp/webhook`
 - `POST /api/v1/whatsapp/webhook/:event`
 
-Eventos recomendados:
+Eventos: `MESSAGES_UPSERT`, `MESSAGES_UPDATE` (status de entrega e leitura), `CONNECTION_UPDATE` e `QRCODE_UPDATED`. Deixe `MESSAGES_SET` desligado, porque o payload é pesado e o backend bloqueia. Handlers em `backend/src/services/whatsapp/handlers/`.
 
-- `MESSAGES_UPSERT`
-- `CONNECTION_UPDATE`
+## Conexão (aba Conexão)
 
-Configurações recomendadas:
+1. A dona abre WhatsApp › Conexão (ou a etapa 5 do onboarding).
+2. O backend cria ou reaproveita a instância e registra o webhook.
+3. O painel mostra o QR (`/whatsapp/qrcode`) e acompanha o `/whatsapp/status`.
+4. O `connection-update` com `open` grava `businesses.whatsapp_connected_at`. O `close` ou o logout zeram o campo.
 
-- `webhook_by_events=true`
-- `webhook_base64=false`
-- Não habilitar `MESSAGES_SET` em produção.
+A aba também mostra a saúde da conexão, os limites e o histórico de envios (`/whatsapp/connection/summary`).
 
-O backend ignora eventos pesados como `messages-set` antes do parser JSON para evitar payloads grandes.
+## Robô de agendamento
 
-## Fluxo de Conexão
+- Menu configurável (`/whatsapp/config` e `/whatsapp/config/menu`): saudação, mensagens por etapa, opções, reordenação e reset.
+- Agenda com os mesmos horários do painel: dias abertos, abertura e fechamento, intervalo, almoço da profissional, reservas pendentes e compromissos do Google Agenda.
+- Agendamentos criados pelo robô gravam `source = 'whatsapp'`.
+- Os textos padrão usam o vocabulário do segmento (`services/whatsapp/whatsappVocabulario.ts`).
+- Resposta rápida "Política" editável (política de cancelamento e sinal).
+- **Simulador:** `POST /whatsapp/simulator/message` testa o fluxo sem mensagem real.
 
-1. Usuário acessa `/dashboard/whatsapp`.
-2. Frontend chama `POST /whatsapp/connect` ou `POST /whatsapp/initialize`.
-3. Frontend consulta `GET /whatsapp/status`.
-4. Se necessário, consulta `GET /whatsapp/qrcode` ou `GET /whatsapp/qr`.
-5. Usuário escaneia o QR Code no celular.
+## Ponto único de envio
 
-Status retornados podem incluir:
+Toda mensagem sai por `sendWhatsAppMessage(phone, message, context)`, com `businessId` e `origin`. Assim tudo fica gravado na central. Origens: `cliente` (entrada), `bot`, `lembrete`, `confirmacao`, `sinal_pix`, `pix_recibo`, `lista_espera`, `retorno`, `aniversario`, `avaliacao`, `campanha`, `clube`, `painel_evento`, `manual_painel`, `manual_celular` e `sistema`.
 
-- `unavailable`
-- `disconnected`
-- `pairing`
-- `connected`
-- `error`
+## Central de conversas (aba Conversas)
 
-## Endpoints
+- Tabelas `whatsapp_conversations`, `whatsapp_messages` e `whatsapp_opt_outs`.
+- Grava só as conversas de clientes cadastradas e de números que falaram com o robô. As outras conversas do número ficam só no celular.
+- A dona responde pelo painel, assume o atendimento (o robô para) e devolve ao robô.
+- Respostas rápidas, contagem de não lidas e fotos de perfil (atualizadas pela rotina de cada minuto).
+- A conversa em atendimento humano volta ao robô depois de **12 h** sem atividade. A rotina roda a cada 15 min.
+- As mensagens ficam guardadas por **180 dias**. A limpeza roda diariamente às 03:30.
 
-Prefixo: `/api/v1/whatsapp`.
+## Opt-out
 
-Públicos para webhook:
+- **SAIR** (e também PARAR, CANCELAR, STOP, DESCADASTRAR, como texto inteiro da mensagem) coloca o número em opt-out. **VOLTAR** reativa.
+- Na cliente cadastrada, isso também grava o consentimento (`client_consents`, canal `whatsapp`).
+- Mensagens automáticas e de marketing pulam quem está em opt-out ou revogou o consentimento.
 
-- `POST /webhook`
-- `POST /webhook/:event`
+## Fila de envios (`whatsapp_envios`)
 
-Protegidos por auth, role tenant e feature `whatsapp_automation`:
+Tudo que é em massa ou automático passa por uma fila no banco, processada a cada minuto, para não arriscar o número com disparos em rajada.
 
-- `GET /status`
-- `POST /connect`
-- `POST /initialize`
-- `GET /qrcode`
-- `GET /qr`
-- `POST /disconnect`
-- `POST /logout`
-- `POST /restart`
-- `POST /send`
-- `POST /test-send`
-- `POST /debug-send`
-- `POST /simulator/message`
-- `GET /config`
-- `PUT /config`
-- `POST /config/reset`
-- `GET /config/menu`
-- `POST /config/menu`
-- `PUT /config/menu/:id`
-- `DELETE /config/menu/:id`
-- `PUT /config/menu-reorder`
-- `POST /config/menu/reset`
+| Regra | Valor |
+|---|---|
+| Janela de envio | 08:00 às 20:00 no fuso do negócio |
+| Limite padrão | 25 por hora por negócio |
+| Intervalo entre envios | 45 a 90 s |
+| Prioridade | 1 (confirmação, lembrete), 5 (retorno), 9 (campanha) |
+| Campanha | Cadência de 10, 25 ou 60 por hora. O intervalo depois de um item de campanha é 3600/cadência × (0,75 a 1,25), nunca abaixo de 45 s |
 
-## Configuração de Mensagens e Menu
+- Na hora de enviar, a fila confere o opt-out, o consentimento e se o agendamento ou a campanha ainda valem. Se não conseguir ler o opt-out, o item volta para a fila.
+- Um item interrompido no meio vira `falhou` depois de 10 min e não é reenviado, para não duplicar a mensagem.
+- O índice parcial `whatsapp_envios_cliente_ativo_key` permite um item ativo por cliente e origem.
 
-O módulo permite:
+## Hora de voltar (aba Hora de voltar)
 
-- Mensagem de saudação.
-- Mensagens automáticas por etapa.
-- Menu dinâmico.
-- Reordenação de opções.
-- Reset para configuração padrão.
+- **Quem aparece:** cliente ativa, com última visita há até 120 dias, retorno previsto já vencido e sem agendamento futuro. A lista vem com maior atraso primeiro.
+- **Encaixes:** até 2 vagas nos próximos 7 dias com a profissional da última visita, com duração suficiente.
+- Envio individual ou em lote pela fila, com a prévia da mensagem e o link da página pública.
+- Quem recebeu convite nos últimos 7 dias fica fora do "Selecionar todas" e pede confirmação para reenviar.
+- "Testar envio" manda para o WhatsApp cadastrado no negócio.
 
-## Configuração Operacional
+## Automações (aba Automações)
 
-O bot usa as preferências salvas em `/business/settings` para gerar horários:
+7 regras (`whatsapp_automacoes`), cada uma com interruptor, texto opcional (sem texto, vale o padrão do segmento) e configuração própria. Contas que já existiam começaram só com o lembrete ligado.
 
-- `diasAbertos`: array com ids dos dias abertos (`seg`, `ter`, `qua`, `qui`, `sex`, `sab`, `dom`). O padrão é segunda a sexta.
-- `openingTime` e `closingTime`: janela diária de atendimento.
-- `slotIntervalMinutes`: intervalo entre horários. O valor `0` significa sem intervalo e gera horários contínuos pela duração do serviço.
-- `allowWalkins`: quando ativo, o bot informa que encaixes são aceitos ao não encontrar slots.
+| Regra | Quando dispara | Como sai |
+|---|---|---|
+| `confirmacao` | Véspera do agendamento, a partir da hora escolhida (08:00 a 12:00). A cliente responde 1 para confirmar ou 2 para cancelar, e o 2 só vale até 24 h depois | Fila, prioridade alta |
+| `sinal_pix` | Reserva pública criada com sinal, com tolerância de 15, 30 ou 60 min | Envio direto |
+| `retorno` | Todo dia, para as oportunidades da Hora de voltar (pelo ciclo da cliente ou por N dias) | Fila |
+| `lista_espera` | Vaga aberta por cancelamento, para quem está aguardando | Fila |
+| `lembrete` | 2 horas antes (envio direto) ou na véspera (fila) | Conforme o modo |
+| `aniversario` | No dia do aniversário, uma vez por ano | Fila |
+| `avaliacao` | Depois do atendimento. A nota vem de 1 a 5 pelo próprio WhatsApp, e o texto pode levar o link do Google do negócio | Fila |
 
-Se a data escolhida cair em um dia fechado, o bot responde: `Hoje não estamos atendendo. Escolha outro dia.`
+- O resultado do mês (faltas evitadas, sinais recebidos, receita recuperada, vagas preenchidas) vem do banco (`metricas.repository.ts`). Quando é estimativa, o rótulo diz.
+- As respostas esperadas (1/2 da confirmação, nota da avaliação) ficam em `whatsapp_respostas_pendentes`.
+- O interruptor antigo "Enviar lembretes por WhatsApp" saiu de Ajustes. O `whatsapp_reminders` legado só vale como valor inicial da regra.
 
-## Lembretes Automáticos
+## Campanhas (aba Campanhas)
 
-Um cron in-process (`src/services/cronService.ts`) envia lembretes de agendamento via WhatsApp:
+- **Público:** em risco, reativação, aniversariantes, VIPs ou todas, com filtro de profissional e de último serviço. A prévia mostra a contagem real.
+- **Mensagem:** variáveis `{primeiro_nome}`, `{profissional}`, `{servico}`, `{horarios_livres}` (até 2 encaixes da semana) e `{link}`. O rodapé fixo é "Responda SAIR para não receber novidades."
+- **Programação:** de hoje até 30 dias, das 08:00 às 19:30, com cadência de 10, 25 ou 60 por hora. A tela mostra a previsão de término.
+- **Situações:** rascunho, agendada, enviando, concluída (calculada) e cancelada. Cancelar tira da fila os itens pendentes na mesma transação.
+- Cada cliente vira um item da fila com origem `campanha` e o id da campanha no lote (`batchId`, coluna `lote_id`). Quem já está na fila de outra campanha fica de fora.
 
-- Executa a cada 10 minutos (`*/10 * * * *`).
-- Busca agendamentos com status `confirmado`, `reminderSent=false`, que começam ~2h à frente.
-- Usa o template `reminderMessage` do `whatsappBotConfig` do negócio ou um padrão.
-- Marca `reminderSent=true` após envio bem-sucedido.
+## Lembretes e fuso
 
-Agendamentos gravam `date`/`time` no relógio local do negócio (BR), não UTC. Como o servidor (Render) roda em UTC, o alvo é calculado no fuso do negócio:
+Os agendamentos gravam `date`/`time` no relógio local do negócio. O servidor roda em UTC, então as rotinas calculam no fuso do negócio (`BUSINESS_TIMEZONE`, depois `APP_TIMEZONE`, depois `America/Sao_Paulo`).
 
-```env
-BUSINESS_TIMEZONE=America/Sao_Paulo
-```
+Em hospedagem que hiberna (como o Render gratuito), mantenha o processo acordado. Senão as rotinas não rodam.
 
-Fallback de fuso: `APP_TIMEZONE`, depois `America/Sao_Paulo`. Em hospedagem que hiberna (ex.: Render free), mantenha o processo acordado (ex.: UptimeRobot) para o cron disparar.
+## Outras mensagens que saem pelo WhatsApp
 
-O mesmo serviço roda um segundo cron (`15 * * * *`) que marca assinaturas one-time vencidas como inadimplentes.
-
-## Simulador
-
-Endpoint:
-
-- `POST /api/v1/whatsapp/simulator/message`
-
-Uso esperado:
-
-- Testar fluxos sem depender de mensagem real.
-- Validar contexto do negócio autenticado.
-- Reproduzir respostas do bot no dashboard.
+- Comprovante da comanda, com o link de avaliação.
+- Cobrança e recibo do sinal Pix da página pública.
+- Pix da mensalidade do clube e do pacote vendido como "Pix a receber".
+- Aviso de reagendamento ou cancelamento feito pela profissional no app.
+- Oferta de vaga da lista de espera.
 
 ## Troubleshooting
 
-- QR Code não aparece: valide `EVOLUTION_API_URL`, `EVOLUTION_API_KEY` e conectividade da Evolution.
-- Webhook não processa: confirme URL pública, evento `MESSAGES_UPSERT` e logs do backend.
-- Tenant incorreto: confira `businesses.whatsapp_instance_name`.
-- Payload 413: remova eventos pesados e aumente `WHATSAPP_WEBHOOK_BODY_LIMIT` apenas se necessário.
-- Feature bloqueada: confira plano/status em PLANOS.md.
+| Sintoma | O que conferir |
+|---|---|
+| QR não aparece | `EVOLUTION_API_URL`, `EVOLUTION_API_KEY` e se a Evolution está no ar |
+| Webhook não processa | `BACKEND_WEBHOOK_BASE_URL` aponta para o backend, evento `MESSAGES_UPSERT` ligado, logs do backend |
+| 404 em `.../connection-update/connection-update` | Sufixo de evento na URL base: deixe só a base |
+| Negócio errado | `businesses.whatsapp_instance_name` |
+| 413 no webhook | `MESSAGES_SET` ligado; aumente `WHATSAPP_WEBHOOK_BODY_LIMIT` só se precisar |
+| Fila parada | Fora da janela 08:00–20:00, limite por hora atingido, WhatsApp desconectado ou processo hibernando |
+| Cliente não recebe | Opt-out (SAIR) ou consentimento revogado |
+| Recurso bloqueado (402) | Plano ou status da assinatura (`PLANOS.md`) |

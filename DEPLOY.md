@@ -1,6 +1,8 @@
-# Deploy — EasyAgenda+ SaaS 2.0
+# Deploy — EasyAgenda+
 
-Guia de produção. Stack: Node.js 20 + Express + Prisma + PostgreSQL (Supabase) + Vercel (frontend) + Render (backend).
+Guia de produção. Stack: Node.js 20 + Express + Prisma + PostgreSQL (Supabase) + Vercel (frontend) + Render (backend). Atualizado em 27/10/2026.
+
+> **Regra de ouro:** a migração do banco vai **antes** do deploy do código que depende dela, e só com autorização do dono. Rode `npm run db:migrate:status` antes e depois.
 
 ---
 
@@ -56,6 +58,37 @@ EVOLUTION_API_KEY=<api-key>
 BACKEND_WEBHOOK_BASE_URL=https://sua-api.render.com/api/v1/whatsapp/webhook
 ```
 
+### Push (notificações no navegador)
+
+```env
+VAPID_PUBLIC_KEY=<chave-publica>
+VAPID_PRIVATE_KEY=<chave-privada>
+VAPID_SUBJECT=mailto:contato@seudominio.com
+```
+
+Gere uma vez com `npx web-push generate-vapid-keys` e não troque depois: trocar invalida as inscrições existentes. Sem as três, o botão "Ativar notificações" não aparece.
+
+### Google Agenda
+
+```env
+GOOGLE_CLIENT_ID=<id-do-cliente>
+GOOGLE_CLIENT_SECRET=<chave-secreta>
+GOOGLE_AGENDA_REDIRECT_URI=https://sua-api.render.com/api/v1/google-agenda/callback
+GOOGLE_TOKEN_KEY=<32 bytes em base64>
+```
+
+`GOOGLE_TOKEN_KEY` cifra o acesso guardado. Não troque depois, porque trocar invalida as conexões. Passo a passo completo em `docs/google-configuracao.md`.
+
+### SMTP (convite da profissional)
+
+```env
+SMTP_HOST=smtp.seuprovedor.com
+SMTP_PORT=587
+SMTP_USER=<usuario>
+SMTP_PASS=<senha>
+SMTP_FROM="EasyAgenda+ <no-reply@seudominio.com>"
+```
+
 ### Opcionais
 
 ```env
@@ -80,7 +113,12 @@ NEXT_PUBLIC_APP_URL=https://seu-frontend.vercel.app
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
 BACKEND_ORIGIN=https://sua-api.render.com
+NEXT_PUBLIC_GOOGLE_LOGIN_ATIVO=1
+NEXT_PUBLIC_SUPPORT_WHATSAPP=5583999999999
+NEXT_PUBLIC_WHATSAPP_CONTACT_URL=https://wa.me/55...
 ```
+
+`NEXT_PUBLIC_GOOGLE_LOGIN_ATIVO=1` mostra "Continuar com Google" no login e no cadastro. `NEXT_PUBLIC_SUPPORT_WHATSAPP` (só dígitos, com DDI) mostra os botões do financeiro em Plano e cobrança.
 
 `DIRECT_URL` (backend) é a conexão que o Prisma Migrate usa (`directUrl` no `schema.prisma`): no Supabase, a conexão direta ou a do Session pooler (porta 5432), não a do Transaction pooler (porta 6543). `BACKEND_ORIGIN` (frontend) é a origem do backend liberada no `connect-src` do CSP em `next.config.js`; é opcional e, sem ela, vale `https://easybarber-backend.onrender.com`.
 
@@ -104,6 +142,19 @@ npm run build                  # tsc → dist/
 npx prisma migrate deploy      # aplica migrations pendentes (seguro, idempotente)
 npm start                      # node dist/server.js
 ```
+
+### Migrações em produção
+
+O Start Command roda `prisma migrate deploy`, mas a regra do projeto é aplicar a migração **antes**, a partir da máquina local, com autorização do dono:
+
+```bash
+cd backend
+npm run db:migrate:status      # confere o que está pendente
+npm run db:migrate:deploy      # aplica
+npm run db:migrate:status      # confere de novo
+```
+
+Use `DIRECT_URL` no pooler de sessão do Supabase (porta 5432). Se a conexão direta falhar, troque `:6543` por `:5432` no `DATABASE_URL` e tire a query string.
 
 ### Banco novo (primeira vez)
 
@@ -144,9 +195,9 @@ Nenhuma mudança de configuração necessária pelo Prisma — o Prisma roda ape
 
 ## Supabase
 
-- Supabase é **somente Auth** neste projeto.
-- O banco PostgreSQL é acoplado diretamente via `DATABASE_URL` no Render.
-- **Não** use o banco interno do Supabase para os dados da aplicação; use `DATABASE_URL` apontando para o Postgres do Supabase (connection pooler via pgBouncer recomendado).
+- O Supabase fornece o **Auth** (senha e Google), o **Postgres** (via `DATABASE_URL` e `DIRECT_URL`) e o **Storage** (fotos das clientes em bucket privado, logo e galeria).
+- **Authentication › URL Configuration › Redirect URLs:** `https://<site>/auth/confirm`, `https://<site>/auth/callback` e `https://<site>/auth/redefinir-senha`.
+- **Authentication › Providers › Google:** ligado, com o ID e a chave do Google Cloud (`docs/google-configuracao.md`).
 
 ### Connection String Supabase
 
@@ -182,7 +233,21 @@ Token: `ASAAS_WEBHOOK_TOKEN`
 POST https://sua-api.render.com/api/v1/whatsapp/webhook
 ```
 
-Eventos recomendados: `MESSAGES_UPSERT`, `CONNECTION_UPDATE`.
+Eventos recomendados: `MESSAGES_UPSERT`, `MESSAGES_UPDATE`, `CONNECTION_UPDATE` e `QRCODE_UPDATED`.
+
+### Google Agenda (OAuth)
+
+```
+GET https://sua-api.render.com/api/v1/google-agenda/callback
+```
+
+Cadastre essa URL nos URIs de redirecionamento do cliente OAuth no Google Cloud, igual a `GOOGLE_AGENDA_REDIRECT_URI`.
+
+---
+
+## Rotinas agendadas
+
+O backend roda as rotinas no próprio processo (node-cron): fila do WhatsApp, lembretes, automações, clube, troca de plano, Google Agenda e limpezas. A tabela está em `docs/FUNCIONALIDADES.md` › Rotinas automáticas. Rode **uma instância só** do backend, para a mesma rotina não rodar duas vezes, e mantenha o processo acordado.
 Evite `MESSAGES_SET` — payload pesado, bloqueado automaticamente.
 
 ---
@@ -213,12 +278,18 @@ curl https://sua-api.render.com/api/v1/auth/me
 
 Validação manual:
 - [ ] Cadastro + confirmação e-mail
-- [ ] Login
+- [ ] Login por senha e com Google
+- [ ] Onboarding das 5 etapas numa conta nova
 - [ ] Dashboard carrega dados
 - [ ] Checkout cartão (Stripe sandbox)
 - [ ] Checkout PIX (Asaas sandbox)
 - [ ] Webhook Stripe recebido (stripe listen)
 - [ ] Status de assinatura atualiza
+- [ ] Página pública `/agendar/<slug>` reserva com sinal Pix
+- [ ] WhatsApp conecta pelo QR e o robô responde
+- [ ] Google Agenda conecta em Ajustes › Integrações
+- [ ] "Ativar notificações" aparece e o push chega
+- [ ] App da profissional (`/bancada`) abre pelo convite
 
 ---
 
@@ -241,3 +312,7 @@ Validação manual:
 | CORS sem `FRONTEND_URL` | Configurar env var no Render |
 | Supabase redirect diferente de `AUTH_SUPABASE_REDIRECT_TO` | Sincronizar URLs |
 | Webhook Stripe com secret errado | Verificar `STRIPE_WEBHOOK_SECRET` |
+| Código publicado antes da migração | Consultas quebram por coluna inexistente: aplicar a migração |
+| Duas instâncias do backend | Rotinas duplicadas (envios em dobro): manter uma instância |
+| `redirect_uri_mismatch` no Google | `GOOGLE_AGENDA_REDIRECT_URI` diferente do cadastrado no Google Cloud |
+| Troca da `GOOGLE_TOKEN_KEY` ou das chaves VAPID | Conexões do Google e inscrições de push param: não troque |
