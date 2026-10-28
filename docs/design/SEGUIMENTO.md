@@ -146,6 +146,23 @@ Sub-projeto 7 (Login com Google e Google Agenda), pendências conhecidas:
 - **Testado em produção em 26/10:** o login com Google e a conexão do Google Agenda funcionaram em https://www.easybarber.tech. O app continua em modo Teste no Google, e o acesso dos usuários de teste expira em 7 dias.
 - **Domínio:** o dono vai trocar o domínio `easybarber.tech`. Depois da troca, faltam: `FRONTEND_URL` do Render no domínio novo, o backend num subdomínio próprio, o domínio autorizado na marca do app no Google e a verificação do app.
 
+## Item H1 (modo de contingência), pendências conhecidas
+
+- **Migração pendente em produção.** A `20261030120000_contingencia` (coluna `inadimplente_desde`, trigger e índices de `business_id`) está no repositório, mas só vai ao banco com autorização explícita do dono. Até lá, o código novo não deve ir ao ar.
+- **O SQL nunca rodou num banco real.** Trigger, função e a consulta de "já pagou" foram testados só com repositório mockado. Rode a migração primeiro num banco de teste.
+- **Trigger fora do `schema.prisma`.** Como os índices anteriores, todo `migrate dev`/`migrate diff` vai propor um `DROP` da função/trigger. Remover à mão.
+- **O trigger só roda em UPDATE.** Negócio criado já em `pending`/`past_due` fica com `inadimplente_desde` nulo; a regra trata nulo como "agora" (carência cheia).
+- **Contas vencidas há mais de 7 dias perdem o link público** assim que a migração for aplicada. Conte antes:
+  ```sql
+  SELECT count(*) FROM businesses WHERE subscription_status IN ('past_due','unpaid','pending') AND subscription_updated_at < now() - interval '7 days';
+  ```
+- **Pix só para quem já paga no Pix.** Quem paga no cartão usa o portal da Stripe; gerar Pix numa assinatura de cartão criaria uma assinatura paralela (pendência da 2D).
+- **Botões não são desabilitados um a um em todas as telas.** O bloqueio real é o `402 SUBSCRIPTION_REQUIRED` no backend; o desabilitado visual cobre as telas principais (barra de datas da agenda, clientes e afins). Telas fora dessa lista mostram a mensagem do 402 ao clicar.
+- **O backup é gerado em memória**, sem paginação. Negócios muito grandes podem pesar; telefone com `+` sai com apóstrofo no CSV (guarda contra fórmula).
+- **Cada componente faz a sua própria chamada a `/conta/estado`.** Uma página do painel chega a 4 ou 5 chamadas iguais, e o estado só atualiza ao navegar. Um contexto compartilhado com cache resolve.
+- **Itens parados na fila durante a carência** não são apagados: avaliações enfileiradas saem atrasadas depois da regularização.
+- **`dateInTz` está copiado** em `somenteHoje.middleware.ts` e `cronService.ts`; mover para um util compartilhado.
+
 ## Infraestrutura
 
 - **Resolvido em 27/10:** o `docker-compose.yml` e o `setup.ps1` passaram a usar o Prisma (`supabase-stub.sql` + `prisma migrate deploy`), sem os SQL antigos e sem `AUTH_PROVIDER_MODE`. Os Dockerfiles foram corrigidos: no backend, o `npm ci` de produção falhava no `prisma generate`; no frontend, faltavam o caminho do standalone, a pasta `public` e as `NEXT_PUBLIC_*` no build. Falta subir o compose do zero numa máquina com o Docker rodando, porque a validação foi só de sintaxe.

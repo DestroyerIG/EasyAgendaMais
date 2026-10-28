@@ -68,6 +68,17 @@ Abre sozinho no primeiro acesso de uma conta nova (`/onboarding`). São 5 etapas
 - Pagamento por **cartão** (Stripe, assinatura recorrente) ou **Pix** (Asaas, cobrança mensal avulsa). Tela de pagamento em `/pagamento`.
 - Sem assinatura ativa, o painel fica restrito a Plano e cobrança. Regras em `PLANOS.md`.
 
+#### Quando a cobrança falha (modo de contingência)
+- Vale só para quem já pagou alguma vez. Quem nunca pagou segue o fim do teste.
+- **Carência de 7 dias** (`past_due`, `unpaid` ou `pending`):
+  - o painel continua abrindo, com uma faixa no topo avisando quantos dias restam;
+  - leitura, atendimento de hoje, caixa, comanda e envios já combinados continuam (lembrete, confirmação, recibo Pix, sinal e clube);
+  - o que cria compromisso novo responde "Disponível depois de regularizar a assinatura." e os botões ficam desabilitados;
+  - a página pública de agendamento fica pausada, com o WhatsApp do negócio. A cliente final não vê nada sobre pagamento.
+- **Conta bloqueada** (passou dos 7 dias): o painel leva para `/dashboard/assinatura`, só com o pagamento e o backup dos dados (clientes e agendamentos em CSV).
+- **Tela de assinatura** (`/dashboard/assinatura`): quem paga no Pix gera o Pix da mensalidade ali mesmo; quem paga no cartão abre o portal da Stripe. "Já paguei" recarrega o estado, e a conta volta ao normal quando o pagamento é confirmado.
+- A mensalidade `pending` com o período pago ainda no futuro (Pix do mês seguinte, gerado antes do vencimento) não é atraso: a conta segue ativa.
+
 ## Painel da dona
 
 Barra lateral: Hoje · Agenda · Clientes · Caixa · Clube e pacotes · WhatsApp · Relatórios · Minha página · Ajustes. No celular, a barra inferior tem Hoje, Agenda, o botão "+" (novo agendamento), Clientes e "Mais". O painel tem modo claro e escuro.
