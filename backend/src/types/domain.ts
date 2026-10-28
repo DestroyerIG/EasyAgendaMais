@@ -166,6 +166,8 @@ export interface BusinessBillingContext {
   provider_payment_id: string | null;
   stripe_subscription_id: string | null;
   last_payment_date: string | null;
+  inadimplente_desde?: Date | null;
+  ja_pagou?: boolean;
   [key: string]: unknown;
 }
 
