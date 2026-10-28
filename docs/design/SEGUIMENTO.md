@@ -148,7 +148,7 @@ Sub-projeto 7 (Login com Google e Google Agenda), pendências conhecidas:
 
 ## Item H1 (modo de contingência), pendências conhecidas
 
-- **Migração pendente em produção.** A `20261030120000_contingencia` (coluna `inadimplente_desde`, trigger e índices de `business_id`) está no repositório, mas só vai ao banco com autorização explícita do dono. Até lá, o código novo não deve ir ao ar.
+- **Migração aplicada em produção em 28/10/2026**, com autorização do dono. A `20261030120000_contingencia` criou a coluna `inadimplente_desde`, o trigger `trg_marcar_inadimplente_desde` e os índices de `business_id`. Antes de aplicar: 8 negócios, 5 `billing_payments`, 24 `subscription_events`, nenhuma conta em `past_due`/`unpaid`/`pending`, nenhuma marcada pelo backfill. O código em produção ainda não usa a coluna; a contingência só passa a valer depois do merge do PR #22 e do deploy.
 - **O SQL nunca rodou num banco real.** Trigger, função e a consulta de "já pagou" foram testados só com repositório mockado. Rode a migração primeiro num banco de teste.
 - **Trigger fora do `schema.prisma`.** Como os índices anteriores, todo `migrate dev`/`migrate diff` vai propor um `DROP` da função/trigger. Remover à mão.
 - **O trigger só roda em UPDATE.** Negócio criado já em `pending`/`past_due` fica com `inadimplente_desde` nulo; a regra trata nulo como "agora" (carência cheia).

@@ -29,7 +29,7 @@ Atualizado em 27/10/2026.
 | 5 | App da profissional (PWA) | ✅ Concluída | PR #12 |
 | 6 | Onboarding guiado, segmentos e vocabulário | ✅ Concluída | PR #17 |
 | 7 | Login com Google e Google Agenda | ✅ Concluída | PR #20 |
-| H1 | Modo de contingência (carência de 7 dias e conta bloqueada) | 🟡 Implementada, aguardando migração | Branch `docs/spec-item-h`, sem PR |
+| H1 | Modo de contingência (carência de 7 dias e conta bloqueada) | 🟡 Implementada e migrada em produção (28/10), aguardando merge | PR #22 |
 
 ## Fase 7 (concluída)
 
