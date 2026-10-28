@@ -8,6 +8,7 @@ import { PeriodoQuerySchema } from '../reports/reports.types.js';
 import { quinzenaDe, type Periodo } from '../reports/periodo.js';
 import { bancadaService } from './bancada.service.js';
 import { profissionalDe } from './bancada.middleware.js';
+import { statusEfetivoDaAssinatura } from '../conta/statusEfetivo.js';
 
 type H = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 
@@ -82,7 +83,7 @@ export const closeComanda: H = async (req, res, next) => {
 };
 export const numbers: H = async (req, res, next) => {
   try {
-    const ctx = { plan: req.user.plan, subscriptionStatus: req.user.subscriptionStatus };
+    const ctx = { plan: req.user.plan, subscriptionStatus: statusEfetivoDaAssinatura(req) };
     sendSuccess(res, await bancadaService.numeros(negocio(req), profissionalDe(res), await periodo(req), ctx));
   } catch (e) { next(e); }
 };

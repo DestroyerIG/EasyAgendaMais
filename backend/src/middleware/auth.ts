@@ -40,13 +40,18 @@ const SUBSCRIPTION_EXEMPT_ROUTES: RegExp[] = [
   /^\/api\/v1\/subscriptions\/status$/i,
   /^\/api\/v1\/subscriptions\/checkout-session$/i,
   /^\/api\/v1\/business\/account-profile$/i,
-  // Modo de contingência: a dona sempre consegue ver o estado da conta, baixar o
-  // backup e regularizar a assinatura, mesmo com a conta bloqueada.
-  /^\/api\/v1\/conta\/.+$/i,
+  // Modo de contingência: a dona sempre consegue ver as faturas e regularizar a
+  // assinatura, mesmo com a conta bloqueada.
   /^\/api\/v1\/billing\/invoices$/i,
   /^\/api\/v1\/billing\/payment-method$/i,
   /^\/api\/v1\/billing\/reactivate$/i,
   /^\/api\/v1\/subscriptions\/portal$/i,
+];
+
+// Isentas só para leitura: ver o estado da conta e baixar o backup.
+const SUBSCRIPTION_EXEMPT_READ_ROUTES: RegExp[] = [
+  /^\/api\/v1\/conta\/estado$/i,
+  /^\/api\/v1\/conta\/backup$/i,
 ];
 
 const MENSAGEM_CARENCIA = 'Disponível depois de regularizar a assinatura.';
@@ -65,7 +70,9 @@ const requestPath = (req: Request): string =>
 
 const isSubscriptionExemptRoute = (req: Request): boolean => {
   const path = requestPath(req);
-  return SUBSCRIPTION_EXEMPT_ROUTES.some((pattern) => pattern.test(path));
+  if (SUBSCRIPTION_EXEMPT_ROUTES.some((pattern) => pattern.test(path))) return true;
+  const method = String(req.method ?? '').toUpperCase();
+  return METODOS_DE_LEITURA.has(method) && SUBSCRIPTION_EXEMPT_READ_ROUTES.some((pattern) => pattern.test(path));
 };
 
 // Rotas isentas não bloqueiam em estado nenhum, mas ainda registram o estado da

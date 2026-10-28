@@ -214,6 +214,27 @@ describe('rotas isentas passam em qualquer estado', () => {
     expect(res.body.estadoConta.tipo).toBe('carencia');
   });
 
+  it.each([
+    ['POST', '/api/v1/conta/backup'],
+    ['POST', '/api/v1/conta/estado'],
+    ['DELETE', '/api/v1/conta/backup'],
+    ['GET', '/api/v1/conta/outra-coisa'],
+    ['GET', '/api/v1/conta/backup/extra'],
+  ])('bloqueada: %s %s não é isenta e dá 402', async (method, path) => {
+    mockCtx.current = ctxBloqueada();
+    mockCtx.falha = false;
+    const res = await call(method, path);
+    expect(res.status).toBe(402);
+    expect(res.body.error.details).toEqual({ estado: 'bloqueada' });
+  });
+
+  it('bloqueada: HEAD /api/v1/conta/backup é isenta', async () => {
+    mockCtx.current = ctxBloqueada();
+    mockCtx.falha = false;
+    const res = await request.head('/api/v1/conta/backup').set('Authorization', `Bearer ${token()}`);
+    expect(res.status).toBe(200);
+  });
+
   it('falha ao ler o contexto não derruba rota isenta', async () => {
     mockCtx.falha = true;
     const res = await call('GET', '/api/v1/auth/me');

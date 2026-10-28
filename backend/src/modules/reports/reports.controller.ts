@@ -9,6 +9,7 @@ import { comissoesService } from './comissoes.service.js';
 import { relatoriosService } from './relatorios.service.js';
 import { comissoesCsv } from './comissoes.csv.js';
 import { avaliacoesService } from '../avaliacoes/avaliacoes.service.js';
+import { statusEfetivoDaAssinatura } from '../conta/statusEfetivo.js';
 
 type H = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 
@@ -24,7 +25,7 @@ async function periodoDe(req: Request, padrao: (hoje: string) => Periodo): Promi
   return r.data;
 }
 
-const ctx = (req: Request) => ({ plan: req.user.plan, subscriptionStatus: req.user.subscriptionStatus });
+const ctx = (req: Request) => ({ plan: req.user.plan, subscriptionStatus: statusEfetivoDaAssinatura(req) });
 
 export const getOverview: H = async (req, res, next) => {
   try { sendSuccess(res, await relatoriosService.visaoGeral(req.user.businessId!, await periodoDe(req, ultimos30))); } catch (e) { next(e); }
