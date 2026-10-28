@@ -20,6 +20,7 @@ export function estadoDoContexto(ctx: BusinessBillingContext | null, agora: Date
     jaPagou: ctx.ja_pagou === true,
     fimDoPeriodo: paraData(ctx.current_period_end ?? ctx.subscription_current_period_end),
     agora,
+    pix: ctx.payment_method === 'pix' || ctx.provider === 'asaas',
   });
 }
 

@@ -15,6 +15,8 @@ export interface EntradaEstado {
   jaPagou: boolean;
   fimDoPeriodo: Date | null;
   agora: Date;
+  /** Cobrança pelo Pix (Asaas). Só nele a cobrança é gerada antes do vencimento. */
+  pix?: boolean;
 }
 
 export function calcularEstadoConta(e: EntradaEstado): EstadoConta {
@@ -34,8 +36,9 @@ export function calcularEstadoConta(e: EntradaEstado): EstadoConta {
   // Defesa contra linha sem backfill: conta a carência a partir de agora.
   let desde = e.inadimplenteDesde ?? e.agora;
   // Pix gerado antes do vencimento marca inadimplenteDesde na geração; a carência só começa quando o
-  // período pago acaba. Período no futuro (cartão já renovado pelo Stripe) não adia nada.
-  if (e.inadimplenteDesde && e.fimDoPeriodo && e.fimDoPeriodo.getTime() <= e.agora.getTime()
+  // período pago acaba. No cartão o Stripe avança o fim do período quando a fatura falha, então lá o
+  // fim do período não adia nada (senão a conta bloqueada voltaria para a carência ao fim dele).
+  if (e.pix && e.inadimplenteDesde && e.fimDoPeriodo && e.fimDoPeriodo.getTime() <= e.agora.getTime()
     && e.fimDoPeriodo.getTime() > desde.getTime()) {
     desde = e.fimDoPeriodo;
   }

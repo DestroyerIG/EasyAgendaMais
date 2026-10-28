@@ -58,6 +58,7 @@ describe('calcularEstadoConta', () => {
       status: 'pending',
       fimDoPeriodo: fim,
       inadimplenteDesde: new Date('2026-10-07T15:00:00Z'),
+      pix: true,
     }));
     expect(r).toEqual({ tipo: 'carencia', desde: fim, ate: new Date('2026-11-03T15:00:00Z'), diasRestantes: 6 });
   });
@@ -68,8 +69,19 @@ describe('calcularEstadoConta', () => {
       status: 'past_due',
       fimDoPeriodo: fim,
       inadimplenteDesde: new Date('2026-10-07T15:00:00Z'),
+      pix: true,
     }));
     expect(r).toMatchObject({ tipo: 'carencia', desde: fim, diasRestantes: 6 });
+  });
+
+  it('cartão bloqueado não volta para a carência quando o período renovado acaba', () => {
+    // Fatura falhou há 31 dias; o Stripe tinha avançado o fim do período para ontem.
+    const r = calcularEstadoConta(entrada({
+      status: 'past_due',
+      fimDoPeriodo: new Date('2026-10-27T15:00:00Z'),
+      inadimplenteDesde: new Date('2026-09-27T15:00:00Z'),
+    }));
+    expect(r).toEqual({ tipo: 'bloqueada', motivo: 'cobranca' });
   });
 
   it('past_due com período já renovado no futuro (cartão) conta de inadimplenteDesde', () => {
