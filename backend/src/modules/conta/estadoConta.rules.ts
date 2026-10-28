@@ -22,7 +22,9 @@ export function calcularEstadoConta(e: EntradaEstado): EstadoConta {
   if (e.status === 'canceled') return { tipo: 'bloqueada', motivo: 'cancelada' };
 
   const emContingencia = (STATUS_CONTINGENCIA as readonly string[]).includes(e.status);
-  if (!emContingencia || !e.jaPagou) return { tipo: 'bloqueada', motivo: 'teste' };
+  if (!e.jaPagou) return { tipo: 'bloqueada', motivo: 'teste' };
+  // Quem já pagou e caiu num status fora da lista (ex.: incomplete) não está em teste.
+  if (!emContingencia) return { tipo: 'bloqueada', motivo: 'cobranca' };
 
   // Cobrança Pix do mês seguinte gerada antes do vencimento: o período pago ainda vale.
   if (e.status === 'pending' && e.fimDoPeriodo && e.fimDoPeriodo.getTime() > e.agora.getTime()) {
@@ -30,7 +32,13 @@ export function calcularEstadoConta(e: EntradaEstado): EstadoConta {
   }
 
   // Defesa contra linha sem backfill: conta a carência a partir de agora.
-  const desde = e.inadimplenteDesde ?? e.agora;
+  let desde = e.inadimplenteDesde ?? e.agora;
+  // Pix gerado antes do vencimento marca inadimplenteDesde na geração; a carência só começa quando o
+  // período pago acaba. Período no futuro (cartão já renovado pelo Stripe) não adia nada.
+  if (e.inadimplenteDesde && e.fimDoPeriodo && e.fimDoPeriodo.getTime() <= e.agora.getTime()
+    && e.fimDoPeriodo.getTime() > desde.getTime()) {
+    desde = e.fimDoPeriodo;
+  }
   const ate = new Date(desde.getTime() + CARENCIA_DIAS * MS_DIA);
   if (e.agora.getTime() >= ate.getTime()) return { tipo: 'bloqueada', motivo: 'cobranca' };
 

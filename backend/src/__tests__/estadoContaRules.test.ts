@@ -51,6 +51,40 @@ describe('calcularEstadoConta', () => {
     expect(r).toMatchObject({ tipo: 'carencia', diasRestantes: 6 });
   });
 
+  it('Pix gerado antes do vencimento: a carência conta do fim do período', () => {
+    // Cobrança gerada 20 dias antes do fim do período; hoje é o dia seguinte ao fim.
+    const fim = new Date('2026-10-27T15:00:00Z');
+    const r = calcularEstadoConta(entrada({
+      status: 'pending',
+      fimDoPeriodo: fim,
+      inadimplenteDesde: new Date('2026-10-07T15:00:00Z'),
+    }));
+    expect(r).toEqual({ tipo: 'carencia', desde: fim, ate: new Date('2026-11-03T15:00:00Z'), diasRestantes: 6 });
+  });
+
+  it('a cobrança vencida (past_due) do Pix antecipado também conta do fim do período', () => {
+    const fim = new Date('2026-10-27T15:00:00Z');
+    const r = calcularEstadoConta(entrada({
+      status: 'past_due',
+      fimDoPeriodo: fim,
+      inadimplenteDesde: new Date('2026-10-07T15:00:00Z'),
+    }));
+    expect(r).toMatchObject({ tipo: 'carencia', desde: fim, diasRestantes: 6 });
+  });
+
+  it('past_due com período já renovado no futuro (cartão) conta de inadimplenteDesde', () => {
+    const r = calcularEstadoConta(entrada({
+      status: 'past_due',
+      fimDoPeriodo: new Date('2026-11-25T00:00:00Z'),
+      inadimplenteDesde: new Date('2026-10-25T15:00:00Z'),
+    }));
+    expect(r).toMatchObject({ tipo: 'carencia', desde: new Date('2026-10-25T15:00:00Z'), diasRestantes: 4 });
+  });
+
+  it('quem já pagou e cai em status fora da contingência é bloqueada por cobrança', () => {
+    expect(calcularEstadoConta(entrada({ status: 'incomplete', jaPagou: true }))).toEqual({ tipo: 'bloqueada', motivo: 'cobranca' });
+  });
+
   it('incomplete é bloqueada por teste', () => {
     expect(calcularEstadoConta(entrada({ status: 'incomplete', jaPagou: false }))).toEqual({ tipo: 'bloqueada', motivo: 'teste' });
   });

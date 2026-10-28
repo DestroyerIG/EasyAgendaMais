@@ -7,6 +7,7 @@ import { subscriptionRepository } from '../repositories/subscriptionRepository.j
 import { PLAN_PRICES } from '../config/planCatalog.js';
 import { planChangeService } from '../modules/billing/planChange.service.js';
 import { ehReferenciaUpgrade } from '../modules/billing/planChange.rules.js';
+import { estadoContaService } from '../modules/conta/estadoConta.service.js';
 import { asaasService, type AsaasPayment, type AsaasBusinessInput } from '../integrations/asaas/service.js';
 import { asaasMapper, type AsaasWebhookPayment } from '../integrations/asaas/mapper.js';
 import { subscriptionService } from './subscriptionService.js';
@@ -303,7 +304,7 @@ const updateBusinessFromAsaasPayment = async ({
     payment?.confirmedDate || payment?.clientPaymentDate || payment?.paymentDate
   );
 
-  return subscriptionRepository.updateSubscriptionState(
+  const atualizado = await subscriptionRepository.updateSubscriptionState(
     business.id,
     {
       plan,
@@ -329,6 +330,9 @@ const updateBusinessFromAsaasPayment = async ({
     },
     client
   );
+  // Webhook ou "Já paguei": o status mudou, então o estado da conta em cache cai na hora.
+  estadoContaService.invalidar(business.id);
+  return atualizado;
 };
 
 const resolveAsaasWebhookBusiness = async (

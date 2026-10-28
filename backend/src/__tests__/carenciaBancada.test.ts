@@ -14,7 +14,8 @@ vi.mock('../utils/logger.js', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), fatal: vi.fn() },
 }));
 const findFirstAg = vi.hoisted(() => vi.fn());
-vi.mock('../config/prisma.js', () => ({ prisma: { appointment: { findFirst: findFirstAg } } }));
+const findFirstComanda = vi.hoisted(() => vi.fn());
+vi.mock('../config/prisma.js', () => ({ prisma: { appointment: { findFirst: findFirstAg }, comanda: { findFirst: findFirstComanda } } }));
 vi.mock('../services/scheduleSettingsService.js', () => ({
   getBusinessScheduleSettings: vi.fn().mockResolvedValue({ timezone: 'America/Sao_Paulo' }),
 }));
@@ -72,6 +73,7 @@ beforeEach(() => {
     blocked: false, businessId: 'b1', professional: { id: 'p1', name: 'Ana', active: true, businessId: 'b1' },
   });
   findFirstAg.mockResolvedValue({ date: new Date(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())), createdAt: new Date(Date.now() - 5 * DIA) });
+  findFirstComanda.mockResolvedValue({ createdAt: new Date(), appointment: { date: new Date(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())) } });
   servico.iniciar.mockResolvedValue({ ok: true });
   servico.reagendar.mockResolvedValue({ ok: true });
   servico.numeros.mockResolvedValue({ ok: true });
@@ -85,6 +87,22 @@ describe('bancada na carência (cadeia real de middlewares)', () => {
     const res = await auth(request.post(`/api/v1/bancada/agendamentos/${ID}/iniciar`));
     expect(res.status).toBe(200);
     expect(servico.iniciar).toHaveBeenCalledWith('b1', { id: 'p1', nome: 'Ana' }, ID);
+  });
+
+  it('PUT /comandas/:id de hoje passa', async () => {
+    const res = await auth(request.put(`/api/v1/bancada/comandas/${ID}`).send({ extras: [] }));
+    expect(res.status).toBe(200);
+  });
+
+  it.each([
+    ['put', `/api/v1/bancada/comandas/${ID}`],
+    ['post', `/api/v1/bancada/comandas/${ID}/enviar`],
+    ['post', `/api/v1/bancada/comandas/${ID}/fechar`],
+  ] as const)('%s %s de outro dia dá 402 carencia', async (metodo, caminho) => {
+    findFirstComanda.mockResolvedValue({ createdAt: new Date(Date.now() - 20 * DIA), appointment: { date: new Date(Date.now() - 20 * DIA) } });
+    const res = await auth(request[metodo](caminho).send({ extras: [] }));
+    expect(res.status).toBe(402);
+    expect(res.body.error.details).toEqual({ estado: 'carencia' });
   });
 
   it('GET /hoje passa', async () => {

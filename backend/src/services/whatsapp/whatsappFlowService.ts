@@ -2075,6 +2075,49 @@ export const handleIncomingMessage = async (
     const businessSettings = await getBusinessScheduleSettings(businessId) as unknown as BusinessSettings;
     const now = options?.now instanceof Date ? options.now : new Date();
 
+    const greetingEvaluation = evaluateGreetingMessage(normalizedText) as {
+      originalText: string;
+      normalizedText: string;
+      isGreeting: boolean;
+      rule?: string;
+      canonicalGreeting?: string;
+    };
+    let session: WhatsAppSession | null = await getSession(normalizedPhone!, businessId);
+    const sessionExpired = Boolean(session && isSessionExpired(session));
+
+    logGreetingEvaluation(
+      {
+        ...flowDebugBase,
+        businessId,
+      },
+      greetingEvaluation,
+      {
+        sessionState: session
+          ? (sessionExpired ? 'expired' : 'active')
+          : 'missing',
+      }
+    );
+
+    // Contingência: com a conta fora de "ativa" o robô não agenda. Só responde a saudação
+    // ou a quem já tem sessão ativa; o resto é ignorado. O simulador da dona segue normal.
+    // Vem antes do horário de atendimento: a frase da agenda pausada é a única resposta automática.
+    if (!options?.simulationMode) {
+      const estadoConta = await estadoContaService.doNegocio(businessId);
+      if (estadoConta.tipo !== 'ativa') {
+        const sessaoAtiva = Boolean(session && !sessionExpired);
+        if (!greetingEvaluation.isGreeting && !sessaoAtiva) {
+          return { ok: true, ignored: true, reason: 'agenda_pausada' };
+        }
+        if (session) await deleteSession(normalizedPhone!, businessId);
+        const sent = await sendWhatsAppMessage(
+          normalizedPhone!,
+          textoAgendaPausada(await getBusinessName(businessId)),
+          sendContext
+        );
+        return { ok: sent, ignored: false, reason: sent ? null : 'send_failed' };
+      }
+    }
+
     if (!isWithinBusinessHours(businessSettings, now)) {
       logger.info(
         {
@@ -2104,48 +2147,6 @@ export const handleIncomingMessage = async (
       );
 
       return { ok: sent, ignored: false, reason: sent ? null : 'send_failed' };
-    }
-
-    const greetingEvaluation = evaluateGreetingMessage(normalizedText) as {
-      originalText: string;
-      normalizedText: string;
-      isGreeting: boolean;
-      rule?: string;
-      canonicalGreeting?: string;
-    };
-    let session: WhatsAppSession | null = await getSession(normalizedPhone!, businessId);
-    const sessionExpired = Boolean(session && isSessionExpired(session));
-
-    logGreetingEvaluation(
-      {
-        ...flowDebugBase,
-        businessId,
-      },
-      greetingEvaluation,
-      {
-        sessionState: session
-          ? (sessionExpired ? 'expired' : 'active')
-          : 'missing',
-      }
-    );
-
-    // Contingência: com a conta fora de "ativa" o robô não agenda. Só responde a saudação
-    // ou a quem já tem sessão ativa; o resto é ignorado. O simulador da dona segue normal.
-    if (!options?.simulationMode) {
-      const estadoConta = await estadoContaService.doNegocio(businessId);
-      if (estadoConta.tipo !== 'ativa') {
-        const sessaoAtiva = Boolean(session && !sessionExpired);
-        if (!greetingEvaluation.isGreeting && !sessaoAtiva) {
-          return { ok: true, ignored: true, reason: 'agenda_pausada' };
-        }
-        if (session) await deleteSession(normalizedPhone!, businessId);
-        const sent = await sendWhatsAppMessage(
-          normalizedPhone!,
-          textoAgendaPausada(await getBusinessName(businessId)),
-          sendContext
-        );
-        return { ok: sent, ignored: false, reason: sent ? null : 'send_failed' };
-      }
     }
 
     if (greetingEvaluation.isGreeting) {

@@ -10,6 +10,7 @@ const mockBuildMenu = vi.hoisted(() => vi.fn());
 const mockBusinessFindFirst = vi.hoisted(() => vi.fn());
 const mockSettings = vi.hoisted(() => vi.fn());
 const mockFindBySlug = vi.hoisted(() => vi.fn());
+const mockDentroDoHorario = vi.hoisted(() => vi.fn(() => true));
 
 vi.mock('../modules/conta/estadoConta.service.js', () => ({
   estadoContaService: { doNegocio: mockEstado, limparCache: vi.fn() },
@@ -48,7 +49,7 @@ vi.mock('../services/whatsapp/whatsappConfigService.js', () => ({
 }));
 vi.mock('../services/scheduleSettingsService.js', () => ({
   getBusinessScheduleSettings: mockSettings,
-  isWithinBusinessHours: vi.fn(() => true),
+  isWithinBusinessHours: mockDentroDoHorario,
   isBusinessOpenOnDate: vi.fn(() => true),
   generateAvailableTimeSlots: vi.fn(() => []),
   formatBusinessHoursRange: vi.fn(() => '08:00 as 18:00'),
@@ -144,6 +145,7 @@ describe('robo', () => {
     mockCreateSession.mockResolvedValue(undefined);
     mockDeleteSession.mockResolvedValue(undefined);
     mockBusinessFindFirst.mockResolvedValue({ name: 'Studio Aurora' });
+    mockDentroDoHorario.mockReturnValue(true);
     mockSettings.mockResolvedValue({
       openingTime: '08:00', closingTime: '18:00', slotIntervalMinutes: 30, timezone: 'America/Sao_Paulo',
     });
@@ -172,6 +174,27 @@ describe('robo', () => {
       { ...payload, message: { conversation: 'quanto custa o corte de barba' } },
       'quanto custa o corte de barba',
       opts
+    );
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+
+  it('bloqueada fora do horário: só a frase da agenda pausada, sem a mensagem de fora do horário', async () => {
+    mockEstado.mockResolvedValue(BLOQUEADA);
+    mockDentroDoHorario.mockReturnValue(false);
+    mockGetSession.mockResolvedValue(null);
+    await handleIncomingMessage(payload, 'oi', { ...opts, now: new Date('2026-10-29T01:00:00Z') });
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(mockSend.mock.calls[0][1]).toBe(PAUSADA);
+  });
+
+  it('bloqueada fora do horário e sem saudação: nada é enviado', async () => {
+    mockEstado.mockResolvedValue(BLOQUEADA);
+    mockDentroDoHorario.mockReturnValue(false);
+    mockGetSession.mockResolvedValue(null);
+    await handleIncomingMessage(
+      { ...payload, message: { conversation: 'quanto custa o corte de barba' } },
+      'quanto custa o corte de barba',
+      { ...opts, now: new Date('2026-10-29T01:00:00Z') }
     );
     expect(mockSend).not.toHaveBeenCalled();
   });

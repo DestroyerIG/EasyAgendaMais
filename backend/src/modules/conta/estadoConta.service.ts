@@ -36,6 +36,11 @@ export const estadoContaService = {
     return estado;
   },
 
+  /** Descarta o estado em cache de um negócio (webhook de pagamento: tudo volta na hora). */
+  invalidar(businessId: string): void {
+    cache.delete(businessId);
+  },
+
   limparCache(): void {
     cache.clear();
   },

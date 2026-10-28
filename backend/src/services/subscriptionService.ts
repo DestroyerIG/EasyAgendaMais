@@ -5,6 +5,7 @@ import { getFrontendBaseUrl, getStripeClient, getStripePriceCatalog } from '../c
 import { subscriptionRepository } from '../repositories/subscriptionRepository.js';
 import { stripePricingService } from './stripePricingService.js';
 import { stripeCheckoutService } from './stripeCheckoutService.js';
+import { estadoContaService } from '../modules/conta/estadoConta.service.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -348,6 +349,9 @@ const updateFromStripeSubscription = async ({
     },
     'Assinatura Stripe sincronizada'
   );
+
+  // Vale também para a ressincronização fora do webhook: o estado da conta em cache cai na hora.
+  estadoContaService.invalidar(businessId);
 
   return updated as UpdatedSubscriptionRow;
 };
@@ -927,6 +931,9 @@ export const subscriptionService = {
         },
         null
       );
+
+      // O status da assinatura pode ter mudado: o estado da conta em cache cai na hora.
+      if (businessId) estadoContaService.invalidar(businessId);
 
       if (!insertedEvent) {
         return { processed: false, duplicate: true };

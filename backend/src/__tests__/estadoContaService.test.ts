@@ -76,4 +76,13 @@ describe('estadoContaService.doNegocio', () => {
     await estadoContaService.doNegocio('b2', agora);
     expect(mockGetCtx).toHaveBeenCalledTimes(2);
   });
+
+  it('invalidar(businessId) descarta só a entrada daquele negócio', async () => {
+    await estadoContaService.doNegocio('b1', agora);
+    await estadoContaService.doNegocio('b2', agora);
+    estadoContaService.invalidar('b1');
+    await estadoContaService.doNegocio('b1', new Date(agora.getTime() + 1_000));
+    await estadoContaService.doNegocio('b2', new Date(agora.getTime() + 1_000));
+    expect(mockGetCtx).toHaveBeenCalledTimes(3);
+  });
 });
