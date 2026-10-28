@@ -21,6 +21,7 @@ import { cn } from '@/lib/cn';
 import type { ClienteInsight } from '@/lib/crm';
 import type { Client } from '@/types';
 import { useVocabulario } from '@/hooks/useVocabulario';
+import { useBloqueadoNaCarencia } from '@/hooks/useBloqueadoNaCarencia';
 
 type Visao = 'lista' | 'fases';
 
@@ -28,6 +29,7 @@ export const ClientModule = () => {
   const { user } = useAuth();
   const { cli } = useVocabulario();
   const { showToast } = useToast();
+  const { bloqueado, dica } = useBloqueadoNaCarencia();
   const [visao, setVisao] = useState<Visao>('lista');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -35,6 +37,7 @@ export const ClientModule = () => {
   const [totalGeral, setTotalGeral] = useState<number | null>(null);
 
   const novaCliente = () => {
+    if (bloqueado) return;
     setEditingClient(null);
     setIsModalOpen(true);
   };
@@ -127,7 +130,9 @@ export const ClientModule = () => {
           <button
             type="button"
             onClick={novaCliente}
-            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-[14px] font-semibold text-on-brand shadow-sm transition-all hover:brightness-95 active:scale-[0.98]"
+            disabled={bloqueado}
+            title={dica}
+            className="disabled:cursor-not-allowed disabled:opacity-50 inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-[14px] font-semibold text-on-brand shadow-sm transition-all hover:brightness-95 active:scale-[0.98]"
           >
             <Icon name="person_add" size={20} />
             <span>Nova cliente</span>

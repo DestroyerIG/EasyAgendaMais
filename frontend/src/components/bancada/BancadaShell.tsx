@@ -9,6 +9,7 @@ import { useRequireRole } from '@/hooks/useRequireRole';
 import { registrarServiceWorker } from '@/lib/push';
 import { cn } from '@/lib/cn';
 import { useVocabulario } from '@/hooks/useVocabulario';
+import { FaixaCarenciaBancada } from './FaixaCarenciaBancada';
 
 // Casca do app da profissional (fase 5): celular primeiro, coluna central no computador,
 // barra inferior Agenda · Clientes · Atendimento · Números.
@@ -58,6 +59,8 @@ export function BancadaShell({ children }: { children: ReactNode }) {
           </button>
         </div>
       </header>
+
+      <FaixaCarenciaBancada />
 
       <main id="main-content" className="mx-auto max-w-xl px-4 pb-28 pt-4">{children}</main>
 

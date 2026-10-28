@@ -21,6 +21,10 @@ export interface StorefrontDto {
   services: StorefrontServiceDto[];
   /** Termos do segmento do negócio (fase 6). */
   vocabulario?: Vocabulario;
+  /** Contingência: o link público não aceita novos agendamentos. */
+  agendaPausada?: boolean;
+  /** Só dígitos, como cadastrado; pode já trazer o 55. */
+  whatsapp?: string | null;
 }
 
 export interface ProfessionalDto {

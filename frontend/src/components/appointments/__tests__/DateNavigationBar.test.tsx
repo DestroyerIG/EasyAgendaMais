@@ -8,6 +8,14 @@ import {
   formatarDataAgendaCurta,
 } from '../DateNavigationBar';
 
+const carencia = vi.hoisted(() => ({ ativa: false }));
+vi.mock('@/hooks/useBloqueadoNaCarencia', () => ({
+  useBloqueadoNaCarencia: () => ({
+    bloqueado: carencia.ativa,
+    dica: carencia.ativa ? 'Disponível depois de regularizar' : undefined,
+  }),
+}));
+
 const profissionais = [
   { id: 'p1', nome: 'Camila Rocha', total: 6, tom: { fundo: 'bg-brand-text/15', texto: 'text-brand-text' } },
   { id: 'p2', nome: 'Bruna Lima', total: 5, tom: { fundo: 'bg-tertiary/15', texto: 'text-tertiary' } },
@@ -168,5 +176,16 @@ describe('DateNavigationBar com os chips do computador', () => {
     expect(screen.getAllByRole('button', { name: 'Hoje' })).toHaveLength(1);
     expect(screen.getAllByText('Quinta, 17 de set.')).toHaveLength(1);
     expect(screen.getAllByText('Quinta, 17 de setembro de 2026')).toHaveLength(1);
+  });
+});
+
+describe('DateNavigationBar em carência', () => {
+  it('desabilita "Novo agendamento" com a dica', () => {
+    carencia.ativa = true;
+    render(<DateNavigationBar {...props} />);
+    const botao = screen.getByRole('button', { name: /Novo agendamento/ });
+    expect(botao).toBeDisabled();
+    expect(botao).toHaveAttribute('title', 'Disponível depois de regularizar');
+    carencia.ativa = false;
   });
 });

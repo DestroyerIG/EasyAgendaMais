@@ -6,6 +6,14 @@ const showToast = vi.fn();
 const toastApi = { showToast };
 vi.mock('@/components/Toast', () => ({ useToast: () => toastApi }));
 
+const carencia = vi.hoisted(() => ({ ativa: false }));
+vi.mock('@/hooks/useBloqueadoNaCarencia', () => ({
+  useBloqueadoNaCarencia: () => ({
+    bloqueado: carencia.ativa,
+    dica: carencia.ativa ? 'Disponível depois de regularizar' : undefined,
+  }),
+}));
+
 const api = vi.hoisted(() => ({
   listarCampanhas: vi.fn(),
   cancelarCampanha: vi.fn(),
@@ -40,6 +48,16 @@ describe('Campanhas', () => {
   beforeEach(() => {
     Object.values(api).forEach((f) => f.mockReset());
     showToast.mockReset();
+    carencia.ativa = false;
+  });
+
+  it('em carência desabilita "Nova campanha" com a dica', async () => {
+    carencia.ativa = true;
+    api.listarCampanhas.mockResolvedValue([camp()]);
+    render(<Campanhas conectado nomeNegocio="Studio" />);
+    const botao = await screen.findByRole('button', { name: /Nova campanha/ });
+    expect(botao).toBeDisabled();
+    expect(botao).toHaveAttribute('title', 'Disponível depois de regularizar');
   });
 
   it('lista vazia convida a criar e abre a criação', async () => {

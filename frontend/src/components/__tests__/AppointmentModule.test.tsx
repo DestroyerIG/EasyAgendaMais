@@ -6,6 +6,9 @@ import type { Appointment } from '@/types';
 const mockSearch = vi.hoisted(() => ({ value: '' }));
 const mockReplace = vi.hoisted(() => vi.fn());
 
+vi.mock('@/hooks/useBloqueadoNaCarencia', () => ({
+  useBloqueadoNaCarencia: () => ({ bloqueado: false, dica: undefined }),
+}));
 vi.mock('next/navigation', async (importOriginal) => ({
   ...(await importOriginal<typeof import('next/navigation')>()),
   useSearchParams: () => new URLSearchParams(mockSearch.value),

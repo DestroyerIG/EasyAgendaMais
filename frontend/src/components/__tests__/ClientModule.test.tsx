@@ -14,6 +14,14 @@ vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ user: { businessName: 'Studio Aurora' } }),
 }));
 
+const carencia = vi.hoisted(() => ({ ativa: false }));
+vi.mock('@/hooks/useBloqueadoNaCarencia', () => ({
+  useBloqueadoNaCarencia: () => ({
+    bloqueado: carencia.ativa,
+    dica: carencia.ativa ? 'Disponível depois de regularizar' : undefined,
+  }),
+}));
+
 const mockApiGet = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/api', () => ({
   default: {
@@ -54,6 +62,7 @@ const completo: Client = {
 
 describe('ClientModule', () => {
   beforeEach(() => {
+    carencia.ativa = false;
     mockPush.mockReset();
     mockApiGet.mockReset();
     mockApiGet.mockImplementation((url: string) =>
@@ -64,6 +73,14 @@ describe('ClientModule', () => {
       itens: [insight], total: 1,
       contagemPorFase: { todas: 3, novo: 1, recorrente: 1, fiel: 1, em_risco: 0, perdido: 0 },
     });
+  });
+
+  it('em carência desabilita "Nova cliente" com a dica', async () => {
+    carencia.ativa = true;
+    render(<ClientModule />);
+    const botao = await screen.findByRole('button', { name: /Nova cliente/ });
+    expect(botao).toBeDisabled();
+    expect(botao).toHaveAttribute('title', 'Disponível depois de regularizar');
   });
 
   it('mostra o cabeçalho com o total de clientes cadastradas e o alternador Lista/Fases', async () => {
