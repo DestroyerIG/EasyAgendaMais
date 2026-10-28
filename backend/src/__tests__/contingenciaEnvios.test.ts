@@ -18,6 +18,9 @@ const regras = vi.hoisted(() => ({ obter: vi.fn() }));
 const wa = vi.hoisted(() => ({ getStatus: vi.fn() }));
 const zap = vi.hoisted(() => ({ send: vi.fn() }));
 const inbox = vi.hoisted(() => ({ estaEmOptOut: vi.fn(), estaEmOptOutOuFalha: vi.fn() }));
+const gatRepo = vi.hoisted(() => ({
+  vaga: vi.fn(), negocio: vi.fn(), nomeServico: vi.fn(), entradasCandidatas: vi.fn(), marcarOferecida: vi.fn(), desfazerOferta: vi.fn(),
+}));
 const log = vi.hoisted(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), fatal: vi.fn() }));
 
 vi.mock('../modules/conta/estadoConta.service.js', () => ({ estadoContaService: estado }));
@@ -26,6 +29,7 @@ vi.mock('../utils/logger.js', () => ({ default: log }));
 vi.mock('../modules/whatsappFila/fila.repository.js', () => ({ filaRepository: repo }));
 vi.mock('../modules/whatsappAutomacoes/rotinas.repository.js', () => ({ rotinasRepository: rotinasRepo }));
 vi.mock('../modules/whatsappAutomacoes/automacoes.service.js', () => ({ automacoes: regras }));
+vi.mock('../modules/whatsappAutomacoes/gatilhos.repository.js', () => ({ gatilhosRepository: gatRepo }));
 vi.mock('../modules/whatsapp/whatsapp.service.js', () => ({ whatsappService: wa }));
 vi.mock('../modules/whatsappInbox/inbox.recorder.js', () => ({ inboxRecorder: inbox }));
 vi.mock('../services/whatsapp/whatsappMessageService.js', () => ({ sendWhatsAppMessage: zap.send }));
@@ -41,6 +45,8 @@ const { filaRepository: repoReal } = await vi.importActual<typeof import('../mod
 );
 const { automacoesRotinas, limparTravasDiarias } = await import('../modules/whatsappAutomacoes/rotinas.service.js');
 const { runReminderJob } = await import('../services/cronService.js');
+const { automacoesGatilhos } = await import('../modules/whatsappAutomacoes/gatilhos.service.js');
+const { podeEnviarOrigem } = await import('../modules/conta/estadoConta.rules.js');
 
 const AGORA = new Date('2026-10-20T15:00:00Z'); // 12:00 em São Paulo
 
@@ -195,4 +201,54 @@ describe('lembrete de 2 h por estado da conta', () => {
     expect(db.appointment.update).not.toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'a2' } }));
     expect(log.warn).toHaveBeenCalledWith(expect.objectContaining({ businessId: 'bErro' }), expect.any(String));
   });
+});
+
+describe('podeEnviarOrigem: regra única dos envios automáticos', () => {
+  it('ativa envia qualquer origem; bloqueada nenhuma; carência só as de ORIGENS_NA_CARENCIA', () => {
+    for (const origem of ['lembrete', 'confirmacao', 'pix_recibo', 'sinal_pix', 'clube', 'lista_espera', 'retorno', 'aniversario', 'avaliacao', 'campanha']) {
+      expect(podeEnviarOrigem(ATIVA, origem)).toBe(true);
+      expect(podeEnviarOrigem(BLOQUEADA, origem)).toBe(false);
+      expect(podeEnviarOrigem(CARENCIA, origem)).toBe((ORIGENS_NA_CARENCIA as readonly string[]).includes(origem));
+    }
+  });
+});
+
+describe('gatilhos por estado da conta', () => {
+  beforeEach(() => {
+    regras.obter.mockResolvedValue({ ativa: true, texto: 'Vaga {horario}', config: { quantas: 3 } });
+    gatRepo.vaga.mockResolvedValue({ data: '2026-10-23', hora: '14:00', serviceId: 's1', professionalId: 'p1', duracao: 60, profissional: 'Camila', clientId: 'cx' });
+    gatRepo.negocio.mockResolvedValue({ nome: 'Studio', slug: null });
+    gatRepo.nomeServico.mockResolvedValue('Gel');
+    gatRepo.entradasCandidatas.mockResolvedValue([{
+      id: 'e1', clientId: 'c1', nome: 'Ana Silva', phone: '83999990001', serviceId: 's1', professionalId: null,
+      desiredDate: null, period: 'qualquer', duracaoServico: 60, consentimentoRevogado: false,
+    }]);
+    gatRepo.marcarOferecida.mockResolvedValue(true);
+  });
+
+  it('aoCancelar (lista_espera): avisa na ativa', async () => {
+    expect(await automacoesGatilhos.aoCancelar('bAtiva', 'ag1', AGORA)).toBe(1);
+    expect(zap.send).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['bCarencia', 'bBloqueada', 'bErro'])('aoCancelar (lista_espera): não avisa em %s nem reserva a entrada', async (b) => {
+    expect(await automacoesGatilhos.aoCancelar(b, 'ag1', AGORA)).toBe(0);
+    expect(zap.send).not.toHaveBeenCalled();
+    expect(gatRepo.marcarOferecida).not.toHaveBeenCalled();
+  });
+
+  it('aoCancelar com estado ilegível registra aviso', async () => {
+    await automacoesGatilhos.aoCancelar('bErro', 'ag1', AGORA);
+    expect(log.warn).toHaveBeenCalledWith(expect.objectContaining({ businessId: 'bErro' }), expect.any(String));
+  });
+
+  const sinal = { phone: '83999990001', nome: 'Ana', servico: 'Gel', valorSinal: 20, pixPayload: 'pix', data: '23/10', horario: '14:00', toleranciaMin: 15 };
+
+  it.each([['bAtiva', true], ['bCarencia', true], ['bBloqueada', false], ['bErro', false]] as const)(
+    'aoCriarReservaComSinal (sinal_pix) em %s envia: %s', async (b, envia) => {
+      regras.obter.mockResolvedValue({ ativa: true, texto: 'Pix {valor_sinal}', config: {} });
+      expect(await automacoesGatilhos.aoCriarReservaComSinal(b, 'ag1', sinal)).toBe(envia);
+      expect(zap.send).toHaveBeenCalledTimes(envia ? 1 : 0);
+    },
+  );
 });

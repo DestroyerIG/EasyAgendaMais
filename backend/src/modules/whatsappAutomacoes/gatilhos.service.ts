@@ -9,6 +9,7 @@ import { PRIORIDADE_NORMAL } from '../whatsappFila/fila.rules.js';
 import { automacoes } from './automacoes.service.js';
 import { entradaCompativel, renderizarTexto } from './automacoes.rules.js';
 import { gatilhosRepository as repo } from './gatilhos.repository.js';
+import { envioAutomaticoLiberado } from '../conta/envioAutomatico.js';
 
 const ANTECEDENCIA_MIN = 60;
 const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
@@ -33,6 +34,8 @@ export const automacoesGatilhos = {
   async aoCancelar(businessId: string, appointmentId: string, agora: Date = new Date()): Promise<number> {
     const regra = await automacoes.obter(businessId, 'lista_espera');
     if (!regra.ativa) return 0;
+    // Contingência: lista de espera pausada na carência e fora do ar (envio direto, não passa pela fila).
+    if (!(await envioAutomaticoLiberado(businessId, 'lista_espera', agora))) return 0;
     const vaga = await repo.vaga(businessId, appointmentId);
     if (!vaga) return 0;
     const tz = (await getBusinessScheduleSettings(businessId)).timezone || 'America/Sao_Paulo';
@@ -75,6 +78,8 @@ export const automacoesGatilhos = {
   ): Promise<boolean> {
     const regra = await automacoes.obter(businessId, 'sinal_pix');
     if (!regra.ativa) return false;
+    // Contingência: envio direto; segue na carência, nunca com a conta bloqueada.
+    if (!(await envioAutomaticoLiberado(businessId, 'sinal_pix'))) return false;
     if ((await whatsappService.getStatus(businessId))?.status !== 'connected') return false;
     const texto = renderizarTexto(regra.texto, {
       nome: d.nome, servico: d.servico, valor_sinal: d.valorSinal.toFixed(2).replace('.', ','),

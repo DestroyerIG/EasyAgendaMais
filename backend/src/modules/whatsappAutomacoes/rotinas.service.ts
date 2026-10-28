@@ -9,8 +9,7 @@ import { automacoes } from './automacoes.service.js';
 import { aniversarianteEm, renderizarTexto } from './automacoes.rules.js';
 import type { Regra } from './automacoes.types.js';
 import { rotinasRepository as repo } from './rotinas.repository.js';
-import { estadoContaService } from '../conta/estadoConta.service.js';
-import { ORIGENS_NA_CARENCIA } from '../../config/contingencia.js';
+import { envioAutomaticoLiberado } from '../conta/envioAutomatico.js';
 import type { Origem } from '../whatsappInbox/inbox.types.js';
 
 const DIA_MS = 86_400_000;
@@ -64,22 +63,15 @@ export function limparTravasDiarias(): void {
   diaProcessado.clear();
 }
 
-/** Na carência só rodam as rotinas cuja origem está liberada (cobram compromissos que já existiam). */
-const liberadaNaCarencia = (origem: Origem) => ({ naCarencia: (ORIGENS_NA_CARENCIA as readonly string[]).includes(origem) });
-
 /**
  * Roda `fn` em cada negócio com a regra ligada; erro de um negócio não para os outros.
- * Contingência: conta bloqueada nunca roda; na carência só roda se `naCarencia`. Sem conseguir ler o
- * estado da conta, o negócio fica de fora nesta rodada.
+ * Contingência: só roda se a origem que a rotina grava está liberada para a conta (`podeEnviarOrigem`).
  */
-async function porNegocio(
-  regra: Regra, { naCarencia }: { naCarencia: boolean }, fn: (businessId: string) => Promise<number>,
-): Promise<number> {
+async function porNegocio(regra: Regra, origem: Origem, fn: (businessId: string) => Promise<number>): Promise<number> {
   let total = 0;
   for (const businessId of await repo.negociosComRegraAtiva(regra)) {
     try {
-      const estado = await estadoContaService.doNegocio(businessId);
-      if (estado.tipo === 'bloqueada' || (estado.tipo === 'carencia' && !naCarencia)) continue;
+      if (!(await envioAutomaticoLiberado(businessId, origem))) continue;
       total += await fn(businessId);
     } catch (err) {
       logger.warn({ err, businessId, regra }, 'automacoes: rotina falhou no negócio');
@@ -90,7 +82,7 @@ async function porNegocio(
 
 export const automacoesRotinas = {
   async confirmacoes(agora: Date = new Date()): Promise<number> {
-    return porNegocio('confirmacao', liberadaNaCarencia('confirmacao'), async (businessId) => {
+    return porNegocio('confirmacao', 'confirmacao', async (businessId) => {
       const regra = await automacoes.obter(businessId, 'confirmacao');
       if (!regra.ativa) return 0;
       const tz = await fusoDe(businessId);
@@ -124,7 +116,7 @@ export const automacoesRotinas = {
   },
 
   async radarRetorno(agora: Date = new Date()): Promise<number> {
-    return porNegocio('retorno', liberadaNaCarencia('retorno'), async (businessId) => {
+    return porNegocio('retorno', 'retorno', async (businessId) => {
       const regra = await automacoes.obter(businessId, 'retorno');
       if (!regra.ativa) return 0;
       const tz = await fusoDe(businessId);
@@ -160,7 +152,7 @@ export const automacoesRotinas = {
   },
 
   async aniversarios(agora: Date = new Date()): Promise<number> {
-    return porNegocio('aniversario', liberadaNaCarencia('aniversario'), async (businessId) => {
+    return porNegocio('aniversario', 'aniversario', async (businessId) => {
       const regra = await automacoes.obter(businessId, 'aniversario');
       if (!regra.ativa) return 0;
       const tz = await fusoDe(businessId);
@@ -196,7 +188,7 @@ export const automacoesRotinas = {
    * (cadência, janela, SAIR e consentimento ficam com ela). reminderSent marca o que já entrou na fila.
    */
   async lembretesVespera(agora: Date = new Date()): Promise<number> {
-    return porNegocio('lembrete', liberadaNaCarencia('lembrete'), async (businessId) => {
+    return porNegocio('lembrete', 'lembrete', async (businessId) => {
       const regra = await automacoes.obter(businessId, 'lembrete');
       if (!regra.ativa || regra.config.modo !== 'vespera') return 0;
       const tz = await fusoDe(businessId);

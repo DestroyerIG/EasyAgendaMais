@@ -17,7 +17,7 @@ import { automacoesRotinas, linkMapa } from '../modules/whatsappAutomacoes/rotin
 import { rotinasRepository } from '../modules/whatsappAutomacoes/rotinas.repository.js';
 import { clubeService } from '../modules/clube/clube.service.js';
 import { googleAgendaService } from '../modules/googleAgenda/googleAgenda.service.js';
-import { estadoContaService } from '../modules/conta/estadoConta.service.js';
+import { envioAutomaticoLiberado } from '../modules/conta/envioAutomatico.js';
 
 // Agendamentos gravam `time`/`date` no relógio local do negócio (BR), não UTC.
 // Render roda em UTC, então o alvo precisa ser calculado no fuso de negócio.
@@ -104,18 +104,11 @@ export const runReminderJob = async (now: Date = new Date()): Promise<void> => {
 
     // Contingência: conta bloqueada não manda o lembrete de 2 h; na carência ele segue (compromisso já existente).
     // Sem conseguir ler o estado, o negócio fica de fora nesta rodada (nunca envia às cegas).
-    const podeEnviar = async (businessId: string): Promise<boolean> => {
-      try {
-        return (await estadoContaService.doNegocio(businessId, now)).tipo !== 'bloqueada';
-      } catch (err) {
-        logger.warn({ err, businessId }, 'Lembrete de 2h: estado da conta ilegível; pulando o negócio nesta rodada');
-        return false;
-      }
-    };
+    const podeEnviar = (businessId: string) => envioAutomaticoLiberado(businessId, 'lembrete', now);
 
     for (const appointment of appointments) {
       if (!(await podeEnviar(appointment.businessId))) {
-        logger.debug({ businessId: appointment.businessId }, 'Lembrete de 2h: conta bloqueada; pulando');
+        logger.debug({ businessId: appointment.businessId }, 'Lembrete de 2h: conta fora do ar (ou estado ilegível); pulando');
         continue;
       }
       const regra = await regra2h(appointment.businessId);

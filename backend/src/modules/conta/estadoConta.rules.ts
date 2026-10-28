@@ -1,4 +1,4 @@
-import { CARENCIA_DIAS, STATUS_CONTINGENCIA } from '../../config/contingencia.js';
+import { CARENCIA_DIAS, ORIGENS_NA_CARENCIA, STATUS_CONTINGENCIA } from '../../config/contingencia.js';
 
 const MS_DIA = 86_400_000;
 
@@ -40,4 +40,14 @@ export function calcularEstadoConta(e: EntradaEstado): EstadoConta {
 
 export function textoAgendaPausada(nomeNegocio: string): string {
   return `A agenda online está pausada no momento. Fale direto com ${nomeNegocio} pelo WhatsApp.`;
+}
+
+/**
+ * Regra única dos envios automáticos de WhatsApp: ativa envia tudo; bloqueada nada; na carência só as
+ * origens de ORIGENS_NA_CARENCIA (cobram compromissos que já existiam).
+ */
+export function podeEnviarOrigem(estado: EstadoConta, origem: string): boolean {
+  if (estado.tipo === 'ativa') return true;
+  if (estado.tipo === 'bloqueada') return false;
+  return (ORIGENS_NA_CARENCIA as readonly string[]).includes(origem);
 }
