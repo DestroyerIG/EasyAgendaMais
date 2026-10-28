@@ -162,6 +162,8 @@ Sub-projeto 7 (Login com Google e Google Agenda), pendências conhecidas:
 - **Cada componente faz a sua própria chamada a `/conta/estado`.** Uma página do painel chega a 4 ou 5 chamadas iguais, e o estado só atualiza ao navegar. Um contexto compartilhado com cache resolve.
 - **Itens parados na fila durante a carência** não são apagados: avaliações enfileiradas saem atrasadas depois da regularização.
 - **`dateInTz` está copiado** em `somenteHoje.middleware.ts` e `cronService.ts`; mover para um util compartilhado.
+- **O backfill usa `subscription_updated_at`, que é leniente.** Esse campo muda a cada webhook; uma conta vencida há muito tempo, com tentativa recente do Stripe, ganha carência nova no deploy em vez de seguir bloqueada.
+- **Conferir o tamanho de `billing_payments` e `subscription_events` antes de aplicar.** Os índices são criados sem `CONCURRENTLY` e travam a escrita (webhooks) nessas tabelas enquanto são criados.
 
 ## Infraestrutura
 

@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
+import { buildHeaders } from '@/lib/server/proxy';
 
 const BACKEND_URL = process.env.BACKEND_API_URL || 'http://localhost:5000/api/v1';
 
 // O backup é um zip: o proxy comum lê o corpo como texto e corromperia o arquivo, então este repassa os bytes.
 export async function GET(request: Request) {
   try {
-    const headers = new Headers();
-    const cookie = request.headers.get('cookie');
-    if (cookie) headers.set('cookie', cookie);
-    const authorization = request.headers.get('authorization');
-    if (authorization) headers.set('authorization', authorization);
+    // Mesmos headers do proxy comum: IP, agente e request id chegam à auditoria do backup.
+    const headers = buildHeaders(request);
 
     const upstream = await fetch(`${BACKEND_URL}/conta/backup`, {
       method: 'GET',

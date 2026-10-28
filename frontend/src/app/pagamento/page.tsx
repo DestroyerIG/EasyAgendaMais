@@ -17,6 +17,7 @@ import {
 import { formatCurrency } from '@/lib/formatters';
 import { isPlanId, PLAN_MAP, type PlanId } from '@/lib/plans';
 import { getApiErrorMessage } from '@/utils/handleApiError';
+import { contaApi, type EstadoConta } from '@/lib/conta';
 import easyAgendaLogo from '@/icons/easyagenda-logo.svg';
 
 const ACTIVE_STATUSES = new Set(['active', 'trialing']);
@@ -107,9 +108,23 @@ function PagamentoContent() {
     let mounted = true;
 
     const loadStatus = async () => {
+      let indoParaAssinatura = false;
       try {
-        const status = await billingApi.getStatus();
+        // Lê o estado da conta junto: sem ele (falha), o checkout segue como antes.
+        const [status, estadoConta] = await Promise.all([
+          billingApi.getStatus(),
+          contaApi.estado().catch((): EstadoConta | null => null),
+        ]);
         if (!mounted) return;
+
+        // Contingência: quem já pagou regulariza pela tela da assinatura. Aqui, no cartão,
+        // o checkout criaria uma segunda assinatura ao lado da que está em atraso.
+        if (estadoConta?.tipo === 'carencia' || (estadoConta?.tipo === 'bloqueada' && estadoConta.motivo === 'cobranca')) {
+          redirectedToDashboardRef.current = true;
+          indoParaAssinatura = true; // segue carregando: nenhum botão de checkout aparece
+          router.replace('/dashboard/assinatura');
+          return;
+        }
 
         setBillingStatus(status);
 
@@ -136,7 +151,7 @@ function PagamentoContent() {
         if (!mounted) return;
         showToast(getApiErrorMessage(error, 'Não foi possível carregar seu status de pagamento.'), 'error');
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted && !indoParaAssinatura) setLoading(false);
       }
     };
 

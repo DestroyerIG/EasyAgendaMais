@@ -1,3 +1,4 @@
+import axios from 'axios';
 import api from '@/lib/api';
 
 export type EstadoConta =
@@ -19,6 +20,25 @@ function nomeDoArquivo(disposition: unknown): string | null {
   return simples ? simples[1] : null;
 }
 
+// Com responseType 'blob' o corpo de erro (JSON) também chega como Blob: abre para a mensagem aparecer.
+async function abrirErroEmBlob(error: unknown): Promise<void> {
+  if (!axios.isAxiosError(error) || !error.response) return;
+  const dados: unknown = error.response.data;
+  if (!(dados instanceof Blob)) return;
+  try {
+    const corpo = JSON.parse(await dados.text()) as { error?: unknown };
+    if (corpo && typeof corpo === 'object') {
+      // Mesmo formato que o interceptor do api.ts deixa: error vira a mensagem em texto.
+      if (corpo.error && typeof corpo.error === 'object' && typeof (corpo.error as { message?: unknown }).message === 'string') {
+        corpo.error = (corpo.error as { message: string }).message;
+      }
+      error.response.data = corpo;
+    }
+  } catch {
+    /* corpo que não é JSON: fica o texto genérico */
+  }
+}
+
 export const contaApi = {
   async estado(): Promise<EstadoConta> {
     const res = await api.get<EstadoConta>('/conta/estado');
@@ -26,7 +46,13 @@ export const contaApi = {
   },
 
   async baixarBackup(): Promise<void> {
-    const res = await api.get<Blob>('/conta/backup', { responseType: 'blob' });
+    let res;
+    try {
+      res = await api.get<Blob>('/conta/backup', { responseType: 'blob' });
+    } catch (error) {
+      await abrirErroEmBlob(error);
+      throw error;
+    }
     const nome = nomeDoArquivo(res.headers?.['content-disposition']) ?? 'backup-easyagenda.zip';
     const url = URL.createObjectURL(res.data);
     const a = document.createElement('a');

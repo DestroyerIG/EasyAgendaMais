@@ -54,4 +54,11 @@ describe('402 SUBSCRIPTION_REQUIRED', () => {
     await expect(api.post('/clients', {})).rejects.toBeTruthy();
     expect(replace).not.toHaveBeenCalled();
   });
+
+  it('na bancada não redireciona: a profissional vê o aviso de agenda pausada', async () => {
+    vi.stubGlobal('location', { pathname: '/bancada/clientes', replace });
+    api.defaults.adapter = adaptador402({ estado: 'bloqueada' });
+    await expect(api.get('/bancada/hoje')).rejects.toBeTruthy();
+    expect(replace).not.toHaveBeenCalled();
+  });
 });

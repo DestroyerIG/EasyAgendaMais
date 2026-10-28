@@ -180,6 +180,11 @@ api.interceptors.response.use(
       const estado = getEstadoBloqueio(error.response?.data);
       // Carência: a escrita foi barrada, mas a dona fica na tela e vê a mensagem.
       if (estado === 'carencia') return Promise.reject(error);
+      // Bancada: a profissional não vai para a tela de assinatura (o AppShell a devolveria para
+      // /bancada, em loop). A própria bancada mostra o aviso neutro de agenda pausada.
+      if (window.location.pathname === '/bancada' || window.location.pathname.startsWith('/bancada/')) {
+        return Promise.reject(error);
+      }
       window.location.replace(estado === 'bloqueada' ? '/dashboard/assinatura' : '/pagamento');
       return Promise.reject(error);
     }

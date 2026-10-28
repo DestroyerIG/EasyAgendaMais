@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import api from '@/lib/api';
+import { contaApi, type EstadoConta } from '@/lib/conta';
 import { isPublicAuthPath } from '@/lib/publicRoutes';
 import type { PlanId } from '@/lib/plans';
 import type { User } from '@/types';
@@ -83,7 +84,25 @@ const hasPaymentEvidence = (billingStatus: Record<string, unknown>): boolean => 
   return ACCESS_SUBSCRIPTION_STATUSES.has(status || '');
 };
 
-const resolveTenantPostLoginRoute = async (redirectTo?: string) => {
+// Contingência: quem já pagou e está em carência ou bloqueada vai para a tela da assinatura
+// (o /pagamento é o checkout do onboarding e, no cartão, criaria uma segunda assinatura).
+// Só quem nunca pagou (bloqueada por teste) segue a regra do billing abaixo.
+const rotaPeloEstadoDaConta = async (redirectTo?: string): Promise<string | null> => {
+  let estado: EstadoConta;
+  try {
+    estado = await contaApi.estado();
+  } catch {
+    return null; // Sem o estado, cai na regra antiga.
+  }
+  if (estado.tipo === 'ativa') return redirectTo || '/dashboard';
+  if (estado.tipo === 'carencia' || estado.motivo !== 'teste') return '/dashboard/assinatura';
+  return null;
+};
+
+export const resolveTenantPostLoginRoute = async (redirectTo?: string) => {
+  const peloEstado = await rotaPeloEstadoDaConta(redirectTo);
+  if (peloEstado) return peloEstado;
+
   try {
     const response = await api.get('/billing/status');
     const billingStatus = response.data as Record<string, unknown>;

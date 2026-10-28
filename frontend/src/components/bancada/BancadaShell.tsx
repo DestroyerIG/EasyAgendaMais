@@ -9,7 +9,8 @@ import { useRequireRole } from '@/hooks/useRequireRole';
 import { registrarServiceWorker } from '@/lib/push';
 import { cn } from '@/lib/cn';
 import { useVocabulario } from '@/hooks/useVocabulario';
-import { FaixaCarenciaBancada } from './FaixaCarenciaBancada';
+import { useEstadoConta } from '@/hooks/useEstadoConta';
+import { AvisoAgendaPausadaBancada, FaixaCarenciaBancada } from './FaixaCarenciaBancada';
 
 // Casca do app da profissional (fase 5): celular primeiro, coluna central no computador,
 // barra inferior Agenda · Clientes · Atendimento · Números.
@@ -25,6 +26,7 @@ export function BancadaShell({ children }: { children: ReactNode }) {
   const { prof } = useVocabulario();
   const pathname = usePathname() ?? '/bancada';
   const { logout } = useAuth();
+  const { estado } = useEstadoConta();
   const { isChecking, isAuthorized, user } = useRequireRole({
     allowedRoles: ['professional'],
     redirectTo: '/dashboard',
@@ -60,9 +62,12 @@ export function BancadaShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <FaixaCarenciaBancada />
+      <FaixaCarenciaBancada estado={estado} />
 
-      <main id="main-content" className="mx-auto max-w-xl px-4 pb-28 pt-4">{children}</main>
+      <main id="main-content" className="mx-auto max-w-xl px-4 pb-28 pt-4">
+        {/* Bloqueada: o servidor recusa tudo da bancada (402), então nem monta as telas. */}
+        {estado?.tipo === 'bloqueada' ? <AvisoAgendaPausadaBancada /> : children}
+      </main>
 
       <nav
         aria-label="Navegação do app"
