@@ -99,6 +99,13 @@ describe('backupService.gerar', () => {
 });
 
 describe('rotas da conta', () => {
+  it('profissional: 200 em /estado e 403 em /backup', async () => {
+    papel.atual = 'professional';
+    estado.doNegocio.mockResolvedValue({ tipo: 'ativa' });
+    expect((await request.get('/api/v1/conta/estado')).status).toBe(200);
+    expect((await request.get('/api/v1/conta/backup')).status).toBe(403);
+  });
+
   it('GET /backup com profissional → 403 e sem consulta', async () => {
     papel.atual = 'professional';
     const r = await request.get('/api/v1/conta/backup');

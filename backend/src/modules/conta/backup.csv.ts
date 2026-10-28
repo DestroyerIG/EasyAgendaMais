@@ -31,8 +31,9 @@ const dataLocal = (d: Date | null | undefined): string | null => (d ? FORMATO.fo
 const sim = (v: boolean): string => (v ? 'Sim' : 'Não');
 
 const STATUS_AGENDAMENTO: Record<string, string> = {
-  confirmado: 'Confirmado', pendente: 'Pendente', concluido: 'Concluído', cancelado: 'Cancelado', faltou: 'Faltou',
+  confirmado: 'Confirmado', em_atendimento: 'Em atendimento', pendente: 'Pendente', concluido: 'Concluído', cancelado: 'Cancelado', faltou: 'Faltou',
 };
+const ORIGEM_AGENDAMENTO: Record<string, string> = { painel: 'Painel', publico: 'Link público', whatsapp: 'WhatsApp' };
 const STATUS_COMANDA: Record<string, string> = { rascunho: 'Rascunho', aberta: 'Aberta', fechada: 'Fechada', cancelada: 'Cancelada' };
 const TIPO_ITEM: Record<string, string> = { service: 'Serviço', servico: 'Serviço', product: 'Produto', produto: 'Produto' };
 const PAGAMENTO: Record<string, string> = {
@@ -53,7 +54,7 @@ export interface AgendamentoLinha {
 export const agendamentosCsv = (l: AgendamentoLinha[]): string =>
   montar(['Data', 'Hora', 'Cliente', 'Profissional', 'Serviço', 'Valor do serviço', 'Sinal', 'Situação', 'Origem'],
     l.map((a) => [dia(a.date), hora(a.time), a.client.name, a.professional.name, a.service.name,
-      dinheiro(a.service.price), dinheiro(a.depositAmount), rotulo(STATUS_AGENDAMENTO, a.status), a.source]));
+      dinheiro(a.service.price), dinheiro(a.depositAmount), rotulo(STATUS_AGENDAMENTO, a.status), rotulo(ORIGEM_AGENDAMENTO, a.source)]));
 
 export interface ServicoLinha { name: string; price: Num; durationMinutes: number; depositPercentage: Num; active: boolean }
 export const servicosCsv = (l: ServicoLinha[]): string =>

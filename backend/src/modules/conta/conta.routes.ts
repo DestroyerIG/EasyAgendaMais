@@ -7,7 +7,8 @@ const router = express.Router();
 
 // Sem requireFeature: estado e backup valem em qualquer plano e estado da conta
 // (o authMiddleware já isenta o GET dessas duas rotas do bloqueio de assinatura).
-router.get('/estado', authMiddleware, requireTenantRoles, estadoDaConta);
+// Estado: dona, equipe e app da profissional (/bancada) mostram o aviso.
+router.get('/estado', authMiddleware, requireRole(['tenant_admin', 'employee', 'professional']), estadoDaConta);
 router.get('/backup', authMiddleware, requireTenantRoles, requireRole(['tenant_admin']), baixarBackup);
 
 export default router;
