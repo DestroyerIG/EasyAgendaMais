@@ -9,6 +9,7 @@ const db = vi.hoisted(() => ({
   clubeCobranca: { create: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
   clubeUso: { create: vi.fn() },
 }));
+vi.mock('../modules/conta/estadoConta.service.js', () => ({ estadoContaService: { doNegocio: vi.fn().mockResolvedValue({ tipo: 'ativa' }), limparCache: vi.fn() } }));
 vi.mock('../config/prisma.js', () => ({ prisma: db }));
 
 const repo = vi.hoisted(() => ({

@@ -57,6 +57,8 @@ import {
 import { appointmentService } from '../appointmentService.js';
 import { appointmentsPrismaRepository } from '../../modules/appointments/appointments.repository.js';
 import { businessSettingsRepository } from '../../repositories/businessSettingsRepository.js';
+import { estadoContaService } from '../../modules/conta/estadoConta.service.js';
+import { textoAgendaPausada } from '../../modules/conta/estadoConta.rules.js';
 import { googleAgendaService } from '../../modules/googleAgenda/googleAgenda.service.js';
 
 // ==================== LOCAL INTERFACES ====================
@@ -2126,6 +2128,25 @@ export const handleIncomingMessage = async (
           : 'missing',
       }
     );
+
+    // Contingência: com a conta fora de "ativa" o robô não agenda. Só responde a saudação
+    // ou a quem já tem sessão ativa; o resto é ignorado. O simulador da dona segue normal.
+    if (!options?.simulationMode) {
+      const estadoConta = await estadoContaService.doNegocio(businessId);
+      if (estadoConta.tipo !== 'ativa') {
+        const sessaoAtiva = Boolean(session && !sessionExpired);
+        if (!greetingEvaluation.isGreeting && !sessaoAtiva) {
+          return { ok: true, ignored: true, reason: 'agenda_pausada' };
+        }
+        if (session) await deleteSession(normalizedPhone!, businessId);
+        const sent = await sendWhatsAppMessage(
+          normalizedPhone!,
+          textoAgendaPausada(await getBusinessName(businessId)),
+          sendContext
+        );
+        return { ok: sent, ignored: false, reason: sent ? null : 'send_failed' };
+      }
+    }
 
     if (greetingEvaluation.isGreeting) {
       if (session) {

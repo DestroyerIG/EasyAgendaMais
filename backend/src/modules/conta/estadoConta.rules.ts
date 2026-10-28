@@ -37,3 +37,7 @@ export function calcularEstadoConta(e: EntradaEstado): EstadoConta {
   const diasRestantes = Math.ceil((ate.getTime() - e.agora.getTime()) / MS_DIA);
   return { tipo: 'carencia', desde, ate, diasRestantes };
 }
+
+export function textoAgendaPausada(nomeNegocio: string): string {
+  return `A agenda online está pausada no momento. Fale direto com ${nomeNegocio} pelo WhatsApp.`;
+}
