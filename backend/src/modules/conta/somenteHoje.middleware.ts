@@ -19,7 +19,8 @@ export const somenteHojeNaCarencia: RequestHandler = async (req, _res, next) => 
     const estado = req.estadoConta;
     if (estado?.tipo !== 'carencia') return next();
 
-    const businessId = req.user!.businessId;
+    const businessId = req.user?.businessId;
+    if (!businessId) return next(new NotFoundError('Agendamento'));
     const agendamento = await prisma.appointment.findFirst({
       where: { id: req.params.id, businessId },
       select: { date: true, createdAt: true },
