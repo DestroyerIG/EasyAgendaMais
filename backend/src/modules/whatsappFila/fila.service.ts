@@ -9,6 +9,8 @@ import { inboxRecorder } from '../whatsappInbox/inbox.recorder.js';
 import type { Origem } from '../whatsappInbox/inbox.types.js';
 import { filaRepository as repo, type EnvioRow, type NovoEnvio } from './fila.repository.js';
 import { respostasRepository } from '../whatsappAutomacoes/respostas.repository.js';
+import { estadoContaService } from '../conta/estadoConta.service.js';
+import { ORIGENS_NA_CARENCIA } from '../../config/contingencia.js';
 import {
   LIMITE_POR_HORA, PRIORIDADE_NORMAL, intervaloCampanha, limiteDoNegocio, podeEnviarAgora, previsaoDeEnvio, sortearIntervalo,
 } from './fila.rules.js';
@@ -74,6 +76,19 @@ const paraDto = (r: EnvioRow): EnvioDto => ({
 type Resultado = 'enviado' | 'pulado' | 'falhou' | 'nada';
 
 async function processarNegocio(businessId: string, agora: Date): Promise<Resultado> {
+  // Contingência: conta bloqueada não envia nada; na carência só saem as origens que cobram compromissos
+  // que já existiam. Os itens não mudam de status: ficam na fila e voltam a sair quando a conta regulariza.
+  // Sem conseguir ler o estado, o negócio fica de fora nesta rodada (nunca envia às cegas).
+  let estado;
+  try {
+    estado = await estadoContaService.doNegocio(businessId, agora);
+  } catch (err) {
+    logger.warn({ err, businessId }, 'fila: estado da conta ilegível; negócio fica de fora nesta rodada');
+    return 'nada';
+  }
+  if (estado.tipo === 'bloqueada') return 'nada';
+  const apenasOrigens = estado.tipo === 'carencia' ? { apenasOrigens: [...ORIGENS_NA_CARENCIA] } : {};
+
   const { timezone } = await getBusinessScheduleSettings(businessId);
   const umaHoraAtras = new Date(agora.getTime() - HORA_MS);
   // Falha nas consultas das campanhas (inclusive tabela ainda sem migração) não para a fila:
@@ -114,7 +129,7 @@ async function processarNegocio(businessId: string, agora: Date): Promise<Result
   if (conexao?.status !== 'connected') return 'nada';
 
   const cadenciaDoLote = new Map(emEnvio.map((c) => [c.id, c.cadencia]));
-  const item = await repo.proximoVencido(businessId, agora, semCampanhas ? [] : excluirLotes, { semCampanhas });
+  const item = await repo.proximoVencido(businessId, agora, semCampanhas ? [] : excluirLotes, { semCampanhas, ...apenasOrigens });
   if (!item) return 'nada';
   if (!(await repo.reservar(businessId, item.id, agora))) return 'nada';
 

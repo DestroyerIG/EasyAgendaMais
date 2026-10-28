@@ -38,6 +38,8 @@ vi.mock('../modules/whatsappInbox/inbox.recorder.js', () => ({
 vi.mock('../repositories/subscriptionRepository.js', () => ({
   subscriptionRepository: { expireOneTimeSubscriptions: vi.fn() },
 }));
+// Contingência: conta ativa (os testes de contingência ficam em contingenciaEnvios.test.ts).
+vi.mock('../modules/conta/estadoConta.service.js', () => ({ estadoContaService: { doNegocio: async () => ({ tipo: 'ativa' }) } }));
 
 const { runReminderJob } = await import('../services/cronService.js');
 

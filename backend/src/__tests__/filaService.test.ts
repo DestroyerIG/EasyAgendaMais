@@ -9,6 +9,8 @@ const repo = vi.hoisted(() => ({
   clientesAtivosDaOrigem: vi.fn(), criarVarios: vi.fn(), ativosDoLote: vi.fn(),
 }));
 vi.mock('../modules/whatsappFila/fila.repository.js', () => ({ filaRepository: repo }));
+// Contingência: conta ativa (os testes de contingência ficam em contingenciaEnvios.test.ts).
+vi.mock('../modules/conta/estadoConta.service.js', () => ({ estadoContaService: { doNegocio: async () => ({ tipo: 'ativa' }) } }));
 const resp = vi.hoisted(() => ({ respostasRepository: { registrar: vi.fn() } }));
 vi.mock('../modules/whatsappAutomacoes/respostas.repository.js', () => resp);
 const hoje = vi.hoisted(() => ({ todayRepository: { clientesComAgendamentoFuturo: vi.fn() } }));

@@ -90,14 +90,20 @@ export const filaRepository = {
   /**
    * Próximo item vencido; `excluirLotes` deixa de fora os lotes que já bateram a cadência na última hora.
    * `semCampanhas` deixa de fora toda a origem campanha (a consulta das campanhas falhou nesta rodada).
+   * `apenasOrigens` restringe às origens dadas (conta em carência); combina com `semCampanhas` na mesma chave.
    */
   proximoVencido(
-    businessId: string, agora: Date, excluirLotes: string[] = [], opcoes: { semCampanhas?: boolean } = {},
+    businessId: string, agora: Date, excluirLotes: string[] = [],
+    opcoes: { semCampanhas?: boolean; apenasOrigens?: readonly string[] } = {},
   ): Promise<EnvioRow | null> {
+    const origin: Prisma.StringFilter = {
+      ...(opcoes.apenasOrigens ? { in: [...opcoes.apenasOrigens] } : {}),
+      ...(opcoes.semCampanhas ? { not: 'campanha' } : {}),
+    };
     return prisma.whatsappEnvio.findFirst({
       where: {
         businessId, status: 'na_fila', scheduledFor: { lte: agora },
-        ...(opcoes.semCampanhas ? { origin: { not: 'campanha' } } : {}),
+        ...(Object.keys(origin).length ? { origin } : {}),
         ...(excluirLotes.length ? { OR: [{ batchId: null }, { batchId: { notIn: excluirLotes } }] } : {}),
       },
       orderBy: [{ priority: 'asc' }, { scheduledFor: 'asc' }, { createdAt: 'asc' }],
