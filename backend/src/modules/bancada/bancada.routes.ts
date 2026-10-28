@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authMiddleware } from '../../middleware/auth.js';
 import { validate } from '../../middleware/validate.js';
 import { requireProfissional } from './bancada.middleware.js';
+import { somenteHojeNaCarencia } from '../conta/somenteHoje.middleware.js';
 import {
   BancadaComandaSchema, CancelarSchema, ClientesQuerySchema, HojeQuerySchema, HorariosQuerySchema, NotaSchema, ReagendarSchema,
 } from './bancada.types.js';
@@ -21,7 +22,7 @@ router.get('/clientes', ...ela, validate({ query: ClientesQuerySchema }), myClie
 router.get('/clientes/:id', ...ela, ParamsId, clientCard);
 router.put('/clientes/:id/nota', ...ela, ParamsId, validate({ body: NotaSchema }), saveNote);
 router.post('/clientes/:id/fotos', ...ela, ParamsId, uploadPhoto);
-router.post('/agendamentos/:id/iniciar', ...ela, ParamsId, start);
+router.post('/agendamentos/:id/iniciar', ...ela, ParamsId, somenteHojeNaCarencia, start);
 router.get('/horarios', ...ela, validate({ query: HorariosQuerySchema }), freeSlots);
 router.post('/agendamentos/:id/reagendar', ...ela, ParamsId, validate({ body: ReagendarSchema }), reschedule);
 router.post('/agendamentos/:id/cancelar', ...ela, ParamsId, validate({ body: CancelarSchema }), cancel);

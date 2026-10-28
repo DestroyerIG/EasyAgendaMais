@@ -21,6 +21,7 @@ import {
   getAppointmentDetails,
 } from './appointments.controller.js';
 import { openComanda } from '../comandas/comandas.controller.js';
+import { somenteHojeNaCarencia } from '../conta/somenteHoje.middleware.js';
 
 const router = express.Router();
 const guard = [authMiddleware, requireTenantRoles, requireFeature('appointments')];
@@ -31,8 +32,8 @@ router.get('/available-slots', ...guard, validate({ query: GetAvailableSlotsQuer
 router.get('/:id/details', ...guard, getAppointmentDetails);
 router.post('/',          ...guard, validate({ body: CreateAppointmentSchema }), createAppointment);
 router.put('/:id',        ...guard, validate({ body: UpdateAppointmentSchema }), updateAppointment);
-router.put('/:id/status', ...guard, validate({ body: UpdateStatusSchema }), updateAppointmentStatus);
+router.put('/:id/status', ...guard, somenteHojeNaCarencia, validate({ body: UpdateStatusSchema }), updateAppointmentStatus);
 router.delete('/:id',     ...guard, deleteAppointment);
-router.post('/:id/comanda', authMiddleware, requireTenantRoles, requireFeature('finance'), openComanda);
+router.post('/:id/comanda', authMiddleware, requireTenantRoles, requireFeature('finance'), somenteHojeNaCarencia, openComanda);
 
 export default router;

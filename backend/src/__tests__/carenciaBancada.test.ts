@@ -13,7 +13,8 @@ vi.mock('../repositories/subscriptionRepository.js', () => ({
 vi.mock('../utils/logger.js', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), fatal: vi.fn() },
 }));
-vi.mock('../config/prisma.js', () => ({ prisma: {} }));
+const findFirstAg = vi.hoisted(() => vi.fn());
+vi.mock('../config/prisma.js', () => ({ prisma: { appointment: { findFirst: findFirstAg } } }));
 vi.mock('../services/scheduleSettingsService.js', () => ({
   getBusinessScheduleSettings: vi.fn().mockResolvedValue({ timezone: 'America/Sao_Paulo' }),
 }));
@@ -70,6 +71,7 @@ beforeEach(() => {
   repo.usuarioProfissional.mockResolvedValue({
     blocked: false, businessId: 'b1', professional: { id: 'p1', name: 'Ana', active: true, businessId: 'b1' },
   });
+  findFirstAg.mockResolvedValue({ date: new Date(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())), createdAt: new Date(Date.now() - 5 * DIA) });
   servico.iniciar.mockResolvedValue({ ok: true });
   servico.reagendar.mockResolvedValue({ ok: true });
   servico.numeros.mockResolvedValue({ ok: true });
