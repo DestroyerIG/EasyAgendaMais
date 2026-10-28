@@ -34,3 +34,7 @@ UPDATE "businesses"
 SET "inadimplente_desde" = COALESCE("subscription_updated_at", now())
 WHERE "subscription_status" IN ('past_due', 'unpaid', 'pending')
   AND "inadimplente_desde" IS NULL;
+
+-- Índices para a checagem "já pagou" feita a cada requisição autenticada
+CREATE INDEX IF NOT EXISTS billing_payments_business_id_idx ON billing_payments (business_id);
+CREATE INDEX IF NOT EXISTS subscription_events_business_id_idx ON subscription_events (business_id);

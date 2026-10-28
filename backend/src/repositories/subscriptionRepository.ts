@@ -41,7 +41,8 @@ export const subscriptionRepository = {
                OR EXISTS (SELECT 1 FROM billing_payments bp WHERE bp.business_id = businesses.id AND bp.paid_at IS NOT NULL)
                OR EXISTS (SELECT 1 FROM subscription_events se WHERE se.business_id = businesses.id
                           AND se.event_type IN ('invoice.paid','invoice.payment_succeeded')
-                          AND COALESCE((se.payload->>'amount_paid')::numeric, 0) > 0)) AS ja_pagou
+                          AND CASE WHEN se.payload->>'amount_paid' ~ '^[0-9]+([.][0-9]+)?$'
+                               THEN (se.payload->>'amount_paid')::numeric ELSE 0 END > 0)) AS ja_pagou
       FROM businesses
       WHERE id = ${businessId}::uuid AND active = true
     `);

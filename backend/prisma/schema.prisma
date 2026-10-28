@@ -344,6 +344,7 @@ model SubscriptionEvent {
 
   business Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
 
+  @@index([businessId], map: "subscription_events_business_id_idx")
   @@map("subscription_events")
 }
 
@@ -387,6 +388,7 @@ model BillingPayment {
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerPaymentId])
+  @@index([businessId], map: "billing_payments_business_id_idx")
   @@map("billing_payments")
 }
 
