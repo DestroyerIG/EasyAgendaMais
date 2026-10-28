@@ -23,6 +23,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/assinatura',
   'src/app/dashboard/assinatura',
   'src/hooks/useEstadoConta.ts',
+  'src/hooks/useBloqueadoNaCarencia.ts',
   'src/lib/conta.ts',
   'src/lib/planoCobranca.ts',
   'src/app/dashboard/clube',

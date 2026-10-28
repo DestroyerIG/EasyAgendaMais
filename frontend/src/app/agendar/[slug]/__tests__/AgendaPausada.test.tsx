@@ -52,6 +52,13 @@ describe('Página pública com a agenda pausada', () => {
     expect(link).toHaveAttribute('href', 'https://wa.me/5583999990000');
   });
 
+  it('número local com DDD 55 recebe o prefixo do país', async () => {
+    api.getStorefront.mockResolvedValue({ ...STOREFRONT, whatsapp: '(55) 99999-0000' });
+    render(<PublicBookingFlow slug="aurora" />);
+    const link = await screen.findByRole('link', { name: /whatsapp/i });
+    expect(link).toHaveAttribute('href', 'https://wa.me/5555999990000');
+  });
+
   it('sem WhatsApp cadastrado mostra só a frase', async () => {
     api.getStorefront.mockResolvedValue({ ...STOREFRONT, whatsapp: null });
     render(<PublicBookingFlow slug="aurora" />);

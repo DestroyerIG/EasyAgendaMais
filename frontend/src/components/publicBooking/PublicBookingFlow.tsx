@@ -215,7 +215,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
 
   if (storefront.agendaPausada) {
     const digitos = (storefront.whatsapp ?? '').replace(/\D/g, '');
-    const numero = digitos ? (digitos.startsWith('55') ? digitos : `55${digitos}`) : null;
+    const numero = digitos ? ((digitos.startsWith('55') && digitos.length >= 12) ? digitos : `55${digitos}`) : null;
     return (
       <div className="mx-auto flex min-h-screen max-w-xl flex-col">
         <div className="flex items-center gap-2 border-b border-line bg-surface px-4 py-3">
