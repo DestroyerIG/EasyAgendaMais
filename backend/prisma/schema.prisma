@@ -33,6 +33,7 @@ model Business {
   lastPaymentDate              DateTime? @map("last_payment_date")
   canceledAt                   DateTime? @map("canceled_at")
   subscriptionUpdatedAt        DateTime? @default(now()) @map("subscription_updated_at")
+  inadimplenteDesde            DateTime? @map("inadimplente_desde") @db.Timestamptz(6)
 
   // Stripe
   stripeCustomerId             String?   @unique @map("stripe_customer_id") @db.VarChar(255)
