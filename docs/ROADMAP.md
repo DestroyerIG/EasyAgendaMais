@@ -41,7 +41,7 @@ Spec: `docs/superpowers/specs/2026-10-26-google-login-agenda-design.md`. Guia de
 
 ## Próximos passos
 
-- **H:** landing e SuperAdmin, ainda sem fase.
+- **H:** SuperAdmin, modo de contingência e textos de venda. Spec em `docs/superpowers/specs/2026-10-28-item-h-superadmin-contingencia-venda-design.md`, dividida em H1, H2 e H3.
 - Verificação do app no Google, depois da troca de domínio.
 - Conferência das telas com dado real e pendências abertas em `docs/design/SEGUIMENTO.md`.
 
