@@ -126,6 +126,9 @@ export class SubscriptionStatusError extends AppError {
 export interface SubscriptionRequiredOptions {
   subscriptionStatus?: string;
   reason?: string;
+  /** Estado da conta no modo de contingência; vai em `details.estado` para o frontend. */
+  estado?: 'carencia' | 'bloqueada';
+  message?: string;
 }
 
 export class SubscriptionRequiredError extends AppError {
@@ -136,10 +139,13 @@ export class SubscriptionRequiredError extends AppError {
   constructor({
     subscriptionStatus = 'incomplete',
     reason = 'subscription_required',
+    estado,
+    message = 'Finalize o pagamento para acessar o sistema.',
   }: SubscriptionRequiredOptions = {}) {
-    super('Finalize o pagamento para acessar o sistema.', 402, 'SUBSCRIPTION_REQUIRED');
+    super(message, 402, 'SUBSCRIPTION_REQUIRED');
     this.subscriptionStatus = subscriptionStatus;
     this.reason = reason;
     this.billingActionRequired = true;
+    if (estado) this.details = { estado };
   }
 }
