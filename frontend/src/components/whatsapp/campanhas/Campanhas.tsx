@@ -1,5 +1,6 @@
 'use client';
 
+import { useBloqueadoNaCarencia } from '@/hooks/useBloqueadoNaCarencia';
 import { useCallback, useEffect, useState } from 'react';
 import { Megaphone, Plus } from 'lucide-react';
 import { Button, EmptyState, Skeleton } from '@/components/ui';
@@ -20,6 +21,7 @@ type Tela = { tipo: 'lista' } | { tipo: 'nova'; campanha?: CampanhaDto };
 
 export function Campanhas({ conectado, nomeNegocio }: CampanhasProps) {
   const { showToast } = useToast();
+  const { bloqueado, dica } = useBloqueadoNaCarencia();
   const [tela, setTela] = useState<Tela>({ tipo: 'lista' });
   const [campanhas, setCampanhas] = useState<CampanhaDto[] | null>(null);
   const [erro, setErro] = useState(false);
@@ -66,7 +68,7 @@ export function Campanhas({ conectado, nomeNegocio }: CampanhasProps) {
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold text-ink">Campanhas</h2>
-        <Button size="sm" onClick={() => setTela({ tipo: 'nova' })}>
+        <Button size="sm" onClick={() => setTela({ tipo: 'nova' })} disabled={bloqueado} title={dica}>
           <Plus className="h-4 w-4" aria-hidden="true" />
           Nova campanha
         </Button>
@@ -84,7 +86,7 @@ export function Campanhas({ conectado, nomeNegocio }: CampanhasProps) {
           icon={Megaphone}
           title="Nenhuma campanha ainda"
           description="Envie uma novidade ou promoção para um grupo de clientes, no seu ritmo."
-          action={{ label: 'Criar primeira campanha', onClick: () => setTela({ tipo: 'nova' }) }}
+          action={{ label: 'Criar primeira campanha', onClick: () => { if (!bloqueado) setTela({ tipo: 'nova' }); } }}
         />
       ) : (
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">

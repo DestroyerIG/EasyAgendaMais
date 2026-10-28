@@ -38,6 +38,8 @@ export interface Storefront {
   brandColor: string | null;
   galleryPhotos: string[];
   address: string | null;
+  whatsapp: string | null;
+  agendaPausada: boolean;
   services: StorefrontService[];
   vocabulario: Vocabulario;
 }

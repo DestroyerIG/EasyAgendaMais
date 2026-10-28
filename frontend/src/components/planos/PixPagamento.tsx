@@ -19,7 +19,8 @@ const fonteDoQr = (valor: string | null): string | null => {
 
 interface PixPagamentoProps {
   paymentId: string;
-  valor: number;
+  /** Sem valor conhecido, a linha do valor não aparece. */
+  valor: number | null;
   qrCode: string | null;
   pixCopyPaste: string | null;
   acompanhar?: boolean;
@@ -65,8 +66,12 @@ export function PixPagamento({ paymentId, valor, qrCode, pixCopyPaste, acompanha
 
   return (
     <div className="flex flex-col items-center gap-4 text-center">
-      <div className="text-[13px] font-semibold uppercase tracking-wider text-muted">Valor do Pix</div>
-      <div className="-mt-3 text-2xl font-bold text-ink">{formatCurrency(valor)}</div>
+      {valor !== null && (
+        <>
+          <div className="text-[13px] font-semibold uppercase tracking-wider text-muted">Valor do Pix</div>
+          <div className="-mt-3 text-2xl font-bold text-ink">{formatCurrency(valor)}</div>
+        </>
+      )}
       {qr ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={qr} alt="QR Code do Pix" className="h-48 w-48 rounded-xl border border-line bg-surface p-2" />

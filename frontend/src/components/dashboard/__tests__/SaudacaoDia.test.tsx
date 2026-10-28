@@ -1,6 +1,16 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { saudacaoPorHora, formatarDataPorExtenso, SaudacaoDia } from '../SaudacaoDia';
+
+const carencia = vi.hoisted(() => ({ ativa: false }));
+vi.mock('@/hooks/useBloqueadoNaCarencia', () => ({
+  useBloqueadoNaCarencia: () => ({
+    bloqueado: carencia.ativa,
+    dica: carencia.ativa ? 'Disponível depois de regularizar' : undefined,
+  }),
+}));
+
+afterEach(() => { carencia.ativa = false; });
 
 describe('saudacaoPorHora', () => {
   it('madrugada e manhã (0h a 11h59) dizem Bom dia', () => {
@@ -42,5 +52,16 @@ describe('SaudacaoDia (ações do computador, hoje-desktop.html)', () => {
 
     const novoAgendamento = screen.getByRole('link', { name: /Novo agendamento/ });
     expect(novoAgendamento).toHaveAttribute('href', '/agendamentos?novo=1');
+  });
+});
+
+describe('SaudacaoDia em carência', () => {
+  it('desabilita "Novo agendamento" com a dica', () => {
+    carencia.ativa = true;
+    render(<SaudacaoDia ownerName="Carla" businessName="Studio Aurora" />);
+    const botao = screen.getByRole('button', { name: /Novo agendamento/ });
+    expect(botao).toBeDisabled();
+    expect(botao).toHaveAttribute('title', 'Disponível depois de regularizar');
+    expect(screen.queryByRole('link', { name: /Novo agendamento/ })).not.toBeInTheDocument();
   });
 });

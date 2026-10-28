@@ -28,6 +28,11 @@ vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ user: mockUser.value, logout: mockLogout }),
 }));
 
+const mockEstado = vi.hoisted(() => ({ value: { tipo: 'ativa' } as Record<string, unknown> }));
+vi.mock('@/lib/conta', () => ({
+  contaApi: { estado: () => Promise.resolve(mockEstado.value), baixarBackup: vi.fn() },
+}));
+
 const { AppShell } = await import('../AppShell');
 
 const LABELS = ['Hoje', 'Agenda', 'Clientes', 'Caixa', 'Clube e pacotes', 'WhatsApp', 'Relatórios', 'Minha página', 'Ajustes'];
@@ -47,6 +52,8 @@ describe('AppShell', () => {
     mockPathname.value = '/dashboard';
     mockLogout.mockReset();
     mockReplace.mockReset();
+    mockEstado.value = { tipo: 'ativa' };
+    window.sessionStorage.clear();
     mockUser.value = {
       businessName: 'Studio Aurora',
       plan: 'profissional',
@@ -192,5 +199,31 @@ describe('AppShell', () => {
     renderShell();
     expect(screen.getByText('conteúdo')).toBeInTheDocument();
     expect(mockReplace).not.toHaveBeenCalledWith('/onboarding');
+  });
+
+  describe('estado da conta', () => {
+    it('carência: mostra a faixa e leva à assinatura só na primeira tela', async () => {
+      mockEstado.value = { tipo: 'carencia', desde: '2026-10-20', ate: '2026-10-27', diasRestantes: 3 };
+      const { unmount } = renderShell();
+      expect(await screen.findByText(/Modo contingência · 3 dias para regularizar/)).toBeInTheDocument();
+      expect(mockReplace).toHaveBeenCalledWith('/dashboard/assinatura');
+      unmount();
+      mockReplace.mockReset();
+      renderShell();
+      await screen.findByText(/Modo contingência/);
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it('bloqueada: redireciona sempre, menos nas páginas livres', async () => {
+      mockEstado.value = { tipo: 'bloqueada', motivo: 'cobranca' };
+      const { unmount } = renderShell();
+      await vi.waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/dashboard/assinatura'));
+      unmount();
+      mockReplace.mockReset();
+      mockPathname.value = '/dashboard/planos';
+      renderShell();
+      await new Promise((r) => setTimeout(r, 20));
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
   });
 });

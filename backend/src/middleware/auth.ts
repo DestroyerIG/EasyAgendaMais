@@ -16,6 +16,8 @@ import {
 import { normalizePlan } from '../config/planPermissions.js';
 import logger from '../utils/logger.js';
 import { setRequestContext } from '../modules/core/middleware/requestContext.js';
+import { estadoDoContexto } from '../modules/conta/estadoConta.service.js';
+import { escritaLiberadaNaCarencia } from '../modules/conta/carencia.rules.js';
 import type {
   JwtPayload,
   BusinessBillingContext,
@@ -38,7 +40,22 @@ const SUBSCRIPTION_EXEMPT_ROUTES: RegExp[] = [
   /^\/api\/v1\/subscriptions\/status$/i,
   /^\/api\/v1\/subscriptions\/checkout-session$/i,
   /^\/api\/v1\/business\/account-profile$/i,
+  // Modo de contingência: a dona sempre consegue ver as faturas e regularizar a
+  // assinatura, mesmo com a conta bloqueada.
+  /^\/api\/v1\/billing\/invoices$/i,
+  /^\/api\/v1\/billing\/payment-method$/i,
+  /^\/api\/v1\/billing\/reactivate$/i,
+  /^\/api\/v1\/subscriptions\/portal$/i,
 ];
+
+// Isentas só para leitura: ver o estado da conta e baixar o backup.
+const SUBSCRIPTION_EXEMPT_READ_ROUTES: RegExp[] = [
+  /^\/api\/v1\/conta\/estado$/i,
+  /^\/api\/v1\/conta\/backup$/i,
+];
+
+const MENSAGEM_CARENCIA = 'Disponível depois de regularizar a assinatura.';
+const METODOS_DE_LEITURA = new Set(['GET', 'HEAD']);
 
 const ACTIVE_ACCESS_STATUSES = new Set<SubscriptionStatus>(['active', 'trialing']);
 
@@ -48,9 +65,30 @@ const resolveJwtSecret = (): string => {
   throw new UnauthorizedError('Configuração JWT inválida');
 };
 
+const requestPath = (req: Request): string =>
+  String(req.originalUrl ?? req.url ?? '').split('?')[0] ?? '';
+
 const isSubscriptionExemptRoute = (req: Request): boolean => {
-  const path = String(req.originalUrl ?? req.url ?? '').split('?')[0] ?? '';
-  return SUBSCRIPTION_EXEMPT_ROUTES.some((pattern) => pattern.test(path));
+  const path = requestPath(req);
+  if (SUBSCRIPTION_EXEMPT_ROUTES.some((pattern) => pattern.test(path))) return true;
+  const method = String(req.method ?? '').toUpperCase();
+  return METODOS_DE_LEITURA.has(method) && SUBSCRIPTION_EXEMPT_READ_ROUTES.some((pattern) => pattern.test(path));
+};
+
+// Rotas isentas não bloqueiam em estado nenhum, mas ainda registram o estado da
+// conta para quem vier depois. Falha na leitura não pode derrubar a rota isenta.
+const anotarEstadoNaRotaIsenta = async (req: Request): Promise<void> => {
+  const businessId = req.user?.businessId;
+  if (!businessId) return;
+  try {
+    const context = await subscriptionRepository.getBusinessBillingContext(businessId) as BusinessBillingContext | null;
+    req.estadoConta = estadoDoContexto(context);
+  } catch (error) {
+    logger.warn(
+      { err: error, businessId, userId: req.user?.userId },
+      'Falha ao ler o estado da conta em rota isenta'
+    );
+  }
 };
 
 const hasActivePaymentEvidence = (
@@ -116,7 +154,12 @@ const resolveSubscriptionAccess = (
 };
 
 const enforceActiveSubscription = async (req: Request): Promise<void> => {
-  if (!req.user || req.user.role === 'platform_admin' || isSubscriptionExemptRoute(req)) {
+  if (!req.user || req.user.role === 'platform_admin') {
+    return;
+  }
+
+  if (isSubscriptionExemptRoute(req)) {
+    await anotarEstadoNaRotaIsenta(req);
     return;
   }
 
@@ -136,13 +179,15 @@ const enforceActiveSubscription = async (req: Request): Promise<void> => {
       },
       'Acesso bloqueado por assinatura'
     );
-    throw new SubscriptionRequiredError({ reason: 'missing_business_context' });
+    throw new SubscriptionRequiredError({ reason: 'missing_business_context', estado: 'bloqueada' });
   }
 
   const context = await subscriptionRepository.getBusinessBillingContext(businessId) as BusinessBillingContext | null;
   const decision = resolveSubscriptionAccess(context);
+  const estado = estadoDoContexto(context);
 
   req.subscriptionAccess = decision;
+  req.estadoConta = estado;
   req.user.subscriptionStatus = decision.subscriptionStatus;
   // Always sync plan from DB — JWT payload may be stale (e.g. activated via coupon after login)
   req.user.plan = normalizePlan(context?.plan);
@@ -156,16 +201,34 @@ const enforceActiveSubscription = async (req: Request): Promise<void> => {
       provider: decision.provider,
       accessGranted: decision.granted,
       reason: decision.reason,
+      estadoConta: estado.tipo,
     },
     decision.granted ? 'Acesso liberado por assinatura' : 'Acesso bloqueado por assinatura'
   );
 
-  if (!decision.granted) {
+  if (decision.granted) return;
+
+  // Pix do mês seguinte gerado antes do vencimento: o período pago ainda vale.
+  if (estado.tipo === 'ativa') return;
+
+  if (estado.tipo === 'carencia') {
+    const method = String(req.method ?? '').toUpperCase();
+    if (METODOS_DE_LEITURA.has(method) || escritaLiberadaNaCarencia(method, requestPath(req))) {
+      return;
+    }
     throw new SubscriptionRequiredError({
       subscriptionStatus: decision.subscriptionStatus,
-      reason: decision.reason,
+      reason: 'carencia_somente_leitura',
+      estado: 'carencia',
+      message: MENSAGEM_CARENCIA,
     });
   }
+
+  throw new SubscriptionRequiredError({
+    subscriptionStatus: decision.subscriptionStatus,
+    reason: decision.reason,
+    estado: 'bloqueada',
+  });
 };
 
 export const authMiddleware = async (

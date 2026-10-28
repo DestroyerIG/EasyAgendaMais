@@ -13,6 +13,7 @@
  * dois arquivos esquecem.
  */
 
+import { useBloqueadoNaCarencia } from '@/hooks/useBloqueadoNaCarencia';
 import { formatDateShort, getToday, addDays } from '@/lib/dateUtils';
 import { Avatar, Icon, STATUS_LABEL } from '@/components/ui';
 import { cn } from '@/lib/cn';
@@ -204,6 +205,7 @@ export function DateNavigationBar({
   selectedDate, viewMode, statusFilter, profissionais, totalAgendamentos, profissionalFiltro,
   onDateChange, onViewModeChange, onStatusFilterChange, onProfissionalFiltroChange, onNovoAgendamento,
 }: DateNavigationBarProps) {
+  const { bloqueado, dica } = useBloqueadoNaCarencia();
   const step = viewMode === 'day' ? 1 : 7;
   const rotuloSemana = `${formatDateShort(selectedDate)} — ${formatDateShort(addDays(selectedDate, 6))}`;
 
@@ -293,7 +295,9 @@ export function DateNavigationBar({
       <button
         type="button"
         onClick={onNovoAgendamento}
-        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control bg-brand px-4 text-[13px] font-bold text-on-brand shadow-sm transition-transform hover:brightness-105 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        disabled={bloqueado}
+        title={dica}
+        className="disabled:cursor-not-allowed disabled:opacity-50 inline-flex min-h-11 items-center justify-center gap-2 rounded-control bg-brand px-4 text-[13px] font-bold text-on-brand shadow-sm transition-transform hover:brightness-105 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
         <Icon name="add" size={18} />
         Novo agendamento

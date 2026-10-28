@@ -10,7 +10,7 @@ export const publicBookingRepository = {
     return prisma.business.findFirst({
       where: { slug, active: true },
       select: {
-        id: true, name: true, logoUrl: true, brandColor: true, galleryPhotos: true, address: true, pixKey: true, pixKeyType: true,
+        id: true, name: true, logoUrl: true, brandColor: true, galleryPhotos: true, address: true, whatsapp: true, pixKey: true, pixKeyType: true,
         settings: { select: { segment: true } },
       },
     });

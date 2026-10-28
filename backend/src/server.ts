@@ -48,6 +48,7 @@ import bancadaRoutes from './modules/bancada/bancada.routes.js';
 import pushRoutes from './modules/push/push.routes.js';
 import googleAgendaRoutes from './modules/googleAgenda/googleAgenda.routes.js';
 import avaliacoesRoutes from './modules/avaliacoes/avaliacoes.routes.js';
+import contaRoutes from './modules/conta/conta.routes.js';
 
 // Route modules — stub re-exports
 // @ts-ignore
@@ -498,6 +499,7 @@ app.use(`${API_V1}/bancada`, bancadaRoutes);
 app.use(`${API_V1}/push`, pushRoutes);
 app.use(`${API_V1}/google-agenda`, googleAgendaRoutes);
 app.use(`${API_V1}/avaliacoes`, avaliacoesRoutes);
+app.use(`${API_V1}/conta`, contaRoutes);
 
 app.use(`${API_V1}/clients`, crmRoutes);
 app.use(`${API_V1}/clients`, clientPhotoRoutes);

@@ -6,7 +6,7 @@ import QRCode from 'qrcode';
 import { MapPin, Check } from 'lucide-react';
 import { publicBookingApi, type StorefrontDto, type ProfessionalDto, type StorefrontServiceDto } from '@/lib/publicBooking';
 import { getApiErrorMessage } from '@/utils/handleApiError';
-import { Button } from '@/components/ui';
+import { Button, Icon } from '@/components/ui';
 import { ClubeVitrine } from '@/components/clube/AdesaoClube';
 import { termosDe } from '@/lib/vocabulario';
 
@@ -212,6 +212,34 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
   if (loading) return <div className="p-8 text-center text-muted">Carregando...</div>;
   if (error && !storefront) return <div className="p-8 text-center text-danger">{error}</div>;
   if (!storefront) return null;
+
+  if (storefront.agendaPausada) {
+    const digitos = (storefront.whatsapp ?? '').replace(/\D/g, '');
+    const numero = digitos ? ((digitos.startsWith('55') && digitos.length >= 12) ? digitos : `55${digitos}`) : null;
+    return (
+      <div className="mx-auto flex min-h-screen max-w-xl flex-col">
+        <div className="flex items-center gap-2 border-b border-line bg-surface px-4 py-3">
+          <p className="truncate font-bold text-ink">{storefront.name}</p>
+        </div>
+        <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 py-10 text-center">
+          <p className="text-[15px] text-ink">
+            A agenda online está pausada no momento. Fale direto com {storefront.name} pelo WhatsApp.
+          </p>
+          {numero && (
+            <a
+              href={`https://wa.me/${numero}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-11 items-center gap-2 rounded-control bg-whatsapp px-5 text-[14px] font-bold text-surface"
+            >
+              <Icon name="chat" size={18} />
+              Chamar no WhatsApp
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const selectedService: StorefrontServiceDto | undefined = storefront.services.find((s) => s.id === serviceId);
   const selectedProfessional = professionals.find((p) => p.id === professionalId);

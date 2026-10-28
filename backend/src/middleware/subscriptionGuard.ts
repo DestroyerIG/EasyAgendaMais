@@ -2,13 +2,14 @@ import type { Request, Response, NextFunction } from 'express';
 import { FeatureAccessError } from '../utils/errors.js';
 import { evaluateFeatureAccess } from '../services/featureAccessService.js';
 import logger from '../utils/logger.js';
+import { statusEfetivoDaAssinatura } from '../modules/conta/statusEfetivo.js';
 
 export const requireFeature = (feature: string) => {
   return (req: Request, _res: Response, next: NextFunction): void => {
     const decision = evaluateFeatureAccess({
       feature,
       plan: req.user?.plan,
-      subscriptionStatus: req.user?.subscriptionStatus,
+      subscriptionStatus: statusEfetivoDaAssinatura(req),
     });
 
     if (!decision.allowed) {

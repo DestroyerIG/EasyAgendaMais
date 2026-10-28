@@ -63,6 +63,14 @@ const getErrorCode = (data: unknown) => {
   return null;
 };
 
+const getEstadoBloqueio = (data: unknown): 'carencia' | 'bloqueada' | null => {
+  if (!data || typeof data !== 'object') return null;
+  const details = (data as { details?: unknown }).details;
+  if (!details || typeof details !== 'object') return null;
+  const estado = (details as { estado?: unknown }).estado;
+  return estado === 'carencia' || estado === 'bloqueada' ? estado : null;
+};
+
 const shouldRedirectToBilling = (url: string) => {
   if (typeof window === 'undefined') {
     return false;
@@ -75,7 +83,9 @@ const shouldRedirectToBilling = (url: string) => {
     pathname === '/pagamento' ||
     pathname.startsWith('/pagamento/') ||
     pathname === '/dashboard/planos' ||
-    pathname.startsWith('/dashboard/planos/');
+    pathname.startsWith('/dashboard/planos/') ||
+    pathname === '/dashboard/assinatura' ||
+    pathname.startsWith('/dashboard/assinatura/');
   const isBillingRequest =
     url.includes('/billing/status') ||
     url.includes('/billing/checkout/session') ||
@@ -145,7 +155,7 @@ api.interceptors.response.use(
       };
 
       if (typeof data.error === 'object' && data.error?.message) {
-        const details = data.error.details;
+        const details = data.error.details as unknown;
         const code = data.error.code;
         (error.response.data as Record<string, unknown>).error = data.error.message;
 
@@ -167,7 +177,15 @@ api.interceptors.response.use(
       getErrorCode(error.response?.data) === 'SUBSCRIPTION_REQUIRED' &&
       shouldRedirectToBilling(url)
     ) {
-      window.location.replace('/pagamento');
+      const estado = getEstadoBloqueio(error.response?.data);
+      // Carência: a escrita foi barrada, mas a dona fica na tela e vê a mensagem.
+      if (estado === 'carencia') return Promise.reject(error);
+      // Bancada: a profissional não vai para a tela de assinatura (o AppShell a devolveria para
+      // /bancada, em loop). A própria bancada mostra o aviso neutro de agenda pausada.
+      if (window.location.pathname === '/bancada' || window.location.pathname.startsWith('/bancada/')) {
+        return Promise.reject(error);
+      }
+      window.location.replace(estado === 'bloqueada' ? '/dashboard/assinatura' : '/pagamento');
       return Promise.reject(error);
     }
 

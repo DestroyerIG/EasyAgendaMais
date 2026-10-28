@@ -13,6 +13,8 @@ const mockSubscriptionRepository = vi.hoisted(() => ({
   storeBillingWebhookEvent: vi.fn(),
 }));
 
+const mockInvalidar = vi.hoisted(() => vi.fn());
+
 const mockBillingProviderFactory = vi.hoisted(() => ({
   getProvider: vi.fn(),
   resolveProviderByPaymentMethod: vi.fn(),
@@ -29,6 +31,10 @@ const mockAsaasMapper = vi.hoisted(() => ({
 
 vi.mock('../repositories/subscriptionRepository.js', () => ({
   subscriptionRepository: mockSubscriptionRepository,
+}));
+
+vi.mock('../modules/conta/estadoConta.service.js', () => ({
+  estadoContaService: { invalidar: mockInvalidar },
 }));
 
 vi.mock('../services/billing/billingProviderFactory.js', () => ({
@@ -129,6 +135,7 @@ describe('billing webhook idempotency', () => {
 
     expect(mockSubscriptionRepository.updateSubscriptionState).not.toHaveBeenCalled();
     expect(mockSubscriptionRepository.storeBillingWebhookEvent).not.toHaveBeenCalled();
+    expect(mockInvalidar).not.toHaveBeenCalled();
     // No longer calls BEGIN/ROLLBACK/release — those were pg client calls
     expect(mockSubscriptionRepository.getClient).not.toHaveBeenCalled();
   });
@@ -186,6 +193,9 @@ describe('billing webhook idempotency', () => {
       }),
       null
     );
+
+    // O estado da conta em cache cai na hora: link público, robô e fila voltam sem esperar.
+    expect(mockInvalidar).toHaveBeenCalledWith('tenant-webhook');
 
     // No longer calls getClient/release
     expect(mockSubscriptionRepository.getClient).not.toHaveBeenCalled();

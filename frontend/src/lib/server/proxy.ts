@@ -38,7 +38,7 @@ function copyResponseHeaders(source: Headers, target: Headers) {
   });
 }
 
-function buildHeaders(request: Request) {
+export function buildHeaders(request: Request) {
   const headers = new Headers();
 
   request.headers.forEach((value, key) => {

@@ -4,6 +4,8 @@ import { ConflictError, NotFoundError, ValidationError } from '../../utils/error
 import { todayInTimezone } from '../../utils/businessDate.js';
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
 import { evaluateFeatureAccess } from '../../services/featureAccessService.js';
+import { estadoContaService } from '../conta/estadoConta.service.js';
+import { textoAgendaPausada } from '../conta/estadoConta.rules.js';
 import { notificationsService } from '../notifications/notifications.service.js';
 import { publicBookingRepository } from '../publicBooking/publicBooking.repository.js';
 import { clubeRepository as repo } from './clube.repository.js';
@@ -54,6 +56,7 @@ export const clubePublicService = {
    */
   async aderir(slug: string, ofertaId: string, input: AdesaoInput) {
     const b = await negocioDoSlug(slug);
+    if ((await estadoContaService.doNegocio(b.id)).tipo !== 'ativa') throw new ConflictError(textoAgendaPausada(b.name));
     if (!vitrineLiberada(b)) throw new NotFoundError('Clube');
     const oferta = await repo.buscarOferta(b.id, ofertaId);
     if (!oferta || oferta.tipo !== 'clube' || !oferta.publica || oferta.status !== 'ativa') throw new NotFoundError('Clube');

@@ -35,7 +35,14 @@ export const subscriptionRepository = {
              canceled_at,
              plano_agendado,
              plano_agendado_em,
-             metadata
+             metadata,
+             inadimplente_desde,
+             (last_payment_date IS NOT NULL
+               OR EXISTS (SELECT 1 FROM billing_payments bp WHERE bp.business_id = businesses.id AND bp.paid_at IS NOT NULL)
+               OR EXISTS (SELECT 1 FROM subscription_events se WHERE se.business_id = businesses.id
+                          AND se.event_type IN ('invoice.paid','invoice.payment_succeeded')
+                          AND CASE WHEN se.payload->>'amount_paid' ~ '^[0-9]+([.][0-9]+)?$'
+                               THEN (se.payload->>'amount_paid')::numeric ELSE 0 END > 0)) AS ja_pagou
       FROM businesses
       WHERE id = ${businessId}::uuid AND active = true
     `);

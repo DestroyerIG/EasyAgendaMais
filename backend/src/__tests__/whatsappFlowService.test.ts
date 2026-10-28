@@ -17,6 +17,7 @@ const mockGenerateAvailableTimeSlots = vi.hoisted(() => vi.fn());
 const mockFormatBusinessHoursRange = vi.hoisted(() => vi.fn());
 const mockAppointmentServiceCreate = vi.hoisted(() => vi.fn());
 
+vi.mock('../modules/conta/estadoConta.service.js', () => ({ estadoContaService: { doNegocio: vi.fn().mockResolvedValue({ tipo: 'ativa' }), limparCache: vi.fn() } }));
 vi.mock('../config/database.js', () => ({
   default: {
     query: mockPoolQuery,

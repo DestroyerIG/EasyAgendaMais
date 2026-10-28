@@ -8,6 +8,8 @@ import logger from '../../utils/logger.js';
 import { vocabularioDe } from '../../config/vocabulario.js';
 import { automacoesGatilhos } from '../whatsappAutomacoes/gatilhos.service.js';
 import type { CreatePublicAppointmentInput, GetPublicAvailabilityQuery, Storefront } from './publicBooking.types.js';
+import { estadoContaService } from '../conta/estadoConta.service.js';
+import { textoAgendaPausada } from '../conta/estadoConta.rules.js';
 import { googleAgendaService } from '../googleAgenda/googleAgenda.service.js';
 
 
@@ -56,6 +58,7 @@ export const publicBookingService = {
     if (!business) throw new NotFoundError('Página');
 
     const services = await publicBookingRepository.findEligibleServices(business.id);
+    const estado = await estadoContaService.doNegocio(business.id);
 
     return {
       businessId: business.id,
@@ -64,6 +67,8 @@ export const publicBookingService = {
       brandColor: business.brandColor,
       galleryPhotos: business.galleryPhotos,
       address: business.address,
+      whatsapp: business.whatsapp ?? null,
+      agendaPausada: estado.tipo !== 'ativa',
       services: services.map((s) => ({
         id: s.id,
         name: s.name,
@@ -98,6 +103,9 @@ export const publicBookingService = {
   async createPendingAppointment(slug: string, data: CreatePublicAppointmentInput) {
     const business = await publicBookingRepository.findBusinessBySlug(slug);
     if (!business) throw new NotFoundError('Página');
+    if ((await estadoContaService.doNegocio(business.id)).tipo !== 'ativa') {
+      throw new ConflictError(textoAgendaPausada(business.name));
+    }
     if (!business.pixKey || !business.pixKeyType) {
       throw new ValidationError('Este negócio ainda não configurou o recebimento de sinal via Pix');
     }

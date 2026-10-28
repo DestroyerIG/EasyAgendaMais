@@ -19,6 +19,8 @@ vi.mock('../modules/whatsappRetorno/retorno.service.js', () => ({ retornoService
 vi.mock('../modules/whatsappInbox/inbox.recorder.js', () => ({ inboxRecorder: inbox }));
 vi.mock('../services/whatsapp/whatsappMessageService.js', () => ({ sendWhatsAppMessage: zap.send }));
 vi.mock('../services/scheduleSettingsService.js', () => ({ getBusinessScheduleSettings: settings.get }));
+// Contingência: conta ativa (os testes de contingência ficam em contingenciaEnvios.test.ts).
+vi.mock('../modules/conta/estadoConta.service.js', () => ({ estadoContaService: { doNegocio: async () => ({ tipo: 'ativa' }) } }));
 
 const { automacoesRotinas, limparTravasDiarias } = await import('../modules/whatsappAutomacoes/rotinas.service.js');
 

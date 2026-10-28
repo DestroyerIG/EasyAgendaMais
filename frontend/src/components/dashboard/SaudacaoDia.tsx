@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Icon } from '@/components/ui';
 import { NEW_APPOINTMENT_HREF, getNavItem } from '@/lib/navigation';
+import { useBloqueadoNaCarencia } from '@/hooks/useBloqueadoNaCarencia';
 
 const DIAS_DA_SEMANA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 
@@ -45,6 +46,7 @@ export interface SaudacaoDiaProps {
 // A pílula do celular traz só o nome do negócio — a referência soma "· 3 ativas",
 // número que o sistema não calcula, então ele fica de fora em vez de inventado.
 export function SaudacaoDia({ ownerName, data, businessName }: SaudacaoDiaProps) {
+  const { bloqueado, dica } = useBloqueadoNaCarencia();
   const agora = new Date();
   const dia = data ? dataDoDia(data) : agora;
 
@@ -73,13 +75,25 @@ export function SaudacaoDia({ ownerName, data, businessName }: SaudacaoDiaProps)
           <Icon name="chat" size={18} />
           Disparos WhatsApp
         </Link>
-        <Link
-          href={NEW_APPOINTMENT_HREF}
-          className="inline-flex items-center gap-2 rounded-control bg-brand px-4 py-2 text-[14px] font-bold text-on-brand shadow-sm transition-transform hover:brightness-105 active:scale-[0.98]"
-        >
-          <Icon name="add" size={19} />
-          Novo agendamento
-        </Link>
+        {bloqueado ? (
+          <button
+            type="button"
+            disabled
+            title={dica}
+            className="inline-flex cursor-not-allowed items-center gap-2 rounded-control bg-brand px-4 py-2 text-[14px] font-bold text-on-brand opacity-50 shadow-sm"
+          >
+            <Icon name="add" size={19} />
+            Novo agendamento
+          </button>
+        ) : (
+          <Link
+            href={NEW_APPOINTMENT_HREF}
+            className="inline-flex items-center gap-2 rounded-control bg-brand px-4 py-2 text-[14px] font-bold text-on-brand shadow-sm transition-transform hover:brightness-105 active:scale-[0.98]"
+          >
+            <Icon name="add" size={19} />
+            Novo agendamento
+          </Link>
+        )}
       </div>
     </div>
   );
