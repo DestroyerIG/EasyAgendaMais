@@ -15,7 +15,8 @@ import { Button, Icon } from '@/components/ui';
 type PixGerado = { paymentId: string; qrCode: string | null; pixCopyPaste: string | null; expiraEm: string | null };
 
 export interface PagamentoContingenciaProps {
-  forma: 'pix' | 'cartao';
+  /** null: a forma de pagamento não pôde ser lida; só sobra o "Já paguei". */
+  forma: 'pix' | 'cartao' | null;
   valor: number | null;
   onPagarComCartao: () => void;
   pagandoComCartao?: boolean;
@@ -84,20 +85,24 @@ export function PagamentoContingencia({
         <span className="rounded-full bg-brand/12 px-2.5 py-0.5 text-[12px] font-bold uppercase tracking-wider text-brand-text">
           Mensalidade em aberto
         </span>
-        <span className="flex items-center gap-1 text-[13px] font-semibold text-muted">
-          <Icon name={forma === 'pix' ? 'qr_code_2' : 'credit_card'} size={16} />
-          {forma === 'pix' ? 'Pix' : 'Cartão de crédito'}
-        </span>
+        {forma && (
+          <span className="flex items-center gap-1 text-[13px] font-semibold text-muted">
+            <Icon name={forma === 'pix' ? 'qr_code_2' : 'credit_card'} size={16} />
+            {forma === 'pix' ? 'Pix' : 'Cartão de crédito'}
+          </span>
+        )}
       </div>
 
       <div className="mt-3">
         <h2 id="pagamento-titulo" className="text-xl font-bold text-ink sm:text-2xl">
-          {forma === 'pix' ? 'Pague com Pix' : 'Pague com outro cartão'}
+          {forma === 'pix' ? 'Pague com Pix' : forma === 'cartao' ? 'Pague com outro cartão' : 'Regularize a mensalidade'}
         </h2>
         <p className="mt-1 text-[14px] text-muted">
           {forma === 'pix'
             ? 'Quando o pagamento for confirmado, o painel volta ao normal.'
-            : 'No portal de pagamento você cadastra outro cartão e quita a mensalidade.'}
+            : forma === 'cartao'
+              ? 'No portal de pagamento você cadastra outro cartão e quita a mensalidade.'
+              : 'Não foi possível carregar a forma de pagamento agora. Se já pagou, confira abaixo; se precisar, fale com o suporte.'}
         </p>
       </div>
 
@@ -105,7 +110,7 @@ export function PagamentoContingencia({
         <div className="mt-4 rounded-xl bg-surface-2 p-4">
           <PixPagamento
             paymentId={pix.paymentId}
-            valor={valor ?? 0}
+            valor={valor}
             qrCode={pix.qrCode}
             pixCopyPaste={pix.pixCopyPaste}
             acompanhar

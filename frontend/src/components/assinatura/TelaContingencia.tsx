@@ -203,6 +203,7 @@ export function TelaContingencia() {
   const { openBillingPortal, portalLoading } = useDashboardBilling();
   const [status, setStatus] = useState<SubscriptionStatusResponse | null>(null);
   const [catalogo, setCatalogo] = useState<CatalogoPlanos | null>(null);
+  const [cobrancaLida, setCobrancaLida] = useState<'carregando' | 'ok' | 'falhou'>('carregando');
 
   useEffect(() => {
     let ativo = true;
@@ -210,6 +211,7 @@ export function TelaContingencia() {
       if (!ativo) return;
       if (s.status === 'fulfilled') setStatus(s.value);
       if (c.status === 'fulfilled') setCatalogo(c.value);
+      setCobrancaLida(s.status === 'fulfilled' ? 'ok' : 'falhou');
     });
     return () => {
       ativo = false;
@@ -220,6 +222,7 @@ export function TelaContingencia() {
     try {
       const novo = await billingApi.getStatus();
       setStatus(novo);
+      setCobrancaLida('ok');
     } catch {
       // A consulta do estado abaixo é o que decide.
     }
@@ -259,7 +262,8 @@ export function TelaContingencia() {
 
   const cobranca = estado.tipo === 'carencia' || estado.motivo === 'cobranca';
 
-  const planoBruto = status?.plan ?? user?.plan ?? null;
+  // A reativação cobra o plano agendado quando há troca marcada (`plano_agendado || plan`).
+  const planoBruto = status?.planoAgendado ?? status?.plan ?? user?.plan ?? null;
   const planoCatalogo = catalogo?.planos.find((p) => p.id === planoBruto) ?? null;
   const nomePlano = planoCatalogo?.nome ?? (planoBruto && isPlanId(planoBruto) ? NOME_PLANO[planoBruto] : null);
   const preco = planoCatalogo?.preco ?? null;
@@ -268,7 +272,8 @@ export function TelaContingencia() {
   const mensalidade = vencimento
     ? `A mensalidade de ${negocio}${plano} venceu em ${vencimento}.`
     : `A mensalidade de ${negocio}${plano} está em aberto.`;
-  const formaPagamento = status?.paymentMethod === 'pix' ? 'pix' : 'cartao';
+  // Sem a cobrança lida não dá para saber se é Pix ou cartão: nada de oferecer a forma errada.
+  const formaPagamento = cobrancaLida === 'ok' ? (status?.paymentMethod === 'pix' ? 'pix' : 'cartao') : null;
 
   const situacao = cobranca ? (
     <CartaoSituacao
@@ -319,14 +324,18 @@ export function TelaContingencia() {
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12 lg:gap-6">
           <div className="space-y-4 lg:col-span-7 lg:space-y-6">
             {estado.tipo === 'carencia' && <OQueContinuaLiberado />}
-            <PagamentoContingencia
-              forma={formaPagamento}
-              valor={preco}
-              onPagarComCartao={openBillingPortal}
-              pagandoComCartao={portalLoading}
-              onPago={irParaOPainel}
-              onConferir={conferir}
-            />
+            {cobrancaLida === 'carregando' ? (
+              <Skeleton className="h-72 w-full" />
+            ) : (
+              <PagamentoContingencia
+                forma={formaPagamento}
+                valor={preco}
+                onPagarComCartao={openBillingPortal}
+                pagandoComCartao={portalLoading}
+                onPago={irParaOPainel}
+                onConferir={conferir}
+              />
+            )}
           </div>
           <div className="space-y-4 lg:col-span-5 lg:space-y-6">
             {backup}

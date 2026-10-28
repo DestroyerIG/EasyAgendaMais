@@ -132,6 +132,66 @@ describe('TelaContingencia', () => {
     });
   });
 
+  it('com troca agendada, plano e valor são os do plano agendado (o que a reativação cobra)', async () => {
+    billing.getStatus.mockResolvedValue(status({ planoAgendado: 'premium' }));
+    billing.reactivateSubscription.mockResolvedValue({
+      provider: 'asaas',
+      reactivationMode: 'new_pix_checkout',
+      paymentId: 'pay_1',
+      subscriptionId: 'sub_1',
+      status: 'pending',
+      qrCode: null,
+      pixCopyPaste: '000201pix',
+      expiresAt: null,
+    });
+    render(<TelaContingencia />);
+    expect(
+      await screen.findByText('A mensalidade de Studio Aurora (Plano Salão · R$ 199,90) venceu em 15 de outubro de 2026.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('R$ 199,90', { selector: 'span' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Gerar Pix/ }));
+    expect(await screen.findByText('000201pix')).toBeInTheDocument();
+    expect(screen.getByText('R$ 199,90')).toBeInTheDocument();
+  });
+
+  it('enquanto a cobrança carrega, não mostra ações de pagamento', async () => {
+    billing.getStatus.mockReturnValue(new Promise(() => {}));
+    render(<TelaContingencia />);
+    await screen.findByText('Carência: 4 dias restantes');
+    expect(screen.queryByRole('button', { name: /Pagar com outro cartão/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Gerar Pix/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Já paguei/ })).not.toBeInTheDocument();
+  });
+
+  it('se a cobrança não carregou, oferece só Já paguei e o suporte', async () => {
+    vi.stubEnv('NEXT_PUBLIC_SUPPORT_WHATSAPP', '5511999990000');
+    billing.getStatus.mockRejectedValue(new Error('falhou'));
+    render(<TelaContingencia />);
+    expect(await screen.findByRole('button', { name: /Já paguei/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Falar com o suporte no WhatsApp/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Pagar com outro cartão/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Gerar Pix/ })).not.toBeInTheDocument();
+  });
+
+  it('sem o catálogo, o Pix não mostra valor inventado', async () => {
+    billing.getPlans.mockRejectedValue(new Error('falhou'));
+    billing.reactivateSubscription.mockResolvedValue({
+      provider: 'asaas',
+      reactivationMode: 'new_pix_checkout',
+      paymentId: 'pay_1',
+      subscriptionId: 'sub_1',
+      status: 'pending',
+      qrCode: null,
+      pixCopyPaste: '000201pix',
+      expiresAt: null,
+    });
+    const { container } = render(<TelaContingencia />);
+    fireEvent.click(await screen.findByRole('button', { name: /Gerar Pix/ }));
+    expect(await screen.findByText('000201pix')).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/R\$\s0,00/);
+    expect(screen.queryByText('Valor do Pix')).not.toBeInTheDocument();
+  });
+
   it('carência com cartão: Pagar com outro cartão abre o portal e não há Pix', async () => {
     billing.getStatus.mockResolvedValue(status({ provider: 'stripe', paymentMethod: 'card', subscriptionStatus: 'past_due' }));
     render(<TelaContingencia />);
