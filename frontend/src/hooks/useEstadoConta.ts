@@ -5,17 +5,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import { contaApi, type EstadoConta } from '@/lib/conta';
 
 // Estado da conta (ativa, carência ou bloqueada). Só consulta com a pessoa autenticada.
-export function useEstadoConta(): { estado: EstadoConta | null; recarregar(): Promise<void> } {
+export function useEstadoConta(): { estado: EstadoConta | null; recarregar(): Promise<EstadoConta | null> } {
   const { user } = useAuth();
   const logado = Boolean(user);
   const [estado, setEstado] = useState<EstadoConta | null>(null);
 
-  const recarregar = useCallback(async () => {
-    if (!logado) return;
+  // Devolve o estado lido (ou null se falhar), para quem precisa decidir na hora.
+  const recarregar = useCallback(async (): Promise<EstadoConta | null> => {
+    if (!logado) return null;
     try {
-      setEstado(await contaApi.estado());
+      const novo = await contaApi.estado();
+      setEstado(novo);
+      return novo;
     } catch {
       // Sem o estado o painel segue como está; o servidor continua barrando o que for preciso.
+      return null;
     }
   }, [logado]);
 

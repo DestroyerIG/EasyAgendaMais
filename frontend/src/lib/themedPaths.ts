@@ -21,6 +21,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/app/dashboard/planos',
   'src/components/planos',
   'src/components/assinatura',
+  'src/app/dashboard/assinatura',
   'src/hooks/useEstadoConta.ts',
   'src/lib/conta.ts',
   'src/lib/planoCobranca.ts',
