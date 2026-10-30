@@ -94,7 +94,7 @@ const auditoria = (): PaginatedAdminResponse<RegistroAuditoria> => ({
     {
       id: 'a1',
       criadoEm: '2026-10-20T15:00:00.000Z',
-      acao: 'tenant_block',
+      acao: 'TENANT_BLOCKED',
       status: 'success',
       ator: 'admin@easyagenda.com',
       detalhes: null,
@@ -183,7 +183,7 @@ describe('Detalhes do negócio', () => {
 
   it('a aba "Financeiro" consulta a auditoria da categoria', async () => {
     abrir();
-    await screen.findByText('tenant_block');
+    await screen.findByText('Conta bloqueada');
     fireEvent.click(screen.getByRole('button', { name: 'Financeiro' }));
     await waitFor(() =>
       expect(adminApi.getTenantAudit).toHaveBeenLastCalledWith(ID, expect.objectContaining({ categoria: 'financeiro', page: 1 })),

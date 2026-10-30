@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon, Skeleton, buttonVariants } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { adminApi } from '@/lib/adminApi';
+import { rotuloAcao } from '@/lib/adminRotulos';
 import { cn } from '@/lib/cn';
 import { formatDataHoraNegocio, formatNumber } from '@/lib/formatters';
 import { getApiErrorMessage } from '@/utils/handleApiError';
@@ -135,7 +136,7 @@ export function AuditoriaNegocio({ tenantId, versao }: Props) {
                   {sucesso(r.status) ? 'Sucesso' : 'Falhou'}
                 </span>
               </div>
-              <p className="mt-1 break-all font-mono text-[13px] text-ink">{r.acao}</p>
+              <p className="mt-1 break-words text-[14px] font-semibold text-ink">{rotuloAcao(r.acao)}</p>
               <p className="text-[12px] text-muted">{r.ator ?? SEM_DADO}</p>
             </li>
           ))}

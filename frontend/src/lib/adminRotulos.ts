@@ -43,6 +43,23 @@ export const rotuloSegmento = (segmento: string): string =>
 export const rotuloStatus = (status: string): string =>
   tem(ROTULO_STATUS, status) ? ROTULO_STATUS[status as StatusAdmin] : status;
 
+const ROTULO_ACAO: Record<string, string> = {
+  TENANT_BLOCKED: 'Conta bloqueada',
+  TENANT_UNBLOCKED: 'Conta desbloqueada',
+  TENANT_SOFT_DELETED: 'Conta excluída',
+  USER_BLOCKED: 'Usuário bloqueado',
+  USER_UNBLOCKED: 'Usuário desbloqueado',
+  SUBSCRIPTION_RESYNC_TRIGGERED: 'Assinatura sincronizada com o gateway',
+  SUBSCRIPTION_PLAN_OVERRIDE: 'Plano alterado manualmente',
+  SUBSCRIPTION_STATUS_OVERRIDE: 'Status alterado manualmente',
+  SUBSCRIPTION_CANCELED: 'Assinatura cancelada',
+  TRIAL_EXTENDED: 'Teste grátis estendido',
+  conta_backup: 'Backup da conta baixado',
+};
+
+/** Código de ação da auditoria em português; código desconhecido aparece como veio. */
+export const rotuloAcao = (codigo: string): string => (tem(ROTULO_ACAO, codigo) ? ROTULO_ACAO[codigo] : codigo);
+
 const MENSAGEM_ALERTA: Record<TipoAlerta, string> = {
   cobranca:
     'Oi, {dono}! Aqui é do EasyAgenda+. A mensalidade do {negocio} ainda não foi confirmada. Quer ajuda para regularizar? Dá para pagar pelo Pix direto no painel.',

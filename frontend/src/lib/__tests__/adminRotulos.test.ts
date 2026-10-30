@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mensagemAlerta, rotuloPlano, rotuloSegmento, ROTULO_STATUS } from '../adminRotulos';
+import { mensagemAlerta, rotuloAcao, rotuloPlano, rotuloSegmento, ROTULO_STATUS } from '../adminRotulos';
 
 describe('adminRotulos', () => {
   it('a mensagem de alerta usa só o primeiro nome do dono e cita o negócio', () => {
@@ -37,5 +37,17 @@ describe('adminRotulos', () => {
     expect(rotuloPlano('profissional')).toBe('Equipe');
     expect(rotuloPlano('desconhecido')).toBe('desconhecido');
     expect(rotuloSegmento('cilios_sobrancelhas')).toBe('Cílios e sobrancelhas');
+  });
+
+  it('rotuloAcao traduz os códigos da auditoria', () => {
+    expect(rotuloAcao('TENANT_BLOCKED')).toBe('Conta bloqueada');
+    expect(rotuloAcao('TENANT_UNBLOCKED')).toBe('Conta desbloqueada');
+    expect(rotuloAcao('TRIAL_EXTENDED')).toBe('Teste grátis estendido');
+    expect(rotuloAcao('conta_backup')).toBe('Backup da conta baixado');
+  });
+
+  it('rotuloAcao devolve o código quando não conhece e não confunde com propriedades do objeto', () => {
+    expect(rotuloAcao('ALGO_NOVO')).toBe('ALGO_NOVO');
+    expect(rotuloAcao('constructor')).toBe('constructor');
   });
 });
