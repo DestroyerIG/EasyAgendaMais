@@ -1,103 +1,186 @@
-export interface AdminMetricsResponse {
-  totals: {
-    totalAccounts: number;
-    activeAccounts: number;
-    suspendedAccounts: number;
-    totalUsers: number;
-    blockedUsers: number;
-  };
-  subscriptions: {
-    active: number;
-    canceled: number;
-    trial: number;
-    breakdown: Array<{ subscription_status: string; total: number }>;
-    plans: Array<{ plan: string; total: number }>;
-  };
-  revenue: {
-    monthlyRevenueCollected: number;
-    estimatedMrr: number;
-  };
-  usage: {
-    periodDays: number;
-    appointmentsInPeriod: number;
-    activeTenants30d: number;
-    newAccountsTrend: Array<{ day: string; total: number }>;
-    appointmentsTrend: Array<{ day: string; appointments: number }>;
-  };
+// Tipos da API do SuperAdmin (painel H2). Os nomes seguem o backend (painel.service / painel.rules).
+// Datas chegam como string ISO.
+
+export type StatusAdmin =
+  | 'ativo'
+  | 'teste'
+  | 'carencia'
+  | 'bloqueado_cobranca'
+  | 'teste_encerrado'
+  | 'bloqueado_admin'
+  | 'cancelado';
+
+export type TipoAlerta = 'cobranca' | 'teste_sem_onboarding' | 'whatsapp' | 'sem_agendamento';
+
+export type SegmentoAdmin = 'barbearia' | 'unhas' | 'cilios_sobrancelhas' | 'cabelo' | 'estetica' | 'outro';
+
+export type CategoriaAuditoria = 'todos' | 'financeiro' | 'sistema' | 'operador';
+
+export interface ConversaoLinha {
+  criados: number;
+  pagantes: number;
+  taxaPct: number | null;
 }
 
-export interface AdminTenant {
+export interface NegocioEmRisco {
   id: string;
-  name: string;
-  owner_name: string;
+  nome: string;
+  dono: string;
+  whatsapp: string;
+  segmento: string;
+  plano: string;
+  tipo: TipoAlerta;
+  desde: string;
+  mrr: number;
+}
+
+// GET /admin/metrics
+export interface AdminVisaoGeral {
+  atualizadoEm: string;
+  mrr: {
+    mrr: number;
+    mrrMesAnterior: number;
+    variacaoPct: number | null;
+    novos: number;
+    churn: number;
+  };
+  testes: {
+    ativos: number;
+    vencendo48h: number;
+    novosNaSemana: number;
+  };
+  conversao: {
+    geral: ConversaoLinha;
+    segmentos: Array<ConversaoLinha & { segmento: string; ticketMedio: number | null }>;
+  };
+  cancelamentos: {
+    cancelamentosMes: number;
+    churnContas: number;
+    receitaCancelada: number;
+    retencaoPct: number | null;
+  };
+  emRisco: NegocioEmRisco[];
+  disparos24h: Array<{ origem: string; enviados: number; falhos: number }>;
+}
+
+export interface NegocioListado {
+  id: string;
+  nome: string;
+  dono: string;
   email: string;
   whatsapp: string;
-  plan: string;
-  subscription_status: string;
-  subscription_current_period_end: string | null;
-  subscription_updated_at: string | null;
-  active: boolean;
-  suspended_at: string | null;
-  suspended_reason: string | null;
-  created_at: string;
-  updated_at: string;
-  owner_user_id: string | null;
-  owner_user_email: string | null;
-  owner_user_role: string | null;
-  owner_user_blocked: boolean | null;
-  last_activity_at: string | null;
+  endereco: string | null;
+  segmento: string;
+  plano: string;
+  preco: number;
+  status: StatusAdmin;
+  whatsappConectado: boolean;
+  whatsappConectadoEm: string | null;
+  agendamentos30d: number;
+  ultimaAtividadeEm: string | null;
+  diasRestantesTeste: number | null;
 }
 
-export interface AdminTenantDetails {
+export interface CartoesGestao {
+  base: number;
+  pagantes: number;
+  mrr: number;
+  ticketMedio: number | null;
+  testes: number;
+  testesVencemHoje: number;
+  conversaoPct: number | null;
+  inadimplentes: number;
+  valorPendente: number;
+  bloqueioTotal: number;
+}
+
+export interface FiltrosNegocios {
+  busca?: string;
+  segmento?: string;
+  status?: StatusAdmin;
+  plano?: string;
+}
+
+export type LimitePagina = 6 | 20 | 50 | 100;
+
+// GET /admin/tenants
+export interface ListaNegocios {
+  data: NegocioListado[];
+  meta: PaginationMeta;
+  cartoes: CartoesGestao;
+  segmentos: Array<{ segmento: string; total: number }>;
+}
+
+export type StatusFatura = 'pago' | 'em_aberto' | 'vencido' | 'cancelado' | 'estornado';
+
+export interface FaturaAdmin {
   id: string;
-  name: string;
-  owner_name: string;
-  email: string;
-  whatsapp: string;
-  plan: string;
-  subscription_status: string;
-  subscription_current_period_start: string | null;
-  subscription_current_period_end: string | null;
-  subscription_cancel_at_period_end: boolean;
-  subscription_updated_at: string | null;
-  stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
-  active: boolean;
-  suspended_at: string | null;
-  suspended_reason: string | null;
-  created_at: string;
-  updated_at: string;
-  owner_user_id: string | null;
-  owner_user_email: string | null;
-  owner_user_role: string | null;
-  owner_user_blocked: boolean | null;
-  usage: {
-    totalUsers: number;
-    blockedUsers: number;
-    totalClients: number;
-    totalAppointmentsMonth: number;
-    totalServices: number;
-    totalProfessionals: number;
-    lastActivityAt: string | null;
+  data: string;
+  referencia: string;
+  periodoInicio: string | null;
+  periodoFim: string | null;
+  valor: number;
+  forma: 'pix' | 'card';
+  formaDetalhe: string;
+  status: StatusFatura;
+  tipo: 'mensalidade' | 'upgrade';
+  url: string | null;
+}
+
+// GET /admin/tenants/:id
+export interface DetalheNegocio {
+  negocio: NegocioListado & {
+    cpfCnpj: string | null;
+    slug: string | null;
+    criadoEm: string;
+    suspensoMotivo: string | null;
+    statusAssinatura: string;
+    fimDoPeriodo: string | null;
+    temAssinaturaGateway: boolean;
+    jaPagou: boolean;
+    usuarioDonoId: string | null;
+  };
+  ltv: { total: number; ciclos: number; desde: string | null };
+  proximaCobranca: { data: string; valor: number } | null;
+  /** null quando as faturas não puderam ser lidas (ex.: negócio bloqueado pelo admin). */
+  faturas: FaturaAdmin[] | null;
+  uso: {
+    profissionaisAtivas: number;
+    agendamentosMes: number;
+    agendamentosComSinalMes: number;
+    clientes: number;
+    clientesNovosMes: number;
+    lembretesLigados: boolean;
+    enviosMes: { enviados: number; falhos: number };
+    limiteProfissionais: number | null;
+    paginaPublica: string | null;
   };
 }
 
-export interface AdminSubscription {
-  tenant_id: string;
-  name: string;
-  email: string;
-  plan: string;
-  subscription_status: string;
-  subscription_current_period_start: string | null;
-  subscription_current_period_end: string | null;
-  subscription_cancel_at_period_end: boolean;
-  subscription_updated_at: string | null;
-  stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
-  owner_user_email: string | null;
-  active: boolean;
+// GET /admin/tenants/:id/auditoria
+export interface RegistroAuditoria {
+  id: string;
+  criadoEm: string;
+  acao: string;
+  status: string;
+  ator: string | null;
+  detalhes: unknown;
+  ip: string | null;
 }
 
+export interface FiltrosAuditoria {
+  categoria?: CategoriaAuditoria;
+  page?: number;
+  limit?: number;
+}
+
+// PATCH /admin/tenants/:id/trial
+export interface TesteEstendido {
+  tenantId: string;
+  fimDoTeste: string;
+}
+
+// Usados pelas páginas de cupons e de auditoria geral (reestilizadas na Tarefa 10).
 export interface AdminAuditLog {
   id: string;
   action_type: string;

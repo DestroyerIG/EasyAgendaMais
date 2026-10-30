@@ -25,7 +25,6 @@ const COVERAGE_EXEMPT: readonly string[] = [
   // mas os modais de Pix/cupom (fluxo autenticado em /dashboard/planos) ainda usam
   // as cores antigas — fora do escopo desta migração.
   'src/components/marketing/PricingPlansSection.tsx',
-  'src/components/admin', // SuperAdmin: fora do escopo do design system
   'src/components/LoadingSkeleton.tsx', // esqueleto legado das telas fora do escopo
   'src/app/termos', // página institucional: fora do escopo
   'src/app/privacidade', // página institucional: fora do escopo

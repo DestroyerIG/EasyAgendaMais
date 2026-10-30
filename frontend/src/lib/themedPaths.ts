@@ -80,4 +80,10 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/convite',
   'src/app/avaliar',
   'src/components/avaliacao',
+  // H2: SuperAdmin. Cupons e auditoria geral (src/app/admin/coupons e logs) entram na Tarefa 10,
+  // quando a pasta src/app/admin inteira passa a valer.
+  'src/components/admin',
+  'src/app/admin/layout.tsx',
+  'src/app/admin/page.tsx',
+  'src/app/admin/negocios',
 ];

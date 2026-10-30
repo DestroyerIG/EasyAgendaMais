@@ -1,32 +1,27 @@
 'use client';
 
-import { LogOut, UserCog } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button, Icon, ThemeSelect } from '@/components/ui';
 
 export function AdminTopbar() {
   const { user, logout } = useAuth();
 
   return (
-    <header className="flex items-center justify-between border-b border-white/10 bg-black/70 px-5 py-4 backdrop-blur-sm">
-      <div>
-        <p className="text-xs uppercase tracking-[0.18em] text-primary/70">Painel global</p>
-        <h2 className="text-lg font-black text-white">Administração da Plataforma</h2>
+    <header className="flex h-16 items-center justify-between gap-3 border-b border-line bg-surface px-4 lg:px-6">
+      <div className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-muted">
+        <Icon name="admin_panel_settings" size={20} className="text-brand" />
+        <span className="truncate">Administração da plataforma</span>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 sm:flex">
-          <UserCog size={16} className="text-primary" />
-          <span className="text-xs font-semibold text-gray-200">{user?.email || 'Administrador'}</span>
-        </div>
-
-        <button
-          type="button"
-          onClick={logout}
-          className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-gray-200 transition-colors hover:bg-white/5 hover:text-white"
-        >
-          <LogOut size={16} />
+      <div className="flex items-center gap-2">
+        <ThemeSelect className="hidden md:flex" />
+        <span className="hidden max-w-[220px] truncate text-[13px] font-semibold text-ink sm:inline">
+          {user?.email || 'Administrador'}
+        </span>
+        <Button variant="secondary" size="sm" onClick={logout}>
+          <Icon name="logout" size={18} />
           Sair
-        </button>
+        </Button>
       </div>
     </header>
   );

@@ -1,15 +1,23 @@
 import api from '@/lib/api';
+import { abrirErroEmBlob } from '@/lib/conta';
 import type {
   AdminActionPayload,
   AdminAuditLog,
   AdminCoupon,
   AdminCouponPayload,
-  AdminMetricsResponse,
-  AdminSubscription,
-  AdminTenant,
-  AdminTenantDetails,
+  AdminVisaoGeral,
+  CategoriaAuditoria,
+  CartoesGestao,
+  DetalheNegocio,
+  FiltrosAuditoria,
+  FiltrosNegocios,
+  LimitePagina,
+  ListaNegocios,
+  NegocioListado,
   PaginatedAdminResponse,
   PaginationMeta,
+  RegistroAuditoria,
+  TesteEstendido,
 } from '@/types/admin';
 
 type QueryParams = Record<string, string | number | boolean | undefined | null>;
@@ -45,32 +53,80 @@ const normalizeParams = (params: QueryParams) => {
   return next;
 };
 
+// CSV: com responseType 'blob' o erro também chega como Blob; abre para a mensagem do servidor aparecer.
+const baixarBlob = async (url: string, params: QueryParams = {}): Promise<Blob> => {
+  try {
+    const response = await api.get<Blob>(url, { params: normalizeParams(params), responseType: 'blob' });
+    return response.data;
+  } catch (error) {
+    await abrirErroEmBlob(error);
+    throw error;
+  }
+};
+
 const actionPayload = (reason?: string): AdminActionPayload => ({
   confirmation: 'CONFIRM',
   ...(reason ? { reason } : {}),
 });
 
 export const adminApi = {
-  async getMetrics(periodDays = 30): Promise<AdminMetricsResponse> {
+  async getMetrics(periodDays = 30): Promise<AdminVisaoGeral> {
     const response = await api.get('/admin/metrics', {
       params: normalizeParams({ periodDays }),
     });
 
-    return response.data as AdminMetricsResponse;
+    return response.data as AdminVisaoGeral;
   },
 
-  async getTenants(params: QueryParams = {}): Promise<PaginatedAdminResponse<AdminTenant>> {
+  async getTenants(
+    filtros: FiltrosNegocios & { page?: number; limit?: LimitePagina } = {},
+  ): Promise<ListaNegocios> {
     const response = await api.get('/admin/tenants', {
-      params: normalizeParams(params),
+      params: normalizeParams({ ...filtros }),
     });
 
-    const parsed = extractWithMeta<AdminTenant[]>(response as unknown as { data: AdminTenant[]; meta?: PaginationMeta });
+    const parsed = extractWithMeta<NegocioListado[]>(response as unknown as { data: NegocioListado[]; meta?: PaginationMeta });
+    // Os cartões e a contagem por segmento vêm ao lado de data e meta no envelope.
+    const envelope = (response as unknown as {
+      envelope?: { cartoes?: CartoesGestao; segmentos?: ListaNegocios['segmentos'] };
+    }).envelope;
+
+    return {
+      data: parsed.data,
+      meta: parsed.meta,
+      cartoes: envelope?.cartoes as CartoesGestao,
+      segmentos: envelope?.segmentos ?? [],
+    };
+  },
+
+  async exportTenantsCsv(filtros: FiltrosNegocios = {}): Promise<Blob> {
+    return baixarBlob('/admin/tenants/export.csv', { ...filtros });
+  },
+
+  async getTenantDetails(tenantId: string): Promise<DetalheNegocio> {
+    const response = await api.get(`/admin/tenants/${tenantId}`);
+    return response.data as DetalheNegocio;
+  },
+
+  async getTenantAudit(
+    tenantId: string,
+    filtros: FiltrosAuditoria = {},
+  ): Promise<PaginatedAdminResponse<RegistroAuditoria>> {
+    const response = await api.get(`/admin/tenants/${tenantId}/auditoria`, {
+      params: normalizeParams({ ...filtros }),
+    });
+
+    const parsed = extractWithMeta<RegistroAuditoria[]>(response as unknown as { data: RegistroAuditoria[]; meta?: PaginationMeta });
     return { data: parsed.data, meta: parsed.meta };
   },
 
-  async getTenantDetails(tenantId: string): Promise<AdminTenantDetails> {
-    const response = await api.get(`/admin/tenants/${tenantId}`);
-    return response.data as AdminTenantDetails;
+  async exportTenantAuditCsv(tenantId: string, categoria: CategoriaAuditoria = 'todos'): Promise<Blob> {
+    return baixarBlob(`/admin/tenants/${tenantId}/auditoria.csv`, { categoria });
+  },
+
+  async extendTrial(tenantId: string, dias: number, reason: string): Promise<TesteEstendido> {
+    const response = await api.patch(`/admin/tenants/${tenantId}/trial`, { confirmation: 'CONFIRM', dias, reason });
+    return response.data as TesteEstendido;
   },
 
   async blockTenant(tenantId: string, reason?: string) {
@@ -99,15 +155,6 @@ export const adminApi = {
   async unblockUser(userId: string, reason?: string) {
     const response = await api.patch(`/admin/users/${userId}/unblock`, actionPayload(reason));
     return response.data;
-  },
-
-  async getSubscriptions(params: QueryParams = {}): Promise<PaginatedAdminResponse<AdminSubscription>> {
-    const response = await api.get('/admin/subscriptions', {
-      params: normalizeParams(params),
-    });
-
-    const parsed = extractWithMeta<AdminSubscription[]>(response as unknown as { data: AdminSubscription[]; meta?: PaginationMeta });
-    return { data: parsed.data, meta: parsed.meta };
   },
 
   async resyncSubscription(tenantId: string, reason?: string) {

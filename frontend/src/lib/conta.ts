@@ -21,7 +21,7 @@ function nomeDoArquivo(disposition: unknown): string | null {
 }
 
 // Com responseType 'blob' o corpo de erro (JSON) também chega como Blob: abre para a mensagem aparecer.
-async function abrirErroEmBlob(error: unknown): Promise<void> {
+export async function abrirErroEmBlob(error: unknown): Promise<void> {
   if (!axios.isAxiosError(error) || !error.response) return;
   const dados: unknown = error.response.data;
   if (!(dados instanceof Blob)) return;
