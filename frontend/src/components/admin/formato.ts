@@ -32,3 +32,27 @@ export const tempoDesde = (iso: string, agora: Date = new Date()): string => {
 
 /** Classe da caixa de cada cartão da visão geral (Stitch: superfície, cantos de 16 px, sombra leve). */
 export const CAIXA = 'rounded-card border border-line bg-surface shadow-sm';
+
+const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+/** Instante ISO → "mar/2026" no fuso de São Paulo. */
+export const mesAno = (iso: string): string => {
+  const partes = new Intl.DateTimeFormat('en-GB', { timeZone: FUSO_NEGOCIO, year: 'numeric', month: '2-digit' }).formatToParts(
+    new Date(iso),
+  );
+  const mes = Number(partes.find((p) => p.type === 'month')?.value);
+  const ano = partes.find((p) => p.type === 'year')?.value ?? '';
+  return `${MESES[mes - 1] ?? ''}/${ano}`;
+};
+
+/** Salva um Blob (CSV exportado) como arquivo no navegador. */
+export function salvarArquivo(blob: Blob, nome: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nome;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

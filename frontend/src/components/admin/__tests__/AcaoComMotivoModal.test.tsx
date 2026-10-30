@@ -4,17 +4,18 @@ import { AcaoComMotivoModal } from '../AcaoComMotivoModal';
 
 const abrir = (props: Partial<Parameters<typeof AcaoComMotivoModal>[0]> = {}) => {
   const onConfirmar = vi.fn();
+  const onFechar = vi.fn();
   render(
     <AcaoComMotivoModal
       titulo="Estender teste"
       descricao="O teste grátis ganha mais dias."
       rotuloConfirmar="Confirmar"
       onConfirmar={onConfirmar}
-      onFechar={vi.fn()}
+      onFechar={onFechar}
       {...props}
     />,
   );
-  return { onConfirmar };
+  return { onConfirmar, onFechar };
 };
 
 const motivo = () => screen.getByLabelText(/Motivo/);
@@ -54,5 +55,37 @@ describe('AcaoComMotivoModal', () => {
     fireEvent.change(motivo(), { target: { value: '  motivo ok ' } });
     fireEvent.click(confirmar());
     expect(onConfirmar).toHaveBeenCalledWith('motivo ok', undefined);
+  });
+
+  it('com campoEscolha, mostra a escolha inicial e entrega o valor escolhido', () => {
+    const { onConfirmar } = abrir({
+      campoEscolha: {
+        rotulo: 'Plano',
+        opcoes: [
+          { valor: 'basico', rotulo: 'Solo' },
+          { valor: 'premium', rotulo: 'Salão' },
+        ],
+        inicial: 'basico',
+      },
+    });
+    const plano = screen.getByLabelText(/Plano/);
+    expect(plano).toHaveValue('basico');
+    fireEvent.change(plano, { target: { value: 'premium' } });
+    fireEvent.change(motivo(), { target: { value: 'motivo ok' } });
+    fireEvent.click(confirmar());
+    expect(onConfirmar).toHaveBeenCalledWith('motivo ok', undefined, 'premium');
+  });
+
+  it('enquanto envia, Esc e o botão de fechar não fecham o modal', () => {
+    const { onFechar } = abrir({ enviando: true });
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar' }));
+    expect(onFechar).not.toHaveBeenCalled();
+  });
+
+  it('fora do envio, Esc fecha o modal', () => {
+    const { onFechar } = abrir();
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+    expect(onFechar).toHaveBeenCalled();
   });
 });

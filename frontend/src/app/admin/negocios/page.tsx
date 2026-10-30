@@ -14,6 +14,7 @@ import { Banner, Icon, Skeleton, buttonVariants } from '@/components/ui';
 import { CartoesGestao } from '@/components/admin/negocios/CartoesGestao';
 import { FiltrosNegocios } from '@/components/admin/negocios/FiltrosNegocios';
 import { LIMITES, TabelaNegocios } from '@/components/admin/negocios/TabelaNegocios';
+import { salvarArquivo } from '@/components/admin/formato';
 import { adminApi } from '@/lib/adminApi';
 import { PLANOS_ADMIN, SEGMENTOS_ADMIN, STATUS_ADMIN } from '@/lib/adminRotulos';
 import { cn } from '@/lib/cn';
@@ -74,17 +75,6 @@ function paraUrl(e: Estado): string {
 }
 
 const chave = (e: Estado) => JSON.stringify(compactar(e));
-
-function baixarArquivo(blob: Blob, nome: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = nome;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
 
 function GestaoNegocios() {
   const router = useRouter();
@@ -162,7 +152,7 @@ function GestaoNegocios() {
         ...(status ? { status } : {}),
         ...(plano ? { plano } : {}),
       };
-      baixarArquivo(await adminApi.exportTenantsCsv(filtros), 'negocios.csv');
+      salvarArquivo(await adminApi.exportTenantsCsv(filtros), 'negocios.csv');
     } catch (e) {
       setErroCsv(getApiErrorMessage(e, 'Não foi possível exportar o CSV.'));
     } finally {

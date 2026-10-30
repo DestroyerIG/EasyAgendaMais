@@ -8,7 +8,7 @@ import { CAIXA, SEM_DADO, tempoDesde } from '../formato';
 
 export const LIMITES: LimitePagina[] = [6, 20, 50, 100];
 
-const TOM_STATUS: Record<StatusAdmin, string> = {
+export const TOM_STATUS: Record<StatusAdmin, string> = {
   ativo: 'bg-success/12 text-success-text',
   teste: 'bg-brand/12 text-brand-text',
   carencia: 'bg-warning/12 text-warning-text',
