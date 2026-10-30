@@ -79,4 +79,12 @@ describe('painelRepository', () => {
     const arg = prismaMock.$queryRaw.mock.calls[0][0] as { values: unknown[] };
     expect(arg.values).toContain('n1');
   });
+
+  it('disparos24h agrupa por origem nas últimas 24 h e converte contagens em number', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([{ origem: 'lembrete', enviados: 12n, falhos: '2' }]);
+    expect(await painelRepository.disparos24h()).toEqual([{ origem: 'lembrete', enviados: 12, falhos: 2 }]);
+    const sql = (prismaMock.$queryRaw.mock.calls[0][0] as { sql: string }).sql;
+    expect(sql).toMatch(/created_at >= now\(\) - interval '24 hours'/);
+    expect(sql).toMatch(/GROUP BY w\.origin/);
+  });
 });

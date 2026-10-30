@@ -128,4 +128,21 @@ export const painelRepository = {
     const linhas = await consultar(id);
     return linhas[0] ?? null;
   },
+  /** Envios de WhatsApp criados nas últimas 24 h, por origem. created_at é timestamptz. */
+  async disparos24h(): Promise<Array<{ origem: string; enviados: number; falhos: number }>> {
+    const rows = await prisma.$queryRaw<LinhaCrua[]>(Prisma.sql`
+      SELECT w.origin AS origem,
+             COUNT(*) FILTER (WHERE w.status = 'enviado') AS enviados,
+             COUNT(*) FILTER (WHERE w.status = 'falhou') AS falhos
+      FROM whatsapp_envios w
+      WHERE w.created_at >= now() - interval '24 hours'
+      GROUP BY w.origin
+      ORDER BY w.origin
+    `);
+    return rows.map((r) => ({
+      origem: String(r.origem ?? ''),
+      enviados: Number(r.enviados ?? 0),
+      falhos: Number(r.falhos ?? 0),
+    }));
+  },
 };

@@ -9,6 +9,7 @@ import { validate } from '../middleware/validate.js';
 import {
   getAdminMetrics,
   getAdminTenants,
+  exportAdminTenants,
   getAdminTenantDetails,
   blockTenant,
   unblockTenant,
@@ -23,6 +24,7 @@ import {
   getAdminAuditLogs,
   adminMetricsQuerySchema,
   adminTenantListQuerySchema,
+  adminTenantFiltrosSchema,
   adminSubscriptionListQuerySchema,
   adminAuditLogQuerySchema,
   adminActionParamsSchema,
@@ -49,6 +51,8 @@ router.use(authMiddleware, requireAdmin);
 router.get('/metrics', validate({ query: adminMetricsQuerySchema }), getAdminMetrics);
 
 router.get('/tenants', validate({ query: adminTenantListQuerySchema }), getAdminTenants);
+// Antes de /tenants/:id, senão "export.csv" seria lido como id.
+router.get('/tenants/export.csv', validate({ query: adminTenantFiltrosSchema }), exportAdminTenants);
 router.get('/tenants/:id', validate({ params: adminActionParamsSchema }), getAdminTenantDetails);
 router.patch('/tenants/:id/block', validate({ params: adminActionParamsSchema, body: adminActionBodySchema }), blockTenant);
 router.patch('/tenants/:id/unblock', validate({ params: adminActionParamsSchema, body: adminActionBodySchema }), unblockTenant);

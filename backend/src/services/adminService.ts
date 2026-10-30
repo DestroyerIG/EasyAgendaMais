@@ -7,7 +7,6 @@ import {
 import { adminRepository } from '../repositories/adminRepository.js';
 import { auditRepository } from '../repositories/auditRepository.js';
 import { auditLogService } from './auditLogService.js';
-import { adminMetricsService } from './adminMetricsService.js';
 import { subscriptionService } from './subscriptionService.js';
 import { billingService } from './billingService.js';
 import { subscriptionRepository } from '../repositories/subscriptionRepository.js';
@@ -45,14 +44,6 @@ const actorPayload = (authUser: AuthUser | null | undefined): { actorUserId: str
 });
 
 export const adminService = {
-  async getMetrics(query: Record<string, unknown> = {}): Promise<unknown> {
-    return adminMetricsService.getMetrics(query.periodDays as number | undefined);
-  },
-
-  async listTenants(query: Record<string, unknown> = {}): Promise<unknown> {
-    return adminRepository.listTenants(query);
-  },
-
   async getTenantDetails(tenantId: string): Promise<unknown> {
     const data = await adminRepository.getTenantDetails(tenantId);
     if (!data) {

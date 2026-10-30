@@ -1,9 +1,16 @@
 import type { Request, Response, NextFunction } from 'express';
 import { sendSuccess } from '../utils/response.js';
 import { adminService } from '../services/adminService.js';
+import { painelService } from '../modules/admin/painel.service.js';
+import type {
+  AdminMetricsQuery,
+  AdminTenantListQuery,
+  AdminTenantFiltros,
+} from '../validators/schemas/adminSchemas.js';
 import {
   adminMetricsQuerySchema,
   adminTenantListQuerySchema,
+  adminTenantFiltrosSchema,
   adminSubscriptionListQuerySchema,
   adminAuditLogQuerySchema,
   adminActionParamsSchema,
@@ -13,6 +20,7 @@ import {
 export {
   adminMetricsQuerySchema,
   adminTenantListQuerySchema,
+  adminTenantFiltrosSchema,
   adminSubscriptionListQuerySchema,
   adminAuditLogQuerySchema,
   adminActionParamsSchema,
@@ -21,7 +29,8 @@ export {
 
 export const getAdminMetrics = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const data = await adminService.getMetrics(req.query);
+    const { periodDays } = req.query as unknown as AdminMetricsQuery;
+    const data = await painelService.visaoGeral(periodDays);
     sendSuccess(res, data);
   } catch (error) {
     next(error);
@@ -30,8 +39,20 @@ export const getAdminMetrics = async (req: Request, res: Response, next: NextFun
 
 export const getAdminTenants = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const result = await adminService.listTenants(req.query) as { data: unknown[]; meta: import('../utils/response.js').PaginationMeta };
-    sendSuccess(res, result.data, 200, result.meta);
+    const { data, meta, cartoes, segmentos } = await painelService.listar(req.query as unknown as AdminTenantListQuery);
+    // Mesmo envelope de sendSuccess, com os cartões e a contagem por segmento ao lado de data e meta.
+    res.status(200).json({ success: true, data, meta, cartoes, segmentos });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const exportAdminTenants = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const csv = await painelService.exportarCsv(req.query as unknown as AdminTenantFiltros);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="negocios.csv"');
+    res.status(200).send(csv);
   } catch (error) {
     next(error);
   }
