@@ -22,6 +22,7 @@ import {
   resyncSubscription,
   overridePlan,
   overrideStatus,
+  estenderTeste,
   cancelSubscriptionAdmin,
   getAdminAuditLogs,
   adminMetricsQuerySchema,
@@ -38,6 +39,7 @@ import {
   adminOverridePlanBodySchema,
   adminOverrideStatusBodySchema,
   adminCancelSubscriptionBodySchema,
+  adminExtendTrialBodySchema,
 } from '../validators/schemas/index.js';
 // @ts-ignore
 import {
@@ -61,6 +63,7 @@ router.get('/tenants/:id/auditoria', validate({ params: adminActionParamsSchema,
 router.get('/tenants/:id/auditoria.csv', validate({ params: adminActionParamsSchema, query: adminTenantAuditQuerySchema }), exportAdminTenantAudit);
 router.patch('/tenants/:id/block', validate({ params: adminActionParamsSchema, body: adminActionBodySchema }), blockTenant);
 router.patch('/tenants/:id/unblock', validate({ params: adminActionParamsSchema, body: adminActionBodySchema }), unblockTenant);
+router.patch('/tenants/:id/trial', validate({ params: adminActionParamsSchema, body: adminExtendTrialBodySchema }), estenderTeste);
 router.delete('/tenants/:id', validate({ params: adminActionParamsSchema, body: adminActionBodySchema }), softDeleteTenant);
 
 router.patch('/users/:id/block', validate({ params: adminActionParamsSchema, body: adminActionBodySchema }), blockUser);

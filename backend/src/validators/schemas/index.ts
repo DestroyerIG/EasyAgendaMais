@@ -41,4 +41,5 @@ export {
 	adminOverridePlanBodySchema,
 	adminOverrideStatusBodySchema,
 	adminCancelSubscriptionBodySchema,
+	adminExtendTrialBodySchema,
 } from './adminSchemas.js';

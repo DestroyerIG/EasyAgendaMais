@@ -175,6 +175,15 @@ export const overrideStatus = async (req: Request, res: Response, next: NextFunc
   }
 };
 
+export const estenderTeste = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await adminService.estenderTeste(req.user, req.params['id'] as string, req.body, req);
+    sendSuccess(res, data);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const cancelSubscriptionAdmin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const data = await adminService.cancelSubscription(req.user, req.params['id'] as string, req.body, req);

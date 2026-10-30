@@ -70,6 +70,13 @@ export const adminOverrideStatusBodySchema = actionBodySchema.extend({
 
 export const adminCancelSubscriptionBodySchema = actionBodySchema;
 
+// Aqui o motivo é obrigatório: estender o teste dá tempo de uso sem cobrança.
+export const adminExtendTrialBodySchema = z.object({
+  confirmation: z.literal('CONFIRM', { message: 'Envie confirmation=CONFIRM para confirmar esta ação' }),
+  dias: z.coerce.number().int().min(1).max(30),
+  reason: z.string().trim().min(3, 'Informe o motivo da ação').max(255),
+});
+
 export type AdminMetricsQuery = z.infer<typeof adminMetricsQuerySchema>;
 export type AdminTenantFiltros = z.infer<typeof adminTenantFiltrosSchema>;
 export type AdminTenantListQuery = z.infer<typeof adminTenantListQuerySchema>;
@@ -79,4 +86,5 @@ export type AdminAuditLogQuery = z.infer<typeof adminAuditLogQuerySchema>;
 export type AdminActionParams = z.infer<typeof adminActionParamsSchema>;
 export type AdminActionBody = z.infer<typeof adminActionBodySchema>;
 export type AdminOverridePlanBody = z.infer<typeof adminOverridePlanBodySchema>;
+export type AdminExtendTrialBody = z.infer<typeof adminExtendTrialBodySchema>;
 export type AdminOverrideStatusBody = z.infer<typeof adminOverrideStatusBodySchema>;

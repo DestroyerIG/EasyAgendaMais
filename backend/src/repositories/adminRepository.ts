@@ -45,6 +45,26 @@ export const adminRepository = {
     return result[0] || null;
   },
 
+  /**
+   * Estende o teste grátis. A base é o maior entre o fim atual e agora, então
+   * um teste vencido ganha os dias a partir de hoje. A coluna é timestamp sem
+   * fuso e guarda UTC, por isso tudo é comparado em UTC.
+   */
+  async estenderTeste(tenantId: string, dias: number): Promise<Date | null> {
+    const result = await prisma.$queryRaw<Array<{ fim: Date }>>(
+      Prisma.sql`UPDATE businesses
+       SET subscription_status = 'trialing',
+           subscription_current_period_end =
+             GREATEST(COALESCE(subscription_current_period_end, (NOW() AT TIME ZONE 'UTC')), (NOW() AT TIME ZONE 'UTC'))
+             + make_interval(days => ${dias}::int),
+           subscription_updated_at = NOW()
+        WHERE id = ${tenantId}::uuid
+       RETURNING (subscription_current_period_end AT TIME ZONE 'UTC') AS fim`
+    );
+
+    return result[0]?.fim ?? null;
+  },
+
   async softDeleteTenant(
     _client: unknown = null,
     tenantId: string,
