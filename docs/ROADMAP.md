@@ -29,7 +29,7 @@ Atualizado em 27/10/2026.
 | 5 | App da profissional (PWA) | ✅ Concluída | PR #12 |
 | 6 | Onboarding guiado, segmentos e vocabulário | ✅ Concluída | PR #17 |
 | 7 | Login com Google e Google Agenda | ✅ Concluída | PR #20 |
-| H1 | Modo de contingência (carência de 7 dias e conta bloqueada) | 🟡 Implementada e migrada em produção (28/10), aguardando merge | PR #22 |
+| H1 | Modo de contingência (carência de 7 dias e conta bloqueada) | ✅ Concluída (migrada e juntada em 28/10) | PR #22 |
 
 ## Fase 7 (concluída)
 
@@ -42,7 +42,7 @@ Spec: `docs/superpowers/specs/2026-10-26-google-login-agenda-design.md`. Guia de
 
 ## Próximos passos
 
-- **H:** SuperAdmin, modo de contingência e textos de venda. Spec em `docs/superpowers/specs/2026-10-28-item-h-superadmin-contingencia-venda-design.md`, dividida em H1, H2 e H3.
+- **H:** SuperAdmin, modo de contingência e textos de venda. Spec em `docs/superpowers/specs/2026-10-28-item-h-superadmin-contingencia-venda-design.md`, dividida em H1 (concluída), H2 (SuperAdmin, próxima) e H3 (textos de venda).
 - Verificação do app no Google, depois da troca de domínio.
 - Conferência das telas com dado real e pendências abertas em `docs/design/SEGUIMENTO.md`.
 
