@@ -44,14 +44,6 @@ const actorPayload = (authUser: AuthUser | null | undefined): { actorUserId: str
 });
 
 export const adminService = {
-  async getTenantDetails(tenantId: string): Promise<unknown> {
-    const data = await adminRepository.getTenantDetails(tenantId);
-    if (!data) {
-      throw new NotFoundError('Conta');
-    }
-    return data;
-  },
-
   async listSubscriptions(query: Record<string, unknown> = {}): Promise<unknown> {
     return adminRepository.listSubscriptions(query);
   },

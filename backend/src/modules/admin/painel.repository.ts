@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
-import type { LinhaNegocio } from './painel.rules.js';
+import { inicioDoMes, type LinhaNegocio } from './painel.rules.js';
 
 // Leitura do painel do SuperAdmin: uma linha por negócio (ativo ou não), com os agregados das três telas.
 // O status de cobrança NÃO é calculado aqui: vem de painel.rules.ts (calcularEstadoConta, H1).
@@ -30,6 +30,38 @@ export const SQL_PAGAMENTOS_CONFIRMADOS = Prisma.sql`
 `;
 
 type LinhaCrua = Record<string, unknown>;
+
+export type CategoriaAuditoria = 'todos' | 'financeiro' | 'sistema' | 'operador';
+
+export interface ExtrasNegocio {
+  slug: string | null;
+  suspensoMotivo: string | null;
+  temAssinaturaGateway: boolean;
+  usuarioDonoId: string | null;
+  proximoVencimento: Date | null;
+}
+
+export interface UsoNegocio {
+  profissionaisAtivas: number;
+  agendamentosMes: number;
+  agendamentosComSinalMes: number;
+  clientes: number;
+  clientesNovosMes: number;
+  lembretesLigados: boolean;
+  enviosMes: { enviados: number; falhos: number };
+}
+
+export interface RegistroAuditoria {
+  id: string; criadoEm: Date; acao: string; status: string;
+  ator: string | null; detalhes: unknown; ip: string | null;
+}
+
+const FILTRO_CATEGORIA: Record<CategoriaAuditoria, Prisma.Sql> = {
+  todos: Prisma.empty,
+  financeiro: Prisma.sql`AND a.action_type ~ '^(SUBSCRIPTION|TRIAL|BILLING)'`,
+  sistema: Prisma.sql`AND a.actor_user_id IS NULL`,
+  operador: Prisma.sql`AND u.role = 'platform_admin'`,
+};
 
 const bool = (v: unknown): boolean => v === true || v === 't' || v === 'true' || v === 1;
 const data = (v: unknown): Date | null => (v instanceof Date ? v : v ? new Date(String(v)) : null);
@@ -144,5 +176,119 @@ export const painelRepository = {
       enviados: Number(r.enviados ?? 0),
       falhos: Number(r.falhos ?? 0),
     }));
+  },
+
+  /**
+   * Campos do detalhe que não estão em LinhaNegocio. O dono é o mesmo usuário escolhido pela
+   * antiga consulta de detalhe: tenant_admin primeiro, depois admin, depois o mais antigo.
+   */
+  async extrasNegocio(id: string): Promise<ExtrasNegocio | null> {
+    const rows = await prisma.$queryRaw<LinhaCrua[]>(Prisma.sql`
+      SELECT b.slug, b.suspended_reason,
+             (b.stripe_subscription_id IS NOT NULL OR b.provider_subscription_id IS NOT NULL) AS tem_assinatura_gateway,
+             b.next_due_date AT TIME ZONE 'UTC' AS proximo_vencimento,
+             dono.id AS usuario_dono_id
+      FROM businesses b
+      LEFT JOIN LATERAL (
+        SELECT u.id
+        FROM users u
+        WHERE u.business_id = b.id
+        ORDER BY CASE WHEN u.role = 'tenant_admin' THEN 0 WHEN u.role = 'admin' THEN 1 ELSE 2 END,
+                 u.created_at ASC
+        LIMIT 1
+      ) dono ON true
+      WHERE b.id = ${id}::uuid
+    `);
+    const r = rows[0];
+    if (!r) return null;
+    return {
+      slug: texto(r.slug),
+      suspensoMotivo: texto(r.suspended_reason),
+      temAssinaturaGateway: bool(r.tem_assinatura_gateway),
+      usuarioDonoId: texto(r.usuario_dono_id),
+      proximoVencimento: data(r.proximo_vencimento),
+    };
+  },
+
+  /** LTV: soma dos pagamentos confirmados do negócio (mesmo CTE do painel). */
+  async ltv(id: string): Promise<{ total: number; ciclos: number; desde: Date | null }> {
+    const rows = await prisma.$queryRaw<LinhaCrua[]>(Prisma.sql`
+      WITH ${SQL_PAGAMENTOS_CONFIRMADOS}
+      SELECT COALESCE(SUM(p.valor), 0) AS total, COUNT(*) AS ciclos, MIN(p.pago_em) AS desde
+      FROM pagamentos p
+      WHERE p.business_id = ${id}::uuid
+    `);
+    const r = rows[0] ?? {};
+    return { total: Number(r.total ?? 0), ciclos: Number(r.ciclos ?? 0), desde: data(r.desde) };
+  },
+
+  /** Uso do negócio. "Mês" é o mês local (America/Sao_Paulo), a partir de inicioDoMes. */
+  async uso(id: string): Promise<UsoNegocio> {
+    // Cast explícito: comparado com timestamptz (ou timestamp já convertido de UTC).
+    const inicio = Prisma.sql`${inicioDoMes(new Date()).toISOString()}::timestamptz`;
+    const rows = await prisma.$queryRaw<LinhaCrua[]>(Prisma.sql`
+      SELECT
+        (SELECT COUNT(*) FROM professionals p WHERE p.business_id = ${id}::uuid AND p.active = true) AS profissionais_ativas,
+        (SELECT COUNT(*) FROM appointments a
+          WHERE a.business_id = ${id}::uuid AND a.created_at AT TIME ZONE 'UTC' >= ${inicio}) AS agendamentos_mes,
+        (SELECT COUNT(*) FROM appointments a
+          WHERE a.business_id = ${id}::uuid AND a.created_at AT TIME ZONE 'UTC' >= ${inicio}
+            AND a.deposit_amount > 0) AS agendamentos_com_sinal_mes,
+        (SELECT COUNT(*) FROM clients c WHERE c.business_id = ${id}::uuid AND c.active = true) AS clientes,
+        (SELECT COUNT(*) FROM clients c
+          WHERE c.business_id = ${id}::uuid AND c.active = true
+            AND c.created_at AT TIME ZONE 'UTC' >= ${inicio}) AS clientes_novos_mes,
+        (SELECT s.whatsapp_reminders FROM business_settings s WHERE s.business_id = ${id}::uuid) AS lembretes_ligados,
+        (SELECT COUNT(*) FROM whatsapp_envios w
+          WHERE w.business_id = ${id}::uuid AND w.status = 'enviado' AND w.enviado_em >= ${inicio}) AS enviados_mes,
+        (SELECT COUNT(*) FROM whatsapp_envios w
+          WHERE w.business_id = ${id}::uuid AND w.status = 'falhou' AND w.created_at >= ${inicio}) AS falhos_mes
+    `);
+    const r = rows[0] ?? {};
+    return {
+      profissionaisAtivas: Number(r.profissionais_ativas ?? 0),
+      agendamentosMes: Number(r.agendamentos_mes ?? 0),
+      agendamentosComSinalMes: Number(r.agendamentos_com_sinal_mes ?? 0),
+      clientes: Number(r.clientes ?? 0),
+      clientesNovosMes: Number(r.clientes_novos_mes ?? 0),
+      lembretesLigados: bool(r.lembretes_ligados),
+      enviosMes: { enviados: Number(r.enviados_mes ?? 0), falhos: Number(r.falhos_mes ?? 0) },
+    };
+  },
+
+  /** Auditoria do negócio (target_business_id), do mais recente para o mais antigo. */
+  async auditoria(
+    id: string, categoria: CategoriaAuditoria, page: number, limit: number,
+  ): Promise<{ data: RegistroAuditoria[]; total: number }> {
+    const filtro = FILTRO_CATEGORIA[categoria];
+    const [rows, contagem] = await Promise.all([
+      prisma.$queryRaw<LinhaCrua[]>(Prisma.sql`
+        SELECT a.id, a.created_at AT TIME ZONE 'UTC' AS criado_em, a.action_type, a.status,
+               u.email AS ator, a.details, a.ip_address
+        FROM audit_logs a
+        LEFT JOIN users u ON u.id = a.actor_user_id
+        WHERE a.target_business_id = ${id}::uuid ${filtro}
+        ORDER BY a.created_at DESC, a.id DESC
+        LIMIT ${limit} OFFSET ${(page - 1) * limit}
+      `),
+      prisma.$queryRaw<LinhaCrua[]>(Prisma.sql`
+        SELECT COUNT(*) AS total
+        FROM audit_logs a
+        LEFT JOIN users u ON u.id = a.actor_user_id
+        WHERE a.target_business_id = ${id}::uuid ${filtro}
+      `),
+    ]);
+    return {
+      data: rows.map((r) => ({
+        id: String(r.id),
+        criadoEm: data(r.criado_em) as Date,
+        acao: String(r.action_type ?? ''),
+        status: String(r.status ?? ''),
+        ator: texto(r.ator),
+        detalhes: r.details ?? null,
+        ip: texto(r.ip_address),
+      })),
+      total: Number(contagem[0]?.total ?? 0),
+    };
   },
 };

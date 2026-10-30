@@ -1,6 +1,11 @@
 import { linhaCsv } from '../crm/csv.js';
 import { SEGMENTOS_VALIDOS } from '../../config/vocabulario.js';
-import { painelRepository } from './painel.repository.js';
+import { painelRepository, type CategoriaAuditoria } from './painel.repository.js';
+import { billingInfoService, type FaturaDto } from '../billing/billingInfo.service.js';
+import { PLAN_CATALOG, professionalLimit } from '../../config/planCatalog.js';
+import type { PlanId } from '../../types/domain.js';
+import { NotFoundError } from '../../utils/errors.js';
+import logger from '../../utils/logger.js';
 import {
   cartoesGestao, conversaoPorSegmento, negociosEmRisco, precoDoPlano, resumoCancelamentos,
   resumoMrr, resumoTestes, segmentoDe, statusAdmin,
@@ -85,6 +90,32 @@ const FORMATO_HORA = new Intl.DateTimeFormat('pt-BR', {
 });
 const momento = (d: Date | null): string | null => (d ? FORMATO_HORA.format(d).replace(', ', ' ') : null);
 
+// Sem limite no catálogo (Infinity) ou plano fora do catálogo: null.
+function limiteProfissionais(plano: string): number | null {
+  if (!Object.prototype.hasOwnProperty.call(PLAN_CATALOG, plano)) return null;
+  const limite = professionalLimit(plano as PlanId);
+  return Number.isFinite(limite) ? limite : null;
+}
+
+function paginaPublica(slug: string | null): string | null {
+  const base = process.env.FRONTEND_URL?.trim().replace(/\/+$/, '');
+  return base && slug ? `${base}/agendar/${slug}` : null;
+}
+
+// billingInfoService lê só negócio ativo e lança erro nos outros: o detalhe abre mesmo assim.
+async function faturasOuNull(id: string): Promise<FaturaDto[] | null> {
+  try {
+    return (await billingInfoService.faturas(id, null)).itens;
+  } catch (error) {
+    logger.warn({ err: error, businessId: id }, 'Não foi possível ler as faturas no detalhe do SuperAdmin');
+    return null;
+  }
+}
+
+const LIMITE_CSV_AUDITORIA = 5000;
+const csv = (cabecalho: string[], linhas: Array<Array<string | number | null>>): string =>
+  BOM + [linhaCsv(cabecalho), ...linhas.map(linhaCsv)].join('\r\n') + '\r\n';
+
 export const painelService = {
   async visaoGeral(periodDays: number) {
     const agora = new Date();
@@ -128,6 +159,59 @@ export const painelService = {
       ROTULO_PLANO[n.plano] ?? n.plano, n.preco, ROTULO_STATUS[n.status],
       n.whatsappConectado ? 'Sim' : 'Não', String(n.agendamentos30d), momento(n.ultimaAtividadeEm),
     ]);
-    return BOM + [linhaCsv(cabecalho), ...linhas.map(linhaCsv)].join('\r\n') + '\r\n';
+    return csv(cabecalho, linhas);
+  },
+
+  async detalhe(id: string) {
+    const agora = new Date();
+    const [l, extras] = await Promise.all([painelRepository.linhaNegocio(id), painelRepository.extrasNegocio(id)]);
+    if (!l || !extras) throw new NotFoundError('Negócio');
+    const [ltv, uso, faturas] = await Promise.all([
+      painelRepository.ltv(id), painelRepository.uso(id), faturasOuNull(id),
+    ]);
+    const listado = paraListado(l, agora);
+    const pagante = listado.status === 'ativo' || listado.status === 'carencia';
+    const dataCobranca = extras.proximoVencimento ?? l.fimDoPeriodo;
+    return {
+      negocio: {
+        ...listado,
+        cpfCnpj: l.cpfCnpj,
+        slug: extras.slug,
+        criadoEm: l.criadoEm.toISOString(),
+        suspensoMotivo: extras.suspensoMotivo,
+        statusAssinatura: l.statusAssinatura,
+        fimDoPeriodo: l.fimDoPeriodo ? l.fimDoPeriodo.toISOString() : null,
+        temAssinaturaGateway: extras.temAssinaturaGateway,
+        jaPagou: l.jaPagou,
+        usuarioDonoId: extras.usuarioDonoId,
+      },
+      ltv: { total: ltv.total, ciclos: ltv.ciclos, desde: ltv.desde ? ltv.desde.toISOString() : null },
+      // Próxima cobrança: next_due_date, senão o fim do período; só para quem paga hoje.
+      proximaCobranca: pagante && dataCobranca
+        ? { data: dataCobranca.toISOString(), valor: precoDoPlano(l.plano) }
+        : null,
+      faturas,
+      uso: {
+        ...uso,
+        limiteProfissionais: limiteProfissionais(l.plano),
+        paginaPublica: paginaPublica(extras.slug),
+      },
+    };
+  },
+
+  async auditoria(id: string, filtros: { categoria: CategoriaAuditoria; page: number; limit: number }) {
+    const { categoria, page, limit } = filtros;
+    const { data, total } = await painelRepository.auditoria(id, categoria, page, limit);
+    return { data, meta: { total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) } };
+  },
+
+  async exportarAuditoriaCsv(id: string, categoria: CategoriaAuditoria): Promise<string> {
+    const { data } = await painelRepository.auditoria(id, categoria, 1, LIMITE_CSV_AUDITORIA);
+    const cabecalho = ['Data', 'Ação', 'Status', 'Ator', 'IP', 'Detalhes'];
+    const linhas = data.map((r) => [
+      momento(r.criadoEm), r.acao, r.status, r.ator, r.ip,
+      r.detalhes === null || r.detalhes === undefined ? null : JSON.stringify(r.detalhes),
+    ]);
+    return csv(cabecalho, linhas);
   },
 };

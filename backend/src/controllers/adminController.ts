@@ -6,11 +6,13 @@ import type {
   AdminMetricsQuery,
   AdminTenantListQuery,
   AdminTenantFiltros,
+  AdminTenantAuditQuery,
 } from '../validators/schemas/adminSchemas.js';
 import {
   adminMetricsQuerySchema,
   adminTenantListQuerySchema,
   adminTenantFiltrosSchema,
+  adminTenantAuditQuerySchema,
   adminSubscriptionListQuerySchema,
   adminAuditLogQuerySchema,
   adminActionParamsSchema,
@@ -21,6 +23,7 @@ export {
   adminMetricsQuerySchema,
   adminTenantListQuerySchema,
   adminTenantFiltrosSchema,
+  adminTenantAuditQuerySchema,
   adminSubscriptionListQuerySchema,
   adminAuditLogQuerySchema,
   adminActionParamsSchema,
@@ -60,8 +63,32 @@ export const exportAdminTenants = async (req: Request, res: Response, next: Next
 
 export const getAdminTenantDetails = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const data = await adminService.getTenantDetails(req.params['id'] as string);
+    const data = await painelService.detalhe(req.params['id'] as string);
     sendSuccess(res, data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAdminTenantAudit = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { data, meta } = await painelService.auditoria(
+      req.params['id'] as string,
+      req.query as unknown as AdminTenantAuditQuery,
+    );
+    sendSuccess(res, data, 200, meta);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const exportAdminTenantAudit = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { categoria } = req.query as unknown as AdminTenantAuditQuery;
+    const csv = await painelService.exportarAuditoriaCsv(req.params['id'] as string, categoria);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="auditoria.csv"');
+    res.status(200).send(csv);
   } catch (error) {
     next(error);
   }

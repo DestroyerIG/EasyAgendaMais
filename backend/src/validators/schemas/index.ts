@@ -33,6 +33,7 @@ export {
 	adminMetricsQuerySchema,
 	adminTenantListQuerySchema,
 	adminTenantFiltrosSchema,
+	adminTenantAuditQuerySchema,
 	adminSubscriptionListQuerySchema,
 	adminAuditLogQuerySchema,
 	adminActionParamsSchema,

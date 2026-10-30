@@ -11,6 +11,8 @@ import {
   getAdminTenants,
   exportAdminTenants,
   getAdminTenantDetails,
+  getAdminTenantAudit,
+  exportAdminTenantAudit,
   blockTenant,
   unblockTenant,
   softDeleteTenant,
@@ -25,6 +27,7 @@ import {
   adminMetricsQuerySchema,
   adminTenantListQuerySchema,
   adminTenantFiltrosSchema,
+  adminTenantAuditQuerySchema,
   adminSubscriptionListQuerySchema,
   adminAuditLogQuerySchema,
   adminActionParamsSchema,
@@ -54,6 +57,8 @@ router.get('/tenants', validate({ query: adminTenantListQuerySchema }), getAdmin
 // Antes de /tenants/:id, senão "export.csv" seria lido como id.
 router.get('/tenants/export.csv', validate({ query: adminTenantFiltrosSchema }), exportAdminTenants);
 router.get('/tenants/:id', validate({ params: adminActionParamsSchema }), getAdminTenantDetails);
+router.get('/tenants/:id/auditoria', validate({ params: adminActionParamsSchema, query: adminTenantAuditQuerySchema }), getAdminTenantAudit);
+router.get('/tenants/:id/auditoria.csv', validate({ params: adminActionParamsSchema, query: adminTenantAuditQuerySchema }), exportAdminTenantAudit);
 router.patch('/tenants/:id/block', validate({ params: adminActionParamsSchema, body: adminActionBodySchema }), blockTenant);
 router.patch('/tenants/:id/unblock', validate({ params: adminActionParamsSchema, body: adminActionBodySchema }), unblockTenant);
 router.delete('/tenants/:id', validate({ params: adminActionParamsSchema, body: adminActionBodySchema }), softDeleteTenant);

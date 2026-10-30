@@ -34,6 +34,11 @@ export const adminTenantListQuerySchema = adminTenantFiltrosSchema.extend({
     .default(20),
 });
 
+// Auditoria de um negócio no detalhe do SuperAdmin (H2). O CSV usa o mesmo filtro, sem paginação.
+export const adminTenantAuditQuerySchema = paginationQuerySchema.extend({
+  categoria: z.enum(['todos', 'financeiro', 'sistema', 'operador']).default('todos'),
+});
+
 export const adminSubscriptionListQuerySchema = paginationQuerySchema.extend({
   search: z.string().trim().max(120).optional(),
   status: z.enum(['active', 'trialing', 'pending', 'past_due', 'unpaid', 'canceled', 'incomplete']).optional(),
@@ -68,6 +73,7 @@ export const adminCancelSubscriptionBodySchema = actionBodySchema;
 export type AdminMetricsQuery = z.infer<typeof adminMetricsQuerySchema>;
 export type AdminTenantFiltros = z.infer<typeof adminTenantFiltrosSchema>;
 export type AdminTenantListQuery = z.infer<typeof adminTenantListQuerySchema>;
+export type AdminTenantAuditQuery = z.infer<typeof adminTenantAuditQuerySchema>;
 export type AdminSubscriptionListQuery = z.infer<typeof adminSubscriptionListQuerySchema>;
 export type AdminAuditLogQuery = z.infer<typeof adminAuditLogQuerySchema>;
 export type AdminActionParams = z.infer<typeof adminActionParamsSchema>;
