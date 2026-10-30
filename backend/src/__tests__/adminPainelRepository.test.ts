@@ -1,0 +1,82 @@
+import { vi, describe, it, beforeEach, expect } from 'vitest';
+
+const prismaMock = vi.hoisted(() => ({ $queryRaw: vi.fn() }));
+vi.mock('../config/prisma.js', () => ({ prisma: prismaMock }));
+
+const { painelRepository } = await import('../modules/admin/painel.repository.js');
+
+const criado = new Date('2026-09-01T12:00:00Z');
+
+function linhaCrua(extra: Record<string, unknown> = {}) {
+  return {
+    id: 'n1', name: 'Barbearia Alfa', owner_name: 'Ana', email: 'a@a.com', whatsapp: '11999990000',
+    cpf_cnpj: null, address: null, segment: null,
+    plan: 'basico', subscription_status: 'active', active: true,
+    inadimplente_desde: null, ja_pagou: 't', fim_do_periodo: null,
+    provider: null, payment_method: null,
+    created_at: criado, canceled_at: null, onboarding_concluido: false,
+    tem_instancia_whatsapp: false, whatsapp_connected_at: null, ultimo_envio_em: null,
+    agendamentos_30d: 7n, ultimo_agendamento_em: null,
+    primeiro_pagamento_em: null, pagou_mes_anterior: null,
+    ...extra,
+  };
+}
+
+describe('painelRepository', () => {
+  beforeEach(() => prismaMock.$queryRaw.mockReset());
+
+  it('converte tipos: contagem vira number, segmento nulo fica null, flags viram booleanos', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([linhaCrua()]);
+    const [l] = await painelRepository.linhasNegocios();
+    expect(typeof l.agendamentos30d).toBe('number');
+    expect(l.agendamentos30d).toBe(7);
+    expect(l.segmento).toBeNull();
+    expect(l.jaPagou).toBe(true);
+    expect(l.pagouMesAnterior).toBe(false);
+    expect(l.nome).toBe('Barbearia Alfa');
+    expect(l.criadoEm).toEqual(criado);
+  });
+
+  it('agendamentos30d aceita string vinda do banco', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([linhaCrua({ agendamentos_30d: '12' })]);
+    const [l] = await painelRepository.linhasNegocios();
+    expect(l.agendamentos30d).toBe(12);
+  });
+
+  it('pix é true quando provider é asaas ou payment_method é pix', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([
+      linhaCrua({ provider: 'asaas' }),
+      linhaCrua({ payment_method: 'pix' }),
+      linhaCrua({ provider: 'stripe', payment_method: 'card' }),
+    ]);
+    const ls = await painelRepository.linhasNegocios();
+    expect(ls.map((l) => l.pix)).toEqual([true, true, false]);
+  });
+
+  it('fimDoPeriodo vem de fim_do_periodo (já com o fallback aplicado no SQL)', async () => {
+    const fim = new Date('2026-11-05T00:00:00Z');
+    prismaMock.$queryRaw.mockResolvedValue([linhaCrua({ fim_do_periodo: fim })]);
+    const [l] = await painelRepository.linhasNegocios();
+    expect(l.fimDoPeriodo).toEqual(fim);
+  });
+
+  it('a consulta usa current_period_end com queda para subscription_current_period_end', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([]);
+    await painelRepository.linhasNegocios();
+    const sql = (prismaMock.$queryRaw.mock.calls[0][0] as { sql: string }).sql;
+    expect(sql).toMatch(/COALESCE\(\s*b\.current_period_end,\s*b\.subscription_current_period_end AT TIME ZONE 'UTC'\s*\)/);
+  });
+
+  it('linhaNegocio devolve null quando a consulta vem vazia', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([]);
+    expect(await painelRepository.linhaNegocio('n1')).toBeNull();
+  });
+
+  it('linhaNegocio devolve a linha mapeada e filtra por id', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([linhaCrua()]);
+    const l = await painelRepository.linhaNegocio('n1');
+    expect(l?.id).toBe('n1');
+    const arg = prismaMock.$queryRaw.mock.calls[0][0] as { values: unknown[] };
+    expect(arg.values).toContain('n1');
+  });
+});
