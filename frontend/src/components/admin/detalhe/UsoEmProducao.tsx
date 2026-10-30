@@ -51,9 +51,11 @@ export function UsoEmProducao({ uso: u }: { uso: DetalheNegocio['uso'] }) {
           valor={
             u.agendamentosMes === 0
               ? SEM_DADO
-              : `${formatNumber(u.agendamentosComSinalMes)} de ${formatNumber(u.agendamentosMes)} agendamentos no mês`
+              : `${formatNumber(u.agendamentosComSinalMes)} de ${formatNumber(u.agendamentosMes)}`
           }
-        />
+        >
+          Agendamentos com sinal no mês
+        </Bloco>
         <Bloco titulo="Clientes na base" icone="group" valor={formatNumber(u.clientes)}>
           {`+${formatNumber(u.clientesNovosMes)} novas no mês`}
         </Bloco>

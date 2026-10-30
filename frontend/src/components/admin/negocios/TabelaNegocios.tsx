@@ -31,13 +31,13 @@ const iniciais = (nome: string) =>
     .map((p) => p[0]?.toUpperCase() ?? '')
     .join('');
 
-const TH = 'px-4 py-3 text-left text-[12px] font-semibold text-muted';
-const TD = 'px-4 py-4 align-top';
+const TH = 'px-3 py-3 text-left text-[12px] font-semibold text-muted';
+const TD = 'px-3 py-4 align-top';
 
 function Linha({ n, agora }: { n: NegocioListado; agora: Date }) {
   return (
     <tr className="transition-colors hover:bg-surface-2/60">
-      <td className={cn(TD, 'pl-6')}>
+      <td className={cn(TD, 'min-w-[240px] pl-6')}>
         <div className="flex items-start gap-3">
           <span
             aria-hidden="true"
@@ -62,8 +62,9 @@ function Linha({ n, agora }: { n: NegocioListado; agora: Date }) {
           {rotuloSegmento(n.segmento)}
         </span>
       </td>
-      <td className={cn(TD, 'whitespace-nowrap text-[13px] font-semibold text-ink')}>
-        {`${rotuloPlano(n.plano)} · ${formatCurrency(n.preco)}/mês`}
+      <td className={cn(TD, 'whitespace-nowrap')}>
+        <p className="text-[13px] font-semibold text-ink">{rotuloPlano(n.plano)}</p>
+        <p className="text-[12px] text-muted">{`${formatCurrency(n.preco)}/mês`}</p>
       </td>
       <td className={TD}>
         <span
@@ -96,9 +97,11 @@ function Linha({ n, agora }: { n: NegocioListado; agora: Date }) {
       <td className={cn(TD, 'pr-6 text-right')}>
         <Link
           href={`/admin/negocios/${n.id}`}
-          className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'whitespace-nowrap')}
+          aria-label="Ver detalhes"
+          title="Ver detalhes"
+          className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'w-11 px-0 lg:w-9')}
         >
-          Ver detalhes
+          <Icon name="chevron_right" size={18} />
         </Link>
       </td>
     </tr>

@@ -131,7 +131,8 @@ describe('Detalhes do negócio', () => {
     expect(screen.getByText('R$ 699,30')).toBeInTheDocument();
     expect(screen.getByText('7 ciclos')).toBeInTheDocument();
     expect(screen.getByText('2 / 5 vagas')).toBeInTheDocument();
-    expect(screen.getByText('30 de 50 agendamentos no mês')).toBeInTheDocument();
+    expect(screen.getByText('30 de 50')).toBeInTheDocument();
+    expect(screen.getByText('Agendamentos com sinal no mês')).toBeInTheDocument();
     expect(screen.getByText('+28 novas no mês')).toBeInTheDocument();
     expect(screen.getByText('120 enviados e 3 falhos no mês')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /2ª via/ })).toHaveAttribute('href', 'https://pagamento.exemplo/f1');

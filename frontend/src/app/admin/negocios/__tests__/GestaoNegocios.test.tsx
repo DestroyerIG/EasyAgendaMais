@@ -137,7 +137,8 @@ describe('Gestão de negócios', () => {
     render(<AdminNegociosPage />);
     const linha = (await screen.findByText('Bellas Esmalteria')).closest('tr') as HTMLElement;
     expect(within(linha).getByText('3 dias restantes')).toBeInTheDocument();
-    expect(within(linha).getByText('Solo · R$ 49,90/mês')).toBeInTheDocument();
+    expect(within(linha).getByText('Solo')).toBeInTheDocument();
+    expect(within(linha).getByText('R$ 49,90/mês')).toBeInTheDocument();
     expect(within(linha).getByText('Desconectado')).toBeInTheDocument();
     expect(within(linha).getByRole('link', { name: 'Ver detalhes' })).toHaveAttribute('href', '/admin/negocios/n2');
   });
