@@ -67,7 +67,7 @@ export default function AdminLogsPage() {
               setPage(1);
               setAction(event.target.value);
             }}
-            placeholder="Filtrar por action_type"
+            placeholder="Filtrar por código da ação (ex.: TENANT_BLOCKED)"
             className={inputClass}
           />
 
@@ -80,8 +80,8 @@ export default function AdminLogsPage() {
             className={inputClass}
           >
             <option value="">Status</option>
-            <option value="success">success</option>
-            <option value="failed">failed</option>
+            <option value="success">Sucesso</option>
+            <option value="failed">Falhou</option>
           </select>
 
           <label className="relative md:col-span-2">
@@ -92,7 +92,7 @@ export default function AdminLogsPage() {
                 setPage(1);
                 setSearchActor(event.target.value);
               }}
-              placeholder="Actor user ID (uuid)"
+              placeholder="ID do usuário autor (uuid)"
               className={cn(inputClass, 'pl-9')}
             />
           </label>
