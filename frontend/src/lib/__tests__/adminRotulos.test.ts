@@ -20,6 +20,17 @@ describe('adminRotulos', () => {
     );
   });
 
+  it('nomes com $ entram como texto, sem virar padrão de substituição', () => {
+    const texto = mensagemAlerta('whatsapp', 'R$$ Ana', 'Studio $& $$ Aurora');
+    expect(texto.startsWith('Oi, R$$!')).toBe(true);
+    expect(texto).toContain('do Studio $& $$ Aurora está');
+  });
+
+  it('dono vazio vira só "Oi!"', () => {
+    expect(mensagemAlerta('cobranca', '   ', 'Ateliê X').startsWith('Oi! Aqui é do EasyAgenda+. A mensalidade do Ateliê X')).toBe(true);
+    expect(mensagemAlerta('cobranca', '', 'Ateliê X').startsWith('Oi! ')).toBe(true);
+  });
+
   it('rótulos de status, plano e segmento', () => {
     expect(ROTULO_STATUS.carencia).toBe('Em carência');
     expect(ROTULO_STATUS.teste_encerrado).toBe('Teste encerrado');

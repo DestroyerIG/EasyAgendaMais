@@ -54,8 +54,13 @@ const MENSAGEM_ALERTA: Record<TipoAlerta, string> = {
     'Oi, {dono}! Aqui é do EasyAgenda+. O {negocio} não registra agendamentos há alguns dias. Está tudo certo por aí? Podemos ajudar?',
 };
 
-/** Mensagem de WhatsApp para o dono do negócio em risco. Usa só o primeiro nome do dono. */
+/**
+ * Mensagem de WhatsApp para o dono do negócio em risco. Usa só o primeiro nome do dono; sem
+ * nome, a saudação vira "Oi!". Os nomes entram com função de substituição para que `$&` ou `$$`
+ * no nome continuem sendo texto.
+ */
 export function mensagemAlerta(tipo: TipoAlerta, dono: string, negocio: string): string {
   const primeiroNome = dono.trim().split(/\s+/)[0] ?? '';
-  return MENSAGEM_ALERTA[tipo].replace('{dono}', primeiroNome).replace('{negocio}', negocio);
+  const modelo = primeiroNome ? MENSAGEM_ALERTA[tipo] : MENSAGEM_ALERTA[tipo].replace('Oi, {dono}!', 'Oi!');
+  return modelo.replace(/\{(dono|negocio)\}/g, (_m, chave: string) => (chave === 'dono' ? primeiroNome : negocio));
 }
