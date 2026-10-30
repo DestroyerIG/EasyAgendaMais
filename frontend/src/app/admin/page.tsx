@@ -17,7 +17,7 @@ import { CartaoTestes } from '@/components/admin/visaoGeral/CartaoTestes';
 import { ConversaoPorSegmento } from '@/components/admin/visaoGeral/ConversaoPorSegmento';
 import { DisparosWhatsapp } from '@/components/admin/visaoGeral/DisparosWhatsapp';
 import { TabelaEmRisco } from '@/components/admin/visaoGeral/TabelaEmRisco';
-import { horaMinuto } from '@/components/admin/visaoGeral/formato';
+import { horaMinuto } from '@/components/admin/formato';
 import { adminApi } from '@/lib/adminApi';
 import { cn } from '@/lib/cn';
 import { getApiErrorMessage } from '@/utils/handleApiError';

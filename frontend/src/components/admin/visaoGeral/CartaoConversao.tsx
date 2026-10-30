@@ -2,7 +2,7 @@ import { cn } from '@/lib/cn';
 import { formatNumber } from '@/lib/formatters';
 import type { ConversaoLinha } from '@/types/admin';
 import { BarraConversao, META_CONVERSAO_PCT } from './ConversaoPorSegmento';
-import { CAIXA, SEM_DADO, pct, pontos } from './formato';
+import { CAIXA, SEM_DADO, pct, pontos } from '../formato';
 
 export function CartaoConversao({ geral }: { geral: ConversaoLinha }) {
   const diferenca = geral.taxaPct === null ? null : geral.taxaPct - META_CONVERSAO_PCT;

@@ -94,7 +94,7 @@ export const adminApi = {
     return {
       data: parsed.data,
       meta: parsed.meta,
-      cartoes: envelope?.cartoes as CartoesGestao,
+      cartoes: envelope?.cartoes ?? null,
       segmentos: envelope?.segmentos ?? [],
     };
   },

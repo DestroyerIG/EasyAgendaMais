@@ -2,7 +2,7 @@ import { Icon } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { formatNumber } from '@/lib/formatters';
 import type { AdminVisaoGeral } from '@/types/admin';
-import { CAIXA, SEM_DADO, pct } from './formato';
+import { CAIXA, SEM_DADO, pct } from '../formato';
 
 const ROTULO_ORIGEM: Record<string, string> = {
   lembrete: 'Lembretes',

@@ -1,7 +1,7 @@
 import { cn } from '@/lib/cn';
 import { formatCurrency } from '@/lib/formatters';
 import type { AdminVisaoGeral } from '@/types/admin';
-import { CAIXA, SEM_DADO, pctComSinal } from './formato';
+import { CAIXA, SEM_DADO, pctComSinal } from '../formato';
 
 export function CartaoMrr({ mrr }: { mrr: AdminVisaoGeral['mrr'] }) {
   const v = mrr.variacaoPct;

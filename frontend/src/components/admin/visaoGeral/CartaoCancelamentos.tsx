@@ -2,7 +2,7 @@ import { Icon } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { formatCurrency, formatNumber } from '@/lib/formatters';
 import type { AdminVisaoGeral } from '@/types/admin';
-import { CAIXA, pct } from './formato';
+import { CAIXA, pct } from '../formato';
 
 export function CartaoCancelamentos({ cancelamentos }: { cancelamentos: AdminVisaoGeral['cancelamentos'] }) {
   const { cancelamentosMes, receitaCancelada, retencaoPct } = cancelamentos;

@@ -5,7 +5,7 @@ import { formatCurrency, formatPhone } from '@/lib/formatters';
 import { mensagemAlerta, rotuloPlano, rotuloSegmento } from '@/lib/adminRotulos';
 import { linkWhatsapp } from '@/lib/whatsappLink';
 import type { NegocioEmRisco, TipoAlerta } from '@/types/admin';
-import { CAIXA, tempoDesde } from './formato';
+import { CAIXA, tempoDesde } from '../formato';
 
 const ALERTA: Record<TipoAlerta, { texto: string; icone: string }> = {
   cobranca: { texto: 'Cobrança em atraso', icone: 'credit_card_off' },

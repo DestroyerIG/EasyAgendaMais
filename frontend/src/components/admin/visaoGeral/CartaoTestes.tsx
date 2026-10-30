@@ -3,7 +3,7 @@ import { cn } from '@/lib/cn';
 import { TRIAL_DAYS } from '@/lib/constants';
 import { formatNumber } from '@/lib/formatters';
 import type { AdminVisaoGeral } from '@/types/admin';
-import { CAIXA } from './formato';
+import { CAIXA } from '../formato';
 
 export function CartaoTestes({ testes }: { testes: AdminVisaoGeral['testes'] }) {
   return (

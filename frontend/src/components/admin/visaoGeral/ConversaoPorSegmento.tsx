@@ -3,7 +3,7 @@ import { cn } from '@/lib/cn';
 import { formatCurrency, formatNumber } from '@/lib/formatters';
 import { rotuloSegmento } from '@/lib/adminRotulos';
 import type { AdminVisaoGeral } from '@/types/admin';
-import { CAIXA, SEM_DADO, pct } from './formato';
+import { CAIXA, SEM_DADO, pct } from '../formato';
 
 /** Meta de conversão de teste para pago, em %. Linha de referência das barras e do cartão geral. */
 export const META_CONVERSAO_PCT = 25;

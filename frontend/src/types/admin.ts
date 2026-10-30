@@ -107,7 +107,8 @@ export type LimitePagina = 6 | 20 | 50 | 100;
 export interface ListaNegocios {
   data: NegocioListado[];
   meta: PaginationMeta;
-  cartoes: CartoesGestao;
+  /** null quando o envelope não traz os cartões. */
+  cartoes: CartoesGestao | null;
   segmentos: Array<{ segmento: string; total: number }>;
 }
 
