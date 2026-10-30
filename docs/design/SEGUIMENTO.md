@@ -165,6 +165,29 @@ Sub-projeto 7 (Login com Google e Google Agenda), pendências conhecidas:
 - **O backfill usa `subscription_updated_at`, que é leniente.** Esse campo muda a cada webhook; uma conta vencida há muito tempo, com tentativa recente do Stripe, ganha carência nova no deploy em vez de seguir bloqueada.
 - **Conferir o tamanho de `billing_payments` e `subscription_events` antes de aplicar.** Os índices são criados sem `CONCURRENTLY` e travam a escrita (webhooks) nessas tabelas enquanto são criados.
 
+## Item H2 (SuperAdmin), pendências conhecidas
+
+- **O SQL do painel nunca rodou num banco real.** A consulta `painelRepository.linhasNegocios` e as do detalhe (LTV, uso, auditoria) foram testadas só com Prisma mockado, e a tela foi conferida com um backend falso. Na primeira semana em produção, confira o MRR, a conversão e os negócios em risco contra contagens feitas à mão.
+- **O MRR usa o preço do plano atual.** Não há histórico de troca de plano: quem trocou de plano no mês entra com o preço novo no mês anterior também.
+- **O alerta de WhatsApp usa o último envio como última conexão conhecida.** Não existe registro de quando o WhatsApp caiu; o "há quanto tempo" conta a partir da última mensagem enviada.
+- **A paginação é em memória.** Uma consulta traz todos os negócios, e o filtro de status, a página e os cartões são calculados no Node. Rever acima de uns 5 mil negócios.
+- **O motivo segue opcional no backend das ações antigas** (bloquear, desbloquear, sincronizar, mudar plano, mudar status e cancelar). O frontend exige; só a rota nova de estender o teste exige também no backend.
+
+### Decisões de produto para o dono revisar
+
+- **Status "Teste encerrado".** Não está na lista da spec. Sem ele, o fim do teste sem pagamento ficaria sem status.
+- **Alerta de WhatsApp pelo último envio**, como descrito acima.
+- **Estender teste de quem tem assinatura no gateway é recusado.** Com assinatura na Stripe ou no provedor, o teste é do gateway e o webhook desfaria a mudança. O botão não aparece, e a rota responde 409 sem mudar nada.
+- **"Clientes na base" conta só clientes ativas.**
+- **As opções de "Mudar status" aparecem como "Ativa (active)"**, com o código técnico entre parênteses ao lado do nome.
+- **Textos escritos sem a spec:** "Pagantes do mês anterior que seguem" (retenção), "últimos 30 dias" (conversão por segmento) e o subtítulo da tabela de negócios em risco ("Cobrança em atraso, teste perto do fim sem configuração, WhatsApp desconectado ou agenda parada.").
+
+### Conferência visual (30/10/2026)
+
+- As três telas foram conferidas com mock local em 1440 px e 390 px, nos temas claro e escuro, contra o Stitch "ajustada". Nenhuma tela tem rolagem horizontal na página; em 390 px as tabelas rolam dentro do próprio quadro.
+- Ajustes feitos: a tabela de negócios espremia a coluna do nome e cortava a última coluna em 1440 px (plano e valor passaram a duas linhas, o "Ver detalhes" virou botão de ícone com o mesmo nome acessível); o bloco "Sinal Pix" do detalhe mostrava o texto inteiro em fonte grande e quebrava em três linhas.
+- O botão "Avisar no WhatsApp" usa a variante `whatsapp` do kit: no tema escuro, o texto branco sobre o verde claro tem contraste baixo. Ajuste no kit, fora da H2.
+
 ## Infraestrutura
 
 - **Resolvido em 27/10:** o `docker-compose.yml` e o `setup.ps1` passaram a usar o Prisma (`supabase-stub.sql` + `prisma migrate deploy`), sem os SQL antigos e sem `AUTH_PROVIDER_MODE`. Os Dockerfiles foram corrigidos: no backend, o `npm ci` de produção falhava no `prisma generate`; no frontend, faltavam o caminho do standalone, a pasta `public` e as `NEXT_PUBLIC_*` no build. Falta subir o compose do zero numa máquina com o Docker rodando, porque a validação foi só de sintaxe.
