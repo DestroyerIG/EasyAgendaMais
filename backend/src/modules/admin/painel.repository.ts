@@ -80,7 +80,7 @@ async function consultar(id?: string): Promise<LinhaNegocio[]> {
                         AND CASE WHEN se.payload->>'amount_paid' ~ '^[0-9]+([.][0-9]+)?$'
                              THEN (se.payload->>'amount_paid')::numeric ELSE 0 END > 0)) AS ja_pagou,
            COALESCE(
-             b.current_period_end,
+             b.current_period_end AT TIME ZONE 'UTC',
              b.subscription_current_period_end AT TIME ZONE 'UTC'
            ) AS fim_do_periodo,
            b.provider, b.payment_method,

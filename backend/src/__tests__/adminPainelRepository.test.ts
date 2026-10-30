@@ -64,7 +64,7 @@ describe('painelRepository', () => {
     prismaMock.$queryRaw.mockResolvedValue([]);
     await painelRepository.linhasNegocios();
     const sql = (prismaMock.$queryRaw.mock.calls[0][0] as { sql: string }).sql;
-    expect(sql).toMatch(/COALESCE\(\s*b\.current_period_end,\s*b\.subscription_current_period_end AT TIME ZONE 'UTC'\s*\)/);
+    expect(sql).toMatch(/COALESCE\(\s*b\.current_period_end AT TIME ZONE 'UTC',\s*b\.subscription_current_period_end AT TIME ZONE 'UTC'\s*\)/);
   });
 
   it('linhaNegocio devolve null quando a consulta vem vazia', async () => {
