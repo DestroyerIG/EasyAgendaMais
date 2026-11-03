@@ -186,7 +186,7 @@ export const painelService = {
         statusAssinatura: l.statusAssinatura,
         fimDoPeriodo: l.fimDoPeriodo ? l.fimDoPeriodo.toISOString() : null,
         temAssinaturaGateway: extras.temAssinaturaGateway,
-        podeEstenderTeste: motivoParaNaoEstenderTeste(l, extras.temAssinaturaGateway) === null,
+        podeEstenderTeste: motivoParaNaoEstenderTeste(l) === null,
         jaPagou: l.jaPagou,
         usuarioDonoId: extras.usuarioDonoId,
       },

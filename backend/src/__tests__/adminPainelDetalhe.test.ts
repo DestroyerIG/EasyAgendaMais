@@ -41,7 +41,7 @@ function linha(parcial: Partial<LinhaNegocio> = {}): LinhaNegocio {
     id: ID, nome: 'Studio Ana', dono: 'Ana', email: 'ana@x.com', whatsapp: '11999999999',
     cpfCnpj: '12345678900', endereco: null, segmento: 'unhas',
     plano: 'profissional', statusAssinatura: 'active', ativo: true,
-    inadimplenteDesde: null, jaPagou: true, fimDoPeriodo: new Date(Date.now() + 10 * MS_DIA), pix: false,
+    inadimplenteDesde: null, jaPagou: true, fimDoPeriodo: new Date(Date.now() + 10 * MS_DIA),
     criadoEm: new Date('2026-01-10T12:00:00Z'), canceladoEm: null, onboardingConcluido: true,
     temInstanciaWhatsapp: true, whatsappConectadoEm: null, ultimoEnvioEm: null,
     agendamentos30d: 4, ultimoAgendamentoEm: null,
@@ -144,7 +144,7 @@ describe('GET /admin/tenants/:id', () => {
     expect(res.body.data.negocio.podeEstenderTeste).toBe(false);
   });
 
-  it('podeEstenderTeste segue a regra da rota: status normalizado e sem assinatura no gateway', async () => {
+  it('podeEstenderTeste segue a regra da rota: status normalizado, inclusive com o cartão cadastrado', async () => {
     repo.linhaNegocio.mockResolvedValue(linha({ statusAssinatura: ' TRIALING ', jaPagou: false }));
     let res = await request.get(`/api/v1/admin/tenants/${ID}`);
     expect(res.body.data.negocio.podeEstenderTeste).toBe(true);
@@ -157,7 +157,7 @@ describe('GET /admin/tenants/:id', () => {
       slug: 'ana', suspensoMotivo: null, temAssinaturaGateway: true, usuarioDonoId: 'dono1', proximoVencimento: null,
     });
     res = await request.get(`/api/v1/admin/tenants/${ID}`);
-    expect(res.body.data.negocio.podeEstenderTeste).toBe(false);
+    expect(res.body.data.negocio.podeEstenderTeste).toBe(true);
   });
 
   it('próxima cobrança usa o next_due_date quando existe', async () => {

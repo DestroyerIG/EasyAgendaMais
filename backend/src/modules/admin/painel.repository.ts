@@ -93,7 +93,6 @@ function paraLinha(r: LinhaCrua): LinhaNegocio {
     inadimplenteDesde: data(r.inadimplente_desde),
     jaPagou: bool(r.ja_pagou),
     fimDoPeriodo: data(r.fim_do_periodo),
-    pix: r.provider === 'asaas' || r.payment_method === 'pix',
     criadoEm: data(r.created_at) as Date,
     canceladoEm: data(r.canceled_at),
     onboardingConcluido: bool(r.onboarding_concluido),

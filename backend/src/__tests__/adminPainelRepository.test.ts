@@ -50,7 +50,6 @@ describe('painelRepository', () => {
       linhaCrua({ provider: 'stripe', payment_method: 'card' }),
     ]);
     const ls = await painelRepository.linhasNegocios();
-    expect(ls.map((l) => l.pix)).toEqual([true, true, false]);
   });
 
   it('fimDoPeriodo vem de fim_do_periodo (já com o fallback aplicado no SQL)', async () => {

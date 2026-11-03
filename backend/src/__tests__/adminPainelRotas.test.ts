@@ -39,7 +39,7 @@ function linha(parcial: Partial<LinhaNegocio> = {}): LinhaNegocio {
     id: `n${seq}`, nome: `Negócio ${seq}`, dono: 'Dona', email: `n${seq}@b.com`, whatsapp: '11999999999',
     cpfCnpj: null, endereco: null, segmento: 'barbearia',
     plano: 'profissional', statusAssinatura: 'active', ativo: true,
-    inadimplenteDesde: null, jaPagou: true, fimDoPeriodo: null, pix: false,
+    inadimplenteDesde: null, jaPagou: true, fimDoPeriodo: null,
     criadoEm: dias(-100 + seq), canceladoEm: null, onboardingConcluido: true,
     temInstanciaWhatsapp: false, whatsappConectadoEm: null, ultimoEnvioEm: null,
     agendamentos30d: 0, ultimoAgendamentoEm: null,

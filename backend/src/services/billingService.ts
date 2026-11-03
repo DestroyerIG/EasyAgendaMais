@@ -908,6 +908,27 @@ export const billingService = {
     };
   },
 
+  /**
+   * Teste com cartão estendido pelo SuperAdmin: a 1ª cobrança pendente vai para o novo fim do teste e a
+   * assinatura passa a vencer um mês depois. Devolve false quando o negócio não tem teste com cartão.
+   */
+  async moverVencimentoDoTesteCartao(businessId: string, novoFim: Date): Promise<boolean> {
+    const context = (await subscriptionRepository.getBusinessBillingContext(businessId)) as BusinessBillingContext | null;
+    if (!context || context.payment_method !== 'card' || !context.provider_subscription_id) return false;
+    const ymd = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+    const pendente = await subscriptionRepository.cobrancaPendenteCartao(businessId);
+    if (pendente) {
+      await asaasService.atualizarCobranca(pendente, { dueDate: ymd(novoFim) });
+    }
+    const seguinte = new Date(novoFim);
+    seguinte.setMonth(seguinte.getMonth() + 1);
+    await asaasService.atualizarAssinatura(String(context.provider_subscription_id), {
+      nextDueDate: ymd(seguinte),
+      updatePendingPayments: false,
+    });
+    return true;
+  },
+
   async cancelSubscription(businessId: string): Promise<Record<string, unknown>> {
     const context = (await subscriptionRepository.getBusinessBillingContext(
       businessId
@@ -941,18 +962,21 @@ export const billingService = {
       });
     }
 
-    // Pix é cobrança mês a mês: cancelar só impede a próxima. O acesso continua até o fim
-    // do período pago (spec 2D), quando a rotina de expiração marca 'canceled'. Sem período
-    // pago (pendente, atrasada), cancela na hora.
+    // Pix é cobrança mês a mês: cancelar só impede a próxima. No cartão, remover a assinatura no
+    // Asaas apaga também a cobrança pendente. O acesso continua até o fim do período pago, ou do
+    // teste, quando a rotina de expiração marca 'canceled'. Sem período pago (pendente,
+    // atrasada), cancela na hora.
     const status = normalizeInternalSubscriptionStatus(context.subscription_status);
     const fimPeriodo = parseDate(context.current_period_end ?? context.subscription_current_period_end);
-    const mantemAcesso = status === 'active' && Boolean(fimPeriodo && fimPeriodo.getTime() > Date.now());
+    const mantemAcesso =
+      (status === 'active' || status === 'trialing') && Boolean(fimPeriodo && fimPeriodo.getTime() > Date.now());
+    const statusFinal = mantemAcesso ? status : 'canceled';
     const canceledAt = new Date();
 
     await subscriptionRepository.updateSubscriptionState(businessId, {
       provider: 'asaas',
-      paymentMethod: 'pix',
-      subscriptionStatus: mantemAcesso ? 'active' : 'canceled',
+      paymentMethod: context.payment_method === 'card' ? 'card' : 'pix',
+      subscriptionStatus: statusFinal,
       canceledAt,
       cancelAtPeriodEnd: true,
       metadata: {
@@ -963,7 +987,7 @@ export const billingService = {
 
     return {
       provider: 'asaas',
-      subscriptionStatus: mantemAcesso ? 'active' : 'canceled',
+      subscriptionStatus: statusFinal,
       cancelAtPeriodEnd: true,
       currentPeriodEnd: mantemAcesso ? fimPeriodo!.toISOString() : null,
       canceledAt: canceledAt.toISOString(),
@@ -1000,6 +1024,37 @@ export const billingService = {
       }) as unknown as Promise<Record<string, unknown>>;
     }
 
+    // Cartão cancelado ainda no período (ou no teste): o Asaas não restaura assinatura removida, então
+    // cria outra com o cartão guardado, vencendo no fim do período. Sem cartão guardado, novo checkout.
+    const statusAtual = normalizeInternalSubscriptionStatus(context.subscription_status);
+    if (
+      context.payment_method === 'card' &&
+      context.subscription_cancel_at_period_end &&
+      (statusAtual === 'active' || statusAtual === 'trialing')
+    ) {
+      const token = (metadataDe(context).cartao as { token?: string } | undefined)?.token;
+      const fim = parseDate(context.current_period_end ?? context.subscription_current_period_end);
+      const planoCartao = ((context.plano_agendado as string | null) || context.plan || 'basico') as PlanName;
+      if (!token || !fim || !context.provider_customer_id) {
+        const checkout = await this.createCheckoutSession(businessId, planoCartao, 'card');
+        return { ...checkout, reactivationMode: 'new_card_checkout' };
+      }
+      const assinatura = await asaasService.criarAssinaturaComToken({
+        customerId: context.provider_customer_id,
+        token,
+        valor: PLAN_PRICES[planoCartao] ?? PLAN_PRICES.basico,
+        nextDueDate: fim.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' }),
+        externalReference: `business:${businessId}:plan:${planoCartao}:cartao`,
+      });
+      await subscriptionRepository.updateSubscriptionState(businessId, {
+        provider: 'asaas',
+        paymentMethod: 'card',
+        providerSubscriptionId: assinatura.id,
+        cancelAtPeriodEnd: false,
+      });
+      estadoContaService.invalidar(businessId);
+      return { provider: 'asaas', subscriptionStatus: statusAtual, reactivationMode: 'resumed' };
+    }
     // Pix cancelado que ainda está no período pago: só desfaz o cancelamento.
     if (
       normalizeInternalSubscriptionStatus(context.subscription_status) === 'active' &&

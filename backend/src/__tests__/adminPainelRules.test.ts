@@ -19,7 +19,7 @@ function linha(parcial: Partial<LinhaNegocio> = {}): LinhaNegocio {
     id: `n${seq}`, nome: `Negócio ${seq}`, dono: 'Dona', email: 'a@b.com', whatsapp: '11999999999',
     cpfCnpj: null, endereco: null, segmento: 'barbearia',
     plano: 'profissional', statusAssinatura: 'active', ativo: true,
-    inadimplenteDesde: null, jaPagou: true, fimDoPeriodo: null, pix: false,
+    inadimplenteDesde: null, jaPagou: true, fimDoPeriodo: null,
     criadoEm: dias(-100), canceladoEm: null, onboardingConcluido: true,
     temInstanciaWhatsapp: false, whatsappConectadoEm: null, ultimoEnvioEm: null,
     agendamentos30d: 0, ultimoAgendamentoEm: null,
@@ -238,19 +238,19 @@ describe('negociosEmRisco: pagante', () => {
 
 describe('motivoParaNaoEstenderTeste', () => {
   it('trialing sem gateway pode; incomplete sem pagamento pode', () => {
-    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: 'trialing', jaPagou: false }), false)).toBeNull();
-    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: 'incomplete', jaPagou: false }), false)).toBeNull();
+    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: 'trialing', jaPagou: false }))).toBeNull();
+    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: 'incomplete', jaPagou: false }))).toBeNull();
   });
   it('status cru é normalizado antes da regra', () => {
     // Maiúsculas e status vazio passam pelo normalizador, como na rota: vazio vira incomplete.
-    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: ' TRIALING ', jaPagou: false }), false)).toBeNull();
-    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: '', jaPagou: false }), false)).toBeNull();
+    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: ' TRIALING ', jaPagou: false }))).toBeNull();
+    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: '', jaPagou: false }))).toBeNull();
   });
   it('incomplete de quem já pagou e active não podem (status)', () => {
-    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: 'incomplete', jaPagou: true }), false)).toBe('status');
-    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: 'active' }), false)).toBe('status');
+    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: 'incomplete', jaPagou: true }))).toBe('status');
+    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: 'active' }))).toBe('status');
   });
-  it('com assinatura no gateway não pode (gateway)', () => {
-    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: 'trialing', jaPagou: false }), true)).toBe('gateway');
+  it('teste com cartão cadastrado também pode (o vencimento é movido no Asaas)', () => {
+    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: 'trialing', jaPagou: false }))).toBeNull();
   });
 });

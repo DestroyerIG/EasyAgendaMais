@@ -209,6 +209,18 @@ export const subscriptionRepository = {
     return result[0] ? this.getBusinessBillingContext(result[0].id, client) : null;
   },
 
+  /** Cobrança de cartão ainda pendente (a 1ª, no teste com cartão), a mais antiga. */
+  async cobrancaPendenteCartao(businessId: string): Promise<string | null> {
+    const result = await prisma.$queryRaw<{ provider_payment_id: string }[]>(Prisma.sql`
+      SELECT provider_payment_id FROM billing_payments
+      WHERE business_id = ${businessId}::uuid AND provider = 'asaas' AND payment_method = 'card'
+        AND paid_at IS NULL AND internal_status = 'pending'
+      ORDER BY due_date ASC NULLS LAST
+      LIMIT 1
+    `);
+    return result[0]?.provider_payment_id ?? null;
+  },
+
   /** Cartão cadastrado durante o teste: liga a assinatura do Asaas e leva o fim do teste até a 1ª cobrança. */
   async ligarCartaoNoTeste(
     businessId: string,

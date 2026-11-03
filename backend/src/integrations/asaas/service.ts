@@ -1434,6 +1434,65 @@ export const asaasService = {
     return { checkoutId: checkout.id, url: checkout.link };
   },
 
+  /** Cobrança avulsa no cartão, paga na página da fatura do Asaas (diferença do upgrade). */
+  async criarCobrancaCartao({
+    customerId,
+    valor,
+    externalReference,
+    descricao,
+  }: {
+    customerId: string;
+    valor: number;
+    externalReference: string;
+    descricao: string;
+  }): Promise<AsaasPayment> {
+    return (await asaasClient.post('/payments', {
+      customer: customerId,
+      billingType: 'CREDIT_CARD',
+      value: valor,
+      dueDate: new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' }),
+      description: descricao,
+      externalReference,
+    })) as AsaasPayment;
+  },
+
+  /** Muda valor e/ou vencimento da assinatura (troca de plano, teste estendido). */
+  async atualizarAssinatura(
+    subscriptionId: string,
+    campos: { value?: number; nextDueDate?: string; updatePendingPayments?: boolean },
+  ): Promise<void> {
+    await asaasClient.put(`/subscriptions/${subscriptionId}`, campos);
+  },
+
+  /**
+   * Assinatura de cartão criada de novo com o cartão já guardado (creditCardToken), sem a dona digitar
+   * outra vez. Usada para reativar: o Asaas não restaura assinatura removida. Em produção, depende da
+   * tokenização habilitada na conta.
+   */
+  async criarAssinaturaComToken({
+    customerId,
+    token,
+    valor,
+    nextDueDate,
+    externalReference,
+  }: {
+    customerId: string;
+    token: string;
+    valor: number;
+    nextDueDate: string;
+    externalReference: string;
+  }): Promise<{ id: string }> {
+    return (await asaasClient.post('/subscriptions', {
+      customer: customerId,
+      billingType: 'CREDIT_CARD',
+      cycle: 'MONTHLY',
+      value: valor,
+      nextDueDate,
+      creditCardToken: token,
+      externalReference,
+    })) as { id: string };
+  },
+
   async buscarAssinatura(subscriptionId: string): Promise<{
     id: string;
     creditCard?: { creditCardNumber?: string | null; creditCardBrand?: string | null; creditCardToken?: string | null } | null;
