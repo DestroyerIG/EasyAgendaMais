@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, QrCode } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
 import { CpfCnpjModal } from '@/components/billing/CpfCnpjModal';
-import { Modal } from '@/components/ui';
+import { Icon, Modal } from '@/components/ui';
 import {
   billingApi,
   type CheckoutPaymentMethod,
@@ -16,6 +15,7 @@ import {
 } from '@/lib/billing';
 import { businessProfileApi } from '@/lib/businessProfile';
 import { PLAN_MAP, SAAS_PLANS, type PlanId, isPlanId } from '@/lib/plans';
+import { planoDoCatalogo, rotuloEquipe } from '@/lib/planCatalog';
 import { formatCurrency } from '@/lib/formatters';
 import { getApiErrorCode, getApiErrorMessage } from '@/utils/handleApiError';
 import {
@@ -24,37 +24,24 @@ import {
   normalizeCpfCnpjDigits,
 } from '@/utils/cpfCnpj';
 
-// Nome, subtítulo e lista de recursos exibidos nos cards seguem literalmente o
-// export do Stitch (Solo/Equipe/Salão) — só o preço é o real cobrado no billing
-// (plan.price, de SAAS_PLANS), que já diverge do valor do mockup para o Solo.
-const PLAN_DISPLAY: Record<PlanId, { name: string; subtitle: string; features: string[]; ctaLabel: string }> = {
-  basico: {
-    name: 'Solo',
-    subtitle: '1 profissional',
-    features: [
-      'Página com galeria',
-      'Bot de WhatsApp',
-      'Lembrete e confirmação',
-      'Sinal via Pix',
-      'Radar de Retorno',
-      'Ficha de clientes',
-      'Caixa',
-    ],
-    ctaLabel: 'Começar 14 dias grátis',
-  },
-  profissional: {
-    name: 'Equipe',
-    subtitle: 'Até 5 profissionais',
-    features: ['Tudo do Solo +', 'Comissões', 'Acesso das profissionais', 'Lista de espera', 'Campanhas e relatórios'],
-    ctaLabel: 'Testar 14 dias grátis',
-  },
-  premium: {
-    name: 'Salão',
-    subtitle: 'Profissionais ilimitados',
-    features: ['Tudo do Equipe +', 'Clube e pacotes', 'Salão-parceiro', 'Várias unidades', 'Suporte prioritário'],
-    ctaLabel: 'Começar 14 dias grátis',
-  },
+// Nome, equipe e recursos dos cards vêm do catálogo único (lib/planCatalog.ts); aqui fica só o texto do botão.
+const CTA_DO_PLANO: Record<PlanId, string> = {
+  basico: 'Começar 14 dias grátis',
+  profissional: 'Testar 14 dias grátis',
+  premium: 'Começar 14 dias grátis',
 };
+
+const PLANO_ANTERIOR: Partial<Record<PlanId, string>> = { profissional: 'Solo', premium: 'Equipe' };
+
+export function recursosDoCartao(id: PlanId): string[] {
+  const plano = planoDoCatalogo(id);
+  const anterior = PLANO_ANTERIOR[id];
+  return [
+    ...(anterior ? [`Tudo do ${anterior} +`] : []),
+    ...plano.destaques,
+    ...plano.emBreve.map((r) => `${r} (em breve)`),
+  ];
+}
 
 const PIX_STORAGE_KEY = 'easyagenda:pixCheckout';
 
@@ -653,7 +640,7 @@ export function PricingPlansSection({
 
       <div className="grid gap-6 lg:grid-cols-3">
         {SAAS_PLANS.map((plan) => {
-          const display = PLAN_DISPLAY[plan.id];
+          const catalogo = planoDoCatalogo(plan.id);
           const recommended = plan.recommended;
           const current = isCurrentPlan(plan.id);
           const planBusy = processingAction?.planId === plan.id;
@@ -677,8 +664,8 @@ export function PricingPlansSection({
               )}
 
               <div className="mb-5 text-center">
-                <h3 className="text-2xl font-extrabold text-ink">{display.name}</h3>
-                <p className="mt-2 text-sm text-muted">{display.subtitle}</p>
+                <h3 className="text-2xl font-extrabold text-ink">{catalogo.nome}</h3>
+                <p className="mt-2 text-sm text-muted">{rotuloEquipe(catalogo.limiteProfissionais)}</p>
                 <p className="mt-4 text-4xl font-extrabold tabular-nums text-ink">
                   {formatCurrency(plan.price)}
                   <span className="text-sm font-medium text-muted">/mês</span>
@@ -689,9 +676,9 @@ export function PricingPlansSection({
               </div>
 
               <ul className="space-y-2 text-sm text-ink">
-                {display.features.map((feature) => (
+                {recursosDoCartao(plan.id).map((feature) => (
                   <li key={feature} className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-whatsapp" />
+                    <Icon name="check_circle" size={16} className="mt-0.5 text-whatsapp" />
                     <span className={feature.endsWith('+') ? 'font-bold' : undefined}>{feature}</span>
                   </li>
                 ))}
@@ -709,7 +696,7 @@ export function PricingPlansSection({
                           : 'border border-line bg-bg text-ink hover:bg-surface-2',
                       ].join(' ')}
                     >
-                      {display.ctaLabel}
+                      {CTA_DO_PLANO[plan.id]}
                     </a>
                     <p className="text-center text-[11px] text-muted">
                       14 dias grátis · sem cartão no cadastro
@@ -763,7 +750,7 @@ export function PricingPlansSection({
         isOpen={isPixPreCheckoutOpen}
         onClose={closePixPreCheckout}
         title={pixPreCheckoutPlanId ? `Pagar com Pix · ${PLAN_MAP[pixPreCheckoutPlanId].name}` : 'Pagar com Pix'}
-        icon={QrCode}
+        icon="qr_code_2"
       >
         <div className="space-y-5">
           {pixPreCheckoutPlanId && (
@@ -781,7 +768,7 @@ export function PricingPlansSection({
             {pixAppliedCoupon ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-emerald-300 text-sm">
-                  <CheckCircle2 size={14} />
+                  <Icon name="check_circle" size={14} />
                   <span>Cupom validado: <strong>{pixCouponCode.toUpperCase()}</strong></span>
                 </div>
                 <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 space-y-1 text-sm">
@@ -849,7 +836,7 @@ export function PricingPlansSection({
         isOpen={Boolean(pixCheckout) && isPixModalOpen}
         onClose={() => setIsPixModalOpen(false)}
         title={pixCheckoutPlanId ? `Pagamento Pix · ${PLAN_MAP[pixCheckoutPlanId].name}` : 'Pagamento Pix'}
-        icon={QrCode}
+        icon="qr_code_2"
       >
         {pixCheckout && (
           <div className="space-y-4">
@@ -876,7 +863,7 @@ export function PricingPlansSection({
               {pixCheckout.coupon ? (
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 text-emerald-300">
-                    <CheckCircle2 size={14} />
+                    <Icon name="check_circle" size={14} />
                     <span>Cupom aplicado: <strong>{pixCheckout.coupon.code}</strong></span>
                   </div>
                   {pixCheckout.discount !== undefined && pixCheckout.discount > 0 && (
@@ -888,7 +875,7 @@ export function PricingPlansSection({
               ) : pixAppliedCoupon ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-emerald-300 text-sm">
-                    <CheckCircle2 size={14} />
+                    <Icon name="check_circle" size={14} />
                     <span>Cupom validado: <strong>{pixCouponCode.toUpperCase()}</strong></span>
                   </div>
                   <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 space-y-1 text-sm">
