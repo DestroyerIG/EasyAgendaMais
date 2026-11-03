@@ -1,6 +1,6 @@
 import { Icon } from '@/components/ui';
 import { cn } from '@/lib/cn';
-import { TRIAL_DAYS } from '@/lib/constants';
+import { TESTE_COM_CARTAO_DIAS, TESTE_SEM_CARTAO_DIAS } from '@/lib/constants';
 import { formatNumber } from '@/lib/formatters';
 import type { AdminVisaoGeral } from '@/types/admin';
 import { CAIXA } from '../formato';
@@ -18,7 +18,7 @@ export function CartaoTestes({ testes }: { testes: AdminVisaoGeral['testes'] }) 
           </span>
         </div>
         <p className="mb-1 text-[36px] font-bold leading-none tracking-tight text-ink">{formatNumber(testes.ativos)}</p>
-        <p className="text-[13px] text-muted">Contas em período experimental de {TRIAL_DAYS} dias</p>
+        <p className="text-[13px] text-muted">Contas em período de teste ({TESTE_SEM_CARTAO_DIAS} dias sem cartão ou {TESTE_COM_CARTAO_DIAS} com cartão)</p>
       </div>
       <div className="flex items-center justify-between gap-2 rounded-control bg-surface-2 p-2.5">
         <span className="flex items-center gap-1.5 text-[12px] text-ink">
