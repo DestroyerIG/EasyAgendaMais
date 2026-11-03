@@ -180,12 +180,12 @@ Sub-projeto 7 (Login com Google e Google Agenda), pendências conhecidas:
 - **Estender teste de quem tem assinatura no gateway é recusado.** Com assinatura na Stripe ou no provedor, o teste é do gateway e o webhook desfaria a mudança. O botão não aparece, e a rota responde 409 sem mudar nada.
 - **"Clientes na base" conta só clientes ativas.**
 - **As opções de "Mudar status" aparecem como "Ativa (active)"**, com o código técnico entre parênteses ao lado do nome.
-- **Textos escritos sem a spec:** "Pagantes do mês anterior que seguem" (retenção), "últimos 30 dias" (conversão por segmento) e o subtítulo da tabela de negócios em risco ("Cobrança em atraso, teste perto do fim sem configuração, WhatsApp desconectado ou agenda parada.").
+- **Textos escritos sem a spec:** "Pagantes do mês anterior que seguem" (retenção), "últimos 30 dias" (conversão por segmento) e o subtítulo da tabela de negócios em risco ("Cobrança em atraso, teste perto do fim sem configuração, WhatsApp desconectado ou agenda parada."). Na revisão final entraram "Potencial R$ X/mês" (valor de quem não é pagante na tabela de risco, coluna "Valor"), "{n} pagantes perdidos · R$ X" no cartão "Cancelamentos no mês" e "Não configurado" (WhatsApp nunca configurado, em cor neutra).
 
 ### Conferência visual (30/10/2026)
 
 - As três telas foram conferidas com mock local em 1440 px e 390 px, nos temas claro e escuro, contra o Stitch "ajustada". Nenhuma tela tem rolagem horizontal na página; em 390 px as tabelas rolam dentro do próprio quadro.
-- Ajustes feitos: a tabela de negócios espremia a coluna do nome e cortava a última coluna em 1440 px (plano e valor passaram a duas linhas, o "Ver detalhes" virou botão de ícone com o mesmo nome acessível); o bloco "Sinal Pix" do detalhe mostrava o texto inteiro em fonte grande e quebrava em três linhas.
+- Ajustes feitos: a tabela de negócios espremia a coluna do nome e cortava a última coluna em 1440 px (plano e valor passaram a duas linhas, o "Ver detalhes" virou botão de ícone, com nome acessível "Ver detalhes de {negócio}" em cada linha); o bloco "Sinal Pix" do detalhe mostrava o texto inteiro em fonte grande e quebrava em três linhas.
 - O botão "Avisar no WhatsApp" usa a variante `whatsapp` do kit: no tema escuro, o texto branco sobre o verde claro tem contraste baixo. Ajuste no kit, fora da H2.
 
 ## Infraestrutura
