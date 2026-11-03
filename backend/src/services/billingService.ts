@@ -45,6 +45,7 @@ interface AsaasPaymentSnapshotInput {
   internalStatus: InternalSubscriptionStatus;
   pixData?: PixData | null;
   plano?: string | null;
+  paymentMethod?: 'card' | 'pix';
   client?: unknown;
 }
 
@@ -56,6 +57,7 @@ interface UpdateBusinessFromAsaasPaymentInput {
   customerId: string | null;
   internalStatus: InternalSubscriptionStatus;
   eventType?: string | null;
+  paymentMethod?: 'card' | 'pix';
   client?: unknown;
 }
 
@@ -104,6 +106,8 @@ interface NormalizedWebhookPayload {
   amount: number | null;
   dueDate: string | null;
   confirmedDate: string | null;
+  formaPagamento: 'card' | 'pix';
+  checkoutSession: string | null;
   payment: AsaasWebhookPayment;
 }
 
@@ -258,6 +262,7 @@ const saveAsaasPaymentSnapshot = async ({
   internalStatus,
   pixData,
   plano = null,
+  paymentMethod = 'pix',
   client = null,
 }: AsaasPaymentSnapshotInput): Promise<unknown> => {
   if (!payment?.id) {
@@ -270,7 +275,7 @@ const saveAsaasPaymentSnapshot = async ({
       provider: 'asaas',
       providerPaymentId: payment.id,
       providerSubscriptionId: subscriptionId || payment.subscription || null,
-      paymentMethod: 'pix',
+      paymentMethod,
       externalStatus: payment.status || null,
       internalStatus,
       amount: typeof payment.value === 'number' ? payment.value : null,
@@ -296,6 +301,7 @@ const updateBusinessFromAsaasPayment = async ({
   customerId,
   internalStatus,
   eventType = null,
+  paymentMethod = 'pix',
   client = null,
 }: UpdateBusinessFromAsaasPaymentInput): Promise<unknown> => {
   const { periodStart, periodEnd } = asaasService.resolveBillingPeriodFromPayment(
@@ -310,7 +316,7 @@ const updateBusinessFromAsaasPayment = async ({
     business.id,
     {
       plan,
-      paymentMethod: 'pix',
+      paymentMethod,
       subscriptionStatus: internalStatus,
       cancelAtPeriodEnd: internalStatus === 'canceled',
       provider: 'asaas',
@@ -386,6 +392,14 @@ const resolveAsaasWebhookBusiness = async (
     }
   }
 
+  // Cartão: a 1ª cobrança chega sem externalReference; o negócio é o dono do checkout.
+  if (normalizedPayload.checkoutSession) {
+    const byCheckout = await subscriptionRepository.findByCheckoutCartao(normalizedPayload.checkoutSession, client);
+    if (byCheckout) {
+      return byCheckout as BusinessBillingContext;
+    }
+  }
+
   if (normalizedPayload.customerId) {
     return subscriptionRepository.findByProviderCustomerId(
       'asaas',
@@ -405,6 +419,85 @@ const dataOuNull = (valor: unknown): Date | null => {
   if (!valor) return null;
   const d = valor instanceof Date ? valor : new Date(String(valor));
   return Number.isNaN(d.getTime()) ? null : d;
+};
+
+const metadataDe = (business: BusinessBillingContext): Record<string, unknown> =>
+  business.metadata && typeof business.metadata === 'object' ? (business.metadata as Record<string, unknown>) : {};
+
+/** Plano da cobrança de cartão: o do externalReference, senão o escolhido no checkout, senão o atual. */
+const planoDoCartao = (business: BusinessBillingContext, payload: NormalizedWebhookPayload): string => {
+  const checkout = metadataDe(business).checkoutCartao as { plano?: string } | undefined;
+  return resolvePlanFromExternalReference(payload.externalReference) || checkout?.plano || business.plan || 'basico';
+};
+
+const vencimentoAoMeioDia = (dueDate: unknown): Date | null => {
+  if (typeof dueDate !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(dueDate)) return null;
+  return new Date(`${dueDate.slice(0, 10)}T12:00:00Z`);
+};
+
+/**
+ * Cobrança de cartão do Asaas, antes do fluxo genérico:
+ * - guarda o cartão (token, bandeira, final) para reativar sem digitar de novo;
+ * - aplica o desconto do cupom na 1ª cobrança ainda pendente e futura (com vencimento hoje o
+ *   cartão já foi cobrado; o desconto fica para a próxima);
+ * - no teste, a 1ª cobrança liga o cartão e leva o fim do teste até o vencimento dela.
+ * Devolve true quando a cobrança foi tratada como cartão no teste (o status não muda).
+ */
+const tratarCobrancaCartao = async (
+  business: BusinessBillingContext,
+  payload: NormalizedWebhookPayload
+): Promise<boolean> => {
+  const payment = payload.payment;
+  const metadata = metadataDe(business);
+  const hoje = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+  const pendenteFutura =
+    payment.status === 'PENDING' && typeof payment.dueDate === 'string' && payment.dueDate.slice(0, 10) > hoje;
+
+  if (payload.subscriptionId && !metadata.cartao) {
+    try {
+      const assinatura = await asaasService.buscarAssinatura(payload.subscriptionId);
+      const cc = assinatura?.creditCard;
+      if (cc?.creditCardToken) {
+        await subscriptionRepository.mesclarMetadataCobranca(business.id, {
+          cartao: { token: cc.creditCardToken, bandeira: cc.creditCardBrand ?? null, final: cc.creditCardNumber ?? null },
+        });
+      }
+    } catch (error) {
+      logger.warn({ err: error, businessId: business.id }, 'Não foi possível ler o cartão da assinatura no Asaas');
+    }
+  }
+
+  const desconto = metadata.descontoPrimeiraMensalidade as { valor?: number } | null | undefined;
+  if (desconto?.valor && pendenteFutura && payment.id && typeof payment.value === 'number') {
+    const valor = Number(Math.max(5, payment.value - desconto.valor).toFixed(2));
+    await asaasService.atualizarCobranca(payment.id, { value: valor });
+    await subscriptionRepository.mesclarMetadataCobranca(business.id, { descontoPrimeiraMensalidade: null });
+  }
+
+  const fimDoTeste = dataOuNull(business.subscription_current_period_end);
+  const emTeste = business.subscription_status === 'trialing' && !!fimDoTeste && fimDoTeste.getTime() > Date.now();
+  const vencimento = vencimentoAoMeioDia(payment.dueDate);
+  if (!emTeste || !pendenteFutura || !payload.subscriptionId || !vencimento) {
+    return false;
+  }
+
+  await subscriptionRepository.ligarCartaoNoTeste(business.id, {
+    subscriptionId: payload.subscriptionId,
+    customerId: payload.customerId,
+    fimDoTeste: vencimento,
+  });
+  await saveAsaasPaymentSnapshot({
+    businessId: business.id,
+    payment: payment as unknown as AsaasPayment,
+    subscriptionId: payload.subscriptionId,
+    internalStatus: payload.internalStatus,
+    pixData: null,
+    plano: planoDoCartao(business, payload),
+    paymentMethod: 'card',
+    client: null,
+  });
+  estadoContaService.invalidar(business.id);
+  return true;
 };
 
 /**
@@ -1100,10 +1193,15 @@ export const billingService = {
             business.id,
             resolvedPlan as PlanName
           );
+        } else if (
+          normalizedPayload.formaPagamento === 'card' &&
+          (await tratarCobrancaCartao(business, normalizedPayload))
+        ) {
+          // Cartão cadastrado no teste: a cobrança fica para o fim do teste e o status continua trialing.
         } else {
           await updateBusinessFromAsaasPayment({
             business,
-            plan: resolvedPlan,
+            plan: normalizedPayload.formaPagamento === 'card' ? planoDoCartao(business, normalizedPayload) : resolvedPlan,
             payment: normalizedPayload.payment as unknown as AsaasPayment,
             subscriptionId:
               normalizedPayload.subscriptionId ||
@@ -1115,6 +1213,7 @@ export const billingService = {
               null,
             internalStatus: normalizedPayload.internalStatus,
             eventType: normalizedPayload.eventType,
+            paymentMethod: normalizedPayload.formaPagamento,
             client: null,
           });
 
@@ -1128,6 +1227,7 @@ export const billingService = {
             internalStatus: normalizedPayload.internalStatus,
             pixData: asaasMapper.mapAsaasPaymentToPixData(normalizedPayload.payment),
             plano: resolvedPlan,
+            paymentMethod: normalizedPayload.formaPagamento,
             client: null,
           });
         }

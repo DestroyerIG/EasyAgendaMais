@@ -199,6 +199,34 @@ export const subscriptionRepository = {
     return result[0] || null;
   },
 
+  /** Negócio dono de um Checkout Asaas de cartão (o Asaas não repassa o externalReference do checkout). */
+  async findByCheckoutCartao(checkoutId: string, client: unknown = null): Promise<Record<string, unknown> | null> {
+    const result = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+      SELECT id FROM businesses
+      WHERE metadata->'checkoutCartao'->>'id' = ${checkoutId}::text AND active = true
+      LIMIT 1
+    `);
+    return result[0] ? this.getBusinessBillingContext(result[0].id, client) : null;
+  },
+
+  /** Cartão cadastrado durante o teste: liga a assinatura do Asaas e leva o fim do teste até a 1ª cobrança. */
+  async ligarCartaoNoTeste(
+    businessId: string,
+    { subscriptionId, customerId, fimDoTeste }: { subscriptionId: string; customerId: string | null; fimDoTeste: Date },
+  ): Promise<void> {
+    await prisma.$queryRaw(Prisma.sql`
+      UPDATE businesses
+      SET provider = 'asaas',
+          payment_method = 'card',
+          provider_subscription_id = ${subscriptionId}::text,
+          provider_customer_id = COALESCE(${customerId}::text, provider_customer_id),
+          subscription_current_period_end = ${fimDoTeste}::timestamp,
+          subscription_cancel_at_period_end = false,
+          subscription_updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${businessId}::uuid
+    `);
+  },
+
   async findByProviderSubscriptionId(provider: string, providerSubscriptionId: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
     const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
       SELECT id, name, owner_name, email, whatsapp, plan,

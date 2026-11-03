@@ -1434,6 +1434,21 @@ export const asaasService = {
     return { checkoutId: checkout.id, url: checkout.link };
   },
 
+  async buscarAssinatura(subscriptionId: string): Promise<{
+    id: string;
+    creditCard?: { creditCardNumber?: string | null; creditCardBrand?: string | null; creditCardToken?: string | null } | null;
+  }> {
+    return (await asaasClient.get(`/subscriptions/${subscriptionId}`)) as {
+      id: string;
+      creditCard?: { creditCardNumber?: string | null; creditCardBrand?: string | null; creditCardToken?: string | null } | null;
+    };
+  },
+
+  /** Muda só uma cobrança pendente (desconto da primeira mensalidade, vencimento do teste estendido). */
+  async atualizarCobranca(paymentId: string, campos: { value?: number; dueDate?: string }): Promise<void> {
+    await asaasClient.put(`/payments/${paymentId}`, campos);
+  },
+
   async getPayment(paymentId: string): Promise<AsaasPayment> {
     if (!paymentId) {
       throw new AppError('paymentId é obrigatório', 400, 'INVALID_PAYMENT');
