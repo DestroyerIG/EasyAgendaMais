@@ -2,31 +2,15 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// Frases que as páginas de venda já prometeram e o sistema não cumpre (H3). Cada linha
-// trava a volta da promessa falsa, inclusive por cópia de um arquivo para outro.
-const PROIBIDAS: { arquivo: string; frases: RegExp[] }[] = [
-  {
-    arquivo: 'src/app/page.tsx',
-    frases: [
-      /valor fixo/, /confirmado em segundos/, /simultâneo/, /Preenchido em/, /24h e 2h/, /Radar de Retorno/,
-      /todos os recursos da plataforma/, /praticamente zera/, /Junte-se a/,
-    ],
-  },
-  {
-    arquivo: 'src/app/nail-designers/page.tsx',
-    frases: [
-      /comprovante/, /taxa de deslocamento por região/, /18 a 21 dias/, /Radar de Retorno/, /pelo WhatsApp\. Sem dados/,
-      /Inovação exclusiva/, /R\$ 20, R\$ 30/, /também pode agendar/, /vai direto para o cadastro/,
-    ],
-  },
-  { arquivo: 'src/components/marketing/PublicFooter.tsx', frases: [/Conformidade LGPD/, /Radar de Retorno/] },
-  { arquivo: 'src/components/marketing/landing/Hero.tsx', frases: [/Dados protegidos LGPD/] },
-  { arquivo: 'src/components/marketing/PricingPlansSection.tsx', frases: [/Suporte prioritário/, /Radar de Retorno/] },
-  { arquivo: 'src/components/marketing/landing/RoiCalculator.tsx', frases: [/24h e 2h/, /recupera até/] },
-  {
-    arquivo: 'src/components/marketing/landing/WhatsAppSimulator.tsx',
-    frases: [/Te avisamos 24h antes/, /Pix Copia e Cola/, /Sinal confirmado/],
-  },
+// Frases que as páginas de venda já prometeram e o sistema não cumpre (H3). Todas valem para
+// todos os arquivos de venda: uma promessa falsa não volta nem por cópia de um arquivo para outro.
+const PROIBIDAS: RegExp[] = [
+  /valor fixo/, /confirmado em segundos/, /simultâneo/, /Preenchido em/, /24h e 2h/, /Radar de Retorno/,
+  /todos os recursos da plataforma/, /praticamente zera/, /Junte-se a/,
+  /comprovante/, /taxa de deslocamento por região/, /18 a 21 dias/, /pelo WhatsApp\. Sem dados/,
+  /Inovação exclusiva/, /R\$ 20, R\$ 30/, /também pode agendar/, /vai direto para o cadastro/,
+  /Conformidade LGPD/, /Dados protegidos LGPD/, /Suporte prioritário/, /recupera até/,
+  /Te avisamos 24h antes/, /Pix Copia e Cola/, /Sinal confirmado/,
 ];
 
 const raiz = resolve(__dirname, '../../../..');
@@ -48,9 +32,9 @@ const ARQUIVOS_DE_VENDA = [
 ];
 
 describe('páginas de venda', () => {
-  it.each(PROIBIDAS)('$arquivo não traz promessa que o sistema não cumpre', ({ arquivo, frases }) => {
+  it.each(ARQUIVOS_DE_VENDA)('%s não traz promessa que o sistema não cumpre', (arquivo) => {
     const texto = ler(arquivo);
-    for (const frase of frases) expect(texto, `${arquivo}: ${frase}`).not.toMatch(frase);
+    for (const frase of PROIBIDAS) expect(texto, `${arquivo}: ${frase}`).not.toMatch(frase);
   });
 
   it('nenhum arquivo de venda usa ícones lucide', () => {
