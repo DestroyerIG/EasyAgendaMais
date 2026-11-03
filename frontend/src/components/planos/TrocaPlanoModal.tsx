@@ -22,7 +22,8 @@ type Etapa =
   | { tipo: 'carregando' }
   | { tipo: 'erro'; mensagem: string }
   | { tipo: 'previa'; previa: PreviaTroca }
-  | { tipo: 'pix'; resultado: Extract<ResultadoTroca, { status: 'aguardando' }> };
+  | { tipo: 'pix'; resultado: Extract<ResultadoTroca, { status: 'aguardando' }> }
+  | { tipo: 'cartao'; resultado: Extract<ResultadoTroca, { status: 'aguardando' }> };
 
 export function TrocaPlanoModal({ plano, onClose, onConcluido }: TrocaPlanoModalProps) {
   const [etapa, setEtapa] = useState<Etapa>({ tipo: 'carregando' });
@@ -55,6 +56,8 @@ export function TrocaPlanoModal({ plano, onClose, onConcluido }: TrocaPlanoModal
         onConcluido(`Seu plano muda para ${nome} em ${diaMes(r.agendadoPara) ?? 'próxima renovação'}.`);
       } else if (r.status === 'pago') {
         onConcluido(`Pronto! Seu plano agora é o ${nome}.`);
+      } else if (r.status === 'aguardando' && !r.qrCode && r.invoiceUrl) {
+        setEtapa({ tipo: 'cartao', resultado: r });
       } else if (r.status === 'aguardando') {
         setEtapa({ tipo: 'pix', resultado: r });
       } else {
@@ -70,6 +73,8 @@ export function TrocaPlanoModal({ plano, onClose, onConcluido }: TrocaPlanoModal
   const titulo =
     etapa.tipo === 'pix'
       ? 'Pague a diferença no Pix'
+      : etapa.tipo === 'cartao'
+      ? 'Pague a diferença no cartão'
       : etapa.tipo === 'previa' && etapa.previa.tipo === 'downgrade'
       ? `Mudar para o ${nome}`
       : `Fazer upgrade para o ${nome}`;
@@ -84,6 +89,29 @@ export function TrocaPlanoModal({ plano, onClose, onConcluido }: TrocaPlanoModal
     rodape = (
       <Button variant="secondary" onClick={onClose}>
         Fechar
+      </Button>
+    );
+  } else if (etapa.tipo === 'cartao') {
+    const r = etapa.resultado;
+    corpo = (
+      <div className="space-y-4 text-[14px]">
+        <p className="text-muted">
+          A diferença de {formatCurrency(r.valor)} é paga na página segura do Asaas. O plano {nome} é liberado assim que o
+          pagamento for confirmado; a cobrança também fica em Plano e cobrança.
+        </p>
+        <a
+          href={r.invoiceUrl!}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-control bg-brand px-4 text-[15px] font-semibold text-on-brand hover:opacity-90"
+        >
+          Pagar a diferença no cartão
+        </a>
+      </div>
+    );
+    rodape = (
+      <Button variant="secondary" onClick={onClose}>
+        Pagar depois
       </Button>
     );
   } else if (etapa.tipo === 'pix') {
@@ -135,7 +163,7 @@ export function TrocaPlanoModal({ plano, onClose, onConcluido }: TrocaPlanoModal
             <Icon name={pix ? 'qr_code_2' : 'credit_card'} size={18} className="mt-0.5 shrink-0" />
             {pix
               ? 'No Pix, o plano é liberado quando o pagamento da diferença for confirmado.'
-              : 'A diferença é cobrada no cartão da assinatura e o plano é liberado na hora.'}
+              : 'No cartão, a diferença é paga no cartão, na página segura do Asaas, e o plano é liberado quando o pagamento for confirmado.'}
           </p>
         </div>
       ) : (

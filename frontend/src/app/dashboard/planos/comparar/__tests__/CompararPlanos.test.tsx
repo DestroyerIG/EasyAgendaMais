@@ -44,7 +44,8 @@ const catalogo: CatalogoPlanos = {
 
 const status = (extra: Partial<SubscriptionStatusResponse> = {}): SubscriptionStatusResponse => ({
   plan: 'profissional',
-  provider: 'stripe',
+  provider: 'asaas',
+  paymentMethod: 'card',
   subscriptionStatus: 'active',
   currentPeriodStart: null,
   currentPeriodEnd: '2026-11-15T12:00:00.000Z',
@@ -103,7 +104,7 @@ describe('Comparação e upgrade', () => {
     expect(screen.getByRole('button', { name: /Ver plano Salão/ })).toBeInTheDocument();
   });
 
-  it('upgrade no cartão: prévia, confirmação e volta para Plano e cobrança', async () => {
+  it('upgrade aplicado na hora: prévia, confirmação e volta para Plano e cobrança', async () => {
     api.previewPlanChange.mockResolvedValue({
       tipo: 'upgrade', planoAtual: 'profissional', planoNovo: 'premium', valorHoje: 50, dias: 15,
       valorMensalNovo: 199.9, aPartirDe: '2026-11-15T12:00:00.000Z', formaPagamento: 'card', bloqueio: null,
@@ -142,6 +143,24 @@ describe('Comparação e upgrade', () => {
     await waitFor(() => expect(api.getPixPaymentStatus).toHaveBeenCalledWith('pay_up'));
     await waitFor(() => expect(push).toHaveBeenCalledWith('/planos'));
     vi.useRealTimers();
+  });
+
+  it('upgrade no cartão leva à fatura do Asaas para pagar a diferença', async () => {
+    api.getStatus.mockResolvedValue(status({ provider: 'asaas', paymentMethod: 'card' }));
+    api.previewPlanChange.mockResolvedValue({
+      tipo: 'upgrade', planoAtual: 'profissional', planoNovo: 'premium', valorHoje: 50, dias: 15,
+      valorMensalNovo: 199.9, aPartirDe: null, formaPagamento: 'card', bloqueio: null,
+    });
+    api.changePlan.mockResolvedValue({
+      tipo: 'upgrade', status: 'aguardando', plano: 'premium', valor: 50, paymentId: 'pay_up',
+      pixCopyPaste: null, qrCode: null, invoiceUrl: 'https://asaas/i/pay_up',
+    });
+
+    render(<CompararPlanosPage />);
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Fazer upgrade para Salão' }))[0]!);
+    expect(await screen.findByText(/a diferença é paga no cartão, na página segura do Asaas/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar upgrade' }));
+    expect(await screen.findByRole('link', { name: 'Pagar a diferença no cartão' })).toHaveAttribute('href', 'https://asaas/i/pay_up');
   });
 
   it('downgrade bloqueado por profissionais não deixa confirmar', async () => {

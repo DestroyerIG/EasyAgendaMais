@@ -314,7 +314,7 @@ export function PricingPlansSection({
         return;
       }
 
-      if ('provider' in session && session.provider === 'asaas') {
+      if ('paymentId' in session) {
         setPixCheckout(session);
         persistPixCheckout(session, pixCheckoutPlanId);
         showToast('Cupom aplicado. QR Code atualizado com desconto.', 'success');
@@ -347,7 +347,7 @@ export function PricingPlansSection({
         pixCouponCode.trim()
       );
 
-      if ('provider' in session && session.provider === 'asaas') {
+      if ('paymentId' in session) {
         setPixCheckout(session);
         persistPixCheckout(session, pixCheckoutPlanId);
         setPixAppliedCoupon(null);
@@ -410,7 +410,7 @@ export function PricingPlansSection({
         return;
       }
 
-      if (!('provider' in session) || session.provider !== 'asaas') {
+      if (!('paymentId' in session)) {
         showToast('Checkout Pix indisponível no momento. Tente novamente.', 'error');
         return;
       }
@@ -589,12 +589,12 @@ export function PricingPlansSection({
         return;
       }
 
-      if (session.provider !== 'stripe') {
+      if (!('checkoutUrl' in session)) {
         showToast('Checkout com cartão indisponível no momento. Tente novamente.', 'error');
         return;
       }
 
-      window.location.href = session.checkoutUrl;
+      window.location.assign(session.checkoutUrl);
     } catch (error: unknown) {
       const message = getApiErrorMessage(error, 'Não foi possível iniciar o checkout no momento.');
       showToast(message, 'error');
@@ -611,7 +611,7 @@ export function PricingPlansSection({
           <h2 className="mt-3 text-3xl font-extrabold leading-tight tracking-tight text-ink sm:text-4xl">{title}</h2>
           <p className="mt-4 text-muted">{subtitle}</p>
           <p className="mt-3 text-sm text-muted">
-            Em cada plano você pode escolher checkout com cartão via Stripe ou pagamento Pix via Asaas.
+            Pague no cartão ou no Pix.
           </p>
         </div>
       )}
@@ -735,7 +735,7 @@ export function PricingPlansSection({
                     </button>
 
                     <p className="text-center text-[11px] text-muted">
-                      Cartão abre checkout Stripe. Pix gera QR Code na tela para pagamento imediato.
+                      No cartão você paga na página segura do Asaas. No Pix o QR Code aparece aqui.
                     </p>
                   </>
                 )}

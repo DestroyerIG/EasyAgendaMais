@@ -36,7 +36,7 @@ const sections = [
     title: '4. Planos, pagamento e período de teste',
     paragraphs: [
       'Os planos, preços e condições estão descritos na página de planos. Na primeira assinatura, determinados planos podem incluir período de teste gratuito, conforme indicado no momento da contratação.',
-      'Os pagamentos são processados por provedores terceiros (cartão via Stripe e Pix via Asaas). A não confirmação ou o cancelamento do pagamento pode resultar na suspensão do acesso aos recursos.',
+      'Os pagamentos são processados por provedores terceiros (Asaas, no cartão e no Pix). A não confirmação ou o cancelamento do pagamento pode resultar na suspensão do acesso aos recursos.',
     ],
   },
   {

@@ -146,7 +146,7 @@ function CompararPlanos() {
   const atual: PlanId = isPlanId(planoBruto) ? planoBruto : 'basico';
   const statusAssinatura = status?.subscriptionStatus ?? user?.subscriptionStatus ?? null;
   const assinaturaPaga =
-    statusAssinatura === 'active' && (status?.provider === 'stripe' || status?.provider === 'asaas');
+    statusAssinatura === 'active' && status?.provider === 'asaas';
   const podeTrocar = user?.role !== 'employee';
   const recomendado = proximoPlano(atual);
   const negocio = user?.businessName || 'seu negócio';

@@ -9,14 +9,16 @@ export type SubscriptionStatus =
   | 'unpaid'
   | 'canceled'
   | 'incomplete';
-export type CheckoutPaymentMethod = 'card' | 'pix' | 'boleto';
-export type BillingProvider = 'stripe' | 'asaas' | 'coupon';
+export type CheckoutPaymentMethod = 'card' | 'pix';
+export type BillingProvider = 'asaas' | 'coupon';
 export type BillingPaymentMethod = CheckoutPaymentMethod | 'coupon';
 
-export interface StripeCheckoutSessionResponse {
-  provider: 'stripe';
-  sessionId: string;
+/** Cartão: a dona cadastra o cartão na página do Asaas; `cobrancaEm` é a data da 1ª cobrança. */
+export interface CheckoutCartaoResponse {
+  provider: 'asaas';
+  formaPagamento: 'card';
   checkoutUrl: string;
+  cobrancaEm: string;
   plan?: PlanId;
 }
 
@@ -47,7 +49,7 @@ export interface FreeActivationResponse {
 }
 
 export type CheckoutSessionResponse =
-  | StripeCheckoutSessionResponse
+  | CheckoutCartaoResponse
   | PixCheckoutSessionResponse
   | FreeActivationResponse;
 
@@ -64,7 +66,6 @@ export interface SubscriptionStatusResponse {
   canceledAt?: string | null;
   cancelAtPeriodEnd: boolean;
   hasCustomer: boolean;
-  paymentMode?: 'subscription' | 'payment' | null;
   paymentMethod?: BillingPaymentMethod | null;
   providerCustomerId?: string | null;
   providerSubscriptionId?: string | null;
@@ -83,6 +84,7 @@ export interface UpgradePendente {
   paymentId: string;
   pixCopyPaste: string | null;
   qrCode: string | null;
+  url?: string | null;
 }
 
 export type DisponibilidadeRecurso = boolean | 'em_breve' | string;
@@ -134,7 +136,7 @@ export interface FaturasResponse {
 }
 
 export type FormaPagamento =
-  | { tipo: 'card'; bandeira: string; final: string; titular: string | null; validade: string }
+  | { tipo: 'card'; bandeira: string | null; final: string | null; urlFatura: string | null }
   | {
       tipo: 'pix';
       cobrancaAberta: {
@@ -170,6 +172,7 @@ export type ResultadoTroca =
       paymentId: string;
       pixCopyPaste: string | null;
       qrCode: string | null;
+      invoiceUrl: string | null;
     }
   | { tipo: 'downgrade'; agendadoPara: string | null; plano: PlanId };
 
@@ -217,11 +220,6 @@ export const billingApi = {
     return response.data;
   },
 
-  async createPortalSession(): Promise<{ portalUrl: string }> {
-    const response = await api.post('/subscriptions/portal');
-    return response.data;
-  },
-
   async cancelSubscription(reason?: string): Promise<{
     provider: BillingProvider;
     subscriptionStatus: SubscriptionStatus;
@@ -233,7 +231,7 @@ export const billingApi = {
   },
 
   async reactivateSubscription(reason?: string): Promise<CheckoutSessionResponse & {
-    reactivationMode?: 'new_pix_checkout' | 'resumed';
+    reactivationMode?: 'new_pix_checkout' | 'new_card_checkout' | 'resumed';
   }> {
     const payload = reason ? { reason } : {};
     const response = await api.post('/billing/reactivate', payload);

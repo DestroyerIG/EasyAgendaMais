@@ -211,7 +211,7 @@ function PagamentoContent() {
         return;
       }
 
-      if (session.provider === 'stripe') {
+      if ('checkoutUrl' in session) {
         window.location.assign(session.checkoutUrl);
         return;
       }

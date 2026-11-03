@@ -192,8 +192,8 @@ describe('TelaContingencia', () => {
     expect(screen.queryByText('Valor do Pix')).not.toBeInTheDocument();
   });
 
-  it('carência com cartão: Pagar com outro cartão abre o portal e não há Pix', async () => {
-    billing.getStatus.mockResolvedValue(status({ provider: 'stripe', paymentMethod: 'card', subscriptionStatus: 'past_due' }));
+  it('carência com cartão: Pagar com outro cartão abre a fatura do Asaas e não há Pix', async () => {
+    billing.getStatus.mockResolvedValue(status({ provider: 'asaas', paymentMethod: 'card', subscriptionStatus: 'past_due' }));
     render(<TelaContingencia />);
     fireEvent.click(await screen.findByRole('button', { name: /Pagar com outro cartão/ }));
     expect(openBillingPortal).toHaveBeenCalledTimes(1);

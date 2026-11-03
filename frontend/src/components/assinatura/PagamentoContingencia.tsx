@@ -9,8 +9,8 @@ import { Button, Icon } from '@/components/ui';
 
 // Bloco de pagamento da tela de assinatura vencida (Stitch "Pague via Pix").
 // Pix: gera a cobrança da mensalidade (`billing/reactivate`) e acompanha até o Asaas confirmar.
-// Cartão: abre o portal do Stripe para pagar com outro cartão. Gerar Pix para uma assinatura
-// de cartão criaria uma segunda assinatura em paralelo, por isso o cartão não vê Pix.
+// Cartão: abre a fatura vencida na página do Asaas, onde ela paga com outro cartão. Gerar Pix para
+// uma assinatura de cartão criaria uma segunda cobrança em paralelo, por isso o cartão não vê Pix.
 
 type PixGerado = { paymentId: string; qrCode: string | null; pixCopyPaste: string | null; expiraEm: string | null };
 

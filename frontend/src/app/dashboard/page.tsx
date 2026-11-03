@@ -83,12 +83,12 @@ export default function DashboardPage() {
         return;
       }
 
-      if ('provider' in session && session.provider === 'stripe') {
+      if ('checkoutUrl' in session) {
         window.location.assign(session.checkoutUrl);
         return;
       }
 
-      if ('provider' in session && session.provider === 'asaas') {
+      if ('paymentId' in session) {
         if (typeof window !== 'undefined') {
           window.sessionStorage.setItem(PIX_STORAGE_KEY, JSON.stringify(session));
         }

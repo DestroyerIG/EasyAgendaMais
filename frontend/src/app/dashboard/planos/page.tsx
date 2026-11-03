@@ -4,7 +4,7 @@
  * Ajustes › Plano e cobrança (Stitch `studio-aurora-ajustes-plano-e-cobranca-equipe-2026--cf22b5`).
  *
  * Tudo aqui é dado real (spec 2D): status e período de `billing/status`, recursos do
- * catálogo único (`billing/plans`), cartão do Stripe ou cobrança Pix em aberto
+ * catálogo único (`billing/plans`), cartão ou cobrança Pix em aberto no Asaas
  * (`billing/payment-method`) e o histórico de `billing/invoices`. Sem dado, a tela diz que
  * não há, em vez de mostrar exemplo. "Mudar de plano" leva à comparação
  * (`/planos/comparar`); quem não tem assinatura paga escolhe o plano pelo checkout de
@@ -77,6 +77,7 @@ export default function PlanosPage() {
   const [pixAberto, setPixAberto] = useState<PixAberto | null>(null);
   const [confirmarCancelamento, setConfirmarCancelamento] = useState(false);
   const [acao, setAcao] = useState<null | 'cancelar' | 'reativar' | 'mudanca' | 'gerar'>(null);
+  const [voltouDoCartao, setVoltouDoCartao] = useState(false);
 
   const carregar = useCallback(async () => {
     const [s, c, f] = await Promise.allSettled([
@@ -102,6 +103,19 @@ export default function PlanosPage() {
     void carregar();
   }, [carregar]);
 
+  // Volta da página do Asaas (?cartao=retorno): o webhook confirma em instantes; acompanha por até 1 min.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !new URLSearchParams(window.location.search).has('cartao')) return;
+    setVoltouDoCartao(true);
+    let vezes = 0;
+    const id = window.setInterval(() => {
+      vezes += 1;
+      void carregar();
+      if (vezes >= 12) window.clearInterval(id);
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, [carregar]);
+
   useEffect(() => {
     void carregarFaturas(ano);
   }, [ano, carregarFaturas]);
@@ -119,7 +133,8 @@ export default function PlanosPage() {
   const statusRotulo = statusAssinatura ? STATUS_ASSINATURA[statusAssinatura] : 'Plano atual';
   const provider = status?.provider ?? null;
   const fimPeriodo = status?.nextDueDate ?? status?.currentPeriodEnd ?? null;
-  const assinaturaPaga = statusAssinatura === 'active' && (provider === 'stripe' || provider === 'asaas');
+  const noCartao = status?.paymentMethod === 'card';
+  const assinaturaPaga = statusAssinatura === 'active' && provider === 'asaas';
   const canceladaNoFim = Boolean(status?.cancelAtPeriodEnd) && statusAssinatura === 'active';
   const semPagamento = statusAssinatura ? SEM_PAGAMENTO.includes(statusAssinatura) : false;
   const precisaEscolher = !assinaturaPaga && !semPagamento;
@@ -229,6 +244,12 @@ export default function PlanosPage() {
 
       {/* Faixas de estado: pagamento, teste, mudança agendada, upgrade aguardando Pix. */}
       <div className="mb-6 space-y-3">
+        {voltouDoCartao && (
+          <div role="status" className="flex items-start gap-2 rounded-card border border-line bg-surface p-4 text-ink">
+            <Icon name="credit_card" size={20} className="mt-0.5 shrink-0 text-success-text" />
+            <span className="text-[14px]">Cartão recebido. Assim que o Asaas confirmar, sua assinatura aparece aqui.</span>
+          </div>
+        )}
         {semPagamento && (
           <div role="alert" className="flex flex-col gap-3 rounded-card border border-warning/40 bg-warning/12 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-2 text-warning-text">
@@ -237,9 +258,9 @@ export default function PlanosPage() {
                 {statusRotulo}. Regularize para voltar a usar todos os recursos do painel.
               </span>
             </div>
-            {provider === 'stripe' ? (
+            {noCartao ? (
               <Button onClick={openBillingPortal} loading={portalLoading}>
-                Atualizar cartão
+                Pagar a fatura com outro cartão
               </Button>
             ) : (
               <Button onClick={reativarOuPagar} loading={acao === 'gerar'}>
@@ -313,7 +334,7 @@ export default function PlanosPage() {
                 </span>
               </div>
               <p className="text-[14px] text-muted">
-                {provider === 'stripe'
+                {noCartao
                   ? 'Ciclo mensal com renovação automática no cartão cadastrado.'
                   : provider === 'asaas'
                   ? 'Ciclo mensal pago por Pix a cada vencimento.'
@@ -391,15 +412,11 @@ export default function PlanosPage() {
               <>
                 <div className="space-y-4 rounded-xl border border-line/70 bg-surface-2 p-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-[14px] font-semibold text-ink">{forma.bandeira}</span>
+                    <span className="text-[14px] font-semibold text-ink">{forma.bandeira ?? 'Cartão de crédito'}</span>
                     <span className="font-mono text-[13px] text-muted">Débito automático</span>
                   </div>
                   <div className="space-y-1">
-                    <div className="font-mono text-[17px] tracking-wider text-ink">•••• •••• •••• {forma.final}</div>
-                    <div className="flex items-center justify-between text-muted">
-                      <span className="text-[13px] uppercase">{forma.titular ?? ''}</span>
-                      <span className="text-[13px]">Exp: {forma.validade}</span>
-                    </div>
+                    <div className="font-mono text-[17px] tracking-wider text-ink">•••• •••• •••• {forma.final ?? '••••'}</div>
                   </div>
                 </div>
                 {assinaturaPaga && !canceladaNoFim && preco !== null && (
@@ -441,10 +458,14 @@ export default function PlanosPage() {
             )}
           </div>
 
-          {forma?.tipo === 'card' && (
-            <Button variant="secondary" fullWidth onClick={openBillingPortal} loading={portalLoading}>
-              <Icon name="edit" size={18} />
-              Atualizar método de pagamento
+          {forma?.tipo === 'card' && forma.urlFatura && (
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={() => window.open(forma.urlFatura!, '_blank', 'noopener,noreferrer')}
+            >
+              <Icon name="credit_card" size={18} />
+              Pagar a fatura com outro cartão
             </Button>
           )}
           {forma?.tipo === 'pix' && forma.cobrancaAberta && (
@@ -642,8 +663,8 @@ export default function PlanosPage() {
             <div className="flex items-center gap-2">
               <Icon name="lock" size={16} className="text-success-text" />
               <span>
-                {provider === 'stripe'
-                  ? 'Pagamento com cartão processado pela Stripe.'
+                {noCartao
+                  ? 'Pagamento com cartão processado pelo Asaas.'
                   : 'Cobrança segura intermediada por Asaas Instituição de Pagamento S.A., regulada pelo Banco Central do Brasil.'}
               </span>
             </div>
