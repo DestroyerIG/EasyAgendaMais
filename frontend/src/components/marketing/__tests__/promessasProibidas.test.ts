@@ -12,6 +12,13 @@ const PROIBIDAS: { arquivo: string; frases: RegExp[] }[] = [
       /todos os recursos da plataforma/, /praticamente zera/, /Junte-se a/,
     ],
   },
+  {
+    arquivo: 'src/app/nail-designers/page.tsx',
+    frases: [
+      /comprovante/, /taxa de deslocamento por região/, /18 a 21 dias/, /Radar de Retorno/, /pelo WhatsApp\. Sem dados/,
+      /Inovação exclusiva/, /R\$ 20, R\$ 30/, /também pode agendar/, /vai direto para o cadastro/,
+    ],
+  },
   { arquivo: 'src/components/marketing/PublicFooter.tsx', frases: [/Conformidade LGPD/, /Radar de Retorno/] },
   { arquivo: 'src/components/marketing/landing/Hero.tsx', frases: [/Dados protegidos LGPD/] },
   { arquivo: 'src/components/marketing/PricingPlansSection.tsx', frases: [/Suporte prioritário/, /Radar de Retorno/] },
@@ -46,5 +53,7 @@ describe('páginas de venda', () => {
     for (const frase of frases) expect(texto, `${arquivo}: ${frase}`).not.toMatch(frase);
   });
 
-  it.todo('nenhum arquivo de venda usa ícones lucide');
+  it('nenhum arquivo de venda usa ícones lucide', () => {
+    for (const arquivo of ARQUIVOS_DE_VENDA) expect(ler(arquivo), arquivo).not.toMatch(/from 'lucide-react'/);
+  });
 });

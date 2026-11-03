@@ -1,22 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import {
-  AlarmClock,
-  ArrowRight,
-  CheckCircle2,
-  Image as ImageIcon,
-  MessageCircleX,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  UserX,
-  Zap,
-} from 'lucide-react';
 import { PublicNavbar } from '@/components/marketing/PublicNavbar';
 import { PublicFooter } from '@/components/marketing/PublicFooter';
 import { PricingPlansSection } from '@/components/marketing/PricingPlansSection';
 import { ForcedLight } from '@/components/theme/ForcedLight';
+import { Icon } from '@/components/ui';
 import { HeroPhoneMockup } from '@/components/marketing/landing/HeroPhoneMockup';
 import { SectionHeading } from '@/components/marketing/landing/SectionHeading';
 import { segments } from '@/components/marketing/landing/heroSegments';
@@ -30,27 +19,27 @@ export const metadata: Metadata = {
 
 const painPoints = [
   {
-    icon: UserX,
+    icone: 'person_off',
     tag: 'Dor 01: Faltas de última hora',
     title: 'Mesa vazia e horário de sábado perdido',
     description:
       'A cliente avisa que não vai 15 minutos antes ou simplesmente não aparece, jogando fora horas de faturamento que não voltam mais.',
     solutionLabel: 'Solução: Sinal via Pix obrigatório',
     solutionText:
-      'A vaga só é reservada com o comprovante de R$ 20, R$ 30 ou o percentual que você estipular. O dinheiro cai direto na sua conta, sem intermediação.',
+      'Quem agenda pelo seu link paga um sinal no Pix, no percentual que você define em cada serviço. O dinheiro cai direto na sua conta, sem intermediação.',
   },
   {
-    icon: AlarmClock,
+    icone: 'alarm',
     tag: 'Dor 02: Manutenção esquecida',
     title: 'Alongamento que quebra e cliente insatisfeita',
     description:
       'A cliente esquece a data, ultrapassa o prazo com a unha crescendo descompensada e chega querendo milagre na mesa.',
-    solutionLabel: 'Solução: Radar de Retorno inteligente',
+    solutionLabel: 'Solução: Hora de voltar',
     solutionText:
-      'O sistema calcula o ciclo ideal (18 a 21 dias) e manda um WhatsApp preventivo convidando para a manutenção antes de haver quebra.',
+      'Você liga a automação e define o prazo (21 dias por padrão, ou o intervalo de cada cliente). Quando chega a hora, a cliente recebe no WhatsApp o convite para a manutenção, antes de haver quebra.',
   },
   {
-    icon: MessageCircleX,
+    icone: 'speaker_notes_off',
     tag: 'Dor 03: Directs incessantes',
     title: 'Parar de lixar para responder valores e horários',
     description:
@@ -86,12 +75,12 @@ const faqItems = [
   {
     question: 'E se a cliente não pagar o sinal?',
     answer:
-      'O horário selecionado fica reservado temporariamente por 15 minutos. Se ela não enviar o comprovante Pix dentro do prazo, o sistema cancela a pré-reserva e libera o horário na sua agenda.',
+      'O horário fica reservado pelo prazo que você escolher: 15, 30 ou 60 minutos. Você confirma o Pix no painel; se o pagamento não for confirmado nesse prazo, o horário volta a ficar livre na sua agenda.',
   },
   {
     question: 'Atendo a domicílio, funciona para mim?',
     answer:
-      'Sim! Você pode habilitar atendimento externo, definindo uma taxa de deslocamento por região e um intervalo automático entre os procedimentos para se deslocar sem atrasar a próxima mesa.',
+      'Funciona para organizar a agenda, o sinal e os lembretes. Ainda não há taxa de deslocamento nem intervalo automático entre endereços: por enquanto, inclua o tempo de deslocamento na duração do serviço.',
   },
   {
     question: 'Preciso de computador na bancada?',
@@ -134,25 +123,25 @@ export default function NailDesignersPage() {
                   className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl bg-brand px-8 py-4 text-sm font-bold text-on-brand shadow-md transition-opacity hover:opacity-90"
                 >
                   Testar 14 dias grátis
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  <Icon name="arrow_forward" size={16} />
                 </Link>
                 <div className="flex items-center gap-2 text-muted">
-                  <ShieldCheck className="h-[18px] w-[18px] text-whatsapp" aria-hidden="true" />
+                  <Icon name="verified_user" size={18} className="text-whatsapp" />
                   <span className="text-xs">Acesso imediato sem burocracia</span>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-2">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-whatsapp" aria-hidden="true" />
+                  <Icon name="check_circle" size={20} className="text-whatsapp" />
                   <span className="text-sm font-semibold">Sem taxa de adesão</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-whatsapp" aria-hidden="true" />
+                  <Icon name="check_circle" size={20} className="text-whatsapp" />
                   <span className="text-sm font-semibold">14 dias grátis</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-whatsapp" aria-hidden="true" />
+                  <Icon name="check_circle" size={20} className="text-whatsapp" />
                   <span className="text-sm font-semibold">Não exige cartão de crédito</span>
                 </div>
               </div>
@@ -178,7 +167,7 @@ export default function NailDesignersPage() {
                 <article key={pain.title} className="flex flex-col justify-between gap-4 rounded-card border border-line bg-surface p-6 shadow-sm">
                   <div className="flex flex-col gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-danger/10 text-danger">
-                      <pain.icon className="h-6 w-6" aria-hidden="true" />
+                      <Icon name={pain.icone} size={24} />
                     </div>
                     <span className="text-xs font-bold uppercase tracking-wide text-danger">{pain.tag}</span>
                     <h3 className="text-lg font-bold text-ink">{pain.title}</h3>
@@ -186,7 +175,7 @@ export default function NailDesignersPage() {
                   </div>
                   <div className="rounded-xl bg-surface-2 p-4">
                     <div className="mb-1 flex items-center gap-2 text-sm font-bold text-whatsapp">
-                      <ShieldCheck className="h-[18px] w-[18px]" aria-hidden="true" />
+                      <Icon name="verified_user" size={18} />
                       {pain.solutionLabel}
                     </div>
                     <p className="text-sm text-muted">{pain.solutionText}</p>
@@ -202,16 +191,16 @@ export default function NailDesignersPage() {
           <div className="mx-auto flex max-w-7xl flex-col gap-10 px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div className="max-w-2xl">
-                <span className="text-xs font-bold uppercase tracking-widest text-brand">Inovação exclusiva</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-brand">Galeria na sua página</span>
                 <h2 className="mt-1 text-2xl font-extrabold leading-tight tracking-tight text-ink sm:text-[32px] lg:text-[36px]">
-                  Sua vitrine de unhas também pode agendar atendimentos
+                  Sua vitrine de unhas na mesma página do agendamento
                 </h2>
                 <p className="mt-2 text-base text-muted">
-                  A cliente clica no modelo que ela ama e vai direto para o cadastro já com aquele serviço em mente.
+                  A cliente vê seus trabalhos na sua página e agenda o serviço logo abaixo.
                 </p>
               </div>
               <div className="flex w-fit items-center gap-2 rounded-lg bg-whatsapp/10 px-3.5 py-2 text-sm font-semibold text-whatsapp">
-                <ImageIcon className="h-5 w-5" aria-hidden="true" />
+                <Icon name="image" size={20} />
                 Galeria em destaque na sua página
               </div>
             </div>
@@ -230,7 +219,7 @@ export default function NailDesignersPage() {
                       <h3 className="text-base font-bold text-ink">{item.title}</h3>
                       <p className="text-xl font-extrabold text-ink">{formatCurrency(item.price)}</p>
                       <div className="flex items-center gap-1.5 text-xs text-muted">
-                        <CheckCircle2 className="h-4 w-4 text-whatsapp" aria-hidden="true" />
+                        <Icon name="check_circle" size={16} className="text-whatsapp" />
                         Já inclui reserva e sinal Pix
                       </div>
                     </div>
@@ -267,7 +256,7 @@ export default function NailDesignersPage() {
                 <div className="flex items-center gap-3">
                   <div className="flex text-brand">
                     {Array.from({ length: 5 }).map((_, index) => (
-                      <Star key={index} className="h-5 w-5 fill-current" aria-hidden="true" />
+                      <Icon key={index} name="star" size={20} filled />
                     ))}
                   </div>
                   <span className="text-sm text-muted">Segmento: Nail Designer</span>
@@ -281,7 +270,7 @@ export default function NailDesignersPage() {
         <section className="border-y border-line bg-surface py-16 sm:py-20">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mx-auto mb-2 flex max-w-3xl items-center justify-center gap-2 text-center text-sm font-semibold text-brand-text">
-              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              <Icon name="auto_awesome" size={16} />
               Recomendado pra quem atende sozinha: comece pelo plano Solo
             </div>
             <PricingPlansSection
@@ -340,12 +329,12 @@ export default function NailDesignersPage() {
                 className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl bg-brand px-8 py-4 text-sm font-bold text-on-brand shadow-md transition-opacity hover:opacity-90"
               >
                 Experimentar 14 dias grátis agora
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                <Icon name="arrow_forward" size={16} />
               </Link>
             </div>
             <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted">
-              <Zap className="h-4 w-4 text-whatsapp" aria-hidden="true" />
-              Configuração guiada em 5 minutos pelo WhatsApp. Sem dados de cartão.
+              <Icon name="bolt" size={16} className="text-whatsapp" />
+              Configuração guiada em 5 etapas, direto no painel. Sem dados de cartão.
             </div>
           </div>
         </section>

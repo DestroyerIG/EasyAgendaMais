@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CATALOGO_PLANOS, planoDoCatalogo, rotuloEquipe } from '@/lib/planCatalog';
 // O build isolado do frontend (Docker) não tem a pasta backend; o teste roda com o repositório inteiro.
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment -- com o repositório inteiro não há erro, então @ts-expect-error quebraria
 // @ts-ignore
 import { getPlanCatalog } from '../../../../backend/src/config/planCatalog';
 

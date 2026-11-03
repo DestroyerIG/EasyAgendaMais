@@ -2,11 +2,10 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
-import { Check, Copy, CreditCard, Loader2, QrCode, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
-import { Button, Card, Field, Input } from '@/components/ui';
+import { Button, Card, Field, Icon, Input } from '@/components/ui';
 import {
   billingApi,
   type CheckoutPaymentMethod,
@@ -306,7 +305,7 @@ function PagamentoContent() {
     return (
       <main className="app-theme flex min-h-screen items-center justify-center px-4">
         <div className="flex items-center gap-3 text-muted">
-          <Loader2 className="animate-spin text-brand-text" size={20} aria-hidden="true" />
+          <Icon name="progress_activity" size={20} className="animate-spin text-brand-text" />
           Carregando pagamento...
         </div>
       </main>
@@ -363,7 +362,7 @@ function PagamentoContent() {
           <ul className="mt-6 space-y-3">
             {[rotuloEquipe(planoDoCatalogo(plan.id).limiteProfissionais), ...planoDoCatalogo(plan.id).destaques].map((feature) => (
               <li key={feature} className="flex items-start gap-3 text-[15px] text-muted">
-                <ShieldCheck className="mt-0.5 shrink-0 text-success" size={16} aria-hidden="true" />
+                <Icon name="verified_user" size={16} className="mt-0.5 shrink-0 text-success" />
                 {feature}
               </li>
             ))}
@@ -414,7 +413,7 @@ function PagamentoContent() {
           ) : (
             <div className="mt-6 flex items-center justify-between rounded-control border border-success/30 bg-success/12 px-3 py-2.5">
               <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 shrink-0 text-success-text" aria-hidden="true" />
+                <Icon name="check" size={16} className="shrink-0 text-success-text" />
                 <div>
                   <p className="text-[15px] font-medium text-success-text">{couponCode}</p>
                   <p className="text-[13px] text-muted">
@@ -439,7 +438,7 @@ function PagamentoContent() {
               loading={processingMethod === 'pix'}
               fullWidth
             >
-              {processingMethod !== 'pix' && <QrCode className="h-[18px] w-[18px]" aria-hidden="true" />}
+              {processingMethod !== 'pix' && <Icon name="qr_code_2" size={18} />}
               {isFreeActivation ? 'Ativar gratuitamente' : 'Pagar com Pix'}
             </Button>
 
@@ -451,7 +450,7 @@ function PagamentoContent() {
               loading={processingMethod === 'card'}
               fullWidth
             >
-              {processingMethod !== 'card' && <CreditCard className="h-[18px] w-[18px]" aria-hidden="true" />}
+              {processingMethod !== 'card' && <Icon name="credit_card" size={18} />}
               Assinar com Cartão
             </Button>
           </div>
@@ -481,7 +480,7 @@ function PagamentoContent() {
                 <div className="mt-4 space-y-2">
                   <Input readOnly value={pixCheckout.pixCopyPaste} aria-label="Código Pix copia e cola" />
                   <Button type="button" variant="secondary" fullWidth onClick={copyPixPayload}>
-                    <Copy className="h-4 w-4" aria-hidden="true" />
+                    <Icon name="content_copy" size={16} />
                     Copiar código Pix
                   </Button>
                 </div>
@@ -497,7 +496,7 @@ function PagamentoContent() {
             fullWidth
             className="mt-4"
           >
-            {!checkingPayment && <RefreshCw className="h-4 w-4" aria-hidden="true" />}
+            {!checkingPayment && <Icon name="refresh" size={16} />}
             Já paguei, verificar pagamento
           </Button>
         </Card>
