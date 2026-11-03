@@ -45,7 +45,7 @@ const painelMock: PainelAutomacoesDto = {
 };
 
 const TITULOS = [
-  'Confirmação 24h antes', 'Cobrança de sinal Pix', 'Radar de Retorno', 'Lista de espera automática',
+  'Confirmação 24h antes', 'Cobrança de sinal Pix', 'Hora de voltar', 'Lista de espera automática',
   'Lembrete na véspera', 'Aniversário da cliente', 'Pedido de avaliação',
 ];
 
