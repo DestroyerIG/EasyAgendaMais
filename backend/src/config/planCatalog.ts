@@ -1,8 +1,8 @@
 import type { PlanId } from '../types/domain.js';
 
 // Fonte única dos planos: preço cobrado (Pix e checkout), nome, limite de profissionais e a
-// matriz de recursos da tela de comparação. O frontend lê por GET /billing/plans; a landing
-// (frontend/src/lib/plans.ts) tem um teste que confere que os preços batem com este arquivo.
+// matriz de recursos da tela de comparação. O painel lê por GET /billing/plans; a landing usa a
+// cópia em frontend/src/lib/planCatalog.ts, e um teste de igualdade quebra se as duas divergirem.
 
 export type DisponibilidadeRecurso = boolean | 'em_breve' | string;
 
@@ -41,6 +41,8 @@ export const PLAN_CATALOG: Readonly<Record<PlanId, PlanoCatalogo>> = Object.free
       'Lembrete e confirmação',
       'Sinal via Pix',
       'Hora de voltar',
+      'Lista de espera',
+      'Campanhas',
       'Ficha de clientes',
       'Caixa',
     ],
@@ -52,7 +54,7 @@ export const PLAN_CATALOG: Readonly<Record<PlanId, PlanoCatalogo>> = Object.free
     limiteProfissionais: 5,
     publico: 'Estúdios',
     descricao: 'Para estúdios e espaços com equipe integrada em atendimento compartilhado.',
-    destaques: ['Até 5 profissionais', 'Comissões', 'Relatórios e exportação'],
+    destaques: ['Comissões', 'App da profissional', 'Relatórios e exportação'],
   },
   premium: {
     id: 'premium',
@@ -61,7 +63,7 @@ export const PLAN_CATALOG: Readonly<Record<PlanId, PlanoCatalogo>> = Object.free
     limiteProfissionais: null,
     publico: 'Salões',
     descricao: 'Gestão completa para grandes salões, múltiplas unidades e parcerias.',
-    destaques: ['Profissionais ilimitadas', 'Suporte prioritário'],
+    destaques: ['Clube e pacotes', 'Salão-parceiro'],
   },
 });
 
@@ -78,6 +80,8 @@ export const FEATURE_MATRIX: readonly RecursoMatriz[] = Object.freeze([
   { id: 'whatsapp', grupo: 'Agendamento e recepção', titulo: 'Bot de WhatsApp, lembretes e confirmação', basico: true, profissional: true, premium: true },
   { id: 'ficha', grupo: 'Agendamento e recepção', titulo: 'Ficha de clientes e sinal via Pix', basico: true, profissional: true, premium: true },
   { id: 'retorno', grupo: 'Agendamento e recepção', titulo: 'Hora de voltar (radar de retorno)', basico: true, profissional: true, premium: true },
+  { id: 'lista_espera', grupo: 'Agendamento e recepção', titulo: 'Lista de espera com aviso automático', basico: true, profissional: true, premium: true },
+  { id: 'campanhas', grupo: 'Agendamento e recepção', titulo: 'Campanhas no WhatsApp', basico: true, profissional: true, premium: true },
   { id: 'caixa', grupo: 'Equipe e operação', titulo: 'Controle de caixa', basico: true, profissional: true, premium: true },
   { id: 'profissionais', grupo: 'Equipe e operação', titulo: 'Profissionais na grade', basico: '1', profissional: 'Até 5', premium: 'Ilimitadas' },
   { id: 'comissoes', grupo: 'Equipe e operação', titulo: 'Comissões', basico: false, profissional: true, premium: true },
@@ -86,7 +90,6 @@ export const FEATURE_MATRIX: readonly RecursoMatriz[] = Object.freeze([
   { id: 'salao_parceiro', grupo: 'Expansão e gestão avançada', titulo: 'Salão-parceiro', basico: false, profissional: false, premium: true },
   { id: 'clube', grupo: 'Expansão e gestão avançada', titulo: 'Clube e pacotes de serviços', basico: false, profissional: false, premium: true },
   { id: 'unidades', grupo: 'Expansão e gestão avançada', titulo: 'Gestão de várias unidades', basico: false, profissional: false, premium: 'em_breve' },
-  { id: 'suporte', grupo: 'Expansão e gestão avançada', titulo: 'Suporte prioritário', basico: false, profissional: false, premium: true },
 ]);
 
 export const PLAN_PRICES: Readonly<Record<PlanId, number>> = Object.freeze({

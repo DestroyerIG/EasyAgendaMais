@@ -18,6 +18,7 @@ import { SettingsTabs } from '@/components/shell/SettingsTabs';
 import { TrocaPlanoModal } from '@/components/planos/TrocaPlanoModal';
 import { billingApi, type CatalogoPlanos, type DisponibilidadeRecurso, type SubscriptionStatusResponse } from '@/lib/billing';
 import { isPlanId, type PlanId } from '@/lib/plans';
+import { rotuloEquipe } from '@/lib/planCatalog';
 import { formatCurrency } from '@/lib/formatters';
 import { NOME_PLANO, ORDEM_PLANOS, SEM_PAGAMENTO, nivelPlano } from '@/lib/planoCobranca';
 import { cn } from '@/lib/cn';
@@ -303,7 +304,7 @@ function CompararPlanos() {
                   <div className="flex-1 space-y-3">
                     <div className="text-[13px] font-bold text-ink">{INTRO_RECURSOS[plano.id]}</div>
                     <ul className="space-y-2">
-                      {plano.destaques.map((d) => (
+                      {[rotuloEquipe(plano.limiteProfissionais), ...plano.destaques].map((d) => (
                         <li key={d} className="flex items-center gap-2 text-[14px] text-ink">
                           <Icon name="check_circle" size={18} filled className="text-success-text" />
                           {d}

@@ -16,6 +16,7 @@ import {
 } from '@/lib/billing';
 import { formatCurrency } from '@/lib/formatters';
 import { isPlanId, PLAN_MAP, type PlanId } from '@/lib/plans';
+import { planoDoCatalogo, rotuloEquipe } from '@/lib/planCatalog';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { contaApi, type EstadoConta } from '@/lib/conta';
 import easyAgendaLogo from '@/icons/easyagenda-logo.svg';
@@ -342,7 +343,7 @@ function PagamentoContent() {
             <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
               <div>
                 <h2 className="text-xl font-bold text-ink">{plan.name}</h2>
-                <p className="text-[13px] text-muted">{plan.description}</p>
+                <p className="text-[13px] text-muted">{planoDoCatalogo(plan.id).descricao}</p>
               </div>
               <div className="text-right">
                 {hasDiscount && (
@@ -360,7 +361,7 @@ function PagamentoContent() {
           </div>
 
           <ul className="mt-6 space-y-3">
-            {plan.features.slice(0, 5).map((feature) => (
+            {[rotuloEquipe(planoDoCatalogo(plan.id).limiteProfissionais), ...planoDoCatalogo(plan.id).destaques].map((feature) => (
               <li key={feature} className="flex items-start gap-3 text-[15px] text-muted">
                 <ShieldCheck className="mt-0.5 shrink-0 text-success" size={16} aria-hidden="true" />
                 {feature}
