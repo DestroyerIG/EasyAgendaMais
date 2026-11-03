@@ -6,26 +6,36 @@ import { inicioDoMes, type LinhaNegocio } from './painel.rules.js';
 // O status de cobrança NÃO é calculado aqui: vem de painel.rules.ts (calcularEstadoConta, H1).
 
 /**
- * CTE `pagamentos(business_id, pago_em timestamptz, valor numeric)`: todo pagamento confirmado,
- * de billing_payments (Pix/Asaas) ou de eventos de fatura paga do gateway (valor em centavos).
+ * CTE `pagamentos(business_id, pago_em timestamptz, valor numeric, tipo text)`: todo pagamento
+ * confirmado, de billing_payments (Pix/Asaas) ou de eventos de fatura paga do gateway (valor em centavos).
+ * O webhook grava invoice.paid e invoice.payment_succeeded para a mesma fatura: o ramo do gateway
+ * fica com um evento por fatura (payload->>'id'), o mais antigo. `tipo` vem de billing_payments
+ * (mensalidade, upgrade...) e é nulo no gateway.
  * Usado como `WITH ${SQL_PAGAMENTOS_CONFIRMADOS}, ...`.
  */
 export const SQL_PAGAMENTOS_CONFIRMADOS = Prisma.sql`
   pagamentos AS (
     SELECT bp.business_id,
            bp.paid_at AT TIME ZONE 'UTC' AS pago_em,
-           bp.amount::numeric AS valor
+           bp.amount::numeric AS valor,
+           bp.tipo AS tipo
     FROM billing_payments bp
     WHERE bp.paid_at IS NOT NULL
     UNION ALL
-    SELECT se.business_id,
-           se.created_at AT TIME ZONE 'UTC' AS pago_em,
-           (CASE WHEN se.payload->>'amount_paid' ~ '^[0-9]+([.][0-9]+)?$'
-                 THEN (se.payload->>'amount_paid')::numeric ELSE 0 END) / 100 AS valor
-    FROM subscription_events se
-    WHERE se.event_type IN ('invoice.paid','invoice.payment_succeeded')
-      AND CASE WHEN se.payload->>'amount_paid' ~ '^[0-9]+([.][0-9]+)?$'
-               THEN (se.payload->>'amount_paid')::numeric ELSE 0 END > 0
+    SELECT fg.business_id, fg.pago_em, fg.valor, fg.tipo
+    FROM (
+      SELECT DISTINCT ON (se.business_id, COALESCE(se.payload->>'id', se.id::text))
+             se.business_id,
+             se.created_at AT TIME ZONE 'UTC' AS pago_em,
+             (CASE WHEN se.payload->>'amount_paid' ~ '^[0-9]+([.][0-9]+)?$'
+                   THEN (se.payload->>'amount_paid')::numeric ELSE 0 END) / 100 AS valor,
+             NULL::text AS tipo
+      FROM subscription_events se
+      WHERE se.event_type IN ('invoice.paid','invoice.payment_succeeded')
+        AND CASE WHEN se.payload->>'amount_paid' ~ '^[0-9]+([.][0-9]+)?$'
+                 THEN (se.payload->>'amount_paid')::numeric ELSE 0 END > 0
+      ORDER BY se.business_id, COALESCE(se.payload->>'id', se.id::text), se.created_at
+    ) fg
   )
 `;
 
@@ -111,10 +121,17 @@ async function consultar(id?: string): Promise<LinhaNegocio[]> {
                         AND se.event_type IN ('invoice.paid','invoice.payment_succeeded')
                         AND CASE WHEN se.payload->>'amount_paid' ~ '^[0-9]+([.][0-9]+)?$'
                              THEN (se.payload->>'amount_paid')::numeric ELSE 0 END > 0)) AS ja_pagou,
-           COALESCE(
-             b.current_period_end AT TIME ZONE 'UTC',
-             b.subscription_current_period_end AT TIME ZONE 'UTC'
-           ) AS fim_do_periodo,
+           -- No teste vale subscription_current_period_end: é a coluna que estenderTeste grava e o cron lê.
+           CASE WHEN b.subscription_status = 'trialing'
+             THEN COALESCE(
+               b.subscription_current_period_end AT TIME ZONE 'UTC',
+               b.current_period_end AT TIME ZONE 'UTC'
+             )
+             ELSE COALESCE(
+               b.current_period_end AT TIME ZONE 'UTC',
+               b.subscription_current_period_end AT TIME ZONE 'UTC'
+             )
+           END AS fim_do_periodo,
            b.provider, b.payment_method,
            b.created_at AT TIME ZONE 'UTC' AS created_at,
            b.canceled_at AT TIME ZONE 'UTC' AS canceled_at,
@@ -210,11 +227,16 @@ export const painelRepository = {
     };
   },
 
-  /** LTV: soma dos pagamentos confirmados do negócio (mesmo CTE do painel). */
+  /**
+   * LTV: soma dos pagamentos confirmados do negócio (mesmo CTE do painel). O total soma tudo;
+   * os ciclos não contam a cobrança avulsa de upgrade, que não é um mês pago.
+   */
   async ltv(id: string): Promise<{ total: number; ciclos: number; desde: Date | null }> {
     const rows = await prisma.$queryRaw<LinhaCrua[]>(Prisma.sql`
       WITH ${SQL_PAGAMENTOS_CONFIRMADOS}
-      SELECT COALESCE(SUM(p.valor), 0) AS total, COUNT(*) AS ciclos, MIN(p.pago_em) AS desde
+      SELECT COALESCE(SUM(p.valor), 0) AS total,
+             COUNT(*) FILTER (WHERE p.tipo IS DISTINCT FROM 'upgrade') AS ciclos,
+             MIN(p.pago_em) AS desde
       FROM pagamentos p
       WHERE p.business_id = ${id}::uuid
     `);

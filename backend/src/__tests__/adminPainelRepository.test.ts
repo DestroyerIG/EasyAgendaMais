@@ -60,11 +60,39 @@ describe('painelRepository', () => {
     expect(l.fimDoPeriodo).toEqual(fim);
   });
 
-  it('a consulta usa current_period_end com queda para subscription_current_period_end', async () => {
+  it('fora do teste usa current_period_end com queda para subscription_current_period_end', async () => {
     prismaMock.$queryRaw.mockResolvedValue([]);
     await painelRepository.linhasNegocios();
     const sql = (prismaMock.$queryRaw.mock.calls[0][0] as { sql: string }).sql;
-    expect(sql).toMatch(/COALESCE\(\s*b\.current_period_end AT TIME ZONE 'UTC',\s*b\.subscription_current_period_end AT TIME ZONE 'UTC'\s*\)/);
+    expect(sql).toMatch(/ELSE COALESCE\(\s*b\.current_period_end AT TIME ZONE 'UTC',\s*b\.subscription_current_period_end AT TIME ZONE 'UTC'\s*\)/);
+  });
+
+  it('no teste usa primeiro subscription_current_period_end, a coluna que estenderTeste grava', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([]);
+    await painelRepository.linhasNegocios();
+    const sql = (prismaMock.$queryRaw.mock.calls[0][0] as { sql: string }).sql;
+    expect(sql).toMatch(/CASE WHEN b\.subscription_status = 'trialing'\s+THEN COALESCE\(\s*b\.subscription_current_period_end AT TIME ZONE 'UTC',\s*b\.current_period_end AT TIME ZONE 'UTC'\s*\)/);
+  });
+
+  it('pagamentos do gateway contam uma vez por fatura (invoice.paid e invoice.payment_succeeded)', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([]);
+    await painelRepository.ltv('n1');
+    await painelRepository.linhasNegocios();
+    expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(2);
+    for (const chamada of prismaMock.$queryRaw.mock.calls) {
+      const sql = (chamada[0] as { sql: string }).sql;
+      expect(sql).toMatch(/SELECT DISTINCT ON \(se\.business_id, COALESCE\(se\.payload->>'id', se\.id::text\)\)/);
+      expect(sql).toMatch(/ORDER BY se\.business_id, COALESCE\(se\.payload->>'id', se\.id::text\), se\.created_at/);
+    }
+  });
+
+  it('ltv conta ciclos sem os pagamentos de upgrade, mas soma tudo no total', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([{ total: '347', ciclos: 3n, desde: null }]);
+    expect(await painelRepository.ltv('n1')).toEqual({ total: 347, ciclos: 3, desde: null });
+    const sql = (prismaMock.$queryRaw.mock.calls[0][0] as { sql: string }).sql;
+    expect(sql).toMatch(/COALESCE\(SUM\(p\.valor\), 0\) AS total/);
+    expect(sql).toMatch(/COUNT\(\*\) FILTER \(WHERE p\.tipo IS DISTINCT FROM 'upgrade'\) AS ciclos/);
+    expect(sql).toMatch(/bp\.tipo AS tipo/);
   });
 
   it('linhaNegocio devolve null quando a consulta vem vazia', async () => {
