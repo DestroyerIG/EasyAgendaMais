@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, BadgeCheck, CheckCircle2, ShieldCheck, Zap } from 'lucide-react';
+import { Icon } from '@/components/ui';
 import { HeroPhoneMockup } from './HeroPhoneMockup';
 import { segments, segmentOrder, type SegmentKey } from './heroSegments';
 
@@ -42,7 +42,7 @@ export function Hero() {
             className="inline-flex w-fit items-center gap-1.5 text-sm font-semibold text-brand-text hover:underline"
           >
             Atende {segments[active].label.toLowerCase()}? Veja a página feita pra você
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            <Icon name="arrow_forward" size={16} />
           </Link>
         )}
 
@@ -63,23 +63,23 @@ export function Hero() {
             Testar 14 dias grátis
           </Link>
           <div className="flex items-center gap-2 text-muted">
-            <ShieldCheck className="h-[18px] w-[18px]" aria-hidden="true" />
+            <Icon name="verified_user" size={18} />
             <span className="text-xs">Sem cartão de crédito · Cancele quando quiser</span>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-2">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-whatsapp" aria-hidden="true" />
+            <Icon name="check_circle" size={20} className="text-whatsapp" />
             <span className="text-sm font-semibold">Conecta no seu WhatsApp</span>
           </div>
           <div className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-brand" aria-hidden="true" />
+            <Icon name="bolt" size={20} className="text-brand" />
             <span className="text-sm font-semibold">Sinal no Pix imediato</span>
           </div>
           <div className="flex items-center gap-2">
-            <BadgeCheck className="h-5 w-5 text-status-confirmed" aria-hidden="true" />
-            <span className="text-sm font-semibold">Dados protegidos LGPD</span>
+            <Icon name="verified" size={20} className="text-status-confirmed" />
+            <span className="text-sm font-semibold">Dados tratados conforme a LGPD</span>
           </div>
         </div>
       </div>

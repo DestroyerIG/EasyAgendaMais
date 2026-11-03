@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
+import { Icon } from '@/components/ui';
 
 const navItems = [
   { href: '#inicio', label: 'Início' },
@@ -53,7 +53,7 @@ export function PublicNavbar() {
           aria-expanded={open}
           aria-controls="mobile-menu"
         >
-          {open ? <X size={20} /> : <Menu size={20} />}
+          <Icon name={open ? 'close' : 'menu'} size={20} />
         </button>
       </div>
 

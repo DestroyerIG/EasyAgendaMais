@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { BadgeCheck, Clock, Info, Lock } from 'lucide-react';
+import { Icon } from '@/components/ui';
 import { formatCurrency } from '@/lib/formatters';
 import type { SegmentData } from './heroSegments';
 
@@ -23,7 +23,7 @@ export function HeroPhoneMockup({ data }: { data: SegmentData }) {
             <div className="flex min-w-0 flex-col">
               <div className="flex items-center gap-1.5">
                 <span className="truncate text-[16px] font-bold">{data.name}</span>
-                <BadgeCheck className="h-[18px] w-[18px] shrink-0 text-status-confirmed" aria-hidden="true" />
+                <Icon name="verified" size={18} className="shrink-0 text-status-confirmed" />
               </div>
               <span className="truncate text-xs text-muted">{data.sub}</span>
             </div>
@@ -40,7 +40,7 @@ export function HeroPhoneMockup({ data }: { data: SegmentData }) {
               <span className="text-sm font-bold tabular-nums">{formatCurrency(data.price)}</span>
             </div>
             <div className="flex items-center gap-2 text-muted">
-              <Clock className="h-4 w-4" aria-hidden="true" />
+              <Icon name="schedule" size={16} />
               <span className="text-xs">Duração estimada: {data.duration}</span>
             </div>
           </div>
@@ -62,7 +62,7 @@ export function HeroPhoneMockup({ data }: { data: SegmentData }) {
               <span className="text-base font-bold tabular-nums">{formatCurrency(data.deposit)}</span>
             </div>
             <div className="flex items-center gap-2 text-muted">
-              <Info className="h-[18px] w-[18px] text-whatsapp" aria-hidden="true" />
+              <Icon name="info" size={18} className="text-whatsapp" />
               <span className="text-xs text-ink">Abatido no valor total do serviço</span>
             </div>
           </div>
@@ -71,7 +71,7 @@ export function HeroPhoneMockup({ data }: { data: SegmentData }) {
             Confirmar e Pagar Sinal via Pix
           </div>
           <div className="flex items-center justify-center gap-1.5 pt-1 text-muted">
-            <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+            <Icon name="lock" size={14} />
             <span className="text-[11px]">Ambiente Seguro EasyAgenda+</span>
           </div>
         </div>

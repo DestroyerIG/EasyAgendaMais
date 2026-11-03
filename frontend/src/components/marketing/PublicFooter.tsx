@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, BadgeCheck } from 'lucide-react';
+import { Icon } from '@/components/ui';
 
 const EASYCONNECT_URL = 'https://easyconnectcg.com.br';
 
@@ -20,7 +20,7 @@ const resourceLinks = [
   { label: 'Agenda Online 24/7', href: '#recursos' },
   { label: 'Lembretes via WhatsApp', href: '#recursos' },
   { label: 'Cobrança de Sinal Pix', href: '#recursos' },
-  { label: 'Radar de Retorno', href: '#recursos' },
+  { label: 'Hora de voltar', href: '#recursos' },
   { label: 'Fechamento de Caixa', href: '#recursos' },
   { label: 'Planos e Preços', href: '#planos' },
 ];
@@ -35,7 +35,7 @@ export function PublicFooter() {
           <div className="flex flex-col gap-4 lg:col-span-2">
             <div className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand">
-                <Calendar className="h-5 w-5 text-on-brand" aria-hidden="true" />
+                <Icon name="calendar_month" size={20} className="text-on-brand" />
               </div>
               <span className="text-lg font-bold tracking-tight text-ink">
                 EasyAgenda<span className="text-brand">+</span>
@@ -45,15 +45,15 @@ export function PublicFooter() {
               Plataforma inteligente de agendamento online e gestão operacional desenvolvida para negócios de
               bem-estar, estética e beleza.
             </p>
-            <div className="flex items-center gap-3 pt-2">
+            <Link href="/privacidade" className="group flex w-fit items-center gap-3 pt-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-bg text-whatsapp">
-                <BadgeCheck className="h-5 w-5" aria-hidden="true" />
+                <Icon name="verified" size={20} />
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-bold text-ink">100% em Conformidade LGPD</span>
-                <span className="text-xs text-muted">Seus dados e de seus clientes seguros</span>
+                <span className="text-xs font-bold text-ink">Dados tratados conforme a LGPD</span>
+                <span className="text-xs text-muted group-hover:text-ink">Veja a política de privacidade</span>
               </div>
-            </div>
+            </Link>
           </div>
 
           <div className="flex flex-col gap-3">

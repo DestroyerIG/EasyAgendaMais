@@ -2,37 +2,29 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { TrendingUp } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
+import { Icon } from '@/components/ui';
 
 const SEMANAS_POR_MES = 4; // mesma aproximação usada na referência Stitch
 const TAXA_RECUPERACAO_SINAL = 0.9; // parcela do prejuízo evitável com sinal Pix + lembretes
 
+export function calcularPerda(faltasSemana: number, ticketMedio: number) {
+  const prejuizoMensal = faltasSemana * SEMANAS_POR_MES * ticketMedio;
+  return { prejuizoMensal, recuperado: Math.round(prejuizoMensal * TAXA_RECUPERACAO_SINAL) };
+}
+
 export function RoiCalculator() {
-  const [atendimentosDia, setAtendimentosDia] = useState(6);
   const [ticketMedio, setTicketMedio] = useState(120);
   const [faltasSemana, setFaltasSemana] = useState(3);
 
-  const { prejuizoMensal, recuperado } = useMemo(() => {
-    const prejuizo = faltasSemana * SEMANAS_POR_MES * ticketMedio;
-    return {
-      prejuizoMensal: prejuizo,
-      recuperado: Math.round(prejuizo * TAXA_RECUPERACAO_SINAL),
-    };
-  }, [faltasSemana, ticketMedio]);
+  const { prejuizoMensal, recuperado } = useMemo(
+    () => calcularPerda(faltasSemana, ticketMedio),
+    [faltasSemana, ticketMedio],
+  );
 
   return (
     <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
       <div className="flex flex-col gap-6 rounded-card border border-line bg-bg p-6 lg:col-span-7 lg:p-8">
-        <Slider
-          label="Atendimentos por dia"
-          hint="Média de atendimentos diários em sua cadeira ou estúdio."
-          value={atendimentosDia}
-          min={2}
-          max={25}
-          onChange={setAtendimentosDia}
-          formatValue={(v) => String(v)}
-        />
         <Slider
           label="Ticket médio por serviço (R$)"
           hint="Valor médio pago por cliente a cada visita."
@@ -73,18 +65,24 @@ export function RoiCalculator() {
 
           <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-5 shadow-sm">
             <div className="flex items-center gap-2 text-whatsapp">
-              <TrendingUp className="h-5 w-5" aria-hidden="true" />
+              <Icon name="trending_up" size={20} />
               <span className="text-sm font-bold">Com o EasyAgenda+</span>
             </div>
             <p className="text-sm text-ink">
-              Com cobrança de sinal Pix antecipado e lembretes automáticos em 24h e 2h:
+              Com sinal via Pix e lembrete automático:
             </p>
             <div className="mt-1 flex flex-wrap items-baseline gap-1.5">
-              <span className="text-sm text-ink">Você recupera até</span>
+              <span className="text-sm text-ink">Você pode recuperar até</span>
               <span className="text-lg font-black tabular-nums text-ink">{formatCurrency(recuperado)}</span>
-              <span className="text-sm text-ink">todos os meses.</span>
+              <span className="text-sm text-ink">por mês.</span>
             </div>
           </div>
+
+          <p className="text-xs text-muted">
+            Como calculamos: faltas por semana × {SEMANAS_POR_MES} semanas × ticket médio. O valor recuperado supõe que o
+            sinal e o lembrete evitam {Math.round(TAXA_RECUPERACAO_SINAL * 10)} em cada 10 faltas. É uma estimativa, não
+            uma garantia.
+          </p>
         </div>
 
         <Link

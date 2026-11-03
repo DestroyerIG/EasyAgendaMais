@@ -1,22 +1,9 @@
 import Link from 'next/link';
-import {
-  Ban,
-  CheckCircle2,
-  Hand,
-  Hourglass,
-  Lock,
-  PenLine,
-  Radar,
-  ShieldCheck,
-  Star,
-  Users,
-  Wallet,
-  X,
-} from 'lucide-react';
 import { PublicNavbar } from '@/components/marketing/PublicNavbar';
 import { PublicFooter } from '@/components/marketing/PublicFooter';
 import { PricingPlansSection } from '@/components/marketing/PricingPlansSection';
 import { ForcedLight } from '@/components/theme/ForcedLight';
+import { Icon } from '@/components/ui';
 import { Hero } from '@/components/marketing/landing/Hero';
 import { WhatsAppSimulator } from '@/components/marketing/landing/WhatsAppSimulator';
 import { RoiCalculator } from '@/components/marketing/landing/RoiCalculator';
@@ -24,59 +11,59 @@ import { SectionHeading } from '@/components/marketing/landing/SectionHeading';
 
 const painPoints = [
   {
-    icon: Ban,
+    icone: 'block',
     tag: 'Dor 01: Faltas e desculpas de última hora',
     title: 'Cobrança de sinal obrigatório via Pix direto na sua conta',
     description:
-      'Quem paga com antecedência comparece. Você define a porcentagem ou valor fixo (ex: R$ 30) para travar a vaga. O Pix é gerado automaticamente e confirmado em segundos.',
+      'Quem paga com antecedência comparece. Você define o percentual do sinal em cada serviço. Quem agenda pelo seu link recebe o Pix copia e cola na hora, e você confirma o pagamento no painel.',
     panelLabel: 'Configuração de Sinal Pix',
-    panelBadge: 'Ativo em todos os serviços',
-    panelRow: { title: 'Depósito de Reserva', subtitle: 'Cobrado no ato do agendamento web', value: '30% ou R$ 30,00' },
-    panelFoot: { icon: ShieldCheck, text: 'Taxa de no-show menor', tone: 'text-whatsapp' },
+    panelBadge: 'Definido por serviço',
+    panelRow: { title: 'Depósito de Reserva', subtitle: 'Cobrado no agendamento pelo link', value: '30% do serviço' },
+    panelFoot: { icone: 'verified_user', text: 'Taxa de no-show menor', tone: 'text-whatsapp' },
   },
   {
-    icon: Radar,
+    icone: 'radar',
     tag: 'Dor 02: Cliente que esquece de agendar a manutenção',
-    title: 'Radar de Retorno automático no ciclo exato',
+    title: 'Hora de voltar: o convite de retorno no tempo certo',
     description:
-      'Cada serviço tem um ciclo natural de retorno (unhas a cada 21 dias, barba a cada 15 dias). O sistema avisa o cliente no momento certo, antes que ele procure a concorrência.',
-    panelLabel: 'Radar de Retorno (21 dias)',
+      'Você liga a automação e escolhe o prazo: o intervalo de cada cliente ou um número fixo de dias (21 por padrão). Quando chega a hora, o cliente recebe o convite no WhatsApp, antes de procurar a concorrência.',
+    panelLabel: 'Hora de voltar (21 dias)',
     panelBadge: '3 alertas hoje',
     panelRow: { title: 'Cliente Exemplo', subtitle: 'Último serviço: Manutenção (21 dias atrás)', value: 'WhatsApp enviado' },
     panelFoot: null,
   },
   {
-    icon: Hourglass,
+    icone: 'hourglass_top',
     tag: 'Dor 03: Horário vago por cancelamento emergencial',
-    title: 'Lista de espera inteligente que preenche a vaga',
+    title: 'Lista de espera que avisa quem quer a vaga',
     description:
-      'Quando alguém desmarca, o EasyAgenda+ notifica imediatamente os clientes que marcaram interesse naquele dia e turno, reocupando a cadeira sem esforço.',
+      'Com a automação ligada, quando alguém desmarca com pelo menos 1 hora de antecedência, o EasyAgenda+ avisa no WhatsApp até 1, 3 ou 5 clientes da lista que combinam com o horário, com o link para agendar. Quem agendar primeiro fica com a vaga.',
     panelLabel: 'Desistência detectada: Sex 16:30',
     panelBadge: 'Vaga aberta',
-    panelRow: { title: '4 clientes na fila de espera', subtitle: 'Disparo de aviso simultâneo via WhatsApp', value: 'Preenchido em 4 min' },
+    panelRow: { title: '4 clientes na lista de espera', subtitle: 'Aviso para as 3 primeiras que combinam com o horário', value: '3 avisos enviados' },
     panelFoot: null,
   },
   {
-    icon: Wallet,
+    icone: 'account_balance_wallet',
     tag: 'Dor 04: Brigas no fim do mês e papel de pão',
     title: 'Fechamento de caixa e rateio de comissões automático',
     description:
-      'Separação exata de pagamentos em Pix, cartão ou dinheiro, com divisão automática conforme as regras do seu negócio.',
+      'Separação exata de pagamentos em Pix, cartão ou dinheiro, com divisão automática conforme as regras do seu negócio. Comissões nos planos Equipe e Salão.',
     panelLabel: 'Extrato Diário da Equipe',
     panelBadge: 'Total: R$ 1.820,00',
     panelRow: { title: 'Salão (50%)', subtitle: '', value: 'R$ 910,00' },
     panelFoot: null,
   },
   {
-    icon: Users,
+    icone: 'group',
     tag: 'Dor 05: Profissionais sem visibilidade ou vendo dados sensíveis',
     title: 'Acesso individual e seguro para cada parceiro',
     description:
-      'Cada colaborador acessa o próprio painel e visualiza apenas seus agendamentos e extrato de comissões, sem acessar o faturamento geral do negócio.',
+      'Cada colaborador acessa o próprio painel e visualiza apenas seus agendamentos e extrato de comissões, sem acessar o faturamento geral do negócio. Nos planos Equipe e Salão.',
     panelLabel: 'Permissões Segmentadas',
     panelBadge: '',
     panelRow: { title: 'Faturamento total do estabelecimento', subtitle: '', value: 'Oculto para parceiro' },
-    panelFoot: { icon: Lock, text: 'Apenas dados individuais liberados na conta do parceiro', tone: 'text-status-confirmed' },
+    panelFoot: { icone: 'lock', text: 'Apenas dados individuais liberados na conta do parceiro', tone: 'text-status-confirmed' },
   },
 ];
 
@@ -90,9 +77,9 @@ const beforeItems = [
 
 const afterItems = [
   'Agendamento ativo 24 horas por dia sem você precisar encostar no celular durante a rotina.',
-  'Sinal antecipado via Pix que praticamente zera o no-show e garante o faturamento.',
-  'Lembretes automáticos enviados via WhatsApp com 24h e 2h de antecedência.',
-  'Comissões e rateio calculados automaticamente em tempo real.',
+  'Sinal via Pix no agendamento pelo link, que desestimula a falta.',
+  'Lembrete automático no WhatsApp 2 horas antes ou na véspera, como você preferir.',
+  'Comissões calculadas automaticamente nos planos Equipe e Salão.',
   'Ficha técnica, preferências e histórico organizados por cliente.',
 ];
 
@@ -109,7 +96,7 @@ const testimonials = [
   },
   {
     quote:
-      'O Radar de Retorno traz clientes de volta sem eu precisar parecer insistente. Elas amam a pontualidade do lembrete.',
+      'A Hora de voltar traz clientes de volta sem eu precisar parecer insistente. Elas amam a pontualidade do lembrete.',
     segment: 'Segmento: Cílios e sobrancelha',
   },
 ];
@@ -133,12 +120,12 @@ const faqItems = [
   {
     question: 'Como funciona o teste grátis de 14 dias?',
     answer:
-      'Você cria sua conta em poucos minutos e recebe acesso completo a todos os recursos da plataforma por 14 dias, sem exigir cartão de crédito no cadastro. Se optar por não continuar, o acesso é encerrado sem cobranças automáticas.',
+      'Você cria sua conta em poucos minutos e usa o plano Equipe completo por 14 dias, sem cartão de crédito. No fim do teste você escolhe o plano; se não assinar, o acesso fica pausado e nada é cobrado.',
   },
   {
     question: 'Minha equipe consegue ver o faturamento total do meu negócio?',
     answer:
-      'Não. Cada profissional convidado possui um login restrito com perfil de colaborador. Eles visualizam apenas a própria grade de horários, suas notas técnicas e o extrato de comissão dos atendimentos que realizaram.',
+      'Não. Cada profissional convidado possui um login restrito com perfil de colaborador. Eles visualizam apenas a própria grade de horários, suas notas técnicas e o extrato de comissão dos atendimentos que realizaram. O acesso da equipe faz parte dos planos Equipe e Salão.',
   },
 ];
 
@@ -174,16 +161,16 @@ export default function HomePage() {
 
               <div className="flex flex-col gap-6 lg:col-span-5">
                 <InfoCard
-                  icon={Hand}
+                  icone="back_hand"
                   iconClassName="text-brand"
                   title="Zero perda de tempo digitando no meio do atendimento"
                   description="Você não precisa pausar o secador nem responder mensagens enquanto atende. O robô responde em segundos, consulta sua agenda em tempo real e bloqueia o horário."
                 />
                 <InfoCard
-                  icon={Wallet}
+                  icone="account_balance_wallet"
                   iconClassName="text-whatsapp"
                   title="Sinal direto na sua conta sem intermediários"
-                  description="O valor do sinal Pix cai instantaneamente na sua chave cadastrada. Não há taxa retida pelo EasyAgenda+ sobre o valor do sinal nem espera para sacar."
+                  description="O valor do sinal Pix cai instantaneamente na sua chave cadastrada. Não há taxa retida pelo EasyAgenda+ sobre o valor do sinal nem espera para sacar. O sinal é cobrado no agendamento pelo seu link."
                 />
               </div>
             </div>
@@ -194,7 +181,7 @@ export default function HomePage() {
         <section className="border-y border-line bg-surface py-16 sm:py-20">
           <div className="mx-auto flex max-w-7xl flex-col gap-10 px-4 sm:px-6 lg:px-8">
             <SectionHeading
-              eyebrow="Simulação real de faturamento"
+              eyebrow="Simulação com os seus números"
               title="Quanto você perde com faltas e clientes que não voltam?"
               subtitle="Coloque seus números e veja o impacto real no seu faturamento mensal."
             />
@@ -260,7 +247,7 @@ export default function HomePage() {
                 >
                   <div className="flex flex-col gap-3 lg:col-span-6">
                     <div className="flex items-center gap-2 text-sm font-bold text-brand">
-                      <pain.icon className="h-5 w-5" aria-hidden="true" />
+                      <Icon name={pain.icone} size={20} />
                       <span>{pain.tag}</span>
                     </div>
                     <h3 className="text-lg font-bold text-ink sm:text-xl">{pain.title}</h3>
@@ -286,7 +273,7 @@ export default function HomePage() {
                     </div>
                     {pain.panelFoot && (
                       <div className={['flex items-center gap-2', pain.panelFoot.tone].join(' ')}>
-                        <pain.panelFoot.icon className="h-4 w-4" aria-hidden="true" />
+                        <Icon name={pain.panelFoot.icone} size={16} />
                         <span className="text-xs font-semibold">{pain.panelFoot.text}</span>
                       </div>
                     )}
@@ -310,14 +297,14 @@ export default function HomePage() {
               <div className="flex flex-col gap-5 rounded-card border border-line bg-surface-2 p-6 sm:p-8">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-line text-muted">
-                    <PenLine className="h-5 w-5" aria-hidden="true" />
+                    <Icon name="edit_note" size={20} />
                   </div>
                   <h3 className="text-lg font-bold text-ink">Caderno + direct do Instagram</h3>
                 </div>
                 <div className="flex flex-col gap-3">
                   {beforeItems.map((item) => (
                     <div key={item} className="flex items-start gap-3">
-                      <X className="mt-0.5 h-5 w-5 shrink-0 text-muted" aria-hidden="true" />
+                      <Icon name="close" size={20} className="mt-0.5 shrink-0 text-muted" />
                       <p className="text-sm text-muted">{item}</p>
                     </div>
                   ))}
@@ -327,14 +314,14 @@ export default function HomePage() {
               <div className="flex flex-col gap-5 rounded-card border border-line bg-surface p-6 shadow-sm sm:p-8">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-bg text-brand">
-                    <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+                    <Icon name="verified_user" size={20} />
                   </div>
                   <h3 className="text-lg font-bold text-ink">Com o EasyAgenda+</h3>
                 </div>
                 <div className="flex flex-col gap-3">
                   {afterItems.map((item) => (
                     <div key={item} className="flex items-start gap-3">
-                      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-whatsapp" aria-hidden="true" />
+                      <Icon name="check_circle" size={20} className="mt-0.5 shrink-0 text-whatsapp" />
                       <p className="text-sm text-ink">{item}</p>
                     </div>
                   ))}
@@ -372,7 +359,7 @@ export default function HomePage() {
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-1.5 text-brand">
                       {Array.from({ length: 5 }).map((_, index) => (
-                        <Star key={index} className="h-[18px] w-[18px] fill-current" aria-hidden="true" />
+                        <Icon key={index} name="star" size={18} filled />
                       ))}
                     </div>
                     <p className="text-[15px] italic leading-relaxed text-ink">&ldquo;{testimonial.quote}&rdquo;</p>
@@ -428,8 +415,7 @@ export default function HomePage() {
                   Sua cadeira ocupada e seu tempo de volta.
                 </h2>
                 <p className="text-base text-muted">
-                  Junte-se a estúdios e profissionais que pararam de perder dinheiro para o no-show e para as noites de
-                  domingo respondendo mensagens.
+                  Pare de perder dinheiro com faltas e de passar o domingo respondendo mensagens.
                 </p>
               </div>
               <div className="flex shrink-0 flex-col items-center gap-4 sm:flex-row">
@@ -459,12 +445,12 @@ export default function HomePage() {
 }
 
 function InfoCard({
-  icon: Icon,
+  icone,
   iconClassName,
   title,
   description,
 }: {
-  icon: typeof Hand;
+  icone: string;
   iconClassName: string;
   title: string;
   description: string;
@@ -472,7 +458,7 @@ function InfoCard({
   return (
     <div className="flex flex-col gap-3 rounded-card border border-line bg-surface p-6 shadow-sm sm:p-8">
       <div className={['flex h-10 w-10 items-center justify-center rounded-xl bg-surface-2', iconClassName].join(' ')}>
-        <Icon className="h-6 w-6" aria-hidden="true" />
+        <Icon name={icone} size={24} />
       </div>
       <h3 className="text-lg font-bold text-ink">{title}</h3>
       <p className="text-sm text-muted">{description}</p>

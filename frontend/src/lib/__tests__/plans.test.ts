@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { PLAN_MAP, SAAS_PLANS, PLAN_SHELL_LABEL } from '@/lib/plans';
+import { SAAS_PLANS, PLAN_SHELL_LABEL } from '@/lib/plans';
+import { planoDoCatalogo } from '@/lib/planCatalog';
 import { PLANS } from '@/lib/constants';
 import { evaluateFeatureAccess } from '@/lib/subscriptionAccess';
 
@@ -19,12 +20,15 @@ describe('planos', () => {
   });
 
   it('nenhum texto de plano cita os nomes antigos', () => {
-    const textos = SAAS_PLANS.flatMap((p) => [p.name, p.ctaLabel, p.description, ...p.features]).join(' | ');
+    const textos = SAAS_PLANS.flatMap((p) => {
+      const plano = planoDoCatalogo(p.id);
+      return [p.name, p.ctaLabel, plano.descricao, ...plano.destaques];
+    }).join(' | ');
     expect(textos).not.toMatch(/Básico|Profissional\b|Premium|\bPro\b/);
   });
 
   it('o Solo promete WhatsApp e o acesso libera WhatsApp no Solo', () => {
-    expect(PLAN_MAP.basico.features.some((f) => /WhatsApp/.test(f))).toBe(true);
+    expect(planoDoCatalogo('basico').destaques.some((f) => /WhatsApp/.test(f))).toBe(true);
     const acesso = evaluateFeatureAccess({
       feature: 'whatsapp_automation',
       plan: 'basico',
