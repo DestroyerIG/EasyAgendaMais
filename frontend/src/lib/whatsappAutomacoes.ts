@@ -12,7 +12,7 @@ export const REGRAS: Regra[] = ['confirmacao', 'sinal_pix', 'retorno', 'lista_es
 export const ROTULO_REGRA: Record<Regra, string> = {
   confirmacao: 'Confirmação',
   sinal_pix: 'Sinal Pix',
-  retorno: 'Radar de Retorno',
+  retorno: 'Hora de voltar',
   lista_espera: 'Lista de espera',
   lembrete: 'Lembrete',
   aniversario: 'Aniversário',

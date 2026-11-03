@@ -56,7 +56,7 @@ const CONTEUDO: { [R in Regra]: ConteudoRegra<R> } = {
     numero: (r) => `${reais(r.recebido)} recebidos em sinais`,
   },
   retorno: {
-    titulo: () => 'Radar de Retorno',
+    titulo: () => 'Hora de voltar',
     descricao: () => 'Detecta quando o ciclo médio do serviço está vencendo e convida a cliente para agendar antes que procure outro lugar.',
     icone: 'cached',
     quando: (c) => (c.modo === 'dias' ? `Aos ${c.dias} dias (personalizado)` : 'No ciclo da cliente'),

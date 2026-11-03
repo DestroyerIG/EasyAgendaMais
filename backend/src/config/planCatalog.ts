@@ -79,7 +79,7 @@ export const FEATURE_MATRIX: readonly RecursoMatriz[] = Object.freeze([
   { id: 'pagina', grupo: 'Agendamento e recepção', titulo: 'Página com galeria e agendamento online', basico: true, profissional: true, premium: true },
   { id: 'whatsapp', grupo: 'Agendamento e recepção', titulo: 'Bot de WhatsApp, lembretes e confirmação', basico: true, profissional: true, premium: true },
   { id: 'ficha', grupo: 'Agendamento e recepção', titulo: 'Ficha de clientes e sinal via Pix', basico: true, profissional: true, premium: true },
-  { id: 'retorno', grupo: 'Agendamento e recepção', titulo: 'Hora de voltar (radar de retorno)', basico: true, profissional: true, premium: true },
+  { id: 'retorno', grupo: 'Agendamento e recepção', titulo: 'Hora de voltar', basico: true, profissional: true, premium: true },
   { id: 'lista_espera', grupo: 'Agendamento e recepção', titulo: 'Lista de espera com aviso automático', basico: true, profissional: true, premium: true },
   { id: 'campanhas', grupo: 'Agendamento e recepção', titulo: 'Campanhas no WhatsApp', basico: true, profissional: true, premium: true },
   { id: 'caixa', grupo: 'Equipe e operação', titulo: 'Controle de caixa', basico: true, profissional: true, premium: true },
