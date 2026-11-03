@@ -170,7 +170,7 @@ export default function HomePage() {
                   icone="account_balance_wallet"
                   iconClassName="text-whatsapp"
                   title="Sinal direto na sua conta sem intermediários"
-                  description="O valor do sinal Pix cai instantaneamente na sua chave cadastrada. Não há taxa retida pelo EasyAgenda+ sobre o valor do sinal nem espera para sacar."
+                  description="O valor do sinal Pix cai instantaneamente na sua chave cadastrada. Não há taxa retida pelo EasyAgenda+ sobre o valor do sinal nem espera para sacar. O sinal é cobrado no agendamento pelo seu link."
                 />
               </div>
             </div>

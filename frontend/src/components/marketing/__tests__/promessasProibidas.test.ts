@@ -16,6 +16,10 @@ const PROIBIDAS: { arquivo: string; frases: RegExp[] }[] = [
   { arquivo: 'src/components/marketing/landing/Hero.tsx', frases: [/Dados protegidos LGPD/] },
   { arquivo: 'src/components/marketing/PricingPlansSection.tsx', frases: [/Suporte prioritário/, /Radar de Retorno/] },
   { arquivo: 'src/components/marketing/landing/RoiCalculator.tsx', frases: [/24h e 2h/, /recupera até/] },
+  {
+    arquivo: 'src/components/marketing/landing/WhatsAppSimulator.tsx',
+    frases: [/Te avisamos 24h antes/, /Pix Copia e Cola/, /Sinal confirmado/],
+  },
 ];
 
 const raiz = resolve(__dirname, '../../../..');
