@@ -73,15 +73,15 @@ describe('painelRepository', () => {
     expect(sql).toMatch(/CASE WHEN b\.subscription_status = 'trialing'\s+THEN COALESCE\(\s*b\.subscription_current_period_end AT TIME ZONE 'UTC',\s*b\.current_period_end AT TIME ZONE 'UTC'\s*\)/);
   });
 
-  it('pagamentos do gateway contam uma vez por fatura (invoice.paid e invoice.payment_succeeded)', async () => {
+  it('pagamentos confirmados vêm só do billing_payments (cartão e Pix pelo Asaas)', async () => {
     prismaMock.$queryRaw.mockResolvedValue([]);
     await painelRepository.ltv('n1');
     await painelRepository.linhasNegocios();
     expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(2);
     for (const chamada of prismaMock.$queryRaw.mock.calls) {
       const sql = (chamada[0] as { sql: string }).sql;
-      expect(sql).toMatch(/SELECT DISTINCT ON \(se\.business_id, COALESCE\(se\.payload->>'id', se\.id::text\)\)/);
-      expect(sql).toMatch(/ORDER BY se\.business_id, COALESCE\(se\.payload->>'id', se\.id::text\), se\.created_at/);
+      expect(sql).toMatch(/FROM billing_payments bp\s+WHERE bp\.paid_at IS NOT NULL/);
+      expect(sql).not.toMatch(/subscription_events/);
     }
   });
 

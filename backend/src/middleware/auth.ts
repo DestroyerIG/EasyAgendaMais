@@ -36,16 +36,12 @@ const SUBSCRIPTION_EXEMPT_ROUTES: RegExp[] = [
   /^\/api\/v1\/billing\/pix\/[^/]+$/i,
   /^\/api\/v1\/billing\/webhooks\/asaas$/i,
   /^\/api\/v1\/billing\/webhook\/asaas$/i,
-  /^\/api\/v1\/billing\/webhook\/stripe$/i,
-  /^\/api\/v1\/subscriptions\/status$/i,
-  /^\/api\/v1\/subscriptions\/checkout-session$/i,
   /^\/api\/v1\/business\/account-profile$/i,
   // Modo de contingência: a dona sempre consegue ver as faturas e regularizar a
   // assinatura, mesmo com a conta bloqueada.
   /^\/api\/v1\/billing\/invoices$/i,
   /^\/api\/v1\/billing\/payment-method$/i,
   /^\/api\/v1\/billing\/reactivate$/i,
-  /^\/api\/v1\/subscriptions\/portal$/i,
 ];
 
 // Isentas só para leitura: ver o estado da conta e baixar o backup.

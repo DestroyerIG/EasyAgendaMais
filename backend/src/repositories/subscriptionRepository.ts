@@ -15,10 +15,6 @@ export const subscriptionRepository = {
       SELECT id, name, owner_name, email, whatsapp, plan, desired_plan,
              cpf_cnpj,
              asaas_customer_id,
-             stripe_customer_id,
-             stripe_subscription_id,
-             stripe_price_id,
-             stripe_payment_mode,
              provider,
              provider_customer_id,
              provider_subscription_id,
@@ -39,59 +35,12 @@ export const subscriptionRepository = {
              created_at,
              inadimplente_desde,
              (last_payment_date IS NOT NULL
-               OR EXISTS (SELECT 1 FROM billing_payments bp WHERE bp.business_id = businesses.id AND bp.paid_at IS NOT NULL)
-               OR EXISTS (SELECT 1 FROM subscription_events se WHERE se.business_id = businesses.id
-                          AND se.event_type IN ('invoice.paid','invoice.payment_succeeded')
-                          AND CASE WHEN se.payload->>'amount_paid' ~ '^[0-9]+([.][0-9]+)?$'
-                               THEN (se.payload->>'amount_paid')::numeric ELSE 0 END > 0)) AS ja_pagou
+               OR EXISTS (SELECT 1 FROM billing_payments bp WHERE bp.business_id = businesses.id AND bp.paid_at IS NOT NULL)) AS ja_pagou
       FROM businesses
       WHERE id = ${businessId}::uuid AND active = true
     `);
 
     return result?.[0] || null;
-  },
-
-  async findByStripeCustomerId(stripeCustomerId: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
-    const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
-      SELECT id, name, owner_name, email, whatsapp, plan,
-             stripe_customer_id,
-             stripe_subscription_id,
-             stripe_price_id,
-             stripe_payment_mode,
-             provider,
-             provider_customer_id,
-             provider_subscription_id,
-             provider_payment_id,
-             payment_method,
-             subscription_status,
-             subscription_current_period_start,
-             subscription_current_period_end,
-             subscription_cancel_at_period_end,
-             current_period_start,
-             current_period_end,
-             next_due_date,
-             last_payment_date,
-             canceled_at,
-             metadata
-      FROM businesses
-      WHERE stripe_customer_id = ${stripeCustomerId}::text AND active = true
-    `);
-
-    return result[0] || null;
-  },
-
-  async setStripeCustomerId(businessId: string, stripeCustomerId: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
-    const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
-      UPDATE businesses
-      SET stripe_customer_id = ${stripeCustomerId}::text,
-          provider = COALESCE(provider, 'stripe'),
-          provider_customer_id = COALESCE(provider_customer_id, ${stripeCustomerId}::text),
-          subscription_updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${businessId}::uuid
-      RETURNING stripe_customer_id, provider, provider_customer_id
-    `);
-
-    return result[0] || null;
   },
 
   async setAsaasCustomerId(businessId: string, asaasCustomerId: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
@@ -171,10 +120,6 @@ export const subscriptionRepository = {
   async findByProviderCustomerId(provider: string, providerCustomerId: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
     const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
       SELECT id, name, owner_name, email, whatsapp, plan,
-             stripe_customer_id,
-             stripe_subscription_id,
-             stripe_price_id,
-             stripe_payment_mode,
              provider,
              provider_customer_id,
              provider_subscription_id,
@@ -242,10 +187,6 @@ export const subscriptionRepository = {
   async findByProviderSubscriptionId(provider: string, providerSubscriptionId: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
     const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
       SELECT id, name, owner_name, email, whatsapp, plan,
-             stripe_customer_id,
-             stripe_subscription_id,
-             stripe_price_id,
-             stripe_payment_mode,
              provider,
              provider_customer_id,
              provider_subscription_id,
@@ -273,10 +214,6 @@ export const subscriptionRepository = {
   async findByProviderPaymentId(provider: string, providerPaymentId: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
     const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
       SELECT id, name, owner_name, email, whatsapp, plan,
-             stripe_customer_id,
-             stripe_subscription_id,
-             stripe_price_id,
-             stripe_payment_mode,
              provider,
              provider_customer_id,
              provider_subscription_id,
@@ -305,15 +242,11 @@ export const subscriptionRepository = {
     businessId: string,
     payload: {
       plan?: string | null;
-      stripeSubscriptionId?: string | null;
-      stripePriceId?: string | null;
       subscriptionStatus?: string | null;
       currentPeriodStart?: string | Date | null;
       currentPeriodEnd?: string | Date | null;
       cancelAtPeriodEnd?: boolean | null;
-      stripePaymentMode?: string | null;
       paymentMethod?: string | null;
-      clearStripeSubscriptionId?: boolean;
       provider?: string | null;
       providerCustomerId?: string | null;
       providerSubscriptionId?: string | null;
@@ -324,81 +257,54 @@ export const subscriptionRepository = {
       lastPaymentDate?: string | Date | null;
       canceledAt?: string | Date | null;
       metadata?: unknown;
-      stripeCustomerId?: string | null;
     },
     _client: unknown = null
   ): Promise<Record<string, unknown> | null> {
-    const p1 = businessId;
-    const p2 = payload.plan ?? null;
-    const p3 = payload.stripeSubscriptionId ?? null;
-    const p4 = payload.stripePriceId ?? null;
-    const p5 = payload.subscriptionStatus ?? null;
-    const p6 = payload.currentPeriodStart ?? null;
-    const p7 = payload.currentPeriodEnd ?? null;
-    const p8 = typeof payload.cancelAtPeriodEnd === 'boolean' ? payload.cancelAtPeriodEnd : null;
-    const p9 = payload.stripePaymentMode ?? null;
-    const p10 = payload.paymentMethod ?? null;
-    const p11 = Boolean(payload.clearStripeSubscriptionId);
-    const p12 = payload.provider ?? null;
-    const p13 = payload.providerCustomerId ?? null;
-    const p14 = payload.providerSubscriptionId ?? null;
-    const p15 = payload.providerPaymentId ?? null;
-    const p16 = payload.currentPeriodStartGeneric ?? payload.currentPeriodStart ?? null;
-    const p17 = payload.currentPeriodEndGeneric ?? payload.currentPeriodEnd ?? null;
-    const p18 = payload.nextDueDate ?? null;
-    const p19 = payload.lastPaymentDate ?? null;
-    const p20 = payload.canceledAt ?? null;
-    const p21 = normalizeJsonb(payload.metadata);
-    const p22 = payload.stripeCustomerId ?? null;
+    const plano = payload.plan ?? null;
+    const status = payload.subscriptionStatus ?? null;
+    const inicio = payload.currentPeriodStart ?? null;
+    const fim = payload.currentPeriodEnd ?? null;
+    const cancelarNoFim = typeof payload.cancelAtPeriodEnd === 'boolean' ? payload.cancelAtPeriodEnd : null;
+    const forma = payload.paymentMethod ?? null;
+    const provider = payload.provider ?? null;
+    const cliente = payload.providerCustomerId ?? null;
+    const assinatura = payload.providerSubscriptionId ?? null;
+    const cobranca = payload.providerPaymentId ?? null;
+    const inicioGenerico = payload.currentPeriodStartGeneric ?? payload.currentPeriodStart ?? null;
+    const fimGenerico = payload.currentPeriodEndGeneric ?? payload.currentPeriodEnd ?? null;
+    const vencimento = payload.nextDueDate ?? null;
+    const pagoEm = payload.lastPaymentDate ?? null;
+    const canceladoEm = payload.canceledAt ?? null;
+    const metadata = normalizeJsonb(payload.metadata);
 
     const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
       UPDATE businesses
-      SET plan = COALESCE(${p2}::text, plan),
-          -- Downgrade agendado que acabou de valer (pelo Stripe ou pela rotina) sai da fila.
-          plano_agendado = CASE WHEN plano_agendado = COALESCE(${p2}::text, plan) THEN NULL ELSE plano_agendado END,
-          plano_agendado_em = CASE WHEN plano_agendado = COALESCE(${p2}::text, plan) THEN NULL ELSE plano_agendado_em END,
-          stripe_customer_id = COALESCE(${p22}::text, stripe_customer_id),
-          stripe_subscription_id = CASE
-            WHEN ${p11}::boolean THEN NULL
-            ELSE COALESCE(${p3}::text, stripe_subscription_id)
-          END,
-          stripe_price_id = COALESCE(${p4}::text, stripe_price_id),
-          subscription_status = COALESCE(${p5}::text, subscription_status),
-          subscription_current_period_start = COALESCE(${p6}::timestamp, subscription_current_period_start),
-          subscription_current_period_end = COALESCE(${p7}::timestamp, subscription_current_period_end),
-          subscription_cancel_at_period_end = COALESCE(${p8}::boolean, subscription_cancel_at_period_end),
-          stripe_payment_mode = COALESCE(${p9}::text, stripe_payment_mode),
-          payment_method = COALESCE(${p10}::text, payment_method),
-          provider = COALESCE(
-            ${p12}::text,
-            provider,
-            CASE
-              WHEN ${p3}::text IS NOT NULL OR ${p9}::text IS NOT NULL OR ${p13}::text IS NOT NULL OR ${p22}::text IS NOT NULL THEN 'stripe'
-              ELSE provider
-            END
-          ),
-          provider_customer_id = COALESCE(${p13}::text, ${p22}::text, provider_customer_id),
-          provider_subscription_id = CASE
-            WHEN ${p11}::boolean THEN NULL
-            ELSE COALESCE(${p14}::text, provider_subscription_id, ${p3}::text)
-          END,
-          provider_payment_id = COALESCE(${p15}::text, provider_payment_id),
-          current_period_start = COALESCE(${p16}::timestamp, current_period_start, ${p6}::timestamp),
-          current_period_end = COALESCE(${p17}::timestamp, current_period_end, ${p7}::timestamp),
-          next_due_date = COALESCE(${p18}::timestamp, next_due_date, ${p7}::timestamp),
-          last_payment_date = COALESCE(${p19}::timestamp, last_payment_date),
-          canceled_at = COALESCE(${p20}::timestamp, canceled_at),
-          metadata = COALESCE(metadata, '{}'::jsonb) || COALESCE(${p21}::jsonb, '{}'::jsonb),
+      SET plan = COALESCE(${plano}::text, plan),
+          -- Downgrade agendado que acabou de valer (pela cobrança ou pela rotina) sai da fila.
+          plano_agendado = CASE WHEN plano_agendado = COALESCE(${plano}::text, plan) THEN NULL ELSE plano_agendado END,
+          plano_agendado_em = CASE WHEN plano_agendado = COALESCE(${plano}::text, plan) THEN NULL ELSE plano_agendado_em END,
+          subscription_status = COALESCE(${status}::text, subscription_status),
+          subscription_current_period_start = COALESCE(${inicio}::timestamp, subscription_current_period_start),
+          subscription_current_period_end = COALESCE(${fim}::timestamp, subscription_current_period_end),
+          subscription_cancel_at_period_end = COALESCE(${cancelarNoFim}::boolean, subscription_cancel_at_period_end),
+          payment_method = COALESCE(${forma}::text, payment_method),
+          provider = COALESCE(${provider}::text, provider),
+          provider_customer_id = COALESCE(${cliente}::text, provider_customer_id),
+          provider_subscription_id = COALESCE(${assinatura}::text, provider_subscription_id),
+          provider_payment_id = COALESCE(${cobranca}::text, provider_payment_id),
+          current_period_start = COALESCE(${inicioGenerico}::timestamp, current_period_start, ${inicio}::timestamp),
+          current_period_end = COALESCE(${fimGenerico}::timestamp, current_period_end, ${fim}::timestamp),
+          next_due_date = COALESCE(${vencimento}::timestamp, next_due_date, ${fim}::timestamp),
+          last_payment_date = COALESCE(${pagoEm}::timestamp, last_payment_date),
+          canceled_at = COALESCE(${canceladoEm}::timestamp, canceled_at),
+          metadata = COALESCE(metadata, '{}'::jsonb) || COALESCE(${metadata}::jsonb, '{}'::jsonb),
           subscription_updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${p1}::uuid
+      WHERE id = ${businessId}::uuid
       RETURNING id, plan, subscription_status,
                 subscription_current_period_start,
                 subscription_current_period_end,
                 subscription_cancel_at_period_end,
-                stripe_payment_mode,
                 payment_method,
-                stripe_subscription_id,
-                stripe_price_id,
                 provider,
                 provider_customer_id,
                 provider_subscription_id,
@@ -414,41 +320,11 @@ export const subscriptionRepository = {
     return result[0] || null;
   },
 
-  async storeSubscriptionEvent(
-    event: {
-      eventId: string;
-      eventType: string;
-      businessId?: string | null;
-      payload?: unknown;
-    },
-    _client: unknown = null
-  ): Promise<Record<string, unknown> | null> {
-    const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
-      INSERT INTO subscription_events (stripe_event_id, event_type, business_id, payload)
-      VALUES (${event.eventId}::text, ${event.eventType}::text, ${event.businessId || null}::uuid, ${normalizeJsonb(event.payload)}::jsonb)
-      ON CONFLICT (stripe_event_id) DO NOTHING
-      RETURNING id
-    `);
-
-    return result[0] || null;
-  },
-
-  async hasProcessedEvent(eventId: string, _client: unknown = null): Promise<boolean> {
-    const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
-      SELECT 1 FROM subscription_events WHERE stripe_event_id = ${eventId}::text LIMIT 1
-    `);
-
-    return Boolean(result[0]);
-  },
-
   async getSubscriptionStatus(businessId: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
     const result = await prisma.$queryRaw<Record<string, unknown>[]>(Prisma.sql`
       SELECT plan,
              desired_plan,
              asaas_customer_id,
-             stripe_customer_id,
-             stripe_subscription_id,
-             stripe_payment_mode,
              provider,
              provider_customer_id,
              provider_subscription_id,
@@ -477,9 +353,11 @@ export const subscriptionRepository = {
       -- Pix cancelado pela dona termina como 'canceled' no fim do período pago (2D).
       SET subscription_status = CASE WHEN subscription_cancel_at_period_end THEN 'canceled' ELSE 'unpaid' END,
           subscription_updated_at = CURRENT_TIMESTAMP
+      -- Pix vence mês a mês; o cartão só expira aqui quando foi cancelado (senão o Asaas cobra de novo).
       WHERE (
-        stripe_payment_mode = 'payment'
-        OR (provider = 'asaas' AND payment_method = 'pix')
+        (provider = 'asaas' AND payment_method = 'pix')
+        OR (provider = 'asaas' AND payment_method = 'card' AND subscription_cancel_at_period_end
+            AND subscription_status <> 'trialing')
       )
         AND subscription_status IN ('active', 'trialing', 'pending')
         AND COALESCE(current_period_end, subscription_current_period_end) IS NOT NULL

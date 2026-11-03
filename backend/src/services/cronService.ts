@@ -278,7 +278,7 @@ export const startReminderCron = (): void => {
     }
   }, { noOverlap: true });
 
-  // Downgrades Pix agendados cujo período acabou (os do cartão viram pelo webhook do Stripe).
+  // Downgrades agendados cujo período acabou (no cartão, o valor da assinatura já mudou no agendamento).
   cron.schedule('20 * * * *', async () => {
     try {
       const aplicados = await planChangeService.aplicarDowngradesVencidos();
@@ -297,8 +297,8 @@ export const startReminderCron = (): void => {
         SET subscription_status = 'incomplete'
         WHERE subscription_status = 'trialing'
           AND subscription_current_period_end < NOW()
-          AND provider_subscription_id IS NULL
-          AND stripe_subscription_id IS NULL
+          -- Teste com cartão: quem segue é o Asaas (cobra no fim); só expira se ela cancelou.
+          AND (provider_subscription_id IS NULL OR subscription_cancel_at_period_end)
       `;
       if (expired > 0) {
         logger.info({ expiredCount: expired }, 'Trials gratuitos expirados');

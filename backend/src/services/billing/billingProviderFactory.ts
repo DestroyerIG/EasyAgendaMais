@@ -1,12 +1,10 @@
 import { AppError } from '../../utils/errors.js';
 import { asaasBillingProvider } from './providers/asaasBillingProvider.js';
-import { stripeBillingProvider } from './providers/stripeBillingProvider.js';
 
-type ProviderName = 'stripe' | 'asaas';
+type ProviderName = 'asaas';
 type PaymentMethod = 'card' | 'pix';
 
-const PROVIDERS: Readonly<Record<ProviderName, typeof stripeBillingProvider | typeof asaasBillingProvider>> = Object.freeze({
-  stripe: stripeBillingProvider,
+const PROVIDERS: Readonly<Record<ProviderName, typeof asaasBillingProvider>> = Object.freeze({
   asaas: asaasBillingProvider,
 });
 
@@ -17,8 +15,8 @@ const PAYMENT_METHOD_PROVIDER_MAP: Readonly<Record<PaymentMethod, ProviderName>>
 });
 
 export const billingProviderFactory = {
-  getProvider(providerName: string): typeof stripeBillingProvider | typeof asaasBillingProvider {
-    const provider = PROVIDERS[providerName as ProviderName];
+  getProvider(providerName: string): typeof asaasBillingProvider {
+    const provider = Object.hasOwn(PROVIDERS, providerName) ? PROVIDERS[providerName as ProviderName] : undefined;
 
     if (!provider) {
       throw new AppError('Provider de billing não suportado', 400, 'INVALID_BILLING_PROVIDER');

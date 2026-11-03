@@ -8,7 +8,6 @@ import {
 import { adminRepository } from '../repositories/adminRepository.js';
 import { auditRepository } from '../repositories/auditRepository.js';
 import { auditLogService } from './auditLogService.js';
-import { subscriptionService } from './subscriptionService.js';
 import { billingService } from './billingService.js';
 import { subscriptionRepository } from '../repositories/subscriptionRepository.js';
 import { painelRepository } from '../modules/admin/painel.repository.js';
@@ -381,7 +380,7 @@ export const adminService = {
     ensureConfirmed(body.confirmation);
 
     try {
-      const result = await subscriptionService.resyncBusinessSubscription(tenantId);
+      const result = await billingService.resincronizarAsaas(tenantId);
       const resultRecord = result as Record<string, unknown>;
 
       await auditLogService.logAdminAction({

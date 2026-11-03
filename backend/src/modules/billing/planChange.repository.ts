@@ -74,15 +74,14 @@ export const planChangeRepository = {
     });
   },
 
-  // Downgrades Pix (e de quem não tem provedor) que venceram. Os do Stripe viram pelo
-  // webhook da troca de fase do schedule.
+  // Downgrades agendados que venceram (Pix e cartão; no cartão o valor da assinatura no Asaas
+  // já mudou no agendamento).
   async downgradesVencidos(agora: Date) {
     return prisma.business.findMany({
       where: {
         active: true,
         planoAgendado: { not: null },
         planoAgendadoEm: { lte: agora },
-        OR: [{ provider: null }, { provider: { not: 'stripe' } }],
       },
       select: { id: true, plan: true, planoAgendado: true },
     });

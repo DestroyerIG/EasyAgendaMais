@@ -21,21 +21,6 @@ export const SQL_PAGAMENTOS_CONFIRMADOS = Prisma.sql`
            bp.tipo AS tipo
     FROM billing_payments bp
     WHERE bp.paid_at IS NOT NULL
-    UNION ALL
-    SELECT fg.business_id, fg.pago_em, fg.valor, fg.tipo
-    FROM (
-      SELECT DISTINCT ON (se.business_id, COALESCE(se.payload->>'id', se.id::text))
-             se.business_id,
-             se.created_at AT TIME ZONE 'UTC' AS pago_em,
-             (CASE WHEN se.payload->>'amount_paid' ~ '^[0-9]+([.][0-9]+)?$'
-                   THEN (se.payload->>'amount_paid')::numeric ELSE 0 END) / 100 AS valor,
-             NULL::text AS tipo
-      FROM subscription_events se
-      WHERE se.event_type IN ('invoice.paid','invoice.payment_succeeded')
-        AND CASE WHEN se.payload->>'amount_paid' ~ '^[0-9]+([.][0-9]+)?$'
-                 THEN (se.payload->>'amount_paid')::numeric ELSE 0 END > 0
-      ORDER BY se.business_id, COALESCE(se.payload->>'id', se.id::text), se.created_at
-    ) fg
   )
 `;
 
@@ -115,11 +100,7 @@ async function consultar(id?: string): Promise<LinhaNegocio[]> {
            b.plan, b.subscription_status, b.active,
            b.inadimplente_desde,
            (b.last_payment_date IS NOT NULL
-             OR EXISTS (SELECT 1 FROM billing_payments bp WHERE bp.business_id = b.id AND bp.paid_at IS NOT NULL)
-             OR EXISTS (SELECT 1 FROM subscription_events se WHERE se.business_id = b.id
-                        AND se.event_type IN ('invoice.paid','invoice.payment_succeeded')
-                        AND CASE WHEN se.payload->>'amount_paid' ~ '^[0-9]+([.][0-9]+)?$'
-                             THEN (se.payload->>'amount_paid')::numeric ELSE 0 END > 0)) AS ja_pagou,
+             OR EXISTS (SELECT 1 FROM billing_payments bp WHERE bp.business_id = b.id AND bp.paid_at IS NOT NULL)) AS ja_pagou,
            -- No teste vale subscription_current_period_end: é a coluna que estenderTeste grava e o cron lê.
            CASE WHEN b.subscription_status = 'trialing'
              THEN COALESCE(
@@ -201,7 +182,7 @@ export const painelRepository = {
   async extrasNegocio(id: string): Promise<ExtrasNegocio | null> {
     const rows = await prisma.$queryRaw<LinhaCrua[]>(Prisma.sql`
       SELECT b.slug, b.suspended_reason,
-             (b.stripe_subscription_id IS NOT NULL OR b.provider_subscription_id IS NOT NULL) AS tem_assinatura_gateway,
+             (b.provider_subscription_id IS NOT NULL) AS tem_assinatura_gateway,
              b.next_due_date AT TIME ZONE 'UTC' AS proximo_vencimento,
              dono.id AS usuario_dono_id
       FROM businesses b

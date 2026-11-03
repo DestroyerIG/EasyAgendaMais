@@ -15,7 +15,7 @@ export type SubscriptionStatus =
   | 'incomplete'
   | 'canceled';
 
-export type BillingProvider = 'stripe' | 'asaas' | 'coupon';
+export type BillingProvider = 'asaas' | 'coupon';
 
 export type PaymentMethod = 'card' | 'pix' | 'coupon';
 
@@ -59,7 +59,6 @@ export interface Subscription {
   paymentMethod: PaymentMethod | null;
   lastPaymentDate: Date | null;
   currentPeriodEnd: Date | null;
-  stripeCustomerId: string | null;
   asaasCustomerId: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -164,7 +163,6 @@ export interface BusinessBillingContext {
   payment_method: string | null;
   provider_subscription_id: string | null;
   provider_payment_id: string | null;
-  stripe_subscription_id: string | null;
   last_payment_date: string | null;
   inadimplente_desde?: Date | null;
   ja_pagou?: boolean;

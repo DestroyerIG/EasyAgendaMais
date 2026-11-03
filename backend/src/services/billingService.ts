@@ -12,10 +12,8 @@ import { ehReferenciaUpgrade } from '../modules/billing/planChange.rules.js';
 import { estadoContaService } from '../modules/conta/estadoConta.service.js';
 import { asaasService, type AsaasPayment, type AsaasBusinessInput } from '../integrations/asaas/service.js';
 import { asaasMapper, type AsaasWebhookPayment } from '../integrations/asaas/mapper.js';
-import { subscriptionService } from './subscriptionService.js';
 import { couponService } from './couponService.js';
 import { billingProviderFactory } from './billing/billingProviderFactory.js';
-import { stripeBillingProvider as stripeProvider } from './billing/providers/stripeBillingProvider.js';
 import { asaasBillingProvider as asaasProvider } from './billing/providers/asaasBillingProvider.js';
 import {
   normalizeInternalSubscriptionStatus,
@@ -71,9 +69,7 @@ interface BusinessBillingContext {
   payment_method?: string | null;
   provider?: string | null;
   provider_customer_id?: string | null;
-  stripe_customer_id?: string | null;
   provider_subscription_id?: string | null;
-  stripe_subscription_id?: string | null;
   provider_payment_id?: string | null;
   [key: string]: unknown;
 }
@@ -829,7 +825,7 @@ export const billingService = {
   },
 
   async getStatus(businessId: string): Promise<Record<string, unknown>> {
-    let data = (await subscriptionRepository.getSubscriptionStatus(
+    const data = (await subscriptionRepository.getSubscriptionStatus(
       businessId
     )) as Record<string, unknown> | null;
 
@@ -837,45 +833,8 @@ export const billingService = {
       throw new NotFoundError('Negócio');
     }
 
-    let provider = resolveBillingProviderFromContext(data);
-    let subscriptionStatus = normalizeInternalSubscriptionStatus(data.subscription_status);
-
-    if (
-      provider === 'stripe' &&
-      data.payment_method === 'card' &&
-      subscriptionStatus === 'pending'
-    ) {
-      try {
-        const synced = await subscriptionService.resyncBusinessSubscription(businessId);
-        data = (await subscriptionRepository.getSubscriptionStatus(
-          businessId
-        )) as Record<string, unknown>;
-        provider = resolveBillingProviderFromContext(data);
-        subscriptionStatus = normalizeInternalSubscriptionStatus(data.subscription_status);
-
-        logger.info(
-          {
-            event: 'stripe_subscription_synced',
-            businessId,
-            subscriptionStatus: synced.subscriptionStatus,
-            source: 'billing_status_refresh',
-          },
-          'Assinatura Stripe sincronizada ao consultar status'
-        );
-      } catch (error) {
-        const err = error as { code?: string; message?: string } | null;
-        logger.warn(
-          {
-            event: 'stripe_webhook_error',
-            businessId,
-            code: err?.code || null,
-            message: err?.message || null,
-            source: 'billing_status_refresh',
-          },
-          'Falha ao sincronizar assinatura Stripe ao consultar status'
-        );
-      }
-    }
+    const provider = resolveBillingProviderFromContext(data);
+    const subscriptionStatus = normalizeInternalSubscriptionStatus(data.subscription_status);
 
     const paymentRequired = !hasActivePaymentEvidence(data, provider);
 
@@ -897,12 +856,9 @@ export const billingService = {
       lastPaymentDate: data.last_payment_date || null,
       canceledAt: data.canceled_at || null,
       cancelAtPeriodEnd: Boolean(data.subscription_cancel_at_period_end),
-      hasCustomer: Boolean(data.provider_customer_id || data.stripe_customer_id),
-      paymentMode: data.stripe_payment_mode || null,
-      providerCustomerId:
-        data.provider_customer_id || data.stripe_customer_id || null,
-      providerSubscriptionId:
-        data.provider_subscription_id || data.stripe_subscription_id || null,
+      hasCustomer: Boolean(data.provider_customer_id),
+      providerCustomerId: data.provider_customer_id || null,
+      providerSubscriptionId: data.provider_subscription_id || null,
       providerPaymentId: data.provider_payment_id || null,
       metadata: data.metadata || null,
     };
@@ -929,6 +885,22 @@ export const billingService = {
     return true;
   },
 
+  /**
+   * Resync do SuperAdmin: consulta no Asaas a última cobrança do negócio e aplica o status dela, pelo
+   * mesmo caminho do "Já paguei" (getPixPaymentStatus), que vale para cartão e Pix.
+   */
+  async resincronizarAsaas(businessId: string): Promise<Record<string, unknown>> {
+    const context = (await subscriptionRepository.getBusinessBillingContext(businessId)) as BusinessBillingContext | null;
+    if (!context) {
+      throw new NotFoundError('Negócio');
+    }
+    if (!context.provider_payment_id) {
+      throw new AppError('Este negócio não tem cobrança no Asaas para sincronizar.', 400, 'SEM_COBRANCA_ASAAS');
+    }
+    await this.getPixPaymentStatus(businessId, context.provider_payment_id);
+    return this.getStatus(businessId);
+  },
+
   async cancelSubscription(businessId: string): Promise<Record<string, unknown>> {
     const context = (await subscriptionRepository.getBusinessBillingContext(
       businessId
@@ -952,9 +924,6 @@ export const billingService = {
 
     const provider = billingProviderFactory.getProvider(providerName);
 
-    if (providerName === 'stripe') {
-      return (provider as typeof stripeProvider).cancelSubscription({ businessId, context }) as unknown as Promise<Record<string, unknown>>;
-    }
 
     if (context.provider_subscription_id) {
       await (provider as typeof asaasProvider).cancelSubscription({
@@ -1017,12 +986,6 @@ export const billingService = {
 
     const provider = billingProviderFactory.getProvider(providerName);
 
-    if (providerName === 'stripe') {
-      return (provider as typeof stripeProvider).reactivateSubscription({
-        businessId,
-        context,
-      }) as unknown as Promise<Record<string, unknown>>;
-    }
 
     // Cartão cancelado ainda no período (ou no teste): o Asaas não restaura assinatura removida, então
     // cria outra com o cartão guardado, vencendo no fim do período. Sem cartão guardado, novo checkout.
@@ -1147,6 +1110,7 @@ export const billingService = {
           payment?.customer || business.provider_customer_id || null,
         internalStatus,
         eventType: 'pix.status.refresh',
+        paymentMethod: payment?.billingType === 'CREDIT_CARD' ? 'card' : 'pix',
       });
 
       await saveAsaasPaymentSnapshot({
@@ -1157,6 +1121,7 @@ export const billingService = {
         internalStatus,
         pixData: paymentResult.pixData,
         plano: resolvedPlan,
+        paymentMethod: payment?.billingType === 'CREDIT_CARD' ? 'card' : 'pix',
       });
     }
 

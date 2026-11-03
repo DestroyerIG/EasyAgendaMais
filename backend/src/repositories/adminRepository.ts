@@ -220,8 +220,6 @@ export const adminRepository = {
         b.subscription_current_period_end,
         b.subscription_cancel_at_period_end,
         b.subscription_updated_at,
-        b.stripe_customer_id,
-        b.stripe_subscription_id,
         b.active,
         owner_user.email AS owner_user_email
       FROM businesses b
