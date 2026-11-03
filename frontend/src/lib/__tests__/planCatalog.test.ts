@@ -1,13 +1,22 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import { CATALOGO_PLANOS, planoDoCatalogo, rotuloEquipe } from '@/lib/planCatalog';
-// O build isolado do frontend (Docker) não tem a pasta backend; o teste roda com o repositório inteiro.
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment -- com o repositório inteiro não há erro, então @ts-expect-error quebraria
-// @ts-ignore
-import { getPlanCatalog } from '../../../../backend/src/config/planCatalog';
+
+// O catálogo do backend é lido como texto e transpilado aqui: um import direto faria o type-check do
+// next build seguir para o backend, que não tem node_modules no build do frontend (CI e Vercel).
+function catalogoDoBackend(): unknown {
+  const fonte = readFileSync(resolve(__dirname, '../../../../backend/src/config/planCatalog.ts'), 'utf-8');
+  const { outputText } = ts.transpileModule(fonte, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } });
+  const modulo = { exports: {} as { getPlanCatalog?: () => unknown } };
+  new Function('module', 'exports', 'require', outputText)(modulo, modulo.exports, () => ({}));
+  return modulo.exports.getPlanCatalog!();
+}
 
 describe('catálogo de planos do frontend', () => {
   it('a cópia do frontend é igual ao catálogo do backend', () => {
-    expect(CATALOGO_PLANOS).toEqual(getPlanCatalog());
+    expect(CATALOGO_PLANOS).toEqual(catalogoDoBackend());
   });
 
   it('rotuloEquipe', () => {
