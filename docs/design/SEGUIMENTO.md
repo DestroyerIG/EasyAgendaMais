@@ -200,7 +200,17 @@ Plano: `docs/superpowers/plans/2026-11-03-h3-textos-de-venda.md`. A tabela "ante
   - o "Suporte prioritário" saiu do Salão e da matriz de comparação.
 - **Galeria:** as fotos da página pública não são clicáveis nem ligadas a um serviço. A página de nail designers agora diz "A cliente vê seus trabalhos na sua página e agenda o serviço logo abaixo", e o título deixou de dizer que a vitrine agenda.
 - **Calculadora:** a premissa de que o sinal e o lembrete evitam 9 em cada 10 faltas é uma estimativa sem dado próprio. Ela aparece na tela e deve ser trocada quando houver números de clientes reais.
-- **Catálogo:** a landing usa a cópia `frontend/src/lib/planCatalog.ts`. O teste `planCatalog.test.ts` importa o arquivo do backend e quebra se as duas divergirem; para isso, o import tem um `@ts-ignore`, porque o build isolado do frontend no Docker não tem a pasta `backend`.
+- **Catálogo:**
+  - A landing usa a cópia `frontend/src/lib/planCatalog.ts`.
+  - O teste `planCatalog.test.ts` lê o arquivo do backend como texto, transpila e quebra se as duas cópias divergirem.
+  - Ele não importa o backend: um import faria o type-check do `next build` seguir para `backend/src/types/domain.ts`, que precisa do `zod`, e o build do frontend (CI e Vercel) não instala o backend. O teste `semImportDoBackend.test.ts` trava isso.
+- **Ordem do deploy:** o `/comparar` filtra a linha da equipe dos destaques. Assim não importa se o frontend entra antes do backend.
+- **Ajustes pequenos adiados (revisão final):**
+  - o interruptor no painel ainda se chama "Radar de Retorno", enquanto a venda diz "Hora de voltar";
+  - na página de nail designers, o padrão da Hora de voltar está descrito invertido: o padrão é o intervalo de cada cliente, e 21 dias é o modo fixo;
+  - o simulador do WhatsApp pula a escolha do serviço, que o robô faz antes dos horários;
+  - o título da calculadora fala de "clientes que não voltam" e "impacto real", mas a conta cobre só faltas e é uma estimativa;
+  - um depoimento de exemplo diz "faltas a praticamente zero".
 - **Depoimentos:** continuam fictícios e marcados como "Depoimento de exemplo". Trocar por depoimentos reais quando houver.
 - **Conferência visual:** feita em desktop (1280 px). O navegador não aceitou reduzir a janela para 390 px. A mudança é só de texto e ícone, sem mudar o layout.
 
