@@ -15,6 +15,7 @@ const PROIBIDAS: { arquivo: string; frases: RegExp[] }[] = [
   { arquivo: 'src/components/marketing/PublicFooter.tsx', frases: [/Conformidade LGPD/, /Radar de Retorno/] },
   { arquivo: 'src/components/marketing/landing/Hero.tsx', frases: [/Dados protegidos LGPD/] },
   { arquivo: 'src/components/marketing/PricingPlansSection.tsx', frases: [/Suporte prioritário/, /Radar de Retorno/] },
+  { arquivo: 'src/components/marketing/landing/RoiCalculator.tsx', frases: [/24h e 2h/, /recupera até/] },
 ];
 
 const raiz = resolve(__dirname, '../../../..');
