@@ -304,7 +304,8 @@ function CompararPlanos() {
                   <div className="flex-1 space-y-3">
                     <div className="text-[13px] font-bold text-ink">{INTRO_RECURSOS[plano.id]}</div>
                     <ul className="space-y-2">
-                      {[rotuloEquipe(plano.limiteProfissionais), ...plano.destaques].map((d) => (
+                      {/* O filtro cobre o backend antigo, que ainda mandava a equipe nos destaques. */}
+                      {[rotuloEquipe(plano.limiteProfissionais), ...plano.destaques.filter((d) => !/profissionais/i.test(d))].map((d) => (
                         <li key={d} className="flex items-center gap-2 text-[14px] text-ink">
                           <Icon name="check_circle" size={18} filled className="text-success-text" />
                           {d}

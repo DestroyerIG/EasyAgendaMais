@@ -77,6 +77,18 @@ describe('Comparação e upgrade', () => {
     expect(screen.queryByText(/Anual/)).not.toBeInTheDocument();
   });
 
+  it('backend antigo com a equipe nos destaques não repete a linha da equipe', async () => {
+    api.getPlans.mockResolvedValue({
+      ...catalogo,
+      planos: catalogo.planos.map((p) =>
+        p.id === 'profissional' ? { ...p, destaques: ['Até 5 profissionais', 'Comissões'] } : p,
+      ),
+    });
+    render(<CompararPlanosPage />);
+    await screen.findByText('Planos flexíveis para a escala do Studio Aurora');
+    await waitFor(() => expect(within(cartao('Equipe')).getAllByText('Até 5 profissionais')).toHaveLength(1));
+  });
+
   it('a faixa "Recurso exclusivo" só aparece com ?recurso=', async () => {
     render(<CompararPlanosPage />);
     await screen.findByText('Planos flexíveis para a escala do Studio Aurora');
