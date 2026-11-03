@@ -139,6 +139,27 @@ describe('GET /admin/tenants/:id', () => {
     expect(res.body.data.proximaCobranca).toBeNull();
   });
 
+  it('podeEstenderTeste é false para pagante ativo', async () => {
+    const res = await request.get(`/api/v1/admin/tenants/${ID}`);
+    expect(res.body.data.negocio.podeEstenderTeste).toBe(false);
+  });
+
+  it('podeEstenderTeste segue a regra da rota: status normalizado e sem assinatura no gateway', async () => {
+    repo.linhaNegocio.mockResolvedValue(linha({ statusAssinatura: ' TRIALING ', jaPagou: false }));
+    let res = await request.get(`/api/v1/admin/tenants/${ID}`);
+    expect(res.body.data.negocio.podeEstenderTeste).toBe(true);
+
+    repo.linhaNegocio.mockResolvedValue(linha({ statusAssinatura: 'incomplete', jaPagou: false }));
+    res = await request.get(`/api/v1/admin/tenants/${ID}`);
+    expect(res.body.data.negocio.podeEstenderTeste).toBe(true);
+
+    repo.extrasNegocio.mockResolvedValue({
+      slug: 'ana', suspensoMotivo: null, temAssinaturaGateway: true, usuarioDonoId: 'dono1', proximoVencimento: null,
+    });
+    res = await request.get(`/api/v1/admin/tenants/${ID}`);
+    expect(res.body.data.negocio.podeEstenderTeste).toBe(false);
+  });
+
   it('próxima cobrança usa o next_due_date quando existe', async () => {
     const vencimento = new Date('2026-11-15T03:00:00Z');
     repo.extrasNegocio.mockResolvedValue({

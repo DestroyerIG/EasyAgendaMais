@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   inicioDoMes, precoDoPlano, segmentoDe, statusAdmin, resumoMrr, resumoTestes,
-  conversaoPorSegmento, resumoCancelamentos, cartoesGestao, negociosEmRisco,
+  conversaoPorSegmento, resumoCancelamentos, cartoesGestao, negociosEmRisco, motivoParaNaoEstenderTeste,
   type LinhaNegocio,
 } from '../modules/admin/painel.rules.js';
 import { PLAN_PRICES } from '../config/planCatalog.js';
@@ -219,5 +219,38 @@ describe('negociosEmRisco', () => {
     const c = linha({ statusAssinatura: 'past_due', inadimplenteDesde: dias(-5) });
     const r = negociosEmRisco([a, b, c], agora);
     expect(r.map((x) => x.id)).toEqual([c.id, b.id, a.id]);
+  });
+});
+
+describe('negociosEmRisco: pagante', () => {
+  it('pagante é true para ativo e carência e false para teste (valor em potencial)', () => {
+    const ativo = linha({ ultimoAgendamentoEm: dias(-8) });
+    const carencia = linha({ statusAssinatura: 'past_due', inadimplenteDesde: dias(-2) });
+    const teste = linha({
+      statusAssinatura: 'trialing', jaPagou: false, fimDoPeriodo: h(30), onboardingConcluido: false,
+    });
+    const bloqueado = linha({ statusAssinatura: 'past_due', inadimplenteDesde: dias(-10) });
+    const r = negociosEmRisco([ativo, carencia, teste, bloqueado], agora);
+    const porId = Object.fromEntries(r.map((x) => [x.id, x.pagante]));
+    expect(porId).toEqual({ [ativo.id]: true, [carencia.id]: true, [teste.id]: false, [bloqueado.id]: false });
+  });
+});
+
+describe('motivoParaNaoEstenderTeste', () => {
+  it('trialing sem gateway pode; incomplete sem pagamento pode', () => {
+    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: 'trialing', jaPagou: false }), false)).toBeNull();
+    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: 'incomplete', jaPagou: false }), false)).toBeNull();
+  });
+  it('status cru é normalizado antes da regra', () => {
+    // Maiúsculas e status vazio passam pelo normalizador, como na rota: vazio vira incomplete.
+    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: ' TRIALING ', jaPagou: false }), false)).toBeNull();
+    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: '', jaPagou: false }), false)).toBeNull();
+  });
+  it('incomplete de quem já pagou e active não podem (status)', () => {
+    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: 'incomplete', jaPagou: true }), false)).toBe('status');
+    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: 'active' }), false)).toBe('status');
+  });
+  it('com assinatura no gateway não pode (gateway)', () => {
+    expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: 'trialing', jaPagou: false }), true)).toBe('gateway');
   });
 });

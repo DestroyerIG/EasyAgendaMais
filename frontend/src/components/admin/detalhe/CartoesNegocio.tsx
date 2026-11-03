@@ -2,9 +2,15 @@ import type { ReactNode } from 'react';
 import { Icon } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { formatCurrency, formatDataNegocio, formatNumber } from '@/lib/formatters';
-import { rotuloPlano } from '@/lib/adminRotulos';
+import { planoNoCatalogo, rotuloPlano } from '@/lib/adminRotulos';
 import type { DetalheNegocio } from '@/types/admin';
-import { SEM_DADO, mesAno } from '../formato';
+import { ROTULO_WHATSAPP, SEM_DADO, TOM_WHATSAPP, estadoWhatsapp, mesAno, type EstadoWhatsapp } from '../formato';
+
+const ICONE_WHATSAPP: Record<EstadoWhatsapp, string> = {
+  conectado: 'qr_code_2',
+  desconectado: 'link_off',
+  nao_configurado: 'chat_bubble_outline',
+};
 
 function Cartao({ titulo, valor, children }: { titulo: string; valor: ReactNode; children?: ReactNode }) {
   return (
@@ -18,27 +24,29 @@ function Cartao({ titulo, valor, children }: { titulo: string; valor: ReactNode;
 
 export function CartoesNegocio({ detalhe }: { detalhe: DetalheNegocio }) {
   const { negocio: n, ltv } = detalhe;
-  const temLtv = ltv.ciclos > 0;
+  // Um pagamento avulso de upgrade entra no total, mas não conta ciclo.
+  const temLtv = ltv.total > 0;
+  const whatsapp = estadoWhatsapp(n);
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <Cartao titulo="Plano atual" valor={rotuloPlano(n.plano)}>
-        {`${formatCurrency(n.preco)} / mês`}
+        {`${planoNoCatalogo(n.plano) ? formatCurrency(n.preco) : SEM_DADO} / mês`}
       </Cartao>
       <Cartao titulo="LTV" valor={temLtv ? formatCurrency(ltv.total) : SEM_DADO}>
         {temLtv && (
           <>
-            <span>{`${formatNumber(ltv.ciclos)} ${ltv.ciclos === 1 ? 'ciclo' : 'ciclos'}`}</span>
-            {ltv.desde && <span>{` · Desde ${mesAno(ltv.desde)}`}</span>}
+            {ltv.ciclos > 0 && <span>{`${formatNumber(ltv.ciclos)} ${ltv.ciclos === 1 ? 'ciclo' : 'ciclos'}`}</span>}
+            {ltv.desde && <span>{`${ltv.ciclos > 0 ? ' · ' : ''}Desde ${mesAno(ltv.desde)}`}</span>}
           </>
         )}
       </Cartao>
       <Cartao
         titulo="WhatsApp"
         valor={
-          <span className={cn('inline-flex items-center gap-1.5', n.whatsappConectado ? 'text-success-text' : 'text-danger')}>
-            <Icon name={n.whatsappConectado ? 'qr_code_2' : 'link_off'} size={18} />
-            {n.whatsappConectado ? 'Conectado' : 'Desconectado'}
+          <span className={cn('inline-flex items-center gap-1.5', TOM_WHATSAPP[whatsapp].texto)}>
+            <Icon name={ICONE_WHATSAPP[whatsapp]} size={18} />
+            {ROTULO_WHATSAPP[whatsapp]}
           </span>
         }
       >

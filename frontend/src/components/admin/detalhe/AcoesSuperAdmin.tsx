@@ -37,13 +37,6 @@ interface Config {
   executar: (motivo: string, dias?: number, escolha?: string) => Promise<unknown>;
 }
 
-/**
- * O teste só pode ser estendido aqui quando é nosso: em teste (ou incompleto sem nunca ter
- * pago) e sem assinatura no gateway, que desfaria a mudança pelo webhook.
- */
-export const podeEstenderTeste = (n: Negocio): boolean =>
-  !n.temAssinaturaGateway && (n.statusAssinatura === 'trialing' || (n.statusAssinatura === 'incomplete' && !n.jaPagou));
-
 function configuracoes(n: Negocio): Record<TipoAcao, Config> {
   const id = n.id;
   return {
@@ -90,7 +83,8 @@ function configuracoes(n: Negocio): Record<TipoAcao, Config> {
       campoEscolha: {
         rotulo: 'Plano',
         opcoes: PLANOS_ADMIN.map((p) => ({ valor: p, rotulo: rotuloPlano(p) })),
-        inicial: PLANOS_ADMIN.includes(n.plano) ? n.plano : PLANOS_ADMIN[0],
+        // Plano fora do catálogo: sem escolha inicial, o operador escolhe.
+        inicial: PLANOS_ADMIN.includes(n.plano) ? n.plano : '',
       },
       executar: (motivo, _dias, plano) => adminApi.overrideSubscriptionPlan(id, plano ?? n.plano, motivo),
     },
@@ -132,7 +126,8 @@ export function AcoesSuperAdmin({ negocio, onConcluido }: Props) {
 
   const config = configuracoes(negocio);
   const visiveis: TipoAcao[] = [
-    ...(podeEstenderTeste(negocio) ? (['estender'] as const) : []),
+    // A regra (status normalizado, sem assinatura no gateway) vem do backend, a mesma da rota.
+    ...(negocio.podeEstenderTeste ? (['estender'] as const) : []),
     negocio.status === 'bloqueado_admin' ? 'desbloquear' : 'bloquear',
     'sincronizar',
     'plano',

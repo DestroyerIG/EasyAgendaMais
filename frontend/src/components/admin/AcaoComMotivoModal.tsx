@@ -11,6 +11,7 @@ const DIAS_MAXIMO = 30;
 export interface CampoEscolha {
   rotulo: string;
   opcoes: Array<{ valor: string; rotulo: string }>;
+  /** Valor já escolhido. Fora das opções (ex.: ''), o operador precisa escolher antes de confirmar. */
   inicial: string;
 }
 
@@ -36,12 +37,16 @@ export function AcaoComMotivoModal({
 }: AcaoComMotivoModalProps) {
   const [motivo, setMotivo] = useState('');
   const [dias, setDias] = useState('7');
-  const [escolha, setEscolha] = useState(campoEscolha?.inicial ?? '');
+  const ehOpcao = (valor: string) => campoEscolha?.opcoes.some((opcao) => opcao.valor === valor) ?? false;
+  // Sem inicial válida (ex.: plano fora do catálogo) o select começa em "Escolha uma opção".
+  const semInicialValida = campoEscolha !== undefined && !ehOpcao(campoEscolha.inicial);
+  const [escolha, setEscolha] = useState(campoEscolha && !semInicialValida ? campoEscolha.inicial : '');
 
   const motivoLimpo = motivo.trim();
   const diasNumero = Number(dias);
   const diasValidos = Number.isInteger(diasNumero) && diasNumero >= DIAS_MINIMO && diasNumero <= DIAS_MAXIMO;
-  const podeConfirmar = motivoLimpo.length >= MOTIVO_MINIMO && (!campoDias || diasValidos);
+  const escolhaValida = !campoEscolha || ehOpcao(escolha);
+  const podeConfirmar = motivoLimpo.length >= MOTIVO_MINIMO && (!campoDias || diasValidos) && escolhaValida;
 
   const confirmar = () => {
     if (!podeConfirmar) return;
@@ -76,6 +81,11 @@ export function AcaoComMotivoModal({
         {campoEscolha ? (
           <Field id="acao-escolha" label={campoEscolha.rotulo} required>
             <Select id="acao-escolha" value={escolha} onChange={(event) => setEscolha(event.target.value)}>
+              {semInicialValida && (
+                <option value="" disabled>
+                  Escolha uma opção
+                </option>
+              )}
               {campoEscolha.opcoes.map((opcao) => (
                 <option key={opcao.valor} value={opcao.valor}>
                   {opcao.rotulo}

@@ -46,7 +46,10 @@ function Linha({ n, agora }: { n: NegocioEmRisco; agora: Date }) {
       </td>
       <td className={cn(TD, 'whitespace-nowrap text-[13px] font-semibold text-ink')}>{tempoDesde(n.desde, agora)}</td>
       <td className={cn(TD, 'whitespace-nowrap')}>
-        <div className="text-[15px] font-bold text-ink">{formatCurrency(n.mrr)}/mês</div>
+        {/* Pagante: é MRR de fato. Teste e demais: o plano ainda não entra no MRR, é valor em potencial. */}
+        <div className="text-[15px] font-bold text-ink">
+          {n.pagante ? `${formatCurrency(n.mrr)}/mês` : `Potencial ${formatCurrency(n.mrr)}/mês`}
+        </div>
         <div className="text-[12px] text-muted">Plano {rotuloPlano(n.plano)}</div>
       </td>
       <td className={cn(TD, 'pr-6 text-right')}>
@@ -102,7 +105,7 @@ export function TabelaEmRisco({ negocios, agora }: { negocios: NegocioEmRisco[];
                 <th scope="col" className={TH}>Segmento</th>
                 <th scope="col" className={TH}>Alerta</th>
                 <th scope="col" className={TH}>Há quanto tempo</th>
-                <th scope="col" className={TH}>MRR</th>
+                <th scope="col" className={TH}>Valor</th>
                 <th scope="col" className={cn(TH, 'pr-6 text-right')}>Ação</th>
               </tr>
             </thead>

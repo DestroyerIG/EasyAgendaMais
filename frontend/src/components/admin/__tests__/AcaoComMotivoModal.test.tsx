@@ -76,6 +76,28 @@ describe('AcaoComMotivoModal', () => {
     expect(onConfirmar).toHaveBeenCalledWith('motivo ok', undefined, 'premium');
   });
 
+  it('com campoEscolha sem inicial válida, o botão fica desabilitado até escolher', () => {
+    const { onConfirmar } = abrir({
+      campoEscolha: {
+        rotulo: 'Plano',
+        opcoes: [
+          { valor: 'basico', rotulo: 'Solo' },
+          { valor: 'premium', rotulo: 'Salão' },
+        ],
+        inicial: '',
+      },
+    });
+    const plano = screen.getByLabelText(/Plano/);
+    expect(plano).toHaveValue('');
+    expect(screen.getByRole('option', { name: 'Escolha uma opção' })).toBeDisabled();
+    fireEvent.change(motivo(), { target: { value: 'motivo ok' } });
+    expect(confirmar()).toBeDisabled();
+    fireEvent.click(confirmar());
+    expect(onConfirmar).not.toHaveBeenCalled();
+    fireEvent.change(plano, { target: { value: 'premium' } });
+    expect(confirmar()).toBeEnabled();
+  });
+
   it('enquanto envia, Esc e o botão de fechar não fecham o modal', () => {
     const { onFechar } = abrir({ enviando: true });
     fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });

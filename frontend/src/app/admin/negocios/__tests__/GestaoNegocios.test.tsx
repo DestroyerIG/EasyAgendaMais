@@ -26,6 +26,7 @@ const negocio = (extra: Partial<NegocioListado> = {}): NegocioListado => ({
   plano: 'profissional',
   preco: 99.9,
   status: 'ativo',
+  temInstanciaWhatsapp: true,
   whatsappConectado: true,
   whatsappConectadoEm: '2026-10-01T12:00:00.000Z',
   agendamentos30d: 246,
@@ -140,7 +141,27 @@ describe('Gestão de negócios', () => {
     expect(within(linha).getByText('Solo')).toBeInTheDocument();
     expect(within(linha).getByText('R$ 49,90/mês')).toBeInTheDocument();
     expect(within(linha).getByText('Desconectado')).toBeInTheDocument();
-    expect(within(linha).getByRole('link', { name: 'Ver detalhes' })).toHaveAttribute('href', '/admin/negocios/n2');
+    expect(within(linha).getByRole('link', { name: 'Ver detalhes de Bellas Esmalteria' }))
+      .toHaveAttribute('href', '/admin/negocios/n2');
+  });
+
+  it('cada linha tem o link de detalhes com o nome do negócio', async () => {
+    render(<AdminNegociosPage />);
+    await screen.findByText('Studio Aurora');
+    expect(screen.getByRole('link', { name: 'Ver detalhes de Studio Aurora' })).toHaveAttribute('href', '/admin/negocios/n1');
+    expect(screen.queryByRole('link', { name: 'Ver detalhes' })).not.toBeInTheDocument();
+  });
+
+  it('WhatsApp nunca configurado aparece como "Não configurado", não como desconectado', async () => {
+    adminApi.getTenants.mockResolvedValue(lista({
+      data: [negocio({ temInstanciaWhatsapp: false, whatsappConectado: false, whatsappConectadoEm: null })],
+      meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+    }));
+    render(<AdminNegociosPage />);
+    const linha = (await screen.findByText('Studio Aurora')).closest('tr') as HTMLElement;
+    const rotulo = within(linha).getByText('Não configurado');
+    expect(rotulo.closest('span')).toHaveClass('text-muted');
+    expect(within(linha).queryByText('Desconectado')).not.toBeInTheDocument();
   });
 
   it('sem endereço, nenhuma cidade aparece', async () => {

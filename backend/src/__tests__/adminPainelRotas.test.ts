@@ -139,6 +139,44 @@ describe('GET /admin/tenants', () => {
     expect(res.body.data.map((n: { nome: string }) => n.nome)).toEqual(['Alvo']);
   });
 
+  it('busca com letras e número não casa telefone nem CPF pelo dígito solto', async () => {
+    repo.linhasNegocios.mockResolvedValue([
+      linha({ nome: 'Barbearia 2' }),
+      linha({ nome: 'Studio Lia', whatsapp: '(11) 92222-0000', cpfCnpj: '222.333.444-55' }),
+    ]);
+    const res = await request.get('/api/v1/admin/tenants?busca=Barbearia%202');
+    expect(res.body.data.map((n: { nome: string }) => n.nome)).toEqual(['Barbearia 2']);
+  });
+
+  it('busca com menos de 4 dígitos não compara telefone', async () => {
+    repo.linhasNegocios.mockResolvedValue([
+      linha({ nome: 'Studio Lia', whatsapp: '(11) 92222-0000' }),
+    ]);
+    const res = await request.get('/api/v1/admin/tenants?busca=922');
+    expect(res.body.data).toEqual([]);
+  });
+
+  it('busca de CPF formatado com 4 ou mais dígitos acha o documento', async () => {
+    repo.linhasNegocios.mockResolvedValue([
+      linha({ nome: 'Studio Lia', cpfCnpj: '22233344455' }),
+      linha({ nome: 'Outro' }),
+    ]);
+    const res = await request.get('/api/v1/admin/tenants?busca=222.333');
+    expect(res.body.data.map((n: { nome: string }) => n.nome)).toEqual(['Studio Lia']);
+  });
+
+  it('cada negócio listado diz se tem instância de WhatsApp', async () => {
+    repo.linhasNegocios.mockResolvedValue([
+      linha({ nome: 'Com', temInstanciaWhatsapp: true }),
+      linha({ nome: 'Sem', temInstanciaWhatsapp: false }),
+    ]);
+    const res = await request.get('/api/v1/admin/tenants');
+    const porNome = Object.fromEntries(
+      res.body.data.map((n: { nome: string; temInstanciaWhatsapp: boolean }) => [n.nome, n.temInstanciaWhatsapp]),
+    );
+    expect(porNome).toEqual({ Com: true, Sem: false });
+  });
+
   it('busca ignora acentos e maiúsculas no nome', async () => {
     repo.linhasNegocios.mockResolvedValue([
       linha({ nome: 'Salão da Conceição' }),

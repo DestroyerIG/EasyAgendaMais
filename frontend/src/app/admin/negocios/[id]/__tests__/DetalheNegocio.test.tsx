@@ -42,6 +42,7 @@ const detalhe = (negocio: Partial<Negocio> = {}, extra: Partial<DetalheNegocio> 
     plano: 'profissional',
     preco: 99.9,
     status: 'ativo',
+    temInstanciaWhatsapp: true,
     whatsappConectado: true,
     whatsappConectadoEm: '2026-10-01T12:00:00.000Z',
     agendamentos30d: 40,
@@ -56,6 +57,7 @@ const detalhe = (negocio: Partial<Negocio> = {}, extra: Partial<DetalheNegocio> 
     temAssinaturaGateway: true,
     jaPagou: true,
     usuarioDonoId: 'u1',
+    podeEstenderTeste: false,
     ...negocio,
   },
   ltv: { total: 699.3, ciclos: 7, desde: '2026-03-15T12:00:00.000Z' },
@@ -149,7 +151,9 @@ describe('Detalhes do negócio', () => {
 
   it('em teste sem gateway, estender com motivo e 5 dias chama extendTrial e recarrega', async () => {
     adminApi.getTenantDetails.mockResolvedValue(
-      detalhe({ statusAssinatura: 'trialing', temAssinaturaGateway: false, jaPagou: false, status: 'teste' }),
+      detalhe({
+        statusAssinatura: 'trialing', temAssinaturaGateway: false, jaPagou: false, status: 'teste', podeEstenderTeste: true,
+      }),
     );
     abrir();
     fireEvent.click(await screen.findByRole('button', { name: /Estender teste grátis/ }));
@@ -163,10 +167,75 @@ describe('Detalhes do negócio', () => {
   });
 
   it('teste com assinatura no gateway não pode ser estendido aqui', async () => {
-    adminApi.getTenantDetails.mockResolvedValue(detalhe({ statusAssinatura: 'trialing', temAssinaturaGateway: true }));
+    adminApi.getTenantDetails.mockResolvedValue(
+      detalhe({ statusAssinatura: 'trialing', temAssinaturaGateway: true, podeEstenderTeste: false }),
+    );
     abrir();
     await screen.findByText('#1a2b3c4d');
     expect(screen.queryByRole('button', { name: /Estender teste grátis/ })).not.toBeInTheDocument();
+  });
+
+  it('o botão de estender segue só o podeEstenderTeste do backend, não o status cru', async () => {
+    // Status cru fora do padrão: o backend normaliza e diz que pode.
+    adminApi.getTenantDetails.mockResolvedValue(
+      detalhe({ statusAssinatura: 'TRIALING', temAssinaturaGateway: false, jaPagou: false, podeEstenderTeste: true }),
+    );
+    abrir();
+    expect(await screen.findByRole('button', { name: /Estender teste grátis/ })).toBeInTheDocument();
+  });
+
+  it('sem podeEstenderTeste o botão some mesmo com status trialing', async () => {
+    adminApi.getTenantDetails.mockResolvedValue(
+      detalhe({ statusAssinatura: 'trialing', temAssinaturaGateway: false, jaPagou: false, podeEstenderTeste: false }),
+    );
+    abrir();
+    await screen.findByText('#1a2b3c4d');
+    expect(screen.queryByRole('button', { name: /Estender teste grátis/ })).not.toBeInTheDocument();
+  });
+
+  it('plano fora do catálogo mostra "—" no valor, não R$ 0,00', async () => {
+    adminApi.getTenantDetails.mockResolvedValue(detalhe({ plano: 'legado_x', preco: 0 }));
+    abrir();
+    await screen.findByText('#1a2b3c4d');
+    expect(screen.getByText('legado_x')).toBeInTheDocument();
+    expect(screen.queryByText('R$ 0,00 / mês')).not.toBeInTheDocument();
+    expect(screen.getByText('— / mês')).toBeInTheDocument();
+  });
+
+  it('plano fora do catálogo: mudar plano exige escolher antes de confirmar', async () => {
+    adminApi.getTenantDetails.mockResolvedValue(detalhe({ plano: 'legado_x', preco: 0 }));
+    abrir();
+    fireEvent.click(await screen.findByRole('button', { name: /Mudar plano/ }));
+    const modal = await screen.findByRole('dialog');
+    const plano = within(modal).getByLabelText(/Plano/);
+    expect(plano).toHaveValue('');
+    fireEvent.change(within(modal).getByLabelText(/Motivo/), { target: { value: 'pedido do dono' } });
+    const botao = within(modal).getByRole('button', { name: 'Mudar plano' });
+    expect(botao).toBeDisabled();
+    fireEvent.change(plano, { target: { value: 'basico' } });
+    expect(botao).toBeEnabled();
+    fireEvent.click(botao);
+    await waitFor(() => expect(adminApi.overrideSubscriptionPlan).toHaveBeenCalledWith(ID, 'basico', 'pedido do dono'));
+  });
+
+  it('WhatsApp nunca configurado mostra "Não configurado" em cor neutra', async () => {
+    adminApi.getTenantDetails.mockResolvedValue(
+      detalhe({ temInstanciaWhatsapp: false, whatsappConectado: false, whatsappConectadoEm: null }),
+    );
+    abrir();
+    await screen.findByText('#1a2b3c4d');
+    const rotulo = screen.getByText('Não configurado');
+    expect(rotulo.closest('span')).toHaveClass('text-muted');
+    expect(screen.queryByText('Desconectado')).not.toBeInTheDocument();
+  });
+
+  it('LTV só com cobrança de upgrade mostra o total sem ciclos', async () => {
+    adminApi.getTenantDetails.mockResolvedValue(
+      detalhe({}, { ltv: { total: 50, ciclos: 0, desde: '2026-10-01T12:00:00.000Z' } }),
+    );
+    abrir();
+    expect(await screen.findByText('R$ 50,00')).toBeInTheDocument();
+    expect(screen.queryByText(/0 ciclos/)).not.toBeInTheDocument();
   });
 
   it('faturas: null mostra a frase de erro', async () => {

@@ -4,21 +4,26 @@ import { formatCurrency, formatNumber } from '@/lib/formatters';
 import type { AdminVisaoGeral } from '@/types/admin';
 import { CAIXA, pct } from '../formato';
 
+// O número grande conta todo cancelamento do mês (canceled_at). A receita cancelada e a retenção
+// vêm do churn: pagantes do mês anterior que saíram. Por isso os pagantes perdidos aparecem
+// ao lado da receita, e não no número grande.
 export function CartaoCancelamentos({ cancelamentos }: { cancelamentos: AdminVisaoGeral['cancelamentos'] }) {
-  const { cancelamentosMes, receitaCancelada, retencaoPct } = cancelamentos;
+  const { cancelamentosMes, churnContas, receitaCancelada, retencaoPct } = cancelamentos;
   return (
     <section aria-labelledby="vg-cancelamentos" className={cn(CAIXA, 'flex flex-col justify-between gap-4 p-5 sm:p-6')}>
       <div>
         <h2 id="vg-cancelamentos" className="mb-3 text-[13px] font-semibold text-muted">
-          Cancelamentos do mês
+          Cancelamentos no mês
         </h2>
         <p className="mb-1 flex items-baseline gap-1.5">
           <span className="text-[36px] font-bold leading-none tracking-tight text-ink">{formatNumber(cancelamentosMes)}</span>
           <span className="text-[15px] font-semibold text-muted">{cancelamentosMes === 1 ? 'conta' : 'contas'}</span>
         </p>
         <p className="text-[13px] text-muted">
-          Receita cancelada no período:{' '}
-          <span className="font-semibold text-danger">{formatCurrency(receitaCancelada)}</span>
+          Receita cancelada:{' '}
+          <span className="font-semibold text-danger">
+            {`${formatNumber(churnContas)} ${churnContas === 1 ? 'pagante perdido' : 'pagantes perdidos'} · ${formatCurrency(receitaCancelada)}`}
+          </span>
         </p>
       </div>
       <div className="flex items-center justify-between gap-2 rounded-control bg-surface-2 p-2.5">

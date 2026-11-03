@@ -13,7 +13,7 @@ import { billingService } from './billingService.js';
 import { subscriptionRepository } from '../repositories/subscriptionRepository.js';
 import { painelRepository } from '../modules/admin/painel.repository.js';
 import { estadoContaService } from '../modules/conta/estadoConta.service.js';
-import { normalizeInternalSubscriptionStatus } from './billing/statusMapper.js';
+import { motivoParaNaoEstenderTeste } from '../modules/admin/painel.rules.js';
 import type { Request } from 'express';
 
 interface AuthUser {
@@ -503,14 +503,13 @@ export const adminService = {
 
     let fimAnterior: Date | null = null;
     try {
-      const status = normalizeInternalSubscriptionStatus(linha.statusAssinatura);
-      const emTeste = status === 'trialing' || (status === 'incomplete' && !linha.jaPagou);
-      if (!emTeste) {
+      // Mesma regra do detalhe (podeEstenderTeste): fonte única em painel.rules.
+      const extras = await painelRepository.extrasNegocio(tenantId);
+      const motivo = motivoParaNaoEstenderTeste(linha, extras?.temAssinaturaGateway ?? false);
+      if (motivo === 'status') {
         throw new ConflictError('O teste só pode ser estendido para quem está em teste ou terminou o teste sem pagar.');
       }
-
-      const extras = await painelRepository.extrasNegocio(tenantId);
-      if (extras?.temAssinaturaGateway) {
+      if (motivo === 'gateway') {
         throw new ConflictError('Este teste é controlado pelo gateway de pagamento.');
       }
 

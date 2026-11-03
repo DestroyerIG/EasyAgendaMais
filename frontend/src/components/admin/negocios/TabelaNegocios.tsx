@@ -2,9 +2,9 @@ import Link from 'next/link';
 import { Icon, buttonVariants, controlClass } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { formatCurrency, formatNumber } from '@/lib/formatters';
-import { rotuloPlano, rotuloSegmento, rotuloStatus } from '@/lib/adminRotulos';
+import { planoNoCatalogo, rotuloPlano, rotuloSegmento, rotuloStatus } from '@/lib/adminRotulos';
 import type { LimitePagina, NegocioListado, PaginationMeta, StatusAdmin } from '@/types/admin';
-import { CAIXA, SEM_DADO, tempoDesde } from '../formato';
+import { CAIXA, ROTULO_WHATSAPP, SEM_DADO, TOM_WHATSAPP, estadoWhatsapp, tempoDesde } from '../formato';
 
 export const LIMITES: LimitePagina[] = [6, 20, 50, 100];
 
@@ -35,6 +35,7 @@ const TH = 'px-3 py-3 text-left text-[12px] font-semibold text-muted';
 const TD = 'px-3 py-4 align-top';
 
 function Linha({ n, agora }: { n: NegocioListado; agora: Date }) {
+  const whatsapp = estadoWhatsapp(n);
   return (
     <tr className="transition-colors hover:bg-surface-2/60">
       <td className={cn(TD, 'min-w-[240px] pl-6')}>
@@ -64,7 +65,7 @@ function Linha({ n, agora }: { n: NegocioListado; agora: Date }) {
       </td>
       <td className={cn(TD, 'whitespace-nowrap')}>
         <p className="text-[13px] font-semibold text-ink">{rotuloPlano(n.plano)}</p>
-        <p className="text-[12px] text-muted">{`${formatCurrency(n.preco)}/mês`}</p>
+        <p className="text-[12px] text-muted">{`${planoNoCatalogo(n.plano) ? formatCurrency(n.preco) : SEM_DADO}/mês`}</p>
       </td>
       <td className={TD}>
         <span
@@ -83,11 +84,11 @@ function Linha({ n, agora }: { n: NegocioListado; agora: Date }) {
         <span
           className={cn(
             'inline-flex items-center gap-1.5 whitespace-nowrap text-[13px] font-semibold',
-            n.whatsappConectado ? 'text-success-text' : 'text-danger',
+            TOM_WHATSAPP[whatsapp].texto,
           )}
         >
-          <span aria-hidden="true" className={cn('h-2 w-2 rounded-full', n.whatsappConectado ? 'bg-success' : 'bg-danger')} />
-          {n.whatsappConectado ? 'Conectado' : 'Desconectado'}
+          <span aria-hidden="true" className={cn('h-2 w-2 rounded-full', TOM_WHATSAPP[whatsapp].ponto)} />
+          {ROTULO_WHATSAPP[whatsapp]}
         </span>
       </td>
       <td className={cn(TD, 'whitespace-nowrap text-[14px] font-semibold text-ink')}>{formatNumber(n.agendamentos30d)}</td>
@@ -97,7 +98,7 @@ function Linha({ n, agora }: { n: NegocioListado; agora: Date }) {
       <td className={cn(TD, 'pr-6 text-right')}>
         <Link
           href={`/admin/negocios/${n.id}`}
-          aria-label="Ver detalhes"
+          aria-label={`Ver detalhes de ${n.nome}`}
           title="Ver detalhes"
           className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'w-11 px-0 lg:w-9')}
         >

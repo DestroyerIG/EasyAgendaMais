@@ -34,6 +34,7 @@ const metricas = (extra: Partial<AdminVisaoGeral> = {}): AdminVisaoGeral => ({
       tipo: 'whatsapp',
       desde: '2026-10-27T13:00:00.000Z',
       mrr: 99,
+      pagante: true,
     },
   ],
   disparos24h: [
@@ -80,6 +81,44 @@ describe('Visão geral do SuperAdmin', () => {
     expect(aviso).toHaveAttribute('target', '_blank');
     expect(within(tabela).getByRole('link', { name: 'Studio Aurora' })).toHaveAttribute('href', '/admin/negocios/n1');
     expect(within(tabela).getByText('WhatsApp desconectado')).toBeInTheDocument();
+  });
+
+  it('na tabela de risco, pagante mostra o valor por mês e teste mostra o valor como potencial', async () => {
+    const base = metricas().emRisco[0];
+    adminApi.getMetrics.mockResolvedValue(metricas({
+      emRisco: [
+        base,
+        {
+          ...base, id: 'n2', nome: 'Studio Teste', tipo: 'teste_sem_onboarding', plano: 'premium', mrr: 199, pagante: false,
+        },
+      ],
+    }));
+    render(<AdminHomePage />);
+    const tabela = await screen.findByRole('table');
+    const [, pagante, teste] = within(tabela).getAllByRole('row');
+    expect(within(pagante).getByText('R$ 99,00/mês')).toBeInTheDocument();
+    expect(within(pagante).queryByText(/Potencial/)).not.toBeInTheDocument();
+    expect(within(teste).getByText('Potencial R$ 199,00/mês')).toBeInTheDocument();
+    expect(within(tabela).getByRole('columnheader', { name: 'Valor' })).toBeInTheDocument();
+  });
+
+  it('cancelamentos: o número grande é de cancelamentos no mês e os pagantes perdidos vêm com a receita', async () => {
+    adminApi.getMetrics.mockResolvedValue(metricas({
+      cancelamentos: { cancelamentosMes: 5, churnContas: 2, receitaCancelada: 148, retencaoPct: 90 },
+    }));
+    render(<AdminHomePage />);
+    const cartao = await screen.findByRole('region', { name: 'Cancelamentos no mês' });
+    expect(within(cartao).getByText('5')).toBeInTheDocument();
+    expect(within(cartao).getByText('2 pagantes perdidos · R$ 148,00')).toBeInTheDocument();
+  });
+
+  it('cancelamentos: um pagante perdido fica no singular', async () => {
+    adminApi.getMetrics.mockResolvedValue(metricas({
+      cancelamentos: { cancelamentosMes: 1, churnContas: 1, receitaCancelada: 99, retencaoPct: 95 },
+    }));
+    render(<AdminHomePage />);
+    const cartao = await screen.findByRole('region', { name: 'Cancelamentos no mês' });
+    expect(within(cartao).getByText('1 pagante perdido · R$ 99,00')).toBeInTheDocument();
   });
 
   it('lista de risco vazia mostra o estado vazio', async () => {

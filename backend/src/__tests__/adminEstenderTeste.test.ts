@@ -90,6 +90,13 @@ describe('PATCH /admin/tenants/:id/trial', () => {
     expect(adminRepo.estenderTeste).not.toHaveBeenCalled();
   });
 
+  it('status cru é normalizado como no detalhe: vazio sem pagamento pode ser estendido', async () => {
+    painel.linhaNegocio.mockResolvedValue(linha({ statusAssinatura: ' TRIALING ' }));
+    expect((await request.patch(url).send(corpo)).status).toBe(200);
+    painel.linhaNegocio.mockResolvedValue(linha({ statusAssinatura: '', jaPagou: false }));
+    expect((await request.patch(url).send(corpo)).status).toBe(200);
+  });
+
   it('negócio inexistente responde 404', async () => {
     painel.linhaNegocio.mockResolvedValue(null);
     const res = await request.patch(url).send(corpo);

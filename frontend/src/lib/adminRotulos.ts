@@ -33,6 +33,9 @@ export const PLANOS_ADMIN = Object.keys(ROTULO_PLANO);
 
 const tem = (mapa: Record<string, string>, chave: string) => Object.prototype.hasOwnProperty.call(mapa, chave);
 
+/** Plano do catálogo (Solo, Equipe, Salão). Fora dele não há preço: a tela mostra "—". */
+export const planoNoCatalogo = (plano: string): boolean => tem(ROTULO_PLANO, plano);
+
 /** Plano fora do catálogo aparece com o próprio id. */
 export const rotuloPlano = (plano: string): string => (tem(ROTULO_PLANO, plano) ? ROTULO_PLANO[plano] : plano);
 

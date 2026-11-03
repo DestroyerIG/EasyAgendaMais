@@ -56,3 +56,24 @@ export function salvarArquivo(blob: Blob, nome: string): void {
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+export type EstadoWhatsapp = 'conectado' | 'desconectado' | 'nao_configurado';
+
+/** Sem instância criada o negócio nunca configurou o WhatsApp: não é uma queda. */
+export const estadoWhatsapp = (n: { temInstanciaWhatsapp: boolean; whatsappConectado: boolean }): EstadoWhatsapp => {
+  if (n.whatsappConectado) return 'conectado';
+  return n.temInstanciaWhatsapp ? 'desconectado' : 'nao_configurado';
+};
+
+export const ROTULO_WHATSAPP: Record<EstadoWhatsapp, string> = {
+  conectado: 'Conectado',
+  desconectado: 'Desconectado',
+  nao_configurado: 'Não configurado',
+};
+
+/** Cor do texto e do ponto de cada estado; "não configurado" fica neutro. */
+export const TOM_WHATSAPP: Record<EstadoWhatsapp, { texto: string; ponto: string }> = {
+  conectado: { texto: 'text-success-text', ponto: 'bg-success' },
+  desconectado: { texto: 'text-danger', ponto: 'bg-danger' },
+  nao_configurado: { texto: 'text-muted', ponto: 'bg-muted' },
+};

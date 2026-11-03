@@ -162,17 +162,20 @@ export function cartoesGestao(ls: LinhaNegocio[], agora: Date) {
 
 const ORDEM_ALERTA: TipoAlerta[] = ['cobranca', 'teste_sem_onboarding', 'whatsapp', 'sem_agendamento'];
 
-export function negociosEmRisco(ls: LinhaNegocio[], agora: Date): Array<{
+export interface AlertaRisco {
   id: string; nome: string; dono: string; whatsapp: string; segmento: string; plano: string;
-  tipo: TipoAlerta; desde: Date; mrr: number;
-}> {
-  const t = agora.getTime();
-  const alertas: Array<{
-    id: string; nome: string; dono: string; whatsapp: string; segmento: string; plano: string;
-    tipo: TipoAlerta; desde: Date; mrr: number;
-  }> = [];
+  tipo: TipoAlerta; desde: Date;
+  /** Preço do plano. Só é MRR de fato quando `pagante`; nos demais é o valor em potencial. */
+  mrr: number;
+  pagante: boolean;
+}
 
-  for (const { l, status, preco } of comStatus(ls, agora)) {
+export function negociosEmRisco(ls: LinhaNegocio[], agora: Date): AlertaRisco[] {
+  const t = agora.getTime();
+  const alertas: AlertaRisco[] = [];
+
+  for (const x of comStatus(ls, agora)) {
+    const { l, status, preco } = x;
     // 'carencia' sempre casa com 'cobranca' primeiro, então as regras seguintes só enxergam os demais status.
     let tipo: TipoAlerta | null = null;
     let desde: Date | null = null;
@@ -203,12 +206,27 @@ export function negociosEmRisco(ls: LinhaNegocio[], agora: Date): Array<{
       alertas.push({
         id: l.id, nome: l.nome, dono: l.dono, whatsapp: l.whatsapp,
         segmento: segmentoDe(l.segmento), plano: l.plano, tipo, desde,
-        // No teste é o valor em potencial; a tela diz "potencial".
-        mrr: preco,
+        mrr: preco, pagante: ehPagante(x),
       });
     }
   }
 
   return alertas.sort((a, b) =>
     ORDEM_ALERTA.indexOf(a.tipo) - ORDEM_ALERTA.indexOf(b.tipo) || a.desde.getTime() - b.desde.getTime());
+}
+
+/**
+ * Por que o teste grátis não pode ser estendido, ou null quando pode. Fonte única da regra:
+ * usada pela rota PATCH /admin/tenants/:id/trial e pelo detalhe (podeEstenderTeste).
+ * - 'status': só quem está em teste, ou terminou o teste sem nunca pagar (incomplete sem pagamento);
+ * - 'gateway': com assinatura no gateway o teste é dele, e o webhook desfaria a mudança.
+ */
+export function motivoParaNaoEstenderTeste(
+  l: Pick<LinhaNegocio, 'statusAssinatura' | 'jaPagou'>, temAssinaturaGateway: boolean,
+): 'status' | 'gateway' | null {
+  const status = normalizeInternalSubscriptionStatus(l.statusAssinatura);
+  const emTeste = status === 'trialing' || (status === 'incomplete' && !l.jaPagou);
+  if (!emTeste) return 'status';
+  if (temAssinaturaGateway) return 'gateway';
+  return null;
 }

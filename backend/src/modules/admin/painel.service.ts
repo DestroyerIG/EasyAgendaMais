@@ -7,7 +7,7 @@ import type { PlanId } from '../../types/domain.js';
 import { NotFoundError } from '../../utils/errors.js';
 import logger from '../../utils/logger.js';
 import {
-  cartoesGestao, conversaoPorSegmento, negociosEmRisco, precoDoPlano, resumoCancelamentos,
+  cartoesGestao, conversaoPorSegmento, motivoParaNaoEstenderTeste, negociosEmRisco, precoDoPlano, resumoCancelamentos,
   resumoMrr, resumoTestes, segmentoDe, statusAdmin,
   type LinhaNegocio, type StatusAdmin,
 } from './painel.rules.js';
@@ -16,6 +16,7 @@ import {
 // Filtro, ordem e paginação rodam em memória (ver decisão do plano H2).
 
 const MS_DIA = 86_400_000;
+const MIN_DIGITOS_BUSCA = 4;
 const FUSO = 'America/Sao_Paulo';
 const BOM = '﻿';
 
@@ -29,7 +30,7 @@ export interface FiltrosNegocios {
 export interface NegocioListado {
   id: string; nome: string; dono: string; email: string; whatsapp: string;
   endereco: string | null; segmento: string; plano: string; preco: number;
-  status: StatusAdmin; whatsappConectado: boolean; whatsappConectadoEm: Date | null;
+  status: StatusAdmin; temInstanciaWhatsapp: boolean; whatsappConectado: boolean; whatsappConectadoEm: Date | null;
   agendamentos30d: number; ultimaAtividadeEm: Date | null; diasRestantesTeste: number | null;
 }
 
@@ -44,7 +45,8 @@ function paraListado(l: LinhaNegocio, agora: Date): NegocioListado {
   return {
     id: l.id, nome: l.nome, dono: l.dono, email: l.email, whatsapp: l.whatsapp,
     endereco: l.endereco, segmento: segmentoDe(l.segmento), plano: l.plano, preco: precoDoPlano(l.plano),
-    status, whatsappConectado: l.whatsappConectadoEm !== null, whatsappConectadoEm: l.whatsappConectadoEm,
+    status, temInstanciaWhatsapp: l.temInstanciaWhatsapp,
+    whatsappConectado: l.whatsappConectadoEm !== null, whatsappConectadoEm: l.whatsappConectadoEm,
     agendamentos30d: l.agendamentos30d, ultimaAtividadeEm: l.ultimoAgendamentoEm, diasRestantesTeste,
   };
 }
@@ -53,9 +55,11 @@ function casaBusca(l: LinhaNegocio, busca: string): boolean {
   const termo = semAcento(busca.trim());
   if (termo === '') return true;
   if ([l.nome, l.dono, l.email].some((campo) => semAcento(campo).includes(termo))) return true;
-  // Telefone e documento: compara só os dígitos, e só quando a busca tem algum dígito.
+  // Telefone e documento: compara só os dígitos, e só quando a busca não tem letras e tem ao
+  // menos 4 dígitos. Assim "Barbearia 2" não casa todo telefone que tenha um 2.
+  if (/\p{L}/u.test(termo)) return false;
   const digitos = soDigitos(busca);
-  if (digitos === '') return false;
+  if (digitos.length < MIN_DIGITOS_BUSCA) return false;
   return [l.whatsapp, l.cpfCnpj ?? ''].some((campo) => soDigitos(campo).includes(digitos));
 }
 
@@ -182,6 +186,7 @@ export const painelService = {
         statusAssinatura: l.statusAssinatura,
         fimDoPeriodo: l.fimDoPeriodo ? l.fimDoPeriodo.toISOString() : null,
         temAssinaturaGateway: extras.temAssinaturaGateway,
+        podeEstenderTeste: motivoParaNaoEstenderTeste(l, extras.temAssinaturaGateway) === null,
         jaPagou: l.jaPagou,
         usuarioDonoId: extras.usuarioDonoId,
       },

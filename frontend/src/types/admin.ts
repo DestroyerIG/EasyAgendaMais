@@ -31,7 +31,10 @@ export interface NegocioEmRisco {
   plano: string;
   tipo: TipoAlerta;
   desde: string;
+  /** Preço do plano: MRR de fato quando `pagante`; nos demais, valor em potencial. */
   mrr: number;
+  /** Ativo ou em carência. */
+  pagante: boolean;
 }
 
 // GET /admin/metrics
@@ -74,6 +77,8 @@ export interface NegocioListado {
   plano: string;
   preco: number;
   status: StatusAdmin;
+  /** false quando o negócio nunca configurou o WhatsApp. */
+  temInstanciaWhatsapp: boolean;
   whatsappConectado: boolean;
   whatsappConectadoEm: string | null;
   agendamentos30d: number;
@@ -140,6 +145,8 @@ export interface DetalheNegocio {
     temAssinaturaGateway: boolean;
     jaPagou: boolean;
     usuarioDonoId: string | null;
+    /** Regra calculada no backend (a mesma da rota de estender o teste). */
+    podeEstenderTeste: boolean;
   };
   ltv: { total: number; ciclos: number; desde: string | null };
   proximaCobranca: { data: string; valor: number } | null;
