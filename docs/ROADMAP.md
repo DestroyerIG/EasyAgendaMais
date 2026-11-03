@@ -31,7 +31,7 @@ Atualizado em 27/10/2026.
 | 7 | Login com Google e Google Agenda | ✅ Concluída | PR #20 |
 | H1 | Modo de contingência (carência de 7 dias e conta bloqueada) | ✅ Concluída (migrada e juntada em 28/10) | PR #22 |
 | H2 | SuperAdmin nas três telas do Stitch | ✅ Concluída (juntada em 03/11, sem migração) | PR #23 |
-| H3 | Textos de venda da landing e da página de nail designers | 🟡 Plano escrito | — |
+| H3 | Textos de venda da landing e da página de nail designers | 🟡 Implementada, aguardando PR | — |
 
 ## Fase 7 (concluída)
 

@@ -188,6 +188,22 @@ Sub-projeto 7 (Login com Google e Google Agenda), pendências conhecidas:
 - Ajustes feitos: a tabela de negócios espremia a coluna do nome e cortava a última coluna em 1440 px (plano e valor passaram a duas linhas, o "Ver detalhes" virou botão de ícone, com nome acessível "Ver detalhes de {negócio}" em cada linha); o bloco "Sinal Pix" do detalhe mostrava o texto inteiro em fonte grande e quebrava em três linhas.
 - O botão "Avisar no WhatsApp" usa a variante `whatsapp` do kit: no tema escuro, o texto branco sobre o verde claro tem contraste baixo. Ajuste no kit, fora da H2.
 
+## Item H3 (textos de venda), pendências conhecidas
+
+Plano: `docs/superpowers/plans/2026-11-03-h3-textos-de-venda.md`. A tabela "antes e depois" está no plano e no PR.
+
+- **Decisões do Claude para revisar:**
+  - sai "Junte-se a estúdios e profissionais…", porque ainda não dá para afirmar uma base de clientes;
+  - o FAQ de atendimento a domicílio diz que ainda não há taxa de deslocamento;
+  - sai o controle "Atendimentos por dia" da calculadora, que não entrava na conta;
+  - a página `/pagamento` passou a usar a descrição e os destaques do catálogo, no lugar da lista escrita à mão;
+  - o "Suporte prioritário" saiu do Salão e da matriz de comparação.
+- **Galeria:** as fotos da página pública não são clicáveis nem ligadas a um serviço. A página de nail designers agora diz "A cliente vê seus trabalhos na sua página e agenda o serviço logo abaixo", e o título deixou de dizer que a vitrine agenda.
+- **Calculadora:** a premissa de que o sinal e o lembrete evitam 9 em cada 10 faltas é uma estimativa sem dado próprio. Ela aparece na tela e deve ser trocada quando houver números de clientes reais.
+- **Catálogo:** a landing usa a cópia `frontend/src/lib/planCatalog.ts`. O teste `planCatalog.test.ts` importa o arquivo do backend e quebra se as duas divergirem; para isso, o import tem um `@ts-ignore`, porque o build isolado do frontend no Docker não tem a pasta `backend`.
+- **Depoimentos:** continuam fictícios e marcados como "Depoimento de exemplo". Trocar por depoimentos reais quando houver.
+- **Conferência visual:** feita em desktop (1280 px). O navegador não aceitou reduzir a janela para 390 px. A mudança é só de texto e ícone, sem mudar o layout.
+
 ## Infraestrutura
 
 - **Resolvido em 27/10:** o `docker-compose.yml` e o `setup.ps1` passaram a usar o Prisma (`supabase-stub.sql` + `prisma migrate deploy`), sem os SQL antigos e sem `AUTH_PROVIDER_MODE`. Os Dockerfiles foram corrigidos: no backend, o `npm ci` de produção falhava no `prisma generate`; no frontend, faltavam o caminho do standalone, a pasta `public` e as `NEXT_PUBLIC_*` no build. Falta subir o compose do zero numa máquina com o Docker rodando, porque a validação foi só de sintaxe.
