@@ -36,6 +36,7 @@ export const subscriptionRepository = {
              plano_agendado,
              plano_agendado_em,
              metadata,
+             created_at,
              inadimplente_desde,
              (last_payment_date IS NOT NULL
                OR EXISTS (SELECT 1 FROM billing_payments bp WHERE bp.business_id = businesses.id AND bp.paid_at IS NOT NULL)
@@ -139,6 +140,16 @@ export const subscriptionRepository = {
 
       return fallback[0] || null;
     }
+  },
+
+  /** Mescla chaves de cobrança no metadata (checkout e cartão do Asaas, desconto da primeira mensalidade). */
+  async mesclarMetadataCobranca(businessId: string, parcial: Record<string, unknown>): Promise<void> {
+    await prisma.$queryRaw(Prisma.sql`
+      UPDATE businesses
+      SET metadata = COALESCE(metadata, '{}'::jsonb) || ${normalizeJsonb(parcial)}::jsonb,
+          subscription_updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${businessId}::uuid
+    `);
   },
 
   async setDesiredPlan(businessId: string, desiredPlan: string, _client: unknown = null): Promise<Record<string, unknown> | null> {
@@ -337,7 +348,7 @@ export const subscriptionRepository = {
           next_due_date = COALESCE(${p18}::timestamp, next_due_date, ${p7}::timestamp),
           last_payment_date = COALESCE(${p19}::timestamp, last_payment_date),
           canceled_at = COALESCE(${p20}::timestamp, canceled_at),
-          metadata = COALESCE(${p21}::jsonb, metadata),
+          metadata = COALESCE(metadata, '{}'::jsonb) || COALESCE(${p21}::jsonb, '{}'::jsonb),
           subscription_updated_at = CURRENT_TIMESTAMP
       WHERE id = ${p1}::uuid
       RETURNING id, plan, subscription_status,

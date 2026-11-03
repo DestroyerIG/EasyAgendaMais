@@ -74,40 +74,6 @@ describe('billingService', () => {
     mockAsaasMapper.extractBusinessIdFromExternalReference.mockReturnValue('tenant-3');
   });
 
-  it('creates Stripe checkout session preserving provider response', async () => {
-    const stripeProvider = {
-      createSubscription: vi.fn().mockResolvedValue({
-        provider: 'stripe',
-        sessionId: 'cs_test_123',
-        checkoutUrl: 'https://checkout.stripe.com/test',
-      }),
-    };
-
-    mockSubscriptionRepository.getBusinessBillingContext.mockResolvedValue({
-      id: 'tenant-1',
-      plan: 'basico',
-      desired_plan: 'premium',
-    });
-
-    mockBillingProviderFactory.resolveProviderByPaymentMethod.mockReturnValue('stripe');
-    mockBillingProviderFactory.getProvider.mockReturnValue(stripeProvider);
-
-    const result = await billingService.createCheckoutSession('tenant-1', 'premium', 'card');
-
-    expect(result).toEqual({
-      provider: 'stripe',
-      sessionId: 'cs_test_123',
-      checkoutUrl: 'https://checkout.stripe.com/test',
-      plan: 'premium',
-    });
-
-    expect(stripeProvider.createSubscription).toHaveBeenCalledWith({
-      businessId: 'tenant-1',
-      plan: 'premium',
-      paymentMethod: 'card',
-    });
-  });
-
   it('creates Pix checkout session via Asaas and stores billing state', async () => {
     const asaasProvider = {
       createSubscription: vi.fn().mockResolvedValue({

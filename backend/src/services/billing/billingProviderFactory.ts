@@ -3,17 +3,17 @@ import { asaasBillingProvider } from './providers/asaasBillingProvider.js';
 import { stripeBillingProvider } from './providers/stripeBillingProvider.js';
 
 type ProviderName = 'stripe' | 'asaas';
-type PaymentMethod = 'card' | 'pix' | 'boleto';
+type PaymentMethod = 'card' | 'pix';
 
 const PROVIDERS: Readonly<Record<ProviderName, typeof stripeBillingProvider | typeof asaasBillingProvider>> = Object.freeze({
   stripe: stripeBillingProvider,
   asaas: asaasBillingProvider,
 });
 
+// Cartão e Pix vão para o Asaas (o cartão pela página de checkout do Asaas).
 const PAYMENT_METHOD_PROVIDER_MAP: Readonly<Record<PaymentMethod, ProviderName>> = Object.freeze({
-  card: 'stripe',
+  card: 'asaas',
   pix: 'asaas',
-  boleto: 'stripe',
 });
 
 export const billingProviderFactory = {
@@ -29,7 +29,9 @@ export const billingProviderFactory = {
 
   resolveProviderByPaymentMethod(paymentMethod: unknown): ProviderName {
     const normalized: string = typeof paymentMethod === 'string' ? paymentMethod.trim().toLowerCase() : '';
-    const providerName = PAYMENT_METHOD_PROVIDER_MAP[normalized as PaymentMethod];
+    const providerName = Object.hasOwn(PAYMENT_METHOD_PROVIDER_MAP, normalized)
+      ? PAYMENT_METHOD_PROVIDER_MAP[normalized as PaymentMethod]
+      : undefined;
 
     if (!providerName) {
       throw new AppError('Método de pagamento inválido', 400, 'INVALID_PAYMENT_METHOD');

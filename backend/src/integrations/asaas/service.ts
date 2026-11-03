@@ -1,5 +1,6 @@
 import { AppError } from '../../utils/errors.js';
-import { PLAN_PRICES } from '../../config/planCatalog.js';
+import { PLAN_CATALOG, PLAN_PRICES } from '../../config/planCatalog.js';
+import type { PlanId } from '../../types/domain.js';
 import {
   isValidCpf as validateCpf,
   isValidCnpj as validateCnpj,
@@ -1393,6 +1394,44 @@ export const asaasService = {
       pixQrCode,
       pixData,
     };
+  },
+
+  /**
+   * Checkout Asaas recorrente no cartão: a dona digita o cartão na página do Asaas, que cobra em
+   * `nextDueDate` e depois todo mês. Vai sem `customer`: com ele o Asaas exige endereço completo,
+   * e a própria página pede os dados (docs/design/asaas-sandbox-conferencia.md). O Asaas não
+   * repassa o externalReference do checkout; o vínculo é pelo id do checkout (`checkoutSession`).
+   */
+  async criarCheckoutCartao({
+    business,
+    plan,
+    valor,
+    nextDueDate,
+    urlRetorno,
+  }: {
+    business: { id?: string | null };
+    plan: PlanId;
+    valor: number;
+    nextDueDate: Date;
+    urlRetorno: string;
+  }): Promise<{ checkoutId: string; url: string }> {
+    const nome = PLAN_CATALOG[plan]?.nome ?? plan;
+    const checkout = (await asaasClient.post('/checkouts', {
+      billingTypes: ['CREDIT_CARD'],
+      chargeTypes: ['RECURRENT'],
+      minutesToExpire: 60,
+      externalReference: `${buildExternalReference({ businessId: business.id!, plan })}:cartao`,
+      callback: { successUrl: urlRetorno, cancelUrl: urlRetorno, expiredUrl: urlRetorno },
+      items: [{ name: `EasyAgenda+ ${nome}`, description: `Plano ${nome}`, quantity: 1, value: valor }],
+      subscription: {
+        cycle: 'MONTHLY',
+        nextDueDate: nextDueDate.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' }),
+      },
+    })) as { id?: string; link?: string };
+    if (!checkout?.id || !checkout.link) {
+      throw new AppError('O Asaas não devolveu a página de pagamento do cartão', 502, 'ASAAS_CHECKOUT_ERROR');
+    }
+    return { checkoutId: checkout.id, url: checkout.link };
   },
 
   async getPayment(paymentId: string): Promise<AsaasPayment> {

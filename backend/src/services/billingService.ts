@@ -5,6 +5,8 @@ import { prisma } from '../config/prisma.js';
 import { Prisma } from '@prisma/client';
 import { subscriptionRepository } from '../repositories/subscriptionRepository.js';
 import { PLAN_PRICES } from '../config/planCatalog.js';
+import { fimDoTesteComCartao } from '../config/trial.js';
+import type { PlanId } from '../types/domain.js';
 import { planChangeService } from '../modules/billing/planChange.service.js';
 import { ehReferenciaUpgrade } from '../modules/billing/planChange.rules.js';
 import { estadoContaService } from '../modules/conta/estadoConta.service.js';
@@ -399,6 +401,70 @@ const resolveAsaasWebhookBusiness = async (
 // Exported service
 // ---------------------------------------------------------------------------
 
+const dataOuNull = (valor: unknown): Date | null => {
+  if (!valor) return null;
+  const d = valor instanceof Date ? valor : new Date(String(valor));
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+/**
+ * Cartão pelo Checkout Asaas. Durante o teste a primeira cobrança fica para o fim do teste com
+ * cartão (14 dias do cadastro, sem encurtar teste estendido); fora do teste, cobra hoje.
+ * A assinatura nasce com o valor cheio: o cupom vale só na primeira mensalidade, aplicada pelo
+ * webhook na primeira cobrança (metadata.descontoPrimeiraMensalidade).
+ */
+const criarCheckoutCartao = async ({
+  business,
+  plan,
+  valorCheio,
+  desconto,
+  cupom,
+  couponCode,
+}: {
+  business: BusinessBillingContext;
+  plan: PlanId;
+  valorCheio: number;
+  desconto: number;
+  cupom: AppliedCoupon | null;
+  couponCode: string | null;
+}): Promise<Record<string, unknown>> => {
+  const agora = new Date();
+  const fimDoTeste = dataOuNull(business.subscription_current_period_end);
+  const emTeste = business.subscription_status === 'trialing' && !!fimDoTeste && fimDoTeste.getTime() > agora.getTime();
+  const criadoEm = dataOuNull(business.created_at) ?? agora;
+  const nextDueDate = emTeste ? fimDoTesteComCartao(criadoEm, fimDoTeste) : agora;
+  const base = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+  const checkout = await asaasService.criarCheckoutCartao({
+    business,
+    plan,
+    valor: valorCheio,
+    nextDueDate,
+    urlRetorno: `${base}/dashboard/planos?cartao=retorno`,
+  });
+
+  await subscriptionRepository.mesclarMetadataCobranca(business.id, {
+    checkoutCartao: { id: checkout.checkoutId, plano: plan, criadoEm: agora.toISOString() },
+    ...(desconto > 0 ? { descontoPrimeiraMensalidade: { valor: desconto, cupom: cupom?.code ?? couponCode } } : {}),
+  });
+  if (cupom) {
+    await couponService.validateAndApply(couponCode ?? '', valorCheio);
+  }
+
+  logger.info(
+    { businessId: business.id, plan, emTeste, nextDueDate: nextDueDate.toISOString(), reason: 'card_checkout_created' },
+    'Checkout de cartão do Asaas criado'
+  );
+
+  return {
+    provider: 'asaas',
+    formaPagamento: 'card',
+    checkoutUrl: checkout.url,
+    cobrancaEm: nextDueDate.toISOString(),
+    plan,
+  };
+};
+
 export const billingService = {
   async createCheckoutSession(
     businessId: string,
@@ -464,35 +530,6 @@ export const billingService = {
       const providerName = billingProviderFactory.resolveProviderByPaymentMethod(paymentMethod);
       const provider = billingProviderFactory.getProvider(providerName);
 
-      if (providerName === 'stripe') {
-        const stripeCheckout = await (provider as typeof stripeProvider).createSubscription({
-          businessId: businessId,
-          plan: checkoutPlan,
-          paymentMethod: paymentMethod as string,
-        });
-
-        logger.info(
-          {
-            email: business.email,
-            businessId,
-            desiredPlan: checkoutPlan,
-            subscriptionStatus: business.subscription_status,
-            paymentRequired: true,
-            checkoutCreated: true,
-            paymentProvider: 'stripe',
-            reason: 'card_checkout_created',
-          },
-          'Checkout de onboarding criado'
-        );
-
-        return {
-          provider: 'stripe',
-          checkoutUrl: (stripeCheckout as { checkoutUrl?: string }).checkoutUrl,
-          sessionId: (stripeCheckout as { sessionId?: string }).sessionId,
-          plan: checkoutPlan,
-        };
-      }
-
       const baseAmount = PLAN_PRICES[checkoutPlan as PlanName] ?? PLAN_PRICES.basico;
       const {
         finalAmount: rawFinalAmount,
@@ -528,17 +565,6 @@ export const billingService = {
           await couponService.validateAndApply(couponCode ?? '', baseAmount);
         }
 
-        await subscriptionRepository.storeSubscriptionEvent({
-          eventId: `coupon_free_activation:${businessId}:${crypto.randomUUID()}`,
-          eventType: 'coupon_free_activation',
-          businessId,
-          payload: {
-            coupon_code: activationCouponCode,
-            amount: 0,
-            plan: checkoutPlan,
-          },
-        });
-
         logger.info(
           {
             email: business.email,
@@ -549,6 +575,7 @@ export const billingService = {
             checkoutCreated: false,
             paymentProvider: 'coupon',
             reason: 'coupon_free_activation',
+            couponCode: activationCouponCode,
           },
           'Ativacao gratuita aplicada via cupom'
         );
@@ -558,6 +585,17 @@ export const billingService = {
           activated: true,
           plan: checkoutPlan,
         };
+      }
+
+      if (paymentMethod === 'card') {
+        return await criarCheckoutCartao({
+          business,
+          plan: checkoutPlan as PlanId,
+          valorCheio: baseAmount,
+          desconto: discount,
+          cupom: appliedCoupon,
+          couponCode,
+        });
       }
 
       const idempotencyKey = `pix-checkout:${businessId}:${plan}:${crypto.randomUUID()}`;
