@@ -32,6 +32,8 @@ export {
 export {
 	adminMetricsQuerySchema,
 	adminTenantListQuerySchema,
+	adminTenantFiltrosSchema,
+	adminTenantAuditQuerySchema,
 	adminSubscriptionListQuerySchema,
 	adminAuditLogQuerySchema,
 	adminActionParamsSchema,
@@ -39,4 +41,5 @@ export {
 	adminOverridePlanBodySchema,
 	adminOverrideStatusBodySchema,
 	adminCancelSubscriptionBodySchema,
+	adminExtendTrialBodySchema,
 } from './adminSchemas.js';

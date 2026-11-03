@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import type { ApuracaoComissoes, LinhaComissao } from '@/lib/relatorios';
 
@@ -38,10 +38,17 @@ const onUpgrade = vi.fn();
 const abrir = () => render(<ComissoesModule onUpgrade={onUpgrade} />);
 
 beforeEach(() => {
+  // O período inicial é a quinzena de hoje: o relógio fica fixo na quinzena da apuração de exemplo.
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-10-20T12:00:00-03:00'));
   vi.clearAllMocks();
   usuario.role = 'tenant_admin';
   api.comissoes.mockResolvedValue(apuracao());
   api.adiantamentos.mockResolvedValue([]);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('Comissões', () => {

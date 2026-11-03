@@ -142,3 +142,36 @@ export async function proxyRequest(
     );
   }
 }
+/**
+ * GET que devolve um arquivo (CSV, zip): repassa os bytes sem ler como texto, porque o texto
+ * perderia o BOM do CSV (e corromperia um binário). Mantém a query, o content-type e o nome do arquivo.
+ */
+export async function proxyArquivo(request: Request, path: string) {
+  const backendUrl = buildBackendUrl(request, path);
+
+  try {
+    const upstream = await fetch(backendUrl, {
+      method: 'GET',
+      headers: buildHeaders(request),
+      cache: 'no-store',
+      redirect: 'manual',
+    });
+
+    const responseHeaders = new Headers();
+    for (const nome of ['content-type', 'content-disposition']) {
+      const valor = upstream.headers.get(nome);
+      if (valor) responseHeaders.set(nome, valor);
+    }
+
+    return new NextResponse(await upstream.arrayBuffer(), {
+      status: upstream.status,
+      headers: responseHeaders,
+    });
+  } catch (error) {
+    console.error('Proxy de arquivo falhou', { backendUrl, error: error instanceof Error ? error.message : String(error) });
+    return NextResponse.json(
+      { success: false, message: 'Erro ao comunicar com o backend' },
+      { status: 502 },
+    );
+  }
+}

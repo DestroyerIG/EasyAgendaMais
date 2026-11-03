@@ -1,48 +1,57 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Activity, Building2, CreditCard, LayoutDashboard, ScrollText, Tags } from 'lucide-react';
-import easyAgendaLogo from '@/icons/easyagenda-logo.svg';
+import { cn } from '@/lib/cn';
+import { Icon } from '@/components/ui';
 
-const links = [
-  { href: '/admin', label: 'Resumo', icon: LayoutDashboard },
-  { href: '/admin/metrics', label: 'Métricas', icon: Activity },
-  { href: '/admin/tenants', label: 'Contas', icon: Building2 },
-  { href: '/admin/subscriptions', label: 'Assinaturas', icon: CreditCard },
-  { href: '/admin/coupons', label: 'Cupons', icon: Tags },
-  { href: '/admin/logs', label: 'Auditoria', icon: ScrollText },
-];
+export const ADMIN_LINKS = [
+  { href: '/admin', label: 'Visão geral', icon: 'monitoring' },
+  { href: '/admin/negocios', label: 'Negócios', icon: 'storefront' },
+  { href: '/admin/coupons', label: 'Cupons', icon: 'sell' },
+  { href: '/admin/logs', label: 'Auditoria', icon: 'security' },
+] as const;
+
+// "/admin" só fica ativo na própria página; os demais também nas subpáginas (ex.: detalhe do negócio).
+export const linkAtivo = (pathname: string | null, href: string): boolean =>
+  href === '/admin' ? pathname === href : pathname === href || Boolean(pathname?.startsWith(`${href}/`));
 
 export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-full border-b border-white/10 bg-dark-light lg:w-64 lg:border-b-0 lg:border-r">
-      <div className="px-5 py-5">
-        <div className="flex items-center gap-3">
-          <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-primary/30 bg-black/40">
-            <Image src={easyAgendaLogo} alt="Logo EasyAgenda+" width={40} height={40} className="h-full w-full object-contain" priority />
+    <aside className="w-full border-b border-line bg-surface lg:sticky lg:top-0 lg:h-screen lg:w-[248px] lg:shrink-0 lg:border-b-0 lg:border-r">
+      <div className="flex h-16 items-center gap-2.5 border-b border-line px-5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-brand/20 bg-brand/10 text-lg font-black leading-none text-brand">
+          +
+        </div>
+        <div className="flex flex-col leading-tight">
+          <span className="text-[17px] font-bold tracking-tight text-ink">
+            EasyAgenda<span className="text-brand">+</span>
           </span>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary/70">Área Administrativa</p>
-            <h1 className="mt-1 text-xl font-black text-white">EasyAgenda+</h1>
-          </div>
+          <span className="text-[11px] font-medium text-muted">SuperAdmin</span>
         </div>
       </div>
 
-      <nav className="grid grid-cols-2 gap-2 px-3 pb-4 lg:grid-cols-1" aria-label="Navegação administrativa">
-        {links.map((item) => {
-          const active = pathname === item.href;
-
+      <nav
+        aria-label="Navegação do admin"
+        className="flex gap-1 overflow-x-auto p-3 lg:flex-col lg:overflow-visible"
+      >
+        {ADMIN_LINKS.map((item) => {
+          const ativo = linkAtivo(pathname, item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${active ? 'bg-primary text-black' : 'text-gray-300 hover:bg-white/5 hover:text-white'}`}
+              aria-current={ativo ? 'page' : undefined}
+              className={cn(
+                'flex shrink-0 items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
+                ativo
+                  ? 'bg-surface-2 font-bold text-ink'
+                  : 'font-semibold text-muted hover:bg-surface-2/60 hover:text-ink',
+              )}
             >
-              <item.icon size={16} />
+              <Icon name={item.icon} size={20} filled={ativo} className={ativo ? 'text-brand' : undefined} />
               <span>{item.label}</span>
             </Link>
           );

@@ -1,5 +1,6 @@
 import logger from '../utils/logger.js';
 import {
+  ConflictError,
   ForbiddenError,
   NotFoundError,
   ValidationError,
@@ -7,10 +8,12 @@ import {
 import { adminRepository } from '../repositories/adminRepository.js';
 import { auditRepository } from '../repositories/auditRepository.js';
 import { auditLogService } from './auditLogService.js';
-import { adminMetricsService } from './adminMetricsService.js';
 import { subscriptionService } from './subscriptionService.js';
 import { billingService } from './billingService.js';
 import { subscriptionRepository } from '../repositories/subscriptionRepository.js';
+import { painelRepository } from '../modules/admin/painel.repository.js';
+import { estadoContaService } from '../modules/conta/estadoConta.service.js';
+import { motivoParaNaoEstenderTeste } from '../modules/admin/painel.rules.js';
 import type { Request } from 'express';
 
 interface AuthUser {
@@ -45,22 +48,6 @@ const actorPayload = (authUser: AuthUser | null | undefined): { actorUserId: str
 });
 
 export const adminService = {
-  async getMetrics(query: Record<string, unknown> = {}): Promise<unknown> {
-    return adminMetricsService.getMetrics(query.periodDays as number | undefined);
-  },
-
-  async listTenants(query: Record<string, unknown> = {}): Promise<unknown> {
-    return adminRepository.listTenants(query);
-  },
-
-  async getTenantDetails(tenantId: string): Promise<unknown> {
-    const data = await adminRepository.getTenantDetails(tenantId);
-    if (!data) {
-      throw new NotFoundError('Conta');
-    }
-    return data;
-  },
-
   async listSubscriptions(query: Record<string, unknown> = {}): Promise<unknown> {
     return adminRepository.listSubscriptions(query);
   },
@@ -501,6 +488,67 @@ export const adminService = {
 
     logger.info({ tenantId, previousStatus: context.subscription_status, newStatus: body.status }, 'Admin: status sobrescrito manualmente');
     return { tenantId, subscriptionStatus: body.status };
+  },
+
+  async estenderTeste(
+    authUser: AuthUser | null,
+    tenantId: string,
+    body: { confirmation?: string; dias: number; reason: string },
+    req: Request
+  ): Promise<{ tenantId: string; fimDoTeste: string }> {
+    ensureConfirmed(body.confirmation);
+
+    const linha = await painelRepository.linhaNegocio(tenantId);
+    if (!linha) throw new NotFoundError('Negócio');
+
+    let fimAnterior: Date | null = null;
+    try {
+      // Mesma regra do detalhe (podeEstenderTeste): fonte única em painel.rules.
+      const extras = await painelRepository.extrasNegocio(tenantId);
+      const motivo = motivoParaNaoEstenderTeste(linha, extras?.temAssinaturaGateway ?? false);
+      if (motivo === 'status') {
+        throw new ConflictError('O teste só pode ser estendido para quem está em teste ou terminou o teste sem pagar.');
+      }
+      if (motivo === 'gateway') {
+        throw new ConflictError('Este teste é controlado pelo gateway de pagamento.');
+      }
+
+      fimAnterior = linha.fimDoPeriodo ?? null;
+      const fimNovo = await adminRepository.estenderTeste(tenantId, body.dias);
+      if (!fimNovo) throw new NotFoundError('Negócio');
+
+      estadoContaService.invalidar(tenantId);
+
+      await auditLogService.logAdminAction({
+        req,
+        actionType: 'TRIAL_EXTENDED',
+        ...actorPayload(authUser),
+        targetBusinessId: tenantId,
+        resourceType: 'subscription',
+        resourceId: tenantId,
+        details: {
+          dias: body.dias,
+          reason: body.reason,
+          fimAnterior: fimAnterior ? fimAnterior.toISOString() : null,
+          fimNovo: fimNovo.toISOString(),
+        },
+      });
+
+      logger.info({ tenantId, dias: body.dias }, 'Admin: teste grátis estendido');
+      return { tenantId, fimDoTeste: fimNovo.toISOString() };
+    } catch (error) {
+      await auditLogService.safeLogFailure({
+        req,
+        actionType: 'TRIAL_EXTENDED',
+        ...actorPayload(authUser),
+        targetBusinessId: tenantId,
+        resourceType: 'subscription',
+        resourceId: tenantId,
+        details: { dias: body.dias, reason: body.reason },
+        errorMessage: (error as Error).message,
+      });
+      throw error;
+    }
   },
 
   async cancelSubscription(

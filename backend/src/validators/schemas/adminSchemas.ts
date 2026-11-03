@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SEGMENTOS_VALIDOS } from '../../config/vocabulario.js';
 
 const idSchema = z.object({
   id: z.string().uuid('ID inválido'),
@@ -18,16 +19,24 @@ export const adminMetricsQuerySchema = z.object({
   periodDays: z.coerce.number().int().min(7).max(365).default(30),
 });
 
-export const adminTenantListQuerySchema = paginationQuerySchema.extend({
-  search: z.string().trim().max(120).optional(),
-  status: z.enum(['active', 'suspended']).optional(),
-  plan: z.enum(['basico', 'profissional', 'premium']).optional(),
-  subscriptionStatus: z.enum(['active', 'trialing', 'pending', 'past_due', 'unpaid', 'canceled', 'incomplete']).optional(),
-  activity: z.enum(['active', 'inactive']).optional(),
-  from: z.string().trim().optional(),
-  to: z.string().trim().optional(),
-  sortBy: z.enum(['created_at', 'name', 'last_activity_at']).default('created_at'),
-  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+// Filtros da gestão de negócios (H2). Status, busca e paginação rodam em memória sobre painelRepository.
+export const adminTenantFiltrosSchema = z.object({
+  busca: z.string().trim().max(120).optional(),
+  segmento: z.enum(SEGMENTOS_VALIDOS as [string, ...string[]]).optional(),
+  status: z.enum(['ativo', 'teste', 'carencia', 'bloqueado_cobranca', 'teste_encerrado', 'bloqueado_admin', 'cancelado']).optional(),
+  plano: z.enum(['basico', 'profissional', 'premium']).optional(),
+});
+
+export const adminTenantListQuerySchema = adminTenantFiltrosSchema.extend({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int()
+    .refine((n) => [6, 20, 50, 100].includes(n), { message: 'Use 6, 20, 50 ou 100 por página' })
+    .default(20),
+});
+
+// Auditoria de um negócio no detalhe do SuperAdmin (H2). O CSV usa o mesmo filtro, sem paginação.
+export const adminTenantAuditQuerySchema = paginationQuerySchema.extend({
+  categoria: z.enum(['todos', 'financeiro', 'sistema', 'operador']).default('todos'),
 });
 
 export const adminSubscriptionListQuerySchema = paginationQuerySchema.extend({
@@ -61,11 +70,21 @@ export const adminOverrideStatusBodySchema = actionBodySchema.extend({
 
 export const adminCancelSubscriptionBodySchema = actionBodySchema;
 
+// Aqui o motivo é obrigatório: estender o teste dá tempo de uso sem cobrança.
+export const adminExtendTrialBodySchema = z.object({
+  confirmation: z.literal('CONFIRM', { message: 'Envie confirmation=CONFIRM para confirmar esta ação' }),
+  dias: z.coerce.number().int().min(1).max(30),
+  reason: z.string().trim().min(3, 'Informe o motivo da ação').max(255),
+});
+
 export type AdminMetricsQuery = z.infer<typeof adminMetricsQuerySchema>;
+export type AdminTenantFiltros = z.infer<typeof adminTenantFiltrosSchema>;
 export type AdminTenantListQuery = z.infer<typeof adminTenantListQuerySchema>;
+export type AdminTenantAuditQuery = z.infer<typeof adminTenantAuditQuerySchema>;
 export type AdminSubscriptionListQuery = z.infer<typeof adminSubscriptionListQuerySchema>;
 export type AdminAuditLogQuery = z.infer<typeof adminAuditLogQuerySchema>;
 export type AdminActionParams = z.infer<typeof adminActionParamsSchema>;
 export type AdminActionBody = z.infer<typeof adminActionBodySchema>;
 export type AdminOverridePlanBody = z.infer<typeof adminOverridePlanBodySchema>;
+export type AdminExtendTrialBody = z.infer<typeof adminExtendTrialBodySchema>;
 export type AdminOverrideStatusBody = z.infer<typeof adminOverrideStatusBodySchema>;

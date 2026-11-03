@@ -9,7 +9,10 @@ import { validate } from '../middleware/validate.js';
 import {
   getAdminMetrics,
   getAdminTenants,
+  exportAdminTenants,
   getAdminTenantDetails,
+  getAdminTenantAudit,
+  exportAdminTenantAudit,
   blockTenant,
   unblockTenant,
   softDeleteTenant,
@@ -19,10 +22,13 @@ import {
   resyncSubscription,
   overridePlan,
   overrideStatus,
+  estenderTeste,
   cancelSubscriptionAdmin,
   getAdminAuditLogs,
   adminMetricsQuerySchema,
   adminTenantListQuerySchema,
+  adminTenantFiltrosSchema,
+  adminTenantAuditQuerySchema,
   adminSubscriptionListQuerySchema,
   adminAuditLogQuerySchema,
   adminActionParamsSchema,
@@ -33,6 +39,7 @@ import {
   adminOverridePlanBodySchema,
   adminOverrideStatusBodySchema,
   adminCancelSubscriptionBodySchema,
+  adminExtendTrialBodySchema,
 } from '../validators/schemas/index.js';
 // @ts-ignore
 import {
@@ -49,9 +56,14 @@ router.use(authMiddleware, requireAdmin);
 router.get('/metrics', validate({ query: adminMetricsQuerySchema }), getAdminMetrics);
 
 router.get('/tenants', validate({ query: adminTenantListQuerySchema }), getAdminTenants);
+// Antes de /tenants/:id, senão "export.csv" seria lido como id.
+router.get('/tenants/export.csv', validate({ query: adminTenantFiltrosSchema }), exportAdminTenants);
 router.get('/tenants/:id', validate({ params: adminActionParamsSchema }), getAdminTenantDetails);
+router.get('/tenants/:id/auditoria', validate({ params: adminActionParamsSchema, query: adminTenantAuditQuerySchema }), getAdminTenantAudit);
+router.get('/tenants/:id/auditoria.csv', validate({ params: adminActionParamsSchema, query: adminTenantAuditQuerySchema }), exportAdminTenantAudit);
 router.patch('/tenants/:id/block', validate({ params: adminActionParamsSchema, body: adminActionBodySchema }), blockTenant);
 router.patch('/tenants/:id/unblock', validate({ params: adminActionParamsSchema, body: adminActionBodySchema }), unblockTenant);
+router.patch('/tenants/:id/trial', validate({ params: adminActionParamsSchema, body: adminExtendTrialBodySchema }), estenderTeste);
 router.delete('/tenants/:id', validate({ params: adminActionParamsSchema, body: adminActionBodySchema }), softDeleteTenant);
 
 router.patch('/users/:id/block', validate({ params: adminActionParamsSchema, body: adminActionBodySchema }), blockUser);

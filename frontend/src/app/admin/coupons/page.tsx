@@ -1,8 +1,10 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Pencil, Plus, Search, Trash2, XCircle } from 'lucide-react';
+import { Icon, buttonVariants, controlClass } from '@/components/ui';
+import { CAIXA } from '@/components/admin/formato';
 import { adminApi } from '@/lib/adminApi';
+import { cn } from '@/lib/cn';
 import type { AdminCoupon, AdminCouponPayload } from '@/types/admin';
 
 type CouponFormState = {
@@ -14,6 +16,10 @@ type CouponFormState = {
   valid_until: string;
   active: boolean;
 };
+
+const inputClass = cn(controlClass, 'h-11');
+const botaoIcone =
+  'inline-flex h-11 w-11 items-center justify-center rounded-control border border-line text-muted transition-colors hover:bg-surface-2 hover:text-ink lg:h-9 lg:w-9';
 
 const emptyForm: CouponFormState = {
   code: '',
@@ -186,60 +192,60 @@ export default function AdminCouponsPage() {
   return (
     <div className="space-y-6">
       <section>
-        <h1 className="text-3xl font-black">Cupons</h1>
-        <p className="mt-2 text-sm text-gray-400">Crie descontos para checkout Pix e acompanhe limites de uso.</p>
+        <h1 className="text-3xl font-black text-ink">Cupons</h1>
+        <p className="mt-2 text-sm text-muted">Crie descontos para checkout Pix e acompanhe limites de uso.</p>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[380px_1fr]">
-        <form onSubmit={handleSubmit} method="post" className="card space-y-4">
+        <form onSubmit={handleSubmit} method="post" className={cn(CAIXA, 'space-y-4 p-5 sm:p-6')}>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold">{editingCoupon ? 'Editar cupom' : 'Novo cupom'}</h2>
-              <p className="mt-1 text-xs text-gray-500">O código é salvo em maiúsculas.</p>
+              <h2 className="text-lg font-bold text-ink">{editingCoupon ? 'Editar cupom' : 'Novo cupom'}</h2>
+              <p className="mt-1 text-xs text-muted">O código é salvo em maiúsculas.</p>
             </div>
             {editingCoupon ? (
-              <button type="button" onClick={resetForm} className="btn-secondary text-xs">
+              <button type="button" onClick={resetForm} className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'text-xs')}>
                 Cancelar
               </button>
             ) : (
-              <Plus size={18} className="text-primary" />
+              <Icon name="add" size={20} className="text-brand" />
             )}
           </div>
 
           {error && (
-            <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</p>
+            <p className="rounded-control border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>
           )}
 
           <label className="block space-y-2 text-sm">
-            <span className="font-semibold text-gray-300">Código</span>
+            <span className="font-semibold text-ink">Código</span>
             <input
               value={form.code}
               onChange={(event) => setForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))}
               disabled={Boolean(editingCoupon)}
               placeholder="PROMO20"
-              className="input"
+              className={inputClass}
             />
           </label>
 
           <label className="block space-y-2 text-sm">
-            <span className="font-semibold text-gray-300">Descrição</span>
+            <span className="font-semibold text-ink">Descrição</span>
             <input
               value={form.description}
               onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
               placeholder="Campanha de lançamento"
-              className="input"
+              className={inputClass}
             />
           </label>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block space-y-2 text-sm">
-              <span className="font-semibold text-gray-300">Tipo</span>
+              <span className="font-semibold text-ink">Tipo</span>
               <select
                 value={form.discount_type}
                 onChange={(event) =>
                   setForm((current) => ({ ...current, discount_type: event.target.value as CouponFormState['discount_type'] }))
                 }
-                className="input"
+                className={inputClass}
               >
                 <option value="percent">Percentual</option>
                 <option value="fixed">Valor fixo</option>
@@ -247,7 +253,7 @@ export default function AdminCouponsPage() {
             </label>
 
             <label className="block space-y-2 text-sm">
-              <span className="font-semibold text-gray-300">Desconto</span>
+              <span className="font-semibold text-ink">Desconto</span>
               <input
                 type="number"
                 min="0.01"
@@ -255,14 +261,14 @@ export default function AdminCouponsPage() {
                 value={form.discount_value}
                 onChange={(event) => setForm((current) => ({ ...current, discount_value: event.target.value }))}
                 placeholder={form.discount_type === 'percent' ? '20' : '30.00'}
-                className="input"
+                className={inputClass}
               />
             </label>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block space-y-2 text-sm">
-              <span className="font-semibold text-gray-300">Limite de usos</span>
+              <span className="font-semibold text-ink">Limite de usos</span>
               <input
                 type="number"
                 min="1"
@@ -270,54 +276,55 @@ export default function AdminCouponsPage() {
                 value={form.max_uses}
                 onChange={(event) => setForm((current) => ({ ...current, max_uses: event.target.value }))}
                 placeholder="Ilimitado"
-                className="input"
+                className={inputClass}
               />
             </label>
 
             <label className="block space-y-2 text-sm">
-              <span className="font-semibold text-gray-300">Validade</span>
+              <span className="font-semibold text-ink">Validade</span>
               <input
                 type="date"
                 value={form.valid_until}
                 onChange={(event) => setForm((current) => ({ ...current, valid_until: event.target.value }))}
-                className="input"
+                className={inputClass}
               />
             </label>
           </div>
 
-          <label className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-gray-300">
+          <label className="inline-flex items-center gap-2 rounded-control border border-line px-3 py-2 text-sm text-ink">
             <input
               type="checkbox"
+              className="accent-brand"
               checked={form.active}
               onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))}
             />
             Cupom ativo
           </label>
 
-          <button type="submit" disabled={submitting} className="btn-primary w-full">
+          <button type="submit" disabled={submitting} className={buttonVariants({ variant: 'primary', size: 'md', fullWidth: true })}>
             {submitting ? 'Salvando...' : editingCoupon ? 'Salvar alterações' : 'Criar cupom'}
           </button>
         </form>
 
-        <section className="card overflow-x-auto">
+        <section className={cn(CAIXA, 'overflow-x-auto p-5 sm:p-6')}>
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-lg font-bold">Cupons cadastrados</h2>
-              <p className="mt-1 text-xs text-gray-500">{coupons.length} cupons no total</p>
+              <h2 className="text-lg font-bold text-ink">Cupons cadastrados</h2>
+              <p className="mt-1 text-xs text-muted">{coupons.length} cupons no total</p>
             </div>
             <label className="relative w-full md:max-w-xs">
-              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+              <Icon name="search" size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Buscar cupom"
-                className="input pl-9"
+                className={cn(inputClass, 'pl-9')}
               />
             </label>
           </div>
 
           <table className="min-w-full text-left text-sm">
-            <thead className="text-xs uppercase tracking-wider text-gray-400">
+            <thead className="text-xs uppercase tracking-wider text-muted">
               <tr>
                 <th className="px-3 py-3">Cupom</th>
                 <th className="px-3 py-3">Desconto</th>
@@ -330,34 +337,34 @@ export default function AdminCouponsPage() {
             <tbody>
               {!loading && filteredCoupons.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-8 text-center text-gray-500">Nenhum cupom encontrado.</td>
+                  <td colSpan={6} className="px-3 py-8 text-center text-muted">Nenhum cupom encontrado.</td>
                 </tr>
               )}
 
               {loading && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-8 text-center text-gray-500">Carregando cupons...</td>
+                  <td colSpan={6} className="px-3 py-8 text-center text-muted">Carregando cupons...</td>
                 </tr>
               )}
 
               {filteredCoupons.map((coupon) => (
-                <tr key={coupon.id} className="border-t border-white/5">
+                <tr key={coupon.id} className="border-t border-line">
                   <td className="px-3 py-4">
-                    <p className="font-semibold text-white">{coupon.code}</p>
-                    <p className="text-xs text-gray-500">{coupon.description || '-'}</p>
+                    <p className="font-semibold text-ink">{coupon.code}</p>
+                    <p className="text-xs text-muted">{coupon.description || '-'}</p>
                   </td>
-                  <td className="px-3 py-4 text-gray-300">
+                  <td className="px-3 py-4 text-ink">
                     {coupon.discount_type === 'percent'
                       ? `${Number(coupon.discount_value)}%`
                       : formatCurrency(coupon.discount_value)}
                   </td>
-                  <td className="px-3 py-4 text-gray-300">
+                  <td className="px-3 py-4 text-ink">
                     {coupon.current_uses}/{coupon.max_uses || 'ilimitado'}
                   </td>
-                  <td className="px-3 py-4 text-gray-300">{formatDate(coupon.valid_until)}</td>
+                  <td className="px-3 py-4 text-ink">{formatDate(coupon.valid_until)}</td>
                   <td className="px-3 py-4">
-                    <span className={`badge ${coupon.active ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-red-500/30 bg-red-500/10 text-red-300'}`}>
-                      {coupon.active ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
+                    <span className={`badge ${coupon.active ? 'border-success/30 bg-success/10 text-success-text' : 'border-danger/30 bg-danger/10 text-danger'}`}>
+                      <Icon name={coupon.active ? 'check_circle' : 'cancel'} size={14} />
                       {coupon.active ? 'Ativo' : 'Inativo'}
                     </span>
                   </td>
@@ -366,16 +373,17 @@ export default function AdminCouponsPage() {
                       <button
                         type="button"
                         onClick={() => startEditing(coupon)}
-                        className="rounded-lg border border-white/10 p-2 text-gray-300 hover:bg-white/5 hover:text-white"
+                        aria-label="Editar cupom"
+                        className={botaoIcone}
                         title="Editar cupom"
                       >
-                        <Pencil size={15} />
+                        <Icon name="edit" size={18} />
                       </button>
                       <button
                         type="button"
                         onClick={() => handleToggleActive(coupon)}
                         disabled={submitting}
-                        className="rounded-lg border border-white/10 px-2.5 py-2 text-xs font-semibold text-gray-300 hover:bg-white/5 hover:text-white"
+                        className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'text-xs')}
                       >
                         {coupon.active ? 'Desativar' : 'Ativar'}
                       </button>
@@ -383,10 +391,11 @@ export default function AdminCouponsPage() {
                         type="button"
                         onClick={() => handleDelete(coupon)}
                         disabled={submitting}
-                        className="rounded-lg border border-red-500/30 p-2 text-red-300 hover:bg-red-500/10"
+                        aria-label="Excluir cupom"
+                        className={cn(botaoIcone, 'border-danger/30 text-danger hover:bg-danger/10 hover:text-danger')}
                         title="Excluir cupom"
                       >
-                        <Trash2 size={15} />
+                        <Icon name="delete" size={18} />
                       </button>
                     </div>
                   </td>

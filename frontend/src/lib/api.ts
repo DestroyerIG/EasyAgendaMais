@@ -132,6 +132,8 @@ api.interceptors.response.use(
       const payload = response.data as ApiSuccessPayload;
 
       response.data = payload.data;
+      // O envelope inteiro fica à mão para respostas com campos além de data e meta (ex.: cartões do SuperAdmin).
+      (response as AxiosResponse & { envelope?: unknown }).envelope = payload;
 
       if (payload.meta !== undefined) {
         (response as AxiosResponse & { meta?: unknown }).meta = payload.meta;

@@ -25,11 +25,9 @@ const COVERAGE_EXEMPT: readonly string[] = [
   // mas os modais de Pix/cupom (fluxo autenticado em /dashboard/planos) ainda usam
   // as cores antigas — fora do escopo desta migração.
   'src/components/marketing/PricingPlansSection.tsx',
-  'src/components/admin', // SuperAdmin: fora do escopo do design system
   'src/components/LoadingSkeleton.tsx', // esqueleto legado das telas fora do escopo
   'src/app/termos', // página institucional: fora do escopo
   'src/app/privacidade', // página institucional: fora do escopo
-  'src/app/admin', // SuperAdmin: fora do escopo
   'src/components/dev', // vitrine interna dos componentes
   'src/components/theme/ForcedDark.tsx', // só alterna a classe de tema, não pinta nada
 ];
@@ -56,5 +54,11 @@ describe('conformidade com os tokens', () => {
       .filter((relative) => relative.endsWith('.tsx'))
       .filter((relative) => !isListed(relative, THEMED_PATHS) && !isListed(relative, COVERAGE_EXEMPT));
     expect(uncovered).toEqual([]);
+  });
+
+  // O SuperAdmin foi migrado na H2: nenhuma parte dele pode continuar isenta.
+  it('o SuperAdmin não tem isenção', () => {
+    const sobras = COVERAGE_EXEMPT.filter((entry) => /^src\/(app|components)\/admin(\/|$)/.test(entry));
+    expect(sobras).toEqual([]);
   });
 });

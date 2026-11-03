@@ -1,118 +1,122 @@
 'use client';
 
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { ArrowRight, BarChart3, Building2, CreditCard, ScrollText, ShieldAlert, Tags, Users } from 'lucide-react';
+/**
+ * Visão geral do SuperAdmin (Stitch `easyagenda-superadmin-visao-geral-de-operacoes-ajustada--5f2465`).
+ *
+ * Todo número vem de GET /admin/metrics. Do Stitch saem o "Tempo real", o seletor de período,
+ * o "Exportar BI", o bloco "Expansão" do MRR, os selos inventados dos segmentos, as ações em lote
+ * da tabela de risco e os cartões de GMV e infraestrutura, que não têm dado por trás.
+ */
+
+import { useCallback, useEffect, useState } from 'react';
+import { Banner, Icon, Skeleton, buttonVariants } from '@/components/ui';
+import { CartaoCancelamentos } from '@/components/admin/visaoGeral/CartaoCancelamentos';
+import { CartaoConversao } from '@/components/admin/visaoGeral/CartaoConversao';
+import { CartaoMrr } from '@/components/admin/visaoGeral/CartaoMrr';
+import { CartaoTestes } from '@/components/admin/visaoGeral/CartaoTestes';
+import { ConversaoPorSegmento } from '@/components/admin/visaoGeral/ConversaoPorSegmento';
+import { DisparosWhatsapp } from '@/components/admin/visaoGeral/DisparosWhatsapp';
+import { TabelaEmRisco } from '@/components/admin/visaoGeral/TabelaEmRisco';
+import { horaMinuto } from '@/components/admin/formato';
 import { adminApi } from '@/lib/adminApi';
-import { AdminMetricCard } from '@/components/admin/AdminMetricCard';
-import type { AdminMetricsResponse } from '@/types/admin';
+import { cn } from '@/lib/cn';
+import { getApiErrorMessage } from '@/utils/handleApiError';
+import type { AdminVisaoGeral } from '@/types/admin';
 
 export default function AdminHomePage() {
-  const [metrics, setMetrics] = useState<AdminMetricsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [dados, setDados] = useState<AdminVisaoGeral | null>(null);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await adminApi.getMetrics(30);
-        setMetrics(data);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
+  const carregar = useCallback(async () => {
+    setCarregando(true);
+    setErro(null);
+    try {
+      setDados(await adminApi.getMetrics());
+    } catch (e) {
+      setErro(getApiErrorMessage(e, 'Não foi possível carregar a visão geral.'));
+    } finally {
+      setCarregando(false);
+    }
   }, []);
 
-  if (loading) {
-    return <p className="text-sm text-gray-400">Carregando visão administrativa...</p>;
-  }
+  useEffect(() => {
+    void carregar();
+  }, [carregar]);
 
   return (
-    <div className="space-y-6">
-      <section>
-        <h1 className="text-3xl font-black">Resumo da Plataforma</h1>
-        <p className="mt-2 text-sm text-gray-400">
-          Acompanhe saúde comercial, contas e operações administrativas em um único painel.
-        </p>
-      </section>
+    <div className="mx-auto w-full max-w-[1440px]">
+      <header className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <div>
+          <p className="mb-1 text-[12px] font-semibold text-muted">SuperAdmin</p>
+          <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-[28px]">Visão geral</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          {dados && (
+            <span className="rounded-control border border-line bg-surface px-3 py-1.5 text-[13px] text-muted shadow-sm">
+              Atualizado às {horaMinuto(dados.atualizadoEm)}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => void carregar()}
+            disabled={carregando}
+            aria-label="Recarregar"
+            title="Recarregar"
+            className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'w-11 px-0 lg:w-9')}
+          >
+            <Icon name="refresh" size={18} className={cn(carregando && 'animate-spin')} />
+          </button>
+        </div>
+      </header>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <AdminMetricCard
-          label="Contas cadastradas"
-          value={metrics?.totals.totalAccounts || 0}
-          icon={Building2}
-          tone="primary"
-        />
-        <AdminMetricCard
-          label="Assinaturas ativas"
-          value={metrics?.subscriptions.active || 0}
-          icon={CreditCard}
-          tone="success"
-        />
-        <AdminMetricCard
-          label="Contas suspensas"
-          value={metrics?.totals.suspendedAccounts || 0}
-          icon={ShieldAlert}
-          tone="warning"
-        />
-        <AdminMetricCard
-          label="Usuários bloqueados"
-          value={metrics?.totals.blockedUsers || 0}
-          icon={Users}
+      {erro && (
+        <Banner
           tone="danger"
-        />
-      </section>
+          variant="inline"
+          className="mb-6"
+          action={
+            <button
+              type="button"
+              onClick={() => void carregar()}
+              className="ml-auto font-bold text-ink underline underline-offset-2"
+            >
+              Tentar de novo
+            </button>
+          }
+        >
+          {erro}
+        </Banner>
+      )}
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <article className="card">
-          <h2 className="text-lg font-bold">Atalhos administrativos</h2>
-          <div className="mt-4 grid gap-2">
-            <Link href="/admin/metrics" className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3 text-sm hover:bg-white/5">
-              <span className="inline-flex items-center gap-2"><BarChart3 size={16} /> Métricas detalhadas</span>
-              <ArrowRight size={16} />
-            </Link>
-            <Link href="/admin/tenants" className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3 text-sm hover:bg-white/5">
-              <span className="inline-flex items-center gap-2"><Building2 size={16} /> Gerenciar contas</span>
-              <ArrowRight size={16} />
-            </Link>
-            <Link href="/admin/subscriptions" className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3 text-sm hover:bg-white/5">
-              <span className="inline-flex items-center gap-2"><CreditCard size={16} /> Assinaturas</span>
-              <ArrowRight size={16} />
-            </Link>
-            <Link href="/admin/coupons" className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3 text-sm hover:bg-white/5">
-              <span className="inline-flex items-center gap-2"><Tags size={16} /> Cupons</span>
-              <ArrowRight size={16} />
-            </Link>
-            <Link href="/admin/logs" className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3 text-sm hover:bg-white/5">
-              <span className="inline-flex items-center gap-2"><ScrollText size={16} /> Auditoria</span>
-              <ArrowRight size={16} />
-            </Link>
+      {!dados && carregando && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <Skeleton className="h-44" label="Carregando a visão geral" />
+            <Skeleton className="h-44" />
+            <Skeleton className="h-44" />
+            <Skeleton className="h-44" />
           </div>
-        </article>
+          <Skeleton className="h-72" />
+          <Skeleton className="h-64" />
+        </div>
+      )}
 
-        <article className="card">
-          <h2 className="text-lg font-bold">Indicadores do período (30 dias)</h2>
-          <ul className="mt-4 space-y-3 text-sm text-gray-300">
-            <li className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3">
-              <span>Novas contas</span>
-              <strong>{metrics?.usage.newAccountsTrend.reduce((acc, row) => acc + Number(row.total || 0), 0) || 0}</strong>
-            </li>
-            <li className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3">
-              <span>Agendamentos registrados</span>
-              <strong>{metrics?.usage.appointmentsInPeriod || 0}</strong>
-            </li>
-            <li className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3">
-              <span>MRR estimado</span>
-              <strong>R$ {(metrics?.revenue.estimatedMrr || 0).toFixed(2)}</strong>
-            </li>
-            <li className="flex items-center justify-between rounded-lg border border-white/10 px-4 py-3">
-              <span>Receita coletada no mês</span>
-              <strong>R$ {(metrics?.revenue.monthlyRevenueCollected || 0).toFixed(2)}</strong>
-            </li>
-          </ul>
-        </article>
-      </section>
+      {dados && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <CartaoMrr mrr={dados.mrr} />
+            <CartaoTestes testes={dados.testes} />
+            <CartaoConversao geral={dados.conversao.geral} />
+            <CartaoCancelamentos cancelamentos={dados.cancelamentos} />
+          </div>
+          <ConversaoPorSegmento segmentos={dados.conversao.segmentos} />
+          <TabelaEmRisco negocios={dados.emRisco} agora={new Date(dados.atualizadoEm)} />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <DisparosWhatsapp disparos={dados.disparos24h} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -22,3 +22,6 @@ export const PLANS = {
   profissional: { name: 'Equipe', price: 99.9, professionals: 5 },
   premium: { name: 'Salão', price: 199.9, professionals: 999 },
 } as const;
+
+// Duração do teste grátis. Mesmo valor de `TRIAL_DAYS` em backend/src/config/trial.ts.
+export const TRIAL_DAYS = 14;

@@ -1,9 +1,8 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { LoadingSkeleton } from '@/components/LoadingSkeleton';
+import { Skeleton } from '@/components/ui';
 import { AdminLayoutShell } from '@/components/admin/AdminLayoutShell';
-import { ForcedDark } from '@/components/theme/ForcedDark';
 import { useRequireRole } from '@/hooks/useRequireRole';
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -15,9 +14,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   if (isChecking || !isAuthorized) {
     return (
-      <ForcedDark className="min-h-screen">
-        <LoadingSkeleton />
-      </ForcedDark>
+      <div className="flex min-h-screen flex-col gap-4 bg-bg p-6">
+        <Skeleton className="h-10 w-64" label="Carregando o admin" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
     );
   }
 

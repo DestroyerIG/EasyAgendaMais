@@ -80,4 +80,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/convite',
   'src/app/avaliar',
   'src/components/avaliacao',
+  // H2: SuperAdmin.
+  'src/components/admin',
+  'src/app/admin',
 ];
