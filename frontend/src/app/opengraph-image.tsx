@@ -5,7 +5,9 @@ export const alt = 'EasyAgenda+ - Gestão para Negócios de Beleza';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-export default function OgImage() {
+export default async function OgImage() {
+  // Mesma logo das telas (src/icons); o ImageResponse aceita o ArrayBuffer direto no <img>.
+  const png = await fetch(new URL('../icons/easyagenda-logo.png', import.meta.url)).then((r) => r.arrayBuffer());
   return new ImageResponse(
     (
       <div
@@ -58,27 +60,8 @@ export default function OgImage() {
           }}
         >
           {/* Logo mark */}
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '14px',
-              background: 'rgba(255,122,0,0.15)',
-              border: '1.5px solid rgba(255,122,0,0.4)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: '16px',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '26px',
-              }}
-            >
-              ✂
-            </div>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element -- ImageResponse só aceita <img> */}
+          <img src={png as unknown as string} width={56} height={56} alt="" style={{ marginRight: '16px' }} />
 
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span

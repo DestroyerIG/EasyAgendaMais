@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/cn';
-import { Icon } from '@/components/ui';
+import { BrandLogo, Icon } from '@/components/ui';
 
 export const ADMIN_LINKS = [
   { href: '/admin', label: 'Visão geral', icon: 'monitoring' },
@@ -22,9 +22,7 @@ export function AdminSidebar() {
   return (
     <aside className="w-full border-b border-line bg-surface lg:sticky lg:top-0 lg:h-screen lg:w-[248px] lg:shrink-0 lg:border-b-0 lg:border-r">
       <div className="flex h-16 items-center gap-2.5 border-b border-line px-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-brand/20 bg-brand/10 text-lg font-black leading-none text-brand">
-          +
-        </div>
+        <BrandLogo size={32} decorativa />
         <div className="flex flex-col leading-tight">
           <span className="text-[17px] font-bold tracking-tight text-ink">
             EasyAgenda<span className="text-brand">+</span>

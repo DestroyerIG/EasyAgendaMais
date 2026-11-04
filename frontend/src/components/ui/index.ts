@@ -28,4 +28,5 @@ export {
 } from './DropdownMenu';
 export { ThemeSelect } from './ThemeSelect';
 export { Icon, type IconProps } from './Icon';
+export { BrandLogo } from './BrandLogo';
 export { AVISO_RECURSO_A_CAMINHO } from './avisos';

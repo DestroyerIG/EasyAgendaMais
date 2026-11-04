@@ -13,11 +13,11 @@ export function HeroPhoneMockup({ data }: { data: SegmentData }) {
           <div className="flex items-center gap-3">
             <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-line bg-surface-2">
               <Image
-                src="/images/hero-studio-avatar.jpg"
-                alt="Foto da profissional do estúdio"
+                src={data.avatar?.src ?? '/images/hero-studio-avatar.jpg'}
+                alt={data.avatar?.alt ?? 'Foto da profissional do estúdio'}
                 fill
                 sizes="48px"
-                className="object-cover"
+                className={data.avatar?.contain ? 'object-contain' : 'object-cover'}
               />
             </div>
             <div className="flex min-w-0 flex-col">

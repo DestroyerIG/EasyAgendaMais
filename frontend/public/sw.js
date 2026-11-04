@@ -2,7 +2,7 @@
  * Guarda só a casca (ícones e a página sem conexão): dados nunca ficam no aparelho.
  * Recebe o Web Push e abre o link da notificação ao tocar. */
 
-const CACHE = 'easyagenda-casca-v1';
+const CACHE = 'easyagenda-casca-v3';
 const CASCA = ['/icons/icon-192.png', '/icons/icon-512.png', '/offline.html'];
 
 self.addEventListener('install', (event) => {

@@ -83,21 +83,29 @@ const afterItems = [
   'Ficha técnica, preferências e histórico organizados por cliente.',
 ];
 
+// Depoimentos ILUSTRATIVOS (personagens fictícios), até chegarem os reais. A seção mostra o aviso
+// "ilustrativo" em cada card; não remover o aviso enquanto os textos não forem de clientes de verdade.
 const testimonials = [
   {
     quote:
-      'O sinal Pix reduziu minhas faltas a praticamente zero. Não perco mais domingo respondendo WhatsApp.',
-    segment: 'Segmento: Esmalteria e Unhas',
+      'Eu passava o domingo respondendo cliente no WhatsApp. Agora elas marcam sozinhas pelo link e pagam o sinal no Pix. As faltas quase sumiram.',
+    name: 'Camila R.',
+    role: 'Nail designer, atende sozinha',
+    city: 'Recife (PE)',
   },
   {
     quote:
-      'Com barbeiros na casa, o fechamento de comissões levava horas. Hoje cada um olha o próprio celular e bate o repasse.',
-    segment: 'Segmento: Barbearia',
+      'Com quatro barbeiros, fechar comissão no fim do mês levava uma tarde inteira. Hoje cada um vê o próprio repasse no celular e ninguém discute.',
+    name: 'Diego M.',
+    role: 'Dono de barbearia, 4 profissionais',
+    city: 'Campinas (SP)',
   },
   {
     quote:
-      'A Hora de voltar traz clientes de volta sem eu precisar parecer insistente. Elas amam a pontualidade do lembrete.',
-    segment: 'Segmento: Cílios e sobrancelha',
+      'O lembrete de manutenção traz a cliente de volta na hora certa, sem eu ficar cobrando. A agenda de cílios ficou cheia de retorno.',
+    name: 'Juliana S.',
+    role: 'Lash designer',
+    city: 'Belo Horizonte (MG)',
   },
 ];
 
@@ -346,14 +354,14 @@ export default function HomePage() {
           <div className="mx-auto flex max-w-7xl flex-col gap-10 px-4 sm:px-6 lg:px-8">
             <SectionHeading
               eyebrow="Casos práticos"
-              title="Quem usa todos os dias recomenda"
-              subtitle="Profissionais e estúdios que recuperaram horas de descanso e organizaram suas finanças."
+              title="Como fica o dia a dia com o EasyAgenda+"
+              subtitle="Situações comuns de quem atende com hora marcada, contadas por personagens ilustrativos."
             />
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
               {testimonials.map((testimonial) => (
                 <article
-                  key={testimonial.segment}
+                  key={testimonial.name}
                   className="flex flex-col justify-between gap-6 rounded-card border border-line bg-surface p-6 shadow-sm sm:p-8"
                 >
                   <div className="flex flex-col gap-3">
@@ -364,9 +372,22 @@ export default function HomePage() {
                     </div>
                     <p className="text-[15px] italic leading-relaxed text-ink">&ldquo;{testimonial.quote}&rdquo;</p>
                   </div>
-                  <div className="flex flex-col gap-0.5 border-t border-line pt-4">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Depoimento de exemplo</span>
-                    <span className="text-sm font-bold text-ink">{testimonial.segment}</span>
+                  <div className="flex items-center gap-3 border-t border-line pt-4">
+                    <span
+                      aria-hidden="true"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10 text-sm font-bold text-brand-text"
+                    >
+                      {testimonial.name.slice(0, 1)}
+                    </span>
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <span className="text-sm font-bold text-ink">{testimonial.name}</span>
+                      <span className="text-xs text-muted">
+                        {testimonial.role} · {testimonial.city}
+                      </span>
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+                        Depoimento ilustrativo
+                      </span>
+                    </div>
                   </div>
                 </article>
               ))}

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Icon } from '@/components/ui';
+import { BrandLogo, Icon } from '@/components/ui';
 
 const navItems = [
   { href: '#inicio', label: 'Início' },
@@ -18,6 +18,7 @@ export function PublicNavbar() {
     <header className="sticky top-0 z-50 border-b border-line bg-surface/80 shadow-[0_1px_8px_rgba(0,0,0,0.04)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-8">
         <Link href="/" className="flex items-center gap-1" aria-label="EasyAgenda+ página inicial">
+          <BrandLogo size={32} decorativa priority className="mr-1.5" />
           <span className="text-xl font-black tracking-tight text-ink">EasyAgenda</span>
           <span className="text-xl font-black text-brand">+</span>
         </Link>

@@ -1,19 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
-import { Banner, Button, Card, Field, Input, PasswordInput } from '@/components/ui';
+import { Banner, BrandLogo, Button, Card, Field, Input, PasswordInput } from '@/components/ui';
 import api from '@/lib/api';
 import { getApiErrorCode, getApiErrorMessage } from '@/utils/handleApiError';
 import { formatCpfCnpj, isValidCpfCnpj, normalizeCpfCnpjDigits } from '@/utils/cpfCnpj';
 import { resolveAuthConfirmRedirectUrl } from '@/lib/supabase/client';
 import { guardarSegmentoDoCadastro } from '@/lib/onboarding';
 import { guardarEscolhaTeste, type EscolhaTeste } from '@/lib/escolhaTeste';
-import easyAgendaLogo from '@/icons/easyagenda-logo.svg';
 import { BotaoGoogle } from './BotaoGoogle';
 
 type AuthMode = 'login' | 'register';
@@ -227,16 +225,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       <div className="mx-auto flex max-w-5xl flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
         <section className="max-w-xl">
           <div className="inline-flex items-center gap-3">
-            <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-control border border-line bg-surface-2">
-              <Image
-                src={easyAgendaLogo}
-                alt="Logo EasyAgenda+"
-                width={40}
-                height={40}
-                className="h-full w-full object-contain"
-                priority
-              />
-            </span>
+            <BrandLogo size={40} priority />
             <p className="text-xs uppercase tracking-[0.24em] text-brand-text">EasyAgenda+</p>
           </div>
           <h1 className="mt-3 text-3xl font-black leading-tight text-ink sm:text-4xl lg:text-5xl">
@@ -259,15 +248,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
         <Card className="mx-auto w-full max-w-md">
           <div className="mb-6 flex items-center gap-3">
-            <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-control border border-line bg-surface-2">
-              <Image
-                src={easyAgendaLogo}
-                alt="Logo EasyAgenda+"
-                width={40}
-                height={40}
-                className="h-full w-full object-contain"
-              />
-            </span>
+            <BrandLogo size={40} />
             <div>
               <h2 className="text-2xl font-bold text-ink">{isLogin ? 'Login' : 'Criar conta'}</h2>
               <p className="text-sm text-muted">

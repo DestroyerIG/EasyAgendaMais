@@ -8,6 +8,8 @@ export type SegmentData = {
   price: number;
   deposit: number;
   duration: string;
+  /** Logo/foto do negócio no card do celular; sem ela, usa a foto padrão do estúdio. */
+  avatar?: { src: string; alt: string; contain?: boolean };
 };
 
 export const segments: Record<SegmentKey, SegmentData> = {
@@ -19,6 +21,7 @@ export const segments: Record<SegmentKey, SegmentData> = {
     price: 85,
     deposit: 25,
     duration: '45m',
+    avatar: { src: '/images/barbearia-logo.png', alt: 'Logo da Barbearia Exemplo', contain: true },
   },
   unhas: {
     label: 'Unhas',

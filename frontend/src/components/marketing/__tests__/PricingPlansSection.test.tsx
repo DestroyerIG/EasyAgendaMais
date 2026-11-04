@@ -55,6 +55,10 @@ describe('cards de preço', () => {
     expect(within(card).getByText('Sob consulta')).toBeInTheDocument();
     expect(within(card).getByRole('link', { name: 'Falar com a gente' })).toHaveAttribute('href', expect.stringMatching(/wa\.me/));
     expect(within(card).queryByText(/R\$/)).not.toBeInTheDocument();
+    expect(within(card).queryByText(/dias grátis/)).not.toBeInTheDocument();
+    // Os planos com preço continuam mostrando o teste grátis.
+    const equipe = screen.getByRole('heading', { name: 'Equipe' }).closest('article')!;
+    expect(within(equipe).getAllByText(/7 dias grátis sem cartão/).length).toBeGreaterThan(0);
   });
 
   it('Salão com valor combinado: mostra o valor e o checkout', () => {

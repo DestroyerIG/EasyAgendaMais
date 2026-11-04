@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
 import localFont from 'next/font/local'
-import easyAgendaLogo from '@/icons/easyagenda-logo.svg'
+import easyAgendaLogo from '@/icons/easyagenda-logo.png'
 
 const plusJakartaSans = localFont({
   src: '../assets/fonts/plus-jakarta-sans-latin.woff2',

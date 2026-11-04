@@ -680,9 +680,12 @@ export function PricingPlansSection({
                     <span className="text-sm font-medium text-muted">/mês</span>
                   </p>
                 )}
-                <p className="mt-2 inline-flex items-center rounded-full bg-whatsapp/10 px-3 py-1.5 text-[11px] font-medium leading-snug text-whatsapp sm:text-xs">
-                  7 dias grátis sem cartão, ou 14 com cartão cadastrado
-                </p>
+                {/* Sob consulta não tem teste grátis: o valor é combinado antes. */}
+                {!sobConsulta && (
+                  <p className="mt-2 inline-flex items-center rounded-full bg-whatsapp/10 px-3 py-1.5 text-[11px] font-medium leading-snug text-whatsapp sm:text-xs">
+                    7 dias grátis sem cartão, ou 14 com cartão cadastrado
+                  </p>
+                )}
               </div>
 
               <ul className="space-y-2 text-sm text-ink">

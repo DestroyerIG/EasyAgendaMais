@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Icon } from '@/components/ui';
+import { BrandLogo, Icon } from '@/components/ui';
 
 const EASYCONNECT_URL = 'https://easyconnectcg.com.br';
 
@@ -34,9 +34,7 @@ export function PublicFooter() {
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5 lg:gap-12">
           <div className="flex flex-col gap-4 lg:col-span-2">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand">
-                <Icon name="calendar_month" size={20} className="text-on-brand" />
-              </div>
+              <BrandLogo size={36} decorativa />
               <span className="text-lg font-bold tracking-tight text-ink">
                 EasyAgenda<span className="text-brand">+</span>
               </span>
