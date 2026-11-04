@@ -46,6 +46,7 @@ export interface TopBarProps {
   businessName: string;
   roleLabel: string;
   onLogout: () => void;
+  onAvaliar?: () => void;
 }
 
 // Placeholder da busca por tela — vem do arquivo de referência de cada tela
@@ -86,7 +87,7 @@ function TopBarSearch({ activeId, pageTitle }: { activeId: NavItemId | null; pag
   );
 }
 
-export function TopBar({ activeId, pageTitle, businessName, roleLabel, onLogout }: TopBarProps) {
+export function TopBar({ activeId, pageTitle, businessName, roleLabel, onLogout, onAvaliar }: TopBarProps) {
   const [desktopAccountOpen, setDesktopAccountOpen] = useState(false);
   const [mobileAccountOpen, setMobileAccountOpen] = useState(false);
   const [desktopNotificationsOpen, setDesktopNotificationsOpen] = useState(false);
@@ -130,7 +131,7 @@ export function TopBar({ activeId, pageTitle, businessName, roleLabel, onLogout 
               <span className="sr-only">Menu da conta</span>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="bottom" align="end" className="w-[200px]">
-              <AccountMenuContent onLogout={onLogout} />
+              <AccountMenuContent onLogout={onLogout} onAvaliar={onAvaliar} />
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -168,7 +169,7 @@ export function TopBar({ activeId, pageTitle, businessName, roleLabel, onLogout 
               <Icon name="person" size={18} />
             </DropdownMenuTrigger>
             <DropdownMenuContent side="bottom" align="end" className="w-[200px]">
-              <AccountMenuContent onLogout={onLogout} />
+              <AccountMenuContent onLogout={onLogout} onAvaliar={onAvaliar} />
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

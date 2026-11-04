@@ -12,7 +12,7 @@ import {
 
 // Conteúdo do menu da conta (tema + sair), compartilhado entre o cartão do
 // negócio na barra lateral (desktop) e a pílula de usuário na barra superior.
-export function AccountMenuContent({ onLogout }: { onLogout: () => void }) {
+export function AccountMenuContent({ onLogout, onAvaliar }: { onLogout: () => void; onAvaliar?: () => void }) {
   return (
     <>
       <DropdownMenuLabel>Tema</DropdownMenuLabel>
@@ -20,6 +20,12 @@ export function AccountMenuContent({ onLogout }: { onLogout: () => void }) {
         <ThemeSelect className="w-full justify-between" />
       </div>
       <DropdownMenuSeparator />
+      {onAvaliar && (
+        <DropdownMenuItem onSelect={() => onAvaliar()}>
+          <Icon name="star" size={16} />
+          Avaliar o EasyAgenda+
+        </DropdownMenuItem>
+      )}
       <DropdownMenuItem onSelect={() => onLogout()}>
         <Icon name="logout" size={16} />
         Sair
@@ -32,10 +38,12 @@ export function AccountMenu({
   businessName,
   planLabel,
   onLogout,
+  onAvaliar,
 }: {
   businessName: string;
   planLabel: string;
   onLogout: () => void;
+  onAvaliar?: () => void;
 }) {
   return (
     <DropdownMenu>
@@ -53,7 +61,7 @@ export function AccountMenu({
         <span className="sr-only">Menu da conta</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" className="w-[232px]">
-        <AccountMenuContent onLogout={onLogout} />
+        <AccountMenuContent onLogout={onLogout} onAvaliar={onAvaliar} />
       </DropdownMenuContent>
     </DropdownMenu>
   );
