@@ -7,6 +7,8 @@ import {
 import type { DepoimentoAtual, EnvioInput, EstadoDepoimento, StatusAtual, UsuarioDono } from './depoimentos.types.js';
 
 const DIA_MS = 24 * 60 * 60 * 1000;
+const NOME_MAX = 60;
+const CIDADE_MAX = 80;
 
 const STATUS_PUBLICO: Record<string, StatusAtual> = {
   pendente: 'em_analise',
@@ -70,6 +72,13 @@ export const depoimentosService = {
     const cidade = vazioParaNulo(body.cidade);
     if (autorizou && (!nomeExibido || !cidade)) {
       throw new ValidationError('Informe o nome e a cidade que vão aparecer no depoimento');
+    }
+    // Limites das colunas VARCHAR(60) e VARCHAR(80): evita 500 por valor longo demais.
+    if (nomeExibido && nomeExibido.length > NOME_MAX) {
+      throw new ValidationError(`O nome deve ter no máximo ${NOME_MAX} caracteres`);
+    }
+    if (cidade && cidade.length > CIDADE_MAX) {
+      throw new ValidationError(`A cidade deve ter no máximo ${CIDADE_MAX} caracteres`);
     }
     const negocio = await repo.negocio(id);
     if (!negocio) throw new NotFoundError('Negócio');

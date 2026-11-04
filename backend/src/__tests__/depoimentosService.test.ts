@@ -125,6 +125,18 @@ describe('depoimentosService.enviar', () => {
     await expect(depoimentosService.enviar(dono, { ...envioBom, cidade: undefined })).rejects.toMatchObject({ statusCode: 400 });
   });
 
+  it('nomeExibido aceita 60 e recusa 61 caracteres após trim (400)', async () => {
+    await expect(depoimentosService.enviar(dono, { ...envioBom, nomeExibido: ` ${'a'.repeat(60)} ` })).resolves.toBeDefined();
+    await expect(depoimentosService.enviar(dono, { ...envioBom, nomeExibido: 'a'.repeat(61) }))
+      .rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it('cidade aceita 80 e recusa 81 caracteres após trim (400)', async () => {
+    await expect(depoimentosService.enviar(dono, { ...envioBom, cidade: ` ${'a'.repeat(80)} ` })).resolves.toBeDefined();
+    await expect(depoimentosService.enviar(dono, { ...envioBom, cidade: 'a'.repeat(81) }))
+      .rejects.toMatchObject({ statusCode: 400 });
+  });
+
   it('nota >= 4 sem autorização não exige nome e cidade e vira interno', async () => {
     await depoimentosService.enviar(dono, { nota: 5, texto: textoValido, autorizou: false });
     expect(inserts()[0].valores).toContain('interno');
