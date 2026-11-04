@@ -108,6 +108,8 @@ model Business {
   clubeContratos ClubeContrato[]
   profissionalConvites ProfissionalConvite[]
   googleAgendaConexoes GoogleAgendaConexao[]
+  depoimentos          Depoimento[]
+  depoimentoPedido     DepoimentoPedido?
   @@map("businesses")
 }
 
@@ -1210,4 +1212,39 @@ model GoogleAgendaOcupado {
 
   @@index([conexaoId, inicio])
   @@map("google_agenda_ocupado")
+}
+
+model Depoimento {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId    String?   @map("business_id") @db.Uuid
+  negocioNome   String    @map("negocio_nome") @db.VarChar(255)
+  logoUrl       String?   @map("logo_url") @db.Text
+  nota          Int       @db.SmallInt
+  texto         String    @db.Text
+  textoOriginal String?   @map("texto_original") @db.Text
+  nomeExibido   String?   @map("nome_exibido") @db.VarChar(60)
+  cidade        String?   @db.VarChar(80)
+  autorizou     Boolean   @default(false)
+  autorizadoEm  DateTime? @map("autorizado_em") @db.Timestamptz(6)
+  status        String    @db.VarChar(20)
+  criadoEm      DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  publicadoEm   DateTime? @map("publicado_em") @db.Timestamptz(6)
+  publicadoPor  String?   @map("publicado_por") @db.Uuid
+  atualizadoEm  DateTime  @default(now()) @map("atualizado_em") @db.Timestamptz(6)
+
+  business Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, criadoEm(sort: Desc)])
+  @@index([status, publicadoEm(sort: Desc)])
+  @@map("depoimentos")
+}
+
+model DepoimentoPedido {
+  businessId   String    @id @map("business_id") @db.Uuid
+  adiadoAte    DateTime? @map("adiado_ate") @db.Timestamptz(6)
+  dispensadoEm DateTime? @map("dispensado_em") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("depoimento_pedidos")
 }
