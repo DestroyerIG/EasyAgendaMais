@@ -188,6 +188,18 @@ Sub-projeto 7 (Login com Google e Google Agenda), pendências conhecidas:
 - Ajustes feitos: a tabela de negócios espremia a coluna do nome e cortava a última coluna em 1440 px (plano e valor passaram a duas linhas, o "Ver detalhes" virou botão de ícone, com nome acessível "Ver detalhes de {negócio}" em cada linha); o bloco "Sinal Pix" do detalhe mostrava o texto inteiro em fonte grande e quebrava em três linhas.
 - O botão "Avisar no WhatsApp" usa a variante `whatsapp` do kit: no tema escuro, o texto branco sobre o verde claro tem contraste baixo. Ajuste no kit, fora da H2.
 
+## Salão sob consulta, pendências conhecidas
+
+- **Plano:** `docs/superpowers/plans/2026-11-04-salao-sob-consulta.md`. O dono pediu para pular as perguntas, então as decisões do plano são do Claude e podem ser revistas.
+- **Como funciona:**
+  - o Salão mostra "Sob consulta" e o botão "Falar com a gente" (WhatsApp);
+  - o SuperAdmin define o valor mensal combinado no detalhe do negócio ("Definir valor do Salão");
+  - com o valor definido, a dona assina ou faz o upgrade no checkout normal.
+- **Onde fica o valor:** em `businesses.metadata.valorMensalCombinado`. Sem migração.
+- **Negócios que já estavam no Salão:** continuam em R$ 199,90 (`VALOR_SALAO_LEGADO`) até o SuperAdmin definir outro valor. Em 04/11 era 1 negócio, ativo e sem pagamento de Salão registrado.
+- **Contato:** o link "Falar com a gente" usa `NEXT_PUBLIC_WHATSAPP_CONTACT_URL`; sem ela, usa o número padrão da landing.
+- **Ainda não feito:** cobrar por unidade. O valor combinado é um só por negócio, e a gestão de várias unidades continua "em breve".
+
 ## Asaas único e teste de 7 ou 14 dias, pendências conhecidas
 
 - **Documentos:**
