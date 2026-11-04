@@ -199,6 +199,16 @@ Sub-projeto 7 (Login com Google e Google Agenda), pendências conhecidas:
 - **Negócios que já estavam no Salão:** continuam em R$ 199,90 (`VALOR_SALAO_LEGADO`) até o SuperAdmin definir outro valor. Em 04/11 era 1 negócio, ativo e sem pagamento de Salão registrado.
 - **Contato:** o link "Falar com a gente" usa `NEXT_PUBLIC_WHATSAPP_CONTACT_URL`; sem ela, usa o número padrão da landing.
 - **Ainda não feito:** cobrar por unidade. O valor combinado é um só por negócio, e a gestão de várias unidades continua "em breve".
+- **Revisão final:** quatro itens importantes foram corrigidos antes do PR: valor com centavos, prévia do cupom, ação do SuperAdmin no teste, no downgrade e no cartão cancelado, e "Mudar plano" para o Salão sem valor.
+- **Ajustes pequenos adiados:**
+  - no Salão sem valor, alguns caminhos usam R$ 199,90 calados como reserva, em vez de dar erro (reativação no teste e webhook de upgrade);
+  - um checkout recusado do Salão ainda grava o Salão como plano desejado;
+  - o Asaas é atualizado antes do banco ao definir o valor;
+  - redefinir o valor regrava a 1ª cobrança e pode tirar o desconto do cupom;
+  - o detalhe do negócio não mostra o valor combinado fora do Salão, e o modal abre vazio;
+  - `PLANS.premium.price` (199,9) ficou sem uso em `frontend/src/lib/constants.ts`;
+  - quem escolheu o Salão no Pix durante o teste, antes desta mudança, recebe "sob consulta" no checkout.
+- **Segurança (vem da branch Asaas único):** o `/billing/status` devolve o `metadata` inteiro para a dona, incluindo o token do cartão (`metadata.cartao.token`). Tirar o `metadata` da resposta numa próxima mudança.
 
 ## Asaas único e teste de 7 ou 14 dias, pendências conhecidas
 
