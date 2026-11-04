@@ -8,6 +8,7 @@ import { asaasClient } from '../../integrations/asaas/client.js';
 import { mapAsaasStatusToInternalStatus, resolveBillingProviderFromContext } from '../../services/billing/statusMapper.js';
 import type { PlanId } from '../../types/domain.js';
 import { planChangeRepository } from './planChange.repository.js';
+import { valorMensal, valorMensalOuErro } from '../../config/valorPlano.js';
 import {
   bloqueioDowngrade,
   calcularProporcional,
@@ -79,6 +80,12 @@ const formaDaAssinatura = (ctx: Contexto): 'card' | 'pix' => {
   );
 };
 
+// Valores mensais do negócio para o proporcional; o Salão sem valor combinado recusa (sob consulta).
+const valoresDaTroca = (ctx: Contexto, atual: PlanId, novo: PlanId) => ({
+  valorAtual: valorMensal(ctx, atual) ?? PLAN_PRICES[atual],
+  valorNovo: valorMensalOuErro(ctx, novo),
+});
+
 const validarPlano = (ctx: Contexto, plano: PlanId) => {
   const atual = normalizePlan(ctx.plan);
   const direcao = direcaoTroca(atual, plano);
@@ -102,7 +109,7 @@ const urlDaFatura = (pagamento: { metadata?: unknown } | null | undefined): stri
 const valorDaAssinaturaCartao = async (ctx: Contexto, plano: PlanId): Promise<void> => {
   if (ctx.payment_method !== 'card' || !ctx.provider_subscription_id) return;
   await asaasService.atualizarAssinatura(String(ctx.provider_subscription_id), {
-    value: PLAN_PRICES[plano],
+    value: valorMensal(ctx, plano) ?? PLAN_PRICES[plano],
     updatePendingPayments: true,
   });
 };
@@ -136,7 +143,7 @@ const upgradeAvulso = async (ctx: Contexto, atual: PlanId, novo: PlanId, forma: 
   }
 
   const { inicio, fim } = periodo(ctx);
-  const { valor } = calcularProporcional({ atual, novo, inicio, fim, agora: new Date() });
+  const { valor } = calcularProporcional({ atual, novo, inicio, fim, agora: new Date(), ...valoresDaTroca(ctx, atual, novo) });
   if (valor === 0) {
     await planChangeRepository.aplicarPlano(ctx.id, novo);
     return { tipo: 'upgrade', status: 'pago', plano: novo };
@@ -207,16 +214,17 @@ export const planChangeService = {
     const forma = formaDaAssinatura(ctx);
     const { atual, direcao } = validarPlano(ctx, plano);
     const { inicio, fim } = periodo(ctx);
+    valorMensalOuErro(ctx, plano);
 
     if (direcao === 'upgrade') {
-      const { valor, dias } = calcularProporcional({ atual, novo: plano, inicio, fim, agora: new Date() });
+      const { valor, dias } = calcularProporcional({ atual, novo: plano, inicio, fim, agora: new Date(), ...valoresDaTroca(ctx, atual, plano) });
       return {
         tipo: 'upgrade',
         planoAtual: atual,
         planoNovo: plano,
         valorHoje: valor,
         dias,
-        valorMensalNovo: PLAN_PRICES[plano],
+        valorMensalNovo: valorMensalOuErro(ctx, plano),
         aPartirDe: fim?.toISOString() ?? null,
         formaPagamento: forma,
         bloqueio: null,
@@ -231,7 +239,7 @@ export const planChangeService = {
       planoNovo: plano,
       valorHoje: 0,
       dias: 0,
-      valorMensalNovo: PLAN_PRICES[plano],
+      valorMensalNovo: valorMensalOuErro(ctx, plano),
       aPartirDe: fim?.toISOString() ?? null,
       formaPagamento: forma,
       bloqueio: motivo ? { motivo } : null,
@@ -242,6 +250,7 @@ export const planChangeService = {
     const ctx = await carregar(businessId);
     const forma = formaDaAssinatura(ctx);
     const { atual, direcao } = validarPlano(ctx, plano);
+    valorMensalOuErro(ctx, plano);
 
     if (direcao === 'upgrade') {
       return upgradeAvulso(ctx, atual, plano, forma);

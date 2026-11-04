@@ -32,14 +32,19 @@ export const calcularProporcional = ({
   inicio,
   fim,
   agora,
+  valorAtual = PLAN_PRICES[atual],
+  valorNovo = PLAN_PRICES[novo],
 }: {
   atual: PlanId;
   novo: PlanId;
   inicio: Date | null;
   fim: Date | null;
   agora: Date;
+  /** Valores mensais do negócio (o Salão é sob consulta: vale o combinado). */
+  valorAtual?: number;
+  valorNovo?: number;
 }): Proporcional => {
-  const diferenca = PLAN_PRICES[novo] - PLAN_PRICES[atual];
+  const diferenca = valorNovo - valorAtual;
   if (diferenca <= 0 || !fim) return { valor: 0, dias: 0, diasCiclo: CICLO_PADRAO_DIAS };
 
   const diasCiclo = inicio

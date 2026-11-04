@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 import { subscriptionRepository } from '../repositories/subscriptionRepository.js';
 import { PLAN_PRICES } from '../config/planCatalog.js';
 import { fimDoTesteComCartao } from '../config/trial.js';
+import { valorCombinadoDe, valorMensal, valorMensalOuErro } from '../config/valorPlano.js';
 import type { PlanId } from '../types/domain.js';
 import { planChangeService } from '../modules/billing/planChange.service.js';
 import { ehReferenciaUpgrade } from '../modules/billing/planChange.rules.js';
@@ -711,7 +712,8 @@ export const billingService = {
       const providerName = billingProviderFactory.resolveProviderByPaymentMethod(paymentMethod);
       const provider = billingProviderFactory.getProvider(providerName);
 
-      const baseAmount = PLAN_PRICES[checkoutPlan as PlanName] ?? PLAN_PRICES.basico;
+      // Salão sem valor combinado é sob consulta: recusa antes de abrir qualquer cobrança.
+      const baseAmount = valorMensalOuErro(business, checkoutPlan as PlanName);
       const {
         finalAmount: rawFinalAmount,
         discount: rawDiscount,
@@ -955,6 +957,8 @@ export const billingService = {
       metadata: data.metadata || null,
       // No teste: quando o cartão seria cobrado se cadastrado agora (14 dias do cadastro).
       cobrancaComCartaoEm: cobrancaComCartaoEm(data),
+      // Salão sob consulta: o valor combinado com este negócio (null enquanto não houver).
+      valorSalao: valorCombinadoDe(data.metadata),
     };
   },
 
@@ -1112,7 +1116,7 @@ export const billingService = {
       const assinatura = await asaasService.criarAssinaturaComToken({
         customerId: context.provider_customer_id,
         token,
-        valor: PLAN_PRICES[planoCartao] ?? PLAN_PRICES.basico,
+        valor: valorMensal(context, planoCartao) ?? PLAN_PRICES[planoCartao] ?? PLAN_PRICES.basico,
         nextDueDate: fim.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' }),
         externalReference: `business:${businessId}:plan:${planoCartao}:cartao`,
       });

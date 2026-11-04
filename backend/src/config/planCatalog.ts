@@ -18,7 +18,9 @@ export interface RecursoMatriz {
 export interface PlanoCatalogo {
   id: PlanId;
   nome: string;
-  preco: number;
+  /** null no plano sob consulta (Salão): o valor é combinado com cada negócio. */
+  preco: number | null;
+  sobConsulta: boolean;
   limiteProfissionais: number | null;
   publico: string;
   descricao: string;
@@ -32,6 +34,7 @@ export const PLAN_CATALOG: Readonly<Record<PlanId, PlanoCatalogo>> = Object.free
     id: 'basico',
     nome: 'Solo',
     preco: 49.9,
+    sobConsulta: false,
     limiteProfissionais: 1,
     publico: 'Autônomas',
     descricao: 'Para profissionais autônomas que gerenciam seus próprios atendimentos.',
@@ -51,6 +54,7 @@ export const PLAN_CATALOG: Readonly<Record<PlanId, PlanoCatalogo>> = Object.free
     id: 'profissional',
     nome: 'Equipe',
     preco: 99.9,
+    sobConsulta: false,
     limiteProfissionais: 5,
     publico: 'Estúdios',
     descricao: 'Para estúdios e espaços com equipe integrada em atendimento compartilhado.',
@@ -59,7 +63,8 @@ export const PLAN_CATALOG: Readonly<Record<PlanId, PlanoCatalogo>> = Object.free
   premium: {
     id: 'premium',
     nome: 'Salão',
-    preco: 199.9,
+    preco: null,
+    sobConsulta: true,
     limiteProfissionais: null,
     publico: 'Salões',
     descricao: 'Gestão completa para grandes salões, múltiplas unidades e parcerias.',
@@ -92,10 +97,15 @@ export const FEATURE_MATRIX: readonly RecursoMatriz[] = Object.freeze([
   { id: 'unidades', grupo: 'Expansão e gestão avançada', titulo: 'Gestão de várias unidades', basico: false, profissional: false, premium: 'em_breve' },
 ]);
 
+// Valor antigo do Salão: vale para quem já estava no Salão antes de ele virar sob consulta e ainda não
+// tem valor combinado (config/valorPlano.ts). Não aparece em tela de venda.
+export const VALOR_SALAO_LEGADO = 199.9;
+
+// Referência interna por plano. O valor que um negócio paga sai de valorMensal (config/valorPlano.ts).
 export const PLAN_PRICES: Readonly<Record<PlanId, number>> = Object.freeze({
-  basico: PLAN_CATALOG.basico.preco,
-  profissional: PLAN_CATALOG.profissional.preco,
-  premium: PLAN_CATALOG.premium.preco,
+  basico: PLAN_CATALOG.basico.preco as number,
+  profissional: PLAN_CATALOG.profissional.preco as number,
+  premium: VALOR_SALAO_LEGADO,
 });
 
 // Limite numérico para o cadastro de profissionais (null no catálogo = sem limite).
