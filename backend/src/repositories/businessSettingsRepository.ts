@@ -7,7 +7,8 @@ const mapRowToSettings = (row: Record<string, unknown>) => ({
   diasAbertos: row.dias_abertos,
   openingTime: row.opening_time,
   closingTime: row.closing_time,
-  slotIntervalMinutes: row.slot_interval_minutes,
+  // O Prisma devolve bigint como BigInt, que o res.json não serializa: sempre number aqui.
+  slotIntervalMinutes: Number(row.slot_interval_minutes),
   allowWalkins: row.allow_walkins,
   autoConfirmAppointments: row.auto_confirm_appointments,
   whatsappReminders: row.whatsapp_reminders,
@@ -57,7 +58,7 @@ export const businessSettingsRepository = {
          COALESCE(NULLIF(b.whatsapp_instance_name, ''), '') AS whatsapp_instance_name,
          COALESCE(to_char(s.opening_time, 'HH24:MI'), ${BUSINESS_SCHEDULE_DEFAULTS.openingTime}) AS opening_time,
          COALESCE(to_char(s.closing_time, 'HH24:MI'), ${BUSINESS_SCHEDULE_DEFAULTS.closingTime}) AS closing_time,
-         COALESCE(s.slot_interval_minutes, ${BUSINESS_SCHEDULE_DEFAULTS.slotIntervalMinutes}) AS slot_interval_minutes,
+         COALESCE(s.slot_interval_minutes, ${BUSINESS_SCHEDULE_DEFAULTS.slotIntervalMinutes}::int) AS slot_interval_minutes,
          COALESCE(s.dias_abertos, ARRAY['seg','ter','qua','qui','sex']::text[]) AS dias_abertos,
          COALESCE(s.allow_walkins, ${BUSINESS_SCHEDULE_DEFAULTS.allowWalkins}) AS allow_walkins,
          COALESCE(s.auto_confirm_appointments, ${BUSINESS_SCHEDULE_DEFAULTS.autoConfirmAppointments}) AS auto_confirm_appointments,
