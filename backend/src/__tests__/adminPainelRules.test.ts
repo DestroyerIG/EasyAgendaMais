@@ -56,6 +56,12 @@ describe('catálogo', () => {
     expect(segmentoDe('xyz')).toBe('outro');
     expect(segmentoDe('unhas')).toBe('unhas');
   });
+
+  it('Salão sob consulta: o preço do negócio é o valor combinado, senão o legado', () => {
+    expect(precoDoPlano('premium', 450)).toBe(450);
+    expect(precoDoPlano('premium', null)).toBe(199.9);
+    expect(precoDoPlano('basico', 450)).toBe(PLAN_PRICES.basico);
+  });
 });
 
 describe('inicioDoMes', () => {

@@ -39,6 +39,7 @@ export {
 	adminActionParamsSchema,
 	adminActionBodySchema,
 	adminOverridePlanBodySchema,
+	adminValorSalaoBodySchema,
 	adminOverrideStatusBodySchema,
 	adminCancelSubscriptionBodySchema,
 	adminExtendTrialBodySchema,

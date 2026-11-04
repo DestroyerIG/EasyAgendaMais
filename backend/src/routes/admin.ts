@@ -21,6 +21,7 @@ import {
   getAdminSubscriptions,
   resyncSubscription,
   overridePlan,
+  definirValorSalao,
   overrideStatus,
   estenderTeste,
   cancelSubscriptionAdmin,
@@ -37,6 +38,7 @@ import {
 // @ts-ignore
 import {
   adminOverridePlanBodySchema,
+  adminValorSalaoBodySchema,
   adminOverrideStatusBodySchema,
   adminCancelSubscriptionBodySchema,
   adminExtendTrialBodySchema,
@@ -72,6 +74,7 @@ router.patch('/users/:id/unblock', validate({ params: adminActionParamsSchema, b
 router.get('/subscriptions', validate({ query: adminSubscriptionListQuerySchema }), getAdminSubscriptions);
 router.post('/subscriptions/:id/resync', validate({ params: adminActionParamsSchema, body: adminActionBodySchema }), resyncSubscription);
 router.patch('/subscriptions/:id/plan', validate({ params: adminActionParamsSchema, body: adminOverridePlanBodySchema }), overridePlan);
+router.patch('/subscriptions/:id/valor-salao', validate({ params: adminActionParamsSchema, body: adminValorSalaoBodySchema }), definirValorSalao);
 router.patch('/subscriptions/:id/status', validate({ params: adminActionParamsSchema, body: adminOverrideStatusBodySchema }), overrideStatus);
 router.post('/subscriptions/:id/cancel', validate({ params: adminActionParamsSchema, body: adminCancelSubscriptionBodySchema }), cancelSubscriptionAdmin);
 

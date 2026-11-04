@@ -1,3 +1,4 @@
+import { valorCombinadoDe } from '../../config/valorPlano.js';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { inicioDoMes, type LinhaNegocio } from './painel.rules.js';
@@ -78,6 +79,7 @@ function paraLinha(r: LinhaCrua): LinhaNegocio {
     inadimplenteDesde: data(r.inadimplente_desde),
     jaPagou: bool(r.ja_pagou),
     cartaoCadastrado: bool(r.cartao_cadastrado),
+    valorCombinado: valorCombinadoDe(r.metadata),
     fimDoPeriodo: data(r.fim_do_periodo),
     criadoEm: data(r.created_at) as Date,
     canceladoEm: data(r.canceled_at),
@@ -113,7 +115,7 @@ async function consultar(id?: string): Promise<LinhaNegocio[]> {
                b.subscription_current_period_end AT TIME ZONE 'UTC'
              )
            END AS fim_do_periodo,
-           b.provider, b.payment_method,
+           b.provider, b.payment_method, b.metadata,
            (b.payment_method = 'card' AND b.provider_subscription_id IS NOT NULL
              AND NOT COALESCE(b.subscription_cancel_at_period_end, false)) AS cartao_cadastrado,
            b.created_at AT TIME ZONE 'UTC' AS created_at,

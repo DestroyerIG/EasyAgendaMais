@@ -12,7 +12,7 @@ import type { DetalheNegocio } from '@/types/admin';
 
 type Negocio = DetalheNegocio['negocio'];
 
-type TipoAcao = 'estender' | 'bloquear' | 'desbloquear' | 'sincronizar' | 'plano' | 'status' | 'cancelar';
+type TipoAcao = 'estender' | 'bloquear' | 'desbloquear' | 'sincronizar' | 'valorSalao' | 'plano' | 'status' | 'cancelar';
 
 /** Status de assinatura aceitos por PATCH /admin/subscriptions/:id/status. */
 const STATUS_ASSINATURA: Array<{ valor: string; rotulo: string }> = [
@@ -34,7 +34,8 @@ interface Config {
   perigo?: boolean;
   campoDias?: boolean;
   campoEscolha?: CampoEscolha;
-  executar: (motivo: string, dias?: number, escolha?: string) => Promise<unknown>;
+  campoValor?: boolean;
+  executar: (motivo: string, dias?: number, escolha?: string, valor?: number) => Promise<unknown>;
 }
 
 function configuracoes(n: Negocio): Record<TipoAcao, Config> {
@@ -48,6 +49,15 @@ function configuracoes(n: Negocio): Record<TipoAcao, Config> {
       sucesso: 'Teste grátis estendido.',
       campoDias: true,
       executar: (motivo, dias) => adminApi.extendTrial(id, dias ?? 0, motivo),
+    },
+    valorSalao: {
+      rotulo: 'Definir valor do Salão',
+      icone: 'payments',
+      descricao: `O Salão é sob consulta. Com o valor combinado, ${n.nome} pode assinar o Salão no Pix ou no cartão por esse valor; se já estiver no Salão no cartão, a assinatura passa para o valor novo.`,
+      rotuloConfirmar: 'Definir valor',
+      sucesso: 'Valor do Salão definido.',
+      campoValor: true,
+      executar: (motivo, _dias, _escolha, valor) => adminApi.definirValorSalao(id, valor ?? 0, motivo),
     },
     bloquear: {
       rotulo: 'Bloquear acesso',
@@ -130,17 +140,18 @@ export function AcoesSuperAdmin({ negocio, onConcluido }: Props) {
     ...(negocio.podeEstenderTeste ? (['estender'] as const) : []),
     negocio.status === 'bloqueado_admin' ? 'desbloquear' : 'bloquear',
     'sincronizar',
+    'valorSalao',
     'plano',
     'status',
     'cancelar',
   ];
 
-  const confirmar = async (motivo: string, dias?: number, escolha?: string) => {
+  const confirmar = async (motivo: string, dias?: number, escolha?: string, valor?: number) => {
     if (!aberta) return;
     const acao = config[aberta];
     setEnviando(true);
     try {
-      await acao.executar(motivo, dias, escolha);
+      await acao.executar(motivo, dias, escolha, valor);
       showToast(acao.sucesso, 'success');
       setAberta(null);
       onConcluido();
@@ -188,8 +199,9 @@ export function AcoesSuperAdmin({ negocio, onConcluido }: Props) {
           perigo={atual.perigo}
           campoDias={atual.campoDias}
           campoEscolha={atual.campoEscolha}
+          campoValor={atual.campoValor}
           enviando={enviando}
-          onConfirmar={(motivo, dias, escolha) => void confirmar(motivo, dias, escolha)}
+          onConfirmar={(motivo, dias, escolha, valor) => void confirmar(motivo, dias, escolha, valor)}
           onFechar={() => setAberta(null)}
         />
       )}

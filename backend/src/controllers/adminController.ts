@@ -166,6 +166,15 @@ export const overridePlan = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
+export const definirValorSalao = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await adminService.definirValorSalao(req.user, req.params['id'] as string, req.body, req);
+    sendSuccess(res, data);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const overrideStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const data = await adminService.overrideStatus(req.user, req.params['id'] as string, req.body, req);

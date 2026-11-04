@@ -25,18 +25,21 @@ export interface AcaoComMotivoModalProps {
   campoDias?: boolean;
   /** Mostra uma escolha (mudar plano, mudar status). O valor escolhido vem no 3º argumento. */
   campoEscolha?: CampoEscolha;
+  /** Mostra o campo de valor mensal em reais (valor combinado do Salão). */
+  campoValor?: boolean;
   enviando?: boolean;
-  onConfirmar: (motivo: string, dias?: number, escolha?: string) => void;
+  onConfirmar: (motivo: string, dias?: number, escolha?: string, valor?: number) => void;
   onFechar: () => void;
 }
 
 // Toda ação do SuperAdmin pede motivo (mínimo de 3 caracteres), gravado na auditoria.
 // A tela monta o modal só quando a ação está aberta, então o estado começa limpo a cada vez.
 export function AcaoComMotivoModal({
-  titulo, descricao, rotuloConfirmar, perigo = false, campoDias = false, campoEscolha, enviando = false, onConfirmar, onFechar,
+  titulo, descricao, rotuloConfirmar, perigo = false, campoDias = false, campoEscolha, campoValor = false, enviando = false, onConfirmar, onFechar,
 }: AcaoComMotivoModalProps) {
   const [motivo, setMotivo] = useState('');
   const [dias, setDias] = useState('7');
+  const [valor, setValor] = useState('');
   const ehOpcao = (valor: string) => campoEscolha?.opcoes.some((opcao) => opcao.valor === valor) ?? false;
   // Sem inicial válida (ex.: plano fora do catálogo) o select começa em "Escolha uma opção".
   const semInicialValida = campoEscolha !== undefined && !ehOpcao(campoEscolha.inicial);
@@ -46,12 +49,17 @@ export function AcaoComMotivoModal({
   const diasNumero = Number(dias);
   const diasValidos = Number.isInteger(diasNumero) && diasNumero >= DIAS_MINIMO && diasNumero <= DIAS_MAXIMO;
   const escolhaValida = !campoEscolha || ehOpcao(escolha);
-  const podeConfirmar = motivoLimpo.length >= MOTIVO_MINIMO && (!campoDias || diasValidos) && escolhaValida;
+  // Aceita vírgula ou ponto como separador decimal, até duas casas.
+  const valorNumero = /^\d{1,5}([.,]\d{1,2})?$/.test(valor.trim()) ? Number(valor.trim().replace(',', '.')) : NaN;
+  const valorValido = Number.isFinite(valorNumero) && valorNumero >= 1 && valorNumero <= 99999;
+  const podeConfirmar =
+    motivoLimpo.length >= MOTIVO_MINIMO && (!campoDias || diasValidos) && escolhaValida && (!campoValor || valorValido);
 
   const confirmar = () => {
     if (!podeConfirmar) return;
     const diasEnviados = campoDias ? diasNumero : undefined;
-    if (campoEscolha) onConfirmar(motivoLimpo, diasEnviados, escolha);
+    if (campoValor) onConfirmar(motivoLimpo, diasEnviados, campoEscolha ? escolha : undefined, valorNumero);
+    else if (campoEscolha) onConfirmar(motivoLimpo, diasEnviados, escolha);
     else onConfirmar(motivoLimpo, diasEnviados);
   };
 
@@ -112,6 +120,24 @@ export function AcaoComMotivoModal({
               value={dias}
               invalid={dias !== '' && !diasValidos}
               onChange={(event) => setDias(event.target.value)}
+            />
+          </Field>
+        ) : null}
+
+        {campoValor ? (
+          <Field
+            id="acao-valor"
+            label="Valor mensal (R$)"
+            hint="Valor combinado com o negócio. Ex.: 450,00."
+            error={valor !== '' && !valorValido ? 'Use um valor de R$ 1,00 a R$ 99.999,00.' : undefined}
+            required
+          >
+            <Input
+              id="acao-valor"
+              inputMode="decimal"
+              value={valor}
+              invalid={valor !== '' && !valorValido}
+              onChange={(event) => setValor(event.target.value)}
             />
           </Field>
         ) : null}
