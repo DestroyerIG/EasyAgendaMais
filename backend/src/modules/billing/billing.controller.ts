@@ -1,3 +1,6 @@
+import { valorMensalOuErro } from '../../config/valorPlano.js';
+import { subscriptionRepository } from '../../repositories/subscriptionRepository.js';
+import type { PlanId } from '../../types/domain.js';
 import type { Request, Response, NextFunction } from 'express';
 import { sendSuccess } from '../../utils/response.js';
 import { billingService } from '../../services/billingService.js';
@@ -121,11 +124,14 @@ export const validateCoupon = async (
   try {
     const { code, plan } = req.body as { code: string; plan: string };
     const normalizedPlan = plan.trim().toLowerCase();
-    const baseAmount = PLAN_BASE_AMOUNTS[normalizedPlan];
-
-    if (!baseAmount) {
+    if (!PLAN_BASE_AMOUNTS[normalizedPlan]) {
       throw new AppError('Plano inválido', 400, 'INVALID_PLAN');
     }
+    // O Salão é sob consulta: a prévia usa o valor combinado com o negócio, como o checkout.
+    const negocio = req.user?.businessId
+      ? ((await subscriptionRepository.getBusinessBillingContext(req.user.businessId)) as Record<string, unknown> | null)
+      : null;
+    const baseAmount = valorMensalOuErro(negocio ?? {}, normalizedPlan as PlanId);
 
     const { finalAmount } = await couponService.validate(code, baseAmount) as {
       finalAmount: number;

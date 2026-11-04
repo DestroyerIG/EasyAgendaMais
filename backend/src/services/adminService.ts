@@ -13,7 +13,7 @@ import { subscriptionRepository } from '../repositories/subscriptionRepository.j
 import { painelRepository } from '../modules/admin/painel.repository.js';
 import { estadoContaService } from '../modules/conta/estadoConta.service.js';
 import { motivoParaNaoEstenderTeste } from '../modules/admin/painel.rules.js';
-import { valorCombinadoDe } from '../config/valorPlano.js';
+import { SalaoSobConsultaError, valorCombinadoDe } from '../config/valorPlano.js';
 import { asaasService } from '../integrations/asaas/service.js';
 import type { Request } from 'express';
 
@@ -431,6 +431,10 @@ export const adminService = {
 
     const context = await subscriptionRepository.getBusinessBillingContext(tenantId);
     if (!context) throw new NotFoundError('Negócio');
+    // Salão sob consulta: o valor combinado vem antes ("Definir valor do Salão"), senão ele valeria o legado.
+    if (body.plan === 'premium' && !valorCombinadoDe(context.metadata)) {
+      throw new SalaoSobConsultaError();
+    }
 
     await subscriptionRepository.updateSubscriptionState(tenantId, { plan: body.plan });
     await subscriptionRepository.setDesiredPlan(tenantId, body.plan);
@@ -470,14 +474,25 @@ export const adminService = {
     if (!context) throw new NotFoundError('Negócio');
     const valorAnterior = valorCombinadoDe(context.metadata);
 
-    if (context.plan === 'premium' && context.payment_method === 'card' && context.provider_subscription_id) {
+    // Plano que o cartão está cobrando: no teste, o escolhido no checkout (o plano do teste é o Equipe).
+    const metadata = (context.metadata ?? {}) as { checkoutCartao?: { plano?: string } };
+    const planoDoCartao = context.subscription_status === 'trialing' ? metadata.checkoutCartao?.plano : context.plan;
+    const assinaturaDePe =
+      context.payment_method === 'card' &&
+      !!context.provider_subscription_id &&
+      !context.subscription_cancel_at_period_end &&
+      context.subscription_status !== 'canceled';
+    // Com downgrade agendado, a assinatura já está no valor do plano novo: não volta ao Salão.
+    const agendado = !!context.plano_agendado;
+
+    await subscriptionRepository.mesclarMetadataCobranca(tenantId, { valorMensalCombinado: body.valor });
+    if (!agendado) await subscriptionRepository.setDesiredPlan(tenantId, 'premium');
+    if (assinaturaDePe && planoDoCartao === 'premium' && !agendado) {
       await asaasService.atualizarAssinatura(String(context.provider_subscription_id), {
         value: body.valor,
         updatePendingPayments: true,
       });
     }
-    await subscriptionRepository.mesclarMetadataCobranca(tenantId, { valorMensalCombinado: body.valor });
-    await subscriptionRepository.setDesiredPlan(tenantId, 'premium');
     estadoContaService.invalidar(tenantId);
 
     await auditLogService.logAdminAction({
