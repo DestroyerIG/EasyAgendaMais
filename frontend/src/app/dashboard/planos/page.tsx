@@ -129,7 +129,8 @@ export default function PlanosPage() {
   const planId: PlanId = isPlanId(planoBruto) ? planoBruto : 'basico';
   const nome = NOME_PLANO[planId];
   const planoCatalogo = catalogo?.planos.find((p) => p.id === planId) ?? null;
-  const preco = planoCatalogo?.preco ?? null;
+  // Salão sob consulta: vale o valor deste negócio (combinado, ou o de quem já estava no Salão).
+  const preco = planoCatalogo?.preco ?? (planoCatalogo?.sobConsulta ? status?.valorSalao ?? null : null);
   const statusAssinatura = status?.subscriptionStatus ?? user?.subscriptionStatus ?? null;
   const statusRotulo = statusAssinatura ? STATUS_ASSINATURA[statusAssinatura] : 'Plano atual';
   const provider = status?.provider ?? null;
@@ -182,7 +183,8 @@ export default function PlanosPage() {
       const r = await billingApi.reactivateSubscription();
       if ('reactivationMode' in r && r.reactivationMode === 'new_pix_checkout' && 'paymentId' in r && r.paymentId) {
         const planoCobrado = status?.planoAgendado ?? planId;
-        const valor = catalogo?.planos.find((p) => p.id === planoCobrado)?.preco ?? preco ?? 0;
+        const planoDaCobranca = catalogo?.planos.find((p) => p.id === planoCobrado);
+        const valor = planoDaCobranca?.preco ?? (planoDaCobranca?.sobConsulta ? status?.valorSalao : null) ?? preco ?? 0;
         setPixAberto({ paymentId: r.paymentId, valor, qrCode: r.qrCode, pixCopyPaste: r.pixCopyPaste });
       } else {
         showToast('Assinatura reativada.', 'success');
@@ -687,7 +689,7 @@ export default function PlanosPage() {
         <div id="assinar" className="mt-10 space-y-4">
           <h3 className="text-xl font-bold text-ink">Escolha seu plano</h3>
           <ForcedDark className="rounded-card p-4 sm:p-6">
-            <PricingPlansSection showHeader={false} currentPlan={planId} subscriptionStatus={statusAssinatura} />
+            <PricingPlansSection showHeader={false} currentPlan={planId} subscriptionStatus={statusAssinatura} valorSalao={status?.valorSalao ?? null} />
           </ForcedDark>
         </div>
       )}

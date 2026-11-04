@@ -266,7 +266,7 @@ export function TelaContingencia() {
   const planoBruto = status?.planoAgendado ?? status?.plan ?? user?.plan ?? null;
   const planoCatalogo = catalogo?.planos.find((p) => p.id === planoBruto) ?? null;
   const nomePlano = planoCatalogo?.nome ?? (planoBruto && isPlanId(planoBruto) ? NOME_PLANO[planoBruto] : null);
-  const preco = planoCatalogo?.preco ?? null;
+  const preco = planoCatalogo?.preco ?? (planoCatalogo?.sobConsulta ? status?.valorSalao ?? null : null);
   const vencimento = dataLonga(status?.nextDueDate ?? status?.currentPeriodEnd ?? null);
   const plano = nomePlano ? ` (Plano ${nomePlano}${preco !== null ? ` · ${formatCurrency(preco)}` : ''})` : '';
   const mensalidade = vencimento

@@ -6,7 +6,7 @@ import { Prisma } from '@prisma/client';
 import { subscriptionRepository } from '../repositories/subscriptionRepository.js';
 import { PLAN_PRICES } from '../config/planCatalog.js';
 import { fimDoTesteComCartao } from '../config/trial.js';
-import { valorCombinadoDe, valorMensal, valorMensalOuErro } from '../config/valorPlano.js';
+import { valorMensal, valorMensalOuErro } from '../config/valorPlano.js';
 import type { PlanId } from '../types/domain.js';
 import { planChangeService } from '../modules/billing/planChange.service.js';
 import { ehReferenciaUpgrade } from '../modules/billing/planChange.rules.js';
@@ -957,8 +957,9 @@ export const billingService = {
       metadata: data.metadata || null,
       // No teste: quando o cartão seria cobrado se cadastrado agora (14 dias do cadastro).
       cobrancaComCartaoEm: cobrancaComCartaoEm(data),
-      // Salão sob consulta: o valor combinado com este negócio (null enquanto não houver).
-      valorSalao: valorCombinadoDe(data.metadata),
+      // Salão sob consulta: o valor que vale para este negócio no Salão (combinado, ou o legado de quem
+      // já está no Salão); null = sob consulta.
+      valorSalao: valorMensal({ plan: data.plan, metadata: data.metadata }, 'premium'),
     };
   },
 

@@ -65,4 +65,15 @@ describe('convite do cartão', () => {
     await waitFor(() => expect(api.getStatus).toHaveBeenCalled());
     expect(container).toBeEmptyDOMElement();
   });
+
+  it('o Salão só aparece com valor combinado', async () => {
+    api.getStatus.mockResolvedValue(emTeste());
+    const { unmount } = render(<ConviteCartao />);
+    await screen.findByRole('button', { name: 'Cadastrar cartão e ganhar mais 7 dias' });
+    expect(screen.queryByRole('radio', { name: /Salão/ })).not.toBeInTheDocument();
+    unmount();
+    api.getStatus.mockResolvedValue(emTeste({ valorSalao: 450 }));
+    render(<ConviteCartao />);
+    expect(await screen.findByRole('radio', { name: /Salão/ })).toBeInTheDocument();
+  });
 });

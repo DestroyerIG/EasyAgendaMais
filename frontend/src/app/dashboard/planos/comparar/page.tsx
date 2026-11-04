@@ -18,7 +18,7 @@ import { SettingsTabs } from '@/components/shell/SettingsTabs';
 import { TrocaPlanoModal } from '@/components/planos/TrocaPlanoModal';
 import { billingApi, type CatalogoPlanos, type DisponibilidadeRecurso, type SubscriptionStatusResponse } from '@/lib/billing';
 import { isPlanId, type PlanId } from '@/lib/plans';
-import { rotuloEquipe } from '@/lib/planCatalog';
+import { linkFalarSobreSalao, rotuloEquipe } from '@/lib/planCatalog';
 import { formatCurrency } from '@/lib/formatters';
 import { NOME_PLANO, ORDEM_PLANOS, SEM_PAGAMENTO, nivelPlano } from '@/lib/planoCobranca';
 import { cn } from '@/lib/cn';
@@ -174,6 +174,24 @@ function CompararPlanos() {
 
   const verCartoes = () => cartoesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
+  // Salão sob consulta: sem valor combinado, não há checkout nem upgrade, só o contato.
+  const precoDe = (id: PlanId): number | null => {
+    const p = catalogo?.planos.find((x) => x.id === id);
+    if (!p) return null;
+    return p.preco ?? (p.sobConsulta ? status?.valorSalao ?? null : null);
+  };
+  const sobConsulta = (id: PlanId) => precoDe(id) === null;
+  const falarComAGente = (
+    <a
+      href={linkFalarSobreSalao()}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex h-11 w-full items-center justify-center rounded-control border border-line bg-surface px-4 text-[15px] font-semibold text-ink hover:bg-surface-2"
+    >
+      Falar com a gente
+    </a>
+  );
+
   const acaoDoPlano = (id: PlanId) => {
     const nome = NOME_PLANO[id];
     if (id === atual && assinaturaPaga) {
@@ -183,6 +201,7 @@ function CompararPlanos() {
         </Button>
       );
     }
+    if (sobConsulta(id)) return falarComAGente;
     if (!assinaturaPaga) {
       // Sem assinatura paga: o checkout de sempre, na tela de Plano e cobrança.
       const pagar = statusAssinatura && SEM_PAGAMENTO.includes(statusAssinatura) && id === atual;
@@ -295,10 +314,14 @@ function CompararPlanos() {
                       <h3 className="text-2xl font-bold text-ink">{plano.nome}</h3>
                     </div>
                     <p className="flex-1 text-[14px] text-muted">{plano.descricao}</p>
-                    <div className="text-3xl font-bold tracking-tight text-ink">
-                      {formatCurrency(plano.preco)}
-                      <span className="ml-1 text-[14px] font-normal text-muted">/mês</span>
-                    </div>
+                    {sobConsulta(plano.id) ? (
+                      <div className="text-3xl font-bold tracking-tight text-ink">Sob consulta</div>
+                    ) : (
+                      <div className="text-3xl font-bold tracking-tight text-ink">
+                        {formatCurrency(precoDe(plano.id) ?? 0)}
+                        <span className="ml-1 text-[14px] font-normal text-muted">/mês</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex-1 space-y-3">
@@ -408,10 +431,14 @@ function CompararPlanos() {
         <section className="flex flex-col items-center gap-4 rounded-card bg-brand/12 p-8 text-center">
           <Icon name="price_check" size={32} className="text-brand-text" />
           <h3 className="text-2xl font-bold text-ink">Pronta para crescer com o {NOME_PLANO[recomendado]}?</h3>
-          <Button size="lg" onClick={() => setTrocarPara(recomendado)}>
-            Fazer upgrade para {NOME_PLANO[recomendado]}
-            <Icon name="chevron_right" size={18} />
-          </Button>
+          {sobConsulta(recomendado) ? (
+            <div className="w-full max-w-xs">{falarComAGente}</div>
+          ) : (
+            <Button size="lg" onClick={() => setTrocarPara(recomendado)}>
+              Fazer upgrade para {NOME_PLANO[recomendado]}
+              <Icon name="chevron_right" size={18} />
+            </Button>
+          )}
         </section>
       )}
 

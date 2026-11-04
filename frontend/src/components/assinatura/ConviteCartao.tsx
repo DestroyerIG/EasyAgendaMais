@@ -84,7 +84,8 @@ export function ConviteCartao() {
       <fieldset className="mt-4">
         <legend className="mb-2 text-[13px] font-semibold text-ink">Plano depois do teste</legend>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {CATALOGO_PLANOS.planos.map((p) => (
+          {/* Salão sob consulta: só aparece com valor combinado. */}
+          {CATALOGO_PLANOS.planos.filter((p) => p.preco !== null || !!status?.valorSalao).map((p) => (
             <label
               key={p.id}
               className={`flex cursor-pointer items-center gap-2 rounded-control border px-3 py-2 text-[14px] ${

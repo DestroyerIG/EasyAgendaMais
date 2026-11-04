@@ -31,9 +31,9 @@ const { default: CompararPlanosPage } = await import('../page');
 
 const catalogo: CatalogoPlanos = {
   planos: [
-    { id: 'basico', nome: 'Solo', preco: 49.9, limiteProfissionais: 1, publico: 'Autônomas', descricao: 'Para autônomas.', destaques: ['Caixa'], emBreve: [] },
-    { id: 'profissional', nome: 'Equipe', preco: 99.9, limiteProfissionais: 5, publico: 'Estúdios', descricao: 'Para estúdios.', destaques: ['Comissões'], emBreve: ['Acesso das profissionais'] },
-    { id: 'premium', nome: 'Salão', preco: 199.9, limiteProfissionais: null, publico: 'Salões', descricao: 'Para salões.', destaques: ['Suporte prioritário'], emBreve: ['Clube e pacotes'] },
+    { id: 'basico', nome: 'Solo', preco: 49.9, sobConsulta: false, limiteProfissionais: 1, publico: 'Autônomas', descricao: 'Para autônomas.', destaques: ['Caixa'], emBreve: [] },
+    { id: 'profissional', nome: 'Equipe', preco: 99.9, sobConsulta: false, limiteProfissionais: 5, publico: 'Estúdios', descricao: 'Para estúdios.', destaques: ['Comissões'], emBreve: ['Acesso das profissionais'] },
+    { id: 'premium', nome: 'Salão', preco: 199.9, sobConsulta: false, limiteProfissionais: null, publico: 'Salões', descricao: 'Para salões.', destaques: ['Suporte prioritário'], emBreve: ['Clube e pacotes'] },
   ],
   matriz: [
     { id: 'caixa', grupo: 'Equipe e operação', titulo: 'Controle de caixa', basico: true, profissional: true, premium: true },
@@ -76,6 +76,29 @@ describe('Comparação e upgrade', () => {
     expect(screen.getAllByText('Em breve').length).toBeGreaterThanOrEqual(3);
     expect(screen.getByText('Ilimitadas')).toBeInTheDocument();
     expect(screen.queryByText(/Anual/)).not.toBeInTheDocument();
+  });
+
+  it('Salão sob consulta: sem preço e com "Falar com a gente" no lugar do upgrade', async () => {
+    api.getPlans.mockResolvedValue({
+      ...catalogo,
+      planos: catalogo.planos.map((p) => (p.id === 'premium' ? { ...p, preco: null, sobConsulta: true } : p)),
+    });
+    render(<CompararPlanosPage />);
+    await screen.findByText('Planos flexíveis para a escala do Studio Aurora');
+    await waitFor(() => expect(within(cartao('Salão')).getByText('Sob consulta')).toBeInTheDocument());
+    expect(within(cartao('Salão')).getByRole('link', { name: 'Falar com a gente' })).toHaveAttribute('href', expect.stringMatching(/wa\.me/));
+    expect(within(cartao('Salão')).queryByRole('button', { name: /upgrade/ })).not.toBeInTheDocument();
+  });
+
+  it('Salão com valor combinado: mostra o valor e libera o upgrade', async () => {
+    api.getPlans.mockResolvedValue({
+      ...catalogo,
+      planos: catalogo.planos.map((p) => (p.id === 'premium' ? { ...p, preco: null, sobConsulta: true } : p)),
+    });
+    api.getStatus.mockResolvedValue(status({ valorSalao: 450 }));
+    render(<CompararPlanosPage />);
+    await waitFor(() => expect(within(cartao('Salão')).getByText(/R\$\s*450,00/)).toBeInTheDocument());
+    expect(within(cartao('Salão')).getByRole('button', { name: 'Fazer upgrade para Salão' })).toBeInTheDocument();
   });
 
   it('backend antigo com a equipe nos destaques não repete a linha da equipe', async () => {

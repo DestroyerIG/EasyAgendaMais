@@ -8,6 +8,7 @@ export const CATALOGO_PLANOS: CatalogoPlanos = {
       id: 'basico',
       nome: 'Solo',
       preco: 49.9,
+      sobConsulta: false,
       limiteProfissionais: 1,
       publico: 'Autônomas',
       descricao: 'Para profissionais autônomas que gerenciam seus próprios atendimentos.',
@@ -28,6 +29,7 @@ export const CATALOGO_PLANOS: CatalogoPlanos = {
       id: 'profissional',
       nome: 'Equipe',
       preco: 99.9,
+      sobConsulta: false,
       limiteProfissionais: 5,
       publico: 'Estúdios',
       descricao: 'Para estúdios e espaços com equipe integrada em atendimento compartilhado.',
@@ -37,7 +39,8 @@ export const CATALOGO_PLANOS: CatalogoPlanos = {
     {
       id: 'premium',
       nome: 'Salão',
-      preco: 199.9,
+      preco: null,
+      sobConsulta: true,
       limiteProfissionais: null,
       publico: 'Salões',
       descricao: 'Gestão completa para grandes salões, múltiplas unidades e parcerias.',
@@ -69,4 +72,16 @@ export const planoDoCatalogo = (id: PlanId): PlanoCatalogo =>
 export const rotuloEquipe = (limite: number | null): string => {
   if (limite === null) return 'Profissionais ilimitadas';
   return limite === 1 ? '1 profissional' : `Até ${limite} profissionais`;
+};
+
+/** Valor mensal de um plano para o negócio: o do catálogo, ou o combinado no Salão (null = sob consulta). */
+export const precoParaNegocio = (id: PlanId, valorSalao: number | null | undefined): number | null =>
+  planoDoCatalogo(id).preco ?? (id === 'premium' && valorSalao ? valorSalao : null);
+
+const CONTATO_PADRAO = 'https://wa.me/5583991347023';
+
+/** WhatsApp de contato com a mensagem pronta para combinar o valor do Salão. */
+export const linkFalarSobreSalao = (): string => {
+  const base = (process.env.NEXT_PUBLIC_WHATSAPP_CONTACT_URL || CONTATO_PADRAO).split('?')[0];
+  return `${base}?text=${encodeURIComponent('Olá! Quero conhecer o plano Salão do EasyAgenda+ e combinar o valor.')}`;
 };

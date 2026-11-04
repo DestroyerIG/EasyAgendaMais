@@ -125,6 +125,11 @@ describe('status', () => {
     expect((await billingService.getStatus(ID)).valorSalao).toBe(450);
   });
 
+  it('quem já está no Salão sem valor combinado vê o legado', async () => {
+    subs.getSubscriptionStatus.mockResolvedValue({ plan: 'premium', subscription_status: 'active', metadata: {} });
+    expect((await billingService.getStatus(ID)).valorSalao).toBe(199.9);
+  });
+
   it('sem valor combinado, valorSalao é null', async () => {
     subs.getSubscriptionStatus.mockResolvedValue({ plan: 'profissional', subscription_status: 'active', metadata: {} });
     expect((await billingService.getStatus(ID)).valorSalao).toBeNull();

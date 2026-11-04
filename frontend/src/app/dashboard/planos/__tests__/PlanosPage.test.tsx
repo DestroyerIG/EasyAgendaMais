@@ -40,9 +40,9 @@ const futuro = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString();
 
 const catalogo: CatalogoPlanos = {
   planos: [
-    { id: 'basico', nome: 'Solo', preco: 49.9, limiteProfissionais: 1, publico: 'Autônomas', descricao: '', destaques: ['Caixa'], emBreve: [] },
-    { id: 'profissional', nome: 'Equipe', preco: 99.9, limiteProfissionais: 5, publico: 'Estúdios', descricao: '', destaques: ['Até 5 profissionais', 'Comissões'], emBreve: [] },
-    { id: 'premium', nome: 'Salão', preco: 199.9, limiteProfissionais: null, publico: 'Salões', descricao: '', destaques: [], emBreve: [] },
+    { id: 'basico', nome: 'Solo', preco: 49.9, sobConsulta: false, limiteProfissionais: 1, publico: 'Autônomas', descricao: '', destaques: ['Caixa'], emBreve: [] },
+    { id: 'profissional', nome: 'Equipe', preco: 99.9, sobConsulta: false, limiteProfissionais: 5, publico: 'Estúdios', descricao: '', destaques: ['Até 5 profissionais', 'Comissões'], emBreve: [] },
+    { id: 'premium', nome: 'Salão', preco: 199.9, sobConsulta: false, limiteProfissionais: null, publico: 'Salões', descricao: '', destaques: [], emBreve: [] },
   ],
   matriz: [],
 };
