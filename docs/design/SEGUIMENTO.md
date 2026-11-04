@@ -274,6 +274,38 @@ Plano: `docs/superpowers/plans/2026-11-03-h3-textos-de-venda.md`. A tabela "ante
 - **Depoimentos:** continuam fictícios e marcados como "Depoimento de exemplo". Trocar por depoimentos reais quando houver.
 - **Conferência visual:** feita em desktop (1280 px). O navegador não aceitou reduzir a janela para 390 px. A mudança é só de texto e ícone, sem mudar o layout.
 
+## Depoimentos reais, pendências conhecidas
+
+Sistema no ar desde 04/11 (PR #34, migração `20261105120000_depoimentos`). Enviar, corrigir, recusar, publicar e retirar foram testados em produção. Ainda não foram vistos em produção: a seção da landing com 3 ou mais publicados (só conferida com dados simulados) e o pop-up automático.
+
+**Limpeza**
+
+- Apagar os 2 depoimentos de teste, no SQL Editor do Supabase. O resultado esperado é `DELETE 2`:
+
+  ```sql
+  DELETE FROM depoimentos
+  WHERE id IN ('9dc77c50-b7db-42dc-aff5-8a33bdc3e370', 'f3bfd641-bc09-481e-bab4-a96c6fb81af4')
+    AND texto LIKE 'TESTE TECNICO%';
+  ```
+
+- Apagar os arquivos soltos `frontend/public/easyagenda+.png` e `frontend/public/logo barbearia.jpg`. Eles só existem na máquina onde a logo foi trocada e não estão no Git.
+- Apagar as branches locais que já foram juntadas (`git branch --merged main`).
+
+**Ajustes pequenos**
+
+- SuperAdmin → Depoimentos: o editor não fecha depois de "Salvar correção", e os botões só voltam ao recarregar a página. A correção é salva normalmente. Em `frontend/src/app/admin/depoimentos/page.tsx`, chamar `setEditando(false)` quando a correção der certo.
+- SuperAdmin → Depoimentos: o card mostra o id do plano ("profissional"), enquanto o dono vê "Plano Equipe". Na linha que monta `quem`, no mesmo arquivo, usar `rotuloPlano` de `frontend/src/lib/adminRotulos.ts`.
+- Menu da conta: a opção de tema "Escuro" passa da borda da caixa. O menu tem largura fixa (`w-[232px]` em `frontend/src/components/shell/AccountMenu.tsx`), que não comporta o `ThemeSelect`. Essa largura é anterior aos depoimentos.
+- `/nail-designers` ainda mostra um "Depoimento de exemplo" (`frontend/src/app/nail-designers/page.tsx`, perto da linha 239). Esconder como foi feito na landing, até existirem depoimentos reais do segmento.
+- `backend/src/__tests__/googleAgendaCrypto.test.ts`, teste "decifrar com dado adulterado lança": falha de vez em quando porque a troca dos 2 últimos caracteres por `AA` às vezes não muda o dado. O código de cifra está certo. Trocar por uma adulteração que sempre altere o dado, como inverter um byte.
+
+**Para decidir**
+
+- Quando o dono reenvia uma avaliação, a anterior vira `substituido` e sai de todas as abas do SuperAdmin, mesmo se tinha sido recusada. Os dados continuam no banco. É o comportamento planejado, mas o histórico some da tela.
+- Uma retirada pode levar até cerca de 10 minutos para sair da landing, somando o cache da página e o da consulta (300 s cada).
+- Fechar o pop-up pelo X ou pelo Esc não adia o pedido: ele volta na sessão seguinte.
+- Depoimento retirado continua com `autorizou = true` no banco. É inofensivo, porque a rota pública exige `status = publicado`.
+
 ## Infraestrutura
 
 - **Pendente:** ligar o RLS nas 14 tabelas que ficaram sem ele (comissões, clube, app do profissional e Google Agenda). Não é urgente: os papéis públicos não têm acesso a elas. Roteiro em `docs/design/rls-tabelas-restantes.md`.
