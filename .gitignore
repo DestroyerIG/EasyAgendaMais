@@ -15,3 +15,6 @@ pnpm-lock.yaml
 .codex
 *.tsbuildinfo
 test-output.txt
+
+# Rascunhos visuais do brainstorming (superpowers)
+.superpowers/brainstorm/
