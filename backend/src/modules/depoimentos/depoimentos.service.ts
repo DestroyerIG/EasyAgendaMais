@@ -1,10 +1,14 @@
-import { ForbiddenError, NotFoundError, ValidationError } from '../../utils/errors.js';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../utils/errors.js';
+import { auditLogService } from '../../services/auditLogService.js';
 import { depoimentosRepository as repo } from './depoimentos.repository.js';
 import {
   ADIAR_DIAS, FEEDBACK_MAX, NOTA_MINIMA_PUBLICAVEL, TEXTO_MAX, TEXTO_MIN,
   classificarEnvio, nomeSugerido, podeMostrarPopup,
 } from './depoimentos.rules.js';
-import type { DepoimentoAtual, EnvioInput, EstadoDepoimento, StatusAtual, UsuarioDono } from './depoimentos.types.js';
+import type {
+  Aba, DepoimentoAtual, DepoimentoAdmin, EnvioInput, EstadoDepoimento, ResultadoLista, StatusAtual, UsuarioAdmin, UsuarioDono,
+} from './depoimentos.types.js';
+import type { AdminLinha, Transicionada } from './depoimentos.repository.js';
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 const NOME_MAX = 60;
@@ -110,5 +114,83 @@ export const depoimentosService = {
   async retirar(user: UsuarioDono): Promise<EstadoDepoimento> {
     await repo.retirar(negocioDe(user));
     return estado(user);
+  },
+};
+
+// ---- SuperAdmin ----
+
+type RequisicaoAuditavel = Parameters<typeof auditLogService.logAdminAction>[0]['req'];
+
+const STATUS_DA_ABA: Record<Aba, string[]> = {
+  pendentes: ['pendente'],
+  publicados: ['publicado'],
+  recusados: ['recusado'],
+  internos: ['interno', 'retirado'],
+};
+
+const paraAdmin = (l: AdminLinha): DepoimentoAdmin => ({
+  id: l.id,
+  negocio: l.negocio_nome,
+  negocioId: l.business_id,
+  plano: l.plano,
+  nomeExibido: l.nome_exibido,
+  cidade: l.cidade,
+  nota: Number(l.nota),
+  texto: l.texto,
+  textoOriginal: l.texto_original,
+  autorizadoEm: l.autorizado_em ? l.autorizado_em.toISOString() : null,
+  criadoEm: l.criado_em.toISOString(),
+  status: l.status,
+});
+
+/** A transição é decidida no SQL; sem linha, distingue "não existe" (404) de "status não permite" (409). */
+async function transicionar(
+  id: string,
+  admin: UsuarioAdmin,
+  actionType: string,
+  executar: () => Promise<Transicionada | null>,
+  mensagemConflito: string,
+  req: RequisicaoAuditavel,
+): Promise<void> {
+  const linha = await executar();
+  if (!linha) {
+    if ((await repo.statusDe(id)) === null) throw new NotFoundError('Depoimento');
+    throw new ConflictError(mensagemConflito);
+  }
+  await auditLogService.logAdminAction({
+    req,
+    actionType,
+    actorUserId: admin.userId,
+    actorBusinessId: admin.businessId ?? null,
+    targetBusinessId: linha.business_id,
+    resourceType: 'depoimento',
+    resourceId: id,
+  });
+}
+
+export const depoimentosAdminService = {
+  async listar(aba: Aba): Promise<ResultadoLista> {
+    const [linhas, publicados] = await Promise.all([
+      repo.listarAdmin(STATUS_DA_ABA[aba], aba === 'pendentes'),
+      repo.contarPublicados(),
+    ]);
+    return { itens: linhas.map(paraAdmin), publicados };
+  },
+
+  publicar: (id: string, admin: UsuarioAdmin, req: RequisicaoAuditavel) =>
+    transicionar(id, admin, 'DEPOIMENTO_PUBLICADO', () => repo.publicar(id, admin.userId),
+      'Só é possível publicar um depoimento pendente', req),
+
+  recusar: (id: string, admin: UsuarioAdmin, req: RequisicaoAuditavel) =>
+    transicionar(id, admin, 'DEPOIMENTO_RECUSADO', () => repo.recusar(id),
+      'Só é possível recusar um depoimento pendente', req),
+
+  async corrigir(id: string, texto: string, admin: UsuarioAdmin, req: RequisicaoAuditavel): Promise<void> {
+    const limpo = texto.trim();
+    if (limpo.length < TEXTO_MIN || limpo.length > TEXTO_MAX) {
+      throw new ValidationError(`O texto deve ter entre ${TEXTO_MIN} e ${TEXTO_MAX} caracteres`);
+    }
+    await transicionar(id, admin, 'DEPOIMENTO_CORRIGIDO', () => repo.corrigir(id, limpo),
+      'Só é possível corrigir um depoimento pendente ou publicado', req);
   },
 };

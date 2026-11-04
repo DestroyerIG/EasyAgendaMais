@@ -36,6 +36,25 @@ export interface NovoEnvio {
   status: 'pendente' | 'interno';
 }
 
+export interface AdminLinha {
+  id: string;
+  negocio_nome: string;
+  business_id: string | null;
+  plano: string | null;
+  nome_exibido: string | null;
+  cidade: string | null;
+  nota: number | bigint;
+  texto: string;
+  texto_original: string | null;
+  autorizado_em: Date | null;
+  criado_em: Date;
+  status: string;
+}
+export interface Transicionada {
+  id: string;
+  business_id: string | null;
+}
+
 export const depoimentosRepository = {
   async negocio(businessId: string): Promise<NegocioLinha | null> {
     const r = await prisma.$queryRaw<NegocioLinha[]>`
@@ -104,5 +123,61 @@ export const depoimentosRepository = {
     await prisma.$executeRaw`
       UPDATE depoimentos SET status = 'retirado', atualizado_em = now()
       WHERE business_id = ${businessId}::uuid AND status IN ('publicado', 'pendente')`;
+  },
+
+  // ---- SuperAdmin ----
+
+  /** Fila de pendentes: mais antigo primeiro (FIFO). As demais abas: mais recente primeiro. */
+  async listarAdmin(statuses: string[], maisAntigoPrimeiro: boolean): Promise<AdminLinha[]> {
+    if (maisAntigoPrimeiro) {
+      return prisma.$queryRaw<AdminLinha[]>`
+        SELECT d.id, d.negocio_nome, d.business_id, b.plan AS plano, d.nome_exibido, d.cidade, d.nota, d.texto,
+               d.texto_original, d.autorizado_em, d.criado_em, d.status
+        FROM depoimentos d LEFT JOIN businesses b ON b.id = d.business_id
+        WHERE d.status = ANY(${statuses}::text[]) ORDER BY d.criado_em ASC`;
+    }
+    return prisma.$queryRaw<AdminLinha[]>`
+      SELECT d.id, d.negocio_nome, d.business_id, b.plan AS plano, d.nome_exibido, d.cidade, d.nota, d.texto,
+             d.texto_original, d.autorizado_em, d.criado_em, d.status
+      FROM depoimentos d LEFT JOIN businesses b ON b.id = d.business_id
+      WHERE d.status = ANY(${statuses}::text[]) ORDER BY d.criado_em DESC`;
+  },
+
+  async contarPublicados(): Promise<number> {
+    const r = await prisma.$queryRaw<{ total: number | bigint }[]>`
+      SELECT count(*)::int AS total FROM depoimentos WHERE status = 'publicado'`;
+    return Number(r[0]?.total ?? 0);
+  },
+
+  async publicar(id: string, adminId: string): Promise<Transicionada | null> {
+    const r = await prisma.$queryRaw<Transicionada[]>`
+      UPDATE depoimentos
+      SET status = 'publicado', publicado_em = now(), publicado_por = ${adminId}::uuid, atualizado_em = now()
+      WHERE id = ${id}::uuid AND status = 'pendente'
+      RETURNING id, business_id`;
+    return r[0] ?? null;
+  },
+
+  async recusar(id: string): Promise<Transicionada | null> {
+    const r = await prisma.$queryRaw<Transicionada[]>`
+      UPDATE depoimentos SET status = 'recusado', atualizado_em = now()
+      WHERE id = ${id}::uuid AND status = 'pendente'
+      RETURNING id, business_id`;
+    return r[0] ?? null;
+  },
+
+  async corrigir(id: string, texto: string): Promise<Transicionada | null> {
+    const r = await prisma.$queryRaw<Transicionada[]>`
+      UPDATE depoimentos
+      SET texto_original = COALESCE(texto_original, texto), texto = ${texto}, atualizado_em = now()
+      WHERE id = ${id}::uuid AND status IN ('pendente', 'publicado')
+      RETURNING id, business_id`;
+    return r[0] ?? null;
+  },
+
+  async statusDe(id: string): Promise<string | null> {
+    const r = await prisma.$queryRaw<{ status: string }[]>`
+      SELECT status FROM depoimentos WHERE id = ${id}::uuid`;
+    return r[0]?.status ?? null;
   },
 };
