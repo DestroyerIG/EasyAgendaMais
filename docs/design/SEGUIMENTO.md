@@ -276,6 +276,7 @@ Plano: `docs/superpowers/plans/2026-11-03-h3-textos-de-venda.md`. A tabela "ante
 
 ## Infraestrutura
 
+- **Pendente:** ligar o RLS nas 14 tabelas que ficaram sem ele (comissões, clube, app do profissional e Google Agenda). Não é urgente: os papéis públicos não têm acesso a elas. Roteiro em `docs/design/rls-tabelas-restantes.md`.
 - **Resolvido em 27/10:** o `docker-compose.yml` e o `setup.ps1` passaram a usar o Prisma (`supabase-stub.sql` + `prisma migrate deploy`), sem os SQL antigos e sem `AUTH_PROVIDER_MODE`. Os Dockerfiles foram corrigidos: no backend, o `npm ci` de produção falhava no `prisma generate`; no frontend, faltavam o caminho do standalone, a pasta `public` e as `NEXT_PUBLIC_*` no build. Falta subir o compose do zero numa máquina com o Docker rodando, porque a validação foi só de sintaxe.
 
 ## Melhorias técnicas pequenas
