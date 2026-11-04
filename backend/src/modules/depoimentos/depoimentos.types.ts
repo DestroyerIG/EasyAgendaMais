@@ -62,3 +62,12 @@ export interface UsuarioAdmin {
   userId: string;
   businessId?: string | null;
 }
+
+export interface DepoimentoPublico {
+  texto: string;
+  nota: number;
+  nomeExibido: string;
+  negocio: string;
+  cidade: string;
+  logoUrl: string | null;
+}

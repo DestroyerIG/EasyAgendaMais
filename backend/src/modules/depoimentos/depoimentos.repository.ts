@@ -1,4 +1,5 @@
 import { prisma } from '../../config/prisma.js';
+import { MAX_NA_LANDING } from './depoimentos.rules.js';
 
 // SQL cru: as tabelas depoimentos e depoimento_pedidos não passam pelo cliente tipado.
 // atualizado_em não tem gatilho: todo UPDATE precisa gravá-lo.
@@ -49,6 +50,14 @@ export interface AdminLinha {
   autorizado_em: Date | null;
   criado_em: Date;
   status: string;
+}
+export interface PublicoLinha {
+  texto: string;
+  nota: number | bigint;
+  nome_exibido: string | null;
+  negocio_nome: string;
+  cidade: string | null;
+  logo_url: string | null;
 }
 export interface Transicionada {
   id: string;
@@ -123,6 +132,16 @@ export const depoimentosRepository = {
     await prisma.$executeRaw`
       UPDATE depoimentos SET status = 'retirado', atualizado_em = now()
       WHERE business_id = ${businessId}::uuid AND status IN ('publicado', 'pendente')`;
+  },
+
+  /** Publicados e autorizados de negócios ativos com assinatura em dia (JOIN interno: negócio excluído some). */
+  async publicos(): Promise<PublicoLinha[]> {
+    return prisma.$queryRaw<PublicoLinha[]>`
+      SELECT d.texto, d.nota, d.nome_exibido, d.negocio_nome, d.cidade, d.logo_url
+      FROM depoimentos d JOIN businesses b ON b.id = d.business_id
+      WHERE d.status = 'publicado' AND d.autorizou = true
+        AND b.active = true AND b.subscription_status = 'active'
+      ORDER BY d.publicado_em DESC LIMIT ${MAX_NA_LANDING}::int`;
   },
 
   // ---- SuperAdmin ----

@@ -19,3 +19,9 @@ export const dispensar: H = async (req, res, next) => {
 export const retirar: H = async (req, res, next) => {
   try { sendSuccess(res, await depoimentosService.retirar(req.user)); } catch (e) { next(e); }
 };
+export const publicos: H = async (_req, res, next) => {
+  try {
+    res.set('Cache-Control', 'public, max-age=300');
+    sendSuccess(res, await depoimentosService.publicos());
+  } catch (e) { next(e); }
+};

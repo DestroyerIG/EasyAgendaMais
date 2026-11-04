@@ -6,7 +6,7 @@ import {
   classificarEnvio, nomeSugerido, podeMostrarPopup,
 } from './depoimentos.rules.js';
 import type {
-  Aba, DepoimentoAtual, DepoimentoAdmin, EnvioInput, EstadoDepoimento, ResultadoLista, StatusAtual, UsuarioAdmin, UsuarioDono,
+  Aba, DepoimentoAtual, DepoimentoAdmin, DepoimentoPublico, EnvioInput, EstadoDepoimento, ResultadoLista, StatusAtual, UsuarioAdmin, UsuarioDono,
 } from './depoimentos.types.js';
 import type { AdminLinha, Transicionada } from './depoimentos.repository.js';
 
@@ -28,6 +28,18 @@ const negocioDe = (u: UsuarioDono): string => {
 };
 
 const vazioParaNulo = (s: string | undefined): string | null => (s?.trim() ? s.trim() : null);
+
+async function publicos(): Promise<DepoimentoPublico[]> {
+  const linhas = await repo.publicos();
+  return linhas.map((d) => ({
+    texto: d.texto,
+    nota: Number(d.nota),
+    nomeExibido: d.nome_exibido ?? '',
+    negocio: d.negocio_nome,
+    cidade: d.cidade ?? '',
+    logoUrl: d.logo_url || null,
+  }));
+}
 
 async function estado(user: UsuarioDono): Promise<EstadoDepoimento> {
   const id = negocioDe(user);
@@ -61,6 +73,7 @@ async function estado(user: UsuarioDono): Promise<EstadoDepoimento> {
 }
 
 export const depoimentosService = {
+  publicos,
   estado,
 
   async enviar(user: UsuarioDono, body: EnvioInput): Promise<EstadoDepoimento> {
