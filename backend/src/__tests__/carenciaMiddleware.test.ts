@@ -194,7 +194,6 @@ describe('rotas isentas passam em qualquer estado', () => {
     ['GET', '/api/v1/billing/invoices'],
     ['GET', '/api/v1/billing/payment-method'],
     ['POST', '/api/v1/billing/reactivate'],
-    ['POST', '/api/v1/subscriptions/portal'],
     ['GET', '/api/v1/auth/me'],
   ];
 

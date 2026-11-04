@@ -194,7 +194,7 @@ export default function OgImage() {
           }}
         >
           <div style={{ display: 'flex', gap: '24px' }}>
-            {['14 dias grátis', 'Sem cartão no cadastro', 'Setup rápido'].map((tag) => (
+            {['Teste grátis', '7 dias sem cartão', '14 com cartão'].map((tag) => (
               <span
                 key={tag}
                 style={{

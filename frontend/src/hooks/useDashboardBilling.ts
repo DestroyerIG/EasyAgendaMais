@@ -10,7 +10,7 @@ import { getApiErrorMessage } from '@/utils/handleApiError';
 
 /**
  * Hook compartilhado para todas as sub-páginas do dashboard.
- * Fornece: access, goToPlans, openBillingPortal, portalLoading
+ * Fornece: access, goToPlans, openBillingPortal (no cartão abre a fatura do Asaas), portalLoading
  */
 export function useDashboardBilling() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
@@ -39,20 +39,19 @@ export function useDashboardBilling() {
   const goToPlans = (recurso?: string) =>
     router.push(typeof recurso === 'string' && recurso ? `/planos/comparar?recurso=${encodeURIComponent(recurso)}` : '/planos/comparar');
 
+  // Cartão: abre a fatura em aberto (ou a última) na página do Asaas, onde ela paga com outro cartão.
+  // Pix ou sem cartão: a cobrança é gerada em Plano e cobrança.
   const openBillingPortal = async () => {
-    if (billingProvider === 'asaas' || billingProvider === 'coupon') {
-      showToast('Para pagamentos Pix, gere uma nova cobrança na tela de planos.', 'info');
-      router.push('/planos');
-      return;
-    }
-
     setPortalLoading(true);
     try {
-      const response = await billingApi.createPortalSession();
-      window.location.assign(response.portalUrl);
+      const forma = billingProvider === 'asaas' ? await billingApi.getPaymentMethod() : null;
+      if (forma?.tipo === 'card' && forma.urlFatura) {
+        window.open(forma.urlFatura, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      router.push('/planos');
     } catch (error: unknown) {
-      const message = getApiErrorMessage(error, 'Portal de assinatura indisponível no momento.');
-      showToast(message, 'error');
+      showToast(getApiErrorMessage(error, 'Não foi possível abrir a fatura agora.'), 'error');
     } finally {
       setPortalLoading(false);
     }

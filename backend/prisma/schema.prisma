@@ -35,13 +35,7 @@ model Business {
   subscriptionUpdatedAt        DateTime? @default(now()) @map("subscription_updated_at")
   inadimplenteDesde            DateTime? @map("inadimplente_desde") @db.Timestamptz(6)
 
-  // Stripe
-  stripeCustomerId             String?   @unique @map("stripe_customer_id") @db.VarChar(255)
-  stripeSubscriptionId         String?   @unique @map("stripe_subscription_id") @db.VarChar(255)
-  stripePriceId                String?   @map("stripe_price_id") @db.VarChar(255)
-  stripePaymentMode            String?   @map("stripe_payment_mode") @db.VarChar(20)
-
-  // Provider genérico (Asaas / Stripe / coupon)
+  // Provider da cobrança (Asaas ou cupom)
   provider                     String?   @db.VarChar(20)
   asaasCustomerId              String?   @map("asaas_customer_id") @db.VarChar(255)
   providerCustomerId           String?   @map("provider_customer_id") @db.VarChar(255)
@@ -82,7 +76,6 @@ model Business {
   appointments         Appointment[]
   earnings             Earning[]
   expenses             Expense[]
-  subscriptionEvents   SubscriptionEvent[]
   billingWebhookEvents BillingWebhookEvent[]
   billingPayments      BillingPayment[]
   auditLogsAsActor     AuditLog[]          @relation("ActorBusiness")
@@ -333,20 +326,6 @@ model Expense {
 }
 
 // ─── Billing ───────────────────────────────────────────────────────────────────
-
-model SubscriptionEvent {
-  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  stripeEventId String    @unique @map("stripe_event_id") @db.VarChar(255)
-  eventType     String    @map("event_type") @db.VarChar(255)
-  businessId  String?   @map("business_id") @db.Uuid
-  payload       Json?
-  createdAt     DateTime  @default(now()) @map("created_at")
-
-  business Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
-
-  @@index([businessId], map: "subscription_events_business_id_idx")
-  @@map("subscription_events")
-}
 
 model BillingWebhookEvent {
   id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid

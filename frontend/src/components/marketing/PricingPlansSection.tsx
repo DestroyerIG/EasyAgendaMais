@@ -26,9 +26,9 @@ import {
 
 // Nome, equipe e recursos dos cards vêm do catálogo único (lib/planCatalog.ts); aqui fica só o texto do botão.
 const CTA_DO_PLANO: Record<PlanId, string> = {
-  basico: 'Começar 14 dias grátis',
-  profissional: 'Testar 14 dias grátis',
-  premium: 'Começar 14 dias grátis',
+  basico: 'Testar grátis',
+  profissional: 'Testar grátis',
+  premium: 'Testar grátis',
 };
 
 const PLANO_ANTERIOR: Partial<Record<PlanId, string>> = { profissional: 'Solo', premium: 'Equipe' };
@@ -131,7 +131,7 @@ interface PricingPlansSectionProps {
 export function PricingPlansSection({
   sectionId = 'planos',
   title = 'Planos para cada fase do seu negócio',
-  subtitle = 'Teste 14 dias grátis com acesso completo ao plano Equipe — sem cartão, sem compromisso. Assine quando quiser para continuar.',
+  subtitle = 'Teste grátis no plano Equipe: 7 dias sem cartão, ou 14 com o cartão cadastrado. Sem compromisso.',
   currentPlan,
   subscriptionStatus,
   showHeader = true,
@@ -314,7 +314,7 @@ export function PricingPlansSection({
         return;
       }
 
-      if ('provider' in session && session.provider === 'asaas') {
+      if ('paymentId' in session) {
         setPixCheckout(session);
         persistPixCheckout(session, pixCheckoutPlanId);
         showToast('Cupom aplicado. QR Code atualizado com desconto.', 'success');
@@ -347,7 +347,7 @@ export function PricingPlansSection({
         pixCouponCode.trim()
       );
 
-      if ('provider' in session && session.provider === 'asaas') {
+      if ('paymentId' in session) {
         setPixCheckout(session);
         persistPixCheckout(session, pixCheckoutPlanId);
         setPixAppliedCoupon(null);
@@ -410,7 +410,7 @@ export function PricingPlansSection({
         return;
       }
 
-      if (!('provider' in session) || session.provider !== 'asaas') {
+      if (!('paymentId' in session)) {
         showToast('Checkout Pix indisponível no momento. Tente novamente.', 'error');
         return;
       }
@@ -589,12 +589,12 @@ export function PricingPlansSection({
         return;
       }
 
-      if (session.provider !== 'stripe') {
+      if (!('checkoutUrl' in session)) {
         showToast('Checkout com cartão indisponível no momento. Tente novamente.', 'error');
         return;
       }
 
-      window.location.href = session.checkoutUrl;
+      window.location.assign(session.checkoutUrl);
     } catch (error: unknown) {
       const message = getApiErrorMessage(error, 'Não foi possível iniciar o checkout no momento.');
       showToast(message, 'error');
@@ -611,7 +611,7 @@ export function PricingPlansSection({
           <h2 className="mt-3 text-3xl font-extrabold leading-tight tracking-tight text-ink sm:text-4xl">{title}</h2>
           <p className="mt-4 text-muted">{subtitle}</p>
           <p className="mt-3 text-sm text-muted">
-            Em cada plano você pode escolher checkout com cartão via Stripe ou pagamento Pix via Asaas.
+            Pague no cartão ou no Pix.
           </p>
         </div>
       )}
@@ -671,7 +671,7 @@ export function PricingPlansSection({
                   <span className="text-sm font-medium text-muted">/mês</span>
                 </p>
                 <p className="mt-2 inline-flex items-center rounded-full bg-whatsapp/10 px-3 py-1.5 text-[11px] font-medium leading-snug text-whatsapp sm:text-xs">
-                  14 dias grátis no cadastro · sem cartão obrigatório
+                  7 dias grátis sem cartão, ou 14 com cartão cadastrado
                 </p>
               </div>
 
@@ -699,7 +699,7 @@ export function PricingPlansSection({
                       {CTA_DO_PLANO[plan.id]}
                     </a>
                     <p className="text-center text-[11px] text-muted">
-                      14 dias grátis · sem cartão no cadastro
+                      7 dias grátis sem cartão, ou 14 com cartão cadastrado
                     </p>
                   </>
                 ) : (
@@ -735,7 +735,7 @@ export function PricingPlansSection({
                     </button>
 
                     <p className="text-center text-[11px] text-muted">
-                      Cartão abre checkout Stripe. Pix gera QR Code na tela para pagamento imediato.
+                      No cartão você paga na página segura do Asaas. No Pix o QR Code aparece aqui.
                     </p>
                   </>
                 )}

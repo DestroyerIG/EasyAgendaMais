@@ -36,7 +36,7 @@ const sections = [
   {
     title: '4. Compartilhamento com terceiros',
     paragraphs: [
-      'Podemos compartilhar dados com provedores que viabilizam o serviço, como processadores de pagamento (Stripe e Asaas), serviços de hospedagem, banco de dados e envio de mensagens, sempre limitados à finalidade necessária.',
+      'Podemos compartilhar dados com provedores que viabilizam o serviço, como processadores de pagamento (Asaas), serviços de hospedagem, banco de dados e envio de mensagens, sempre limitados à finalidade necessária.',
       'Esses provedores estão sujeitos a obrigações de confidencialidade e proteção de dados compatíveis com a legislação aplicável.',
     ],
   },

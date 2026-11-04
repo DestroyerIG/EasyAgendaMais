@@ -49,7 +49,8 @@ const catalogo: CatalogoPlanos = {
 
 const status = (extra: Partial<SubscriptionStatusResponse> = {}): SubscriptionStatusResponse => ({
   plan: 'profissional',
-  provider: 'stripe',
+  provider: 'asaas',
+  paymentMethod: 'card',
   subscriptionStatus: 'active',
   currentPeriodStart: null,
   currentPeriodEnd: futuro,
@@ -64,7 +65,7 @@ const status = (extra: Partial<SubscriptionStatusResponse> = {}): SubscriptionSt
   ...extra,
 });
 
-const cartao: FormaPagamento = { tipo: 'card', bandeira: 'Mastercard', final: '8821', titular: 'Carla R. Silva', validade: '08/28' };
+const cartao: FormaPagamento = { tipo: 'card', bandeira: 'MASTERCARD', final: '8821', urlFatura: 'https://asaas/i/0' };
 
 const faturas: FaturasResponse = {
   anos: [2026],
@@ -79,7 +80,7 @@ const faturas: FaturasResponse = {
     formaDetalhe: 'Cartão de crédito',
     status: i === 0 ? ('em_aberto' as const) : ('pago' as const),
     tipo: 'mensalidade' as const,
-    url: i === 0 ? 'https://stripe/i/0' : null,
+    url: i === 0 ? 'https://asaas/i/0' : null,
   })),
 };
 
@@ -92,7 +93,7 @@ beforeEach(() => {
 });
 
 describe('Plano e cobrança', () => {
-  it('mostra plano, preço, profissionais reais e o cartão do Stripe', async () => {
+  it('mostra plano, preço, profissionais reais e o cartão do Asaas', async () => {
     render(<PlanosPage />);
     expect(await screen.findByText('Plano Equipe (Mensal)')).toBeInTheDocument();
     expect(screen.getAllByText(/R\$\s*99,90/).length).toBeGreaterThan(0);
@@ -102,6 +103,23 @@ describe('Plano e cobrança', () => {
     expect(screen.getByText(/Próxima cobrança/)).toBeInTheDocument();
     expect(screen.queryByTestId('checkout')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Mudar de plano/ })).toHaveAttribute('href', '/planos/comparar');
+    expect(screen.getByText('Pagamento com cartão processado pelo Asaas.')).toBeInTheDocument();
+    expect(screen.queryByText(/Stripe/)).not.toBeInTheDocument();
+  });
+
+  it('cartão: "Pagar a fatura com outro cartão" abre a fatura do Asaas', async () => {
+    const abrir = vi.spyOn(window, 'open').mockImplementation(() => null);
+    render(<PlanosPage />);
+    fireEvent.click(await screen.findByRole('button', { name: /Pagar a fatura com outro cartão/ }));
+    expect(abrir).toHaveBeenCalledWith('https://asaas/i/0', '_blank', 'noopener,noreferrer');
+    abrir.mockRestore();
+  });
+
+  it('volta do Asaas com ?cartao=retorno avisa que o cartão foi recebido', async () => {
+    window.history.replaceState({}, '', '/planos?cartao=retorno');
+    render(<PlanosPage />);
+    expect(await screen.findByText('Cartão recebido. Assim que o Asaas confirmar, sua assinatura aparece aqui.')).toBeInTheDocument();
+    window.history.replaceState({}, '', '/planos');
   });
 
   it('faturas reais: 4 primeiras, status e "Carregar histórico completo"', async () => {
@@ -131,7 +149,7 @@ describe('Plano e cobrança', () => {
 
   it('cancelada no fim do período oferece reativar', async () => {
     api.getStatus.mockResolvedValue(status({ cancelAtPeriodEnd: true }));
-    api.reactivateSubscription.mockResolvedValue({ provider: 'stripe' });
+    api.reactivateSubscription.mockResolvedValue({ provider: 'asaas', reactivationMode: 'resumed' });
     render(<PlanosPage />);
     fireEvent.click(await screen.findByRole('button', { name: 'Reativar assinatura' }));
     await waitFor(() => expect(api.reactivateSubscription).toHaveBeenCalled());
@@ -162,7 +180,7 @@ describe('Plano e cobrança', () => {
   });
 
   it('pagamento atrasado no Pix: faixa com "Gerar cobrança Pix"', async () => {
-    api.getStatus.mockResolvedValue(status({ provider: 'asaas', subscriptionStatus: 'unpaid' }));
+    api.getStatus.mockResolvedValue(status({ provider: 'asaas', paymentMethod: 'pix', subscriptionStatus: 'unpaid' }));
     api.getPaymentMethod.mockResolvedValue({ tipo: 'pix', cobrancaAberta: null });
     render(<PlanosPage />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Pagamento em atraso');

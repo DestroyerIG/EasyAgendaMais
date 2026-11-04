@@ -6,12 +6,14 @@ const painel = vi.hoisted(() => ({ linhaNegocio: vi.fn(), extrasNegocio: vi.fn()
 const adminRepo = vi.hoisted(() => ({ estenderTeste: vi.fn() }));
 const audit = vi.hoisted(() => ({ logAdminAction: vi.fn(), safeLogFailure: vi.fn() }));
 const estado = vi.hoisted(() => ({ invalidar: vi.fn() }));
+const cobranca = vi.hoisted(() => ({ moverVencimentoDoTesteCartao: vi.fn() }));
 
 vi.mock('../config/prisma.js', () => ({ prisma: {} }));
 vi.mock('../modules/admin/painel.repository.js', () => ({ painelRepository: painel }));
 vi.mock('../repositories/adminRepository.js', () => ({ adminRepository: adminRepo }));
 vi.mock('../services/auditLogService.js', () => ({ auditLogService: audit }));
 vi.mock('../modules/conta/estadoConta.service.js', () => ({ estadoContaService: estado }));
+vi.mock('../services/billingService.js', () => ({ billingService: cobranca }));
 vi.mock('../middleware/auth.js', () => ({
   authMiddleware: (req: express.Request, _res: express.Response, next: express.NextFunction) => {
     (req as unknown as { user: unknown }).user = { userId: 'u1', businessId: null, role: 'platform_admin' };
@@ -82,11 +84,19 @@ describe('PATCH /admin/tenants/:id/trial', () => {
     expect(adminRepo.estenderTeste).not.toHaveBeenCalled();
   });
 
-  it('trialing com assinatura no gateway responde 409 sem UPDATE', async () => {
-    painel.extrasNegocio.mockResolvedValue({ temAssinaturaGateway: true });
+  it('teste com cartão: move o vencimento no Asaas antes do UPDATE', async () => {
+    cobranca.moverVencimentoDoTesteCartao.mockResolvedValue(true);
     const res = await request.patch(url).send(corpo);
-    expect(res.status).toBe(409);
-    expect(res.body.error.message).toContain('gateway');
+    expect(res.status).toBe(200);
+    expect(cobranca.moverVencimentoDoTesteCartao).toHaveBeenCalledWith(expect.any(String), expect.any(Date));
+    expect(cobranca.moverVencimentoDoTesteCartao.mock.invocationCallOrder[0])
+      .toBeLessThan(adminRepo.estenderTeste.mock.invocationCallOrder[0]);
+  });
+
+  it('se o Asaas recusar, o teste não é estendido', async () => {
+    cobranca.moverVencimentoDoTesteCartao.mockRejectedValueOnce(new Error('Asaas fora'));
+    const res = await request.patch(url).send(corpo);
+    expect(res.status).toBeGreaterThanOrEqual(400);
     expect(adminRepo.estenderTeste).not.toHaveBeenCalled();
   });
 

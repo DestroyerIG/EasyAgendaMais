@@ -1,6 +1,5 @@
 import express, { type Request, type Response, type NextFunction } from 'express';
 import { timingSafeEqual } from 'crypto';
-import Stripe from 'stripe';
 import { authMiddleware } from '../../middleware/auth.js';
 import { requireRole, requireTenantRoles } from '../../middleware/rbac.js';
 import { requireFeature } from '../../middleware/subscriptionGuard.js';
@@ -30,51 +29,8 @@ import {
   getInvoices,
   getPaymentMethod,
 } from './billing.controller.js';
-import { stripeWebhook } from '../../controllers/subscriptionController.js';
 
 const router = express.Router();
-
-// ─── Stripe webhook — raw body antes do JSON parser ───────────────────────────
-
-const stripeWebhookMiddleware = (req: Request, res: Response, next: NextFunction): void => {
-  const sig = req.headers['stripe-signature'];
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  if (!sig || !secret) {
-    logger.warn({ requestId: req.requestId }, 'Stripe webhook: assinatura ou secret ausente');
-    res.status(400).json({ error: 'Missing signature' });
-    return;
-  }
-
-  try {
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: '2025-02-24.acacia' as Stripe.LatestApiVersion,
-    });
-    stripe.webhooks.constructEvent(
-      req.body as Buffer,
-      sig,
-      secret
-    );
-    next();
-  } catch (err) {
-    logger.warn({ err, requestId: req.requestId }, 'Stripe webhook: assinatura inválida');
-    res.status(400).json({ error: 'Invalid signature' });
-  }
-};
-
-router.post(
-  '/webhook/stripe',
-  express.raw({ type: 'application/json' }),
-  stripeWebhookMiddleware,
-  stripeWebhook
-);
-
-router.post(
-  '/webhooks/stripe',
-  express.raw({ type: 'application/json' }),
-  stripeWebhookMiddleware,
-  stripeWebhook
-);
 
 // ─── Asaas webhook — token validation com timing-safe compare ─────────────────
 

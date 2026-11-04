@@ -15,8 +15,8 @@ export interface EntradaEstado {
   jaPagou: boolean;
   fimDoPeriodo: Date | null;
   agora: Date;
-  /** Cobrança pelo Pix (Asaas). Só nele a cobrança é gerada antes do vencimento. */
-  pix?: boolean;
+  /** Cartão cadastrado no Asaas (assinatura ativa): a 1ª cobrança recusada no fim do teste dá carência. */
+  cartaoCadastrado?: boolean;
 }
 
 export function calcularEstadoConta(e: EntradaEstado): EstadoConta {
@@ -24,7 +24,7 @@ export function calcularEstadoConta(e: EntradaEstado): EstadoConta {
   if (e.status === 'canceled') return { tipo: 'bloqueada', motivo: 'cancelada' };
 
   const emContingencia = (STATUS_CONTINGENCIA as readonly string[]).includes(e.status);
-  if (!e.jaPagou) return { tipo: 'bloqueada', motivo: 'teste' };
+  if (!e.jaPagou && !(e.cartaoCadastrado && emContingencia)) return { tipo: 'bloqueada', motivo: 'teste' };
   // Quem já pagou e caiu num status fora da lista (ex.: incomplete) não está em teste.
   if (!emContingencia) return { tipo: 'bloqueada', motivo: 'cobranca' };
 
@@ -35,15 +35,16 @@ export function calcularEstadoConta(e: EntradaEstado): EstadoConta {
 
   // Defesa contra linha sem backfill: conta a carência a partir de agora.
   let desde = e.inadimplenteDesde ?? e.agora;
-  // Pix gerado antes do vencimento marca inadimplenteDesde na geração; a carência só começa quando o
-  // período pago acaba. No cartão o Stripe avança o fim do período quando a fatura falha, então lá o
-  // fim do período não adia nada (senão a conta bloqueada voltaria para a carência ao fim dele).
-  if (e.pix && e.inadimplenteDesde && e.fimDoPeriodo && e.fimDoPeriodo.getTime() <= e.agora.getTime()
+  // Cobrança gerada antes do vencimento (Pix, ou a próxima do cartão no Asaas) marca inadimplenteDesde na
+  // geração; a carência só começa quando o período pago acaba. O Asaas não avança o período numa cobrança
+  // não paga, então a regra vale para as duas formas.
+  if (e.inadimplenteDesde && e.fimDoPeriodo && e.fimDoPeriodo.getTime() <= e.agora.getTime()
     && e.fimDoPeriodo.getTime() > desde.getTime()) {
     desde = e.fimDoPeriodo;
   }
   const ate = new Date(desde.getTime() + CARENCIA_DIAS * MS_DIA);
-  if (e.agora.getTime() >= ate.getTime()) return { tipo: 'bloqueada', motivo: 'cobranca' };
+  // Quem nunca pagou (1ª cobrança do cartão recusada no fim do teste) termina como teste encerrado.
+  if (e.agora.getTime() >= ate.getTime()) return { tipo: 'bloqueada', motivo: e.jaPagou ? 'cobranca' : 'teste' };
 
   const diasRestantes = Math.ceil((ate.getTime() - e.agora.getTime()) / MS_DIA);
   return { tipo: 'carencia', desde, ate, diasRestantes };

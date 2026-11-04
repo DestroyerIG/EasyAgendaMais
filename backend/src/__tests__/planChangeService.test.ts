@@ -19,29 +19,20 @@ const subs = vi.hoisted(() => ({
   setAsaasCustomerId: vi.fn(),
 }));
 
-const stripe = vi.hoisted(() => ({
-  subscriptions: { retrieve: vi.fn(), update: vi.fn() },
-  subscriptionSchedules: { create: vi.fn(), retrieve: vi.fn(), update: vi.fn(), release: vi.fn() },
-}));
-
 const asaas = vi.hoisted(() => ({
   createPixCharge: vi.fn(),
   getPaymentWithPixData: vi.fn(),
   getOrCreateAsaasCustomer: vi.fn(),
+  criarCobrancaCartao: vi.fn(),
+  atualizarAssinatura: vi.fn(),
 }));
 
 const asaasClient = vi.hoisted(() => ({ delete: vi.fn() }));
 
 vi.mock('../modules/billing/planChange.repository.js', () => ({ planChangeRepository: repo }));
 vi.mock('../repositories/subscriptionRepository.js', () => ({ subscriptionRepository: subs }));
-vi.mock('../config/stripe.js', () => ({ getStripeClient: () => stripe }));
 vi.mock('../integrations/asaas/service.js', () => ({ asaasService: asaas }));
 vi.mock('../integrations/asaas/client.js', () => ({ asaasClient }));
-vi.mock('../services/stripePricingService.js', () => ({
-  stripePricingService: {
-    resolveCheckoutPricing: ({ plan }: { plan: string }) => ({ priceId: `price_${plan}` }),
-  },
-}));
 vi.mock('../utils/logger.js', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 
 const { planChangeService } = await import('../modules/billing/planChange.service.js');
@@ -63,10 +54,9 @@ const ctxPix = (extra: Record<string, unknown> = {}) => ({
 
 const ctxCartao = (extra: Record<string, unknown> = {}) => ({
   ...ctxPix(),
-  provider: 'stripe',
+  provider: 'asaas',
   payment_method: 'card',
-  stripe_subscription_id: 'sub_1',
-  stripe_customer_id: 'cus_s1',
+  provider_subscription_id: 'sub_1',
   ...extra,
 });
 
@@ -136,6 +126,7 @@ describe('upgrade no Pix', () => {
       paymentId: 'pay_up',
       pixCopyPaste: 'copia',
       qrCode: 'qr',
+      invoiceUrl: null,
     });
   });
 
@@ -177,46 +168,28 @@ describe('upgrade no Pix', () => {
 });
 
 describe('upgrade no cartão', () => {
-  beforeEach(() => {
-    stripe.subscriptions.retrieve.mockResolvedValue({ id: 'sub_1', schedule: null, items: { data: [{ id: 'si_1' }] } });
-  });
-
-  it('troca o Price com proporcional e só aplica depois de pago', async () => {
+  it('cobra a diferença numa cobrança avulsa de cartão, paga na página do Asaas', async () => {
     subs.getBusinessBillingContext.mockResolvedValue(ctxCartao());
-    stripe.subscriptions.update.mockResolvedValueOnce({ id: 'sub_1', pending_update: null, metadata: { plan: 'profissional' } });
-    stripe.subscriptions.update.mockResolvedValueOnce({});
+    asaas.criarCobrancaCartao.mockResolvedValue({ id: 'pay_up', status: 'PENDING', dueDate: '2026-11-03', invoiceUrl: 'https://asaas.test/i/pay_up' });
 
     const r = await planChangeService.trocar('b1', 'premium');
 
-    expect(stripe.subscriptions.update).toHaveBeenNthCalledWith(1, 'sub_1', {
-      items: [{ id: 'si_1', price: 'price_premium' }],
-      proration_behavior: 'always_invoice',
-      payment_behavior: 'pending_if_incomplete',
-    });
-    expect(stripe.subscriptions.update).toHaveBeenNthCalledWith(2, 'sub_1', { metadata: { plan: 'premium' } });
-    expect(repo.aplicarPlano).toHaveBeenCalledWith('b1', 'premium');
-    expect(r).toEqual({ tipo: 'upgrade', status: 'pago', plano: 'premium' });
-  });
-
-  it('cartão recusado não troca o plano', async () => {
-    subs.getBusinessBillingContext.mockResolvedValue(ctxCartao());
-    stripe.subscriptions.update.mockResolvedValueOnce({ id: 'sub_1', pending_update: { expires_at: 1 } });
-
-    const r = await planChangeService.trocar('b1', 'premium');
-    expect(r).toMatchObject({ status: 'falhou' });
+    expect(asaas.criarCobrancaCartao).toHaveBeenCalledWith(expect.objectContaining({
+      customerId: 'cus_1', externalReference: 'business:b1:plan:premium:upgrade',
+    }));
+    expect(subs.upsertBillingPayment).toHaveBeenCalledWith(expect.objectContaining({
+      providerPaymentId: 'pay_up', paymentMethod: 'card', tipo: 'upgrade', plano: 'premium',
+    }));
     expect(repo.aplicarPlano).not.toHaveBeenCalled();
-    expect(stripe.subscriptions.update).toHaveBeenCalledTimes(1);
+    expect(r).toMatchObject({ tipo: 'upgrade', status: 'aguardando', plano: 'premium', paymentId: 'pay_up', invoiceUrl: 'https://asaas.test/i/pay_up' });
   });
 
-  it('solta o schedule de um downgrade agendado antes do upgrade', async () => {
-    subs.getBusinessBillingContext.mockResolvedValue(ctxCartao({ plan: 'basico', plano_agendado: null }));
-    stripe.subscriptions.retrieve
-      .mockResolvedValueOnce({ id: 'sub_1', schedule: 'sched_1', items: { data: [{ id: 'si_1' }] } })
-      .mockResolvedValueOnce({ id: 'sub_1', schedule: null, items: { data: [{ id: 'si_1' }] } });
-    stripe.subscriptions.update.mockResolvedValue({ id: 'sub_1', pending_update: null });
-
-    await planChangeService.trocar('b1', 'profissional');
-    expect(stripe.subscriptionSchedules.release).toHaveBeenCalledWith('sched_1');
+  it('pedir de novo devolve a mesma cobrança com o link da fatura', async () => {
+    subs.getBusinessBillingContext.mockResolvedValue(ctxCartao());
+    repo.upgradePendente.mockResolvedValue({ id: 'bp1', plano: 'premium', providerPaymentId: 'pay_up', amount: 50, pixCopyPaste: null, qrCode: null, metadata: { rawPayment: { invoiceUrl: 'https://asaas.test/i/pay_up' } } });
+    const r = await planChangeService.trocar('b1', 'premium');
+    expect(asaas.criarCobrancaCartao).not.toHaveBeenCalled();
+    expect(r).toMatchObject({ status: 'aguardando', paymentId: 'pay_up', invoiceUrl: 'https://asaas.test/i/pay_up' });
   });
 });
 
@@ -227,7 +200,7 @@ describe('downgrade', () => {
     const r = await planChangeService.trocar('b1', 'basico');
     expect(repo.agendarPlano).toHaveBeenCalledWith('b1', 'basico', ctx.current_period_end);
     expect(r).toEqual({ tipo: 'downgrade', agendadoPara: ctx.current_period_end.toISOString(), plano: 'basico' });
-    expect(stripe.subscriptionSchedules.create).not.toHaveBeenCalled();
+    expect(asaas.atualizarAssinatura).not.toHaveBeenCalled();
   });
 
   it('bloqueado por profissionais → 409 e nada agendado', async () => {
@@ -237,37 +210,20 @@ describe('downgrade', () => {
     expect(repo.agendarPlano).not.toHaveBeenCalled();
   });
 
-  it('cartão: cria o schedule com a fase atual até a renovação e a nova depois', async () => {
-    subs.getBusinessBillingContext.mockResolvedValue(ctxCartao({ plan: 'premium' }));
-    stripe.subscriptions.retrieve.mockResolvedValue({ id: 'sub_1', schedule: null, current_period_end: 1800000000 });
-    stripe.subscriptionSchedules.create.mockResolvedValue({ id: 'sched_1' });
-    stripe.subscriptionSchedules.retrieve.mockResolvedValue({ phases: [{ start_date: 1797000000 }] });
-
+  it('cartão: agenda e já muda o valor da assinatura, incluindo a cobrança do próximo ciclo', async () => {
+    const ctx = ctxCartao({ plan: 'premium' });
+    subs.getBusinessBillingContext.mockResolvedValue(ctx);
     await planChangeService.trocar('b1', 'profissional');
-
-    expect(stripe.subscriptionSchedules.create).toHaveBeenCalledWith({ from_subscription: 'sub_1' });
-    expect(stripe.subscriptionSchedules.update).toHaveBeenCalledWith('sched_1', {
-      end_behavior: 'release',
-      phases: [
-        { items: [{ price: 'price_premium', quantity: 1 }], start_date: 1797000000, end_date: 1800000000 },
-        {
-          items: [{ price: 'price_profissional', quantity: 1 }],
-          iterations: 1,
-          proration_behavior: 'none',
-          metadata: { plan: 'profissional' },
-        },
-      ],
-    });
-    expect(repo.agendarPlano).toHaveBeenCalled();
+    expect(asaas.atualizarAssinatura).toHaveBeenCalledWith('sub_1', { value: 99.9, updatePendingPayments: true });
+    expect(repo.agendarPlano).toHaveBeenCalledWith('b1', 'profissional', ctx.current_period_end);
   });
 });
 
 describe('cancelar mudança', () => {
-  it('downgrade agendado no cartão solta o schedule e limpa', async () => {
+  it('downgrade agendado no cartão volta o valor da assinatura e limpa', async () => {
     subs.getBusinessBillingContext.mockResolvedValue(ctxCartao({ plan: 'premium', plano_agendado: 'basico' }));
-    stripe.subscriptions.retrieve.mockResolvedValue({ id: 'sub_1', schedule: { id: 'sched_1' } });
     expect(await planChangeService.cancelar('b1')).toEqual({ cancelado: 'downgrade' });
-    expect(stripe.subscriptionSchedules.release).toHaveBeenCalledWith('sched_1');
+    expect(asaas.atualizarAssinatura).toHaveBeenCalledWith('sub_1', { value: 199.9, updatePendingPayments: true });
     expect(repo.limparPlanoAgendado).toHaveBeenCalledWith('b1', 'premium');
   });
 
@@ -293,6 +249,14 @@ describe('webhook da diferença no Pix', () => {
       expect.objectContaining({ providerPaymentId: 'pay_up', tipo: 'upgrade', internalStatus: 'active' })
     );
     expect(repo.aplicarPlano).toHaveBeenCalledWith('b1', 'premium');
+  });
+
+  it('pago no cartão aplica o plano, grava como cartão e sobe o valor da assinatura', async () => {
+    subs.getBusinessBillingContext.mockResolvedValue(ctxCartao());
+    await planChangeService.webhookUpgradePix({ id: 'pay_up', status: 'CONFIRMED', value: 50, billingType: 'CREDIT_CARD' }, 'b1', 'premium');
+    expect(subs.upsertBillingPayment).toHaveBeenCalledWith(expect.objectContaining({ paymentMethod: 'card', tipo: 'upgrade' }));
+    expect(repo.aplicarPlano).toHaveBeenCalledWith('b1', 'premium');
+    expect(asaas.atualizarAssinatura).toHaveBeenCalledWith('sub_1', { value: 199.9, updatePendingPayments: true });
   });
 
   it('repetido (plano já aplicado) não aplica de novo', async () => {

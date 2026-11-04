@@ -132,7 +132,7 @@ describe('Visão geral do SuperAdmin', () => {
     render(<AdminHomePage />);
     await screen.findByText('R$ 297,00');
     expect(screen.getByText('+4 nesta semana')).toBeInTheDocument();
-    expect(screen.getByText('Contas em período experimental de 14 dias')).toBeInTheDocument();
+    expect(screen.getByText('Contas em período de teste (7 dias sem cartão ou 14 com cartão)')).toBeInTheDocument();
     expect(screen.getByText('5 de 20 convertidos')).toBeInTheDocument();
     expect(screen.getByText('Retenção 90,0%')).toBeInTheDocument();
     expect(screen.getAllByText(/Testes no período/)).toHaveLength(6);

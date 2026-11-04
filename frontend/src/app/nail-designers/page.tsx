@@ -122,7 +122,7 @@ export default function NailDesignersPage() {
                   href="/cadastro?segmento=unhas"
                   className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl bg-brand px-8 py-4 text-sm font-bold text-on-brand shadow-md transition-opacity hover:opacity-90"
                 >
-                  Testar 14 dias grátis
+                  Testar grátis
                   <Icon name="arrow_forward" size={16} />
                 </Link>
                 <div className="flex items-center gap-2 text-muted">
@@ -138,7 +138,7 @@ export default function NailDesignersPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Icon name="check_circle" size={20} className="text-whatsapp" />
-                  <span className="text-sm font-semibold">14 dias grátis</span>
+                  <span className="text-sm font-semibold">7 dias grátis sem cartão</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Icon name="check_circle" size={20} className="text-whatsapp" />
@@ -328,7 +328,7 @@ export default function NailDesignersPage() {
                 href="/cadastro?segmento=unhas"
                 className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl bg-brand px-8 py-4 text-sm font-bold text-on-brand shadow-md transition-opacity hover:opacity-90"
               >
-                Experimentar 14 dias grátis agora
+                Experimentar grátis agora
                 <Icon name="arrow_forward" size={16} />
               </Link>
             </div>

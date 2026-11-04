@@ -1,6 +1,6 @@
 import { prisma } from '../config/prisma.js';
 import { Prisma } from '@prisma/client';
-import { TRIAL_DAYS } from '../config/trial.js';
+import { TESTE_SEM_CARTAO_DIAS } from '../config/trial.js';
 
 // ---------------------------------------------------------------------------
 // Helpers internos
@@ -500,7 +500,7 @@ export const authRepository = {
     try {
       const result = await prisma.$queryRaw<Array<Record<string, unknown>>>(Prisma.sql`
         INSERT INTO businesses (name, owner_name, email, whatsapp, plan, desired_plan, cpf_cnpj, subscription_status, subscription_current_period_end)
-        VALUES (${name}, ${ownerName}, ${email}, ${whatsapp}, ${plan}, ${desiredPlan}, ${normalizedCpfCnpj}, 'trialing', NOW() + (${TRIAL_DAYS} || ' days')::interval)
+        VALUES (${name}, ${ownerName}, ${email}, ${whatsapp}, ${plan}, ${desiredPlan}, ${normalizedCpfCnpj}, 'trialing', NOW() + (${TESTE_SEM_CARTAO_DIAS} || ' days')::interval)
         RETURNING id
       `);
       return result[0] ?? null;

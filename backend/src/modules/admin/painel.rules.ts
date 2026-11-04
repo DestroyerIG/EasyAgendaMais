@@ -14,7 +14,7 @@ export interface LinhaNegocio {
   id: string; nome: string; dono: string; email: string; whatsapp: string;
   cpfCnpj: string | null; endereco: string | null; segmento: string | null;
   plano: string; statusAssinatura: string; ativo: boolean;
-  inadimplenteDesde: Date | null; jaPagou: boolean; fimDoPeriodo: Date | null; pix: boolean;
+  inadimplenteDesde: Date | null; jaPagou: boolean; fimDoPeriodo: Date | null; cartaoCadastrado?: boolean;
   criadoEm: Date; canceladoEm: Date | null; onboardingConcluido: boolean;
   temInstanciaWhatsapp: boolean; whatsappConectadoEm: Date | null; ultimoEnvioEm: Date | null;
   agendamentos30d: number; ultimoAgendamentoEm: Date | null;
@@ -58,7 +58,7 @@ export function statusAdmin(l: LinhaNegocio, agora: Date): StatusAdmin {
   const status = normalizeInternalSubscriptionStatus(l.statusAssinatura);
   const estado = calcularEstadoConta({
     status, inadimplenteDesde: l.inadimplenteDesde, jaPagou: l.jaPagou,
-    fimDoPeriodo: l.fimDoPeriodo, agora, pix: l.pix,
+    fimDoPeriodo: l.fimDoPeriodo, agora, cartaoCadastrado: l.cartaoCadastrado,
   });
   if (estado.tipo === 'ativa') return status === 'trialing' ? 'teste' : 'ativo';
   if (estado.tipo === 'carencia') return 'carencia';
@@ -219,14 +219,13 @@ export function negociosEmRisco(ls: LinhaNegocio[], agora: Date): AlertaRisco[] 
  * Por que o teste grátis não pode ser estendido, ou null quando pode. Fonte única da regra:
  * usada pela rota PATCH /admin/tenants/:id/trial e pelo detalhe (podeEstenderTeste).
  * - 'status': só quem está em teste, ou terminou o teste sem nunca pagar (incomplete sem pagamento);
- * - 'gateway': com assinatura no gateway o teste é dele, e o webhook desfaria a mudança.
+ * - teste com cartão: pode estender; o vencimento da 1ª cobrança é movido no Asaas (adminService).
  */
 export function motivoParaNaoEstenderTeste(
-  l: Pick<LinhaNegocio, 'statusAssinatura' | 'jaPagou'>, temAssinaturaGateway: boolean,
-): 'status' | 'gateway' | null {
+  l: Pick<LinhaNegocio, 'statusAssinatura' | 'jaPagou'>,
+): 'status' | null {
   const status = normalizeInternalSubscriptionStatus(l.statusAssinatura);
   const emTeste = status === 'trialing' || (status === 'incomplete' && !l.jaPagou);
   if (!emTeste) return 'status';
-  if (temAssinaturaGateway) return 'gateway';
   return null;
 }

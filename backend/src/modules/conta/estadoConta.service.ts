@@ -18,9 +18,9 @@ export function estadoDoContexto(ctx: BusinessBillingContext | null, agora: Date
     status: normalizeInternalSubscriptionStatus(ctx.subscription_status),
     inadimplenteDesde: paraData(ctx.inadimplente_desde),
     jaPagou: ctx.ja_pagou === true,
+    cartaoCadastrado: ctx.payment_method === 'card' && !!ctx.provider_subscription_id && !ctx.subscription_cancel_at_period_end,
     fimDoPeriodo: paraData(ctx.current_period_end ?? ctx.subscription_current_period_end),
     agora,
-    pix: ctx.payment_method === 'pix' || ctx.provider === 'asaas',
   });
 }
 

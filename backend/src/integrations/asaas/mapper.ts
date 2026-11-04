@@ -28,6 +28,8 @@ export interface AsaasWebhookPayment {
   dateCreated?: string | null;
   updatedAt?: string | null;
   [key: string]: unknown;
+  billingType?: string | null;
+  checkoutSession?: string | null;
 }
 
 export interface AsaasWebhookPayload {
@@ -72,6 +74,8 @@ export interface NormalizedAsaasWebhookPayload {
   dueDate: string | null;
   confirmedDate: string | null;
   payment: AsaasWebhookPayment;
+  formaPagamento: 'card' | 'pix';
+  checkoutSession: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -235,6 +239,8 @@ export const normalizeAsaasWebhookPayload = (
     paymentId: payment?.id || null,
     subscriptionId: payment?.subscription || null,
     customerId: payment?.customer || null,
+    formaPagamento: payment?.billingType === 'CREDIT_CARD' ? 'card' : 'pix',
+    checkoutSession: payment?.checkoutSession || null,
     externalReference: payment?.externalReference || null,
     businessId: extractBusinessIdFromExternalReference(payment?.externalReference),
     amount: typeof payment?.value === 'number' ? payment.value : null,

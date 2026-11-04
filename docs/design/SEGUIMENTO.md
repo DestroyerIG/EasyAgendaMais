@@ -188,6 +188,44 @@ Sub-projeto 7 (Login com Google e Google Agenda), pendências conhecidas:
 - Ajustes feitos: a tabela de negócios espremia a coluna do nome e cortava a última coluna em 1440 px (plano e valor passaram a duas linhas, o "Ver detalhes" virou botão de ícone, com nome acessível "Ver detalhes de {negócio}" em cada linha); o bloco "Sinal Pix" do detalhe mostrava o texto inteiro em fonte grande e quebrava em três linhas.
 - O botão "Avisar no WhatsApp" usa a variante `whatsapp` do kit: no tema escuro, o texto branco sobre o verde claro tem contraste baixo. Ajuste no kit, fora da H2.
 
+## Asaas único e teste de 7 ou 14 dias, pendências conhecidas
+
+- **Documentos:**
+  - spec: `docs/superpowers/specs/2026-11-03-asaas-unico-design.md`;
+  - plano: `docs/superpowers/plans/2026-11-03-asaas-unico.md`;
+  - roteiro de deploy: `docs/design/deploy-asaas-unico.md`;
+  - conferência no sandbox: `docs/design/asaas-sandbox-conferencia.md`.
+- **Migração `20261104120000_remove_stripe`:** ainda não rodou. Ela vai **depois** do deploy do código e da conferência do roteiro, com autorização do dono.
+- **Tokenização:** precisa estar habilitada na conta Asaas de produção. Sem ela, três coisas podem falhar: reativar no cartão, estender o teste com cartão pelo SuperAdmin e mudar o valor da assinatura numa troca de plano no cartão.
+- **Comportamentos do Asaas descobertos no sandbox:**
+  - o `externalReference` do checkout não chega na assinatura nem nas cobranças; o negócio é ligado pelo id do checkout (`checkoutSession`), guardado em `businesses.metadata.checkoutCartao`;
+  - não existe restaurar assinatura; reativar cria outra com o token do cartão (`metadata.cartao`);
+  - o checkout com cliente já cadastrado exige endereço completo, por isso o checkout vai sem cliente e a página do Asaas pede os dados.
+- **Decisões tomadas na implementação para o dono rever:**
+  - **Downgrade no cartão:** o valor da assinatura muda já no agendamento, incluindo a cobrança do próximo ciclo, que o Asaas gera antes.
+  - **Cupom fora do teste:** quem assina no cartão fora do teste com cupom recebe o desconto na segunda mensalidade, porque a primeira é cobrada na hora.
+  - **"Atualizar cartão":** virou "Pagar a fatura com outro cartão". Não foi confirmado se pagar com outro cartão troca o cartão salvo.
+  - **Fim da trava no SuperAdmin:** o SuperAdmin pode estender o teste de quem cadastrou o cartão, e o vencimento é movido no Asaas antes de gravar.
+  - **Resync no SuperAdmin:** consulta a última cobrança no Asaas pelo mesmo caminho do "Já paguei".
+- **Escolha do teste:** fica no navegador (`localStorage`). Quem verifica o e-mail em outro aparelho não vê o convite no onboarding, mas vê no painel e em Ajustes › Plano.
+- **Conferência visual:** feita com mock em desktop, pelo conteúdo da página (a captura de tela do navegador travou). Conferidos o cadastro com as duas opções, o convite em Ajustes › Plano e o cartão cadastrado com o aviso de retorno.
+- **Revisão final:**
+  - **Corrigido antes do PR (com testes em `revisaoCartaoAsaas.test.ts`):**
+    - cobrança apagada derrubava a conta;
+    - confirmação atrasada de uma cobrança antiga liberava a conta ou desfazia o cancelamento;
+    - podiam ficar duas assinaturas de cartão cobrando;
+    - a renovação voltava ao plano do checkout;
+    - a recusa no fim do teste bloqueava sem carência;
+    - reativar no teste usava o plano errado;
+    - estender o teste falhava com a assinatura removida;
+    - o "Já paguei" no teste tirava a conta do teste.
+  - **Ajustes pequenos adiados:**
+    - o fim do teste é gravado às 12:00 UTC do vencimento e pode encurtar algumas horas;
+    - o cupom é consumido quando o checkout é criado, e o desconto de um checkout abandonado pode valer num checkout futuro;
+    - falta conferir se a tela do checkout fora do teste não mostra o valor já com desconto;
+    - o lock do webhook roda fora de transação (já era assim).
+- **Testes instáveis sob carga, que já aconteciam antes desta branch e passam isolados:** `cashService` (`addExpenseSchema`), `ServiceProfessionalModal` e `NovaCampanha`.
+
 ## Item H3 (textos de venda), pendências conhecidas
 
 Plano: `docs/superpowers/plans/2026-11-03-h3-textos-de-venda.md`. A tabela "antes e depois" está no plano e no PR.

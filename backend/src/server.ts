@@ -78,14 +78,12 @@ import automacoesRoutes from './modules/whatsappAutomacoes/automacoes.routes.js'
 import campanhasRoutes from './modules/whatsappCampanhas/campanhas.routes.js';
 
 // @ts-ignore
-import subscriptionRoutes from './modules/subscriptions/subscriptions.routes.js';
 
 // @ts-ignore
 import adminRoutes from './modules/admin/admin.routes.js';
 
 // Legacy JS imports
 // @ts-ignore
-import { stripeWebhook } from './controllers/subscriptionController.js';
 
 // @ts-ignore
 import { initBotOrchestrator } from './bot/botOrchestrator.js';
@@ -262,39 +260,6 @@ app.use(cors(corsOptions));
 
 app.use(cookieParser());
 
-// Stripe webhooks
-app.post(
-  `${API_V1}/subscriptions/webhook`,
-  express.raw({
-    type: 'application/json',
-  }),
-  stripeWebhook
-);
-
-app.post(
-  `${API_V1}/webhook/stripe`,
-  express.raw({
-    type: 'application/json',
-  }),
-  stripeWebhook
-);
-
-app.post(
-  `${API_V1}/billing/webhook/stripe`,
-  express.raw({
-    type: 'application/json',
-  }),
-  stripeWebhook
-);
-
-app.post(
-  `${API_V1}/billing/webhooks/stripe`,
-  express.raw({
-    type: 'application/json',
-  }),
-  stripeWebhook
-);
-
 // BLOCK heavy WhatsApp events
 app.post(
   `${API_V1}/whatsapp/webhook/:event`,
@@ -383,10 +348,6 @@ app.use(sanitizeMiddleware);
 
 // GLOBAL RATE LIMIT
 const webhookPaths = [
-  `${API_V1}/subscriptions/webhook`,
-  `${API_V1}/webhook/stripe`,
-  `${API_V1}/billing/webhook/stripe`,
-  `${API_V1}/billing/webhooks/stripe`,
   `${API_V1}/billing/webhooks/asaas`,
   `${API_V1}/billing/webhook/asaas`,
   `${API_V1}/whatsapp/webhook`,
@@ -543,11 +504,6 @@ app.use(
 app.use(
   `${API_V1}/whatsapp`,
   whatsappRoutes
-);
-
-app.use(
-  `${API_V1}/subscriptions`,
-  subscriptionRoutes
 );
 
 app.use(

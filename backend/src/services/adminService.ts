@@ -8,7 +8,6 @@ import {
 import { adminRepository } from '../repositories/adminRepository.js';
 import { auditRepository } from '../repositories/auditRepository.js';
 import { auditLogService } from './auditLogService.js';
-import { subscriptionService } from './subscriptionService.js';
 import { billingService } from './billingService.js';
 import { subscriptionRepository } from '../repositories/subscriptionRepository.js';
 import { painelRepository } from '../modules/admin/painel.repository.js';
@@ -381,7 +380,7 @@ export const adminService = {
     ensureConfirmed(body.confirmation);
 
     try {
-      const result = await subscriptionService.resyncBusinessSubscription(tenantId);
+      const result = await billingService.resincronizarAsaas(tenantId);
       const resultRecord = result as Record<string, unknown>;
 
       await auditLogService.logAdminAction({
@@ -504,16 +503,15 @@ export const adminService = {
     let fimAnterior: Date | null = null;
     try {
       // Mesma regra do detalhe (podeEstenderTeste): fonte única em painel.rules.
-      const extras = await painelRepository.extrasNegocio(tenantId);
-      const motivo = motivoParaNaoEstenderTeste(linha, extras?.temAssinaturaGateway ?? false);
-      if (motivo === 'status') {
+      if (motivoParaNaoEstenderTeste(linha) === 'status') {
         throw new ConflictError('O teste só pode ser estendido para quem está em teste ou terminou o teste sem pagar.');
-      }
-      if (motivo === 'gateway') {
-        throw new ConflictError('Este teste é controlado pelo gateway de pagamento.');
       }
 
       fimAnterior = linha.fimDoPeriodo ?? null;
+      // Teste com cartão: move a 1ª cobrança no Asaas antes de gravar (mesma conta do UPDATE abaixo).
+      // Se o Asaas recusar, nada muda aqui.
+      const base = Math.max(fimAnterior?.getTime() ?? 0, Date.now());
+      await billingService.moverVencimentoDoTesteCartao(tenantId, new Date(base + body.dias * 86_400_000));
       const fimNovo = await adminRepository.estenderTeste(tenantId, body.dias);
       if (!fimNovo) throw new NotFoundError('Negócio');
 

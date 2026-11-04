@@ -60,7 +60,7 @@ export function Hero() {
             href={`/cadastro?segmento=${active}`}
             className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-brand px-8 py-4 text-sm font-bold text-on-brand shadow-md transition-opacity hover:opacity-90"
           >
-            Testar 14 dias grátis
+            Testar grátis
           </Link>
           <div className="flex items-center gap-2 text-muted">
             <Icon name="verified_user" size={18} />

@@ -1,11 +1,8 @@
-import type Stripe from 'stripe';
 import logger from '../../utils/logger.js';
 import { AppError, NotFoundError } from '../../utils/errors.js';
-import { getStripeClient } from '../../config/stripe.js';
 import { normalizePlan, normalizeSubscriptionStatus } from '../../config/planPermissions.js';
 import { PLAN_CATALOG, PLAN_PRICES } from '../../config/planCatalog.js';
 import { subscriptionRepository } from '../../repositories/subscriptionRepository.js';
-import { stripePricingService } from '../../services/stripePricingService.js';
 import { asaasService } from '../../integrations/asaas/service.js';
 import { asaasClient } from '../../integrations/asaas/client.js';
 import { mapAsaasStatusToInternalStatus, resolveBillingProviderFromContext } from '../../services/billing/statusMapper.js';
@@ -20,7 +17,8 @@ import {
 } from './planChange.rules.js';
 
 // Troca de plano (spec 2D): upgrade vale na hora e cobra a diferença proporcional;
-// downgrade vale na renovação. Cartão = Stripe, Pix = Asaas (cobrança avulsa por mês).
+// downgrade vale na renovação. Tudo no Asaas: Pix é cobrança avulsa por mês; cartão é assinatura
+// recorrente, e a diferença do upgrade é uma cobrança avulsa paga na página da fatura.
 
 type Contexto = Record<string, unknown> & { id: string };
 
@@ -47,6 +45,7 @@ export type ResultadoTroca =
       paymentId: string;
       pixCopyPaste: string | null;
       qrCode: string | null;
+      invoiceUrl: string | null;
     }
   | { tipo: 'downgrade'; agendadoPara: string | null; plano: PlanId };
 
@@ -72,8 +71,7 @@ const carregar = async (businessId: string): Promise<Contexto> => {
 const formaDaAssinatura = (ctx: Contexto): 'card' | 'pix' => {
   const status = normalizeSubscriptionStatus(ctx.subscription_status);
   const provider = resolveBillingProviderFromContext(ctx);
-  if (status === 'active' && provider === 'stripe' && ctx.stripe_subscription_id) return 'card';
-  if (status === 'active' && provider === 'asaas') return 'pix';
+  if (status === 'active' && provider === 'asaas') return ctx.payment_method === 'card' ? 'card' : 'pix';
   throw new AppError(
     'Sua conta ainda não tem uma assinatura paga ativa. Escolha o plano pelo checkout.',
     409,
@@ -90,48 +88,23 @@ const validarPlano = (ctx: Contexto, plano: PlanId) => {
   return { atual, direcao };
 };
 
-const precoStripe = (plano: PlanId): string =>
-  stripePricingService.resolveCheckoutPricing({ plan: plano, paymentMethod: 'card' }).priceId;
-
-const idDoSchedule = (sub: Stripe.Subscription): string | null =>
-  typeof sub.schedule === 'string' ? sub.schedule : sub.schedule?.id ?? null;
-
 const pixDoPagamento = async (paymentId: string) => {
   const { pixData } = await asaasService.getPaymentWithPixData(paymentId);
   return { pixCopyPaste: pixData?.pixCopyPaste ?? null, qrCode: pixData?.qrCode ?? null };
 };
 
-const upgradeNoCartao = async (ctx: Contexto, novo: PlanId): Promise<ResultadoTroca> => {
-  const stripe = getStripeClient();
-  const subId = String(ctx.stripe_subscription_id);
-  let sub = await stripe.subscriptions.retrieve(subId);
+const urlDaFatura = (pagamento: { metadata?: unknown } | null | undefined): string | null => {
+  const raw = (pagamento?.metadata as { rawPayment?: { invoiceUrl?: string | null } } | null)?.rawPayment;
+  return raw?.invoiceUrl ?? null;
+};
 
-  // Um downgrade agendado (schedule) impede mexer nos itens: solta antes.
-  const scheduleId = idDoSchedule(sub);
-  if (scheduleId) {
-    await stripe.subscriptionSchedules.release(scheduleId);
-    sub = await stripe.subscriptions.retrieve(subId);
-  }
-
-  const item = sub.items.data[0];
-  if (!item) throw new AppError('Assinatura do cartão sem item de plano.', 409, 'ASSINATURA_INVALIDA');
-
-  // pending_if_incomplete: a troca só vale se a diferença for paga. Se o cartão recusar,
-  // o Stripe guarda a mudança em `pending_update` e descarta sozinho depois.
-  const atualizado = await stripe.subscriptions.update(subId, {
-    items: [{ id: item.id, price: precoStripe(novo) }],
-    proration_behavior: 'always_invoice',
-    payment_behavior: 'pending_if_incomplete',
+/** Valor da assinatura de cartão no Asaas; muda também a cobrança já gerada do próximo ciclo. */
+const valorDaAssinaturaCartao = async (ctx: Contexto, plano: PlanId): Promise<void> => {
+  if (ctx.payment_method !== 'card' || !ctx.provider_subscription_id) return;
+  await asaasService.atualizarAssinatura(String(ctx.provider_subscription_id), {
+    value: PLAN_PRICES[plano],
+    updatePendingPayments: true,
   });
-
-  if (atualizado.pending_update) {
-    return { tipo: 'upgrade', status: 'falhou', motivo: 'Não conseguimos cobrar a diferença no cartão.' };
-  }
-
-  await stripe.subscriptions.update(subId, { metadata: { ...(atualizado.metadata ?? {}), plan: novo } });
-  await planChangeRepository.aplicarPlano(ctx.id, novo);
-  logger.info({ event: 'billing_upgrade_card', businessId: ctx.id, plan: novo }, 'Upgrade no cartão aplicado');
-  return { tipo: 'upgrade', status: 'pago', plano: novo };
 };
 
 const cancelarCobrancaAsaas = async (paymentId: string) => {
@@ -142,7 +115,7 @@ const cancelarCobrancaAsaas = async (paymentId: string) => {
   }
 };
 
-const upgradeNoPix = async (ctx: Contexto, atual: PlanId, novo: PlanId): Promise<ResultadoTroca> => {
+const upgradeAvulso = async (ctx: Contexto, atual: PlanId, novo: PlanId, forma: 'card' | 'pix'): Promise<ResultadoTroca> => {
   const pendente = await planChangeRepository.upgradePendente(ctx.id);
   if (pendente && pendente.plano === novo) {
     // Pedir de novo devolve a mesma cobrança (dois cliques não cobram duas vezes).
@@ -154,6 +127,7 @@ const upgradeNoPix = async (ctx: Contexto, atual: PlanId, novo: PlanId): Promise
       paymentId: pendente.providerPaymentId,
       pixCopyPaste: pendente.pixCopyPaste,
       qrCode: pendente.qrCode,
+      invoiceUrl: urlDaFatura(pendente),
     };
   }
   if (pendente) {
@@ -178,24 +152,32 @@ const upgradeNoPix = async (ctx: Contexto, atual: PlanId, novo: PlanId): Promise
       })
     ).id;
 
-  const pagamento = await asaasService.createPixCharge({
-    customerId: customer,
-    businessId: ctx.id,
-    plan: novo,
-    amount: valor,
-    externalReference: referenciaUpgrade(ctx.id, novo),
-  });
+  const pagamento =
+    forma === 'card'
+      ? await asaasService.criarCobrancaCartao({
+          customerId: customer,
+          valor,
+          externalReference: referenciaUpgrade(ctx.id, novo),
+          descricao: `EasyAgenda+ - diferença do plano ${PLAN_CATALOG[novo].nome}`,
+        })
+      : await asaasService.createPixCharge({
+          customerId: customer,
+          businessId: ctx.id,
+          plan: novo,
+          amount: valor,
+          externalReference: referenciaUpgrade(ctx.id, novo),
+        });
   if (!pagamento.id) {
     throw new AppError('O Asaas não devolveu a cobrança da diferença.', 502, 'ASAAS_SEM_PAGAMENTO');
   }
   const paymentId = pagamento.id;
-  const pix = await pixDoPagamento(paymentId);
+  const pix = forma === 'pix' ? await pixDoPagamento(paymentId) : { pixCopyPaste: null, qrCode: null };
 
   await subscriptionRepository.upsertBillingPayment({
     businessId: ctx.id,
     provider: 'asaas',
     providerPaymentId: paymentId,
-    paymentMethod: 'pix',
+    paymentMethod: forma,
     externalStatus: pagamento.status ?? null,
     internalStatus: 'pending',
     amount: valor,
@@ -207,36 +189,16 @@ const upgradeNoPix = async (ctx: Contexto, atual: PlanId, novo: PlanId): Promise
     metadata: { rawPayment: pagamento },
   });
 
-  logger.info({ event: 'billing_upgrade_pix_created', businessId: ctx.id, plan: novo, valor }, 'Cobrança da diferença do upgrade criada');
-  return { tipo: 'upgrade', status: 'aguardando', plano: novo, valor, paymentId, ...pix };
-};
-
-const downgradeNoCartao = async (ctx: Contexto, atual: PlanId, novo: PlanId): Promise<void> => {
-  const stripe = getStripeClient();
-  const subId = String(ctx.stripe_subscription_id);
-  const sub = await stripe.subscriptions.retrieve(subId);
-  const scheduleId =
-    idDoSchedule(sub) ?? (await stripe.subscriptionSchedules.create({ from_subscription: subId })).id;
-  const schedule = await stripe.subscriptionSchedules.retrieve(scheduleId);
-  const faseAtual = schedule.phases[0];
-  const fim = (sub as unknown as { current_period_end: number }).current_period_end;
-
-  await stripe.subscriptionSchedules.update(scheduleId, {
-    end_behavior: 'release',
-    phases: [
-      {
-        items: [{ price: precoStripe(atual), quantity: 1 }],
-        start_date: faseAtual?.start_date ?? 'now',
-        end_date: fim,
-      },
-      {
-        items: [{ price: precoStripe(novo), quantity: 1 }],
-        iterations: 1,
-        proration_behavior: 'none',
-        metadata: { plan: novo },
-      },
-    ],
-  });
+  logger.info({ event: 'billing_upgrade_created', businessId: ctx.id, plan: novo, valor, forma }, 'Cobrança da diferença do upgrade criada');
+  return {
+    tipo: 'upgrade',
+    status: 'aguardando',
+    plano: novo,
+    valor,
+    paymentId,
+    ...pix,
+    invoiceUrl: (pagamento as { invoiceUrl?: string | null }).invoiceUrl ?? null,
+  };
 };
 
 export const planChangeService = {
@@ -282,7 +244,7 @@ export const planChangeService = {
     const { atual, direcao } = validarPlano(ctx, plano);
 
     if (direcao === 'upgrade') {
-      return forma === 'card' ? upgradeNoCartao(ctx, plano) : upgradeNoPix(ctx, atual, plano);
+      return upgradeAvulso(ctx, atual, plano, forma);
     }
 
     const ativas = await planChangeRepository.contarProfissionaisAtivas(businessId);
@@ -290,7 +252,7 @@ export const planChangeService = {
     if (motivo) throw new AppError(motivo, 409, 'DOWNGRADE_BLOQUEADO');
 
     const { fim } = periodo(ctx);
-    if (forma === 'card') await downgradeNoCartao(ctx, atual, plano);
+    await valorDaAssinaturaCartao(ctx, plano);
     await planChangeRepository.agendarPlano(businessId, plano, fim ?? new Date());
     logger.info({ event: 'billing_downgrade_scheduled', businessId, plan: plano, at: fim }, 'Downgrade agendado');
     return { tipo: 'downgrade', agendadoPara: fim?.toISOString() ?? null, plano };
@@ -300,12 +262,7 @@ export const planChangeService = {
     const ctx = await carregar(businessId);
 
     if (ctx.plano_agendado) {
-      if (resolveBillingProviderFromContext(ctx) === 'stripe' && ctx.stripe_subscription_id) {
-        const stripe = getStripeClient();
-        const sub = await stripe.subscriptions.retrieve(String(ctx.stripe_subscription_id));
-        const scheduleId = idDoSchedule(sub);
-        if (scheduleId) await stripe.subscriptionSchedules.release(scheduleId);
-      }
+      await valorDaAssinaturaCartao(ctx, normalizePlan(ctx.plan));
       await planChangeRepository.limparPlanoAgendado(businessId, normalizePlan(ctx.plan));
       return { cancelado: 'downgrade' };
     }
@@ -329,7 +286,7 @@ export const planChangeService = {
       businessId,
       provider: 'asaas',
       providerPaymentId: paymentId,
-      paymentMethod: 'pix',
+      paymentMethod: payment.billingType === 'CREDIT_CARD' ? 'card' : 'pix',
       externalStatus: (payment.status as string | undefined) ?? null,
       internalStatus,
       amount: typeof payment.value === 'number' ? payment.value : null,
@@ -345,7 +302,8 @@ export const planChangeService = {
     const ctx = await carregar(businessId);
     if (direcaoTroca(normalizePlan(ctx.plan), plano) !== 'upgrade') return;
     await planChangeRepository.aplicarPlano(businessId, plano);
-    logger.info({ event: 'billing_upgrade_pix_paid', businessId, plan: plano, paymentId }, 'Upgrade no Pix aplicado');
+    await valorDaAssinaturaCartao(ctx, plano);
+    logger.info({ event: 'billing_upgrade_paid', businessId, plan: plano, paymentId }, 'Upgrade aplicado');
   },
 
   // Rotina diária: downgrades Pix cujo período acabou.
