@@ -1,4 +1,5 @@
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../utils/errors.js';
+import logger from '../../utils/logger.js';
 import { auditLogService } from '../../services/auditLogService.js';
 import { depoimentosRepository as repo } from './depoimentos.repository.js';
 import {
@@ -170,15 +171,20 @@ async function transicionar(
     if ((await repo.statusDe(id)) === null) throw new NotFoundError('Depoimento');
     throw new ConflictError(mensagemConflito);
   }
-  await auditLogService.logAdminAction({
-    req,
-    actionType,
-    actorUserId: admin.userId,
-    actorBusinessId: admin.businessId ?? null,
-    targetBusinessId: linha.business_id,
-    resourceType: 'depoimento',
-    resourceId: id,
-  });
+  try {
+    await auditLogService.logAdminAction({
+      req,
+      actionType,
+      actorUserId: admin.userId,
+      actorBusinessId: admin.businessId ?? null,
+      targetBusinessId: linha.business_id,
+      resourceType: 'depoimento',
+      resourceId: id,
+    });
+  } catch (err) {
+    // O status já mudou; falha na auditoria não pode virar 500 para o admin.
+    logger.error({ err, actionType, resourceId: id }, 'Falha ao registrar auditoria de depoimento');
+  }
 }
 
 export const depoimentosAdminService = {

@@ -111,7 +111,7 @@ export const depoimentosRepository = {
           (business_id, negocio_nome, logo_url, nota, texto, texto_original, nome_exibido, cidade,
            autorizou, autorizado_em, status)
         VALUES
-          (${e.businessId}::uuid, ${e.negocioNome}, ${e.logoUrl}, ${e.nota}::smallint, ${e.texto}, ${e.texto},
+          (${e.businessId}::uuid, ${e.negocioNome}, ${e.logoUrl}, ${e.nota}::smallint, ${e.texto}, NULL,
            ${e.nomeExibido}, ${e.cidade}, ${e.autorizou}, ${e.autorizadoEm}::timestamptz, ${e.status})`;
     });
   },
@@ -164,7 +164,10 @@ export const depoimentosRepository = {
 
   async contarPublicados(): Promise<number> {
     const r = await prisma.$queryRaw<{ total: number | bigint }[]>`
-      SELECT count(*)::int AS total FROM depoimentos WHERE status = 'publicado'`;
+      SELECT count(*)::int AS total
+      FROM depoimentos d JOIN businesses b ON b.id = d.business_id
+      WHERE d.status = 'publicado' AND d.autorizou = true
+        AND b.active = true AND b.subscription_status = 'active'`;
     return Number(r[0]?.total ?? 0);
   },
 

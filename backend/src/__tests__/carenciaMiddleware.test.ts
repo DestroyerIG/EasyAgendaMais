@@ -195,6 +195,10 @@ describe('rotas isentas passam em qualquer estado', () => {
     ['GET', '/api/v1/billing/payment-method'],
     ['POST', '/api/v1/billing/reactivate'],
     ['GET', '/api/v1/auth/me'],
+    // Depoimento: o item do menu vale para todos e a retirada (LGPD) passa por ele.
+    ['GET', '/api/v1/depoimentos/meu'],
+    ['POST', '/api/v1/depoimentos'],
+    ['POST', '/api/v1/depoimentos/retirar'],
   ];
 
   it.each(isentas)('bloqueada: %s %s passa com estadoConta', async (method, path) => {
@@ -219,6 +223,10 @@ describe('rotas isentas passam em qualquer estado', () => {
     ['DELETE', '/api/v1/conta/backup'],
     ['GET', '/api/v1/conta/outra-coisa'],
     ['GET', '/api/v1/conta/backup/extra'],
+    ['POST', '/api/v1/depoimentos/adiar'],
+    ['POST', '/api/v1/depoimentos/dispensar'],
+    ['GET', '/api/v1/depoimentos/outra-coisa'],
+    ['GET', '/api/v1/depoimentos/meu/extra'],
   ])('bloqueada: %s %s não é isenta e dá 402', async (method, path) => {
     mockCtx.current = ctxBloqueada();
     mockCtx.falha = false;

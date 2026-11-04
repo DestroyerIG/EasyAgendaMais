@@ -71,6 +71,13 @@ const inserts = () => executadas.filter((c) => c.sql.includes('INSERT INTO depoi
 const updates = () => executadas.filter((c) => c.sql.includes('UPDATE depoimentos'));
 
 describe('depoimentosService.enviar', () => {
+  it('grava NULL em texto_original (o texto original só nasce na primeira correção)', async () => {
+    await depoimentosService.enviar(dono, envioBom);
+    const ins = inserts()[0];
+    expect(ins.sql).toMatch(/\?::smallint, \?, NULL, \?/);
+    expect(ins.valores.filter((x) => x === textoValido)).toHaveLength(1);
+  });
+
   it('nota 5 com autorização cria linha pendente copiando dados do negócio', async () => {
     await depoimentosService.enviar(dono, envioBom);
     expect(inserts()).toHaveLength(1);

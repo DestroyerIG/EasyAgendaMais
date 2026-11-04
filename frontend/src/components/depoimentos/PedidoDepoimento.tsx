@@ -28,7 +28,7 @@ export function PedidoDepoimento() {
           /* ignora */
         }
         if (!meu.mostrarPopup) return;
-        // Não atravessa outro diálogo aberto: fica para a próxima sessão.
+        // Não atravessa outro diálogo aberto: não abre nesta sessão.
         if (document.querySelector('[role="dialog"]')) return;
         setAberto(true);
       })

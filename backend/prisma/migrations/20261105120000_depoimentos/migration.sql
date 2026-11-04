@@ -34,3 +34,6 @@ CREATE INDEX "depoimentos_status_publicado_em_idx" ON "depoimentos"("status", "p
 
 ALTER TABLE "depoimentos" ADD CONSTRAINT "depoimentos_business_id_fkey" FOREIGN KEY ("business_id") REFERENCES "businesses"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE "depoimento_pedidos" ADD CONSTRAINT "depoimento_pedidos_business_id_fkey" FOREIGN KEY ("business_id") REFERENCES "businesses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE public.depoimentos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.depoimento_pedidos ENABLE ROW LEVEL SECURITY;

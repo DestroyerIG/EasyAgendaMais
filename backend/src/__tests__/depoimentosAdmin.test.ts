@@ -89,6 +89,15 @@ describe('GET /admin/depoimentos', () => {
     const c = executadas.find((x) => x.sql.includes('count(*)'))!;
     expect(c.sql).toContain("status = 'publicado'");
   });
+
+  it('meta.publicados usa o mesmo JOIN e filtros da landing', async () => {
+    await request.get('/api/v1/admin/depoimentos?aba=recusados');
+    const c = executadas.find((x) => x.sql.includes('count(*)'))!;
+    expect(c.sql).toContain('JOIN businesses b ON b.id = d.business_id');
+    expect(c.sql).toContain('d.autorizou = true');
+    expect(c.sql).toContain("b.active = true AND b.subscription_status = 'active'");
+    expect(c.sql).not.toContain('LIMIT');
+  });
 });
 
 describe('POST publicar / recusar', () => {
@@ -105,6 +114,13 @@ describe('POST publicar / recusar', () => {
       actionType: 'DEPOIMENTO_PUBLICADO', actorUserId: 'admin1', actorBusinessId: null,
       targetBusinessId: 'b1', resourceType: 'depoimento', resourceId: ID,
     }));
+  });
+
+  it('falha ao gravar a auditoria não derruba a operação já feita', async () => {
+    respostas = [['UPDATE depoimentos', [{ id: ID, business_id: 'b1' }]]];
+    auditMock.logAdminAction.mockRejectedValueOnce(new Error('audit fora'));
+    const res = await request.post(`/api/v1/admin/depoimentos/${ID}/publicar`);
+    expect(res.status).toBe(200);
   });
 
   it('publicar interno ou substituído devolve 409 sem auditar', async () => {

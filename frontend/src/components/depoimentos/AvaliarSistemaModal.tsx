@@ -203,15 +203,15 @@ export function AvaliarSistemaModal({ isOpen, onClose, origem }: AvaliarSistemaM
                 </>
               )}
 
+              {erro && <p role="alert" className="text-[13px] font-semibold text-danger">{erro}</p>}
+              <Button onClick={enviar} loading={ocupado} disabled={!podeEnviar}>
+                {publicavel ? 'Enviar' : 'Enviar para a equipe'}
+              </Button>
               <p className="text-[13px] text-muted">
                 {publicavel
                   ? 'Sem marcar a autorização, vai só como avaliação interna.'
                   : 'Vai direto para os responsáveis pelo sistema. Não aparece no site.'}
               </p>
-              {erro && <p role="alert" className="text-[13px] font-semibold text-danger">{erro}</p>}
-              <Button onClick={enviar} loading={ocupado} disabled={!podeEnviar}>
-                {publicavel ? 'Enviar' : 'Enviar para a equipe'}
-              </Button>
             </>
           )}
 

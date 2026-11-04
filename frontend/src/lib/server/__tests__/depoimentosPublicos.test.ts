@@ -27,7 +27,7 @@ describe('buscarDepoimentosPublicos', () => {
       { quote: 'Texto 2', rating: 5, name: 'Dono 2', business: 'Negocio 2', city: 'Cidade 2', logoUrl: null },
     ]);
     expect(String(fetchMock.mock.calls[0][0])).toMatch(/\/depoimentos\/publicos$/);
-    expect(fetchMock.mock.calls[0][1]).toEqual({ next: { revalidate: 300 } });
+    expect(fetchMock.mock.calls[0][1]).toEqual(expect.objectContaining({ next: { revalidate: 300 }, signal: expect.any(AbortSignal) }));
   });
 
   it('devolve [] quando o fetch rejeita', async () => {
