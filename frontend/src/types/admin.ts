@@ -250,3 +250,26 @@ export interface AdminActionPayload {
   confirmation: 'CONFIRM';
   reason?: string;
 }
+
+export type AbaDepoimentos = 'pendentes' | 'publicados' | 'recusados' | 'internos';
+
+export interface DepoimentoAdmin {
+  id: string;
+  negocio: string;
+  negocioId: string | null;
+  plano: string | null;
+  nomeExibido: string | null;
+  cidade: string | null;
+  nota: number;
+  texto: string;
+  textoOriginal: string | null;
+  autorizadoEm: string | null;
+  criadoEm: string;
+  status: string;
+}
+
+export interface ListaDepoimentosAdmin {
+  data: DepoimentoAdmin[];
+  /** Quantos depoimentos publicados existem agora (a landing precisa de um mínimo). */
+  publicados: number;
+}
