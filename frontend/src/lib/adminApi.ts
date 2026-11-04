@@ -223,8 +223,9 @@ export const adminApi = {
   },
   async listarDepoimentos(aba: AbaDepoimentos): Promise<ListaDepoimentosAdmin> {
     const response = await api.get('/admin/depoimentos', { params: { aba } });
-    const body = response.data as { data?: DepoimentoAdmin[]; meta?: { publicados?: number } };
-    return { data: body.data ?? [], publicados: body.meta?.publicados ?? 0 };
+    // O interceptor de api.ts já desembrulhou o envelope: data é o array e o meta fica na resposta.
+    const parsed = response as unknown as { data?: DepoimentoAdmin[]; meta?: { publicados?: number } };
+    return { data: parsed.data ?? [], publicados: parsed.meta?.publicados ?? 0 };
   },
 
   async publicarDepoimento(id: string): Promise<void> {

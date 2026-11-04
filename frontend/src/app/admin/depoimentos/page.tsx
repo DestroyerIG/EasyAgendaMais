@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Banner, Button, Icon, Tabs, TabsList, TabsTrigger, Textarea } from '@/components/ui';
 import { CAIXA } from '@/components/admin/formato';
 import { adminApi } from '@/lib/adminApi';
@@ -134,15 +134,21 @@ export default function AdminDepoimentosPage() {
   const [ocupadoId, setOcupadoId] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
+  // Descarta respostas de pedidos antigos quando a aba muda antes de a anterior responder.
+  const pedidoAtual = useRef(0);
+
   const carregar = useCallback(async (alvo: AbaDepoimentos) => {
+    const pedido = ++pedidoAtual.current;
     try {
       const lista = await adminApi.listarDepoimentos(alvo);
+      if (pedido !== pedidoAtual.current) return;
       setItens(lista.data);
       setPublicados(lista.publicados);
     } catch (e) {
+      if (pedido !== pedidoAtual.current) return;
       setErro(mensagemDeErro(e));
     } finally {
-      setCarregando(false);
+      if (pedido === pedidoAtual.current) setCarregando(false);
     }
   }, []);
 

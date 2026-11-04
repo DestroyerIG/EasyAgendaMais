@@ -43,9 +43,7 @@ beforeEach(() => {
 });
 
 // Primeiro render carrega o módulo todo; em máquina lenta passa dos 5 s padrão.
-vi.setConfig({ testTimeout: 30000 });
-
-describe('SuperAdmin Depoimentos', () => {
+describe('SuperAdmin Depoimentos', { timeout: 30000 }, () => {
   it('mostra as quatro abas e carrega os pendentes', async () => {
     render(<DepoimentosPage />);
     for (const nome of ['Pendentes', 'Publicados', 'Recusados', 'Avaliações internas']) {
