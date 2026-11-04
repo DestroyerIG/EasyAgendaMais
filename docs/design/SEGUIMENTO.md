@@ -208,7 +208,7 @@ Sub-projeto 7 (Login com Google e Google Agenda), pendências conhecidas:
   - o detalhe do negócio não mostra o valor combinado fora do Salão, e o modal abre vazio;
   - `PLANS.premium.price` (199,9) ficou sem uso em `frontend/src/lib/constants.ts`;
   - quem escolheu o Salão no Pix durante o teste, antes desta mudança, recebe "sob consulta" no checkout.
-- **Segurança (vem da branch Asaas único):** o `/billing/status` devolve o `metadata` inteiro para a dona, incluindo o token do cartão (`metadata.cartao.token`). Tirar o `metadata` da resposta numa próxima mudança.
+- **Segurança (vem da branch Asaas único):** ✅ resolvido no PR #28. O `/billing/status` não devolve mais o `metadata`, e o token do cartão (`metadata.cartao.token`) fica só no servidor.
 
 ## Asaas único e teste de 7 ou 14 dias, pendências conhecidas
 

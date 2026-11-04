@@ -33,7 +33,8 @@ Atualizado em 27/10/2026.
 | H2 | SuperAdmin nas três telas do Stitch | ✅ Concluída (juntada em 03/11, sem migração) | PR #23 |
 | H3 | Textos de venda da landing e da página de nail designers | ✅ Concluída (juntada em 03/11, sem migração) | PR #24 |
 | Asaas | Asaas como único meio de cobrança (sai o Stripe) e teste de 7 ou 14 dias | ✅ Concluída (juntada e migrada em 04/11) | PR #26 |
-| Salão | Plano Salão sob consulta, com valor combinado por negócio no SuperAdmin | 🟡 Implementada, aguardando PR (sem migração) | — |
+| Salão | Plano Salão sob consulta, com valor combinado por negócio no SuperAdmin | ✅ Concluída (sem migração) | PR #27 |
+| Segurança | `/billing/status` deixa de expor o token do cartão | 🟡 Aguardando merge (sem migração) | PR #28 |
 
 ## Fase 7 (concluída)
 
