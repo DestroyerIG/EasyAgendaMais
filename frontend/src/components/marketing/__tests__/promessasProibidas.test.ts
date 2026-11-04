@@ -11,6 +11,8 @@ const PROIBIDAS: RegExp[] = [
   /Inovação exclusiva/, /R\$ 20, R\$ 30/, /também pode agendar/, /vai direto para o cadastro/,
   /Conformidade LGPD/, /Dados protegidos LGPD/, /Suporte prioritário/, /recupera até/,
   /Te avisamos 24h antes/, /Pix Copia e Cola/, /Sinal confirmado/,
+  // Teste grátis: 7 dias sem cartão ou 14 com cartão; nunca "14 dias" sem cartão.
+  /14 dias grátis no cadastro/, /sem cartão obrigatório/, /14 dias de acesso gratuito/, /Teste grátis de 14 dias/, /Testar 14 dias/,
 ];
 
 const raiz = resolve(__dirname, '../../../..');

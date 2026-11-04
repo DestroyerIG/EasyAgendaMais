@@ -11,6 +11,7 @@
  * sempre (`PricingPlansSection`), que só aparece nesse caso.
  */
 
+import { ConviteCartao } from '@/components/assinatura/ConviteCartao';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -244,6 +245,7 @@ export default function PlanosPage() {
 
       {/* Faixas de estado: pagamento, teste, mudança agendada, upgrade aguardando Pix. */}
       <div className="mb-6 space-y-3">
+        <ConviteCartao />
         {voltouDoCartao && (
           <div role="status" className="flex items-start gap-2 rounded-card border border-line bg-surface p-4 text-ink">
             <Icon name="credit_card" size={20} className="mt-0.5 shrink-0 text-success-text" />

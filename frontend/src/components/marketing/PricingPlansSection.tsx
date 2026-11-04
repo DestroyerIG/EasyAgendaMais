@@ -26,9 +26,9 @@ import {
 
 // Nome, equipe e recursos dos cards vêm do catálogo único (lib/planCatalog.ts); aqui fica só o texto do botão.
 const CTA_DO_PLANO: Record<PlanId, string> = {
-  basico: 'Começar 14 dias grátis',
-  profissional: 'Testar 14 dias grátis',
-  premium: 'Começar 14 dias grátis',
+  basico: 'Testar grátis',
+  profissional: 'Testar grátis',
+  premium: 'Testar grátis',
 };
 
 const PLANO_ANTERIOR: Partial<Record<PlanId, string>> = { profissional: 'Solo', premium: 'Equipe' };
@@ -131,7 +131,7 @@ interface PricingPlansSectionProps {
 export function PricingPlansSection({
   sectionId = 'planos',
   title = 'Planos para cada fase do seu negócio',
-  subtitle = 'Teste 14 dias grátis com acesso completo ao plano Equipe — sem cartão, sem compromisso. Assine quando quiser para continuar.',
+  subtitle = 'Teste grátis no plano Equipe: 7 dias sem cartão, ou 14 com o cartão cadastrado. Sem compromisso.',
   currentPlan,
   subscriptionStatus,
   showHeader = true,
@@ -671,7 +671,7 @@ export function PricingPlansSection({
                   <span className="text-sm font-medium text-muted">/mês</span>
                 </p>
                 <p className="mt-2 inline-flex items-center rounded-full bg-whatsapp/10 px-3 py-1.5 text-[11px] font-medium leading-snug text-whatsapp sm:text-xs">
-                  14 dias grátis no cadastro · sem cartão obrigatório
+                  7 dias grátis sem cartão, ou 14 com cartão cadastrado
                 </p>
               </div>
 
@@ -699,7 +699,7 @@ export function PricingPlansSection({
                       {CTA_DO_PLANO[plan.id]}
                     </a>
                     <p className="text-center text-[11px] text-muted">
-                      14 dias grátis · sem cartão no cadastro
+                      7 dias grátis sem cartão, ou 14 com cartão cadastrado
                     </p>
                   </>
                 ) : (

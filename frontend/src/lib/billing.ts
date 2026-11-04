@@ -70,6 +70,8 @@ export interface SubscriptionStatusResponse {
   providerCustomerId?: string | null;
   providerSubscriptionId?: string | null;
   providerPaymentId?: string | null;
+  /** No teste: data da 1ª cobrança se o cartão for cadastrado agora (14 dias do cadastro). */
+  cobrancaComCartaoEm?: string | null;
   // Plano e cobrança (2D)
   planoAgendado?: PlanId | null;
   planoAgendadoEm?: string | null;

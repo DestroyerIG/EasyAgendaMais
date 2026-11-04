@@ -1,5 +1,6 @@
 'use client';
 
+import { ConviteCartao } from '@/components/assinatura/ConviteCartao';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -185,6 +186,7 @@ export default function DashboardPage() {
             businessName={user?.businessName}
           />
           <PrimeirosPassos ativo={user?.role === 'tenant_admin'} />
+          {user?.role === 'tenant_admin' && <ConviteCartao />}
           <DashboardCards hoje={hoje} />
           {/* Ordem mobile (hoje-mobile.html, 1 coluna): Pendências, Próximas 2 horas,
               Gráfico — pelos order-1/2/3 abaixo, que no mobile valem para os 3 itens

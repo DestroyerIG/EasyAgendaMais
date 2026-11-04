@@ -12,6 +12,7 @@ import { getApiErrorCode, getApiErrorMessage } from '@/utils/handleApiError';
 import { formatCpfCnpj, isValidCpfCnpj, normalizeCpfCnpjDigits } from '@/utils/cpfCnpj';
 import { resolveAuthConfirmRedirectUrl } from '@/lib/supabase/client';
 import { guardarSegmentoDoCadastro } from '@/lib/onboarding';
+import { guardarEscolhaTeste, type EscolhaTeste } from '@/lib/escolhaTeste';
 import easyAgendaLogo from '@/icons/easyagenda-logo.svg';
 import { BotaoGoogle } from './BotaoGoogle';
 
@@ -32,6 +33,7 @@ const isTimeoutError = (error: unknown): boolean => {
 
 export function AuthForm({ mode }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
+  const [escolhaTeste, setEscolhaTeste] = useState<EscolhaTeste>('sem_cartao');
   const [resendingVerification, setResendingVerification] = useState(false);
   const [showConfirmedNotice, setShowConfirmedNotice] = useState(false);
   const [planoDaUrl, setPlanoDaUrl] = useState<string | null>(null);
@@ -250,7 +252,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
           {!isLogin && (
             <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-line bg-surface-2 px-4 py-2 text-sm text-brand-text">
-              14 dias grátis · acesso completo ao Profissional
+              Teste grátis: 7 dias sem cartão ou 14 com cartão
             </div>
           )}
         </section>
@@ -376,6 +378,40 @@ export function AuthForm({ mode }: AuthFormProps) {
               </div>
             )}
 
+            {!isLogin && (
+              <fieldset className="space-y-2">
+                <legend className="mb-1 text-[13px] font-semibold text-ink">Como quer testar?</legend>
+                {([
+                  ['sem_cartao', 'Testar 7 dias grátis', 'Sem cartão. Entra agora.'],
+                  ['com_cartao', 'Testar 14 dias grátis', 'Com cartão cadastrado. A primeira cobrança só acontece no fim do teste; cancele antes e nada é cobrado.'],
+                ] as const).map(([valor, titulo, linha]) => (
+                  <label
+                    key={valor}
+                    className={`flex cursor-pointer items-start gap-3 rounded-control border p-3 ${
+                      escolhaTeste === valor ? 'border-brand bg-brand/8' : 'border-line bg-surface'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="escolha-teste"
+                      value={valor}
+                      checked={escolhaTeste === valor}
+                      onChange={() => {
+                        setEscolhaTeste(valor);
+                        guardarEscolhaTeste(valor);
+                      }}
+                      aria-label={titulo}
+                      className="mt-1 accent-brand"
+                    />
+                    <span className="flex flex-col">
+                      <span className="text-[14px] font-semibold text-ink">{titulo}</span>
+                      <span className="text-[13px] text-muted">{linha}</span>
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
+
             <Button type="submit" fullWidth loading={loading} size="lg">
               {loading ? 'Processando...' : isLogin ? 'Entrar' : 'Criar conta'}
             </Button>
@@ -423,7 +459,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
             {!isLogin && (
               <p className="text-xs text-muted">
-                Após verificar o e-mail você terá 14 dias de acesso gratuito ao plano Equipe. Assine quando quiser para continuar.
+                O teste é no plano Equipe. Com o cartão, você o cadastra logo depois de verificar o e-mail.
               </p>
             )}
           </form>

@@ -118,9 +118,9 @@ const faqItems = [
       'Cai direto na sua conta bancária via chave Pix, no mesmo segundo da transferência. O EasyAgenda+ não retém o valor, não cobra comissão sobre o sinal e você não precisa solicitar saque.',
   },
   {
-    question: 'Como funciona o teste grátis de 14 dias?',
+    question: 'Como funciona o teste grátis?',
     answer:
-      'Você cria sua conta em poucos minutos e usa o plano Equipe completo por 14 dias, sem cartão de crédito. No fim do teste você escolhe o plano; se não assinar, o acesso fica pausado e nada é cobrado.',
+      'Você escolhe no cadastro: 7 dias sem cartão, ou 14 dias com o cartão cadastrado no Asaas. Com cartão, a primeira cobrança só acontece no fim do teste; cancele antes e nada é cobrado. Quem começa sem cartão pode cadastrar depois e ganhar mais 7 dias. O teste é no plano Equipe.',
   },
   {
     question: 'Minha equipe consegue ver o faturamento total do meu negócio?',
@@ -423,7 +423,7 @@ export default function HomePage() {
                   href="/cadastro"
                   className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-brand px-8 py-4 text-center text-sm font-bold text-on-brand shadow-md transition-opacity hover:opacity-90"
                 >
-                  Começar teste grátis de 14 dias
+                  Começar teste grátis
                 </Link>
                 <a
                   href={contactUrl}

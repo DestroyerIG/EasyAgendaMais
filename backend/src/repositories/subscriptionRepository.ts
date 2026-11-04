@@ -339,7 +339,8 @@ export const subscriptionRepository = {
              next_due_date,
              last_payment_date,
              canceled_at,
-             metadata
+             metadata,
+             created_at
       FROM businesses
       WHERE id = ${businessId}::uuid AND active = true
     `);

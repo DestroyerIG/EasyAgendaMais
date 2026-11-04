@@ -496,6 +496,14 @@ const tratarCobrancaCartao = async (
   return true;
 };
 
+const cobrancaComCartaoEm = (data: Record<string, unknown>): string | null => {
+  const fim = dataOuNull(data.subscription_current_period_end);
+  if (normalizeInternalSubscriptionStatus(data.subscription_status) !== 'trialing' || !fim || fim.getTime() <= Date.now()) {
+    return null;
+  }
+  return fimDoTesteComCartao(dataOuNull(data.created_at) ?? new Date(), fim).toISOString();
+};
+
 /**
  * Cartão pelo Checkout Asaas. Durante o teste a primeira cobrança fica para o fim do teste com
  * cartão (14 dias do cadastro, sem encurtar teste estendido); fora do teste, cobra hoje.
@@ -861,6 +869,8 @@ export const billingService = {
       providerSubscriptionId: data.provider_subscription_id || null,
       providerPaymentId: data.provider_payment_id || null,
       metadata: data.metadata || null,
+      // No teste: quando o cartão seria cobrado se cadastrado agora (14 dias do cadastro).
+      cobrancaComCartaoEm: cobrancaComCartaoEm(data),
     };
   },
 
