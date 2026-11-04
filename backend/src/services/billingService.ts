@@ -954,7 +954,7 @@ export const billingService = {
       providerCustomerId: data.provider_customer_id || null,
       providerSubscriptionId: data.provider_subscription_id || null,
       providerPaymentId: data.provider_payment_id || null,
-      metadata: data.metadata || null,
+      // metadata fica só no servidor: guarda o token do cartão (metadata.cartao) e os checkouts.
       // No teste: quando o cartão seria cobrado se cadastrado agora (14 dias do cadastro).
       cobrancaComCartaoEm: cobrancaComCartaoEm(data),
       // Salão sob consulta: o valor que vale para este negócio no Salão (combinado, ou o legado de quem

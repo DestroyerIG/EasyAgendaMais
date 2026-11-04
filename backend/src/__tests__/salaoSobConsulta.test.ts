@@ -130,6 +130,17 @@ describe('status', () => {
     expect((await billingService.getStatus(ID)).valorSalao).toBe(199.9);
   });
 
+  it('não devolve o metadata (token do cartão, checkouts) para o navegador', async () => {
+    subs.getSubscriptionStatus.mockResolvedValue({
+      plan: 'premium', subscription_status: 'active',
+      metadata: { valorMensalCombinado: 450, cartao: { token: 'tok_secreto' }, checkoutCartao: { id: 'chk-1' } },
+    });
+    const status = await billingService.getStatus(ID);
+    expect(status).not.toHaveProperty('metadata');
+    expect(JSON.stringify(status)).not.toContain('tok_secreto');
+    expect(status.valorSalao).toBe(450);
+  });
+
   it('sem valor combinado, valorSalao é null', async () => {
     subs.getSubscriptionStatus.mockResolvedValue({ plan: 'profissional', subscription_status: 'active', metadata: {} });
     expect((await billingService.getStatus(ID)).valorSalao).toBeNull();
