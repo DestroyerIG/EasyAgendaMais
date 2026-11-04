@@ -24,9 +24,9 @@ const { TelaContingencia } = await import('../TelaContingencia');
 
 const catalogo: CatalogoPlanos = {
   planos: [
-    { id: 'basico', nome: 'Solo', preco: 49.9, limiteProfissionais: 1, publico: '', descricao: '', destaques: [], emBreve: [] },
-    { id: 'profissional', nome: 'Equipe', preco: 99.9, limiteProfissionais: 5, publico: '', descricao: '', destaques: [], emBreve: [] },
-    { id: 'premium', nome: 'Salão', preco: 199.9, limiteProfissionais: null, publico: '', descricao: '', destaques: [], emBreve: [] },
+    { id: 'basico', nome: 'Solo', preco: 49.9, sobConsulta: false, limiteProfissionais: 1, publico: '', descricao: '', destaques: [], emBreve: [] },
+    { id: 'profissional', nome: 'Equipe', preco: 99.9, sobConsulta: false, limiteProfissionais: 5, publico: '', descricao: '', destaques: [], emBreve: [] },
+    { id: 'premium', nome: 'Salão', preco: 199.9, sobConsulta: false, limiteProfissionais: null, publico: '', descricao: '', destaques: [], emBreve: [] },
   ],
   matriz: [],
 };

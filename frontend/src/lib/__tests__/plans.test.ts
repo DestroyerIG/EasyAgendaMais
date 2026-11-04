@@ -11,7 +11,7 @@ describe('planos', () => {
     expect(SAAS_PLANS.map((p) => [p.id, p.name, p.price])).toEqual([
       ['basico', 'Solo', 49.9],
       ['profissional', 'Equipe', 99.9],
-      ['premium', 'Salão', 199.9],
+      ['premium', 'Salão', null],
     ]);
     for (const plan of SAAS_PLANS) {
       expect(PLAN_SHELL_LABEL[plan.id]).toBe(plan.name);
@@ -48,10 +48,11 @@ describe('catálogo do backend', () => {
   it('a landing anuncia os mesmos preços que o backend cobra (backend/src/config/planCatalog.ts)', () => {
     const catalogo = readFileSync(resolve(__dirname, '../../../../backend/src/config/planCatalog.ts'), 'utf-8');
     for (const plan of SAAS_PLANS) {
-      const bloco = new RegExp(`${plan.id}: \\{\\s*id: '${plan.id}',\\s*nome: '([^']+)',\\s*preco: ([\\d.]+)`).exec(catalogo);
+      const bloco = new RegExp(`${plan.id}: \\{\\s*id: '${plan.id}',\\s*nome: '([^']+)',\\s*preco: ([\\d.]+|null)`).exec(catalogo);
       expect(bloco, `plano ${plan.id} no catálogo`).not.toBeNull();
       expect(bloco![1]).toBe(plan.name);
-      expect(Number(bloco![2])).toBe(plan.price);
+      // O Salão é sob consulta: preco null nos dois lados.
+      expect(bloco![2] === 'null' ? null : Number(bloco![2])).toBe(plan.price);
     }
   });
 });

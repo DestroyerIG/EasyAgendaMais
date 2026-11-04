@@ -13,6 +13,8 @@ import { subscriptionRepository } from '../repositories/subscriptionRepository.j
 import { painelRepository } from '../modules/admin/painel.repository.js';
 import { estadoContaService } from '../modules/conta/estadoConta.service.js';
 import { motivoParaNaoEstenderTeste } from '../modules/admin/painel.rules.js';
+import { SalaoSobConsultaError, valorCombinadoDe } from '../config/valorPlano.js';
+import { asaasService } from '../integrations/asaas/service.js';
 import type { Request } from 'express';
 
 interface AuthUser {
@@ -429,6 +431,10 @@ export const adminService = {
 
     const context = await subscriptionRepository.getBusinessBillingContext(tenantId);
     if (!context) throw new NotFoundError('Negócio');
+    // Salão sob consulta: o valor combinado vem antes ("Definir valor do Salão"), senão ele valeria o legado.
+    if (body.plan === 'premium' && !valorCombinadoDe(context.metadata)) {
+      throw new SalaoSobConsultaError();
+    }
 
     await subscriptionRepository.updateSubscriptionState(tenantId, { plan: body.plan });
     await subscriptionRepository.setDesiredPlan(tenantId, body.plan);
@@ -449,6 +455,58 @@ export const adminService = {
 
     logger.info({ tenantId, previousPlan: context.plan, newPlan: body.plan }, 'Admin: plano sobrescrito manualmente');
     return { tenantId, plan: body.plan };
+  },
+
+  /**
+   * Salão sob consulta: grava o valor mensal combinado com o negócio e libera o Salão no checkout
+   * (desired_plan). Se ele já está no Salão no cartão, a assinatura no Asaas passa para o valor novo,
+   * incluindo a cobrança do próximo ciclo que o Asaas já gerou.
+   */
+  async definirValorSalao(
+    authUser: AuthUser | null,
+    tenantId: string,
+    body: { confirmation?: string; valor: number; reason?: string },
+    req: Request
+  ): Promise<{ tenantId: string; valorSalao: number }> {
+    ensureConfirmed(body.confirmation);
+
+    const context = await subscriptionRepository.getBusinessBillingContext(tenantId);
+    if (!context) throw new NotFoundError('Negócio');
+    const valorAnterior = valorCombinadoDe(context.metadata);
+
+    // Plano que o cartão está cobrando: no teste, o escolhido no checkout (o plano do teste é o Equipe).
+    const metadata = (context.metadata ?? {}) as { checkoutCartao?: { plano?: string } };
+    const planoDoCartao = context.subscription_status === 'trialing' ? metadata.checkoutCartao?.plano : context.plan;
+    const assinaturaDePe =
+      context.payment_method === 'card' &&
+      !!context.provider_subscription_id &&
+      !context.subscription_cancel_at_period_end &&
+      context.subscription_status !== 'canceled';
+    // Com downgrade agendado, a assinatura já está no valor do plano novo: não volta ao Salão.
+    const agendado = !!context.plano_agendado;
+
+    await subscriptionRepository.mesclarMetadataCobranca(tenantId, { valorMensalCombinado: body.valor });
+    if (!agendado) await subscriptionRepository.setDesiredPlan(tenantId, 'premium');
+    if (assinaturaDePe && planoDoCartao === 'premium' && !agendado) {
+      await asaasService.atualizarAssinatura(String(context.provider_subscription_id), {
+        value: body.valor,
+        updatePendingPayments: true,
+      });
+    }
+    estadoContaService.invalidar(tenantId);
+
+    await auditLogService.logAdminAction({
+      req,
+      actionType: 'SALAO_VALUE_SET',
+      ...actorPayload(authUser),
+      targetBusinessId: tenantId,
+      resourceType: 'subscription',
+      resourceId: tenantId,
+      details: { valor: body.valor, valorAnterior, reason: body.reason || null },
+    });
+
+    logger.info({ tenantId, valor: body.valor, valorAnterior }, 'Admin: valor do Salão definido');
+    return { tenantId, valorSalao: body.valor };
   },
 
   async overrideStatus(

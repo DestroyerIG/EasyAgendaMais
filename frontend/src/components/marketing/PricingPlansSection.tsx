@@ -15,7 +15,7 @@ import {
 } from '@/lib/billing';
 import { businessProfileApi } from '@/lib/businessProfile';
 import { PLAN_MAP, SAAS_PLANS, type PlanId, isPlanId } from '@/lib/plans';
-import { planoDoCatalogo, rotuloEquipe } from '@/lib/planCatalog';
+import { linkFalarSobreSalao, planoDoCatalogo, precoParaNegocio, rotuloEquipe } from '@/lib/planCatalog';
 import { formatCurrency } from '@/lib/formatters';
 import { getApiErrorCode, getApiErrorMessage } from '@/utils/handleApiError';
 import {
@@ -126,6 +126,8 @@ interface PricingPlansSectionProps {
   subscriptionStatus?: string | null;
   showHeader?: boolean;
   className?: string;
+  /** Salão sob consulta: valor combinado com o negócio logado (sem ele, o card manda falar com a gente). */
+  valorSalao?: number | null;
 }
 
 export function PricingPlansSection({
@@ -136,6 +138,7 @@ export function PricingPlansSection({
   subscriptionStatus,
   showHeader = true,
   className,
+  valorSalao = null,
 }: PricingPlansSectionProps) {
   const [processingAction, setProcessingAction] = useState<CheckoutAction | null>(null);
   const [pixCheckout, setPixCheckout] = useState<PixCheckoutSessionResponse | null>(null);
@@ -641,6 +644,9 @@ export function PricingPlansSection({
       <div className="grid gap-6 lg:grid-cols-3">
         {SAAS_PLANS.map((plan) => {
           const catalogo = planoDoCatalogo(plan.id);
+          // Salão sob consulta: sem valor combinado não há preço nem checkout, só o contato.
+          const preco = precoParaNegocio(plan.id, valorSalao);
+          const sobConsulta = preco === null;
           const recommended = plan.recommended;
           const current = isCurrentPlan(plan.id);
           const planBusy = processingAction?.planId === plan.id;
@@ -666,10 +672,14 @@ export function PricingPlansSection({
               <div className="mb-5 text-center">
                 <h3 className="text-2xl font-extrabold text-ink">{catalogo.nome}</h3>
                 <p className="mt-2 text-sm text-muted">{rotuloEquipe(catalogo.limiteProfissionais)}</p>
-                <p className="mt-4 text-4xl font-extrabold tabular-nums text-ink">
-                  {formatCurrency(plan.price)}
-                  <span className="text-sm font-medium text-muted">/mês</span>
-                </p>
+                {sobConsulta ? (
+                  <p className="mt-4 text-3xl font-extrabold text-ink">Sob consulta</p>
+                ) : (
+                  <p className="mt-4 text-4xl font-extrabold tabular-nums text-ink">
+                    {formatCurrency(preco)}
+                    <span className="text-sm font-medium text-muted">/mês</span>
+                  </p>
+                )}
                 <p className="mt-2 inline-flex items-center rounded-full bg-whatsapp/10 px-3 py-1.5 text-[11px] font-medium leading-snug text-whatsapp sm:text-xs">
                   7 dias grátis sem cartão, ou 14 com cartão cadastrado
                 </p>
@@ -685,7 +695,21 @@ export function PricingPlansSection({
               </ul>
 
               <div className="mt-7 space-y-2">
-                {!user ? (
+                {sobConsulta ? (
+                  <>
+                    <a
+                      href={linkFalarSobreSalao()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full rounded-xl border border-line bg-bg px-4 py-3 text-center text-sm font-bold text-ink transition-colors hover:bg-surface-2"
+                    >
+                      Falar com a gente
+                    </a>
+                    <p className="text-center text-[11px] text-muted">
+                      Para redes e salões com várias unidades, o valor é combinado com você.
+                    </p>
+                  </>
+                ) : !user ? (
                   <>
                     <a
                       href="/cadastro"
@@ -757,7 +781,7 @@ export function PricingPlansSection({
             <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
               <p className="font-semibold text-white">{PLAN_MAP[pixPreCheckoutPlanId].name}</p>
               <p className="mt-0.5 text-xs text-gray-400">
-                {formatCurrency(PLAN_MAP[pixPreCheckoutPlanId].price)}/mês · pagamento único via Pix
+                {formatCurrency(precoParaNegocio(pixPreCheckoutPlanId, valorSalao) ?? 0)}/mês · pagamento único via Pix
               </p>
             </div>
           )}

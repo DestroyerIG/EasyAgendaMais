@@ -15,7 +15,7 @@ import {
 } from '@/lib/billing';
 import { formatCurrency } from '@/lib/formatters';
 import { isPlanId, PLAN_MAP, type PlanId } from '@/lib/plans';
-import { planoDoCatalogo, rotuloEquipe } from '@/lib/planCatalog';
+import { linkFalarSobreSalao, planoDoCatalogo, precoParaNegocio, rotuloEquipe } from '@/lib/planCatalog';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { contaApi, type EstadoConta } from '@/lib/conta';
 import easyAgendaLogo from '@/icons/easyagenda-logo.svg';
@@ -72,11 +72,14 @@ function PagamentoContent() {
   const pixQrCodeSource = normalizeQrCodeSource(pixCheckout?.qrCode || null);
   const couponCodeNormalized = couponCode.trim().toUpperCase();
   const appliedDiscount = couponData?.discount ?? pixCheckout?.discount ?? 0;
-  const originalAmount = plan.price;
+  // Salão sob consulta: sem valor combinado não há preço nem pagamento, só o contato.
+  const precoPlano = precoParaNegocio(plan.id, billingStatus?.valorSalao);
+  const sobConsulta = precoPlano === null;
+  const originalAmount = precoPlano ?? 0;
   const finalAmount = couponData?.finalAmount
     ?? (appliedDiscount > 0
-      ? Math.max(0, Number((plan.price - appliedDiscount).toFixed(2)))
-      : plan.price);
+      ? Math.max(0, Number((originalAmount - appliedDiscount).toFixed(2)))
+      : originalAmount);
   const hasDiscount = appliedDiscount > 0;
   const appliedCouponCode = pixCheckout?.coupon?.code || (couponState === 'valid' ? couponCodeNormalized : null);
   const isFreeActivation = couponState === 'valid' && couponData?.finalAmount === 0;
@@ -226,7 +229,7 @@ function PagamentoContent() {
           const resolvedDiscount = pixSession.discount;
           const resolvedFinalAmount = Math.max(
             0,
-            Number((plan.price - resolvedDiscount).toFixed(2))
+            Number((originalAmount - resolvedDiscount).toFixed(2))
           );
 
           setCouponData({
@@ -348,10 +351,14 @@ function PagamentoContent() {
                 {hasDiscount && (
                   <p className="text-[13px] text-muted line-through">{formatCurrency(originalAmount)}</p>
                 )}
-                <p className="text-xl font-bold text-brand-text">
-                  {formatCurrency(finalAmount)}
-                  <span className="text-[13px] font-normal text-muted">/mês</span>
-                </p>
+                {sobConsulta ? (
+                  <p className="text-xl font-bold text-brand-text">Sob consulta</p>
+                ) : (
+                  <p className="text-xl font-bold text-brand-text">
+                    {formatCurrency(finalAmount)}
+                    <span className="text-[13px] font-normal text-muted">/mês</span>
+                  </p>
+                )}
                 {hasDiscount && (
                   <p className="text-[13px] font-semibold text-success">Desconto de {formatCurrency(appliedDiscount)}</p>
                 )}
@@ -430,6 +437,22 @@ function PagamentoContent() {
             </div>
           )}
 
+          {sobConsulta ? (
+            <div className="mt-6 space-y-3">
+              <p className="text-[14px] text-muted">
+                O Salão atende redes e salões com várias unidades, e o valor é combinado com você. Fale com a gente para
+                montar o plano; depois você assina por aqui, no Pix ou no cartão.
+              </p>
+              <a
+                href={linkFalarSobreSalao()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-11 w-full items-center justify-center rounded-control bg-brand px-4 text-[15px] font-semibold text-on-brand hover:bg-brand/90"
+              >
+                Falar com a gente
+              </a>
+            </div>
+          ) : (
           <div className="mt-6 grid gap-3">
             <Button
               type="button"
@@ -454,6 +477,7 @@ function PagamentoContent() {
               Assinar com Cartão
             </Button>
           </div>
+          )}
 
           {pixCheckout && (
             <div className="mt-6 rounded-control border border-line bg-surface-2 p-4">

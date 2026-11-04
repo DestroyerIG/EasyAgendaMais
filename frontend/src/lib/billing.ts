@@ -72,6 +72,8 @@ export interface SubscriptionStatusResponse {
   providerPaymentId?: string | null;
   /** No teste: data da 1ª cobrança se o cartão for cadastrado agora (14 dias do cadastro). */
   cobrancaComCartaoEm?: string | null;
+  /** Salão sob consulta: valor mensal combinado com este negócio (null enquanto não houver). */
+  valorSalao?: number | null;
   // Plano e cobrança (2D)
   planoAgendado?: PlanId | null;
   planoAgendadoEm?: string | null;
@@ -94,7 +96,9 @@ export type DisponibilidadeRecurso = boolean | 'em_breve' | string;
 export interface PlanoCatalogo {
   id: PlanId;
   nome: string;
-  preco: number;
+  /** null no Salão, que é sob consulta. */
+  preco: number | null;
+  sobConsulta: boolean;
   limiteProfissionais: number | null;
   publico: string;
   descricao: string;

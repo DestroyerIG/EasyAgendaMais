@@ -64,6 +64,13 @@ export const adminOverridePlanBodySchema = actionBodySchema.extend({
   plan: z.enum(['basico', 'profissional', 'premium']),
 });
 
+// Salão sob consulta: valor mensal combinado com o negócio, em reais (duas casas).
+export const adminValorSalaoBodySchema = actionBodySchema.extend({
+  valor: z.number().min(1).max(99999)
+    // Tolerância de ponto flutuante: 299.9 * 100 não dá 29990 exato.
+    .refine((v) => Math.abs(Math.round(v * 100) - v * 100) < 1e-6, 'Use no máximo duas casas decimais'),
+});
+
 export const adminOverrideStatusBodySchema = actionBodySchema.extend({
   status: z.enum(['active', 'trialing', 'pending', 'past_due', 'unpaid', 'canceled', 'incomplete']),
 });

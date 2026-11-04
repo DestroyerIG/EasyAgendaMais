@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
-import { CATALOGO_PLANOS, planoDoCatalogo, rotuloEquipe } from '@/lib/planCatalog';
+import { CATALOGO_PLANOS, linkFalarSobreSalao, planoDoCatalogo, precoParaNegocio, rotuloEquipe } from '@/lib/planCatalog';
 
 // O catálogo do backend é lido como texto e transpilado aqui: um import direto faria o type-check do
 // next build seguir para o backend, que não tem node_modules no build do frontend (CI e Vercel).
@@ -35,5 +35,13 @@ describe('catálogo de planos do frontend', () => {
 
   it('lista de espera e campanhas aparecem no Solo', () => {
     expect(planoDoCatalogo('basico').destaques).toEqual(expect.arrayContaining(['Lista de espera', 'Campanhas']));
+  });
+
+  it('Salão sob consulta: sem preço no catálogo; o valor vem do combinado com o negócio', () => {
+    expect(planoDoCatalogo('premium')).toMatchObject({ preco: null, sobConsulta: true });
+    expect(precoParaNegocio('premium', null)).toBeNull();
+    expect(precoParaNegocio('premium', 450)).toBe(450);
+    expect(precoParaNegocio('basico', 450)).toBe(49.9);
+    expect(linkFalarSobreSalao()).toMatch(/^https:\/\/wa\.me\/\d+\?text=/);
   });
 });

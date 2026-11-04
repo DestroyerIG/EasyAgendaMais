@@ -110,4 +110,18 @@ describe('AcaoComMotivoModal', () => {
     fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
     expect(onFechar).toHaveBeenCalled();
   });
+  it('com campoValor, aceita valor com vírgula e entrega o número', () => {
+    const { onConfirmar } = abrir({ campoValor: true });
+    fireEvent.change(screen.getByLabelText(/Valor mensal/), { target: { value: '450,50' } });
+    fireEvent.change(screen.getByLabelText(/Motivo/), { target: { value: 'Rede com 3 unidades' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
+    expect(onConfirmar).toHaveBeenCalledWith('Rede com 3 unidades', undefined, undefined, 450.5);
+  });
+
+  it('com campoValor, valor vazio ou zero desabilita o botão', () => {
+    abrir({ campoValor: true });
+    fireEvent.change(screen.getByLabelText(/Motivo/), { target: { value: 'Rede com 3 unidades' } });
+    fireEvent.change(screen.getByLabelText(/Valor mensal/), { target: { value: '0' } });
+    expect(screen.getByRole('button', { name: 'Confirmar' })).toBeDisabled();
+  });
 });

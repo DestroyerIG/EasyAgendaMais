@@ -49,6 +49,8 @@ const ctxPix = (extra: Record<string, unknown> = {}) => ({
   subscription_status: 'active',
   current_period_start: new Date(agora - 15 * DIA),
   current_period_end: new Date(agora + 15 * DIA),
+  // Salão é sob consulta: estes casos têm o valor combinado igual ao antigo.
+  metadata: { valorMensalCombinado: 199.9 },
   ...extra,
 });
 

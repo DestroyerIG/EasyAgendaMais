@@ -44,7 +44,7 @@ function paraListado(l: LinhaNegocio, agora: Date): NegocioListado {
     : null;
   return {
     id: l.id, nome: l.nome, dono: l.dono, email: l.email, whatsapp: l.whatsapp,
-    endereco: l.endereco, segmento: segmentoDe(l.segmento), plano: l.plano, preco: precoDoPlano(l.plano),
+    endereco: l.endereco, segmento: segmentoDe(l.segmento), plano: l.plano, preco: precoDoPlano(l.plano, l.valorCombinado ?? null),
     status, temInstanciaWhatsapp: l.temInstanciaWhatsapp,
     whatsappConectado: l.whatsappConectadoEm !== null, whatsappConectadoEm: l.whatsappConectadoEm,
     agendamentos30d: l.agendamentos30d, ultimaAtividadeEm: l.ultimoAgendamentoEm, diasRestantesTeste,
@@ -193,7 +193,7 @@ export const painelService = {
       ltv: { total: ltv.total, ciclos: ltv.ciclos, desde: ltv.desde ? ltv.desde.toISOString() : null },
       // Próxima cobrança: next_due_date, senão o fim do período; só para quem paga hoje.
       proximaCobranca: pagante && dataCobranca
-        ? { data: dataCobranca.toISOString(), valor: precoDoPlano(l.plano) }
+        ? { data: dataCobranca.toISOString(), valor: precoDoPlano(l.plano, l.valorCombinado ?? null) }
         : null,
       faturas,
       uso: {

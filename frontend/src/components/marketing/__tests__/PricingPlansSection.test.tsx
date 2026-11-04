@@ -47,4 +47,21 @@ describe('cards de preço', () => {
     expect(botoes.length).toBeGreaterThan(0);
     for (const botao of botoes) expect(botao).toBeDisabled();
   });
+
+  it('Salão sem valor combinado: "Sob consulta" e "Falar com a gente", sem checkout', () => {
+    usuario.atual = null;
+    render(<PricingPlansSection />);
+    const card = screen.getByRole('heading', { name: 'Salão' }).closest('article')!;
+    expect(within(card).getByText('Sob consulta')).toBeInTheDocument();
+    expect(within(card).getByRole('link', { name: 'Falar com a gente' })).toHaveAttribute('href', expect.stringMatching(/wa\.me/));
+    expect(within(card).queryByText(/R\$/)).not.toBeInTheDocument();
+  });
+
+  it('Salão com valor combinado: mostra o valor e o checkout', () => {
+    usuario.atual = { plan: 'profissional', role: 'tenant_admin', email: 'a@b.c' };
+    render(<PricingPlansSection valorSalao={450} />);
+    const card = screen.getByRole('heading', { name: 'Salão' }).closest('article')!;
+    expect(within(card).getByText(/R\$\s*450,00/)).toBeInTheDocument();
+    expect(within(card).getByRole('button', { name: /Cart/ })).toBeInTheDocument();
+  });
 });

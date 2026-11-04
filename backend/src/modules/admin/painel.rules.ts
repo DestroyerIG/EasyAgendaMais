@@ -14,7 +14,7 @@ export interface LinhaNegocio {
   id: string; nome: string; dono: string; email: string; whatsapp: string;
   cpfCnpj: string | null; endereco: string | null; segmento: string | null;
   plano: string; statusAssinatura: string; ativo: boolean;
-  inadimplenteDesde: Date | null; jaPagou: boolean; fimDoPeriodo: Date | null; cartaoCadastrado?: boolean;
+  inadimplenteDesde: Date | null; jaPagou: boolean; fimDoPeriodo: Date | null; cartaoCadastrado?: boolean; valorCombinado?: number | null;
   criadoEm: Date; canceladoEm: Date | null; onboardingConcluido: boolean;
   temInstanciaWhatsapp: boolean; whatsappConectadoEm: Date | null; ultimoEnvioEm: Date | null;
   agendamentos30d: number; ultimoAgendamentoEm: Date | null;
@@ -43,7 +43,9 @@ export function inicioDoMes(agora: Date, mesesAtras = 0): Date {
   return new Date(Date.UTC(ano, mes - 1 - mesesAtras, 1, 3, 0, 0, 0));
 }
 
-export function precoDoPlano(plano: string): number {
+/** Preço mensal do negócio. No Salão (sob consulta), o valor combinado; sem ele, o legado de PLAN_PRICES. */
+export function precoDoPlano(plano: string, valorCombinado: number | null = null): number {
+  if (plano === 'premium' && valorCombinado) return valorCombinado;
   return Object.prototype.hasOwnProperty.call(PLAN_PRICES, plano)
     ? PLAN_PRICES[plano as keyof typeof PLAN_PRICES]
     : 0;
@@ -70,7 +72,7 @@ export function statusAdmin(l: LinhaNegocio, agora: Date): StatusAdmin {
 type ComStatus = { l: LinhaNegocio; status: StatusAdmin; preco: number };
 
 function comStatus(ls: LinhaNegocio[], agora: Date): ComStatus[] {
-  return ls.map((l) => ({ l, status: statusAdmin(l, agora), preco: precoDoPlano(l.plano) }));
+  return ls.map((l) => ({ l, status: statusAdmin(l, agora), preco: precoDoPlano(l.plano, l.valorCombinado ?? null) }));
 }
 
 // Pagante = ativo ou em carência: é a base do MRR.

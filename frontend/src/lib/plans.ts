@@ -3,7 +3,8 @@ export type PlanId = 'basico' | 'profissional' | 'premium';
 export interface SaaSPlan {
   id: PlanId;
   name: string;
-  price: number;
+  /** null no Salão, que é sob consulta (o valor é combinado com cada negócio). */
+  price: number | null;
   trialDays: number;
   recommended?: boolean;
   ctaLabel: string;
@@ -28,7 +29,7 @@ export const SAAS_PLANS: SaaSPlan[] = [
   {
     id: 'premium',
     name: 'Salão',
-    price: 199.9,
+    price: null,
     trialDays: 14,
     ctaLabel: 'Escalar com Salão',
   },

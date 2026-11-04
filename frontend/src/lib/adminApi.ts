@@ -162,6 +162,12 @@ export const adminApi = {
     return response.data;
   },
 
+  /** Salão sob consulta: valor mensal combinado com o negócio. */
+  async definirValorSalao(tenantId: string, valor: number, reason: string) {
+    const response = await api.patch(`/admin/subscriptions/${tenantId}/valor-salao`, { ...actionPayload(reason), valor });
+    return response.data as { tenantId: string; valorSalao: number };
+  },
+
   async overrideSubscriptionPlan(tenantId: string, plan: string, reason?: string) {
     const response = await api.patch(`/admin/subscriptions/${tenantId}/plan`, {
       ...actionPayload(reason),

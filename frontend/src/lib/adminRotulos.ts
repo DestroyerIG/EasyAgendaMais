@@ -57,6 +57,7 @@ const ROTULO_ACAO: Record<string, string> = {
   SUBSCRIPTION_STATUS_OVERRIDE: 'Status alterado manualmente',
   SUBSCRIPTION_CANCELED: 'Assinatura cancelada',
   TRIAL_EXTENDED: 'Teste grátis estendido',
+  SALAO_VALUE_SET: 'Valor do Salão definido',
   conta_backup: 'Backup da conta baixado',
 };
 
