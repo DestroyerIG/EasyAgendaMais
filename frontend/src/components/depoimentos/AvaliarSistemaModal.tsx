@@ -100,9 +100,14 @@ export function AvaliarSistemaModal({ isOpen, onClose, origem }: AvaliarSistemaM
   const retirar = () =>
     executar(async () => {
       await depoimentosApi.retirar();
-      const meu = await depoimentosApi.meu();
-      setDados(meu);
-      if (!meu.atual) setEtapa('nota');
+      try {
+        const meu = await depoimentosApi.meu();
+        setDados(meu);
+        if (!meu.atual) setEtapa('nota');
+      } catch {
+        // A retirada já foi feita; só não deu para reler a situação.
+        setDados((d) => (d?.atual ? { ...d, atual: { ...d.atual, status: 'nao_publicado' } } : d));
+      }
     }, () => {});
 
   const titulo =

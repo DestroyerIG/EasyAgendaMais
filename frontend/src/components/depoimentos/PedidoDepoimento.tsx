@@ -13,7 +13,6 @@ export function PedidoDepoimento() {
   useEffect(() => {
     try {
       if (window.sessionStorage.getItem(MARCA_SESSAO) === '1') return;
-      window.sessionStorage.setItem(MARCA_SESSAO, '1');
     } catch {
       /* sem sessionStorage: consulta mesmo assim */
     }
@@ -21,7 +20,14 @@ export function PedidoDepoimento() {
     depoimentosApi
       .meu()
       .then((meu) => {
-        if (cancelado || !meu.mostrarPopup) return;
+        if (cancelado) return;
+        // A marca só vale depois de uma consulta concluída (o StrictMode roda o efeito 2x em dev).
+        try {
+          window.sessionStorage.setItem(MARCA_SESSAO, '1');
+        } catch {
+          /* ignora */
+        }
+        if (!meu.mostrarPopup) return;
         // Não atravessa outro diálogo aberto: fica para a próxima sessão.
         if (document.querySelector('[role="dialog"]')) return;
         setAberto(true);

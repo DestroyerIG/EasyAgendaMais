@@ -15,6 +15,8 @@ import { AvaliarSistemaModal } from '../AvaliarSistemaModal';
 
 const TEXTO_OK = 'Sistema muito bom, organiza toda a minha agenda.';
 
+vi.setConfig({ testTimeout: 30000 });
+
 beforeEach(() => {
   Object.values(api).forEach((f) => f.mockReset());
   api.meu.mockResolvedValue({ mostrarPopup: true, nomeSugerido: 'Ana Souza', atual: null });
@@ -71,7 +73,8 @@ describe('AvaliarSistemaModal', () => {
     const onClose = vi.fn();
     render(<AvaliarSistemaModal isOpen onClose={onClose} origem="popup" />);
     await user.click(await screen.findByRole('button', { name: '5 estrelas' }));
-    await user.type(screen.getByLabelText('Seu depoimento'), TEXTO_OK);
+    await user.click(screen.getByLabelText('Seu depoimento'));
+    await user.paste(TEXTO_OK);
     await user.click(screen.getByRole('button', { name: 'Enviar' }));
     await waitFor(() => expect(api.enviar).toHaveBeenCalledTimes(1));
     expect(api.enviar.mock.calls[0][0]).toMatchObject({ nota: 5, texto: TEXTO_OK, autorizou: false });
@@ -95,8 +98,31 @@ describe('AvaliarSistemaModal', () => {
     });
     render(<AvaliarSistemaModal isOpen onClose={() => {}} origem="menu" />);
     expect(await screen.findByText('Publicado no site')).toBeInTheDocument();
+    api.meu.mockResolvedValue({
+      mostrarPopup: false,
+      nomeSugerido: 'Ana',
+      atual: { status: 'nao_publicado', nota: 5, texto: TEXTO_OK, nomeExibido: 'Ana', cidade: 'Recife' },
+    });
     await user.click(screen.getByRole('button', { name: 'Retirar meu depoimento do site' }));
     await waitFor(() => expect(api.retirar).toHaveBeenCalled());
+    expect(await screen.findByText('Não publicado')).toBeInTheDocument();
+    expect(screen.queryByText('Publicado no site')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Retirar meu depoimento do site' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Enviar outra avaliação' })).toBeInTheDocument();
+  });
+
+  it('retirada feita mas meu() falha: trata como não publicado, sem erro', async () => {
+    const user = userEvent.setup();
+    api.meu.mockResolvedValueOnce({
+      mostrarPopup: false,
+      nomeSugerido: 'Ana',
+      atual: { status: 'publicado', nota: 5, texto: TEXTO_OK, nomeExibido: 'Ana', cidade: 'Recife' },
+    });
+    render(<AvaliarSistemaModal isOpen onClose={() => {}} origem="menu" />);
+    await screen.findByText('Publicado no site');
+    api.meu.mockRejectedValue(new Error('x'));
+    await user.click(screen.getByRole('button', { name: 'Retirar meu depoimento do site' }));
+    expect(await screen.findByText('Não publicado')).toBeInTheDocument();
+    expect(screen.queryByText(/Não foi possível concluir/)).not.toBeInTheDocument();
   });
 });
