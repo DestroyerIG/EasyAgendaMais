@@ -51,4 +51,14 @@ describe('adminApi', () => {
     expect(pedidos[0].url).toBe('/admin/tenants/t1/auditoria.csv');
     expect(pedidos[0].params).toEqual({ categoria: 'financeiro' });
   });
+
+  it('listarDepoimentos lê itens e publicados do envelope desembrulhado', async () => {
+    const pedidos: InternalAxiosRequestConfig[] = [];
+    api.defaults.adapter = adaptador({ success: true, data: [{ id: 'd1' }], meta: { publicados: 2 } }, pedidos);
+
+    const lista = await adminApi.listarDepoimentos('publicados');
+
+    expect(lista).toEqual({ data: [{ id: 'd1' }], publicados: 2 });
+    expect(pedidos[0].params).toEqual({ aba: 'publicados' });
+  });
 });

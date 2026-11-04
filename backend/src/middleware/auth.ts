@@ -42,6 +42,9 @@ const SUBSCRIPTION_EXEMPT_ROUTES: RegExp[] = [
   /^\/api\/v1\/billing\/invoices$/i,
   /^\/api\/v1\/billing\/payment-method$/i,
   /^\/api\/v1\/billing\/reactivate$/i,
+  // Depoimento: o item do menu vale para todos e a retirada (LGPD) passa por ele,
+  // então ficam abertas mesmo na carência e com a conta bloqueada. /adiar e /dispensar não.
+  /^\/api\/v1\/depoimentos(\/meu|\/retirar)?$/i,
 ];
 
 // Isentas só para leitura: ver o estado da conta e baixar o backup.

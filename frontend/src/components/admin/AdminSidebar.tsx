@@ -8,6 +8,7 @@ import { BrandLogo, Icon } from '@/components/ui';
 export const ADMIN_LINKS = [
   { href: '/admin', label: 'Visão geral', icon: 'monitoring' },
   { href: '/admin/negocios', label: 'Negócios', icon: 'storefront' },
+  { href: '/admin/depoimentos', label: 'Depoimentos', icon: 'reviews' },
   { href: '/admin/coupons', label: 'Cupons', icon: 'sell' },
   { href: '/admin/logs', label: 'Auditoria', icon: 'security' },
 ] as const;

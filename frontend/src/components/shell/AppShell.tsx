@@ -13,6 +13,7 @@ import { TrialBanner } from './TrialBanner';
 import { TopBarSearchProvider } from './TopBarSearchContext';
 import { useVocabulario } from '@/hooks/useVocabulario';
 import { useEstadoConta } from '@/hooks/useEstadoConta';
+import { AvaliarSistemaModal } from '@/components/depoimentos/AvaliarSistemaModal';
 import { FaixaContingencia } from '@/components/assinatura/FaixaContingencia';
 
 const MARCA_CONTINGENCIA = 'easyagenda:contingenciaVista';
@@ -32,6 +33,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const { prof } = useVocabulario();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [avaliarOpen, setAvaliarOpen] = useState(false);
   // O papel `professional` usa só o app da bancada (fase 5): o painel fica fechado para ele.
   const ehProfissional = user?.role === 'professional';
   // Conta nova da dona: as etapas 1 a 3 do onboarding vêm antes do painel (fase 6).
@@ -77,14 +79,17 @@ export function AppShell({ children }: { children: ReactNode }) {
     void logout();
   };
 
+  // Só a dona do negócio avalia o sistema; o item fica fora do menu para os demais papéis.
+  const onAvaliar = user?.role === 'tenant_admin' ? () => setAvaliarOpen(true) : undefined;
+
   if (ehProfissional || onboardingPendente) return <div className="app-theme min-h-screen" />;
 
   return (
     <div className="app-theme min-h-screen">
       <TopBarSearchProvider>
-        <Sidebar activeId={activeId} businessName={businessName} planLabel={planLabel} onLogout={handleLogout} />
+        <Sidebar activeId={activeId} businessName={businessName} planLabel={planLabel} onLogout={handleLogout} onAvaliar={onAvaliar} />
         <div className="lg:pl-[248px]">
-          <TopBar activeId={activeId} pageTitle={title} businessName={businessName} roleLabel={roleLabel} onLogout={handleLogout} />
+          <TopBar activeId={activeId} pageTitle={title} businessName={businessName} roleLabel={roleLabel} onLogout={handleLogout} onAvaliar={onAvaliar} />
           <TrialBanner />
           {estado?.tipo === 'carencia' && <FaixaContingencia diasRestantes={estado.diasRestantes} />}
           <main id="main-content" className="mx-auto max-w-7xl px-4 pb-28 pt-4 lg:px-8 lg:pb-10 lg:pt-8">
@@ -92,6 +97,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </main>
         </div>
       </TopBarSearchProvider>
+      {avaliarOpen && <AvaliarSistemaModal isOpen origem="menu" onClose={() => setAvaliarOpen(false)} />}
       <BottomNav activeId={activeId} onOpenMore={() => setMoreOpen(true)} />
       <MoreSheet open={moreOpen} onOpenChange={setMoreOpen} activeId={activeId} onLogout={handleLogout} />
     </div>

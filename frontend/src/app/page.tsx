@@ -1,9 +1,11 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { PublicNavbar } from '@/components/marketing/PublicNavbar';
 import { PublicFooter } from '@/components/marketing/PublicFooter';
 import { PricingPlansSection } from '@/components/marketing/PricingPlansSection';
 import { ForcedLight } from '@/components/theme/ForcedLight';
 import { Icon } from '@/components/ui';
+import { buscarDepoimentosPublicos } from '@/lib/server/depoimentosPublicos';
 import { Hero } from '@/components/marketing/landing/Hero';
 import { WhatsAppSimulator } from '@/components/marketing/landing/WhatsAppSimulator';
 import { RoiCalculator } from '@/components/marketing/landing/RoiCalculator';
@@ -85,16 +87,7 @@ const afterItems = [
 
 // Só depoimentos REAIS, de donos que autorizaram a publicação. Nada de texto inventado aqui.
 // A coleta e a aprovação pelo SuperAdmin estão em docs/superpowers/specs/2026-11-04-depoimentos-reais-design.md;
-// até lá a lista fica vazia e a seção não aparece.
-type Testimonial = {
-  quote: string;
-  name: string;
-  business: string;
-  city: string;
-  rating: number;
-};
-
-const testimonials: Testimonial[] = [];
+// Sem depoimentos suficientes (ou backend fora), a seção não aparece.
 
 /** A seção de depoimentos só aparece com pelo menos esta quantidade. */
 const MIN_DEPOIMENTOS_NA_LANDING = 3;
@@ -130,7 +123,11 @@ const faqItems = [
 const defaultContactUrl =
   'https://wa.me/5583991347023?text=Ol%C3%A1%2C%20quero%20conhecer%20o%20EasyAgenda';
 
-export default function HomePage() {
+export const revalidate = 300;
+
+export default async function HomePage() {
+  const testimonials = await buscarDepoimentosPublicos();
+
   const contactUrl = process.env.NEXT_PUBLIC_WHATSAPP_CONTACT_URL || defaultContactUrl;
 
   return (
@@ -364,12 +361,23 @@ export default function HomePage() {
                     <p className="text-[15px] italic leading-relaxed text-ink">&ldquo;{testimonial.quote}&rdquo;</p>
                   </div>
                   <div className="flex items-center gap-3 border-t border-line pt-4">
-                    <span
-                      aria-hidden="true"
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10 text-sm font-bold text-brand-text"
-                    >
-                      {testimonial.name.slice(0, 1)}
-                    </span>
+                    {testimonial.logoUrl ? (
+                      <Image
+                        src={testimonial.logoUrl}
+                        alt={testimonial.business}
+                        width={40}
+                        height={40}
+                        unoptimized
+                        className="h-10 w-10 shrink-0 rounded-full object-contain"
+                      />
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10 text-sm font-bold text-brand-text"
+                      >
+                        {testimonial.name.slice(0, 1)}
+                      </span>
+                    )}
                     <div className="flex min-w-0 flex-col gap-0.5">
                       <span className="text-sm font-bold text-ink">{testimonial.name}</span>
                       <span className="text-xs text-muted">

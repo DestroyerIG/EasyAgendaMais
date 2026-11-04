@@ -18,6 +18,7 @@ import { useToast } from '@/components/Toast';
 import { billingApi, type CheckoutPaymentMethod } from '@/lib/billing';
 import { isPlanId } from '@/lib/plans';
 import { getApiErrorCode } from '@/utils/handleApiError';
+import { PedidoDepoimento } from '@/components/depoimentos/PedidoDepoimento';
 import { buscarHoje, type HojeDto } from '@/lib/hoje';
 
 const PIX_STORAGE_KEY = 'easyagenda:pixCheckout';
@@ -178,6 +179,7 @@ export default function DashboardPage() {
 
   return (
     <>
+      {user?.role === 'tenant_admin' && <PedidoDepoimento />}
       {hoje ? (
         <div className="flex flex-col gap-6 sm:gap-8">
           <SaudacaoDia

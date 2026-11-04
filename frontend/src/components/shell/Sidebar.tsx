@@ -11,9 +11,10 @@ export interface SidebarProps {
   businessName: string;
   planLabel: string;
   onLogout: () => void;
+  onAvaliar?: () => void;
 }
 
-export function Sidebar({ activeId, businessName, planLabel, onLogout }: SidebarProps) {
+export function Sidebar({ activeId, businessName, planLabel, onLogout, onAvaliar }: SidebarProps) {
   return (
     <aside className="fixed inset-y-0 left-0 z-50 hidden w-[248px] flex-col justify-between border-r border-line bg-surface lg:flex">
       <div className="flex flex-col">
@@ -51,7 +52,7 @@ export function Sidebar({ activeId, businessName, planLabel, onLogout }: Sidebar
         </nav>
       </div>
       <div className="border-t border-line p-3">
-        <AccountMenu businessName={businessName} planLabel={planLabel} onLogout={onLogout} />
+        <AccountMenu businessName={businessName} planLabel={planLabel} onLogout={onLogout} onAvaliar={onAvaliar} />
       </div>
     </aside>
   );

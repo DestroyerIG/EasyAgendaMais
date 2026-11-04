@@ -48,6 +48,10 @@ import bancadaRoutes from './modules/bancada/bancada.routes.js';
 import pushRoutes from './modules/push/push.routes.js';
 import googleAgendaRoutes from './modules/googleAgenda/googleAgenda.routes.js';
 import avaliacoesRoutes from './modules/avaliacoes/avaliacoes.routes.js';
+import depoimentosRoutes from './modules/depoimentos/depoimentos.routes.js';
+import depoimentosAdminRoutes from './modules/depoimentos/depoimentos.admin.routes.js';
+import { authMiddleware } from './middleware/auth.js';
+import { requireAdmin } from './middleware/rbac.js';
 import contaRoutes from './modules/conta/conta.routes.js';
 
 // Route modules — stub re-exports
@@ -460,6 +464,8 @@ app.use(`${API_V1}/bancada`, bancadaRoutes);
 app.use(`${API_V1}/push`, pushRoutes);
 app.use(`${API_V1}/google-agenda`, googleAgendaRoutes);
 app.use(`${API_V1}/avaliacoes`, avaliacoesRoutes);
+app.use(`${API_V1}/depoimentos`, depoimentosRoutes);
+app.use(`${API_V1}/admin/depoimentos`, authMiddleware, requireAdmin, depoimentosAdminRoutes);
 app.use(`${API_V1}/conta`, contaRoutes);
 
 app.use(`${API_V1}/clients`, crmRoutes);

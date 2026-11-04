@@ -1,12 +1,15 @@
 import api from '@/lib/api';
 import { abrirErroEmBlob } from '@/lib/conta';
 import type {
+  AbaDepoimentos,
   AdminActionPayload,
   AdminAuditLog,
   AdminCoupon,
   AdminCouponPayload,
   AdminVisaoGeral,
   CategoriaAuditoria,
+  DepoimentoAdmin,
+  ListaDepoimentosAdmin,
   CartoesGestao,
   DetalheNegocio,
   FiltrosAuditoria,
@@ -217,5 +220,23 @@ export const adminApi = {
   async deleteCoupon(couponId: string) {
     const response = await api.delete(`/admin/coupons/${couponId}`);
     return response.data;
+  },
+  async listarDepoimentos(aba: AbaDepoimentos): Promise<ListaDepoimentosAdmin> {
+    const response = await api.get('/admin/depoimentos', { params: { aba } });
+    // O interceptor de api.ts já desembrulhou o envelope: data é o array e o meta fica na resposta.
+    const parsed = response as unknown as { data?: DepoimentoAdmin[]; meta?: { publicados?: number } };
+    return { data: parsed.data ?? [], publicados: parsed.meta?.publicados ?? 0 };
+  },
+
+  async publicarDepoimento(id: string): Promise<void> {
+    await api.post(`/admin/depoimentos/${id}/publicar`);
+  },
+
+  async recusarDepoimento(id: string): Promise<void> {
+    await api.post(`/admin/depoimentos/${id}/recusar`);
+  },
+
+  async corrigirDepoimento(id: string, texto: string): Promise<void> {
+    await api.post(`/admin/depoimentos/${id}/corrigir`, { texto });
   },
 };

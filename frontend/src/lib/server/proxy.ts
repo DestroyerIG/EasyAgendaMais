@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const BACKEND_URL =
+export const BACKEND_URL =
   process.env.BACKEND_API_URL || 'http://localhost:5000/api/v1';
 
 const HOP_BY_HOP_HEADERS = new Set([
