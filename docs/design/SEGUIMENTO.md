@@ -209,6 +209,21 @@ Sub-projeto 7 (Login com Google e Google Agenda), pendências conhecidas:
   - **Resync no SuperAdmin:** consulta a última cobrança no Asaas pelo mesmo caminho do "Já paguei".
 - **Escolha do teste:** fica no navegador (`localStorage`). Quem verifica o e-mail em outro aparelho não vê o convite no onboarding, mas vê no painel e em Ajustes › Plano.
 - **Conferência visual:** feita com mock em desktop, pelo conteúdo da página (a captura de tela do navegador travou). Conferidos o cadastro com as duas opções, o convite em Ajustes › Plano e o cartão cadastrado com o aviso de retorno.
+- **Revisão final:**
+  - **Corrigido antes do PR (com testes em `revisaoCartaoAsaas.test.ts`):**
+    - cobrança apagada derrubava a conta;
+    - confirmação atrasada de uma cobrança antiga liberava a conta ou desfazia o cancelamento;
+    - podiam ficar duas assinaturas de cartão cobrando;
+    - a renovação voltava ao plano do checkout;
+    - a recusa no fim do teste bloqueava sem carência;
+    - reativar no teste usava o plano errado;
+    - estender o teste falhava com a assinatura removida;
+    - o "Já paguei" no teste tirava a conta do teste.
+  - **Ajustes pequenos adiados:**
+    - o fim do teste é gravado às 12:00 UTC do vencimento e pode encurtar algumas horas;
+    - o cupom é consumido quando o checkout é criado, e o desconto de um checkout abandonado pode valer num checkout futuro;
+    - falta conferir se a tela do checkout fora do teste não mostra o valor já com desconto;
+    - o lock do webhook roda fora de transação (já era assim).
 - **Testes instáveis sob carga, que já aconteciam antes desta branch e passam isolados:** `cashService` (`addExpenseSchema`), `ServiceProfessionalModal` e `NovaCampanha`.
 
 ## Item H3 (textos de venda), pendências conhecidas
