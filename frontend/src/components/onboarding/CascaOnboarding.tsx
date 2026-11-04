@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { Icon } from '@/components/ui';
+import { BrandLogo, Icon } from '@/components/ui';
 import { ETAPAS } from '@/lib/onboarding';
 import { cn } from '@/lib/cn';
 import { lerEscolhaTeste } from '@/lib/escolhaTeste';
@@ -20,7 +20,10 @@ export function CascaOnboarding({ etapa, titulo, descricao, children, rodape }: 
     <div className="app-theme flex min-h-screen flex-col">
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
-          <span className="text-lg font-extrabold text-ink">EasyAgenda<span className="text-brand">+</span></span>
+          <span className="flex items-center gap-2 text-lg font-extrabold text-ink">
+            <BrandLogo size={28} decorativa />
+            <span>EasyAgenda<span className="text-brand">+</span></span>
+          </span>
           <span className="flex items-center gap-1.5 rounded-full bg-success/12 px-3 py-1 text-[12px] font-semibold text-success-text">
             <Icon name="verified_user" size={16} /> Teste grátis
           </span>

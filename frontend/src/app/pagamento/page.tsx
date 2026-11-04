@@ -1,11 +1,10 @@
 'use client';
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
-import { Button, Card, Field, Icon, Input } from '@/components/ui';
+import { BrandLogo, Button, Card, Field, Icon, Input } from '@/components/ui';
 import {
   billingApi,
   type CheckoutPaymentMethod,
@@ -18,7 +17,6 @@ import { isPlanId, PLAN_MAP, type PlanId } from '@/lib/plans';
 import { linkFalarSobreSalao, planoDoCatalogo, precoParaNegocio, rotuloEquipe } from '@/lib/planCatalog';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { contaApi, type EstadoConta } from '@/lib/conta';
-import easyAgendaLogo from '@/icons/easyagenda-logo.svg';
 
 const ACTIVE_STATUSES = new Set(['active', 'trialing']);
 
@@ -319,9 +317,7 @@ function PagamentoContent() {
     <main id="main-content" className="app-theme min-h-screen px-4 py-8">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-control border border-line bg-surface-2">
-            <Image src={easyAgendaLogo} alt="Logo EasyAgenda+" width={40} height={40} className="h-full w-full object-contain" />
-          </span>
+          <BrandLogo size={40} decorativa />
           <span className="text-xl font-black text-brand-text">EasyAgenda+</span>
         </div>
 

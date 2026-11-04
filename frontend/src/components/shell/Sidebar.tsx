@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { NAV_ITEMS, type NavItemId } from '@/lib/navigation';
 import { cn } from '@/lib/cn';
-import { Icon } from '@/components/ui';
+import { BrandLogo, Icon } from '@/components/ui';
 import { AccountMenu } from './AccountMenu';
 
 export interface SidebarProps {
@@ -19,9 +19,7 @@ export function Sidebar({ activeId, businessName, planLabel, onLogout }: Sidebar
       <div className="flex flex-col">
         <div className="flex h-16 items-center justify-between border-b border-line px-5">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-brand/20 bg-brand/10 text-lg font-black leading-none text-brand">
-              +
-            </div>
+            <BrandLogo size={32} decorativa />
             <div className="flex flex-col leading-tight">
               <span className="text-[17px] font-bold tracking-tight text-ink">
                 EasyAgenda<span className="text-brand">+</span>
