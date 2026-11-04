@@ -103,7 +103,11 @@ export default async function OgImage() {
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
             <h1
               style={{
-                fontSize: '62px',
+                // O Satori trata cada filho como item flex: sem a coluna explícita, o <span> laranja
+                // ficava ao lado do texto e passava por cima do card de estatísticas.
+                display: 'flex',
+                flexDirection: 'column',
+                fontSize: '58px',
                 fontWeight: 900,
                 color: '#ffffff',
                 lineHeight: 1.1,
@@ -111,7 +115,7 @@ export default async function OgImage() {
                 letterSpacing: '-0.02em',
               }}
             >
-              Gerencie seu negócio com{' '}
+              <span>Gerencie seu negócio com</span>
               <span style={{ color: '#FF7A00' }}>controle total.</span>
             </h1>
             <p
