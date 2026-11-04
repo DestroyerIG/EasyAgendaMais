@@ -83,31 +83,21 @@ const afterItems = [
   'Ficha técnica, preferências e histórico organizados por cliente.',
 ];
 
-// Depoimentos ILUSTRATIVOS (personagens fictícios), até chegarem os reais. A seção mostra o aviso
-// "ilustrativo" em cada card; não remover o aviso enquanto os textos não forem de clientes de verdade.
-const testimonials = [
-  {
-    quote:
-      'Eu passava o domingo respondendo cliente no WhatsApp. Agora elas marcam sozinhas pelo link e pagam o sinal no Pix. As faltas quase sumiram.',
-    name: 'Camila R.',
-    role: 'Nail designer, atende sozinha',
-    city: 'Recife (PE)',
-  },
-  {
-    quote:
-      'Com quatro barbeiros, fechar comissão no fim do mês levava uma tarde inteira. Hoje cada um vê o próprio repasse no celular e ninguém discute.',
-    name: 'Diego M.',
-    role: 'Dono de barbearia, 4 profissionais',
-    city: 'Campinas (SP)',
-  },
-  {
-    quote:
-      'O lembrete de manutenção traz a cliente de volta na hora certa, sem eu ficar cobrando. A agenda de cílios ficou cheia de retorno.',
-    name: 'Juliana S.',
-    role: 'Lash designer',
-    city: 'Belo Horizonte (MG)',
-  },
-];
+// Só depoimentos REAIS, de donos que autorizaram a publicação. Nada de texto inventado aqui.
+// A coleta e a aprovação pelo SuperAdmin estão em docs/superpowers/specs/2026-11-04-depoimentos-reais-design.md;
+// até lá a lista fica vazia e a seção não aparece.
+type Testimonial = {
+  quote: string;
+  name: string;
+  business: string;
+  city: string;
+  rating: number;
+};
+
+const testimonials: Testimonial[] = [];
+
+/** A seção de depoimentos só aparece com pelo menos esta quantidade. */
+const MIN_DEPOIMENTOS_NA_LANDING = 3;
 
 const faqItems = [
   {
@@ -349,24 +339,25 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* 8. Depoimentos */}
+        {/* 8. Depoimentos (só aparece com depoimentos reais suficientes) */}
+        {testimonials.length >= MIN_DEPOIMENTOS_NA_LANDING && (
         <section className="bg-bg py-16 sm:py-20">
           <div className="mx-auto flex max-w-7xl flex-col gap-10 px-4 sm:px-6 lg:px-8">
             <SectionHeading
               eyebrow="Casos práticos"
-              title="Como fica o dia a dia com o EasyAgenda+"
-              subtitle="Situações comuns de quem atende com hora marcada, contadas por personagens ilustrativos."
+              title="Quem usa todos os dias recomenda"
+              subtitle="Profissionais e estúdios que recuperaram horas de descanso e organizaram suas finanças."
             />
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
               {testimonials.map((testimonial) => (
                 <article
-                  key={testimonial.name}
+                  key={`${testimonial.business}-${testimonial.name}`}
                   className="flex flex-col justify-between gap-6 rounded-card border border-line bg-surface p-6 shadow-sm sm:p-8"
                 >
                   <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-1.5 text-brand">
-                      {Array.from({ length: 5 }).map((_, index) => (
+                    <div className="flex items-center gap-1.5 text-brand" aria-label={`Nota ${testimonial.rating} de 5`}>
+                      {Array.from({ length: testimonial.rating }).map((_, index) => (
                         <Icon key={index} name="star" size={18} filled />
                       ))}
                     </div>
@@ -382,10 +373,7 @@ export default function HomePage() {
                     <div className="flex min-w-0 flex-col gap-0.5">
                       <span className="text-sm font-bold text-ink">{testimonial.name}</span>
                       <span className="text-xs text-muted">
-                        {testimonial.role} · {testimonial.city}
-                      </span>
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-                        Depoimento ilustrativo
+                        {testimonial.business} · {testimonial.city}
                       </span>
                     </div>
                   </div>
@@ -394,6 +382,7 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+        )}
 
         {/* 9. FAQ */}
         <section className="border-y border-line bg-surface py-16 sm:py-20">
