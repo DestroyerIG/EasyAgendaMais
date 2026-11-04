@@ -77,6 +77,7 @@ function paraLinha(r: LinhaCrua): LinhaNegocio {
     ativo: bool(r.active),
     inadimplenteDesde: data(r.inadimplente_desde),
     jaPagou: bool(r.ja_pagou),
+    cartaoCadastrado: bool(r.cartao_cadastrado),
     fimDoPeriodo: data(r.fim_do_periodo),
     criadoEm: data(r.created_at) as Date,
     canceladoEm: data(r.canceled_at),
@@ -113,6 +114,8 @@ async function consultar(id?: string): Promise<LinhaNegocio[]> {
              )
            END AS fim_do_periodo,
            b.provider, b.payment_method,
+           (b.payment_method = 'card' AND b.provider_subscription_id IS NOT NULL
+             AND NOT COALESCE(b.subscription_cancel_at_period_end, false)) AS cartao_cadastrado,
            b.created_at AT TIME ZONE 'UTC' AS created_at,
            b.canceled_at AT TIME ZONE 'UTC' AS canceled_at,
            (b.onboarding_concluido_em IS NOT NULL) AS onboarding_concluido,

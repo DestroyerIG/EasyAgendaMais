@@ -15,6 +15,8 @@ export interface EntradaEstado {
   jaPagou: boolean;
   fimDoPeriodo: Date | null;
   agora: Date;
+  /** Cartão cadastrado no Asaas (assinatura ativa): a 1ª cobrança recusada no fim do teste dá carência. */
+  cartaoCadastrado?: boolean;
 }
 
 export function calcularEstadoConta(e: EntradaEstado): EstadoConta {
@@ -22,7 +24,7 @@ export function calcularEstadoConta(e: EntradaEstado): EstadoConta {
   if (e.status === 'canceled') return { tipo: 'bloqueada', motivo: 'cancelada' };
 
   const emContingencia = (STATUS_CONTINGENCIA as readonly string[]).includes(e.status);
-  if (!e.jaPagou) return { tipo: 'bloqueada', motivo: 'teste' };
+  if (!e.jaPagou && !(e.cartaoCadastrado && emContingencia)) return { tipo: 'bloqueada', motivo: 'teste' };
   // Quem já pagou e caiu num status fora da lista (ex.: incomplete) não está em teste.
   if (!emContingencia) return { tipo: 'bloqueada', motivo: 'cobranca' };
 
@@ -41,7 +43,8 @@ export function calcularEstadoConta(e: EntradaEstado): EstadoConta {
     desde = e.fimDoPeriodo;
   }
   const ate = new Date(desde.getTime() + CARENCIA_DIAS * MS_DIA);
-  if (e.agora.getTime() >= ate.getTime()) return { tipo: 'bloqueada', motivo: 'cobranca' };
+  // Quem nunca pagou (1ª cobrança do cartão recusada no fim do teste) termina como teste encerrado.
+  if (e.agora.getTime() >= ate.getTime()) return { tipo: 'bloqueada', motivo: e.jaPagou ? 'cobranca' : 'teste' };
 
   const diasRestantes = Math.ceil((ate.getTime() - e.agora.getTime()) / MS_DIA);
   return { tipo: 'carencia', desde, ate, diasRestantes };

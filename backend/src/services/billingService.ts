@@ -314,7 +314,9 @@ const updateBusinessFromAsaasPayment = async ({
       plan,
       paymentMethod,
       subscriptionStatus: internalStatus,
-      cancelAtPeriodEnd: internalStatus === 'canceled',
+      // No cartão, só um estorno/chargeback (canceled) mexe no cancelamento; cobrança paga não o desfaz.
+      cancelAtPeriodEnd:
+        internalStatus === 'canceled' ? true : paymentMethod === 'card' ? undefined : false,
       provider: 'asaas',
       providerCustomerId: customerId,
       providerSubscriptionId: subscriptionId,
@@ -420,10 +422,18 @@ const dataOuNull = (valor: unknown): Date | null => {
 const metadataDe = (business: BusinessBillingContext): Record<string, unknown> =>
   business.metadata && typeof business.metadata === 'object' ? (business.metadata as Record<string, unknown>) : {};
 
-/** Plano da cobrança de cartão: o do externalReference, senão o escolhido no checkout, senão o atual. */
+/**
+ * Plano da cobrança de cartão. A 1ª cobrança (no teste, ou a do checkout que ainda não virou assinatura
+ * ativa) é do plano escolhido no checkout; nas renovações vale o plano atual, que o upgrade e o
+ * downgrade já mudaram. O externalReference não serve: o checkout não o repassa, e na assinatura
+ * recriada com o token ele guarda o plano da época.
+ */
 const planoDoCartao = (business: BusinessBillingContext, payload: NormalizedWebhookPayload): string => {
-  const checkout = metadataDe(business).checkoutCartao as { plano?: string } | undefined;
-  return resolvePlanFromExternalReference(payload.externalReference) || checkout?.plano || business.plan || 'basico';
+  const checkout = metadataDe(business).checkoutCartao as { id?: string; plano?: string } | undefined;
+  const status = normalizeInternalSubscriptionStatus(business.subscription_status);
+  const primeira =
+    status === 'trialing' || (status !== 'active' && !!payload.checkoutSession && payload.checkoutSession === checkout?.id);
+  return (primeira && checkout?.plano) || business.plan || 'basico';
 };
 
 const vencimentoAoMeioDia = (dueDate: unknown): Date | null => {
@@ -431,25 +441,68 @@ const vencimentoAoMeioDia = (dueDate: unknown): Date | null => {
   return new Date(`${dueDate.slice(0, 10)}T12:00:00Z`);
 };
 
+const diaUtc = (valor: unknown): string | null => {
+  const d = dataOuNull(valor);
+  return d ? d.toISOString().slice(0, 10) : null;
+};
+
+/** Remove no Asaas uma assinatura de cartão que deixou de ser a do negócio (nunca duas cobrando). */
+const removerAssinaturaCartao = async (businessId: string, subscriptionId: string): Promise<void> => {
+  try {
+    await asaasService.cancelSubscription(subscriptionId);
+    logger.info({ businessId, subscriptionId }, 'Assinatura de cartão anterior removida no Asaas');
+  } catch (error) {
+    logger.warn({ err: error, businessId, subscriptionId }, 'Não foi possível remover a assinatura de cartão anterior');
+  }
+};
+
+const guardarSoACobranca = async (business: BusinessBillingContext, payload: NormalizedWebhookPayload): Promise<void> => {
+  await saveAsaasPaymentSnapshot({
+    businessId: business.id,
+    payment: payload.payment as unknown as AsaasPayment,
+    subscriptionId: payload.subscriptionId || business.provider_subscription_id || null,
+    internalStatus: payload.internalStatus,
+    pixData: null,
+    plano: planoDoCartao(business, payload),
+    paymentMethod: 'card',
+    client: null,
+  });
+};
+
 /**
- * Cobrança de cartão do Asaas, antes do fluxo genérico:
- * - guarda o cartão (token, bandeira, final) para reativar sem digitar de novo;
- * - aplica o desconto do cupom na 1ª cobrança ainda pendente e futura (com vencimento hoje o
- *   cartão já foi cobrado; o desconto fica para a próxima);
- * - no teste, a 1ª cobrança liga o cartão e leva o fim do teste até o vencimento dela.
- * Devolve true quando a cobrança foi tratada como cartão no teste (o status não muda).
+ * Cobrança de cartão do Asaas, antes do fluxo genérico. O Asaas manda vários eventos por cobrança
+ * (gerada antes do vencimento, confirmada, recebida semanas depois, apagada junto com a assinatura),
+ * e só alguns mudam a conta:
+ * - apagada: só o registro dela (cancelar remove a assinatura e a cobrança pendente);
+ * - pendente com vencimento futuro: só o registro; no teste, liga o cartão e leva o fim do teste até
+ *   o vencimento; aplica o desconto do cupom na 1ª;
+ * - paga que já estava paga, ou de um vencimento anterior ao atual: só o registro;
+ * - de uma assinatura nova: remove a antiga no Asaas.
+ * Devolve true quando a cobrança já foi tratada aqui (o status da conta não muda).
  */
 const tratarCobrancaCartao = async (
   business: BusinessBillingContext,
   payload: NormalizedWebhookPayload
 ): Promise<boolean> => {
-  const payment = payload.payment;
+  const payment = payload.payment as AsaasWebhookPayment & { deleted?: boolean };
   const metadata = metadataDe(business);
   const hoje = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
-  const pendenteFutura =
-    payment.status === 'PENDING' && typeof payment.dueDate === 'string' && payment.dueDate.slice(0, 10) > hoje;
+  const vencimentoDia = typeof payment.dueDate === 'string' ? payment.dueDate.slice(0, 10) : null;
+  const pendente = String(payment.status ?? '').toUpperCase() === 'PENDING';
+  const pendenteFutura = pendente && !!vencimentoDia && vencimentoDia > hoje;
+  const apagada =
+    payment.deleted === true ||
+    payload.eventType === 'PAYMENT_DELETED' ||
+    ['DELETED', 'CANCELED'].includes(String(payment.status ?? '').toUpperCase());
+  const assinaturaNova =
+    !!payload.subscriptionId && payload.subscriptionId !== business.provider_subscription_id;
 
-  if (payload.subscriptionId && !metadata.cartao) {
+  if (apagada) {
+    await guardarSoACobranca(business, payload);
+    return true;
+  }
+
+  if (payload.subscriptionId && (!metadata.cartao || assinaturaNova)) {
     try {
       const assinatura = await asaasService.buscarAssinatura(payload.subscriptionId);
       const cc = assinatura?.creditCard;
@@ -463,6 +516,10 @@ const tratarCobrancaCartao = async (
     }
   }
 
+  if (assinaturaNova && business.payment_method === 'card' && business.provider_subscription_id) {
+    await removerAssinaturaCartao(business.id, String(business.provider_subscription_id));
+  }
+
   const desconto = metadata.descontoPrimeiraMensalidade as { valor?: number } | null | undefined;
   if (desconto?.valor && pendenteFutura && payment.id && typeof payment.value === 'number') {
     const valor = Number(Math.max(5, payment.value - desconto.valor).toFixed(2));
@@ -470,30 +527,43 @@ const tratarCobrancaCartao = async (
     await subscriptionRepository.mesclarMetadataCobranca(business.id, { descontoPrimeiraMensalidade: null });
   }
 
-  const fimDoTeste = dataOuNull(business.subscription_current_period_end);
-  const emTeste = business.subscription_status === 'trialing' && !!fimDoTeste && fimDoTeste.getTime() > Date.now();
-  const vencimento = vencimentoAoMeioDia(payment.dueDate);
-  if (!emTeste || !pendenteFutura || !payload.subscriptionId || !vencimento) {
-    return false;
+  if (pendenteFutura) {
+    const fimDoTeste = dataOuNull(business.subscription_current_period_end);
+    const emTeste =
+      business.subscription_status === 'trialing' &&
+      !business.subscription_cancel_at_period_end &&
+      !!fimDoTeste &&
+      fimDoTeste.getTime() > Date.now();
+    const vencimento = vencimentoAoMeioDia(payment.dueDate);
+    if (emTeste && payload.subscriptionId && vencimento) {
+      await subscriptionRepository.ligarCartaoNoTeste(business.id, {
+        subscriptionId: payload.subscriptionId,
+        customerId: payload.customerId,
+        fimDoTeste: vencimento,
+      });
+      estadoContaService.invalidar(business.id);
+    }
+    // Cobrança gerada antes do vencimento: quem segue valendo é o período atual.
+    await guardarSoACobranca(business, payload);
+    return true;
   }
 
-  await subscriptionRepository.ligarCartaoNoTeste(business.id, {
-    subscriptionId: payload.subscriptionId,
-    customerId: payload.customerId,
-    fimDoTeste: vencimento,
-  });
-  await saveAsaasPaymentSnapshot({
-    businessId: business.id,
-    payment: payment as unknown as AsaasPayment,
-    subscriptionId: payload.subscriptionId,
-    internalStatus: payload.internalStatus,
-    pixData: null,
-    plano: planoDoCartao(business, payload),
-    paymentMethod: 'card',
-    client: null,
-  });
-  estadoContaService.invalidar(business.id);
-  return true;
+  if (payload.internalStatus === 'active') {
+    const registro = payload.paymentId
+      ? ((await subscriptionRepository.findBillingPaymentByProviderPaymentId('asaas', payload.paymentId)) as
+          | { paid_at?: unknown }
+          | null)
+      : null;
+    const vencimentoAtual = diaUtc(business.next_due_date);
+    const jaPaga = !!registro?.paid_at;
+    const deMesAnterior = !!vencimentoDia && !!vencimentoAtual && vencimentoDia < vencimentoAtual;
+    if (jaPaga || deMesAnterior) {
+      await guardarSoACobranca(business, payload);
+      return true;
+    }
+  }
+
+  return false;
 };
 
 const cobrancaComCartaoEm = (data: Record<string, unknown>): string | null => {
@@ -532,6 +602,11 @@ const criarCheckoutCartao = async ({
   const nextDueDate = emTeste ? fimDoTesteComCartao(criadoEm, fimDoTeste) : agora;
   const base = process.env.FRONTEND_URL || 'http://localhost:3000';
 
+  // Nunca duas assinaturas de cartão: a anterior (recusada, cancelada ou de outro checkout) sai antes.
+  if (business.payment_method === 'card' && business.provider_subscription_id) {
+    await removerAssinaturaCartao(business.id, String(business.provider_subscription_id));
+  }
+
   const checkout = await asaasService.criarCheckoutCartao({
     business,
     plan,
@@ -540,7 +615,16 @@ const criarCheckoutCartao = async ({
     urlRetorno: `${base}/dashboard/planos?cartao=retorno`,
   });
 
+  // Os checkouts anteriores continuam achando o negócio (dois cliques, voltar antes do webhook).
+  const metadata = metadataDe(business);
+  const anterior = (metadata.checkoutCartao as { id?: string } | undefined)?.id;
+  const lista = Array.isArray(metadata.checkoutsCartao)
+    ? (metadata.checkoutsCartao as string[])
+    : anterior
+      ? [anterior]
+      : [];
   await subscriptionRepository.mesclarMetadataCobranca(business.id, {
+    checkoutsCartao: [...lista.filter((id) => id !== checkout.checkoutId), checkout.checkoutId].slice(-10),
     checkoutCartao: { id: checkout.checkoutId, plano: plan, criadoEm: agora.toISOString() },
     ...(desconto > 0 ? { descontoPrimeiraMensalidade: { valor: desconto, cupom: cupom?.code ?? couponCode } } : {}),
   });
@@ -880,7 +964,15 @@ export const billingService = {
    */
   async moverVencimentoDoTesteCartao(businessId: string, novoFim: Date): Promise<boolean> {
     const context = (await subscriptionRepository.getBusinessBillingContext(businessId)) as BusinessBillingContext | null;
-    if (!context || context.payment_method !== 'card' || !context.provider_subscription_id) return false;
+    if (
+      !context ||
+      context.payment_method !== 'card' ||
+      !context.provider_subscription_id ||
+      context.subscription_cancel_at_period_end ||
+      normalizeInternalSubscriptionStatus(context.subscription_status) !== 'trialing'
+    ) {
+      return false;
+    }
     const ymd = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
     const pendente = await subscriptionRepository.cobrancaPendenteCartao(businessId);
     if (pendente) {
@@ -1007,7 +1099,12 @@ export const billingService = {
     ) {
       const token = (metadataDe(context).cartao as { token?: string } | undefined)?.token;
       const fim = parseDate(context.current_period_end ?? context.subscription_current_period_end);
-      const planoCartao = ((context.plano_agendado as string | null) || context.plan || 'basico') as PlanName;
+      const escolhido = (metadataDe(context).checkoutCartao as { plano?: string } | undefined)?.plano;
+      // No teste, o plano do negócio é o Equipe do teste; o que vale é o escolhido no checkout.
+      const planoCartao = ((context.plano_agendado as string | null) ||
+        (statusAtual === 'trialing' ? escolhido : null) ||
+        context.plan ||
+        'basico') as PlanName;
       if (!token || !fim || !context.provider_customer_id) {
         const checkout = await this.createCheckoutSession(businessId, planoCartao, 'card');
         return { ...checkout, reactivationMode: 'new_card_checkout' };
@@ -1109,10 +1206,20 @@ export const billingService = {
         businessId,
         resolvedPlan as PlanName
       );
+    } else if (
+      payment?.billingType === 'CREDIT_CARD' &&
+      (await tratarCobrancaCartao(
+        business,
+        asaasMapper.normalizeAsaasWebhookPayload({ event: 'pix.status.refresh', payment } as never) as NormalizedWebhookPayload
+      ))
+    ) {
+      // Cobrança de cartão já tratada (pendente futura, apagada ou antiga): o status não muda.
     } else {
       await updateBusinessFromAsaasPayment({
         business,
-        plan: resolvedPlan,
+        plan: payment?.billingType === 'CREDIT_CARD'
+          ? planoDoCartao(business, asaasMapper.normalizeAsaasWebhookPayload({ event: 'pix.status.refresh', payment } as never) as NormalizedWebhookPayload)
+          : resolvedPlan,
         payment,
         subscriptionId:
           payment?.subscription || business.provider_subscription_id || null,

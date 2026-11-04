@@ -148,7 +148,9 @@ export const subscriptionRepository = {
   async findByCheckoutCartao(checkoutId: string, client: unknown = null): Promise<Record<string, unknown> | null> {
     const result = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
       SELECT id FROM businesses
-      WHERE metadata->'checkoutCartao'->>'id' = ${checkoutId}::text AND active = true
+      WHERE (metadata->'checkoutCartao'->>'id' = ${checkoutId}::text
+             OR COALESCE(metadata->'checkoutsCartao', '[]'::jsonb) @> jsonb_build_array(${checkoutId}::text))
+        AND active = true
       LIMIT 1
     `);
     return result[0] ? this.getBusinessBillingContext(result[0].id, client) : null;

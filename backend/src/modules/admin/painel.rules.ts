@@ -14,7 +14,7 @@ export interface LinhaNegocio {
   id: string; nome: string; dono: string; email: string; whatsapp: string;
   cpfCnpj: string | null; endereco: string | null; segmento: string | null;
   plano: string; statusAssinatura: string; ativo: boolean;
-  inadimplenteDesde: Date | null; jaPagou: boolean; fimDoPeriodo: Date | null;
+  inadimplenteDesde: Date | null; jaPagou: boolean; fimDoPeriodo: Date | null; cartaoCadastrado?: boolean;
   criadoEm: Date; canceladoEm: Date | null; onboardingConcluido: boolean;
   temInstanciaWhatsapp: boolean; whatsappConectadoEm: Date | null; ultimoEnvioEm: Date | null;
   agendamentos30d: number; ultimoAgendamentoEm: Date | null;
@@ -58,7 +58,7 @@ export function statusAdmin(l: LinhaNegocio, agora: Date): StatusAdmin {
   const status = normalizeInternalSubscriptionStatus(l.statusAssinatura);
   const estado = calcularEstadoConta({
     status, inadimplenteDesde: l.inadimplenteDesde, jaPagou: l.jaPagou,
-    fimDoPeriodo: l.fimDoPeriodo, agora,
+    fimDoPeriodo: l.fimDoPeriodo, agora, cartaoCadastrado: l.cartaoCadastrado,
   });
   if (estado.tipo === 'ativa') return status === 'trialing' ? 'teste' : 'ativo';
   if (estado.tipo === 'carencia') return 'carencia';
