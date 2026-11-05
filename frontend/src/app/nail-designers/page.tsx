@@ -236,35 +236,7 @@ export default function NailDesignersPage() {
           </div>
         </section>
 
-        {/* Depoimento */}
-        <section className="bg-bg py-16 sm:py-20">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 items-center gap-8 rounded-card border border-line bg-surface p-8 shadow-sm lg:grid-cols-12 lg:p-12">
-              <div className="flex flex-col items-center gap-3 text-center lg:col-span-4 lg:items-start lg:text-left">
-                <div className="relative h-32 w-32 overflow-hidden rounded-2xl shadow-md lg:h-40 lg:w-40">
-                  <Image src="/images/hero-studio-avatar.jpg" alt="Foto ilustrativa de uma nail designer" fill sizes="160px" className="object-cover" />
-                </div>
-                <span className="text-sm font-bold text-ink">Depoimento de exemplo</span>
-              </div>
-
-              <div className="flex flex-col gap-4 lg:col-span-8">
-                <p className="text-lg italic leading-relaxed text-ink sm:text-xl">
-                  &ldquo;Antes eu perdia noites respondendo direct e ainda levava calote de no-show. Desde que comecei
-                  a usar o sinal via Pix e os lembretes automáticos de manutenção, as clientes comparecem no horário e
-                  a rotina da minha mesa ficou muito mais tranquila.&rdquo;
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="flex text-brand">
-                    {Array.from({ length: 5 }).map((_, index) => (
-                      <Icon key={index} name="star" size={20} filled />
-                    ))}
-                  </div>
-                  <span className="text-sm text-muted">Segmento: Nail Designer</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* Sem depoimento por enquanto: volta quando houver um real do segmento. */}
 
         {/* Preço */}
         <section className="border-y border-line bg-surface py-16 sm:py-20">
