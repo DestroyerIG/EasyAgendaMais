@@ -264,3 +264,18 @@ describe('POST /api/v1/whatsapp/simulator/reset', () => {
     expect(mockDeleteSession).not.toHaveBeenCalled();
   });
 });
+
+describe('GET /api/v1/whatsapp/config/menu', () => {
+  it('nao devolve a opcao de avaliacao (ela fica so na automacao)', async () => {
+    const { prisma } = await import('../config/prisma.js');
+    const linhas = [
+      { id: 'o1', option_order: 1, handler: 'schedule', label: 'Agendar' },
+      { id: 'o5', option_order: 5, handler: 'rating', label: 'Avaliação pós-atendimento' },
+      { id: 'o6', option_order: 6, handler: 'promotions', label: 'Promoções' },
+    ];
+    vi.mocked(prisma.$queryRaw).mockResolvedValueOnce(linhas as never);
+    const response = await request.get('/api/v1/whatsapp/config/menu');
+    expect(response.status).toBe(200);
+    expect(response.body.data.map((o: { handler: string }) => o.handler)).toEqual(['schedule', 'promotions']);
+  });
+});

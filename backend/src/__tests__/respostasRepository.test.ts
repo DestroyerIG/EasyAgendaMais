@@ -4,6 +4,7 @@ const db = vi.hoisted(() => ({
   $transaction: vi.fn(),
   whatsappRespostaPendente: { deleteMany: vi.fn((a) => ({ op: 'deleteMany', a })), create: vi.fn((a) => ({ op: 'create', a })) },
   whatsappMessage: { count: vi.fn() },
+  whatsappRating: { create: vi.fn(), upsert: vi.fn() },
 }));
 vi.mock('../config/prisma.js', () => ({ prisma: db }));
 
@@ -26,4 +27,17 @@ it('houveSaidaDepois: saída do número depois da espera, ignorando confirmaçã
   });
   db.whatsappMessage.count.mockResolvedValue(0);
   expect(await respostasRepository.houveSaidaDepois('b1', 'k', desde)).toBe(false);
+});
+
+it('salvarNota usa create e não sobrescreve nota já gravada (P2002 é ignorado)', async () => {
+  const erro = Object.assign(new Error('unique'), { code: 'P2002' });
+  db.whatsappRating.create.mockRejectedValueOnce(erro);
+  await expect(respostasRepository.salvarNota({ businessId: 'b1', appointmentId: 'a1', rating: 5 })).resolves.toBeUndefined();
+  expect(db.whatsappRating.create).toHaveBeenCalledWith({ data: { businessId: 'b1', appointmentId: 'a1', rating: 5 } });
+  expect(db.whatsappRating.upsert).not.toHaveBeenCalled();
+});
+
+it('salvarNota repassa erros que não são P2002', async () => {
+  db.whatsappRating.create.mockRejectedValueOnce(new Error('queda'));
+  await expect(respostasRepository.salvarNota({ businessId: 'b1', appointmentId: 'a1', rating: 5 })).rejects.toThrow('queda');
 });

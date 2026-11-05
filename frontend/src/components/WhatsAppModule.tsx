@@ -120,7 +120,6 @@ const CONFIG_VAZIA: BotConfig = {
   end_session_message: '', name_validation_message: '', no_slots_message: '',
   cancel_no_appointments_message: '', cancel_list_message: '', cancel_success_message: '',
   reschedule_no_appointments_message: '', reschedule_list_message: '',
-  no_previous_appointments_message: '', rating_question_message: '', rating_confirmation_message: '',
   promotions_message: '', instagram_message: '', politica_message: '',
 };
 

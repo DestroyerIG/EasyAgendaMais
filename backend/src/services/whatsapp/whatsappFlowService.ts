@@ -45,8 +45,6 @@ import {
   handleConfirmCancel,
   handleRescheduleAppointment,
   handleConfirmReschedule,
-  handlePostAttendanceEvaluation,
-  handleSendRating,
 } from './whatsappBookingService.js';
 import {
   getBusinessScheduleSettings,
@@ -1123,12 +1121,6 @@ const handleMenuStep = async (
 
     case 'reschedule': {
       const result = await handleRescheduleAppointment(phone, businessId, config, sendContext.simulate === true);
-      await sendWhatsAppMessage(phone, result.message, sendContext);
-      return { ok: true };
-    }
-
-    case 'rating': {
-      const result = await handlePostAttendanceEvaluation(phone, businessId, config);
       await sendWhatsAppMessage(phone, result.message, sendContext);
       return { ok: true };
     }
@@ -2314,12 +2306,6 @@ export const handleIncomingMessage = async (
       }
       case STEPS.CONFIRM_RESCHEDULE: {
         const r = await handleConfirmReschedule(normalizedPhone!, normalizedText, businessId, sessionData, config);
-        await sendWhatsAppMessage(normalizedPhone!, r.message, sendContext);
-        stepResult = { ok: true };
-        break;
-      }
-      case STEPS.SEND_RATING: {
-        const r = await handleSendRating(normalizedPhone!, normalizedText, businessId, sessionData, config, sendContext.simulate === true);
         await sendWhatsAppMessage(normalizedPhone!, r.message, sendContext);
         stepResult = { ok: true };
         break;

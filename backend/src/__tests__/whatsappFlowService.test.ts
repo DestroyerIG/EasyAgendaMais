@@ -91,6 +91,7 @@ vi.mock('../config/prisma.js', () => {
         update: stubResolveNull(),
         count: stubResolveZero(),
       },
+      whatsappRating: { upsert: vi.fn().mockResolvedValue(null) },
       whatsappSession: {
         findFirst: stubResolveNull(),
         findMany: stubResolveEmpty(),
@@ -1524,5 +1525,21 @@ describe('whatsappFlowService guards', () => {
 
     const [, sentMessage] = (mockSendWhatsAppMessage.mock.calls[0] as [string, string]);
     expect(sentMessage).toContain('aceitamos encaixes durante o horario de atendimento');
+  });
+
+  it('avaliacao: sessao antiga em send_rating nao grava nota e volta ao menu', async () => {
+    process.env.WHATSAPP_DEFAULT_BUSINESS_ID = 'tenant-1';
+    mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
+    mockIsWithinBusinessHours.mockReturnValue(true);
+    mockIsSessionExpired.mockReturnValue(false);
+    mockGetSession.mockResolvedValue({ step: 'send_rating', data: { appointmentId: 'apt-1' } });
+    mockGetMenuOptions.mockResolvedValue([]);
+
+    await handleIncomingMessage('5511777777777', '1', { now: new Date('2026-04-18T10:00:00-03:00') });
+
+    expect(prisma.whatsappRating.upsert).not.toHaveBeenCalled();
+    expect(mockDeleteSession).toHaveBeenCalledWith('5511777777777', 'tenant-1');
+    expect(mockCreateSession).toHaveBeenCalledWith('5511777777777', 'tenant-1');
+    expect(mockSendWhatsAppMessage).toHaveBeenCalledTimes(1);
   });
 });

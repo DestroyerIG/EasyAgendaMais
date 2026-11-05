@@ -2321,9 +2321,6 @@ router.put('/config', ...waProtected, async (req: Request, res: Response, next: 
       cancel_success_message,
       reschedule_no_appointments_message,
       reschedule_list_message,
-      no_previous_appointments_message,
-      rating_question_message,
-      rating_confirmation_message,
       promotions_message,
       instagram_message,
       politica_message,
@@ -2341,7 +2338,6 @@ router.put('/config', ...waProtected, async (req: Request, res: Response, next: 
           session_expired_message, end_session_message, name_validation_message,
           no_slots_message, cancel_no_appointments_message, cancel_list_message,
           cancel_success_message, reschedule_no_appointments_message, reschedule_list_message,
-          no_previous_appointments_message, rating_question_message, rating_confirmation_message,
           promotions_message, instagram_message, politica_message, updated_at
       ) VALUES (
         ${businessId}::uuid,${welcome_header ?? null},${ask_name_message ?? null},${attendant_message ?? null},
@@ -2349,7 +2345,6 @@ router.put('/config', ...waProtected, async (req: Request, res: Response, next: 
         ${session_expired_message ?? null},${end_session_message ?? null},${name_validation_message ?? null},
         ${no_slots_message ?? null},${cancel_no_appointments_message ?? null},${cancel_list_message ?? null},
         ${cancel_success_message ?? null},${reschedule_no_appointments_message ?? null},${reschedule_list_message ?? null},
-        ${no_previous_appointments_message ?? null},${rating_question_message ?? null},${rating_confirmation_message ?? null},
         ${promotions_message ?? null},${instagram_message ?? null},${politica_message ?? null},CURRENT_TIMESTAMP
       )
       ON CONFLICT (business_id)
@@ -2369,9 +2364,6 @@ router.put('/config', ...waProtected, async (req: Request, res: Response, next: 
           cancel_success_message = COALESCE(EXCLUDED.cancel_success_message, whatsapp_bot_config.cancel_success_message),
           reschedule_no_appointments_message = COALESCE(EXCLUDED.reschedule_no_appointments_message, whatsapp_bot_config.reschedule_no_appointments_message),
           reschedule_list_message = COALESCE(EXCLUDED.reschedule_list_message, whatsapp_bot_config.reschedule_list_message),
-          no_previous_appointments_message = COALESCE(EXCLUDED.no_previous_appointments_message, whatsapp_bot_config.no_previous_appointments_message),
-          rating_question_message = COALESCE(EXCLUDED.rating_question_message, whatsapp_bot_config.rating_question_message),
-          rating_confirmation_message = COALESCE(EXCLUDED.rating_confirmation_message, whatsapp_bot_config.rating_confirmation_message),
           promotions_message = COALESCE(EXCLUDED.promotions_message, whatsapp_bot_config.promotions_message),
           instagram_message = COALESCE(EXCLUDED.instagram_message, whatsapp_bot_config.instagram_message),
           politica_message = COALESCE(EXCLUDED.politica_message, whatsapp_bot_config.politica_message),
@@ -2412,7 +2404,6 @@ const DEFAULT_MENU_OPTIONS: DefaultMenuOption[] = [
   { order: 2, label: 'Ver nossos serviços', emoji: '📋', handler: 'view_services' },
   { order: 3, label: 'Cancelar agendamento', emoji: '❌', handler: 'cancel' },
   { order: 4, label: 'Reagendamento', emoji: '🔄', handler: 'reschedule' },
-  { order: 5, label: 'Avaliação pós-atendimento', emoji: '⭐', handler: 'rating' },
   { order: 6, label: 'Promoções', emoji: '🎉', handler: 'promotions' },
   { order: 7, label: 'Instagram', emoji: '📱', handler: 'instagram' },
   { order: 8, label: 'Falar com um humano', emoji: '👨‍💼', handler: 'attendant' },
@@ -2466,7 +2457,8 @@ router.get('/config/menu', ...waProtected, async (req: Request, res: Response, n
       );
     }
 
-    sendSuccess(res, rows);
+    // A avaliação saiu do menu: linhas antigas com esse handler ficam no banco, mas não aparecem.
+    sendSuccess(res, rows.filter((o) => o.handler !== 'rating'));
   } catch (error) {
     next(error);
   }

@@ -59,10 +59,13 @@ export const respostasRepository = {
   },
 
   async salvarNota(a: { businessId: string; appointmentId: string; rating: number }): Promise<void> {
-    await prisma.whatsappRating.upsert({
-      where: { appointmentId: a.appointmentId },
-      create: { businessId: a.businessId, appointmentId: a.appointmentId, rating: a.rating },
-      update: { rating: a.rating },
-    });
+    // Nota gravada nunca é sobrescrita: se já existe (P2002), mantém a existente.
+    try {
+      await prisma.whatsappRating.create({
+        data: { businessId: a.businessId, appointmentId: a.appointmentId, rating: a.rating },
+      });
+    } catch (e) {
+      if ((e as { code?: string }).code !== 'P2002') throw e;
+    }
   },
 };

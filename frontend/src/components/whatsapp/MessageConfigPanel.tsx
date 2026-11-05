@@ -19,9 +19,6 @@ export interface BotConfig {
   cancel_success_message: string;
   reschedule_no_appointments_message: string;
   reschedule_list_message: string;
-  no_previous_appointments_message: string;
-  rating_question_message: string;
-  rating_confirmation_message: string;
   promotions_message: string;
   instagram_message: string;
   politica_message: string;
@@ -69,15 +66,12 @@ const FIELDS: FieldDef[] = [
   { key: 'reschedule_no_appointments_message', label: 'Sem Agendamentos para Reagendar', rows: 3, category: 'Reagendamento' },
   { key: 'reschedule_list_message', label: 'Lista de Agendamentos (Reagendar)', rows: 4, category: 'Reagendamento' },
 
-  // Avaliação & Extras
-  { key: 'no_previous_appointments_message', label: 'Sem Atendimentos Anteriores', rows: 3, category: 'Avaliação & Extras' },
-  { key: 'rating_question_message', label: 'Pergunta de Avaliação', rows: 4, category: 'Avaliação & Extras' },
-  { key: 'rating_confirmation_message', label: 'Confirmação de Avaliação', rows: 3, hint: 'Disponível: {avaliacao}', category: 'Avaliação & Extras' },
-  { key: 'promotions_message', label: 'Promoções', rows: 4, hint: 'Disponível: {nome_negocio}', category: 'Avaliação & Extras' },
-  { key: 'instagram_message', label: 'Instagram', rows: 4, hint: 'Disponível: {nome_negocio}, {instagram_handle}', category: 'Avaliação & Extras' },
+  // Extras
+  { key: 'promotions_message', label: 'Promoções', rows: 4, hint: 'Disponível: {nome_negocio}', category: 'Extras' },
+  { key: 'instagram_message', label: 'Instagram', rows: 4, hint: 'Disponível: {nome_negocio}, {instagram_handle}', category: 'Extras' },
 ];
 
-const CATEGORIES = ['Fluxo Principal', 'Agendamento', 'Cancelamento', 'Reagendamento', 'Avaliação & Extras'];
+const CATEGORIES = ['Fluxo Principal', 'Agendamento', 'Cancelamento', 'Reagendamento', 'Extras'];
 
 export const MessageConfigPanel = ({
   botConfig,

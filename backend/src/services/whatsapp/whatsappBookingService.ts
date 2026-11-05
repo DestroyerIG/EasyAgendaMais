@@ -9,7 +9,7 @@
 import { Prisma } from '@prisma/client';
 import logger from '../../utils/logger.js';
 import { prisma } from '../../config/prisma.js';
-import { STEPS, RATING_TEXTS, BotConfig } from './whatsappConstants.js';
+import { STEPS, BotConfig } from './whatsappConstants.js';
 import { updateSession } from './whatsappSessionService.js';
 import { formatMessage } from './whatsappMessageService.js';
 import { goBackToMainMenu } from './whatsappFlowService.js';
@@ -267,79 +267,4 @@ export const handleConfirmReschedule = async (
   });
 
   return { message };
-};
-
-// ==================== AVALIAÇÃO ====================
-
-export const handlePostAttendanceEvaluation = async (
-  phone: string,
-  businessId: string,
-  config: BotConfig,
-): Promise<BookingMessageResult> => {
-  try {
-    const lastAppointments = await prisma.$queryRaw<{ id: string; date: Date; time: string }[]>(Prisma.sql`
-      SELECT id, date, time FROM appointments
-       WHERE business_id = ${businessId}::uuid
-         AND client_id = (
-           SELECT id FROM clients WHERE phone = ${phone} AND business_id = ${businessId}::uuid
-         )
-         AND status = 'confirmado'
-         AND date < CURRENT_DATE
-       ORDER BY date DESC LIMIT 1
-    `);
-
-    if (!lastAppointments?.length) {
-      return { message: formatMessage(config.no_previous_appointments_message) };
-    }
-
-    const message = formatMessage(config.rating_question_message);
-    const firstAppointment = lastAppointments[0];
-    await updateSession(phone, businessId, STEPS.SEND_RATING, { appointmentId: firstAppointment?.id ?? '' });
-    return { message };
-  } catch (error) {
-    logger.error({ err: error }, 'Erro ao buscar avaliação');
-    return { message: 'Desculpe, ocorreu um erro ao processar sua avaliação. Tente novamente mais tarde.' };
-  }
-};
-
-export const handleSendRating = async (
-  phone: string,
-  choice: string,
-  businessId: string,
-  data: Record<string, unknown>,
-  config: BotConfig,
-  simulado: boolean,
-): Promise<BookingMessageResult> => {
-  if (choice === '0') {
-    return goBackToMainMenu(phone, businessId);
-  }
-
-  const rating = parseInt(choice);
-
-  if (rating < 1 || rating > 4) {
-    return { message: 'Por favor, escolha uma opção válida de 1️⃣ a 4️⃣, digite 0️⃣ para voltar ao menu de atendimento ou 9️⃣ para encerrar atendimento' };
-  }
-
-  try {
-    const appointmentId = data.appointmentId as string;
-    if (!simulado) {
-      await prisma.whatsappRating.upsert({
-        where: { appointmentId },
-        create: {
-          businessId,
-          appointmentId,
-          rating,
-        },
-        update: { rating },
-      });
-    }
-
-    const mainMenu = await goBackToMainMenu(phone, businessId);
-    return {
-      message: formatMessage(config.rating_confirmation_message, { ratingText: RATING_TEXTS[rating] ?? '' }) + '\n\n' + mainMenu.message,
-    };
-  } catch (error) {
-    logger.error({ err: error }, 'Erro ao guardar avaliação');
-    return { message: 'Obrigado pela avaliação! Seus comentários nos ajudam a melhorar.' };
-  }
 };
