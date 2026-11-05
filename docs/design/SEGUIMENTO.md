@@ -307,6 +307,18 @@ Spec em `docs/superpowers/specs/2026-11-05-busca-geral-design.md`. Sem migraçã
 - **Limite por IP:** o limitador de `backend/src/modules/core/middleware/security.ts` (120 pedidos por minuto, por IP, antes do login) ainda conta a busca. É folgado com a espera de 250 ms, mas vale olhar se um salão com muitas pessoas no mesmo IP receber 429.
 - **Pequenos ajustes de acessibilidade e testes, sem efeito para quem usa hoje:** região `aria-live` que nasce com texto, `safe-area-inset-top` na busca do celular, `focus-visible` na lupa e `router` fora das dependências do efeito em `AppointmentModule.tsx`.
 
+## Página pública fiel ao Stitch, pendências conhecidas
+
+Referências: telas `studio-camila-rocha-*` e `barbearia-central-*` em `docs/design/stitch/projeto/`. A fase 1 usa só os dados que já existem, sem migração.
+
+- **Fase 2, precisa de migração:** capa própria (hoje é a primeira foto da galeria ou a cor do negócio), descrição do negócio, comodidades e descrição dos serviços.
+- **Fase 2, precisa de rota nova:** vagas por dia na faixa de dias e horários ocupados riscados. Hoje a rota devolve só os horários livres.
+- **Fase 2, nota e horário de funcionamento:** o perfil do Stitch mostra nota, avaliações e "Atende hoje até 19h". A fase 1 mostra só o selo "Agendamento online". Falta ver se os dados atuais servem.
+- **Tela de confirmação:** o Pix é confirmado à mão pelo dono, então a cliente não pode ver "confirmado" logo depois de pagar. A tela depende de um estado "aguardando" ou de atualização automática.
+- **Diferenças mantidas de propósito:** um serviço por agendamento (o Stitch permite vários, a API não); o código Pix só aparece depois de confirmar, porque nasce com a reserva; "No atendimento" no lugar de "No estúdio", que não serve para todo segmento; e o aviso de horário exclusivo ficou de fora, porque não vale para toda equipe.
+- **Cor do negócio:** tons médios, como `#C2554D`, não têm contraste AA com texto claro nem escuro. A página escurece a cor só o necessário, então o botão pode sair um pouco mais escuro que a cor escolhida.
+- **Conferência visual:** feita com mock local, a 390 e 320 px. Falta uma reserva de verdade em produção.
+
 ## Infraestrutura
 
 - **Resolvido em 05/11:** o RLS foi ligado nas 14 tabelas que ficaram sem ele (comissões, clube, app do profissional e Google Agenda), pela migração `20261106120000_rls_tabelas_restantes` (PR #37). Só a `_prisma_migrations` segue sem RLS, de propósito. Roteiro em `docs/design/rls-tabelas-restantes.md`.

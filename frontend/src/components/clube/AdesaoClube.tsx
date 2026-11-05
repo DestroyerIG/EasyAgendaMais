@@ -7,6 +7,7 @@ import { ArrowLeft, CalendarClock, Check, Crown, Repeat } from 'lucide-react';
 import { type NegocioPublico, type OfertaPublica, type ResultadoAdesao, clubePublicoApi, dataCurta } from '@/lib/clube';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { Button } from '@/components/ui';
+import { CascaPublica } from '@/components/publicBooking/CascaPublica';
 
 // Página pública de adesão a um clube: a cliente informa nome e WhatsApp e recebe o Pix.
 // A assinatura só começa quando o salão confirma o pagamento no painel.
@@ -86,12 +87,12 @@ export function AdesaoClube({ slug, ofertaId }: { slug: string; ofertaId: string
     }
   };
 
-  if (carregando) return <div className="p-8 text-center text-muted">Carregando...</div>;
-  if (!dados) return <div className="p-8 text-center text-danger">{erro}</div>;
+  if (carregando) return <CascaPublica cor={null}><p className="p-8 text-center text-muted">Carregando...</p></CascaPublica>;
+  if (!dados) return <CascaPublica cor={null}><p className="p-8 text-center text-danger">{erro}</p></CascaPublica>;
   const { negocio, oferta } = dados;
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-xl flex-col">
+    <CascaPublica cor={negocio.brandColor}>
       <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-surface px-4 py-3">
         <Link href={`/agendar/${slug}`} aria-label="Voltar para a página do salão" className="text-muted hover:text-ink">
           <ArrowLeft className="h-5 w-5" aria-hidden="true" />
@@ -105,7 +106,7 @@ export function AdesaoClube({ slug, ofertaId }: { slug: string; ofertaId: string
 
       <div className="flex-1 space-y-5 px-4 pb-6 pt-5">
         <section className="rounded-card border border-line bg-surface p-5">
-          <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-brand">
+          <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-brand-text">
             <Crown className="h-4 w-4" aria-hidden="true" /> Assinatura mensal
           </p>
           <h1 className="mt-1 text-2xl font-bold text-ink">{oferta.nome}</h1>
@@ -207,7 +208,7 @@ export function AdesaoClube({ slug, ofertaId }: { slug: string; ofertaId: string
           </section>
         )}
       </div>
-    </div>
+    </CascaPublica>
   );
 }
 
@@ -228,7 +229,7 @@ export function ClubeVitrine({ slug }: { slug: string }) {
   return (
     <section aria-labelledby="vitrine-clube" className="mt-8">
       <h2 id="vitrine-clube" className="flex items-center gap-2 text-xl font-bold text-ink">
-        <Crown className="h-5 w-5 text-brand" aria-hidden="true" /> Clube
+        <Crown className="h-5 w-5 text-brand-text" aria-hidden="true" /> Clube
       </h2>
       <p className="mt-1 text-sm text-muted">Assine e tenha suas sessões garantidas todo mês.</p>
       <div className="mt-4 flex flex-col gap-3">
@@ -240,7 +241,7 @@ export function ClubeVitrine({ slug }: { slug: string }) {
               <p className="shrink-0 font-bold tabular-nums text-ink">{formatCurrency(o.preco)}<span className="text-sm font-semibold text-muted">/mês</span></p>
             </div>
             <p className="mt-1 text-sm text-muted">{regraPublica(o)}</p>
-            <p className="mt-2 text-[13px] font-semibold text-brand">Conhecer o clube →</p>
+            <p className="mt-2 text-[13px] font-semibold text-brand-text">Conhecer o clube →</p>
           </Link>
         ))}
       </div>

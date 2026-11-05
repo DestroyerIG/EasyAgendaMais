@@ -66,9 +66,10 @@ describe('Página pública com a agenda pausada', () => {
     expect(screen.queryByRole('link', { name: /whatsapp/i })).not.toBeInTheDocument();
   });
 
-  it('com a agenda ativa segue mostrando os serviços', async () => {
+  it('com a agenda ativa segue permitindo agendar', async () => {
     api.getStorefront.mockResolvedValue({ ...STOREFRONT, agendaPausada: false });
+    api.getProfessionals.mockResolvedValue([{ id: 'prof-1', name: 'Paula' }]);
     render(<PublicBookingFlow slug="aurora" />);
-    await waitFor(() => expect(screen.getByText('Manutenção Fibra')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Agendar horário' })).toBeInTheDocument());
   });
 });
