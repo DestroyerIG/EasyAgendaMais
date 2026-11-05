@@ -35,6 +35,7 @@ import api from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import { useVocabulario } from '@/hooks/useVocabulario';
 import { getToday } from '@/lib/dateUtils';
+import { lerDestinoAgenda } from '@/lib/agendaDestino';
 import { formatDate } from '@/lib/dateUtils';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/cn';
@@ -279,8 +280,28 @@ export function AppointmentModule() {
   }, [selectedDate, showToast, viewMode]);
 
   useEffect(() => {
-    setSelectedDate(getToday());
+    // Mantém uma data já definida (destino da busca no mesmo commit); só o mount vazio cai em hoje.
+    setSelectedDate((atual) => atual || getToday());
   }, []);
+
+  // Link da busca geral (?data=<AAAA-MM-DD>&agendamento=<id>): abre o dia e o painel do
+  // agendamento. A tela não remonta ao navegar para si mesma, então reage aos parâmetros.
+  // Consumido, a URL volta a ser só /agendamentos (mesmo padrão do ?novo=1 e ?espera=).
+  const dataParam = searchParams.get('data');
+  const agendamentoParam = searchParams.get('agendamento');
+  useEffect(() => {
+    if (!dataParam && !agendamentoParam) return;
+    const destino = lerDestinoAgenda(dataParam, agendamentoParam);
+    if (destino) {
+      setActiveTab('agenda');
+      setViewMode('day');
+      setSelectedDate(destino.data);
+      setDetalhesId(destino.agendamentoId);
+    }
+    router.replace('/agendamentos', { scroll: false });
+    // Só os parâmetros disparam o efeito; o router do Next é estável.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataParam, agendamentoParam]);
 
   useEffect(() => {
     loadAppointments();
