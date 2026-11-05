@@ -16,6 +16,7 @@ const mockIsBusinessOpenOnDate = vi.hoisted(() => vi.fn());
 const mockGenerateAvailableTimeSlots = vi.hoisted(() => vi.fn());
 const mockFormatBusinessHoursRange = vi.hoisted(() => vi.fn());
 const mockAppointmentServiceCreate = vi.hoisted(() => vi.fn());
+const mockAppointmentServiceUpdate = vi.hoisted(() => vi.fn());
 
 vi.mock('../modules/conta/estadoConta.service.js', () => ({ estadoContaService: { doNegocio: vi.fn().mockResolvedValue({ tipo: 'ativa' }), limparCache: vi.fn() } }));
 vi.mock('../config/database.js', () => ({
@@ -155,6 +156,7 @@ vi.mock('../services/scheduleSettingsService.js', () => ({
 vi.mock('../services/appointmentService.js', () => ({
   appointmentService: {
     create: mockAppointmentServiceCreate,
+    update: mockAppointmentServiceUpdate,
   },
 }));
 
@@ -163,6 +165,7 @@ const {
   handleWebhook,
 } = await import('../services/whatsapp/whatsappFlowService.js');
 const { prisma } = await import('../config/prisma.js');
+const { ConflictError } = await import('../utils/errors.js');
 const { formatMessage } = await import('../services/whatsapp/whatsappMessageService.js');
 
 describe('whatsappFlowService guards', () => {
@@ -175,6 +178,7 @@ describe('whatsappFlowService guards', () => {
     delete process.env.WHATSAPP_INSTANCE_BUSINESS_MAP;
     mockPoolQuery.mockResolvedValue({ rows: [] });
     mockSendWhatsAppMessage.mockResolvedValue(true);
+    mockAppointmentServiceUpdate.mockReset();
     mockAppointmentServiceCreate.mockResolvedValue({
       id: 'apt-1',
       status: 'confirmado',
@@ -1172,6 +1176,98 @@ describe('whatsappFlowService guards', () => {
     expect(enviadas.at(-1)).toBe('Barbearia Alfa: @alfa');
     expect(enviadas.some((m) => m.includes('@seunegocio'))).toBe(false);
     vi.mocked(prisma.business.findFirst).mockResolvedValue(null as never);
+  });
+
+  describe('remarcar pelo robo', () => {
+    const preencherRemarcacao = (t: string, d: { serviceName?: string; professionalName?: string; dateFormatted?: string; time?: string } = {}) =>
+      t.replace(/\{servico\}/g, d.serviceName ?? '')
+        .replace(/\{profissional\}/g, d.professionalName ?? '')
+        .replace(/\{data\}/g, d.dateFormatted ?? '')
+        .replace(/\{horario\}/g, d.time ?? '');
+
+    const sessaoRemarcacao = () => {
+      mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: 'tenant-1' }] });
+      mockGetSession.mockResolvedValue({
+        step: 'choose_time',
+        data: {
+          availableSlots: ['10:00', '10:30'],
+          selectedDate: '2026-04-20',
+          professionalId: 'professional-1',
+          serviceId: 'service-1',
+          serviceName: 'Corte',
+          serviceDuration: 30,
+          professionalName: 'Joao',
+          rescheduleAppointmentId: 'apt-orig',
+        },
+      });
+      mockGetBotConfig.mockResolvedValue({
+        invalid_option_message: 'Opcao invalida.',
+        no_slots_message: 'Sem horarios disponiveis.',
+        reschedule_success_message: '✅ Seu horário foi remarcado!\n\n📋 Serviço: {servico}\n👤 Profissional: {profissional}\n📅 Data: {data}\n⏰ Horário: {horario}',
+      });
+    };
+
+    it('remarcar move o agendamento com update e nao cria outro', async () => {
+      sessaoRemarcacao();
+      mockPoolQuery.mockResolvedValueOnce({ rows: [] });
+      mockAppointmentServiceUpdate.mockResolvedValue({ id: 'apt-orig', status: 'confirmado' });
+      vi.mocked(formatMessage).mockImplementationOnce(preencherRemarcacao as never);
+
+      const result = await handleIncomingMessage('5511777777777', '1', { now: new Date('2026-04-18T10:00:00-03:00') });
+
+      expect(result).toEqual(expect.objectContaining({ ok: true }));
+      expect(mockAppointmentServiceUpdate).toHaveBeenCalledWith('apt-orig', 'tenant-1', {
+        date: '2026-04-20',
+        time: '10:00',
+        professionalId: 'professional-1',
+      });
+      expect(mockAppointmentServiceCreate).not.toHaveBeenCalled();
+      const enviada = String(mockSendWhatsAppMessage.mock.calls.at(-1)?.[1]);
+      expect(enviada).toContain('remarcado');
+      expect(enviada).toContain('Corte');
+      expect(enviada).toContain('Joao');
+      expect(enviada).toContain('20/04/2026');
+      expect(enviada).toContain('10:00');
+      expect(enviada).not.toMatch(/\{\w+\}/);
+      expect(mockDeleteSession).toHaveBeenCalledWith('5511777777777', 'tenant-1');
+    });
+
+    it('o proprio agendamento nao conta como conflito na consulta de horario', async () => {
+      sessaoRemarcacao();
+      mockPoolQuery.mockResolvedValueOnce({ rows: [] });
+      mockAppointmentServiceUpdate.mockResolvedValue({ id: 'apt-orig', status: 'confirmado' });
+
+      await handleIncomingMessage('5511777777777', '1', { now: new Date('2026-04-18T10:00:00-03:00') });
+
+      const chamadas = mockPoolQuery.mock.calls as unknown as [string, unknown[]][];
+      const conflito = chamadas.find(([q]) => typeof q === 'string' && q.includes('SELECT id FROM appointments'));
+      expect(conflito?.[0]).toMatch(/AND id <> /);
+      expect(conflito?.[1]).toContain('apt-orig');
+    });
+
+    it('horario tomado no meio da remarcacao deixa o agendamento original intacto', async () => {
+      sessaoRemarcacao();
+      mockPoolQuery
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [{ time: '10:00:00' }] });
+      mockAppointmentServiceUpdate.mockRejectedValue(new ConflictError('Horário já ocupado para este profissional'));
+
+      const result = await handleIncomingMessage('5511777777777', '1', { now: new Date('2026-04-18T10:00:00-03:00') });
+
+      expect(result).toEqual(expect.objectContaining({ ok: true }));
+      expect(mockAppointmentServiceUpdate).toHaveBeenCalledTimes(1);
+      expect(mockAppointmentServiceCreate).not.toHaveBeenCalled();
+      expect((prisma.appointment as unknown as { update?: unknown }).update).toBeUndefined();
+      expect(mockDeleteSession).not.toHaveBeenCalled();
+      const enviadas = mockSendWhatsAppMessage.mock.calls.map((c) => String(c[1]));
+      expect(enviadas.some((m) => m.includes('acabou de ser reservado'))).toBe(true);
+      expect(mockUpdateSession).toHaveBeenCalledWith(
+        '5511777777777',
+        'tenant-1',
+        'choose_time',
+        expect.objectContaining({ rescheduleAppointmentId: 'apt-orig', availableSlots: ['10:30'] }),
+      );
+    });
   });
 
   it('persiste agendamento via camada central com payload compativel quando auto confirmacao estiver desativada', async () => {

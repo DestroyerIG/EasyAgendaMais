@@ -64,6 +64,7 @@ export interface BotConfig {
   cancel_success_message: string;
   reschedule_no_appointments_message: string;
   reschedule_list_message: string;
+  reschedule_success_message: string;
   no_previous_appointments_message: string;
   rating_question_message: string;
   rating_confirmation_message: string;
@@ -98,6 +99,7 @@ export const DEFAULT_BOT_CONFIG: BotConfig = {
   cancel_success_message: '✅ Seu agendamento foi cancelado com sucesso!\n\nSe deseja remarcar ou agende um novo horário.',
   reschedule_no_appointments_message: '📋 Você não tem agendamentos para reagendar.\n\nSe quiser marcar um horário, volte ao menu.',
   reschedule_list_message: '🔄 Seus agendamentos disponíveis para reagendamento:',
+  reschedule_success_message: '✅ Seu horário foi remarcado!\n\n📋 Serviço: {servico}\n👤 Profissional: {profissional}\n📅 Data: {data}\n⏰ Horário: {horario}\n\nAté lá! 👋',
   no_previous_appointments_message: '📊 Você não tem atendimentos anteriores para avaliar.\n\nVolte após seu próximo atendimento! 😊',
   rating_question_message: '⭐ *Como foi seu atendimento?*\n\n1️⃣ Excelente! 😍\n2️⃣ Bom 😊\n3️⃣ Pode melhorar 😐\n4️⃣ Ruim 😞\n\n0️⃣ Voltar ao menu de atendimento\n\nSua opinião nos ajuda a melhorar cada vez mais!',
   rating_confirmation_message: '✅ Obrigado pela sua avaliação: {avaliacao}\n\nSua opinião é muito importante para melhorarmos cada vez mais!\n\n👉 O que mais podemos fazer por você?',
@@ -125,6 +127,7 @@ export const FALLBACK_BOT_CONFIG: BotConfig = {
   cancel_success_message: 'Cancelado com sucesso!',
   reschedule_no_appointments_message: 'Sem agendamentos para reagendar.',
   reschedule_list_message: 'Seus agendamentos:',
+  reschedule_success_message: 'Remarcado com sucesso!',
   no_previous_appointments_message: 'Sem atendimentos anteriores.',
   rating_question_message: 'Como foi seu atendimento? (1-4)',
   rating_confirmation_message: 'Obrigado pela avaliação!',

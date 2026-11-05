@@ -56,6 +56,7 @@ const lerBotConfig = async (businessId: string): Promise<BotConfig> => {
         cancel_success_message:            dbConfig.cancelSuccessMessage            ?? DEFAULT_BOT_CONFIG.cancel_success_message,
         reschedule_no_appointments_message: dbConfig.rescheduleNoAppointmentsMessage ?? DEFAULT_BOT_CONFIG.reschedule_no_appointments_message,
         reschedule_list_message:           dbConfig.rescheduleListMessage           ?? DEFAULT_BOT_CONFIG.reschedule_list_message,
+        reschedule_success_message:        DEFAULT_BOT_CONFIG.reschedule_success_message,
         no_previous_appointments_message:  dbConfig.noPreviousAppointmentsMessage   ?? DEFAULT_BOT_CONFIG.no_previous_appointments_message,
         rating_question_message:           dbConfig.ratingQuestionMessage           ?? DEFAULT_BOT_CONFIG.rating_question_message,
         rating_confirmation_message:       dbConfig.ratingConfirmationMessage       ?? DEFAULT_BOT_CONFIG.rating_confirmation_message,

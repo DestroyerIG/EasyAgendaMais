@@ -56,6 +56,7 @@ import {
   formatBusinessHoursRange,
 } from '../scheduleSettingsService.js';
 import { appointmentService } from '../appointmentService.js';
+import { ConflictError } from '../../utils/errors.js';
 import { appointmentsPrismaRepository } from '../../modules/appointments/appointments.repository.js';
 import { businessSettingsRepository } from '../../repositories/businessSettingsRepository.js';
 import { estadoContaService } from '../../modules/conta/estadoConta.service.js';
@@ -1489,7 +1490,9 @@ const handleChooseTimeStep = async (
   }
   const selectedDate = sessionData.selectedDate as string;
   const professionalId = sessionData.professionalId as string;
+  const rescheduleAppointmentId = sessionData.rescheduleAppointmentId as string | undefined;
 
+  // Na remarcação o próprio agendamento não pode bloquear o horário que ele já ocupa.
   const conflictRows = await prisma.$queryRaw<Array<{ id: string }>>(
     Prisma.sql`
       SELECT id FROM appointments
@@ -1497,6 +1500,7 @@ const handleChooseTimeStep = async (
          AND professional_id = ${professionalId}::uuid
          AND date = ${selectedDate}::date
          AND time = ${(selectedTime + ':00')}::time
+         ${rescheduleAppointmentId ? Prisma.sql`AND id <> ${rescheduleAppointmentId}::uuid` : Prisma.empty}
          AND (
            status IN ('confirmado', 'em_atendimento')
            OR (status = 'aguardando_pagamento' AND expires_at > NOW())
@@ -1504,7 +1508,7 @@ const handleChooseTimeStep = async (
     `
   );
 
-  if (conflictRows.length > 0) {
+  const oferecerOutrosHorarios = async (): Promise<{ ok: boolean }> => {
     await sendWhatsAppMessage(phone, '⚠️ Este horário acabou de ser reservado. Por favor, escolha outro horário.', sendContext);
 
     const bookedRows = await prisma.$queryRaw<Array<{ time: string }>>(
@@ -1544,6 +1548,39 @@ const handleChooseTimeStep = async (
     msg += '\n0️⃣ Voltar ao menu';
     await sendWhatsAppMessage(phone, msg, sendContext);
     return { ok: true };
+  };
+
+  if (conflictRows.length > 0) return oferecerOutrosHorarios();
+
+  if (rescheduleAppointmentId) {
+    try {
+      await appointmentService.update(rescheduleAppointmentId, businessId, {
+        date: selectedDate,
+        time: selectedTime,
+        professionalId,
+      });
+    } catch (error) {
+      if (error instanceof ConflictError) return oferecerOutrosHorarios();
+      logger.error({ err: error, phone, businessId, rescheduleAppointmentId }, 'Falha ao remarcar agendamento via WhatsApp bot');
+      await sendWhatsAppMessage(
+        phone,
+        '⚠️ Nao consegui remarcar seu agendamento agora. Por favor, tente novamente em instantes.',
+        sendContext
+      );
+      return { ok: true };
+    }
+
+    const remarcadoMsg = formatMessage(config.reschedule_success_message, {
+      serviceName: (sessionData.serviceName as string) || '',
+      professionalName: (sessionData.professionalName as string) || '',
+      dateFormatted: formatDateBR(selectedDate, { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      time: selectedTime,
+    });
+    const remarcadoEnviado = await sendWhatsAppMessage(phone, remarcadoMsg, sendContext);
+    if (remarcadoEnviado) {
+      await deleteSession(phone, businessId);
+    }
+    return { ok: remarcadoEnviado };
   }
 
   const appointmentPayload = {

@@ -194,10 +194,27 @@ export const handleConfirmReschedule = async (
   if (!appointment) {
     return { message: 'Opção inválida. Por favor, escolha um número válido.' };
   }
+  // A escolha de data usa a duração do serviço e a profissional da sessão; sem eles o fluxo não acha horários.
+  const servico = appointment.service_id
+    ? await prisma.service.findFirst({
+        where: { id: appointment.service_id, businessId },
+        select: { name: true, durationMinutes: true },
+      })
+    : null;
+  const profissional = appointment.professional_id
+    ? await prisma.professional.findFirst({
+        where: { id: appointment.professional_id, businessId },
+        select: { name: true },
+      })
+    : null;
+
   const newData: Record<string, unknown> = {
-    appointmentId: appointment.id,
+    rescheduleAppointmentId: appointment.id,
     serviceId: appointment.service_id,
+    serviceName: servico?.name ?? '',
+    serviceDuration: servico?.durationMinutes,
     professionalId: appointment.professional_id,
+    professionalName: profissional?.name ?? '',
   };
 
   await updateSession(phone, businessId, STEPS.CHOOSE_DATE, newData);
