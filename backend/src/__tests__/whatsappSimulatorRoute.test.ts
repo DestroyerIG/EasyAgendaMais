@@ -265,6 +265,37 @@ describe('POST /api/v1/whatsapp/simulator/reset', () => {
   });
 });
 
+describe('PUT /api/v1/whatsapp/config/menu-reorder', () => {
+  const ID1 = '11111111-1111-1111-1111-111111111111';
+  const ID2 = '22222222-2222-2222-2222-222222222222';
+
+  it('apaga a linha antiga de avaliacao antes de reordenar, na mesma transacao, e nao a devolve', async () => {
+    const { prisma } = await import('../config/prisma.js');
+    const chamadas: string[] = [];
+    const tx = {
+      $queryRaw: vi.fn(async (q: { strings?: string[]; sql?: string }) => {
+        const texto = (q.strings ?? [q.sql ?? '']).join(' ');
+        chamadas.push(texto);
+        if (texto.includes('SELECT')) {
+          return [{ id: ID1, handler: 'schedule', option_order: 1 }, { id: ID2, handler: 'promotions', option_order: 2 }];
+        }
+        return [];
+      }),
+    };
+    vi.mocked(prisma.$transaction).mockImplementationOnce((async (cb: (t: unknown) => unknown) => cb(tx)) as never);
+
+    const response = await request.put('/api/v1/whatsapp/config/menu-reorder').send({ order: [ID1, ID2] });
+
+    expect(response.status).toBe(200);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(chamadas[0]).toContain('DELETE FROM whatsapp_menu_options');
+    expect(chamadas[0]).toContain("handler = 'rating'");
+    expect(chamadas.slice(1, 5).every((t) => t.includes('UPDATE'))).toBe(true);
+    expect(chamadas[chamadas.length - 1]).toContain('SELECT');
+    expect(response.body.data.map((o: { handler: string }) => o.handler)).toEqual(['schedule', 'promotions']);
+  });
+});
+
 describe('GET /api/v1/whatsapp/config/menu', () => {
   it('nao devolve a opcao de avaliacao (ela fica so na automacao)', async () => {
     const { prisma } = await import('../config/prisma.js');

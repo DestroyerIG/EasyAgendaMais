@@ -2602,29 +2602,37 @@ router.put('/config/menu-reorder', ...waProtected, async (req: Request, res: Res
       return;
     }
 
-    for (let i = 0; i < order.length; i++) {
-      const itemId = order[i] as string;
-      const tempOrder = -(i + 1);
-      await prisma.$queryRaw(
-        Prisma.sql`UPDATE whatsapp_menu_options
-         SET option_order = ${tempOrder}, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ${itemId}::uuid AND business_id = ${businessId}::uuid`
+    // A linha antiga de avaliação sairia da lista visível, mas seguraria um option_order e
+    // quebraria o índice único: apaga junto, na mesma transação da reordenação.
+    const rows = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(
+        Prisma.sql`DELETE FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid AND handler = 'rating'`
       );
-    }
 
-    for (let i = 0; i < order.length; i++) {
-      const itemId = order[i] as string;
-      const finalOrder = i + 1;
-      await prisma.$queryRaw(
-        Prisma.sql`UPDATE whatsapp_menu_options
-         SET option_order = ${finalOrder}
-         WHERE id = ${itemId}::uuid AND business_id = ${businessId}::uuid`
+      for (let i = 0; i < order.length; i++) {
+        const itemId = order[i] as string;
+        const tempOrder = -(i + 1);
+        await tx.$queryRaw(
+          Prisma.sql`UPDATE whatsapp_menu_options
+           SET option_order = ${tempOrder}, updated_at = CURRENT_TIMESTAMP
+           WHERE id = ${itemId}::uuid AND business_id = ${businessId}::uuid`
+        );
+      }
+
+      for (let i = 0; i < order.length; i++) {
+        const itemId = order[i] as string;
+        const finalOrder = i + 1;
+        await tx.$queryRaw(
+          Prisma.sql`UPDATE whatsapp_menu_options
+           SET option_order = ${finalOrder}
+           WHERE id = ${itemId}::uuid AND business_id = ${businessId}::uuid`
+        );
+      }
+
+      return tx.$queryRaw<Record<string, unknown>[]>(
+        Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid ORDER BY option_order ASC`
       );
-    }
-
-    const rows = await prisma.$queryRaw<Record<string, unknown>[]>(
-      Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid ORDER BY option_order ASC`
-    );
+    });
 
     sendSuccess(res, rows);
   } catch (error) {
