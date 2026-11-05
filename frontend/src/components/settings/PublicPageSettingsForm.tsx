@@ -6,7 +6,8 @@ import { Check, Loader2, Plus, X } from 'lucide-react';
 import { businessPublicPageApi, type PublicPageSettings } from '@/lib/businessPublicPage';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, Field, Input, Select, Textarea, Button } from '@/components/ui';
+import { Card, Field, Input, Select, Switch, Textarea, Button } from '@/components/ui';
+import { COMODIDADES } from '@/lib/comodidades';
 
 const MAX_GALLERY_PHOTOS = 6;
 const SLUG_CHECK_DEBOUNCE_MS = 500;
@@ -41,6 +42,11 @@ export function PublicPageSettingsForm() {
   const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);
   const [galleryPhotos, setGalleryPhotos] = useState<string[]>([]);
   const [address, setAddress] = useState('');
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [description, setDescription] = useState('');
+  const [comodidades, setComodidades] = useState<string[]>([]);
+  const [mostrarNota, setMostrarNota] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
@@ -52,6 +58,7 @@ export function PublicPageSettingsForm() {
   const originalSlugRef = useRef('');
   const logoInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     businessPublicPageApi
@@ -66,6 +73,10 @@ export function PublicPageSettingsForm() {
         setBrandColor(data.brandColor ?? DEFAULT_BRAND_COLOR);
         setGalleryPhotos(data.galleryPhotos ?? []);
         setAddress(data.address ?? '');
+        setCoverUrl(data.coverUrl ?? null);
+        setDescription(data.description ?? '');
+        setComodidades(data.comodidades ?? []);
+        setMostrarNota(data.mostrarNota ?? false);
       })
       .catch((err) => {
         setErrorMessage(getApiErrorMessage(err, 'Não foi possível carregar as configurações.'));
@@ -109,6 +120,26 @@ export function PublicPageSettingsForm() {
     }
   };
 
+  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingCover(true);
+    setErrorMessage(null);
+    try {
+      setCoverUrl(await uploadImage(file));
+    } catch (err) {
+      setErrorMessage(getApiErrorMessage(err, 'Falha ao enviar a imagem. Tente novamente.'));
+    } finally {
+      setUploadingCover(false);
+      if (coverInputRef.current) coverInputRef.current.value = '';
+    }
+  };
+
+  const alternarComodidade = (id: string) => {
+    setComodidades((atuais) => (atuais.includes(id) ? atuais.filter((c) => c !== id) : [...atuais, id]));
+  };
+
   const handleGalleryAdd = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
@@ -146,6 +177,10 @@ export function PublicPageSettingsForm() {
         brandColor,
         galleryPhotos,
         address,
+        coverUrl,
+        description,
+        comodidades,
+        mostrarNota,
       });
       setSettings(updated);
       originalSlugRef.current = updated.slug ?? '';
@@ -201,6 +236,74 @@ export function PublicPageSettingsForm() {
               <p className="text-[13px] text-muted">PNG ou JPG, até 2MB</p>
             </div>
           </div>
+        </Card>
+
+        <Card className="flex flex-col gap-3">
+          <h2 className="text-[15px] font-bold text-ink">Foto de capa</h2>
+          <p className="text-[13px] text-muted">Aparece no topo da sua página. Sem capa, usamos a primeira foto da galeria.</p>
+          {coverUrl && (
+            <div className="relative h-28 overflow-hidden rounded-control border border-line">
+              <Image src={coverUrl} alt="" fill unoptimized className="object-cover" />
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              aria-label="Enviar foto de capa"
+              onChange={handleCoverChange}
+            />
+            <Button type="button" variant="secondary" size="sm" loading={uploadingCover} onClick={() => coverInputRef.current?.click()}>
+              {uploadingCover ? 'Enviando...' : coverUrl ? 'Trocar capa' : 'Enviar capa'}
+            </Button>
+            {coverUrl && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => setCoverUrl(null)}>
+                Remover capa
+              </Button>
+            )}
+          </div>
+        </Card>
+
+        <Card className="flex flex-col gap-3">
+          <h2 className="text-[15px] font-bold text-ink">Sobre o seu negócio</h2>
+          <Field id="public-page-description" label="Apresentação" hint="Até 500 caracteres.">
+            <Textarea
+              id="public-page-description"
+              value={description}
+              maxLength={500}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Conte em poucas linhas o que torna seu atendimento especial."
+              rows={3}
+            />
+          </Field>
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-1 text-[13px] font-semibold text-ink">Comodidades</legend>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {COMODIDADES.map((c) => (
+                <label key={c.id} className="flex min-h-11 items-center gap-2 text-[14px] text-ink">
+                  <input
+                    type="checkbox"
+                    checked={comodidades.includes(c.id)}
+                    onChange={() => alternarComodidade(c.id)}
+                    className="h-5 w-5 shrink-0 accent-brand"
+                  />
+                  {c.rotulo}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </Card>
+
+        <Card className="flex flex-col gap-3">
+          <h2 className="text-[15px] font-bold text-ink">Avaliações</h2>
+          <Switch
+            checked={mostrarNota}
+            onCheckedChange={setMostrarNota}
+            label="Mostrar minha nota na página"
+            description="Mostra a média e a quantidade de avaliações, sem comentários, a partir de 5 avaliações."
+          />
         </Card>
 
         <Card className="flex flex-col gap-3">

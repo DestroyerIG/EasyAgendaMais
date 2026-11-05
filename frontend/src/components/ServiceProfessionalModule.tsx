@@ -59,6 +59,7 @@ export const ServiceProfessionalModule = () => {
       price: parseFloat(data.price),
       duration_minutes: parseInt(data.duration_minutes),
       ...(data.deposit_percentage !== '' && { depositPercentage: parseFloat(data.deposit_percentage) }),
+      description: data.description,
     };
     try {
       if (editingItem) {

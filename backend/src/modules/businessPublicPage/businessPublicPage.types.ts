@@ -3,6 +3,8 @@ import { validatePixKeyFormat } from '../../utils/pixPayload.js';
 
 export const PixKeyTypeSchema = z.enum(['cpf', 'cnpj', 'email', 'telefone', 'aleatoria']);
 
+export const COMODIDADES = ['wifi', 'cafe', 'estacionamento', 'ar_condicionado', 'acessibilidade', 'materiais_esterilizados'] as const;
+
 export const UpdatePublicPageSchema = z
   .object({
     slug: z.string().min(3).max(100).regex(/^[a-z0-9-]+$/).optional(),
@@ -12,6 +14,10 @@ export const UpdatePublicPageSchema = z
     brandColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
     galleryPhotos: z.array(z.string().url().max(2048)).max(6).optional(),
     address: z.string().trim().max(500).optional(),
+    coverUrl: z.string().url().max(2048).nullable().optional(),
+    description: z.string().trim().max(500).optional(),
+    comodidades: z.array(z.enum(COMODIDADES)).max(COMODIDADES.length).optional(),
+    mostrarNota: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     // O formato da chave só pode ser validado conhecendo o tipo — por isso os dois
@@ -50,4 +56,8 @@ export interface PublicPageSettings {
   brandColor: string | null;
   galleryPhotos: string[];
   address: string | null;
+  coverUrl: string | null;
+  description: string | null;
+  comodidades: string[];
+  mostrarNota: boolean;
 }

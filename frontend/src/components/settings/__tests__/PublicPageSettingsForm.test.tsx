@@ -132,4 +132,43 @@ describe('PublicPageSettingsForm — falha ao salvar', () => {
     expect(screen.queryByText('Configurações salvas.')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /salvar alterações/i })).not.toBeDisabled();
   });
+
+  it('salva apresentação, comodidades e a escolha de mostrar a nota', async () => {
+    const user = userEvent.setup();
+    render(<PublicPageSettingsForm />);
+    await waitFor(() => expect(businessPublicPageApi.getSettings).toHaveBeenCalled());
+
+    await user.type(await screen.findByLabelText('Apresentação'), 'Atendimento com hora marcada');
+    await user.click(screen.getByRole('checkbox', { name: 'Wi-Fi' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Café' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Wi-Fi' }));
+    await user.click(screen.getByRole('switch', { name: /mostrar minha nota/i }));
+    await user.click(screen.getByRole('button', { name: /salvar alterações/i }));
+
+    await waitFor(() => {
+      expect(businessPublicPageApi.updateSettings).toHaveBeenCalledWith(expect.objectContaining({
+        description: 'Atendimento com hora marcada', comodidades: ['cafe'], mostrarNota: true,
+      }));
+    });
+  });
+
+  it('a nota começa desligada', async () => {
+    render(<PublicPageSettingsForm />);
+
+    expect(await screen.findByRole('switch', { name: /mostrar minha nota/i })).not.toBeChecked();
+  });
+
+  it('envia a capa e permite remover', async () => {
+    const user = userEvent.setup();
+    render(<PublicPageSettingsForm />);
+    await waitFor(() => expect(businessPublicPageApi.getSettings).toHaveBeenCalled());
+
+    await user.upload(await screen.findByLabelText('Enviar foto de capa'), new File(['x'], 'capa.png', { type: 'image/png' }));
+    await user.click(await screen.findByRole('button', { name: 'Remover capa' }));
+    await user.click(screen.getByRole('button', { name: /salvar alterações/i }));
+
+    await waitFor(() => {
+      expect(businessPublicPageApi.updateSettings).toHaveBeenCalledWith(expect.objectContaining({ coverUrl: null }));
+    });
+  });
 });

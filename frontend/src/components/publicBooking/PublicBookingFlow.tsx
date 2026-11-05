@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import axios from 'axios';
 import QRCode from 'qrcode';
-import { publicBookingApi, type StorefrontDto, type ProfessionalDto, type StorefrontServiceDto } from '@/lib/publicBooking';
+import {
+  publicBookingApi, type HorarioDto, type ProfessionalDto, type SituacaoReserva, type StorefrontDto, type StorefrontServiceDto,
+} from '@/lib/publicBooking';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { Button, Icon } from '@/components/ui';
 import { ClubeVitrine } from '@/components/clube/AdesaoClube';
@@ -13,6 +15,7 @@ import { dataCurta, dataPorExtenso, formatarDuracao, hojeIso } from '@/lib/agend
 import {
   CabecalhoPublico, CascaPublica, MarcaPlataforma, NavegacaoPublica, ProgressoEtapas, type AbaPublica,
 } from './CascaPublica';
+import { ConfirmacaoReserva, ReservaEncerrada } from './ConfirmacaoReserva';
 import { EscolhaHorario } from './EscolhaHorario';
 import { PerfilNegocio } from './PerfilNegocio';
 
@@ -21,6 +24,8 @@ type Step = 'perfil' | 'servico' | 'profissional' | 'horario' | 'pagamento';
 const ABA_DA_ETAPA: Record<Exclude<Step, 'pagamento'>, AbaPublica> = {
   perfil: 'inicio', servico: 'servicos', profissional: 'servicos', horario: 'horario',
 };
+
+const INTERVALO_SITUACAO_MS = 10_000;
 
 const SEM_SERVICOS = 'Nenhum serviço disponível para agendamento online no momento. Entre em contato diretamente com o estabelecimento.';
 
@@ -102,7 +107,8 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
   const [professionals, setProfessionals] = useState<ProfessionalDto[]>([]);
   const [professionalId, setProfessionalId] = useState<string | null>(null);
   const [date, setDate] = useState('');
-  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<HorarioDto[]>([]);
+  const [vagasPorDia, setVagasPorDia] = useState<Record<string, number>>({});
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [time, setTime] = useState<string | null>(null);
   const [clientName, setClientName] = useState('');
@@ -110,7 +116,8 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
   // LGPD: consentimento pré-marcado não vale — a caixa começa desmarcada.
   const [whatsappConsent, setWhatsappConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [pixResult, setPixResult] = useState<{ pixPayload: string; depositAmount: number; expiresAt: string } | null>(null);
+  const [pixResult, setPixResult] = useState<{ appointmentId: string; pixPayload: string; depositAmount: number; expiresAt: string } | null>(null);
+  const [situacao, setSituacao] = useState<SituacaoReserva>('aguardando');
   const [copied, setCopied] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -135,7 +142,24 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [step]);
+  }, [step, situacao]);
+
+  // O dono confirma o Pix à mão: acompanha a reserva enquanto a página estiver aberta. Ao voltar do
+  // aplicativo do banco consulta na hora, porque o navegador segura o intervalo em segundo plano.
+  const reservaId = pixResult?.appointmentId;
+  useEffect(() => {
+    if (!reservaId || situacao !== 'aguardando') return;
+    const consultar = () => {
+      publicBookingApi.getAppointmentStatus(slug, reservaId).then((r) => setSituacao(r.situacao)).catch(() => undefined);
+    };
+    const aoVoltar = () => { if (document.visibilityState === 'visible') consultar(); };
+    const intervalo = setInterval(consultar, INTERVALO_SITUACAO_MS);
+    document.addEventListener('visibilitychange', aoVoltar);
+    return () => {
+      clearInterval(intervalo);
+      document.removeEventListener('visibilitychange', aoVoltar);
+    };
+  }, [slug, reservaId, situacao]);
 
   useEffect(() => {
     publicBookingApi
@@ -157,7 +181,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
     const consulta = ++consultaHorarios.current;
     setLoadingSlots(true);
     try {
-      const slots = await publicBookingApi.getAvailability(slug, { serviceId, professionalId: profissional, date: selectedDate });
+      const slots = await publicBookingApi.getAvailabilityGrid(slug, { serviceId, professionalId: profissional, date: selectedDate });
       if (consulta === consultaHorarios.current) setAvailableSlots(slots);
     } catch {
       if (consulta !== consultaHorarios.current) return;
@@ -168,9 +192,23 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
     }
   };
 
-  const goToHorario = (profissional: string) => {
+  /** Sem as vagas a faixa de dias ainda funciona, então uma falha aqui não interrompe o fluxo. */
+  const loadVagas = async (profissional: string): Promise<string | undefined> => {
+    if (!serviceId) return undefined;
+    try {
+      const dias = await publicBookingApi.getAvailabilityDays(slug, { serviceId, professionalId: profissional });
+      setVagasPorDia(Object.fromEntries(dias.map((d) => [d.date, d.vagas])));
+      return dias.find((d) => d.vagas > 0)?.date;
+    } catch {
+      setVagasPorDia({});
+      return undefined;
+    }
+  };
+
+  const goToHorario = async (profissional: string) => {
     setStep('horario');
-    void loadAvailability(date || hojeIso(), profissional);
+    const primeiroDiaComVaga = await loadVagas(profissional);
+    await loadAvailability(date || primeiroDiaComVaga || hojeIso(), profissional);
   };
 
   const confirmService = async () => {
@@ -184,7 +222,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
         setError('O agendamento online está indisponível no momento. Entre em contato diretamente com o estabelecimento.');
       } else if (list.length === 1) {
         setProfessionalId(list[0].id);
-        goToHorario(list[0].id);
+        void goToHorario(list[0].id);
       } else {
         setStep('profissional');
       }
@@ -196,7 +234,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
   };
 
   const confirmProfessional = () => {
-    if (professionalId) goToHorario(professionalId);
+    if (professionalId) void goToHorario(professionalId);
   };
 
   const confirmTime = () => {
@@ -211,7 +249,9 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
       const result = await publicBookingApi.createAppointment(slug, {
         serviceId, professionalId, date, time, clientName, clientPhone, whatsappConsent,
       });
-      setPixResult({ pixPayload: result.pixPayload, depositAmount: result.depositAmount, expiresAt: result.expiresAt });
+      setPixResult({
+        appointmentId: result.appointmentId, pixPayload: result.pixPayload, depositAmount: result.depositAmount, expiresAt: result.expiresAt,
+      });
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
         // Outra pessoa reservou este horário enquanto o cliente preenchia os dados:
@@ -226,6 +266,24 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const encerrarReserva = () => {
+    setPixResult(null);
+    setSituacao('aguardando');
+    setTime(null);
+  };
+
+  const escolherOutroHorario = () => {
+    encerrarReserva();
+    if (professionalId) void goToHorario(professionalId);
+  };
+
+  const voltarAoPerfil = () => {
+    encerrarReserva();
+    setServiceId(null);
+    setDate('');
+    setStep('perfil');
   };
 
   const copyPixCode = async () => {
@@ -275,6 +333,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
   const selectedProfessional = professionals.find((p) => p.id === professionalId);
   const totalEtapas = professionals.length >= 2 ? 4 : 3;
   const semServicos = storefront.services.length === 0;
+  const reservaFinalizada = Boolean(pixResult) && situacao !== 'aguardando';
   const tituloEtapa: Record<Step, string> = {
     perfil: 'Perfil', servico: 'Serviços', profissional: prof.S, horario: 'Horário', pagamento: 'Pagamento',
   };
@@ -283,7 +342,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
     <CascaPublica cor={storefront.brandColor}>
       <CabecalhoPublico
         negocio={storefront.name}
-        titulo={tituloEtapa[step]}
+        titulo={reservaFinalizada ? 'Confirmação' : tituloEtapa[step]}
         logoUrl={storefront.logoUrl}
         onVoltar={step === 'pagamento' && !pixResult ? () => setStep('horario') : undefined}
       />
@@ -326,6 +385,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                         {' · '}
                         <span className="tabular-nums">{formatarDuracao(s.durationMinutes)}</span>
                       </span>
+                      {s.descricao && <span className="mt-2 block text-sm leading-relaxed text-muted">{s.descricao}</span>}
                     </SelectableCard>
                   ))}
                 </div>
@@ -365,6 +425,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
               profissional={selectedProfessional?.name}
               data={date}
               horarios={availableSlots}
+              vagas={vagasPorDia}
               carregando={loadingSlots}
               horario={time}
               onData={(dia) => void loadAvailability(dia)}
@@ -373,7 +434,27 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
           </>
         )}
 
-        {step === 'pagamento' && selectedService && (
+        {step === 'pagamento' && selectedService && time && pixResult && situacao === 'confirmado' && (
+          <ConfirmacaoReserva
+            negocio={storefront.name}
+            cliente={clientName}
+            servico={selectedService}
+            profissional={selectedProfessional?.name}
+            data={date}
+            horario={time}
+            sinal={pixResult.depositAmount}
+            endereco={storefront.address}
+            whatsapp={whatsapp}
+            comLembretes={whatsappConsent}
+            onVoltar={voltarAoPerfil}
+          />
+        )}
+
+        {step === 'pagamento' && (situacao === 'expirado' || situacao === 'cancelado') && (
+          <ReservaEncerrada situacao={situacao} whatsapp={whatsapp} onNovoHorario={escolherOutroHorario} />
+        )}
+
+        {step === 'pagamento' && selectedService && !reservaFinalizada && (
           <>
             <ProgressoEtapas etapa={totalEtapas} total={totalEtapas} rotulo="Finalização segura" />
             <div className="flex flex-col gap-4">
@@ -483,7 +564,9 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                     <Button type="button" onClick={copyPixCode}>
                       {copied ? 'Copiado!' : 'Copiar código'}
                     </Button>
-                    <p className="text-sm text-muted">Aguardando confirmação do estabelecimento. Você pode fechar esta página.</p>
+                    <p className="text-sm text-muted">
+                      Aguardando confirmação do estabelecimento. Esta tela atualiza sozinha, mas você pode fechar a página.
+                    </p>
                   </>
                 )}
               </section>

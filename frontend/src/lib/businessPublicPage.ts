@@ -8,6 +8,10 @@ export interface PublicPageSettings {
   brandColor: string | null;
   galleryPhotos: string[];
   address: string | null;
+  coverUrl: string | null;
+  description: string | null;
+  comodidades: string[];
+  mostrarNota: boolean;
 }
 
 export const businessPublicPageApi = {

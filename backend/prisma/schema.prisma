@@ -57,6 +57,11 @@ model Business {
   brandColor                   String?   @map("brand_color") @db.VarChar(7)
   galleryPhotos                String[]  @default([]) @map("gallery_photos")
   address                      String?   @db.VarChar(500)
+  // Página pública (fase 2): capa, apresentação, comodidades e nota visível só se o dono ligar.
+  coverUrl                     String?   @map("cover_url") @db.Text
+  description                  String?   @db.VarChar(500)
+  comodidades                  String[]  @default([])
+  mostrarNota                  Boolean   @default(false) @map("mostrar_nota")
   active                       Boolean   @default(true)
   suspendedAt                  DateTime? @map("suspended_at")
   suspendedReason              String?   @map("suspended_reason") @db.VarChar(255)
@@ -213,6 +218,7 @@ model Service {
   price           Decimal  @db.Decimal(10, 2)
   durationMinutes Int      @map("duration_minutes")
   depositPercentage Decimal? @map("deposit_percentage") @db.Decimal(5, 2)
+  description     String?  @db.VarChar(255)
   active          Boolean  @default(true)
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
