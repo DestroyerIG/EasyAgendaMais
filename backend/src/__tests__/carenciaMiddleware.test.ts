@@ -94,6 +94,8 @@ describe('escritaLiberadaNaCarencia', () => {
     ['POST', `/api/v1/bancada/comandas/${ID}/fechar`],
     ['PATCH', `/api/v1/notifications/${ID}/read`],
     ['POST', '/api/v1/notifications/read-all'],
+    // A busca só lê; é POST para o termo não ir na URL.
+    ['POST', '/api/v1/busca'],
     // Rotas reais de notificação usam PUT.
     ['PUT', `/api/v1/notifications/${ID}/read`],
     ['PUT', '/api/v1/notifications/read-all'],
@@ -108,6 +110,7 @@ describe('escritaLiberadaNaCarencia', () => {
     ['PUT', `/api/v1/appointments/${ID}`],
     ['DELETE', `/api/v1/appointments/${ID}`],
     ['POST', '/api/v1/clients'],
+    ['DELETE', '/api/v1/busca'],
     ['POST', '/api/v1/whatsapp/campanhas'],
     ['POST', '/api/v1/cash/reopen'],
     ['POST', `/api/v1/bancada/agendamentos/${ID}/reagendar`],

@@ -76,6 +76,11 @@ const shouldRedirectToBilling = (url: string) => {
     return false;
   }
 
+  // A busca do painel mostra só as telas na conta bloqueada; não pode recarregar a página.
+  if (url === '/busca' || url.startsWith('/busca?')) {
+    return false;
+  }
+
   const pathname = window.location.pathname;
   const isBillingPage =
     pathname === '/planos' ||

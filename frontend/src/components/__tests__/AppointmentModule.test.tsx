@@ -931,4 +931,71 @@ describe('AppointmentModule: ações de status', () => {
       expect(mockReplace).toHaveBeenCalledWith('/agendamentos', { scroll: false });
     });
   });
+
+  describe('destino vindo da busca geral', () => {
+    const ID = '11111111-1111-4111-8111-111111111111';
+    const respostaDoDia = () =>
+      mockApiGet.mockImplementation((url: string, config?: { params?: { date?: string } }) => {
+        if (url === '/appointments') {
+          const dia = config?.params?.date;
+          return Promise.resolve({
+            data: dia === '2026-11-06' ? [agendamento({ id: ID, time: '10:00', date: '2026-11-06T00:00:00' })] : [],
+          });
+        }
+        return Promise.resolve({ data: [] });
+      });
+
+    it('?data e ?agendamento abrem o dia e o painel do horário e limpam a URL', async () => {
+      mockSearch.value = `data=2026-11-06&agendamento=${ID}`;
+      respostaDoDia();
+      render(<AppointmentModule />);
+
+      expect(await screen.findByText('Detalhes da sessão')).toBeInTheDocument();
+      expect(mockApiGet).toHaveBeenCalledWith('/appointments', { params: { date: '2026-11-06', view: 'day' } });
+      expect(mockReplace).toHaveBeenCalledWith('/agendamentos', { scroll: false });
+    });
+
+    it('já na agenda em outro dia, um novo destino troca o dia sem remontar', async () => {
+      respostaDoDia();
+      const { rerender } = render(<AppointmentModule />);
+      await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith('/appointments', expect.anything()));
+      expect(screen.queryByText('Detalhes da sessão')).not.toBeInTheDocument();
+
+      mockSearch.value = `data=2026-11-06&agendamento=${ID}`;
+      rerender(<AppointmentModule />);
+
+      expect(await screen.findByText('Detalhes da sessão')).toBeInTheDocument();
+      expect(mockApiGet).toHaveBeenCalledWith('/appointments', { params: { date: '2026-11-06', view: 'day' } });
+      expect(mockReplace).toHaveBeenCalledWith('/agendamentos', { scroll: false });
+    });
+
+    it('destino inválido abre o dia de hoje, sem painel, e limpa a URL', async () => {
+      mockSearch.value = `data=2026-13-40&agendamento=${ID}`;
+      respostaDoDia();
+      render(<AppointmentModule />);
+
+      await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/agendamentos', { scroll: false }));
+      await waitFor(() =>
+        expect(mockApiGet).toHaveBeenCalledWith('/appointments', {
+          params: { date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), view: 'day' },
+        }),
+      );
+      expect(mockApiGet).not.toHaveBeenCalledWith('/appointments', { params: { date: '2026-13-40', view: 'day' } });
+      expect(screen.queryByText('Detalhes da sessão')).not.toBeInTheDocument();
+    });
+
+    it('destino volta para a aba agenda e a visão de dia', async () => {
+      respostaDoDia();
+      const { rerender } = render(<AppointmentModule />);
+      await userEvent.click(await screen.findByRole('button', { name: 'Semana' }));
+      await userEvent.click(screen.getByRole('tab', { name: 'Aguardando Pix' }));
+
+      mockSearch.value = `data=2026-11-06&agendamento=${ID}`;
+      rerender(<AppointmentModule />);
+
+      expect(await screen.findByText('Detalhes da sessão')).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Agenda', hidden: true })).toHaveAttribute('data-state', 'active');
+      expect(screen.getByRole('button', { name: 'Dia', hidden: true })).toHaveAttribute('aria-pressed', 'true');
+    });
+  });
 });

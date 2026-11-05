@@ -140,11 +140,9 @@ describe('AppShell', () => {
     expect(screen.getByText('Administradora')).toBeInTheDocument();
   });
 
-  it('a busca da barra superior fica desabilitada fora de Clientes', () => {
+  it('a busca da barra superior fica ativa em qualquer tela', () => {
     renderShell();
-    const search = screen.getByPlaceholderText('Buscar no sistema...');
-    expect(search).toBeDisabled();
-    expect(search).toHaveAttribute('title', expect.stringContaining('Hoje'));
+    expect(screen.getByPlaceholderText('Buscar cliente, agendamento ou tela...')).toBeEnabled();
   });
 
   it('registrar a busca de uma tela não avisa "uncontrolled input" (regressão: input trocava de sem value para com value)', () => {

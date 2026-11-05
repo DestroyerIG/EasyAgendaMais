@@ -159,7 +159,7 @@ export function ListaClientes({ nomeNegocio, onNovaCliente, onEditar, versao = 0
   const [etiquetasDe, setEtiquetasDe] = useState<ClienteInsight | null>(null);
 
   // A busca da barra superior do painel controla o mesmo campo.
-  useRegisterTopBarSearch({ value: textoBusca, onChange: setTextoBusca });
+  useRegisterTopBarSearch({ value: textoBusca, onChange: setTextoBusca, placeholder: `Filtrar ${cli.p} por nome ou telefone...` });
 
   // Busca com espera: só pede de novo quando a digitação para.
   useEffect(() => {

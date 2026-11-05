@@ -39,6 +39,24 @@ describe('useRegisterTopBarSearch', () => {
     expect(screen.getByTestId('valor-na-topbar').textContent).toBe('ana');
   });
 
+  it('o placeholder da tela chega a useTopBarSearchConfig', () => {
+    const semEfeito = () => {};
+    function ComPlaceholder() {
+      useRegisterTopBarSearch({ value: '', onChange: semEfeito, placeholder: 'Filtrar...' });
+      return null;
+    }
+    function Leitor() {
+      return <span data-testid="ph">{useTopBarSearchConfig()?.placeholder ?? ''}</span>;
+    }
+    render(
+      <TopBarSearchProvider>
+        <ComPlaceholder />
+        <Leitor />
+      </TopBarSearchProvider>,
+    );
+    expect(screen.getByTestId('ph').textContent).toBe('Filtrar...');
+  });
+
   it('limpa o registro ao desmontar o componente que registrou a busca', () => {
     function Wrapper({ montado }: { montado: boolean }) {
       return (

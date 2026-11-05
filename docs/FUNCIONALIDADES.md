@@ -85,6 +85,15 @@ Barra lateral: Hoje · Agenda · Clientes · Caixa · Clube e pacotes · WhatsAp
 
 Os arquivos ficam em `frontend/src/app/dashboard/`, mas o endereço no navegador aparece sem o `/dashboard` (por exemplo, `/agendamentos` e `/clientes`). Quem faz essa troca é o `frontend/src/middleware.ts`.
 
+### Busca geral (todas as telas)
+- A barra de cima funciona em todas as telas do painel e acha clientes (por nome, telefone ou e-mail), os agendamentos dessas clientes e as telas do sistema. `Ctrl K` (`Cmd K` no Mac) leva o foco para ela.
+- A lista abre a partir de 2 letras ou 3 números. Setas, Enter e Esc funcionam, e cada grupo mostra poucos itens: até 5 clientes, 5 agendamentos e 4 telas.
+- Abrir uma cliente leva à ficha. Abrir um agendamento leva ao dia certo na agenda, com o painel de detalhes aberto.
+- Clientes inativas e agendamentos cancelados ficam de fora. Telas que o plano não libera aparecem e explicam o bloqueio ao abrir.
+- No celular, a lupa ao lado do sino abre a busca em tela cheia.
+- Na tela de Clientes, no computador, a barra filtra a lista dessa tela e não abre a busca geral.
+- O termo vai no corpo do pedido e não é gravado em log, e a resposta não fica em cache. A busca tem limite próprio por negócio (600 pedidos a cada 15 minutos) e não gasta a cota do resto do painel.
+
 ### Hoje (`/dashboard`)
 - Faturamento do dia e ocupação da grade (descontando o almoço, comparada à média das 4 semanas anteriores no mesmo dia da semana).
 - Pendências: horários livres à tarde, retorno vencido, sinais Pix a confirmar e avaliação desfavorável.

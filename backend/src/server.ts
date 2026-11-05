@@ -22,6 +22,7 @@ import { prisma } from './config/prisma.js';
 import logger from './utils/logger.js';
 
 import { errorHandler } from './middleware/errorHandler.js';
+import { criarApiLimiterSkip } from './middleware/apiLimiterSkip.js';
 
 import { requestIdMiddleware } from './modules/core/middleware/requestId.js';
 
@@ -64,6 +65,7 @@ import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 // @ts-ignore
 import clientRoutes from './modules/clients/clients.routes.js';
 import crmRoutes from './modules/crm/crm.routes.js';
+import buscaRoutes from './modules/busca/busca.routes.js';
 import clientPhotoRoutes from './modules/clientPhotos/clientPhotos.routes.js';
 import tagRoutes from './modules/tags/tags.routes.js';
 import waitlistRoutes from './modules/waitlist/waitlist.routes.js';
@@ -382,11 +384,7 @@ const apiLimiter = rateLimit({
     return ipKeyGenerator(req.ip || 'unknown');
   },
 
-  skip: (req: Request) =>
-    req.method === 'OPTIONS' ||
-    webhookPaths.some((p) =>
-      req.originalUrl.startsWith(p)
-    ),
+  skip: criarApiLimiterSkip(API_V1, webhookPaths),
 
   message: {
     success: false,
@@ -469,6 +467,7 @@ app.use(`${API_V1}/admin/depoimentos`, authMiddleware, requireAdmin, depoimentos
 app.use(`${API_V1}/conta`, contaRoutes);
 
 app.use(`${API_V1}/clients`, crmRoutes);
+app.use(`${API_V1}/busca`, buscaRoutes);
 app.use(`${API_V1}/clients`, clientPhotoRoutes);
 app.use(`${API_V1}/tags`, tagRoutes);
 app.use(`${API_V1}/waitlist`, waitlistRoutes);
