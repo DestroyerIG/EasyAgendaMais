@@ -12,6 +12,7 @@ import { notificationsApi } from '@/lib/notifications';
 import { AccountMenuContent } from './AccountMenu';
 import { NotificationsPanel } from './NotificationsPanel';
 import { BuscaGeral } from './BuscaGeral';
+import { BuscaCelular } from './BuscaCelular';
 
 const UNREAD_POLL_MS = 60_000;
 
@@ -111,6 +112,7 @@ export function TopBar({ activeId, pageTitle, businessName, roleLabel, onLogout,
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          <BuscaCelular />
           <DropdownMenu open={mobileNotificationsOpen} onOpenChange={setMobileNotificationsOpen}>
             <DropdownMenuTrigger
               title="Notificações"
