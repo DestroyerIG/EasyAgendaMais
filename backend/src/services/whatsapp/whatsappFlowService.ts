@@ -939,8 +939,8 @@ const getBusinessName = async (businessId: string): Promise<string> => {
 };
 
 const buildFallbackWelcomeMessage = (businessName: string): string => [
-  'Olá 👋 Bem-vindo!', '',
-  `Sou o assistente virtual de *${businessName}* 🤖 e estou aqui para agilizar seu atendimento.`, '',
+  'Olá 👋 Que bom ter você aqui!', '',
+  `Sou o assistente virtual de *${businessName}* 🤖.`, '',
   'Como posso ajudar hoje?', '',
   '1️⃣ *Agendar um horário* 📅',
   '2️⃣ *Ver nossos serviços* 📋',
@@ -953,7 +953,7 @@ const buildFallbackWelcomeMessage = (businessName: string): string => [
   '9️⃣ *Encerrar atendimento* 🚪',
 ].join('\n');
 
-const buildMenuMessage = async (businessId: string): Promise<string> => {
+const buildMenuMessage = async (businessId: string, contexto?: string): Promise<string> => {
   const [config, businessName] = await Promise.all([
     getBotConfig(businessId),
     getBusinessName(businessId),
@@ -966,9 +966,10 @@ const buildMenuMessage = async (businessId: string): Promise<string> => {
     return buildFallbackWelcomeMessage(businessName);
   }
   const cabecalho = buildWelcomeMessage(
-    config?.welcome_header || 'Olá 👋 Bem-vindo!\n\nSou o assistente virtual de {nome_negocio}.\n\nComo posso ajudar hoje?',
+    config?.welcome_header || 'Olá 👋 Que bom ter você aqui!\n\nSou o assistente virtual de {nome_negocio}.\n\nComo posso ajudar hoje?',
     visiveis.map((item) => ({ label: item.label, emoji: item.emoji })),
-    businessName
+    businessName,
+    contexto,
   );
   if (!visiveis.length) return `${cabecalho.trimEnd()}\n\n${config.attendant_message}`;
   return cabecalho;
@@ -980,18 +981,17 @@ const buildOutOfHoursMessage = (businessSettings: BusinessSettings): string => (
 );
 
 const buildBusinessContextMessage = (businessSettings: BusinessSettings): string => {
-  let message = `Olá! Posso te ajudar com seu agendamento. Hoje atendemos até as ${businessSettings.closingTime}.`;
+  let message = `Hoje atendemos até as ${businessSettings.closingTime}.`;
 
   if (businessSettings.allowWalkins) {
-    message += '\n\nTambem aceitamos encaixes durante o horario de atendimento.';
+    message += ' Também aceitamos encaixes durante o horário de atendimento.';
   }
 
   return message;
 };
 
 const buildContextualMenuMessage = async (businessId: string, businessSettings: BusinessSettings): Promise<string> => {
-  const menuMessage = await buildMenuMessage(businessId);
-  return `${buildBusinessContextMessage(businessSettings)}\n\n${menuMessage}`;
+  return buildMenuMessage(businessId, buildBusinessContextMessage(businessSettings));
 };
 
 export const goBackToMainMenu = async (phone: string, businessId: string): Promise<{ message: string }> => {
@@ -1222,7 +1222,7 @@ const handleAskNameStep = async (
     return { ok: true };
   }
 
-  let msg = `✅ Olá, *${name}*! Bem-vindo!\n\n📋 *Escolha o serviço:*\n\n`;
+  let msg = `✅ Olá, *${name}*!\n\n📋 *Escolha o serviço:*\n\n`;
   services.forEach((s, i) => {
     msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)\n`;
   });
@@ -1427,7 +1427,7 @@ const handleChooseDateStep = async (
 
   if (!availableSlots.length) {
     const noSlotsMessage = businessSettings.allowWalkins
-      ? `${config.no_slots_message}\n\nℹ️ Tambem aceitamos encaixes durante o horario de atendimento.`
+      ? `${config.no_slots_message}\n\nℹ️ Também aceitamos encaixes durante o horário de atendimento.`
       : config.no_slots_message;
 
     await sendWhatsAppMessage(phone, noSlotsMessage, sendContext);
@@ -1447,7 +1447,7 @@ const handleChooseDateStep = async (
   availableSlots.forEach((slot: string, index: number) => { msg += `${index + 1}️⃣ ${slot}\n`; });
 
   if (businessSettings.allowWalkins) {
-    msg += '\nℹ️ Tambem aceitamos encaixes dentro do horario de atendimento.\n';
+    msg += '\nℹ️ Também aceitamos encaixes dentro do horário de atendimento.\n';
   }
 
   msg += '\n0️⃣ Voltar ao menu';
@@ -1526,7 +1526,7 @@ const handleChooseTimeStep = async (
 
     if (!newSlots.length) {
       const noSlotsMessage = businessSettings.allowWalkins
-        ? `${config.no_slots_message}\n\nℹ️ Tambem aceitamos encaixes durante o horario de atendimento.`
+        ? `${config.no_slots_message}\n\nℹ️ Também aceitamos encaixes durante o horário de atendimento.`
         : config.no_slots_message;
 
       await sendWhatsAppMessage(phone, noSlotsMessage, sendContext);
@@ -1564,7 +1564,7 @@ const handleChooseTimeStep = async (
       logger.error({ err: error, phone, businessId, rescheduleAppointmentId }, 'Falha ao remarcar agendamento via WhatsApp bot');
       await sendWhatsAppMessage(
         phone,
-        '⚠️ Nao consegui remarcar seu agendamento agora. Por favor, tente novamente em instantes.',
+        '⚠️ Não consegui remarcar seu agendamento agora. Por favor, tente novamente em instantes.',
         sendContext
       );
       return { ok: true };
@@ -1627,7 +1627,7 @@ const handleChooseTimeStep = async (
 
     await sendWhatsAppMessage(
       phone,
-      '⚠️ Nao consegui confirmar seu agendamento agora. Por favor, tente novamente em instantes.',
+      '⚠️ Não consegui confirmar seu agendamento agora. Por favor, tente novamente em instantes.',
       sendContext
     );
 

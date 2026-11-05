@@ -60,3 +60,21 @@ describe('whatsappGreeting', () => {
     expect(isGreetingMessage(input as string | null | undefined)).toBe(false);
   });
 });
+
+describe('saudação única e tom neutro', () => {
+  it('o contexto entra entre o cabeçalho e o menu, com uma só saudação', async () => {
+    const { buildWelcomeMessage } = await import('../services/whatsapp/whatsappMessageService.js');
+    const msg = buildWelcomeMessage('Olá 👋 Que bom ter você aqui!', [{ label: 'Agendar', emoji: '' }], 'Loja', 'Hoje atendemos até as 19:00.');
+    expect(msg.match(/Olá/g)).toHaveLength(1);
+    expect(msg.indexOf('Hoje atendemos')).toBeLessThan(msg.indexOf('1️⃣'));
+  });
+
+  it('os textos padrão não têm gênero nem repetem a saudação', async () => {
+    const { DEFAULT_BOT_CONFIG } = await import('../services/whatsapp/whatsappConstants.js');
+    for (const texto of Object.values(DEFAULT_BOT_CONFIG)) {
+      for (const proibido of ['Bem-vindo', 'Um atendente', '👨‍💼', 'dicas de estilo', 'dicas de beleza']) {
+        expect(String(texto)).not.toContain(proibido);
+      }
+    }
+  });
+});

@@ -79,9 +79,9 @@ export const PROMOCOES_PADRAO_ANTIGO =
   '🎉 *Promoções e Ofertas Especiais!*\n\n✨ *Desconto de 10%* em todos os serviços para clientes frequentes!\n\n💝 *Promoção do Mês:* combo de serviços com preço especial\n(Válido até o final do mês)\n\n🎁 *Indique um amigo* e ganhe 5% em seu próximo atendimento!\n\nPara aproveitar as promoções, agende agora!';
 
 export const DEFAULT_BOT_CONFIG: BotConfig = {
-  welcome_header: 'Olá 👋 Bem-vindo!\n\nSou o assistente virtual de {nome_negocio} 🤖 e estou aqui para agilizar seu atendimento.\n\nComo posso ajudar hoje?',
+  welcome_header: 'Olá 👋 Que bom ter você aqui!\n\nSou o assistente virtual de {nome_negocio} 🤖.\n\nComo posso ajudar hoje?',
   ask_name_message: 'Vejo que é sua primeira vez aqui! 😊\n\nQual o seu *nome completo*?',
-  attendant_message: 'Um atendente entrará em contato em breve! 👨‍💼',
+  attendant_message: 'Nossa equipe vai falar com você em breve! 💬',
   confirmation_message: '✅ Seu horário foi agendado com sucesso!\n\n📋 Serviço: {servico}\n👤 Profissional: {profissional}\n📅 Data: {data}\n⏰ Horário: {horario}\n💰 Valor: R$ {valor}\n\nAté lá! 👋',
   reminder_message: '⏰ Lembrete!\n\nOlá {nome_cliente}!\n\nSeu horário é daqui a 2 horas:\n📋 {servico}\n👤 Profissional: {profissional}\n⏰ {horario}\n\nTe esperamos!',
   invalid_option_message: 'Opção inválida. Por favor, escolha um número da lista.',
@@ -96,7 +96,7 @@ export const DEFAULT_BOT_CONFIG: BotConfig = {
   reschedule_list_message: '🔄 Seus agendamentos disponíveis para reagendamento:',
   reschedule_success_message: '✅ Seu horário foi remarcado!\n\n📋 Serviço: {servico}\n👤 Profissional: {profissional}\n📅 Data: {data}\n⏰ Horário: {horario}\n\nAté lá! 👋',
   promotions_message: '',
-  instagram_message: '📱 *Nos acompanhe no Instagram!*\n\n🎨 Veja nossos trabalhos, dicas de estilo e tendências!\n\n👉 {instagram_handle}\n\n📸 Siga-nos para:\n✨ Ver nossos trabalhos mais recentes\n💡 Receber dicas de beleza\n🎯 Acompanhar promoções exclusivas\n\n📲 Clique no link para nos seguir!',
+  instagram_message: '📱 *Nos acompanhe no Instagram!*\n\n👉 {instagram_handle}\n\nVeja nossos trabalhos mais recentes e novidades.',
   politica_message: '',
 };
 
@@ -104,7 +104,7 @@ export const DEFAULT_BOT_CONFIG: BotConfig = {
  * Mensagens de fallback para erros de configuração.
  */
 export const FALLBACK_BOT_CONFIG: BotConfig = {
-  welcome_header: 'Olá 👋 Bem-vindo!',
+  welcome_header: 'Olá 👋 Que bom ter você aqui!',
   ask_name_message: 'Qual o seu nome?',
   attendant_message: 'Aguarde um momento.',
   confirmation_message: 'Agendado!',

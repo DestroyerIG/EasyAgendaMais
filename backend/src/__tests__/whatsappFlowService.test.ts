@@ -126,7 +126,7 @@ vi.mock('../utils/logger.js', () => ({
 
 vi.mock('../services/whatsapp/whatsappMessageService.js', () => ({
   sendWhatsAppMessage: mockSendWhatsAppMessage,
-  buildWelcomeMessage: vi.fn(() => 'menu'),
+  buildWelcomeMessage: vi.fn((_h: unknown, _o: unknown, _n: unknown, contexto?: string) => (contexto ? `menu ${contexto}` : 'menu')),
   formatMessage: vi.fn((message: unknown) => message),
 }));
 
@@ -894,6 +894,7 @@ describe('whatsappFlowService guards', () => {
 
     const [, sentMessage] = (mockSendWhatsAppMessage.mock.calls[0] as [string, string]);
     expect(sentMessage).toContain('Hoje atendemos até as 18:00');
+    expect(sentMessage).not.toContain('Olá! Posso te ajudar');
     expect(sentMessage).toContain('menu');
   });
 
@@ -1488,7 +1489,7 @@ describe('whatsappFlowService guards', () => {
     expect(mockSendWhatsAppMessage).toHaveBeenCalledTimes(1);
 
     const [, sentMessage] = (mockSendWhatsAppMessage.mock.calls[0] as [string, string]);
-    expect(sentMessage).toContain('Nao consegui confirmar seu agendamento agora');
+    expect(sentMessage).toContain('Não consegui confirmar seu agendamento agora');
     expect(sentMessage).not.toContain('Agendamento confirmado');
   });
 
@@ -1524,7 +1525,7 @@ describe('whatsappFlowService guards', () => {
     expect(result).toEqual(expect.objectContaining({ ok: true, ignored: false }));
 
     const [, sentMessage] = (mockSendWhatsAppMessage.mock.calls[0] as [string, string]);
-    expect(sentMessage).toContain('aceitamos encaixes durante o horario de atendimento');
+    expect(sentMessage).toContain('aceitamos encaixes durante o horário de atendimento');
   });
 
   it('avaliacao: sessao antiga em send_rating nao grava nota e volta ao menu', async () => {
