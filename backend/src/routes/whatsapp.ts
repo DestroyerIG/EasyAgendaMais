@@ -19,6 +19,7 @@ import {
 import { updateInstanceFromPayload } from '../services/whatsapp/whatsappInstanceCache.js';
 import { getBusinessWhatsAppInstanceContext } from '../services/whatsapp/whatsappInstanceService.js';
 import { getBotConfig } from '../services/whatsapp/whatsappConfigService.js';
+import { deleteSession } from '../services/whatsapp/whatsappSessionService.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireTenantRoles } from '../middleware/rbac.js';
 import { requireFeature } from '../middleware/subscriptionGuard.js';
@@ -1799,6 +1800,29 @@ router.post('/simulator/message', ...waProtected, async (req: Request, res: Resp
       botResponses,
       lastBotResponse,
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Reinicia a conversa do simulador: apaga só a sessão do número de teste.
+router.post('/simulator/reset', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const phone = normalizeWhatsAppNumber(body['phone']) ?? '5511999999999';
+
+    const context = await resolveSimulatorBusinessContext({
+      payloadBusinessId: normalizeSimulatorBusinessId(body['businessId']),
+      authBusinessId: normalizeSimulatorBusinessId(req.user?.businessId),
+    });
+
+    if (!context.ok) {
+      sendError(res, context.statusCode, context.code, context.message);
+      return;
+    }
+
+    await deleteSession(phone, context.businessId);
+    sendSuccess(res, { reiniciado: true });
   } catch (error) {
     next(error);
   }

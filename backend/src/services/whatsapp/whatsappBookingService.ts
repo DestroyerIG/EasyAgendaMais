@@ -44,7 +44,7 @@ const formatDateBR = (dateStr: string, options: Intl.DateTimeFormatOptions = {})
 
 // ── Appointment row shapes from raw SQL ───────────────────────────────────────
 
-interface AppointmentListRow {
+export interface AppointmentListRow {
   id: string;
   date: Date;
   time: string;
@@ -52,6 +52,16 @@ interface AppointmentListRow {
   service_id?: string;
   professional_id?: string;
 }
+
+const ID_AGENDAMENTO_EXEMPLO = 'simulador';
+
+/** Agendamento fictício que o simulador mostra em cancelar e remarcar: amanhã às 14:00. */
+export const agendamentoExemplo = (agora: Date): AppointmentListRow => ({
+  id: ID_AGENDAMENTO_EXEMPLO,
+  date: new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() + 1),
+  time: '14:00',
+  status: 'confirmado',
+});
 
 interface BookingMessageResult {
   message: string;
@@ -63,9 +73,11 @@ export const handleCancelAppointment = async (
   phone: string,
   businessId: string,
   config: BotConfig,
+  simulado: boolean,
 ): Promise<BookingMessageResult> => {
   try {
-    const appointments = await prisma.$queryRaw<AppointmentListRow[]>(Prisma.sql`
+    // No simulador o número de teste pode ser cliente real: lista só o exemplo.
+    const appointments = simulado ? [agendamentoExemplo(new Date())] : await prisma.$queryRaw<AppointmentListRow[]>(Prisma.sql`
       SELECT id, date, time, status FROM appointments
        WHERE business_id = ${businessId}::uuid
          AND client_id = (
@@ -101,6 +113,7 @@ export const handleConfirmCancel = async (
   businessId: string,
   data: Record<string, unknown>,
   config: BotConfig,
+  simulado: boolean,
 ): Promise<BookingMessageResult> => {
   if (choice === '0' || choice.toLowerCase() === 'menu') {
     return goBackToMainMenu(phone, businessId);
@@ -120,12 +133,14 @@ export const handleConfirmCancel = async (
   const appointmentId = selectedAppointment.id;
 
   try {
-    await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: { status: 'cancelado' },
-    });
-    void automacoesGatilhos.aoCancelar(businessId, appointmentId)
-      .catch((err) => logger.warn({ err, appointmentId }, 'Gatilho da lista de espera falhou'));
+    if (!simulado) {
+      await prisma.appointment.update({
+        where: { id: appointmentId },
+        data: { status: 'cancelado' },
+      });
+      void automacoesGatilhos.aoCancelar(businessId, appointmentId)
+        .catch((err) => logger.warn({ err, appointmentId }, 'Gatilho da lista de espera falhou'));
+    }
     const mainMenu = await goBackToMainMenu(phone, businessId);
     return { message: formatMessage(config.cancel_success_message) + '\n\n' + mainMenu.message };
   } catch (error) {
@@ -140,9 +155,22 @@ export const handleRescheduleAppointment = async (
   phone: string,
   businessId: string,
   config: BotConfig,
+  simulado: boolean,
 ): Promise<BookingMessageResult> => {
   try {
-    const appointments = await prisma.$queryRaw<AppointmentListRow[]>(Prisma.sql`
+    // O exemplo não tem serviço nem profissional: usa os primeiros ativos para a escolha de data achar horários.
+    const exemplo = async (): Promise<AppointmentListRow[]> => {
+      const [servico, profissional] = await Promise.all([
+        prisma.service.findFirst({ where: { businessId, active: true }, select: { id: true }, orderBy: { name: 'asc' } }),
+        prisma.professional.findFirst({ where: { businessId, active: true }, select: { id: true }, orderBy: { name: 'asc' } }),
+      ]);
+      return [{
+        ...agendamentoExemplo(new Date()),
+        ...(servico ? { service_id: servico.id } : {}),
+        ...(profissional ? { professional_id: profissional.id } : {}),
+      }];
+    };
+    const appointments = simulado ? await exemplo() : await prisma.$queryRaw<AppointmentListRow[]>(Prisma.sql`
       SELECT id, date, time, service_id, professional_id FROM appointments
        WHERE business_id = ${businessId}::uuid
          AND client_id = (
@@ -280,6 +308,7 @@ export const handleSendRating = async (
   businessId: string,
   data: Record<string, unknown>,
   config: BotConfig,
+  simulado: boolean,
 ): Promise<BookingMessageResult> => {
   if (choice === '0') {
     return goBackToMainMenu(phone, businessId);
@@ -293,15 +322,17 @@ export const handleSendRating = async (
 
   try {
     const appointmentId = data.appointmentId as string;
-    await prisma.whatsappRating.upsert({
-      where: { appointmentId },
-      create: {
-        businessId,
-        appointmentId,
-        rating,
-      },
-      update: { rating },
-    });
+    if (!simulado) {
+      await prisma.whatsappRating.upsert({
+        where: { appointmentId },
+        create: {
+          businessId,
+          appointmentId,
+          rating,
+        },
+        update: { rating },
+      });
+    }
 
     const mainMenu = await goBackToMainMenu(phone, businessId);
     return {

@@ -136,6 +136,9 @@ export const FALLBACK_BOT_CONFIG: BotConfig = {
   politica_message: '',
 };
 
+/** Fecha as respostas de agendamento do simulador: nada foi gravado de verdade. */
+export const AVISO_TESTE = '🧪 Teste: nada foi agendado.';
+
 export const RATING_TEXTS: Record<number, string> = {
   1: 'Excelente! 😍',
   2: 'Bom 😊',

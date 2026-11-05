@@ -4,6 +4,9 @@ import express from 'express';
 const mockHandleIncomingMessage = vi.hoisted(() => vi.fn());
 const mockPoolQuery = vi.hoisted(() => vi.fn());
 const mockSendWhatsAppMessage = vi.hoisted(() => vi.fn());
+const mockDeleteSession = vi.hoisted(() => vi.fn());
+
+vi.mock('../services/whatsapp/whatsappSessionService.js', () => ({ deleteSession: mockDeleteSession }));
 
 let mockAuthenticatedUser: {
   userId: string;
@@ -219,5 +222,45 @@ describe('POST /api/v1/whatsapp/simulator/message', () => {
     expect(response.status).toBe(422);
     expect(response.body.success).toBe(false);
     expect(response.body.error.code).toBe('WHATSAPP_SIMULATOR_CONTEXT_UNRESOLVED');
+  });
+});
+
+describe('POST /api/v1/whatsapp/simulator/reset', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuthenticatedUser = {
+      userId: 'user-1',
+      businessId: 'tenant-1',
+      email: 'tenant@test.com',
+      plan: 'premium',
+      role: 'tenant_admin',
+    };
+    mockPoolQuery.mockResolvedValue({ rows: [{ id: 'tenant-1' }] });
+  });
+
+  it('apaga so a sessao do telefone do simulador no negocio autenticado', async () => {
+    const response = await request
+      .post('/api/v1/whatsapp/simulator/reset')
+      .send({ phone: '5583999990000' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual({ reiniciado: true });
+    expect(mockDeleteSession).toHaveBeenCalledTimes(1);
+    expect(mockDeleteSession).toHaveBeenCalledWith('5583999990000', 'tenant-1');
+  });
+
+  it('sem telefone usa o numero padrao do simulador', async () => {
+    await request.post('/api/v1/whatsapp/simulator/reset').send({});
+
+    expect(mockDeleteSession).toHaveBeenCalledWith('5511999999999', 'tenant-1');
+  });
+
+  it('rejeita businessId de outro negocio sem apagar nada', async () => {
+    const response = await request
+      .post('/api/v1/whatsapp/simulator/reset')
+      .send({ businessId: 'tenant-2' });
+
+    expect(response.status).toBe(403);
+    expect(mockDeleteSession).not.toHaveBeenCalled();
   });
 });

@@ -88,6 +88,7 @@ vi.mock('../config/prisma.js', () => {
         findFirst: stubResolveNull(),
         findMany: stubResolveEmpty(),
         create: stubResolveNull(),
+        update: stubResolveNull(),
         count: stubResolveZero(),
       },
       whatsappSession: {
@@ -101,6 +102,11 @@ vi.mock('../config/prisma.js', () => {
     },
   };
 });
+
+const mockAoCancelar = vi.hoisted(() => vi.fn());
+vi.mock('../modules/whatsappAutomacoes/gatilhos.service.js', () => ({
+  automacoesGatilhos: { aoCancelar: mockAoCancelar },
+}));
 
 const mockPedirHumano = vi.hoisted(() => vi.fn());
 vi.mock('../modules/whatsappInbox/inbox.recorder.js', () => ({
@@ -166,6 +172,8 @@ const {
 } = await import('../services/whatsapp/whatsappFlowService.js');
 const { prisma } = await import('../config/prisma.js');
 const { ConflictError } = await import('../utils/errors.js');
+const { AVISO_TESTE } = await import('../services/whatsapp/whatsappConstants.js');
+const { agendamentoExemplo } = await import('../services/whatsapp/whatsappBookingService.js');
 const { formatMessage } = await import('../services/whatsapp/whatsappMessageService.js');
 
 describe('whatsappFlowService guards', () => {
@@ -1178,6 +1186,124 @@ describe('whatsappFlowService guards', () => {
     vi.mocked(prisma.business.findFirst).mockResolvedValue(null as never);
   });
 
+  describe('simulador sem gravar', () => {
+    const NUMERO = '5511777777777';
+    const sim = (texto: string) => handleIncomingMessage(NUMERO, texto, {
+      simulationMode: true,
+      businessId: 'tenant-1',
+      businessContextSource: 'payload',
+      now: new Date('2026-04-18T10:00:00-03:00'),
+    });
+    const clienteReal = { id: 'cliente-real', name: 'Maria Real' };
+
+    const nadaGravado = () => {
+      expect(prisma.client.create).not.toHaveBeenCalled();
+      expect(prisma.client.update).not.toHaveBeenCalled();
+      expect(mockAppointmentServiceCreate).not.toHaveBeenCalled();
+      expect(mockAppointmentServiceUpdate).not.toHaveBeenCalled();
+      expect(prisma.appointment.update).not.toHaveBeenCalled();
+      expect(mockPedirHumano).not.toHaveBeenCalled();
+      expect(mockAoCancelar).not.toHaveBeenCalled();
+    };
+
+    beforeEach(() => {
+      vi.mocked(prisma.client.findFirst).mockResolvedValue(clienteReal as never);
+    });
+
+    it('nome digitado fica so na sessao, mesmo com cliente real', async () => {
+      mockGetSession.mockResolvedValue({ step: 'ask_name', data: {} });
+      vi.mocked(prisma.service.findMany).mockResolvedValueOnce([
+        { id: 's1', name: 'Corte', price: 40, durationMinutes: 30 },
+      ] as never);
+
+      await sim('Joana Silva');
+
+      nadaGravado();
+      expect(mockUpdateSession).toHaveBeenCalledWith(
+        NUMERO, 'tenant-1', 'choose_service',
+        expect.objectContaining({ clientName: 'Joana Silva' }),
+      );
+    });
+
+    it('agendamento simulado nao cria nada e a ultima resposta traz o aviso de teste', async () => {
+      mockGetSession.mockResolvedValue({
+        step: 'choose_time',
+        data: {
+          availableSlots: ['10:00'], selectedDate: '2026-04-20', professionalId: 'professional-1',
+          clientId: 'simulador', serviceId: 'service-1', serviceName: 'Corte',
+          professionalName: 'Joao', servicePrice: 55,
+        },
+      });
+
+      await sim('1');
+
+      nadaGravado();
+      expect(String(mockSendWhatsAppMessage.mock.calls.at(-1)?.[1])).toContain(AVISO_TESTE);
+      expect(mockDeleteSession).toHaveBeenCalledWith(NUMERO, 'tenant-1');
+    });
+
+    it('remarcacao simulada nao atualiza nada e traz o aviso de teste', async () => {
+      mockGetSession.mockResolvedValue({
+        step: 'choose_time',
+        data: {
+          availableSlots: ['10:00'], selectedDate: '2026-04-20', professionalId: 'professional-1',
+          serviceId: 'service-1', serviceName: 'Corte', professionalName: 'Joao',
+          rescheduleAppointmentId: 'simulador',
+        },
+      });
+      mockGetBotConfig.mockResolvedValue({
+        invalid_option_message: 'Opcao invalida.',
+        reschedule_success_message: 'Remarcado',
+      });
+
+      await sim('1');
+
+      nadaGravado();
+      expect(String(mockSendWhatsAppMessage.mock.calls.at(-1)?.[1])).toContain(AVISO_TESTE);
+    });
+
+    it('falar com um humano nao registra pedido de atendimento', async () => {
+      mockGetSession.mockResolvedValue({ step: 'menu', data: {} });
+      mockGetMenuOptions.mockResolvedValue([
+        { option_order: 1, handler: 'attendant', type: 'system', active: true, label: 'Humano', emoji: '', response_message: null },
+      ]);
+
+      await sim('1');
+
+      nadaGravado();
+      expect(mockSendWhatsAppMessage).toHaveBeenCalled();
+    });
+
+    it('cancelar no simulador lista o agendamento de exemplo sem consultar os reais', async () => {
+      mockGetSession.mockResolvedValue({ step: 'menu', data: {} });
+      mockGetMenuOptions.mockResolvedValue([
+        { option_order: 1, handler: 'cancel', type: 'system', active: true, label: 'Cancelar', emoji: '', response_message: null },
+      ]);
+
+      await sim('1');
+
+      const consultas = (mockPoolQuery.mock.calls as unknown as [string][]).filter(([q]) => typeof q === 'string' && q.includes('FROM appointments'));
+      expect(consultas).toHaveLength(0);
+      expect(mockUpdateSession).toHaveBeenCalledWith(
+        NUMERO, 'tenant-1', 'confirm_cancel',
+        { appointments: [expect.objectContaining({ id: 'simulador' })] },
+      );
+      nadaGravado();
+    });
+
+    it('confirmar o cancelamento simulado nao altera nem dispara automacao', async () => {
+      mockGetSession.mockResolvedValue({
+        step: 'confirm_cancel',
+        data: { appointments: [agendamentoExemplo(new Date('2026-04-18T10:00:00-03:00'))] },
+      });
+
+      await sim('1');
+
+      nadaGravado();
+      expect(mockSendWhatsAppMessage).toHaveBeenCalled();
+    });
+  });
+
   describe('remarcar pelo robo', () => {
     const preencherRemarcacao = (t: string, d: { serviceName?: string; professionalName?: string; dateFormatted?: string; time?: string } = {}) =>
       t.replace(/\{servico\}/g, d.serviceName ?? '')
@@ -1257,7 +1383,7 @@ describe('whatsappFlowService guards', () => {
       expect(result).toEqual(expect.objectContaining({ ok: true }));
       expect(mockAppointmentServiceUpdate).toHaveBeenCalledTimes(1);
       expect(mockAppointmentServiceCreate).not.toHaveBeenCalled();
-      expect((prisma.appointment as unknown as { update?: unknown }).update).toBeUndefined();
+      expect(prisma.appointment.update).not.toHaveBeenCalled();
       expect(mockDeleteSession).not.toHaveBeenCalled();
       const enviadas = mockSendWhatsAppMessage.mock.calls.map((c) => String(c[1]));
       expect(enviadas.some((m) => m.includes('acabou de ser reservado'))).toBe(true);

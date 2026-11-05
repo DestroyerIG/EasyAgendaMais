@@ -37,7 +37,7 @@ import {
 import type { WhatsAppSession } from './whatsappSessionService.js';
 import { getBotConfig, type MenuOptionRow } from './whatsappConfigService.js';
 import { carregarMenuVisivel, resolverEscolha } from './whatsappMenu.js';
-import { STEPS } from './whatsappConstants.js';
+import { STEPS, AVISO_TESTE } from './whatsappConstants.js';
 import type { BotConfig } from './whatsappConstants.js';
 import { formatTimeHm } from './utils/timeUtils.js';
 import {
@@ -1116,13 +1116,13 @@ const handleMenuStep = async (
     }
 
     case 'cancel': {
-      const result = await handleCancelAppointment(phone, businessId, config);
+      const result = await handleCancelAppointment(phone, businessId, config, sendContext.simulate === true);
       await sendWhatsAppMessage(phone, result.message, sendContext);
       return { ok: true };
     }
 
     case 'reschedule': {
-      const result = await handleRescheduleAppointment(phone, businessId, config);
+      const result = await handleRescheduleAppointment(phone, businessId, config, sendContext.simulate === true);
       await sendWhatsAppMessage(phone, result.message, sendContext);
       return { ok: true };
     }
@@ -1157,7 +1157,7 @@ const handleMenuStep = async (
 
     case 'attendant':
       await sendWhatsAppMessage(phone, config.attendant_message, sendContext);
-      await inboxRecorder.pedirAtendimentoHumano(businessId, phone);
+      if (sendContext.simulate !== true) await inboxRecorder.pedirAtendimentoHumano(businessId, phone);
       await deleteSession(phone, businessId);
       return { ok: true };
 
@@ -1172,6 +1172,8 @@ const handleMenuStep = async (
     }
   }
 };
+
+const ID_SIMULADOR = 'simulador';
 
 const handleAskNameStep = async (
   phone: string,
@@ -1192,13 +1194,17 @@ const handleAskNameStep = async (
     return { ok: true };
   }
 
-  const existing = await prisma.client.findFirst({
+  // No simulador o nome fica só na sessão: o número de teste pode já ser cliente real.
+  const simulado = sendContext.simulate === true;
+  const existing = simulado ? null : await prisma.client.findFirst({
     where: { phone, businessId },
     select: { id: true },
   });
 
   let clientId: string;
-  if (existing) {
+  if (simulado) {
+    clientId = ID_SIMULADOR;
+  } else if (existing) {
     clientId = existing.id;
     await prisma.client.update({
       where: { id: clientId },
@@ -1552,9 +1558,11 @@ const handleChooseTimeStep = async (
 
   if (conflictRows.length > 0) return oferecerOutrosHorarios();
 
+  const simulado = sendContext.simulate === true;
+
   if (rescheduleAppointmentId) {
     try {
-      await appointmentService.update(rescheduleAppointmentId, businessId, {
+      if (!simulado) await appointmentService.update(rescheduleAppointmentId, businessId, {
         date: selectedDate,
         time: selectedTime,
         professionalId,
@@ -1576,7 +1584,7 @@ const handleChooseTimeStep = async (
       dateFormatted: formatDateBR(selectedDate, { day: '2-digit', month: '2-digit', year: 'numeric' }),
       time: selectedTime,
     });
-    const remarcadoEnviado = await sendWhatsAppMessage(phone, remarcadoMsg, sendContext);
+    const remarcadoEnviado = await sendWhatsAppMessage(phone, simulado ? `${remarcadoMsg}\n\n${AVISO_TESTE}` : remarcadoMsg, sendContext);
     if (remarcadoEnviado) {
       await deleteSession(phone, businessId);
     }
@@ -1611,7 +1619,9 @@ const handleChooseTimeStep = async (
 
   let createdAppointment: { id: string; status: string };
   try {
-    createdAppointment = await appointmentService.create(businessId, appointmentPayload, { source: 'whatsapp' }) as { id: string; status: string };
+    createdAppointment = simulado
+      ? { id: ID_SIMULADOR, status: 'confirmado' }
+      : await appointmentService.create(businessId, appointmentPayload, { source: 'whatsapp' }) as { id: string; status: string };
   } catch (error) {
     logger.error(
       {
@@ -1655,7 +1665,11 @@ const handleChooseTimeStep = async (
     .replace('{horario}', selectedTime)
     .replace('{valor}', Number(sessionData.servicePrice).toFixed(2));
 
-  const confirmationSent = await sendWhatsAppMessage(phone, confirmationMsg, sendContext);
+  const confirmationSent = await sendWhatsAppMessage(
+    phone,
+    simulado ? `${confirmationMsg}\n\n${AVISO_TESTE}` : confirmationMsg,
+    sendContext
+  );
 
   logger.info(
     {
@@ -2293,7 +2307,7 @@ export const handleIncomingMessage = async (
         );
         break;
       case STEPS.CONFIRM_CANCEL: {
-        const r = await handleConfirmCancel(normalizedPhone!, normalizedText, businessId, sessionData, config);
+        const r = await handleConfirmCancel(normalizedPhone!, normalizedText, businessId, sessionData, config, sendContext.simulate === true);
         await sendWhatsAppMessage(normalizedPhone!, r.message, sendContext);
         stepResult = { ok: true };
         break;
@@ -2305,7 +2319,7 @@ export const handleIncomingMessage = async (
         break;
       }
       case STEPS.SEND_RATING: {
-        const r = await handleSendRating(normalizedPhone!, normalizedText, businessId, sessionData, config);
+        const r = await handleSendRating(normalizedPhone!, normalizedText, businessId, sessionData, config, sendContext.simulate === true);
         await sendWhatsAppMessage(normalizedPhone!, r.message, sendContext);
         stepResult = { ok: true };
         break;
