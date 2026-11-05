@@ -79,7 +79,7 @@ export function BuscaGeral() {
         aria-autocomplete={registrada ? undefined : 'list'}
         autoComplete="off"
         className={cn(
-          'w-80 rounded-xl border border-line bg-surface-2 py-1.5 pl-9 pr-14 text-[13px] text-ink placeholder-muted transition-all',
+          'w-[22rem] rounded-xl border border-line bg-surface-2 py-1.5 pl-9 pr-14 text-[13px] text-ink placeholder-muted transition-all',
           'focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand',
         )}
       />
