@@ -74,10 +74,11 @@ No computador, a barra continua filtrando a lista enquanto a pessoa digita e nã
 
 ## Backend
 
-Novo módulo `backend/src/modules/busca`, com a rota `GET /api/v1/busca?q=<termo>`.
+Novo módulo `backend/src/modules/busca`, com a rota `POST /api/v1/busca` e o corpo `{ "q": "<termo>" }`.
 
 - **Acesso:** `authMiddleware`, `requireTenantRoles` e `requireFeature('clients')`, as mesmas travas das rotas de clientes. O `businessId` vem sempre de `req.user`, nunca do pedido.
 - **Validação:** `q` com zod, sem espaços nas pontas, de 2 a 80 caracteres.
+- **Carência:** a conta em carência só pode ler, e `POST` conta como escrita. A rota não altera nada, então entra em `ESCRITAS_NA_CARENCIA` (`carencia.rules.ts`) e a busca continua funcionando nesse estado.
 - **Resposta:** `{ clientes: [...], agendamentos: [...] }`, com até 5 itens em cada grupo.
 
 ```ts
@@ -101,14 +102,15 @@ Assim a acentuação funciona como na tela de Clientes e **não há migração**
 
 Uma consulta pelos agendamentos das clientes encontradas, antes do corte em 5, limitada às 50 primeiras, sem os cancelados. Primeiro vêm os futuros, do mais próximo ao mais distante, depois os passados, do mais recente ao mais antigo, até completar 5.
 
-A data de "hoje" segue o fuso do negócio, como no restante da agenda. A regra de quem vê o quê é a de `GET /appointments`: se aquela rota restringir o papel `employee`, a busca faz o mesmo.
+A data de "hoje" segue o fuso do negócio, como no restante da agenda. A regra de quem vê o quê é a de `GET /appointments`, que não restringe o papel `employee`.
 
 ### Privacidade
 
-O termo pode ser nome ou telefone e vai na URL. Por isso:
+O termo pode ser nome ou telefone. Por isso:
 
+- ele vai no corpo do pedido, e não na URL, porque o Vercel e o Render guardam a URL nos logs de acesso. O dono decidiu trocar `GET` por `POST` em 05/11;
 - a resposta sai com `Cache-Control: no-store`;
-- o termo não entra em log. Conferir o log de pedidos do `server.ts` e do proxy `/api`, e mascarar a query string dessa rota se ela for gravada.
+- a rota não grava o termo em log.
 
 ## Frontend
 

@@ -4,7 +4,7 @@
 
 **Goal:** a barra de pesquisa do painel passa a funcionar em todas as telas, no computador e no celular, achando clientes, agendamentos e telas.
 
-**Architecture:** uma rota leve `GET /api/v1/busca` devolve clientes e agendamentos do negócio. No frontend, o hook `useBuscaGeral` cuida do termo, da espera, do teclado e do destino; `BuscaResultados` desenha a lista, usada por `BuscaGeral` (computador) e `BuscaCelular` (tela cheia). As telas são filtradas no navegador.
+**Architecture:** uma rota leve `POST /api/v1/busca` devolve clientes e agendamentos do negócio. No frontend, o hook `useBuscaGeral` cuida do termo, da espera, do teclado e do destino; `BuscaResultados` desenha a lista, usada por `BuscaGeral` (computador) e `BuscaCelular` (tela cheia). As telas são filtradas no navegador.
 
 **Tech Stack:** Express, Prisma, zod e Vitest no backend. Next.js 15, React, Radix Dialog e Vitest no frontend.
 
@@ -36,8 +36,8 @@
 **Files:**
 - Create: `backend/src/utils/textoBusca.ts`
 - Create: `backend/src/modules/busca/busca.types.ts`, `busca.repository.ts`, `busca.service.ts`, `busca.controller.ts`, `busca.routes.ts`
-- Modify: `backend/src/modules/crm/crm.service.ts:14-15`, `backend/src/server.ts` (junto das rotas de `/clients`, perto da linha 471)
-- Test: `backend/src/__tests__/buscaService.test.ts`, `buscaRepository.test.ts`, `buscaRoutes.test.ts`
+- Modify: `backend/src/modules/crm/crm.service.ts:14-15`, `backend/src/server.ts` (junto das rotas de `/clients`, perto da linha 471), `backend/src/modules/conta/carencia.rules.ts`
+- Test: `backend/src/__tests__/buscaService.test.ts`, `buscaRepository.test.ts`, `buscaRoutes.test.ts`, `carenciaMiddleware.test.ts`
 
 **Interfaces:**
 - Produces, em `busca.types.ts`:
@@ -46,12 +46,12 @@
   - `AgendamentoBusca = { id: string; data: string /* AAAA-MM-DD */; hora: string /* HH:MM */; status: string; clienteNome: string; servicoNome: string; profissionalNome: string }`
   - `ResultadoBusca = { clientes: ClienteBusca[]; agendamentos: AgendamentoBusca[] }`
 - Produces: `semAcento(s: string): string` e `digitos(s: string): string` em `utils/textoBusca.ts`.
-- Produces: `GET /api/v1/busca?q=` responde `sendSuccess(res, ResultadoBusca)`.
+- Produces: `POST /api/v1/busca`, com corpo `{ q }`, responde `sendSuccess(res, ResultadoBusca)` com status 200.
 
 - [ ] **Step 1: Criar a branch**
 
 ```bash
-git checkout main && git pull --ff-only origin main && git checkout -b feat/busca-geral
+git checkout -b feat/busca-geral docs/spec-busca-geral
 ```
 
 - [ ] **Step 2: Escrever os testes do service** em `buscaService.test.ts`, com o repositório mockado como em `crmService.test.ts` (`vi.hoisted` e `getBusinessScheduleSettings` mockado com `timezone: 'America/Fortaleza'`).
@@ -91,11 +91,15 @@ it('converte date e time para texto')
 it('devolve o resultado do service e usa o businessId do login')  // service chamado com ('b1', 'ana')
 it('responde com Cache-Control: no-store')
 it('tira os espaços do termo')                                    // q='  ana  ' => 'ana'
+it('responde 200, não 201')
 it('400 com termo curto')                                         // q='a'
+it('400 sem q no corpo')
 it('400 com termo acima de 80 caracteres')
 it('401 sem login')
 it('403 para o papel professional')
 ```
+
+Em `carenciaMiddleware.test.ts`, inclua `['POST', '/api/v1/busca']` na tabela do que fica liberado (linha 103) e `['DELETE', '/api/v1/busca']` na do que fica bloqueado (linha 122).
 
 - [ ] **Step 5: Rodar e ver falhar**
 
@@ -107,11 +111,12 @@ Expected: FAIL, os módulos ainda não existem.
 - `utils/textoBusca.ts`: mover `semAcento` e `digitos` de `crm.service.ts` sem mudar o corpo, e importar de lá no CRM.
 - `busca.repository.ts`: `buscaRepository.clientesAtivos(businessId)`, `agendamentosFuturos(businessId, clienteIds, hoje)` e `agendamentosPassados(businessId, clienteIds, hoje)`, com `prisma.client.findMany` e `prisma.appointment.findMany`. `hoje` é `AAAA-MM-DD`, passado ao Prisma como `new Date(`${hoje}T00:00:00.000Z`)`. Os dois de agendamento usam `take: 5` e selecionam os nomes de `client`, `service` e `professional`.
 - `busca.service.ts`: `buscaService.buscar(businessId: string, q: string): Promise<ResultadoBusca>`. Casa nome e e-mail com `semAcento`, telefone só com `digitos(q).length >= 3`. Ordena, corta os ids em 50 e os clientes em 5. `hoje` vem de `todayInTimezone(timezone)`, com `timezone` de `getBusinessScheduleSettings`, como em `crm.service.ts:36`.
-- `busca.routes.ts`: `router.get('/', authMiddleware, requireTenantRoles, requireFeature('clients'), validate({ query: BuscaQuerySchema }), buscar)`.
-- `busca.controller.ts`: `res.set('Cache-Control', 'no-store')`, depois `BuscaQuerySchema.parse(req.query).q` e `sendSuccess`.
+- `busca.routes.ts`: `router.post('/', authMiddleware, requireTenantRoles, requireFeature('clients'), validate({ body: BuscaQuerySchema }), buscar)`.
+- `busca.controller.ts`: `res.set('Cache-Control', 'no-store')`, depois `BuscaQuerySchema.parse(req.body).q` e `sendSuccess`.
 - `server.ts`: `app.use(`${API_V1}/busca`, buscaRoutes);`
+- `carencia.rules.ts`: `regra(['POST'], '/busca')` em `ESCRITAS_NA_CARENCIA`, com um comentário de que a rota só lê: é `POST` para o termo não ir na URL.
 
-`GET /appointments` não restringe o papel `employee` (`appointments.controller.ts:13`), então a busca também não. O backend não grava a query string em log: `req.originalUrl` só aparece no aviso de webhook e em `auth.ts`, sem a query. Não acrescente log nesta rota.
+`GET /appointments` não restringe o papel `employee` (`appointments.controller.ts:13`), então a busca também não. Não acrescente log do termo nesta rota.
 
 - [ ] **Step 7: Rodar e ver passar**
 
@@ -134,7 +139,7 @@ git commit -m "feat(busca): rota de busca de clientes e agendamentos"
 - Test: `frontend/src/lib/__tests__/busca.test.ts`, `buscaTelas.test.ts`, `frontend/src/hooks/__tests__/useBuscaGeral.test.tsx`
 
 **Interfaces:**
-- Consumes: `GET /busca?q=` da Task 1.
+- Consumes: `POST /busca` da Task 1.
 - Produces, em `lib/busca.ts`:
   - tipos `ClienteBusca`, `AgendamentoBusca`, `ResultadoBusca` iguais aos da Task 1
   - `TERMO_MAX = 80`
@@ -219,7 +224,7 @@ const SINONIMOS: Record<string, string[]> = {
 ```
 
 - `useBuscaGeral`: `AbortController` por pedido e contador para descartar respostas antigas, como `pedidoAtual` em `admin/depoimentos/page.tsx`. `hoje` é a data local em `AAAA-MM-DD`. O rótulo de clientes vem de `useVocabulario().cli.P`. Status 402 vira `bloqueada`; qualquer outra falha vira `erro`.
-- `app/api/busca/[[...path]]/route.ts`: `export const { GET } = catchAllProxy('busca');`
+- `app/api/busca/[[...path]]/route.ts`: `export const { POST } = catchAllProxy('busca');`
 
 - [ ] **Step 5: Rodar e ver passar**
 
@@ -413,9 +418,9 @@ Expected: sem erro de tipos e todos os testes passando.
 
 - [ ] **Step 2: Conferir no navegador**
 
-Use um backend mock na porta 5000 e `next dev` em outra porta, com os cookies `access_token` e `refresh_token` em `conferencia-local`, conforme a memória do projeto. O mock responde `/api/v1/busca` e `/auth/me`. Em 1280 px e 390 px, nos temas claro e escuro, confira:
+Use um backend mock na porta 5000 e `next dev` em outra porta, com os cookies `access_token` e `refresh_token` em `conferencia-local`, conforme a memória do projeto. O mock responde `POST /api/v1/busca` e `/auth/me`. Em 1280 px e 390 px, nos temas claro e escuro, confira:
 
-- a busca passa pelo proxy com a query intacta;
+- a busca passa pelo proxy com o corpo intacto;
 - a lista cabe na tela e não cria rolagem horizontal;
 - teclado, clique e `Ctrl K`;
 - abrir uma cliente, um agendamento e uma tela;
