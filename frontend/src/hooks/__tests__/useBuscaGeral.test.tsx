@@ -176,4 +176,36 @@ describe('useBuscaGeral', () => {
     act(() => r.result.current.aoTeclar(tecla('Enter')));
     expect(m.push).not.toHaveBeenCalledWith('/clientes/c1');
   });
+
+  it('com a lista fechada pelo Esc, Enter não abre nada e o termo fica no campo', () => {
+    const aoEscolher = vi.fn();
+    const r = montar(aoEscolher);
+    digitar(r, 'caixa');
+    act(() => r.result.current.aoTeclar(tecla('Escape')));
+    act(() => r.result.current.aoTeclar(tecla('Enter')));
+    expect(m.push).not.toHaveBeenCalled();
+    expect(aoEscolher).not.toHaveBeenCalled();
+    expect(r.result.current.termo).toBe('caixa');
+  });
+
+  it('ao chegar a resposta, o item marcado volta a 0', async () => {
+    m.buscar.mockResolvedValue(comCliente);
+    const r = montar();
+    digitar(r, 'agenda');
+    act(() => r.result.current.aoTeclar(tecla('ArrowDown')));
+    expect(r.result.current.ativo).toBe(1);
+    await passar(250);
+    expect(r.result.current.ativo).toBe(0);
+    expect(r.result.current.itens[0].href).toBe('/clientes/c1');
+  });
+
+  it('429 vira status erro e mantém as telas, sem navegar', async () => {
+    m.buscar.mockRejectedValue({ response: { status: 429 } });
+    const r = montar();
+    digitar(r, 'caixa');
+    await passar(250);
+    expect(r.result.current.status).toBe('erro');
+    expect(r.result.current.itens[0].href).toBe('/financeiro');
+    expect(m.push).not.toHaveBeenCalled();
+  });
 });

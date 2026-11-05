@@ -22,6 +22,7 @@ import { prisma } from './config/prisma.js';
 import logger from './utils/logger.js';
 
 import { errorHandler } from './middleware/errorHandler.js';
+import { criarApiLimiterSkip } from './middleware/apiLimiterSkip.js';
 
 import { requestIdMiddleware } from './modules/core/middleware/requestId.js';
 
@@ -383,11 +384,7 @@ const apiLimiter = rateLimit({
     return ipKeyGenerator(req.ip || 'unknown');
   },
 
-  skip: (req: Request) =>
-    req.method === 'OPTIONS' ||
-    webhookPaths.some((p) =>
-      req.originalUrl.startsWith(p)
-    ),
+  skip: criarApiLimiterSkip(API_V1, webhookPaths),
 
   message: {
     success: false,

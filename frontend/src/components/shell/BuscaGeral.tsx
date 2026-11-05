@@ -68,16 +68,18 @@ export function BuscaGeral() {
         onChange={(e) => (registrada ? registrada.onChange(e.target.value) : busca.setTermo(e.target.value))}
         onKeyDown={registrada ? undefined : busca.aoTeclar}
         onFocus={() => !registrada && busca.termo.trim() && busca.setAberta(true)}
+        // Tab para fora fecha a lista; clicar numa opção não tira o foco (mouseDown com preventDefault).
+        onBlur={() => !registrada && busca.setAberta(false)}
         placeholder={placeholder}
         role={registrada ? undefined : 'combobox'}
-        aria-label={registrada ? placeholder : undefined}
+        aria-label={placeholder}
         aria-expanded={registrada ? undefined : aberta}
         aria-controls={registrada ? undefined : aberta ? idLista : undefined}
         aria-activedescendant={registrada ? undefined : idAtivo}
         aria-autocomplete={registrada ? undefined : 'list'}
         autoComplete="off"
         className={cn(
-          'w-64 rounded-xl border border-line bg-surface-2 py-1.5 pl-9 pr-14 text-[13px] text-ink placeholder-muted transition-all',
+          'w-80 rounded-xl border border-line bg-surface-2 py-1.5 pl-9 pr-14 text-[13px] text-ink placeholder-muted transition-all',
           'focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand',
         )}
       />

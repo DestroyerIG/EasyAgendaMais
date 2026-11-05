@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Icon } from '@/components/ui';
 import { useVocabulario } from '@/hooks/useVocabulario';
 import { cn } from '@/lib/cn';
@@ -22,7 +23,13 @@ export function BuscaResultados({ idLista, itens, status, termo, ativo, onEscolh
   const cli = useVocabulario().cli;
   const titulos = { clientes: cli.P, agendamentos: 'Agendamentos', telas: 'Telas' };
   const buscando = status === 'buscando';
-  const nada = status === 'pronto' && itens.length === 0;
+  // Sem resposta do servidor (bloqueada) e sem telas, também não deixa o painel vazio.
+  const nada = (status === 'pronto' || status === 'bloqueada') && itens.length === 0;
+
+  // O item marcado pelas setas precisa ficar à vista na lista com rolagem.
+  useEffect(() => {
+    document.getElementById(`${idLista}-${ativo}`)?.scrollIntoView?.({ block: 'nearest' });
+  }, [idLista, ativo, itens]);
 
   return (
     <div>

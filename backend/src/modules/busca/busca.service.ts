@@ -15,7 +15,8 @@ export const buscaService = {
     // Só símbolos (ex.: "()") não casa com nada útil.
     if (!/[\p{L}\p{N}]/u.test(termo)) return { clientes: [], agendamentos: [] };
     const num = digitos(q);
-    const usaTelefone = num.length >= MIN_DIGITOS_TELEFONE;
+    // Telefone só entra quando o termo é só dígitos e sinais (mesma regra do front); e-mail ou nome com número não casa.
+    const usaTelefone = /^[\d()+\-. ]+$/.test(q.trim()) && num.length >= MIN_DIGITOS_TELEFONE;
 
     const todos = await buscaRepository.clientesAtivos(businessId);
     const achados = todos

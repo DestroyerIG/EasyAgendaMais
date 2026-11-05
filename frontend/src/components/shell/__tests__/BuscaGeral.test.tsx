@@ -150,6 +150,48 @@ describe('BuscaGeral', () => {
     await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
   });
 
+  it('Tab para fora do campo fecha a lista', async () => {
+    renderBusca();
+    const user = await digitar('carla');
+    await screen.findByText('Carla Souza');
+    await user.tab();
+    await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
+  });
+
+  it('clicar numa opção continua funcionando com o fechamento no blur', async () => {
+    renderBusca();
+    const user = await digitar('carla');
+    await user.click(await screen.findByText('Carla Souza'));
+    expect(m.push).toHaveBeenCalledWith('/clientes/c1');
+  });
+
+  it('o combobox sempre tem aria-label com o placeholder', () => {
+    renderBusca();
+    expect(campo()).toHaveAttribute('aria-label', PLACEHOLDER);
+  });
+
+  it('bloqueada sem nenhuma tela mostra "Nada encontrado"', async () => {
+    m.buscar.mockRejectedValue({ response: { status: 402 } });
+    renderBusca();
+    await digitar('xyz');
+    expect(await screen.findByText('Nada encontrado para "xyz".')).toBeInTheDocument();
+  });
+
+  it('a opção marcada pelas setas é rolada para dentro da vista', async () => {
+    const espiao = vi.fn();
+    (Element.prototype as unknown as { scrollIntoView: unknown }).scrollIntoView = espiao;
+    try {
+      renderBusca();
+      const user = await digitar('agenda');
+      await screen.findByText('Telas');
+      espiao.mockClear();
+      await user.keyboard('{ArrowDown}');
+      await waitFor(() => expect(espiao).toHaveBeenCalledWith({ block: 'nearest' }));
+    } finally {
+      delete (Element.prototype as unknown as { scrollIntoView?: unknown }).scrollIntoView;
+    }
+  });
+
   function TelaComBusca() {
     const [v, setV] = useState('');
     useRegisterTopBarSearch({ value: v, onChange: setV, placeholder: 'Filtrar clientes por nome ou telefone...' });

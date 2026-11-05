@@ -45,6 +45,11 @@ describe('buscaService.buscar', () => {
     expect(r.clientes.map((c) => c.id)).toEqual(['1']);
   });
 
+  it('e-mail com números não casa telefone', async () => {
+    repo.clientesAtivos.mockResolvedValue([cliente('1', 'Bia', { phone: '83912399990' })]);
+    expect((await buscaService.buscar('b1', 'maria123@gmail.com')).clientes).toEqual([]);
+  });
+
   it('não usa telefone com menos de 3 dígitos', async () => {
     repo.clientesAtivos.mockResolvedValue([cliente('1', 'Bia')]);
     expect((await buscaService.buscar('b1', '99')).clientes).toEqual([]);

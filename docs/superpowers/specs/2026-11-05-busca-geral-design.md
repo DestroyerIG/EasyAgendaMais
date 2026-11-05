@@ -80,6 +80,7 @@ Novo módulo `backend/src/modules/busca`, com a rota `POST /api/v1/busca` e o co
 - **Validação:** `q` com zod, sem espaços nas pontas, de 2 a 80 caracteres.
 - **Carência:** a conta em carência só pode ler, e `POST` conta como escrita. A rota não altera nada, então entra em `ESCRITAS_NA_CARENCIA` (`carencia.rules.ts`) e a busca continua funcionando nesse estado.
 - **Resposta:** `{ clientes: [...], agendamentos: [...] }`, com até 5 itens em cada grupo.
+- **Limite:** limitador próprio por negócio (`tenant:<businessId>`), 600 pedidos a cada 15 min, depois do login. O `POST /api/v1/busca` fica fora do limite global, para a busca por digitação não gastar a cota do painel.
 
 ```ts
 cliente: { id, nome, telefone }
@@ -93,7 +94,7 @@ Não dá para reaproveitar `crmService.insights`, como a sugestão inicial previ
 A rota nova lê só `id`, `name`, `phone` e `email` das clientes ativas do negócio e filtra no Node, com as mesmas regras de `semAcento` e `digitos` de `crm.service.ts`. Essas duas funções vão para um utilitário compartilhado.
 
 - Nome e e-mail: contém o termo, sem diferenciar acento nem maiúscula.
-- Telefone: só quando o termo tem 3 dígitos ou mais.
+- Telefone: só quando o termo tem apenas dígitos e sinais (`()+-.` e espaço), com 3 dígitos ou mais. E-mail ou nome com número não casa telefone.
 - Ordem: quem começa com o termo vem antes, depois ordem alfabética.
 
 Assim a acentuação funciona como na tela de Clientes e **não há migração**, porque o banco não tem `unaccent` nem `pg_trgm`. O caminho serve para os tamanhos atuais. Se algum negócio passar de cerca de 20 mil clientes, troca-se por `unaccent` e `pg_trgm`, sem mudar a resposta da rota.

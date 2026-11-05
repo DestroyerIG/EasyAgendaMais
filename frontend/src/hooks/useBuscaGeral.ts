@@ -50,6 +50,8 @@ export function useBuscaGeral(opcoes?: { aoEscolher?: () => void }) {
         .then((r) => {
           if (pedido !== pedidoAtual.current) return;
           setResultado({ q, dados: r });
+          // A lista muda com a resposta: o mesmo índice passaria a apontar para outro item.
+          setAtivo(0);
           setStatus('pronto');
         })
         .catch((e: unknown) => {
@@ -73,6 +75,8 @@ export function useBuscaGeral(opcoes?: { aoEscolher?: () => void }) {
     return montarItens(dados, filtrarTelas(termo, rotuloClientes), hojeLocal());
   }, [liberada, resultado, termo, rotuloClientes]);
 
+  const abertaVisivel = aberta && liberada;
+
   const escolher = useCallback(
     (item: ItemBusca) => {
       router.push(item.href);
@@ -93,6 +97,7 @@ export function useBuscaGeral(opcoes?: { aoEscolher?: () => void }) {
         const passo = e.key === 'ArrowDown' ? 1 : -1;
         setAtivo((i) => (i + passo + itens.length) % itens.length);
       } else if (e.key === 'Enter') {
+        if (!abertaVisivel) return;
         const item = itens[ativo];
         if (!item) return;
         e.preventDefault();
@@ -101,8 +106,8 @@ export function useBuscaGeral(opcoes?: { aoEscolher?: () => void }) {
         setAberta(false);
       }
     },
-    [itens, ativo, escolher],
+    [itens, ativo, abertaVisivel, escolher],
   );
 
-  return { termo, setTermo, itens, status, aberta: aberta && liberada, setAberta, ativo, setAtivo, aoTeclar, escolher };
+  return { termo, setTermo, itens, status, aberta: abertaVisivel, setAberta, ativo, setAtivo, aoTeclar, escolher };
 }
