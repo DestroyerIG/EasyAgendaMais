@@ -130,7 +130,7 @@ export function TopBar({ activeId, pageTitle, businessName, roleLabel, onLogout,
               </span>
               <span className="sr-only">Menu da conta</span>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="bottom" align="end" className="w-[200px]">
+            <DropdownMenuContent side="bottom" align="end" className="w-[232px]">
               <AccountMenuContent onLogout={onLogout} onAvaliar={onAvaliar} />
             </DropdownMenuContent>
           </DropdownMenu>
@@ -168,7 +168,7 @@ export function TopBar({ activeId, pageTitle, businessName, roleLabel, onLogout,
             <DropdownMenuTrigger aria-label="Menu da conta" className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-on-brand">
               <Icon name="person" size={18} />
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="bottom" align="end" className="w-[200px]">
+            <DropdownMenuContent side="bottom" align="end" className="w-[232px]">
               <AccountMenuContent onLogout={onLogout} onAvaliar={onAvaliar} />
             </DropdownMenuContent>
           </DropdownMenu>
