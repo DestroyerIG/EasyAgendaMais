@@ -22,7 +22,10 @@ describe('cifra do token do Google', () => {
 
   it('decifrar com dado adulterado lança', () => {
     const [iv, tag, dados] = cifrar('1//refresh-token').split('.');
-    const trocado = `${iv}.${tag}.${dados.slice(0, -2)}AA`;
+    // Inverte um byte inteiro: trocar caracteres do base64 às vezes não muda o dado.
+    const adulterado = Buffer.from(dados, 'base64url');
+    adulterado[0] ^= 0xff;
+    const trocado = `${iv}.${tag}.${adulterado.toString('base64url')}`;
     expect(() => decifrar(trocado)).toThrow();
   });
 

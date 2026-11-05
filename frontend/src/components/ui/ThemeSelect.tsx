@@ -11,7 +11,8 @@ const OPTIONS = [
   { value: 'dark', label: 'Escuro', icon: Moon },
 ] as const;
 
-export function ThemeSelect({ className }: { className?: string }) {
+// `compacto` põe o ícone sobre o texto, em três colunas iguais, para caber nos menus estreitos.
+export function ThemeSelect({ className, compacto = false }: { className?: string; compacto?: boolean }) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const buttonsRef = useRef<(HTMLButtonElement | null)[]>([]);
@@ -32,7 +33,7 @@ export function ThemeSelect({ className }: { className?: string }) {
   };
 
   return (
-    <div role="radiogroup" aria-label="Tema" className={cn('inline-flex gap-1 rounded-control border border-line bg-surface-2 p-1', className)}>
+    <div role="radiogroup" aria-label="Tema" className={cn(compacto ? 'grid grid-cols-3' : 'inline-flex', 'gap-1 rounded-control border border-line bg-surface-2 p-1', className)}>
       {OPTIONS.map(({ value, label, icon: Icon }, index) => {
         const selected = current === value;
         return (
@@ -48,7 +49,8 @@ export function ThemeSelect({ className }: { className?: string }) {
             onClick={() => setTheme(value)}
             onKeyDown={(event) => handleKeyDown(event, index)}
             className={cn(
-              'inline-flex min-h-11 items-center gap-2 rounded-[8px] px-3 text-[13px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand lg:min-h-9',
+              'inline-flex min-h-11 items-center rounded-[8px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
+              compacto ? 'min-w-0 flex-col justify-center gap-0.5 px-1 py-1 text-[12px]' : 'gap-2 px-3 text-[13px] lg:min-h-9',
               selected ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink',
             )}
           >

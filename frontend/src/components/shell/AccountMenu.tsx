@@ -17,7 +17,7 @@ export function AccountMenuContent({ onLogout, onAvaliar }: { onLogout: () => vo
     <>
       <DropdownMenuLabel>Tema</DropdownMenuLabel>
       <div className="px-2 pb-2">
-        <ThemeSelect className="w-full justify-between" />
+        <ThemeSelect compacto className="w-full" />
       </div>
       <DropdownMenuSeparator />
       {onAvaliar && (
