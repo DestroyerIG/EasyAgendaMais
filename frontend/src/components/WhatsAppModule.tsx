@@ -131,6 +131,7 @@ export const WhatsAppModule = () => {
   });
   const [menuOptions, setMenuOptions] = useState<MenuOption[]>([]);
   const [menuLoading, setMenuLoading] = useState(false);
+  const [instagramHandle, setInstagramHandle] = useState<string | null>(null);
   const [configLoading, setConfigLoading] = useState(false);
   const [statusLoading, setStatusLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -210,7 +211,11 @@ export const WhatsAppModule = () => {
   const fetchMenuOptions = useCallback(async () => {
     setMenuLoading(true);
     try {
-      const response = await api.get('/whatsapp/config/menu');
+      const [response, instagram] = await Promise.all([
+        api.get('/whatsapp/config/menu'),
+        api.get('/whatsapp/config/instagram').catch(() => null),
+      ]);
+      setInstagramHandle(instagram?.data?.handle ?? null);
       // A aba Conexão (a inicial de quem está desconectado) monta o menu: resposta fora do formato não pode derrubá-la.
       setMenuOptions(Array.isArray(response.data) ? response.data : []);
     } catch {
@@ -354,6 +359,13 @@ export const WhatsAppModule = () => {
     setActionLoading(true);
     try { const r = await api.put(`/whatsapp/config/menu/${id}`, data); setMenuOptions(prev => prev.map(o => o.id === id ? r.data : o)); showToast('Opção atualizada', 'success'); }
     catch { showToast('Erro ao atualizar opção', 'error'); }
+    finally { setActionLoading(false); }
+  };
+
+  const handleSalvarInstagram = async (handle: string | null) => {
+    setActionLoading(true);
+    try { const r = await api.put('/whatsapp/config/instagram', { handle }); setInstagramHandle(r.data?.handle ?? null); showToast('Perfil do Instagram salvo', 'success'); }
+    catch { showToast('Erro ao salvar o perfil do Instagram', 'error'); }
     finally { setActionLoading(false); }
   };
 
@@ -523,6 +535,8 @@ export const WhatsAppModule = () => {
                     onCreate={handleMenuCreate}
                     onReorder={handleMenuReorder}
                     onReset={handleMenuReset}
+                    instagramHandle={instagramHandle}
+                    onSalvarInstagram={handleSalvarInstagram}
                   />
                 }
                 mensagens={

@@ -162,6 +162,8 @@ const {
   handleIncomingMessage,
   handleWebhook,
 } = await import('../services/whatsapp/whatsappFlowService.js');
+const { prisma } = await import('../config/prisma.js');
+const { formatMessage } = await import('../services/whatsapp/whatsappMessageService.js');
 
 describe('whatsappFlowService guards', () => {
   beforeEach(() => {
@@ -1127,6 +1129,49 @@ describe('whatsappFlowService guards', () => {
     const enviada = String(mockSendWhatsAppMessage.mock.calls.at(-1)?.[1]);
     expect(enviada).not.toContain('1️⃣');
     expect(enviada).toContain('attendant_message');
+  });
+
+  const preencher = (t: string, d: { businessName?: string; instagramHandle?: string } = {}) =>
+    t.replace(/\{nome_negocio\}/g, d.businessName ?? '').replace(/\{instagram_handle\}/g, d.instagramHandle ?? '');
+
+  it('promocoes chega com o nome do negocio', async () => {
+    process.env.WHATSAPP_DEFAULT_BUSINESS_ID = 'tenant-1';
+    mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
+    mockIsWithinBusinessHours.mockReturnValue(true);
+    mockGetSession.mockResolvedValue({ step: 'menu', data: {} });
+    mockIsSessionExpired.mockReturnValue(false);
+    mockGetBotConfig.mockResolvedValue({ promotions_message: 'Ofertas da {nome_negocio}', invalid_option_message: 'x' });
+    mockGetMenuOptions.mockResolvedValue([
+      { option_order: 5, handler: 'promotions', type: 'system', active: true, label: 'Promoções', emoji: '' },
+    ]);
+    vi.mocked(prisma.business.findFirst).mockResolvedValue({ name: 'Barbearia Alfa', instagramHandle: null } as never);
+    vi.mocked(formatMessage).mockImplementationOnce(preencher as never);
+
+    await handleIncomingMessage('5511777777777', '1', { now: new Date('2026-04-18T10:00:00-03:00') });
+
+    expect(mockSendWhatsAppMessage.mock.calls.at(-1)?.[1]).toBe('Ofertas da Barbearia Alfa');
+    vi.mocked(prisma.business.findFirst).mockResolvedValue(null as never);
+  });
+
+  it('instagram chega com nome e perfil preenchidos, sem @seunegocio', async () => {
+    process.env.WHATSAPP_DEFAULT_BUSINESS_ID = 'tenant-1';
+    mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
+    mockIsWithinBusinessHours.mockReturnValue(true);
+    mockGetSession.mockResolvedValue({ step: 'menu', data: {} });
+    mockIsSessionExpired.mockReturnValue(false);
+    mockGetBotConfig.mockResolvedValue({ instagram_message: '{nome_negocio}: {instagram_handle}', invalid_option_message: 'x' });
+    mockGetMenuOptions.mockResolvedValue([
+      { option_order: 7, handler: 'instagram', type: 'system', active: true, label: 'Instagram', emoji: '' },
+    ]);
+    vi.mocked(prisma.business.findFirst).mockResolvedValue({ name: 'Barbearia Alfa', instagramHandle: '@alfa' } as never);
+    vi.mocked(formatMessage).mockImplementationOnce(preencher as never);
+
+    await handleIncomingMessage('5511777777777', '1', { now: new Date('2026-04-18T10:00:00-03:00') });
+
+    const enviadas = mockSendWhatsAppMessage.mock.calls.map((c) => String(c[1]));
+    expect(enviadas.at(-1)).toBe('Barbearia Alfa: @alfa');
+    expect(enviadas.some((m) => m.includes('@seunegocio'))).toBe(false);
+    vi.mocked(prisma.business.findFirst).mockResolvedValue(null as never);
   });
 
   it('persiste agendamento via camada central com payload compativel quando auto confirmacao estiver desativada', async () => {

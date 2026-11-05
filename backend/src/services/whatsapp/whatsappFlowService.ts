@@ -13,7 +13,7 @@ import type { Request, Response } from 'express';
 import logger from '../../utils/logger.js';
 import { prisma } from '../../config/prisma.js';
 import { Prisma } from '@prisma/client';
-import { sendWhatsAppMessage, buildWelcomeMessage } from './whatsappMessageService.js';
+import { sendWhatsAppMessage, buildWelcomeMessage, formatMessage } from './whatsappMessageService.js';
 import { inboxRecorder } from '../../modules/whatsappInbox/inbox.recorder.js';
 import type { SendWhatsAppMessageContext } from './whatsappMessageService.js';
 import { getWhatsAppStatus, getWhatsAppStatusByInstance, getConnectedNumberCached } from '../whatsappClient.js';
@@ -1132,18 +1132,24 @@ const handleMenuStep = async (
       return { ok: true };
     }
 
-    case 'promotions':
-      await sendWhatsAppMessage(phone, config.promotions_message, sendContext);
+    case 'promotions': {
+      const businessName = await getBusinessName(businessId);
+      await sendWhatsAppMessage(phone, formatMessage(config.promotions_message, { businessName }), sendContext);
       await deleteSession(phone, businessId);
       return { ok: true };
+    }
 
     case 'instagram': {
-      const business = await prisma.business.findFirst({
-        where: { id: businessId },
-        select: { instagramHandle: true },
-      });
-      const handle = business?.instagramHandle || '@seunegocio';
-      await sendWhatsAppMessage(phone, config.instagram_message.replace('{instagram_handle}', handle), sendContext);
+      const [businessName, business] = await Promise.all([
+        getBusinessName(businessId),
+        prisma.business.findFirst({ where: { id: businessId }, select: { instagramHandle: true } }),
+      ]);
+      const instagramHandle = business?.instagramHandle ?? '';
+      await sendWhatsAppMessage(
+        phone,
+        formatMessage(config.instagram_message, { businessName, instagramHandle }),
+        sendContext,
+      );
       await deleteSession(phone, businessId);
       return { ok: true };
     }

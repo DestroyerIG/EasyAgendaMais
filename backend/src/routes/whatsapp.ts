@@ -27,6 +27,7 @@ import { Prisma } from '@prisma/client';
 import { sendSuccess, sendCreated, sendError } from '../utils/response.js';
 import logger from '../utils/logger.js';
 import { ValidationError } from '../utils/errors.js';
+import { normalizarInstagram } from '../services/whatsapp/whatsappMenu.js';
 import {
   normalizeWhatsAppNumber,
   normalizePhone,
@@ -2393,6 +2394,31 @@ const DEFAULT_MENU_OPTIONS: DefaultMenuOption[] = [
   { order: 8, label: 'Falar com um humano', emoji: '👨‍💼', handler: 'attendant' },
   { order: 9, label: 'Encerrar atendimento', emoji: '🚪', handler: 'end_session' },
 ];
+
+router.get('/config/instagram', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { businessId } = req.user;
+    const negocio = await prisma.business.findFirst({ where: { id: businessId! }, select: { instagramHandle: true } });
+    sendSuccess(res, { handle: negocio?.instagramHandle ?? null });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/config/instagram', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { businessId } = req.user;
+    const { handle } = req.body as { handle?: unknown };
+    if (handle !== null && handle !== undefined && typeof handle !== 'string') {
+      throw new ValidationError('Perfil do Instagram inválido');
+    }
+    const normalizado = normalizarInstagram(typeof handle === 'string' ? handle : '');
+    await prisma.business.update({ where: { id: businessId! }, data: { instagramHandle: normalizado } });
+    sendSuccess(res, { handle: normalizado });
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.get('/config/menu', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {

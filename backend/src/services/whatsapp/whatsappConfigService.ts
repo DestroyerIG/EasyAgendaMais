@@ -5,7 +5,7 @@
 import { Prisma } from '@prisma/client';
 import logger from '../../utils/logger.js';
 import { prisma } from '../../config/prisma.js';
-import { DEFAULT_BOT_CONFIG, FALLBACK_BOT_CONFIG, DEFAULT_MENU_OPTIONS, BotConfig, MenuOption } from './whatsappConstants.js';
+import { DEFAULT_BOT_CONFIG, PROMOCOES_PADRAO_ANTIGO, FALLBACK_BOT_CONFIG, DEFAULT_MENU_OPTIONS, BotConfig, MenuOption } from './whatsappConstants.js';
 import { aplicarVocabulario } from './whatsappVocabulario.js';
 import { vocabularioDe } from '../../config/vocabulario.js';
 
@@ -59,7 +59,7 @@ const lerBotConfig = async (businessId: string): Promise<BotConfig> => {
         no_previous_appointments_message:  dbConfig.noPreviousAppointmentsMessage   ?? DEFAULT_BOT_CONFIG.no_previous_appointments_message,
         rating_question_message:           dbConfig.ratingQuestionMessage           ?? DEFAULT_BOT_CONFIG.rating_question_message,
         rating_confirmation_message:       dbConfig.ratingConfirmationMessage       ?? DEFAULT_BOT_CONFIG.rating_confirmation_message,
-        promotions_message:                dbConfig.promotionsMessage               ?? DEFAULT_BOT_CONFIG.promotions_message,
+        promotions_message:                (dbConfig.promotionsMessage === PROMOCOES_PADRAO_ANTIGO ? '' : dbConfig.promotionsMessage) ?? DEFAULT_BOT_CONFIG.promotions_message,
         instagram_message:                 dbConfig.instagramMessage                ?? DEFAULT_BOT_CONFIG.instagram_message,
         politica_message:                  dbConfig.politicaMessage                 ?? DEFAULT_BOT_CONFIG.politica_message,
       };

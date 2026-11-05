@@ -61,13 +61,13 @@ const FIELDS: FieldDef[] = [
 
   // Cancelamento
   { key: 'cancel_no_appointments_message', label: 'Sem Agendamentos para Cancelar', rows: 3, category: 'Cancelamento' },
-  { key: 'cancel_list_message', label: 'Lista de Agendamentos (Cancelar)', rows: 4, hint: 'Disponível: {lista_agendamentos}', category: 'Cancelamento' },
+  { key: 'cancel_list_message', label: 'Lista de Agendamentos (Cancelar)', rows: 4, category: 'Cancelamento' },
   { key: 'cancel_success_message', label: 'Cancelamento Confirmado', rows: 3, category: 'Cancelamento' },
   { key: 'politica_message', label: 'Política de cancelamento e sinal', rows: 4, maxLength: 1000, hint: 'Usado na resposta rápida "Política" da central de conversas.', category: 'Cancelamento' },
 
   // Reagendamento
   { key: 'reschedule_no_appointments_message', label: 'Sem Agendamentos para Reagendar', rows: 3, category: 'Reagendamento' },
-  { key: 'reschedule_list_message', label: 'Lista de Agendamentos (Reagendar)', rows: 4, hint: 'Disponível: {lista_agendamentos}', category: 'Reagendamento' },
+  { key: 'reschedule_list_message', label: 'Lista de Agendamentos (Reagendar)', rows: 4, category: 'Reagendamento' },
 
   // Avaliação & Extras
   { key: 'no_previous_appointments_message', label: 'Sem Atendimentos Anteriores', rows: 3, category: 'Avaliação & Extras' },

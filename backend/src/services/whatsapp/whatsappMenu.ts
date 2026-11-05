@@ -3,6 +3,8 @@
  * A numeração enviada e a numeração interpretada saem da mesma lista.
  */
 
+import { prisma } from '../../config/prisma.js';
+import { ValidationError } from '../../utils/errors.js';
 import { getMenuOptions, type MenuOptionRow } from './whatsappConfigService.js';
 import type { BotConfig } from './whatsappConstants.js';
 
@@ -10,6 +12,26 @@ export interface ContextoMenu {
   promocoes: string;
   instagramVisivel: boolean;
 }
+
+/** O Instagram aparece com perfil cadastrado, ou quando o texto não depende da variável. */
+export const instagramVisivel = (handle: string | null | undefined, mensagem: string): boolean => {
+  if (!mensagem || mensagem.trim() === '') return false;
+  if (handle && handle.trim() !== '') return true;
+  return !mensagem.includes('{instagram_handle}');
+};
+
+const PERFIL_INSTAGRAM = /^[a-zA-Z0-9._]{1,30}$/;
+
+/** Aceita `perfil`, `@perfil` ou URL do instagram.com e devolve `@perfil`. Vazio vira null. */
+export const normalizarInstagram = (entrada: string): string | null => {
+  let perfil = (entrada ?? '').trim();
+  if (perfil === '') return null;
+  const url = perfil.match(/^(?:https?:\/\/)?(?:www\.)?instagram\.com\/([^/?#\s]+)/i);
+  if (url) perfil = url[1];
+  perfil = perfil.replace(/^@/, '');
+  if (!PERFIL_INSTAGRAM.test(perfil)) throw new ValidationError('Perfil do Instagram inválido');
+  return `@${perfil}`;
+};
 
 export const opcoesVisiveis = (options: MenuOptionRow[], ctx: ContextoMenu): MenuOptionRow[] =>
   options
@@ -29,9 +51,11 @@ export const carregarMenuVisivel = async (
   config: BotConfig,
 ): Promise<MenuOptionRow[]> => {
   const options = await getMenuOptions(businessId);
-  // instagramVisivel fica fixo em true até a Task 2 definir a regra.
+  const negocio = await prisma.business
+    .findFirst({ where: { id: businessId }, select: { instagramHandle: true } })
+    .catch(() => null);
   return opcoesVisiveis(options ?? [], {
     promocoes: config?.promotions_message ?? '',
-    instagramVisivel: true,
+    instagramVisivel: instagramVisivel(negocio?.instagramHandle, config?.instagram_message ?? ''),
   });
 };

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { opcoesVisiveis, resolverEscolha } from '../services/whatsapp/whatsappMenu.js';
+import { opcoesVisiveis, resolverEscolha, instagramVisivel, normalizarInstagram } from '../services/whatsapp/whatsappMenu.js';
+import { DEFAULT_BOT_CONFIG } from '../services/whatsapp/whatsappConstants.js';
 import type { MenuOptionRow } from '../services/whatsapp/whatsappConfigService.js';
 
 const op = (order: number, handler: string, active = true) =>
@@ -20,5 +21,18 @@ describe('whatsappMenu', () => {
     const v = opcoesVisiveis([op(1, 'schedule')], ctx);
     expect(resolverEscolha(v, 0)).toBeNull();
     expect(resolverEscolha(v, 2)).toBeNull();
+  });
+  it('mostra Instagram com perfil ou com texto próprio sem a variável', () => {
+    expect(instagramVisivel('@loja', DEFAULT_BOT_CONFIG.instagram_message)).toBe(true);
+    expect(instagramVisivel(null, DEFAULT_BOT_CONFIG.instagram_message)).toBe(false);
+    expect(instagramVisivel(null, 'Siga @loja')).toBe(true);
+    expect(instagramVisivel(null, 'Siga {instagram_handle}')).toBe(false);
+  });
+  it('normaliza o perfil', () => {
+    expect(normalizarInstagram('https://instagram.com/loja.x/')).toBe('@loja.x');
+    expect(normalizarInstagram(' loja ')).toBe('@loja');
+    expect(normalizarInstagram('@loja')).toBe('@loja');
+    expect(normalizarInstagram('')).toBeNull();
+    expect(() => normalizarInstagram('com espaço')).toThrow();
   });
 });

@@ -26,6 +26,8 @@ interface MenuOptionsPanelProps {
   onCreate: (data: { label: string; emoji: string; response_message: string }) => void;
   onReorder: (ids: string[]) => void;
   onReset: () => void;
+  instagramHandle?: string | null;
+  onSalvarInstagram?: (handle: string | null) => void;
 }
 
 type ModalState = { mode: 'create' } | { mode: 'edit'; target: MenuOption } | null;
@@ -40,11 +42,14 @@ export const MenuOptionsPanel = ({
   onCreate,
   onReorder,
   onReset,
+  instagramHandle = null,
+  onSalvarInstagram,
 }: MenuOptionsPanelProps) => {
   const [modalState, setModalState] = useState<ModalState>(null);
   const [formLabel, setFormLabel] = useState('');
   const [formEmoji, setFormEmoji] = useState('');
   const [formResponse, setFormResponse] = useState('');
+  const [formInstagram, setFormInstagram] = useState('');
 
   const openCreateModal = () => {
     setFormLabel('');
@@ -57,6 +62,7 @@ export const MenuOptionsPanel = ({
     setFormLabel(opt.label);
     setFormEmoji(opt.emoji);
     setFormResponse(opt.response_message || '');
+    setFormInstagram(instagramHandle ?? '');
     setModalState({ mode: 'edit', target: opt });
   };
 
@@ -80,6 +86,9 @@ export const MenuOptionsPanel = ({
       updates.response_message = formResponse;
     }
     if (Object.keys(updates).length > 0) onUpdate(opt.id, updates);
+    if (opt.handler === 'instagram' && onSalvarInstagram && formInstagram.trim() !== (instagramHandle ?? '')) {
+      onSalvarInstagram(formInstagram.trim() === '' ? null : formInstagram.trim());
+    }
     closeModal();
   };
 
@@ -251,6 +260,18 @@ export const MenuOptionsPanel = ({
                 onChange={e => setFormResponse(e.target.value)}
                 placeholder="Mensagem que o bot enviará quando o cliente escolher esta opção..."
                 rows={3}
+              />
+            </Field>
+          )}
+          {editingTarget?.handler === 'instagram' && (
+            <Field id="menu-option-instagram" label="Perfil do Instagram">
+              <Input
+                id="menu-option-instagram"
+                type="text"
+                value={formInstagram}
+                onChange={e => setFormInstagram(e.target.value)}
+                placeholder="@seuperfil"
+                maxLength={60}
               />
             </Field>
           )}
