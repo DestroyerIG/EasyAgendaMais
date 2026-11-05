@@ -35,7 +35,7 @@ Atualizado em 27/10/2026.
 | Asaas | Asaas como único meio de cobrança (sai o Stripe) e teste de 7 ou 14 dias | ✅ Concluída (juntada e migrada em 04/11) | PR #26 |
 | Salão | Plano Salão sob consulta, com valor combinado por negócio no SuperAdmin | ✅ Concluída (sem migração) | PR #27 |
 | Segurança | `/billing/status` deixa de expor o token do cartão | ✅ Concluída (sem migração) | PR #28 |
-| Busca | Busca geral do painel: clientes, agendamentos e telas, no computador e no celular | ✅ Implementada (sem migração), aguarda o merge do dono | Branch `feat/busca-geral` |
+| Busca | Busca geral do painel: clientes, agendamentos e telas, no computador e no celular | ✅ Concluída (juntada em 05/11, sem migração) | PR #41 |
 
 ## Fase 7 (concluída)
 
