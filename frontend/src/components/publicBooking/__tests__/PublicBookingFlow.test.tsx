@@ -50,16 +50,18 @@ beforeEach(() => {
 const clickContinuar = async (user: ReturnType<typeof userEvent.setup>) =>
   user.click(screen.getByRole('button', { name: 'Continuar' }));
 
-const goToProfessionalStep = async (user: ReturnType<typeof userEvent.setup>) => {
+const EQUIPE = [{ id: 'prof-1', name: 'Paula' }, { id: 'prof-2', name: 'Bruna' }];
+
+const goToServiceStep = async (user: ReturnType<typeof userEvent.setup>) => {
   render(<PublicBookingFlow slug="studio-aurora" />);
-  await user.click(await screen.findByText('Manutenção Fibra'));
-  await clickContinuar(user);
+  await user.click(await screen.findByRole('button', { name: 'Agendar horário' }));
 };
 
 const goToTimeStep = async (user: ReturnType<typeof userEvent.setup>) => {
-  await goToProfessionalStep(user);
-  await user.click(await screen.findByText('Paula'));
+  await goToServiceStep(user);
+  await user.click(await screen.findByText('Manutenção Fibra'));
   await clickContinuar(user);
+  await screen.findByLabelText('Data do agendamento');
 };
 
 const goToPagamentoStep = async (user: ReturnType<typeof userEvent.setup>) => {
@@ -80,11 +82,11 @@ describe('PublicBookingFlow', () => {
   it('mostra o nome do negócio e os serviços elegíveis ao carregar', async () => {
     render(<PublicBookingFlow slug="studio-aurora" />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Studio Aurora')).toBeInTheDocument();
-    });
-    expect(screen.getByText('Manutenção Fibra')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Studio Aurora' })).toBeInTheDocument();
     expect(publicBookingApi.getStorefront).toHaveBeenCalledWith('studio-aurora');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Agendar horário' }));
+    expect(await screen.findByText('Manutenção Fibra')).toBeInTheDocument();
   });
 
   it('mostra uma mensagem quando o negócio não tem nenhum serviço elegível', async () => {
@@ -93,6 +95,7 @@ describe('PublicBookingFlow', () => {
     render(<PublicBookingFlow slug="studio-aurora" />);
 
     expect(await screen.findByText(/nenhum serviço disponível para agendamento online/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Agendar horário' })).not.toBeInTheDocument();
   });
 
   it('mostra as fotos da galeria quando o negócio tem', async () => {
@@ -111,7 +114,7 @@ describe('PublicBookingFlow', () => {
   it('não mostra a galeria quando o negócio não tem fotos', async () => {
     render(<PublicBookingFlow slug="studio-aurora" />);
 
-    await waitFor(() => expect(screen.getByText('Studio Aurora')).toBeInTheDocument());
+    await screen.findByRole('heading', { name: 'Studio Aurora' });
     expect(screen.queryAllByRole('img')).toHaveLength(0);
   });
 
@@ -130,12 +133,12 @@ describe('PublicBookingFlow', () => {
   it('não mostra o bloco de localização sem endereço cadastrado', async () => {
     render(<PublicBookingFlow slug="studio-aurora" />);
 
-    await waitFor(() => expect(screen.getByText('Studio Aurora')).toBeInTheDocument());
+    await screen.findByRole('heading', { name: 'Studio Aurora' });
     expect(screen.queryByTitle('Localização do negócio')).not.toBeInTheDocument();
   });
 
   it('exige selecionar um serviço antes de habilitar Continuar', async () => {
-    render(<PublicBookingFlow slug="studio-aurora" />);
+    await goToServiceStep(userEvent.setup());
     await screen.findByText('Manutenção Fibra');
 
     expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
@@ -144,7 +147,7 @@ describe('PublicBookingFlow', () => {
   it('mostra erro visível quando falha ao carregar os profissionais', async () => {
     const user = userEvent.setup();
     api.getProfessionals.mockRejectedValue(new Error('falhou'));
-    render(<PublicBookingFlow slug="studio-aurora" />);
+    await goToServiceStep(user);
 
     await user.click(await screen.findByText('Manutenção Fibra'));
     await clickContinuar(user);
@@ -157,8 +160,6 @@ describe('PublicBookingFlow', () => {
     const user = userEvent.setup();
     api.getAvailability.mockRejectedValue(new Error('falhou'));
     await goToTimeStep(user);
-
-    fireEvent.change(screen.getByLabelText('Data do agendamento'), { target: { value: '2099-10-24' } });
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Não foi possível carregar os horários disponíveis. Tente novamente.'
@@ -229,7 +230,7 @@ describe('PublicBookingFlow', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Escolha outro horário');
     expect(screen.getByLabelText('Data do agendamento')).toBeInTheDocument();
-    expect(api.getAvailability).toHaveBeenCalledTimes(2);
+    expect(api.getAvailability).toHaveBeenCalledTimes(3); // hoje, a data escolhida e a lista atualizada
   });
 
   it('em outros erros na reserva mostra a mensagem do servidor', async () => {
@@ -277,5 +278,108 @@ describe('PublicBookingFlow', () => {
         clientName: 'Mariana', clientPhone: '83999990000', whatsappConsent: true,
       }),
     );
+  });
+
+  it('abre no perfil com a marca da plataforma e o WhatsApp do negócio', async () => {
+    api.getStorefront.mockResolvedValueOnce({ ...STOREFRONT, whatsapp: '83999990000' });
+
+    render(<PublicBookingFlow slug="studio-aurora" />);
+
+    expect(await screen.findByRole('link', { name: /tirar dúvidas no whatsapp/i })).toHaveAttribute('href', 'https://wa.me/5583999990000');
+    expect(screen.getByText('Agendamento por EasyAgenda+')).toBeInTheDocument();
+    expect(screen.queryByText('Manutenção Fibra')).not.toBeInTheDocument();
+  });
+
+  it('aplica a cor do negócio com texto legível sobre ela', async () => {
+    api.getStorefront.mockResolvedValueOnce({ ...STOREFRONT, brandColor: '#1B3A6B' });
+
+    render(<PublicBookingFlow slug="studio-aurora" />);
+
+    const botao = await screen.findByRole('button', { name: 'Agendar horário' });
+    const casca = botao.closest('[style*="--color-brand"]') as HTMLElement;
+    expect(casca.style.getPropertyValue('--color-brand')).toBe('27 58 107');
+    expect(casca.style.getPropertyValue('--color-on-brand')).toBe('255 255 255');
+  });
+
+  it('com uma profissional só pula a escolha e conta 3 etapas', async () => {
+    const user = userEvent.setup();
+    await goToServiceStep(user);
+
+    expect(await screen.findByText('Etapa 1 de 3')).toBeInTheDocument();
+    await user.click(await screen.findByText('Manutenção Fibra'));
+    await clickContinuar(user);
+
+    expect(await screen.findByText('Etapa 2 de 3')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /escolha a profissional/i })).not.toBeInTheDocument();
+    await waitFor(() => expect(api.getAvailability).toHaveBeenCalledWith('studio-aurora', {
+      serviceId: 'srv-1', professionalId: 'prof-1', date: todayIso(),
+    }));
+  });
+
+  it('com duas ou mais profissionais mostra a escolha e conta 4 etapas', async () => {
+    const user = userEvent.setup();
+    api.getProfessionals.mockResolvedValue(EQUIPE);
+    await goToServiceStep(user);
+
+    expect(await screen.findByText('Etapa 1 de 4')).toBeInTheDocument();
+    await user.click(await screen.findByText('Manutenção Fibra'));
+    await clickContinuar(user);
+
+    expect(await screen.findByRole('heading', { name: /escolha a profissional/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
+    await user.click(screen.getByText('Bruna'));
+    await clickContinuar(user);
+
+    expect(await screen.findByText('Etapa 3 de 4')).toBeInTheDocument();
+    await waitFor(() => expect(api.getAvailability).toHaveBeenCalledWith('studio-aurora', expect.objectContaining({ professionalId: 'prof-2' })));
+  });
+
+  it('avisa quando o negócio não tem profissional para atender', async () => {
+    const user = userEvent.setup();
+    api.getProfessionals.mockResolvedValue([]);
+    await goToServiceStep(user);
+
+    await user.click(await screen.findByText('Manutenção Fibra'));
+    await clickContinuar(user);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('agendamento online está indisponível');
+  });
+
+  it('escolhe o dia pela faixa e mostra o término previsto do horário', async () => {
+    const user = userEvent.setup();
+    await goToTimeStep(user);
+    const amanha = new Date();
+    amanha.setDate(amanha.getDate() + 1);
+
+    await user.click(screen.getAllByRole('button', { pressed: false }).find((b) => b.textContent?.includes(String(amanha.getDate()))) as HTMLElement);
+    await user.click(await screen.findByRole('button', { name: '14:00' }));
+
+    expect(api.getAvailability).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('15:45')).toBeInTheDocument(); // 14:00 + 1h45
+  });
+
+  it('ignora a resposta antiga quando a cliente troca de dia antes dela chegar', async () => {
+    const user = userEvent.setup();
+    await goToTimeStep(user);
+    let responderAntiga: (horarios: string[]) => void = () => undefined;
+    api.getAvailability.mockReturnValueOnce(new Promise((resolve) => { responderAntiga = resolve; }));
+    api.getAvailability.mockResolvedValueOnce(['16:00']);
+
+    fireEvent.change(screen.getByLabelText('Data do agendamento'), { target: { value: '2099-10-24' } });
+    fireEvent.change(screen.getByLabelText('Data do agendamento'), { target: { value: '2099-10-25' } });
+    await screen.findByRole('button', { name: '16:00' });
+    responderAntiga(['08:00']);
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: '08:00' })).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: '16:00' })).toBeInTheDocument();
+  });
+
+  it('volta da etapa de pagamento para o horário sem perder a escolha', async () => {
+    const user = userEvent.setup();
+    await goToPagamentoStep(user);
+
+    await user.click(screen.getByRole('button', { name: 'Voltar' }));
+
+    expect(screen.getByRole('button', { name: '14:00' })).toHaveAttribute('aria-pressed', 'true');
   });
 });
