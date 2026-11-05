@@ -298,6 +298,15 @@ Resolvidos em 05/11, no branch `fix/ajustes-depoimentos-visual`:
 - Fechar o pop-up pelo X ou pelo Esc não adia o pedido: ele volta na sessão seguinte.
 - Depoimento retirado continua com `autorizou = true` no banco. É inofensivo, porque a rota pública exige `status = publicado`.
 
+## Busca geral, pendências conhecidas
+
+Spec em `docs/superpowers/specs/2026-11-05-busca-geral-design.md`. Sem migração.
+
+- **Fora desta entrega:** conversas e disparos do WhatsApp, comandas, lançamentos do caixa, pacotes do Clube e buscas recentes.
+- **Tamanho da base:** a rota lê as clientes ativas do negócio a cada pedido e filtra no Node. Se algum negócio passar de cerca de 20 mil clientes, troque por `unaccent` e `pg_trgm`, sem mudar a resposta da rota.
+- **Limite por IP:** o limitador de `backend/src/modules/core/middleware/security.ts` (120 pedidos por minuto, por IP, antes do login) ainda conta a busca. É folgado com a espera de 250 ms, mas vale olhar se um salão com muitas pessoas no mesmo IP receber 429.
+- **Pequenos ajustes de acessibilidade e testes, sem efeito para quem usa hoje:** região `aria-live` que nasce com texto, `safe-area-inset-top` na busca do celular, `focus-visible` na lupa e `router` fora das dependências do efeito em `AppointmentModule.tsx`.
+
 ## Infraestrutura
 
 - **Resolvido em 05/11:** o RLS foi ligado nas 14 tabelas que ficaram sem ele (comissões, clube, app do profissional e Google Agenda), pela migração `20261106120000_rls_tabelas_restantes` (PR #37). Só a `_prisma_migrations` segue sem RLS, de propósito. Roteiro em `docs/design/rls-tabelas-restantes.md`.
