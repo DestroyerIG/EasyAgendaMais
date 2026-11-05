@@ -95,6 +95,31 @@ describe('SuperAdmin Depoimentos', { timeout: 30000 }, () => {
     );
   });
 
+  it('o editor fecha depois de salvar a correção', async () => {
+    render(<DepoimentosPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Corrigir texto' }));
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Texto corrigido com mais de vinte caracteres.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar correção' }));
+    expect(await screen.findByRole('button', { name: 'Publicar' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Salvar correção' })).not.toBeInTheDocument();
+  });
+
+  it('o editor continua aberto se a correção falhar', async () => {
+    adminApi.corrigirDepoimento.mockRejectedValue({ response: { data: { error: 'Este depoimento já foi tratado.' } } });
+    render(<DepoimentosPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Corrigir texto' }));
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Texto corrigido com mais de vinte caracteres.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar correção' }));
+    expect(await screen.findByText('Este depoimento já foi tratado.')).toBeInTheDocument();
+    await waitFor(() => expect(adminApi.listarDepoimentos).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('button', { name: 'Salvar correção' })).toBeInTheDocument();
+  });
+
+  it('o card mostra o nome do plano, não o id', async () => {
+    render(<DepoimentosPage />);
+    expect(await screen.findByText('Carla S. · Campina Grande · Equipe')).toBeInTheDocument();
+  });
+
   it('mostra o erro do servidor (409) e recarrega', async () => {
     adminApi.publicarDepoimento.mockRejectedValue({ response: { data: { error: 'Este depoimento já foi tratado.' } } });
     render(<DepoimentosPage />);

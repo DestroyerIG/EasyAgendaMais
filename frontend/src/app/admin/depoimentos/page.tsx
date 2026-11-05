@@ -5,6 +5,7 @@ import { Banner, Button, Icon, Tabs, TabsList, TabsTrigger, Textarea } from '@/c
 import { CAIXA } from '@/components/admin/formato';
 import { adminApi } from '@/lib/adminApi';
 import { cn } from '@/lib/cn';
+import { rotuloPlano } from '@/lib/adminRotulos';
 import { formatDataNegocio } from '@/lib/formatters';
 import type { AbaDepoimentos, DepoimentoAdmin } from '@/types/admin';
 
@@ -41,7 +42,8 @@ interface CardProps {
   ocupado: boolean;
   onPublicar: () => void;
   onRecusar: () => void;
-  onCorrigir: (texto: string) => void;
+  /** Resolve com true quando a correção foi salva. */
+  onCorrigir: (texto: string) => Promise<boolean>;
 }
 
 function CardDepoimento({ depoimento: d, comAcoes, ocupado, onPublicar, onRecusar, onCorrigir }: CardProps) {
@@ -49,7 +51,11 @@ function CardDepoimento({ depoimento: d, comAcoes, ocupado, onPublicar, onRecusa
   const [rascunho, setRascunho] = useState(d.texto);
   const tamanho = rascunho.trim().length;
   const valido = tamanho >= TEXTO_MIN && tamanho <= TEXTO_MAX;
-  const quem = [d.nomeExibido, d.cidade, d.plano].filter(Boolean).join(' · ');
+  const quem = [d.nomeExibido, d.cidade, d.plano ? rotuloPlano(d.plano) : null].filter(Boolean).join(' · ');
+
+  const salvarCorrecao = async () => {
+    if (await onCorrigir(rascunho.trim())) setEditando(false);
+  };
 
   return (
     <article className={cn(CAIXA, 'space-y-3 p-5')}>
@@ -92,7 +98,7 @@ function CardDepoimento({ depoimento: d, comAcoes, ocupado, onPublicar, onRecusa
         <div className="flex flex-wrap gap-2 pt-1">
           {editando ? (
             <>
-              <Button size="sm" disabled={!valido || ocupado} onClick={() => onCorrigir(rascunho.trim())}>
+              <Button size="sm" disabled={!valido || ocupado} onClick={salvarCorrecao}>
                 Salvar correção
               </Button>
               <Button
@@ -158,13 +164,15 @@ export default function AdminDepoimentosPage() {
     void carregar(aba);
   }, [aba, carregar]);
 
-  const executar = async (id: string, acao: () => Promise<void>) => {
+  const executar = async (id: string, acao: () => Promise<void>): Promise<boolean> => {
     setOcupadoId(id);
     setErro(null);
     try {
       await acao();
+      return true;
     } catch (e) {
       setErro(mensagemDeErro(e));
+      return false;
     } finally {
       await carregar(aba);
       setOcupadoId(null);
