@@ -86,3 +86,41 @@ describe('ServiceProfessionalModal (profissional)', () => {
     })));
   });
 });
+
+describe('ServiceProfessionalModal (serviço)', () => {
+  const renderServico = (onSubmitService: () => Promise<void>, editingItem: never | null = null) =>
+    render(
+      <ToastProvider>
+        <ServiceProfessionalModal
+          isOpen
+          onClose={vi.fn()}
+          onSubmitService={onSubmitService}
+          onSubmitProfessional={vi.fn()}
+          activeTab="servicos"
+          editingItem={editingItem}
+        />
+      </ToastProvider>,
+    );
+
+  it('envia a descrição do serviço', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    renderServico(onSubmit);
+
+    await user.type(screen.getByLabelText('Nome do Serviço'), 'Corte');
+    await user.type(screen.getByLabelText('Preço (R$)'), '50');
+    await user.type(screen.getByLabelText('Duração (Min)'), '30');
+    await user.type(screen.getByLabelText('Descrição'), 'Inclui lavagem');
+    await user.click(screen.getByRole('button', { name: /salvar/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ description: 'Inclui lavagem' })));
+  });
+
+  it('carrega a descrição ao editar', () => {
+    renderServico(vi.fn(), {
+      id: 's1', name: 'Corte', price: 50, duration_minutes: 30, deposit_percentage: null, description: 'Inclui lavagem',
+    } as never);
+
+    expect(screen.getByLabelText('Descrição')).toHaveValue('Inclui lavagem');
+  });
+});

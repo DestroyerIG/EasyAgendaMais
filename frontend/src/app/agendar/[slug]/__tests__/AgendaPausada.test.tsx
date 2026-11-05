@@ -8,7 +8,9 @@ vi.mock('@/lib/publicBooking', () => ({
   publicBookingApi: {
     getStorefront: vi.fn(),
     getProfessionals: vi.fn(),
-    getAvailability: vi.fn(),
+    getAvailabilityGrid: vi.fn(),
+    getAvailabilityDays: vi.fn(),
+    getAppointmentStatus: vi.fn(),
     createAppointment: vi.fn(),
   },
 }));

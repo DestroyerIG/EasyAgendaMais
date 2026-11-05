@@ -22,7 +22,7 @@ export const serviceRepository = {
     });
   },
 
-  async create(data: { business_id: string; name: string; price: number; duration_minutes: number; depositPercentage?: number }) {
+  async create(data: { business_id: string; name: string; price: number; duration_minutes: number; depositPercentage?: number; description?: string }) {
     return prisma.service.create({
       data: {
         businessId: data.business_id,
@@ -30,11 +30,12 @@ export const serviceRepository = {
         price: data.price,
         durationMinutes: data.duration_minutes,
         depositPercentage: data.depositPercentage ?? null,
+        description: data.description || null,
       },
     });
   },
 
-  async update(id: string, businessId: string, data: { name: string; price: number; duration_minutes: number; depositPercentage?: number }) {
+  async update(id: string, businessId: string, data: { name: string; price: number; duration_minutes: number; depositPercentage?: number; description?: string }) {
     const result = await prisma.service.updateMany({
       where: { id, businessId },
       data: {
@@ -42,6 +43,7 @@ export const serviceRepository = {
         price: data.price,
         durationMinutes: data.duration_minutes,
         ...(data.depositPercentage !== undefined && { depositPercentage: data.depositPercentage }),
+        ...(data.description !== undefined && { description: data.description || null }),
       },
     });
     if (result.count === 0) return null;

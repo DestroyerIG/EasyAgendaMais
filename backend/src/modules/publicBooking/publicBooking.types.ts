@@ -6,6 +6,10 @@ export const GetPublicAvailabilitySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
+export const GetPublicDaysSchema = GetPublicAvailabilitySchema.omit({ date: true });
+
+export const PublicAppointmentParamsSchema = z.object({ slug: z.string(), id: z.string().uuid() });
+
 export const CreatePublicAppointmentSchema = z.object({
   serviceId: z.string().uuid(),
   professionalId: z.string().uuid(),
@@ -18,6 +22,7 @@ export const CreatePublicAppointmentSchema = z.object({
 });
 
 export type GetPublicAvailabilityQuery = z.infer<typeof GetPublicAvailabilitySchema>;
+export type GetPublicDaysQuery = z.infer<typeof GetPublicDaysSchema>;
 export type CreatePublicAppointmentInput = z.infer<typeof CreatePublicAppointmentSchema>;
 
 export interface StorefrontService {
@@ -27,6 +32,7 @@ export interface StorefrontService {
   durationMinutes: number;
   depositPercentage: number;
   depositAmount: number;
+  descricao: string | null;
 }
 
 import type { Vocabulario } from '../../config/vocabulario.js';
@@ -38,6 +44,11 @@ export interface Storefront {
   brandColor: string | null;
   galleryPhotos: string[];
   address: string | null;
+  coverUrl: string | null;
+  descricao: string | null;
+  comodidades: string[];
+  nota: { media: number; quantidade: number } | null;
+  atendeHojeAte: string | null;
   whatsapp: string | null;
   agendaPausada: boolean;
   services: StorefrontService[];

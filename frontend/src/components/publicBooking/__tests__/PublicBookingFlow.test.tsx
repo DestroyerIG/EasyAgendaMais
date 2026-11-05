@@ -4,13 +4,16 @@ import { AxiosError, type AxiosResponse } from 'axios';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { PublicBookingFlow } from '../PublicBookingFlow';
 import { publicBookingApi } from '@/lib/publicBooking';
+import { dataPorExtenso } from '@/lib/agendamentoPublico';
 
 vi.mock('@/components/clube/AdesaoClube', () => ({ ClubeVitrine: () => null }));
 vi.mock('@/lib/publicBooking', () => ({
   publicBookingApi: {
     getStorefront: vi.fn(),
     getProfessionals: vi.fn(),
-    getAvailability: vi.fn(),
+    getAvailabilityGrid: vi.fn(),
+    getAvailabilityDays: vi.fn(),
+    getAppointmentStatus: vi.fn(),
     createAppointment: vi.fn(),
   },
 }));
@@ -40,11 +43,14 @@ const todayIso = () => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 };
 
+const HORARIOS = ['09:00', '14:00', '14:30'].map((horario) => ({ horario, livre: true }));
+
 beforeEach(() => {
   vi.clearAllMocks();
   api.getStorefront.mockResolvedValue(STOREFRONT);
   api.getProfessionals.mockResolvedValue([{ id: 'prof-1', name: 'Paula' }]);
-  api.getAvailability.mockResolvedValue(['09:00', '14:00', '14:30']);
+  api.getAvailabilityGrid.mockResolvedValue(HORARIOS);
+  api.getAvailabilityDays.mockResolvedValue([{ date: todayIso(), vagas: 3 }]);
 });
 
 const clickContinuar = async (user: ReturnType<typeof userEvent.setup>) =>
@@ -158,7 +164,7 @@ describe('PublicBookingFlow', () => {
 
   it('mostra erro visível quando falha ao carregar os horários', async () => {
     const user = userEvent.setup();
-    api.getAvailability.mockRejectedValue(new Error('falhou'));
+    api.getAvailabilityGrid.mockRejectedValue(new Error('falhou'));
     await goToTimeStep(user);
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -230,7 +236,7 @@ describe('PublicBookingFlow', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Escolha outro horário');
     expect(screen.getByLabelText('Data do agendamento')).toBeInTheDocument();
-    expect(api.getAvailability).toHaveBeenCalledTimes(3); // hoje, a data escolhida e a lista atualizada
+    expect(api.getAvailabilityGrid).toHaveBeenCalledTimes(3); // hoje, a data escolhida e a lista atualizada
   });
 
   it('em outros erros na reserva mostra a mensagem do servidor', async () => {
@@ -311,7 +317,7 @@ describe('PublicBookingFlow', () => {
 
     expect(await screen.findByText('Etapa 2 de 3')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /escolha a profissional/i })).not.toBeInTheDocument();
-    await waitFor(() => expect(api.getAvailability).toHaveBeenCalledWith('studio-aurora', {
+    await waitFor(() => expect(api.getAvailabilityGrid).toHaveBeenCalledWith('studio-aurora', {
       serviceId: 'srv-1', professionalId: 'prof-1', date: todayIso(),
     }));
   });
@@ -331,7 +337,7 @@ describe('PublicBookingFlow', () => {
     await clickContinuar(user);
 
     expect(await screen.findByText('Etapa 3 de 4')).toBeInTheDocument();
-    await waitFor(() => expect(api.getAvailability).toHaveBeenCalledWith('studio-aurora', expect.objectContaining({ professionalId: 'prof-2' })));
+    await waitFor(() => expect(api.getAvailabilityGrid).toHaveBeenCalledWith('studio-aurora', expect.objectContaining({ professionalId: 'prof-2' })));
   });
 
   it('avisa quando o negócio não tem profissional para atender', async () => {
@@ -350,25 +356,26 @@ describe('PublicBookingFlow', () => {
     await goToTimeStep(user);
     const amanha = new Date();
     amanha.setDate(amanha.getDate() + 1);
+    const amanhaIso = `${amanha.getFullYear()}-${String(amanha.getMonth() + 1).padStart(2, '0')}-${String(amanha.getDate()).padStart(2, '0')}`;
 
-    await user.click(screen.getAllByRole('button', { pressed: false }).find((b) => b.textContent?.includes(String(amanha.getDate()))) as HTMLElement);
+    await user.click(screen.getByRole('button', { name: dataPorExtenso(amanhaIso) }));
     await user.click(await screen.findByRole('button', { name: '14:00' }));
 
-    expect(api.getAvailability).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(api.getAvailabilityGrid).toHaveBeenCalledWith('studio-aurora', expect.objectContaining({ date: amanhaIso })));
     expect(screen.getByText('15:45')).toBeInTheDocument(); // 14:00 + 1h45
   });
 
   it('ignora a resposta antiga quando a cliente troca de dia antes dela chegar', async () => {
     const user = userEvent.setup();
     await goToTimeStep(user);
-    let responderAntiga: (horarios: string[]) => void = () => undefined;
-    api.getAvailability.mockReturnValueOnce(new Promise((resolve) => { responderAntiga = resolve; }));
-    api.getAvailability.mockResolvedValueOnce(['16:00']);
+    let responderAntiga: (horarios: unknown[]) => void = () => undefined;
+    api.getAvailabilityGrid.mockReturnValueOnce(new Promise((resolve) => { responderAntiga = resolve; }));
+    api.getAvailabilityGrid.mockResolvedValueOnce([{ horario: '16:00', livre: true }]);
 
     fireEvent.change(screen.getByLabelText('Data do agendamento'), { target: { value: '2099-10-24' } });
     fireEvent.change(screen.getByLabelText('Data do agendamento'), { target: { value: '2099-10-25' } });
     await screen.findByRole('button', { name: '16:00' });
-    responderAntiga(['08:00']);
+    responderAntiga([{ horario: '08:00', livre: true }]);
 
     await waitFor(() => expect(screen.queryByRole('button', { name: '08:00' })).not.toBeInTheDocument());
     expect(screen.getByRole('button', { name: '16:00' })).toBeInTheDocument();
@@ -381,5 +388,125 @@ describe('PublicBookingFlow', () => {
     await user.click(screen.getByRole('button', { name: 'Voltar' }));
 
     expect(screen.getByRole('button', { name: '14:00' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('mostra capa, apresentação, comodidades, nota e horário de hoje no perfil', async () => {
+    api.getStorefront.mockResolvedValueOnce({
+      ...STOREFRONT, coverUrl: 'https://cdn.test/capa.jpg', descricao: 'Atendimento com hora marcada.',
+      comodidades: ['wifi', 'desconhecida'], nota: { media: 4.9, quantidade: 187 }, atendeHojeAte: '19:00',
+    });
+
+    const { container } = render(<PublicBookingFlow slug="studio-aurora" />);
+
+    expect(await screen.findByText('Atendimento com hora marcada.')).toBeInTheDocument();
+    expect(screen.getByText('Wi-Fi')).toBeInTheDocument();
+    expect(screen.getByText('4,9')).toBeInTheDocument();
+    expect(screen.getByText('(187)')).toBeInTheDocument();
+    expect(screen.getByText('Atende hoje até 19h')).toBeInTheDocument();
+    expect(container.querySelector('img[src="https://cdn.test/capa.jpg"]')).not.toBeNull();
+  });
+
+  it('sem nota e fora do horário mostra só o selo de agendamento online', async () => {
+    render(<PublicBookingFlow slug="studio-aurora" />);
+
+    expect(await screen.findByText('Agendamento online')).toBeInTheDocument();
+    expect(screen.queryByText(/atende hoje/i)).not.toBeInTheDocument();
+  });
+
+  it('mostra a descrição do serviço', async () => {
+    api.getStorefront.mockResolvedValueOnce({
+      ...STOREFRONT, services: [{ ...STOREFRONT.services[0], descricao: 'Inclui lavagem.' }],
+    });
+    await goToServiceStep(userEvent.setup());
+
+    expect(await screen.findByText('Inclui lavagem.')).toBeInTheDocument();
+  });
+
+  it('abre no primeiro dia com vaga e mostra as vagas na faixa', async () => {
+    const user = userEvent.setup();
+    const depois = new Date();
+    depois.setDate(depois.getDate() + 2);
+    const depoisIso = `${depois.getFullYear()}-${String(depois.getMonth() + 1).padStart(2, '0')}-${String(depois.getDate()).padStart(2, '0')}`;
+    api.getAvailabilityDays.mockResolvedValue([{ date: todayIso(), vagas: 0 }, { date: depoisIso, vagas: 1 }]);
+
+    await goToTimeStep(user);
+
+    await waitFor(() => expect(api.getAvailabilityGrid).toHaveBeenCalledWith('studio-aurora', expect.objectContaining({ date: depoisIso })));
+    expect(screen.getByText('Sem vagas')).toBeInTheDocument();
+    expect(screen.getByText('1 vaga')).toBeInTheDocument();
+  });
+
+  it('segue funcionando se a contagem de vagas falhar', async () => {
+    api.getAvailabilityDays.mockRejectedValue(new Error('falhou'));
+    await goToTimeStep(userEvent.setup());
+
+    expect(await screen.findByRole('button', { name: '14:00' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('mostra o horário ocupado riscado e sem permitir escolher', async () => {
+    api.getAvailabilityGrid.mockResolvedValue([{ horario: '09:00', livre: false }, { horario: '14:00', livre: true }]);
+    await goToTimeStep(userEvent.setup());
+
+    expect(await screen.findByRole('button', { name: /09:00 ocupado/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '14:00' })).toBeEnabled();
+  });
+
+  describe('depois do Pix', () => {
+    const RESERVA = { appointmentId: 'appt-1', depositAmount: 39, pixPayload: '000201PIX', expiresAt: new Date(2099, 1, 1).toISOString() };
+
+    const irAtePix = async () => {
+      const user = userEvent.setup();
+      api.createAppointment.mockResolvedValue(RESERVA);
+      await goToPixStep(user);
+      await screen.findByRole('button', { name: 'Copiar código' });
+      return user;
+    };
+    const voltarParaAPagina = () => fireEvent(document, new Event('visibilitychange'));
+
+    it('troca para a confirmação quando o dono confirma', async () => {
+      api.getAppointmentStatus.mockResolvedValue({ situacao: 'confirmado' });
+      await irAtePix();
+
+      voltarParaAPagina();
+
+      expect(await screen.findByRole('heading', { name: 'Agendamento confirmado!' })).toBeInTheDocument();
+      expect(screen.getByText(/Tudo certo, Mariana!/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /adicionar à agenda do celular/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Copiar código' })).not.toBeInTheDocument();
+      expect(api.getAppointmentStatus).toHaveBeenCalledWith('studio-aurora', 'appt-1');
+    });
+
+    it('continua aguardando se a consulta falhar', async () => {
+      api.getAppointmentStatus.mockRejectedValue(new Error('falhou'));
+      await irAtePix();
+
+      voltarParaAPagina();
+
+      await waitFor(() => expect(api.getAppointmentStatus).toHaveBeenCalled());
+      expect(screen.getByRole('button', { name: 'Copiar código' })).toBeInTheDocument();
+    });
+
+    it('avisa quando o prazo acaba e deixa escolher outro horário', async () => {
+      api.getAppointmentStatus.mockResolvedValue({ situacao: 'expirado' });
+      const user = await irAtePix();
+
+      voltarParaAPagina();
+
+      expect(await screen.findByRole('heading', { name: 'O prazo do Pix acabou' })).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Escolher outro horário' }));
+      expect(await screen.findByLabelText('Data do agendamento')).toBeInTheDocument();
+    });
+
+    it('volta ao perfil depois da confirmação, pronta para um novo agendamento', async () => {
+      api.getAppointmentStatus.mockResolvedValue({ situacao: 'confirmado' });
+      const user = await irAtePix();
+      voltarParaAPagina();
+
+      await user.click(await screen.findByRole('button', { name: 'Voltar para o perfil' }));
+
+      expect(await screen.findByRole('button', { name: 'Agendar horário' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Agendamento confirmado!' })).not.toBeInTheDocument();
+    });
   });
 });

@@ -36,6 +36,7 @@ vi.mock('../modules/appointments/appointments.repository.js', () => ({
 vi.mock('../services/scheduleSettingsService.js', () => ({
   getBusinessScheduleSettings: vi.fn(),
   generateAvailableTimeSlots: vi.fn(),
+  closesTodayAt: vi.fn().mockReturnValue(null),
 }));
 
 vi.mock('../modules/notifications/notifications.service.js', () => ({

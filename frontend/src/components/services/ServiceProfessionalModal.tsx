@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Modal, ModalFooter, Field, Input, Button } from '@/components/ui';
+import { Modal, ModalFooter, Field, Input, Textarea, Button } from '@/components/ui';
 import { Scissors, Camera, Save, X, Loader2 } from 'lucide-react';
 import type { Service, Professional } from '@/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -15,6 +15,7 @@ export interface ServiceFormData {
   price: string;
   duration_minutes: string;
   deposit_percentage: string;
+  description: string;
 }
 
 export interface ProfessionalFormData {
@@ -75,7 +76,7 @@ export const ServiceProfessionalModal = ({
   activeTab,
   editingItem,
 }: ServiceProfessionalModalProps) => {
-  const [serviceForm, setServiceForm] = useState<ServiceFormData>({ name: '', price: '', duration_minutes: '', deposit_percentage: '' });
+  const [serviceForm, setServiceForm] = useState<ServiceFormData>({ name: '', price: '', duration_minutes: '', deposit_percentage: '', description: '' });
   const [professionalForm, setProfessionalForm] = useState<ProfessionalFormState>(EMPTY_PROFESSIONAL);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>('');
@@ -96,9 +97,10 @@ export const ServiceProfessionalModal = ({
           price: editingItem.price.toString(),
           duration_minutes: editingItem.duration_minutes.toString(),
           deposit_percentage: editingItem.deposit_percentage != null ? editingItem.deposit_percentage.toString() : '',
+          description: editingItem.description ?? '',
         });
       } else {
-        setServiceForm({ name: '', price: '', duration_minutes: '', deposit_percentage: '' });
+        setServiceForm({ name: '', price: '', duration_minutes: '', deposit_percentage: '', description: '' });
       }
     } else {
       if (editingItem && 'photo' in editingItem) {
@@ -293,6 +295,16 @@ export const ServiceProfessionalModal = ({
                 value={serviceForm.deposit_percentage}
                 onChange={e => setServiceForm({ ...serviceForm, deposit_percentage: e.target.value })}
                 placeholder="Opcional — ex: 30"
+              />
+            </Field>
+            <Field id="service-description" label="Descrição" hint="Aparece na sua página pública. Até 255 caracteres.">
+              <Textarea
+                id="service-description"
+                value={serviceForm.description}
+                maxLength={255}
+                onChange={e => setServiceForm({ ...serviceForm, description: e.target.value })}
+                placeholder="Opcional — ex: Inclui lavagem e finalização"
+                rows={2}
               />
             </Field>
           </>

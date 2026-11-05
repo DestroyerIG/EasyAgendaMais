@@ -172,3 +172,27 @@ describe('businessPublicPageService.uploadImage', () => {
     ).rejects.toThrow('Falha ao enviar imagem: bucket not found');
   });
 });
+
+describe('UpdatePublicPageSchema — campos da página pública', () => {
+  const parse = (body: Record<string, unknown>) => UpdatePublicPageSchema.safeParse(body);
+
+  it('aceita só comodidades da lista', () => {
+    expect(parse({ comodidades: ['wifi', 'cafe'] }).success).toBe(true);
+    expect(parse({ comodidades: ['piscina'] }).success).toBe(false);
+  });
+
+  it('limita a apresentação a 500 caracteres', () => {
+    expect(parse({ description: 'a'.repeat(500) }).success).toBe(true);
+    expect(parse({ description: 'a'.repeat(501) }).success).toBe(false);
+  });
+
+  it('aceita remover a capa e recusa endereço que não é URL', () => {
+    expect(parse({ coverUrl: null }).success).toBe(true);
+    expect(parse({ coverUrl: 'capa.png' }).success).toBe(false);
+  });
+
+  it('exige booleano para mostrar a nota', () => {
+    expect(parse({ mostrarNota: true }).success).toBe(true);
+    expect(parse({ mostrarNota: 'sim' }).success).toBe(false);
+  });
+});

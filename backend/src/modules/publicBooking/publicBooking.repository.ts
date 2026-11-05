@@ -11,6 +11,7 @@ export const publicBookingRepository = {
       where: { slug, active: true },
       select: {
         id: true, name: true, logoUrl: true, brandColor: true, galleryPhotos: true, address: true, whatsapp: true, pixKey: true, pixKeyType: true,
+        coverUrl: true, description: true, comodidades: true, mostrarNota: true,
         settings: { select: { segment: true } },
       },
     });
@@ -22,7 +23,7 @@ export const publicBookingRepository = {
     // pública, pois um depósito de R$0 faz buildPixPayload lançar (amount <= 0).
     return prisma.service.findMany({
       where: { businessId, active: true, depositPercentage: { gt: 0 } },
-      select: { id: true, name: true, price: true, durationMinutes: true, depositPercentage: true },
+      select: { id: true, name: true, price: true, durationMinutes: true, depositPercentage: true, description: true },
     });
   },
 
@@ -44,6 +45,19 @@ export const publicBookingRepository = {
     return prisma.professional.findFirst({
       where: { id: professionalId, businessId, active: true },
       select: { id: true },
+    });
+  },
+
+  /** Média e quantidade de todas as avaliações do negócio (link e WhatsApp). */
+  async resumoDasNotas(businessId: string) {
+    const r = await prisma.whatsappRating.aggregate({ where: { businessId }, _avg: { rating: true }, _count: { _all: true } });
+    return { media: r._avg.rating, quantidade: r._count._all };
+  },
+
+  async findPublicAppointment(businessId: string, id: string) {
+    return prisma.appointment.findFirst({
+      where: { id, businessId, source: 'publico' },
+      select: { status: true, expiresAt: true },
     });
   },
 

@@ -5,6 +5,7 @@ export const createServiceSchema = z.object({
   price: z.number().positive('Preço deve ser positivo').multipleOf(0.01, 'Preço deve ter no máximo 2 casas decimais'),
   duration_minutes: z.number().int().min(10, 'Duração mínima é 10 minutos').max(300, 'Duração máxima é 300 minutos'),
   depositPercentage: z.number().min(0).max(100).optional(),
+  description: z.string().trim().max(255).optional(),
 });
 
 export const updateServiceSchema = createServiceSchema.partial();

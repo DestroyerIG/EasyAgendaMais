@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  dataCurta, dataPorExtenso, diaDaSemanaCurto, diaDoMes, formatarDuracao, horaDeTermino, mesEAno,
+  dataCurta, dataPorExtenso, diaDaSemanaCurto, diaDoMes, formatarDuracao, gerarIcs, horaCurta, horaDeTermino, mesEAno,
   proximosDias, separarPorPeriodo,
 } from '../agendamentoPublico';
 
@@ -29,9 +29,25 @@ describe('agendamentoPublico', () => {
   });
 
   it('separa os horários em manhã e tarde', () => {
-    expect(separarPorPeriodo(['09:00', '11:59', '12:00', '17:00'])).toEqual({
-      manha: ['09:00', '11:59'],
-      tarde: ['12:00', '17:00'],
+    const h = (horario: string) => ({ horario, livre: true });
+    expect(separarPorPeriodo([h('09:00'), h('11:59'), h('12:00'), h('17:00')])).toEqual({
+      manha: [h('09:00'), h('11:59')],
+      tarde: [h('12:00'), h('17:00')],
     });
+  });
+
+  it('encurta a hora do fechamento', () => {
+    expect(horaCurta('19:00')).toBe('19h');
+    expect(horaCurta('09:30')).toBe('9h30');
+  });
+
+  it('gera o evento de calendário com início, fim e texto escapado', () => {
+    const ics = gerarIcs({ titulo: 'Corte, barba', data: '2026-09-22', horario: '23:30', duracaoMinutos: 60, local: 'Rua A, 10' });
+
+    expect(ics).toContain('DTSTART:20260922T233000');
+    expect(ics).toContain('DTEND:20260923T003000');
+    expect(ics).toContain('SUMMARY:Corte\\, barba');
+    expect(ics).toContain('LOCATION:Rua A\\, 10');
+    expect(ics.split('\r\n')[0]).toBe('BEGIN:VCALENDAR');
   });
 });
