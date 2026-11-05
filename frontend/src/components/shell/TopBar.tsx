@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { cn } from '@/lib/cn';
 import { Avatar, Icon } from '@/components/ui';
 import {
   DropdownMenu,
@@ -12,7 +11,7 @@ import type { NavItemId } from '@/lib/navigation';
 import { notificationsApi } from '@/lib/notifications';
 import { AccountMenuContent } from './AccountMenu';
 import { NotificationsPanel } from './NotificationsPanel';
-import { useTopBarSearchConfig } from './TopBarSearchContext';
+import { BuscaGeral } from './BuscaGeral';
 
 const UNREAD_POLL_MS = 60_000;
 
@@ -49,44 +48,6 @@ export interface TopBarProps {
   onAvaliar?: () => void;
 }
 
-// Placeholder da busca por tela — vem do arquivo de referência de cada tela
-// (seção 0.3 do INVENTARIO.md: "placeholder variando por tela"); nas telas sem
-// export próprio usamos o genérico que ajustes-plano.html e hoje-desktop.html usam.
-const SEARCH_PLACEHOLDER: Partial<Record<NavItemId, string>> = {
-  agenda: 'Buscar agendamento ou cliente...',
-  clientes: 'Buscar cliente, agendamento ou telefone...',
-  whatsapp: 'Buscar conversa, cliente ou disparo...',
-};
-const DEFAULT_SEARCH_PLACEHOLDER = 'Buscar no sistema...';
-
-function TopBarSearch({ activeId, pageTitle }: { activeId: NavItemId | null; pageTitle: string }) {
-  const search = useTopBarSearchConfig();
-  const placeholder = (activeId && SEARCH_PLACEHOLDER[activeId]) || DEFAULT_SEARCH_PLACEHOLDER;
-
-  return (
-    <div className="relative hidden items-center sm:flex">
-      <Icon name="search" size={19} className="pointer-events-none absolute left-3 text-muted" />
-      {/* Um único <input>, sempre controlado (value nunca é undefined) — alternar entre
-          um <input> sem value (não controlado) e outro com value fazia o React avisar
-          "changing an uncontrolled input to be controlled" ao registrar a busca. */}
-      <input
-        type="text"
-        value={search?.value ?? ''}
-        onChange={search ? (event) => search.onChange(event.target.value) : undefined}
-        disabled={!search}
-        placeholder={placeholder}
-        title={search ? undefined : `A busca de ${pageTitle} chega junto com essa área.`}
-        className={cn(
-          'w-64 rounded-xl border border-line bg-surface-2 py-1.5 pl-9 pr-3.5 text-[13px] placeholder-muted transition-all',
-          search
-            ? 'text-ink focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
-            : 'cursor-not-allowed text-muted',
-        )}
-      />
-    </div>
-  );
-}
-
 export function TopBar({ activeId, pageTitle, businessName, roleLabel, onLogout, onAvaliar }: TopBarProps) {
   const [desktopAccountOpen, setDesktopAccountOpen] = useState(false);
   const [mobileAccountOpen, setMobileAccountOpen] = useState(false);
@@ -105,7 +66,7 @@ export function TopBar({ activeId, pageTitle, businessName, roleLabel, onLogout,
           <span className="font-semibold text-ink">{pageTitle}</span>
         </div>
         <div className="flex items-center gap-4">
-          <TopBarSearch activeId={activeId} pageTitle={pageTitle} />
+          <BuscaGeral />
           <DropdownMenu open={desktopNotificationsOpen} onOpenChange={setDesktopNotificationsOpen}>
             <DropdownMenuTrigger
               title="Notificações"

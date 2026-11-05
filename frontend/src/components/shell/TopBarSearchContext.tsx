@@ -5,6 +5,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 export interface TopBarSearchConfig {
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
 }
 
 interface TopBarSearchContextValue {
@@ -39,11 +40,12 @@ export function useRegisterTopBarSearch(config: TopBarSearchConfig | null): void
   const setConfig = ctx?.setConfig ?? null;
   const value = config?.value ?? null;
   const onChange = config?.onChange ?? null;
+  const placeholder = config?.placeholder;
 
   useEffect(() => {
     if (!setConfig) return;
-    setConfig(value !== null && onChange ? { value, onChange } : null);
+    setConfig(value !== null && onChange ? { value, onChange, placeholder } : null);
     return () => setConfig(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setConfig, value, onChange]);
+  }, [setConfig, value, onChange, placeholder]);
 }

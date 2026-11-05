@@ -4,6 +4,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TopBar } from '../TopBar';
 import { notificationsApi } from '@/lib/notifications';
 
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
+
 vi.mock('@/lib/notifications', () => ({
   notificationsApi: {
     unreadCount: vi.fn().mockResolvedValue(0),
