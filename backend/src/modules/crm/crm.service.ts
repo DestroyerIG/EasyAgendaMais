@@ -8,11 +8,10 @@ import { linhaCsv } from './csv.js';
 import { todayInTimezone, zonedToUtc } from '../../utils/businessDate.js';
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
 import { avatares } from '../whatsappAvatar/avatar.service.js';
+import { semAcento, digitos } from '../../utils/textoBusca.js';
 import { canonicalizePhone } from '../../services/whatsapp/utils/phoneUtils.js';
 
 const FASES: Fase[] = ['novo', 'recorrente', 'fiel', 'em_risco', 'perdido'];
-const semAcento = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-const digitos = (s: string) => s.replace(/\D/g, '');
 const br = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
 const CONSENT_ROTULO = { consentido: 'Consentido', revogado: 'Revogado', nao_informado: 'Não informado' } as const;
 const brl = (v: number) => v.toFixed(2).replace('.', ',');

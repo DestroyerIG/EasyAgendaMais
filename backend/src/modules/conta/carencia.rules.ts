@@ -28,6 +28,8 @@ const ESCRITAS_NA_CARENCIA = [
   // As rotas de notificação só marcam como lida. Hoje usam PUT; PATCH e POST ficam por compatibilidade.
   regra(['PUT', 'PATCH', 'POST'], '/notifications/read-all'),
   regra(['PUT', 'PATCH', 'POST'], '/notifications/:id/read'),
+  // A busca só lê: é POST para o termo não ir na URL.
+  regra(['POST'], '/busca'),
 ];
 
 /** `path` sem query string, com o prefixo /api/v1. */
