@@ -293,11 +293,12 @@ Sistema no ar desde 04/11 (PR #34, migração `20261105120000_depoimentos`). Env
 
 **Ajustes pequenos**
 
-- SuperAdmin → Depoimentos: o editor não fecha depois de "Salvar correção", e os botões só voltam ao recarregar a página. A correção é salva normalmente. Em `frontend/src/app/admin/depoimentos/page.tsx`, chamar `setEditando(false)` quando a correção der certo.
-- SuperAdmin → Depoimentos: o card mostra o id do plano ("profissional"), enquanto o dono vê "Plano Equipe". Na linha que monta `quem`, no mesmo arquivo, usar `rotuloPlano` de `frontend/src/lib/adminRotulos.ts`.
-- Menu da conta: a opção de tema "Escuro" passa da borda da caixa. O menu tem largura fixa (`w-[232px]` em `frontend/src/components/shell/AccountMenu.tsx`), que não comporta o `ThemeSelect`. Essa largura é anterior aos depoimentos.
-- `/nail-designers` ainda mostra um "Depoimento de exemplo" (`frontend/src/app/nail-designers/page.tsx`, perto da linha 239). Esconder como foi feito na landing, até existirem depoimentos reais do segmento.
-- `backend/src/__tests__/googleAgendaCrypto.test.ts`, teste "decifrar com dado adulterado lança": falha de vez em quando porque a troca dos 2 últimos caracteres por `AA` às vezes não muda o dado. O código de cifra está certo. Trocar por uma adulteração que sempre altere o dado, como inverter um byte.
+Resolvidos em 05/11, no branch `fix/ajustes-depoimentos-visual`:
+
+- SuperAdmin → Depoimentos: o editor fecha depois de salvar a correção e continua aberto se der erro. O card mostra o nome do plano ("Equipe").
+- Menu da conta: o seletor de tema tem a versão `compacto` (ícone sobre o texto). Os três menus usam 232 px, inclusive os dois da barra superior, que tinham 200 px. Conferido em 1280 px e 320 px.
+- `/nail-designers`: a seção do depoimento de exemplo saiu. Volta quando houver um depoimento real do segmento.
+- `googleAgendaCrypto.test.ts`: o teste de adulteração agora inverte um byte, então sempre altera o dado.
 
 **Para decidir**
 
