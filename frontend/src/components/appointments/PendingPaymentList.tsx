@@ -2,15 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { formatDateShort, formatTime } from '@/lib/dateUtils';
 import { getApiErrorMessage } from '@/utils/handleApiError';
+import type { Appointment } from '@/types';
 
-interface PendingAppointment {
-  id: string;
-  client: { name: string; phone: string };
-  service: { name: string };
-  date: string;
-  time: string;
-}
+// A rota devolve o DTO plano de `toAppointmentDto`, sem `client` nem `service` aninhados.
+type PendingAppointment = Pick<Appointment, 'id' | 'client_name' | 'service_name' | 'date' | 'time'>;
 
 export function PendingPaymentList() {
   const [items, setItems] = useState<PendingAppointment[]>([]);
@@ -74,8 +71,10 @@ export function PendingPaymentList() {
       {items.map((item) => (
         <div key={item.id} className="flex items-center justify-between rounded-card border border-line bg-surface p-4">
           <div>
-            <p className="font-bold text-ink">{item.client.name}</p>
-            <p className="text-sm text-muted">{item.service.name} · {item.date} {item.time}</p>
+            <p className="font-bold text-ink">{item.client_name}</p>
+            <p className="text-sm text-muted">
+              {item.service_name} · {formatDateShort(item.date.split('T')[0])} {formatTime(item.time)}
+            </p>
           </div>
           <button
             type="button"

@@ -11,9 +11,10 @@ vi.mock('@/lib/api', () => ({
       data: [
         {
           id: 'apt-1',
-          client: { name: 'Mariana', phone: '83999990000' },
-          service: { name: 'Manutenção' },
-          date: '2026-10-24',
+          client_name: 'Mariana',
+          client_phone: '83999990000',
+          service_name: 'Manutenção',
+          date: '2026-10-24T00:00:00',
           time: '14:00:00',
         },
       ],
@@ -23,6 +24,13 @@ vi.mock('@/lib/api', () => ({
 }));
 
 describe('PendingPaymentList', () => {
+  it('mostra cliente, serviço, data e hora do DTO da API', async () => {
+    render(<PendingPaymentList />);
+
+    expect(await screen.findByText('Mariana')).toBeInTheDocument();
+    expect(screen.getByText('Manutenção · 24/10 14:00')).toBeInTheDocument();
+  });
+
   it('confirma o pagamento ao clicar no botão', async () => {
     const user = userEvent.setup();
     render(<PendingPaymentList />);
