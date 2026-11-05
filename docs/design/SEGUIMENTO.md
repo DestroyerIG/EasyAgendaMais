@@ -280,16 +280,7 @@ Sistema no ar desde 04/11 (PR #34, migração `20261105120000_depoimentos`). Env
 
 **Limpeza**
 
-- Apagar os 2 depoimentos de teste, no SQL Editor do Supabase. O resultado esperado é `DELETE 2`:
-
-  ```sql
-  DELETE FROM depoimentos
-  WHERE id IN ('9dc77c50-b7db-42dc-aff5-8a33bdc3e370', 'f3bfd641-bc09-481e-bab4-a96c6fb81af4')
-    AND texto LIKE 'TESTE TECNICO%';
-  ```
-
-- Apagar os arquivos soltos `frontend/public/easyagenda+.png` e `frontend/public/logo barbearia.jpg`. Eles só existem na máquina onde a logo foi trocada e não estão no Git.
-- Apagar as branches locais que já foram juntadas (`git branch --merged main`).
+Feita em 05/11: os 2 depoimentos de teste foram apagados em produção (`DELETE 2`), e os arquivos soltos de `frontend/public` e as branches locais já juntadas saíram da máquina.
 
 **Ajustes pequenos**
 
@@ -309,7 +300,7 @@ Resolvidos em 05/11, no branch `fix/ajustes-depoimentos-visual`:
 
 ## Infraestrutura
 
-- **Pendente:** ligar o RLS nas 14 tabelas que ficaram sem ele (comissões, clube, app do profissional e Google Agenda). Não é urgente: os papéis públicos não têm acesso a elas. Roteiro em `docs/design/rls-tabelas-restantes.md`.
+- **Resolvido em 05/11:** o RLS foi ligado nas 14 tabelas que ficaram sem ele (comissões, clube, app do profissional e Google Agenda), pela migração `20261106120000_rls_tabelas_restantes` (PR #37). Só a `_prisma_migrations` segue sem RLS, de propósito. Roteiro em `docs/design/rls-tabelas-restantes.md`.
 - **Resolvido em 27/10:** o `docker-compose.yml` e o `setup.ps1` passaram a usar o Prisma (`supabase-stub.sql` + `prisma migrate deploy`), sem os SQL antigos e sem `AUTH_PROVIDER_MODE`. Os Dockerfiles foram corrigidos: no backend, o `npm ci` de produção falhava no `prisma generate`; no frontend, faltavam o caminho do standalone, a pasta `public` e as `NEXT_PUBLIC_*` no build. Falta subir o compose do zero numa máquina com o Docker rodando, porque a validação foi só de sintaxe.
 
 ## Melhorias técnicas pequenas

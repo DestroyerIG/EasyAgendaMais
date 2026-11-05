@@ -1,5 +1,7 @@
 # Ligar o RLS nas tabelas restantes
 
+**Concluído em 05/11/2026**, pela migração `20261106120000_rls_tabelas_restantes` (PR #37). Este roteiro fica como registro e para a regra do fim da página.
+
 Roteiro para fazer em qualquer máquina. Levantamento feito em 04/11/2026, direto no banco de produção, só com leitura.
 
 ## Por que fazer
