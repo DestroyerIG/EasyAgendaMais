@@ -309,15 +309,17 @@ Spec em `docs/superpowers/specs/2026-11-05-busca-geral-design.md`. Sem migraçã
 
 ## Página pública fiel ao Stitch, pendências conhecidas
 
-Referências: telas `studio-camila-rocha-*` e `barbearia-central-*` em `docs/design/stitch/projeto/`. A fase 1 usa só os dados que já existem, sem migração.
+Referências: telas `studio-camila-rocha-*` e `barbearia-central-*` em `docs/design/stitch/projeto/`. A fase 1 (PR #43) usa os dados que já existiam. A fase 2 traz capa, apresentação, comodidades, nota, horário de hoje, vagas por dia, horários ocupados e confirmação, com a migração `20261107120000_pagina_publica_fase2`.
 
-- **Fase 2, precisa de migração:** capa própria (hoje é a primeira foto da galeria ou a cor do negócio), descrição do negócio, comodidades e descrição dos serviços.
-- **Fase 2, precisa de rota nova:** vagas por dia na faixa de dias e horários ocupados riscados. Hoje a rota devolve só os horários livres.
-- **Fase 2, nota e horário de funcionamento:** o perfil do Stitch mostra nota, avaliações e "Atende hoje até 19h". A fase 1 mostra só o selo "Agendamento online". Falta ver se os dados atuais servem.
-- **Tela de confirmação:** o Pix é confirmado à mão pelo dono, então a cliente não pode ver "confirmado" logo depois de pagar. A tela depende de um estado "aguardando" ou de atualização automática.
+- **Ordem do deploy da fase 2:** aplicar a migração antes de o backend novo entrar no ar. Sem as colunas, a página pública de todos os negócios devolve erro.
+- **Nota pública:** vem desligada. O dono liga em Minha página, e ela só aparece com 5 ou mais avaliações, com média e quantidade, sem comentários. A média considera todas as avaliações do negócio, de todos os períodos e profissionais.
+- **Confirmação:** a página consulta a reserva a cada 10 segundos e ao voltar para a aba. Quem fecha a página não vê a tela de confirmado e fica sabendo pelo WhatsApp. A consulta usa o id da reserva e devolve só a situação, sem dado da cliente.
+- **Rota antiga:** `GET /public/:slug/availability` ficou no backend sem uso pela página, para não quebrar quem estiver com a versão anterior aberta durante o deploy. Pode sair depois.
+- **Vagas por dia:** a contagem faz 14 consultas de disponibilidade a cada abertura da etapa de horário. Se pesar, trocar por uma busca única do período.
+- **Formulários do dono:** Minha página e o cadastro de serviços têm testes, mas não foram vistos no navegador. O onboarding segue sem os campos novos.
 - **Diferenças mantidas de propósito:** um serviço por agendamento (o Stitch permite vários, a API não); o código Pix só aparece depois de confirmar, porque nasce com a reserva; "No atendimento" no lugar de "No estúdio", que não serve para todo segmento; e o aviso de horário exclusivo ficou de fora, porque não vale para toda equipe.
 - **Cor do negócio:** tons médios, como `#C2554D`, não têm contraste AA com texto claro nem escuro. A página escurece a cor só o necessário, então o botão pode sair um pouco mais escuro que a cor escolhida.
-- **Conferência visual:** feita com mock local, a 390 e 320 px. Falta uma reserva de verdade em produção.
+- **Conferência visual:** a página pública foi vista com mock local, a 390 e 320 px. Falta uma reserva de verdade em produção, até a confirmação pelo dono.
 
 ## Infraestrutura
 
