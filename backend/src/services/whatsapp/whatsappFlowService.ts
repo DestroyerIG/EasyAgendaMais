@@ -35,7 +35,8 @@ import {
   deleteSession,
 } from './whatsappSessionService.js';
 import type { WhatsAppSession } from './whatsappSessionService.js';
-import { getBotConfig, getMenuOptions } from './whatsappConfigService.js';
+import { getBotConfig, type MenuOptionRow } from './whatsappConfigService.js';
+import { carregarMenuVisivel, resolverEscolha } from './whatsappMenu.js';
 import { STEPS } from './whatsappConstants.js';
 import type { BotConfig } from './whatsappConstants.js';
 import { formatTimeHm } from './utils/timeUtils.js';
@@ -73,18 +74,6 @@ interface ServiceRow {
 interface ProfessionalRow {
   id: string;
   name: string;
-}
-
-interface MenuOptionRow {
-  id: string;
-  business_id: string;
-  option_order: number;
-  label: string;
-  emoji: string;
-  type: string;
-  handler: string;
-  active: boolean;
-  response_message?: string | null;
 }
 
 export interface PhoneExtraction {
@@ -966,17 +955,24 @@ const buildFallbackWelcomeMessage = (businessName: string): string => [
 ].join('\n');
 
 const buildMenuMessage = async (businessId: string): Promise<string> => {
-  const [config, options, businessName] = await Promise.all([
+  const [config, businessName] = await Promise.all([
     getBotConfig(businessId),
-    getMenuOptions(businessId),
     getBusinessName(businessId),
   ]);
-  if (!options?.length) return buildFallbackWelcomeMessage(businessName);
-  return buildWelcomeMessage(
+  let visiveis: MenuOptionRow[];
+  try {
+    visiveis = await carregarMenuVisivel(businessId, config);
+  } catch (error) {
+    logger.error({ err: error, businessId }, 'Falha ao ler as opções do menu do WhatsApp');
+    return buildFallbackWelcomeMessage(businessName);
+  }
+  const cabecalho = buildWelcomeMessage(
     config?.welcome_header || 'Olá 👋 Bem-vindo!\n\nSou o assistente virtual de {nome_negocio}.\n\nComo posso ajudar hoje?',
-    (options as MenuOptionRow[]).map((item) => ({ label: item.label, emoji: item.emoji })),
+    visiveis.map((item) => ({ label: item.label, emoji: item.emoji })),
     businessName
   );
+  if (!visiveis.length) return `${cabecalho.trimEnd()}\n\n${config.attendant_message}`;
+  return cabecalho;
 };
 
 const buildOutOfHoursMessage = (businessSettings: BusinessSettings): string => (
@@ -1042,22 +1038,8 @@ const handleMenuStep = async (
     return { ok: true };
   }
 
-  const options = await prisma.$queryRaw<MenuOptionRow[]>(
-    Prisma.sql`
-      SELECT * FROM whatsapp_menu_options
-       WHERE active = true
-         AND business_id = ${businessId}::uuid
-         AND option_order = ${choice}
-       LIMIT 1
-    `
-  );
-
-  if (!options.length) {
-    await sendWhatsAppMessage(phone, config.invalid_option_message + '\n\n' + await buildMenuMessage(businessId), sendContext);
-    return { ok: true };
-  }
-
-  const option = options[0];
+  const visiveis = await carregarMenuVisivel(businessId, config);
+  const option = resolverEscolha(visiveis, choice);
   if (!option) {
     await sendWhatsAppMessage(phone, config.invalid_option_message + '\n\n' + await buildMenuMessage(businessId), sendContext);
     return { ok: true };

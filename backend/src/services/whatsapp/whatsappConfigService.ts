@@ -11,7 +11,7 @@ import { vocabularioDe } from '../../config/vocabulario.js';
 
 // ── Menu option row shape returned by the DB ──────────────────────────────────
 
-interface MenuOptionRow {
+export interface MenuOptionRow {
   id: string;
   business_id: string;
   option_order: number;
