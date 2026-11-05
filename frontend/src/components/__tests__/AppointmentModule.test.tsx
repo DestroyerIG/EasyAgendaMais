@@ -643,9 +643,10 @@ describe('AppointmentModule: aba Aguardando Pix', () => {
     responderComPendentes([
       {
         id: 'apt-1',
-        client: { name: 'Mariana', phone: '83999990000' },
-        service: { name: 'Manutenção' },
-        date: '2026-10-24',
+        client_name: 'Mariana',
+        client_phone: '83999990000',
+        service_name: 'Manutenção',
+        date: '2026-10-24T00:00:00',
         time: '14:00:00',
       },
     ]);
