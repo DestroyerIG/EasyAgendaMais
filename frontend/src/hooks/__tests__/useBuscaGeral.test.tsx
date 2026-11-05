@@ -114,7 +114,7 @@ describe('useBuscaGeral', () => {
 
   it('setas andam em volta da lista e o ativo volta a 0 quando o termo muda', () => {
     const r = montar();
-    digitar(r, 'a');
+    digitar(r, 'ag');
     const total = r.result.current.itens.length;
     expect(total).toBeGreaterThan(1);
     act(() => r.result.current.aoTeclar(tecla('ArrowUp')));
@@ -123,7 +123,7 @@ describe('useBuscaGeral', () => {
     expect(r.result.current.ativo).toBe(0);
     act(() => r.result.current.aoTeclar(tecla('ArrowDown')));
     expect(r.result.current.ativo).toBe(1);
-    digitar(r, 'ag');
+    digitar(r, 'cai');
     expect(r.result.current.ativo).toBe(0);
   });
 
@@ -154,5 +154,26 @@ describe('useBuscaGeral', () => {
     act(() => r.result.current.aoTeclar(tecla('Escape')));
     expect(r.result.current.aberta).toBe(false);
     expect(r.result.current.termo).toBe('caixa');
+  });
+
+  it('um caractere deixa a lista fechada e sem itens', () => {
+    const r = montar();
+    digitar(r, 'a');
+    expect(r.result.current.aberta).toBe(false);
+    expect(r.result.current.itens).toEqual([]);
+    expect(r.result.current.status).toBe('ocioso');
+  });
+
+  it('ao mudar o termo, os resultados do termo anterior saem e Enter não abre o cliente antigo', async () => {
+    m.buscar.mockResolvedValue(comCliente);
+    const r = montar();
+    digitar(r, 'carla');
+    await passar(250);
+    expect(r.result.current.itens[0].href).toBe('/clientes/c1');
+    digitar(r, 'carlo');
+    expect(r.result.current.status).toBe('buscando');
+    expect(r.result.current.itens.every((i) => i.grupo === 'telas')).toBe(true);
+    act(() => r.result.current.aoTeclar(tecla('Enter')));
+    expect(m.push).not.toHaveBeenCalledWith('/clientes/c1');
   });
 });

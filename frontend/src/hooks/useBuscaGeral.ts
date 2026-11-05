@@ -20,7 +20,7 @@ export function useBuscaGeral(opcoes?: { aoEscolher?: () => void }) {
   const router = useRouter();
   const rotuloClientes = useVocabulario().cli.P;
   const [termo, setTermoBruto] = useState('');
-  const [resultado, setResultado] = useState<ResultadoBusca | null>(null);
+  const [resultado, setResultado] = useState<{ q: string; dados: ResultadoBusca } | null>(null);
   const [status, setStatus] = useState<StatusBusca>('ocioso');
   const [aberta, setAberta] = useState(false);
   const [ativo, setAtivo] = useState(0);
@@ -49,7 +49,7 @@ export function useBuscaGeral(opcoes?: { aoEscolher?: () => void }) {
         .buscar(q, controller.signal)
         .then((r) => {
           if (pedido !== pedidoAtual.current) return;
-          setResultado(r);
+          setResultado({ q, dados: r });
           setStatus('pronto');
         })
         .catch((e: unknown) => {
@@ -65,10 +65,13 @@ export function useBuscaGeral(opcoes?: { aoEscolher?: () => void }) {
     };
   }, [termo]);
 
-  const itens = useMemo(
-    () => montarItens(resultado ?? { clientes: [], agendamentos: [] }, filtrarTelas(termo, rotuloClientes), hojeLocal()),
-    [resultado, termo, rotuloClientes],
-  );
+  const liberada = podeBuscar(termo);
+  // Resultado de outro termo não vale: some assim que o termo muda, e só as telas ficam.
+  const itens = useMemo(() => {
+    if (!liberada) return [];
+    const dados = resultado && resultado.q === termo.trim() ? resultado.dados : { clientes: [], agendamentos: [] };
+    return montarItens(dados, filtrarTelas(termo, rotuloClientes), hojeLocal());
+  }, [liberada, resultado, termo, rotuloClientes]);
 
   const escolher = useCallback(
     (item: ItemBusca) => {
@@ -101,5 +104,5 @@ export function useBuscaGeral(opcoes?: { aoEscolher?: () => void }) {
     [itens, ativo, escolher],
   );
 
-  return { termo, setTermo, itens, status, aberta, setAberta, ativo, setAtivo, aoTeclar, escolher };
+  return { termo, setTermo, itens, status, aberta: aberta && liberada, setAberta, ativo, setAtivo, aoTeclar, escolher };
 }

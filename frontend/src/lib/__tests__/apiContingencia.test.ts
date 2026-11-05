@@ -61,4 +61,10 @@ describe('402 SUBSCRIPTION_REQUIRED', () => {
     await expect(api.get('/bancada/hoje')).rejects.toBeTruthy();
     expect(replace).not.toHaveBeenCalled();
   });
+
+  it('a busca do painel só rejeita, sem recarregar a página', async () => {
+    api.defaults.adapter = adaptador402({ estado: 'bloqueada' });
+    await expect(api.post('/busca', { q: 'ca' })).rejects.toBeTruthy();
+    expect(replace).not.toHaveBeenCalled();
+  });
 });
