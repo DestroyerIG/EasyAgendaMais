@@ -35,6 +35,7 @@ export function ConfirmacaoReserva({
   data,
   horario,
   sinal,
+  forma = 'pix',
   endereco,
   whatsapp,
   comLembretes,
@@ -47,6 +48,7 @@ export function ConfirmacaoReserva({
   data: string;
   horario: string;
   sinal: number;
+  forma?: 'pix' | 'cartao';
   endereco: string | null;
   whatsapp: string | null;
   comLembretes: boolean;
@@ -64,7 +66,7 @@ export function ConfirmacaoReserva({
           <Icon name="check_circle" size={36} filled />
         </span>
         <h1 className="text-[24px] font-bold text-ink">Agendamento confirmado!</h1>
-        <p className="text-sm text-muted">Tudo certo, {primeiroNome}! Seu horário em {negocio} está garantido.</p>
+        <p className="text-sm text-muted">{primeiroNome ? `Tudo certo, ${primeiroNome}!` : 'Tudo certo!'} Seu horário em {negocio} está garantido.</p>
       </div>
 
       <section className="flex flex-col gap-3.5 rounded-card border border-line bg-surface p-4 shadow-sm">
@@ -87,7 +89,7 @@ export function ConfirmacaoReserva({
         )}
         <div className="grid grid-cols-2 gap-2 border-t border-line/60 pt-3">
           <div>
-            <p className="text-xs text-muted">Sinal pago via Pix</p>
+            <p className="text-xs text-muted">{forma === 'cartao' ? 'Sinal pago no cartão' : 'Sinal pago via Pix'}</p>
             <p className="text-[15px] font-bold tabular-nums text-ink">{moeda(sinal)}</p>
           </div>
           <div>
