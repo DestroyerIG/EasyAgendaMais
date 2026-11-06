@@ -26,6 +26,7 @@ beforeEach(() => {
   repo.houveSaidaDepois.mockResolvedValue(false);
   repo.statusDoAgendamento.mockResolvedValue('confirmado');
   repo.marcarConfirmadoPeloCliente.mockResolvedValue(true);
+  repo.salvarNota.mockResolvedValue(true);
   auto.obter.mockResolvedValue({ config: { horas: 2, linkGoogle: 'https://g.page/x' } });
 });
 
@@ -77,6 +78,16 @@ it('avaliação 5 com link: duas mensagens', async () => {
   expect(repo.salvarNota).toHaveBeenCalledWith({ businessId: 'b1', appointmentId: 'a1', rating: 5 });
   expect(msg.sendWhatsAppMessage).toHaveBeenCalledTimes(2);
   expect(msg.sendWhatsAppMessage.mock.calls[1][1]).toBe('Que bom que gostou! Se puder, deixe sua avaliação no Google: https://g.page/x');
+});
+
+it('nota descartada (já existia): só apaga a espera, sem agradecimento, Google nem alerta', async () => {
+  repo.salvarNota.mockResolvedValue(false);
+  repo.pendentes.mockResolvedValue([espera('avaliacao')]);
+  expect(await respostas.tratar({ ...base, texto: '1' })).toBe(true);
+  expect(repo.apagar).toHaveBeenCalledWith('e1');
+  expect(msg.sendWhatsAppMessage).not.toHaveBeenCalled();
+  expect(rec.pedirAtendimentoHumano).not.toHaveBeenCalled();
+  expect(rec.avisoDoSistema).not.toHaveBeenCalled();
 });
 
 it('avaliação 2: pede humano e avisa', async () => {
