@@ -157,10 +157,15 @@ const cancelarAgendamento = async (
 ): Promise<BookingMessageResult> => {
   try {
     if (!simulado) {
-      await prisma.appointment.update({
-        where: { id: appointmentId },
+      // O agendamento vem da sessão e pode já ter mudado: só cancela se ainda estiver confirmado.
+      const { count } = await prisma.appointment.updateMany({
+        where: { id: appointmentId, businessId, status: 'confirmado' },
         data: { status: 'cancelado' },
       });
+      if (count === 0) {
+        const menu = await goBackToMainMenu(phone, businessId);
+        return { message: 'Esse agendamento não está mais ativo.\n\n' + menu.message };
+      }
       void automacoesGatilhos.aoCancelar(businessId, appointmentId)
         .catch((err) => logger.warn({ err, appointmentId }, 'Gatilho da lista de espera falhou'));
     }
@@ -338,7 +343,8 @@ export const handleManageAppointments = async (
 
     const primeiro = appointments?.[0];
     if (!primeiro) {
-      return { message: formatMessage(config.manage_no_appointments_message) };
+      const menu = await goBackToMainMenu(phone, businessId);
+      return { message: formatMessage(config.manage_no_appointments_message) + '\n\n' + menu.message };
     }
     if (appointments.length === 1) {
       return await perguntarAcaoManage(phone, businessId, primeiro, config);
