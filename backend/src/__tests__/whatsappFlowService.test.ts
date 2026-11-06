@@ -1,4 +1,4 @@
-import { vi, describe, it, beforeEach, expect } from 'vitest';
+import { vi, describe, it, beforeEach, afterEach, expect } from 'vitest';
 
 const mockPoolQuery = vi.hoisted(() => vi.fn());
 const mockSendWhatsAppMessage = vi.hoisted(() => vi.fn());
@@ -1794,6 +1794,52 @@ describe('whatsappFlowService guards', () => {
       expect(prisma.appointment.update).not.toHaveBeenCalled();
       expect(mockAoCancelar).not.toHaveBeenCalled();
       expect(ultima()).toContain('Cancelado.');
+    });
+
+    it('emoji numerico na lista escolhe o agendamento', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_choose', data: { appointments: [A1, A2] } });
+
+      await real('2️⃣');
+
+      expect(mockUpdateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1', 'manage_action', { appointment: A2 });
+    });
+
+    it('emoji 0️⃣ na lista volta ao menu', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_choose', data: { appointments: [A1, A2] } });
+
+      await real('0️⃣');
+
+      expect(mockCreateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1');
+    });
+
+    it('emoji 1️⃣ na acao inicia a remarcacao', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_action', data: { appointment: A2 } });
+      vi.mocked(prisma.service.findFirst).mockResolvedValueOnce({ name: 'Corte', durationMinutes: 30 } as never);
+      vi.mocked(prisma.professional.findFirst).mockResolvedValueOnce({ name: 'Joao' } as never);
+
+      await real('1️⃣');
+
+      expect(mockUpdateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1', 'choose_date', expect.objectContaining({ rescheduleAppointmentId: 'apt-2' }));
+    });
+
+    it('emoji 2️⃣ na acao cancela', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_action', data: { appointment: A2 } });
+      mockAoCancelar.mockResolvedValue(undefined);
+
+      await real('2️⃣');
+
+      expect(mockAoCancelar).toHaveBeenCalledWith('tenant-1', 'apt-2');
+      expect(ultima()).toContain('Cancelado.');
+    });
+
+    it('emoji 0️⃣ na acao volta ao menu sem alterar nada', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_action', data: { appointment: A1 } });
+
+      await real('0️⃣');
+
+      expect(mockCreateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1');
+      expect(prisma.appointment.update).not.toHaveBeenCalled();
+      expect(mockAoCancelar).not.toHaveBeenCalled();
     });
 
     it('os handlers cancel e reschedule continuam funcionando', async () => {

@@ -191,13 +191,13 @@ const INCOMING_MESSAGE_EVENTS = new Set([
   'messagereceived',
 ]);
 
-const normalizeChoice = (text: string): number | null => {
+export const normalizeChoice = (text: string): number | null => {
   const cleaned = normalizeText(text).toLowerCase();
   if (!cleaned) return null;
   const numericMatch = cleaned.match(/^(\d{1,2})$/);
   if (numericMatch) return Number(numericMatch[1] ?? '0');
   const emojiMap: Record<string, number> = {
-    '1️⃣': 1, '2️⃣': 2, '3️⃣': 3, '4️⃣': 4, '5️⃣': 5,
+    '0️⃣': 0, '1️⃣': 1, '2️⃣': 2, '3️⃣': 3, '4️⃣': 4, '5️⃣': 5,
     '6️⃣': 6, '7️⃣': 7, '8️⃣': 8, '9️⃣': 9, '🔟': 10,
   };
   return emojiMap[cleaned] ?? null;

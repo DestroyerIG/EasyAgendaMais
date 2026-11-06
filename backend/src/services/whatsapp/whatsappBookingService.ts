@@ -12,7 +12,7 @@ import { prisma } from '../../config/prisma.js';
 import { STEPS, BotConfig } from './whatsappConstants.js';
 import { updateSession } from './whatsappSessionService.js';
 import { formatMessage } from './whatsappMessageService.js';
-import { goBackToMainMenu } from './whatsappFlowService.js';
+import { goBackToMainMenu, normalizeChoice } from './whatsappFlowService.js';
 import { formatTimeHm } from './utils/timeUtils.js';
 import { automacoesGatilhos } from '../../modules/whatsappAutomacoes/gatilhos.service.js';
 
@@ -360,12 +360,13 @@ export const handleManageChoose = async (
   config: BotConfig,
   _simulado: boolean,
 ): Promise<BookingMessageResult> => {
-  if (choice === '0' || choice.toLowerCase() === 'menu') {
+  const numero = normalizeChoice(choice);
+  if (numero === 0 || choice.toLowerCase() === 'menu') {
     return goBackToMainMenu(phone, businessId);
   }
 
   const appointments = (data.appointments as AppointmentListRow[] | undefined) ?? [];
-  const selecionado = /^\d+$/.test(choice) ? appointments[parseInt(choice, 10) - 1] : undefined;
+  const selecionado = numero != null ? appointments[numero - 1] : undefined;
   if (!selecionado) {
     return { message: formatMessage(config.invalid_option_message) + '\n\n' + montarListaManage(appointments, config) };
   }
@@ -380,7 +381,8 @@ export const handleManageAction = async (
   config: BotConfig,
   simulado: boolean,
 ): Promise<BookingMessageResult> => {
-  if (choice === '0' || choice.toLowerCase() === 'menu') {
+  const numero = normalizeChoice(choice);
+  if (numero === 0 || choice.toLowerCase() === 'menu') {
     return goBackToMainMenu(phone, businessId);
   }
 
@@ -389,8 +391,8 @@ export const handleManageAction = async (
     return goBackToMainMenu(phone, businessId);
   }
 
-  if (choice === '1') return iniciarRemarcacao(phone, businessId, appointment);
-  if (choice === '2') return cancelarAgendamento(phone, businessId, appointment.id, config, simulado);
+  if (numero === 1) return iniciarRemarcacao(phone, businessId, appointment);
+  if (numero === 2) return cancelarAgendamento(phone, businessId, appointment.id, config, simulado);
 
   return { message: formatMessage(config.invalid_option_message) + '\n\n' + textoAcaoManage(appointment, config) };
 };
