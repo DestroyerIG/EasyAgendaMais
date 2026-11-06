@@ -361,14 +361,14 @@ export const WhatsAppModule = () => {
   const handleMenuToggle = async (id: string, active: boolean) => {
     setActionLoading(true);
     try { const r = await api.put(`/whatsapp/config/menu/${id}`, { active }); setMenuOptions(prev => prev.map(o => o.id === id ? r.data : o)); }
-    catch { showToast('Erro ao atualizar opção', 'error'); }
+    catch { showToast('Erro ao atualizar opção', 'error'); void fetchMenuOptions(); }
     finally { setActionLoading(false); }
   };
 
   const handleMenuUpdate = async (id: string, data: Partial<MenuOption>) => {
     setActionLoading(true);
     try { const r = await api.put(`/whatsapp/config/menu/${id}`, data); setMenuOptions(prev => prev.map(o => o.id === id ? r.data : o)); showToast('Opção atualizada', 'success'); }
-    catch { showToast('Erro ao atualizar opção', 'error'); }
+    catch { showToast('Erro ao atualizar opção', 'error'); void fetchMenuOptions(); }
     finally { setActionLoading(false); }
   };
 
@@ -400,7 +400,7 @@ export const WhatsAppModule = () => {
   const handleMenuReorder = async (ids: string[]) => {
     setActionLoading(true);
     try { const r = await api.put('/whatsapp/config/menu-reorder', { order: ids }); setMenuOptions(r.data); }
-    catch { showToast('Erro ao reordenar menu', 'error'); }
+    catch { showToast('Erro ao reordenar menu', 'error'); void fetchMenuOptions(); }
     finally { setActionLoading(false); }
   };
 

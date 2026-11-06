@@ -323,11 +323,35 @@ describe('PUT /api/v1/whatsapp/config/menu-reorder', () => {
 
     expect(response.status).toBe(200);
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-    expect(chamadas[0]).toContain('DELETE FROM whatsapp_menu_options');
-    expect(chamadas[0]).toContain("handler = 'rating'");
-    expect(chamadas.slice(1, 5).every((t) => t.includes('UPDATE'))).toBe(true);
+    expect(chamadas[0]).toContain('SELECT');
+    expect(chamadas[1]).toContain('DELETE FROM whatsapp_menu_options');
+    expect(chamadas[1]).toContain("handler = 'rating'");
+    expect(chamadas.slice(2, 6).every((t) => t.includes('UPDATE'))).toBe(true);
     expect(chamadas[chamadas.length - 1]).toContain('SELECT');
     expect(response.body.data.map((o: { handler: string }) => o.handler)).toEqual(['schedule', 'promotions']);
+  });
+});
+
+describe('PUT /api/v1/whatsapp/config/menu-reorder com ids velhos', () => {
+  const ID1 = '11111111-1111-1111-1111-111111111111';
+  const ID2 = '22222222-2222-2222-2222-222222222222';
+
+  it('devolve 409 e não altera nada se algum id não existir mais', async () => {
+    const { prisma } = await import('../config/prisma.js');
+    const chamadas: string[] = [];
+    const tx = {
+      $queryRaw: vi.fn(async (q: { strings?: string[]; sql?: string }) => {
+        const texto = (q.strings ?? [q.sql ?? '']).join(' ');
+        chamadas.push(texto);
+        return texto.includes('SELECT') ? [{ id: ID1 }] : [];
+      }),
+    };
+    vi.mocked(prisma.$transaction).mockImplementationOnce((async (cb: (t: unknown) => unknown) => cb(tx)) as never);
+
+    const response = await request.put('/api/v1/whatsapp/config/menu-reorder').send({ order: [ID1, ID2] });
+
+    expect(response.status).toBe(409);
+    expect(chamadas.some((t) => t.includes('UPDATE') || t.includes('DELETE'))).toBe(false);
   });
 });
 

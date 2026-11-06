@@ -18,7 +18,7 @@ import {
 } from '../services/whatsappClient.js';
 import { updateInstanceFromPayload } from '../services/whatsapp/whatsappInstanceCache.js';
 import { getBusinessWhatsAppInstanceContext } from '../services/whatsapp/whatsappInstanceService.js';
-import { getBotConfig, segmentoDoNegocio, garantirMenuAtualSemFalhar } from '../services/whatsapp/whatsappConfigService.js';
+import { getBotConfig, segmentoDoNegocio, garantirMenuAtualSemFalhar, seedDefaultMenuOptions } from '../services/whatsapp/whatsappConfigService.js';
 import { menuPadrao } from '../services/whatsapp/whatsappMenuPadrao.js';
 import { deleteSession } from '../services/whatsapp/whatsappSessionService.js';
 import { authMiddleware } from '../middleware/auth.js';
@@ -2431,13 +2431,7 @@ router.get('/config/menu', ...waProtected, async (req: Request, res: Response, n
     );
 
     if (rows.length === 0) {
-      for (const opt of menuPadrao(await segmentoDoNegocio(businessId!))) {
-        await prisma.$queryRaw(
-          Prisma.sql`INSERT INTO whatsapp_menu_options (business_id, option_order, label, emoji, type, handler, active)
-           VALUES (${businessId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)
-           ON CONFLICT (business_id, option_order) DO NOTHING`
-        );
-      }
+      await seedDefaultMenuOptions(businessId!);
 
       rows = await prisma.$queryRaw<Record<string, unknown>[]>(
         Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid ORDER BY option_order ASC`
@@ -2591,6 +2585,13 @@ router.put('/config/menu-reorder', ...waProtected, async (req: Request, res: Res
     // A linha antiga de avaliação sairia da lista visível, mas seguraria um option_order e
     // quebraria o índice único: apaga junto, na mesma transação da reordenação.
     const rows = await prisma.$transaction(async (tx) => {
+      // Ids velhos (a tela não recarregou depois de o menu ser recriado): recusa sem alterar nada.
+      const existentes = await tx.$queryRaw<{ id: string }[]>(
+        Prisma.sql`SELECT id FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid`
+      );
+      const ids = new Set(existentes.map((r) => r.id));
+      if (!order.every((id) => typeof id === 'string' && ids.has(id))) return null;
+
       await tx.$queryRaw(
         Prisma.sql`DELETE FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid AND handler = 'rating'`
       );
@@ -2619,6 +2620,11 @@ router.put('/config/menu-reorder', ...waProtected, async (req: Request, res: Res
         Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid ORDER BY option_order ASC`
       );
     });
+
+    if (rows === null) {
+      sendError(res, 409, 'MENU_DESATUALIZADO', 'O menu mudou. Recarregue a lista e tente de novo.');
+      return;
+    }
 
     sendSuccess(res, rows);
   } catch (error) {
