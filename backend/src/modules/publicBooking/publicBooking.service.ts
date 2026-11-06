@@ -12,7 +12,30 @@ import { DIAS_NA_FAIXA, diasAPartirDe, notaPublica, situacaoDaReserva } from './
 import { estadoContaService } from '../conta/estadoConta.service.js';
 import { textoAgendaPausada } from '../conta/estadoConta.rules.js';
 import { googleAgendaService } from '../googleAgenda/googleAgenda.service.js';
+import { conexaoService } from '../recebimentos/conexao.service.js';
+import { cobrancasService } from '../recebimentos/cobrancas.service.js';
+import { recebimentosRepository } from '../recebimentos/recebimentos.repository.js';
+import type { FormaSinal } from '../recebimentos/recebimentos.types.js';
 
+type PixKeyType = Parameters<typeof buildPixPayload>[0]['pixKeyType'];
+
+/** Código Pix manual (chave do negócio). Nulo se o negócio não tem chave ou o valor não vale. */
+const pixManual = (
+  business: { name: string; pixKey: string | null; pixKeyType: string | null },
+  valor: number,
+  servico: string,
+): string | null => {
+  if (!business.pixKey || !business.pixKeyType || valor <= 0) return null;
+  try {
+    return buildPixPayload({
+      pixKey: business.pixKey, pixKeyType: business.pixKeyType as PixKeyType,
+      merchantName: business.name, merchantCity: 'BRASIL', amount: valor, description: `Sinal - ${servico}`,
+    });
+  } catch (err) {
+    logger.warn({ err }, 'Falha ao montar o código Pix manual');
+    return null;
+  }
+};
 
 const calcDeposit = (price: number, depositPercentage: number): number =>
   Math.round(price * (depositPercentage / 100) * 100) / 100;
@@ -85,6 +108,7 @@ export const publicBookingService = {
     const services = await publicBookingRepository.findEligibleServices(business.id);
     const estado = await estadoContaService.doNegocio(business.id);
     const agenda = await getBusinessScheduleSettings(business.id);
+    const formasPagamento = await conexaoService.formas(business.id).catch((): FormaSinal[] => ['pix']);
     const notas = business.mostrarNota ? await publicBookingRepository.resumoDasNotas(business.id) : null;
 
     return {
@@ -101,6 +125,7 @@ export const publicBookingService = {
       atendeHojeAte: closesTodayAt(agenda),
       whatsapp: business.whatsapp ?? null,
       agendaPausada: estado.tipo !== 'ativa',
+      formasPagamento,
       services: services.map((s) => ({
         id: s.id,
         name: s.name,
@@ -145,13 +170,75 @@ export const publicBookingService = {
     })));
   },
 
-  /** Situação da reserva para a página acompanhar a confirmação. Não devolve dado da cliente. */
+  /** Situação da reserva e o que a página precisa para pagar. Não devolve dado da cliente. */
   async getAppointmentStatus(slug: string, id: string) {
     const business = await publicBookingRepository.findBusinessBySlug(slug);
     if (!business) throw new NotFoundError('Página');
     const reserva = await publicBookingRepository.findPublicAppointment(business.id, id);
     if (!reserva) throw new NotFoundError('Reserva');
-    return { situacao: situacaoDaReserva(reserva.status, reserva.expiresAt, new Date()) };
+
+    const situacao = situacaoDaReserva(reserva.status, reserva.expiresAt, new Date());
+    const sinal = Number(reserva.depositAmount ?? 0);
+    const cobrancas = await recebimentosRepository.cobrancasDaReserva(reserva.id);
+
+    let forma: FormaSinal = 'pix';
+    let pixPayload: string | null = null;
+    let checkoutUrl: string | null = null;
+    if (situacao === 'aguardando') {
+      const atual = cobrancas.find((c) => c.situacao === 'pendente' || c.situacao === 'recusada');
+      forma = atual?.forma === 'cartao' ? 'cartao' : 'pix';
+      checkoutUrl = atual?.checkoutUrl ?? null;
+      if (forma === 'pix') pixPayload = atual?.codigoPix ?? pixManual(business, sinal, reserva.service.name);
+    } else {
+      // A paga original tem id externo; as linhas de pagamento repetido não.
+      const paga = cobrancas.find((c) => c.situacao === 'paga' && c.idExterno !== null);
+      if (paga?.forma === 'cartao') forma = 'cartao';
+    }
+
+    return {
+      situacao,
+      reserva: {
+        servico: { name: reserva.service.name, price: Number(reserva.service.price), durationMinutes: reserva.service.durationMinutes },
+        profissional: reserva.professional?.name ?? null,
+        data: reserva.date.toISOString().slice(0, 10),
+        horario: reserva.time.toISOString().slice(11, 16),
+        sinal,
+        forma, pixPayload, checkoutUrl,
+        expiresAt: reserva.expiresAt?.toISOString() ?? null,
+      },
+    };
+  },
+
+  /**
+   * Código Pix da reserva. Repete o da cobrança Pix pendente; sem ela, tenta criar uma no gateway
+   * e, se não der, devolve o código manual (sem cobrança).
+   */
+  async getPixDaReserva(slug: string, id: string) {
+    const business = await publicBookingRepository.findBusinessBySlug(slug);
+    if (!business) throw new NotFoundError('Página');
+    const reserva = await publicBookingRepository.findPublicAppointment(business.id, id);
+    if (!reserva) throw new NotFoundError('Reserva');
+    if (situacaoDaReserva(reserva.status, reserva.expiresAt, new Date()) !== 'aguardando' || !reserva.expiresAt) {
+      throw new ConflictError('Esta reserva não está mais aguardando o pagamento do sinal');
+    }
+    const expiresAt = reserva.expiresAt.toISOString();
+
+    const cobrancas = await recebimentosRepository.cobrancasDaReserva(reserva.id);
+    const existente = cobrancas.find((c) => c.forma === 'pix' && c.situacao === 'pendente' && c.codigoPix);
+    if (existente?.codigoPix) return { pixPayload: existente.codigoPix, forma: 'pix' as const, expiresAt };
+
+    const sinal = Number(reserva.depositAmount ?? 0);
+    if ((await conexaoService.formas(business.id)).includes('pix')) {
+      const criada = await cobrancasService.criar({
+        businessId: business.id, slug, appointmentId: reserva.id, forma: 'pix', valor: sinal,
+        descricao: `Sinal - ${reserva.service.name}`, venceEm: reserva.expiresAt,
+      });
+      if (criada?.pixPayload) return { pixPayload: criada.pixPayload, forma: 'pix' as const, expiresAt };
+    }
+
+    const manual = pixManual(business, sinal, reserva.service.name);
+    if (!manual) throw new ValidationError('Este negócio ainda não configurou o recebimento de sinal via Pix');
+    return { pixPayload: manual, forma: 'pix' as const, expiresAt };
   },
 
   async createPendingAppointment(slug: string, data: CreatePublicAppointmentInput) {
@@ -162,6 +249,12 @@ export const publicBookingService = {
     }
     if (!business.pixKey || !business.pixKeyType) {
       throw new ValidationError('Este negócio ainda não configurou o recebimento de sinal via Pix');
+    }
+
+    const formas = await conexaoService.formas(business.id);
+    const formaPedida: FormaSinal = data.formaPagamento ?? 'pix';
+    if (formaPedida === 'cartao' && !formas.includes('cartao')) {
+      throw new ValidationError('Este negócio não recebe o sinal no cartão');
     }
 
     const service = await publicBookingRepository.findServiceForBusiness(business.id, data.serviceId);
@@ -184,7 +277,7 @@ export const publicBookingService = {
     // aguardando_pagamento (segurando o horário por 15min) se o payload falhar.
     const depositAmount = calcDeposit(Number(service.price), Number(service.depositPercentage));
 
-    const pixPayload = buildPixPayload({
+    const pixManualPayload = buildPixPayload({
       pixKey: business.pixKey,
       pixKeyType: business.pixKeyType as never,
       merchantName: business.name,
@@ -219,6 +312,20 @@ export const publicBookingService = {
       }
     );
 
+    // Cobrança automática fora da transação (não segura a trava durante a chamada ao gateway).
+    // Qualquer falha cai no Pix manual; o cartão que falha vira Pix manual e avisa a página.
+    const usaGateway = formaPedida === 'cartao' || formas.includes('pix');
+    const cobranca = usaGateway
+      ? await cobrancasService.criar({
+        businessId: business.id, slug, appointmentId: appointment.id, forma: formaPedida, valor: depositAmount,
+        descricao: `Sinal - ${service.name}`, venceEm: expiresAt,
+      })
+      : null;
+    const forma: FormaSinal = cobranca ? formaPedida : 'pix';
+    const cartaoIndisponivel = formaPedida === 'cartao' && !cobranca;
+    const pixPayload = forma === 'pix' ? (cobranca?.pixPayload ?? pixManualPayload) : null;
+    const checkoutUrl = cobranca?.checkoutUrl ?? null;
+
     logger.info({ appointmentId: appointment.id, businessId: business.id }, 'Reserva pública criada, aguardando pagamento');
     void googleAgendaService.sincronizarSaida({ appointmentId: appointment.id });
 
@@ -238,15 +345,22 @@ export const publicBookingService = {
       description: `${data.clientName} · ${service.name} · ${day}/${month}/${year} às ${data.time}`,
     });
 
-    void automacoesGatilhos.aoCriarReservaComSinal(business.id, appointment.id, {
-      phone: data.clientPhone, nome: data.clientName, servico: service.name, valorSinal: depositAmount, pixPayload,
-      data: `${day}/${month}`, horario: data.time, toleranciaMin,
-    }).catch((err) => logger.warn({ err, appointmentId: appointment.id }, 'Envio do sinal Pix pelo WhatsApp falhou'));
+    // Só o Pix manda o código; no cartão a cliente paga no Checkout.
+    if (pixPayload) {
+      void automacoesGatilhos.aoCriarReservaComSinal(business.id, appointment.id, {
+        phone: data.clientPhone, nome: data.clientName, servico: service.name, valorSinal: depositAmount, pixPayload,
+        data: `${day}/${month}`, horario: data.time, toleranciaMin,
+      }).catch((err) => logger.warn({ err, appointmentId: appointment.id }, 'Envio do sinal Pix pelo WhatsApp falhou'));
+    }
 
     return {
       appointmentId: appointment.id,
       depositAmount,
       pixPayload,
+      checkoutUrl,
+      forma,
+      automatica: cobranca !== null,
+      cartaoIndisponivel,
       expiresAt: expiresAt.toISOString(),
     };
   },

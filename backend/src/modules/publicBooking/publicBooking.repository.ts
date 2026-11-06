@@ -57,7 +57,11 @@ export const publicBookingRepository = {
   async findPublicAppointment(businessId: string, id: string) {
     return prisma.appointment.findFirst({
       where: { id, businessId, source: 'publico' },
-      select: { status: true, expiresAt: true },
+      select: {
+        id: true, status: true, expiresAt: true, date: true, time: true, depositAmount: true,
+        service: { select: { name: true, price: true, durationMinutes: true } },
+        professional: { select: { name: true } },
+      },
     });
   },
 

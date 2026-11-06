@@ -115,6 +115,29 @@ export const recebimentosRepository = {
 
   // ─── Cobranças do sinal ───────────────────────────────────────────────────────
 
+  /** Cria a linha `pendente` antes de chamar o gateway, para ter o id que vai como referência. */
+  criarCobranca(d: { businessId: string; appointmentId: string; gateway: GatewayId; forma: string; valor: number; venceEm: Date }) {
+    return prisma.cobrancaSinal.create({
+      data: { ...d, valor: d.valor.toFixed(2), situacao: 'pendente' }, select: { id: true },
+    });
+  },
+
+  async completarCobranca(id: string, d: { idExterno: string; codigoPix?: string; checkoutUrl?: string }): Promise<void> {
+    await prisma.cobrancaSinal.update({ where: { id }, data: d });
+  },
+
+  async apagarCobranca(id: string): Promise<void> {
+    await prisma.cobrancaSinal.deleteMany({ where: { id } });
+  },
+
+  /** Cobranças da reserva, da mais nova para a mais antiga, para a página pública escolher o que mostrar. */
+  cobrancasDaReserva(appointmentId: string) {
+    return prisma.cobrancaSinal.findMany({
+      where: { appointmentId }, orderBy: { criadoEm: 'desc' },
+      select: { forma: true, situacao: true, idExterno: true, codigoPix: true, checkoutUrl: true, pagoEm: true },
+    });
+  },
+
   cobrancaComReserva(cobrancaId: string) {
     return prisma.cobrancaSinal.findUnique({
       where: { id: cobrancaId },

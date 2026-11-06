@@ -6,6 +6,8 @@ import { diasAPartirDe, notaPublica, situacaoDaReserva } from '../modules/public
 import { closesTodayAt } from '../services/scheduleSettingsService.js';
 import { NotFoundError } from '../utils/errors.js';
 
+vi.mock('../modules/recebimentos/conexao.service.js', () => ({ conexaoService: { formas: vi.fn().mockResolvedValue(['pix']), tokenAtivo: vi.fn().mockResolvedValue(null) } }));
+vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({ recebimentosRepository: { cobrancasDaReserva: vi.fn().mockResolvedValue([]) } }));
 vi.mock('../modules/conta/estadoConta.service.js', () => ({ estadoContaService: { doNegocio: vi.fn().mockResolvedValue({ tipo: 'ativa' }) } }));
 vi.mock('../modules/whatsappAutomacoes/gatilhos.service.js', () => ({ automacoesGatilhos: {} }));
 vi.mock('../modules/notifications/notifications.service.js', () => ({ notificationsService: { notify: vi.fn() } }));
@@ -144,10 +146,15 @@ describe('vagas por dia', () => {
 });
 
 describe('situação da reserva pública', () => {
-  it('devolve só a situação, sem dado da cliente', async () => {
-    repo.findPublicAppointment.mockResolvedValue({ status: 'confirmado', expiresAt: null });
+  it('devolve a situação e os dados da reserva, sem dado da cliente', async () => {
+    repo.findPublicAppointment.mockResolvedValue({
+      id: 'a1', status: 'confirmado', expiresAt: null, date: new Date('2099-10-24T00:00:00Z'), time: new Date('1970-01-01T09:00:00Z'),
+      depositAmount: 30, service: { name: 'Corte', price: 100, durationMinutes: 60 }, professional: { name: 'Ana' },
+    });
 
-    await expect(publicBookingService.getAppointmentStatus('studio', 'a1')).resolves.toEqual({ situacao: 'confirmado' });
+    const r = await publicBookingService.getAppointmentStatus('studio', 'a1');
+    expect(r.situacao).toBe('confirmado');
+    expect(r.reserva).toMatchObject({ data: '2099-10-24', horario: '09:00', forma: 'pix', pixPayload: null, checkoutUrl: null });
     expect(repo.findPublicAppointment).toHaveBeenCalledWith('biz-1', 'a1');
   });
 
