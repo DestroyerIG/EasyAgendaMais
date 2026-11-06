@@ -26,6 +26,22 @@ export const recebimentosRepository = {
     return prisma.conexaoRecebimento.findFirst({ where: { gateway, contaExternaId }, select: { businessId: true } });
   },
 
+  /** A mesma conta do gateway não pode estar em dois negócios: o webhook roteia pelo id da conta. */
+  async contaEmOutroNegocio(gateway: string, contaExternaId: string, businessId: string): Promise<boolean> {
+    const c = await prisma.conexaoRecebimento.findFirst({
+      where: { gateway, contaExternaId, businessId: { not: businessId } }, select: { id: true },
+    });
+    return c !== null;
+  },
+
+  /** Só quem está ativa vira "precisa reconectar"; true quando esta chamada fez a troca. */
+  async marcarReconectar(businessId: string): Promise<boolean> {
+    const { count } = await prisma.conexaoRecebimento.updateMany({
+      where: { businessId, situacao: 'ativa' }, data: { situacao: 'precisa_reconectar' },
+    });
+    return count === 1;
+  },
+
   conexoesAtivas() {
     return prisma.conexaoRecebimento.findMany({ where: { situacao: 'ativa' } });
   },

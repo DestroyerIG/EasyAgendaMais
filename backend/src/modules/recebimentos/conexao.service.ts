@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import logger from '../../utils/logger.js';
 import { cifrarCom, decifrarCom } from '../../utils/cifra.js';
-import { ForbiddenError, NotFoundError, ValidationError } from '../../utils/errors.js';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../utils/errors.js';
 import { notificationsService } from '../notifications/notifications.service.js';
 import { GatewayIndisponivel, GatewayTokenInvalido, gateways, type Tokens } from './gateways/index.js';
 import { recebimentosRepository as repo } from './recebimentos.repository.js';
@@ -28,6 +28,17 @@ function limparPendentes() {
 
 const cifrar = (texto: string) => cifrarCom(chaveRecebimentos(), texto);
 const decifrar = (cifrado: string) => decifrarCom(chaveRecebimentos(), cifrado);
+
+type ConexaoComTokens = NonNullable<Awaited<ReturnType<typeof repo.conexaoDoNegocio>>>;
+
+/** Renova os tokens de uma conexão com o refresh token e grava os novos, cifrados. Devolve o novo access token. */
+async function renovarConexao(c: ConexaoComTokens): Promise<string> {
+  const t = await gateways[c.gateway as GatewayId].renovar(decifrar(c.refreshTokenCifrado));
+  await repo.atualizarConexao(c.id, {
+    accessTokenCifrado: cifrar(t.accessToken), refreshTokenCifrado: cifrar(t.refreshToken), tokenExpiraEm: t.expiraEm,
+  });
+  return t.accessToken;
+}
 
 export const conexaoService = {
   conectarUrl(user: UsuarioLogado, gateway: GatewayId): { url: string } {
@@ -68,6 +79,9 @@ export const conexaoService = {
     if (!u) throw new NotFoundError('Usuário');
     if (u.role !== 'tenant_admin') throw new ForbiddenError('Só quem administra o negócio conecta os recebimentos');
 
+    if (await repo.contaEmOutroNegocio(gateway, p.tokens.contaId, u.businessId)) {
+      throw new ConflictError('Esta conta do Mercado Pago já está conectada a outro negócio.');
+    }
     const conta = await gateways[gateway].conta(p.tokens.accessToken);
     await repo.salvarConexao({
       businessId: u.businessId, gateway, contaExternaId: p.tokens.contaId, contaNome: conta.nome,
@@ -121,10 +135,25 @@ export const conexaoService = {
     return { desconectado: true };
   },
 
-  async tokenAtivo(businessId: string): Promise<{ gateway: GatewayId; accessToken: string } | null> {
+  /**
+   * Token da conexão ativa. Perto do vencimento, renova na hora: se o cron falhar por dias, o token
+   * vencido não é usado. Sem conseguir renovar, só devolve o atual se ainda não venceu.
+   */
+  async tokenAtivo(businessId: string, agora: Date = new Date()): Promise<{ gateway: GatewayId; accessToken: string } | null> {
     const c = await repo.conexaoDoNegocio(businessId);
     if (!c || c.situacao !== 'ativa') return null;
-    return { gateway: c.gateway as GatewayId, accessToken: decifrar(c.accessTokenCifrado) };
+    const gateway = c.gateway as GatewayId;
+    if (!tokenPertoDeVencer(c.tokenExpiraEm, agora)) return { gateway, accessToken: decifrar(c.accessTokenCifrado) };
+    try {
+      return { gateway, accessToken: await renovarConexao(c) };
+    } catch (e) {
+      if (e instanceof GatewayTokenInvalido) {
+        await conexaoService.marcarReconectar(businessId, e.message);
+        return null;
+      }
+      logger.warn({ err: e, businessId }, 'Recebimentos: falha ao renovar o token na hora');
+      return c.tokenExpiraEm.getTime() > agora.getTime() ? { gateway, accessToken: decifrar(c.accessTokenCifrado) } : null;
+    }
   },
 
   /** Formas que o cliente pode escolher. Sem conexão ativa (ou em erro), só Pix. Nunca lança. */
@@ -144,9 +173,7 @@ export const conexaoService = {
 
   /** O gateway recusou o acesso: a conexão vai para "precisa reconectar" e avisa uma vez (na troca de situação). */
   async marcarReconectar(businessId: string, motivo: string): Promise<void> {
-    const c = await repo.conexaoDoNegocio(businessId);
-    if (!c || c.situacao !== 'ativa') return;
-    await repo.atualizarConexao(c.id, { situacao: 'precisa_reconectar' });
+    if (!(await repo.marcarReconectar(businessId))) return;
     logger.warn({ businessId, motivo }, 'Recebimentos: conexão precisa ser refeita');
     await notificationsService.notify(businessId, {
       type: 'recebimento_alerta',
@@ -180,10 +207,7 @@ export const conexaoService = {
       for (const c of await repo.conexoesAtivas()) {
         if (!tokenPertoDeVencer(c.tokenExpiraEm, agora)) continue;
         try {
-          const t = await gateways[c.gateway as GatewayId].renovar(decifrar(c.refreshTokenCifrado));
-          await repo.atualizarConexao(c.id, {
-            accessTokenCifrado: cifrar(t.accessToken), refreshTokenCifrado: cifrar(t.refreshToken), tokenExpiraEm: t.expiraEm,
-          });
+          await renovarConexao(c);
         } catch (e) {
           if (e instanceof GatewayTokenInvalido) await conexaoService.marcarReconectar(c.businessId, e.message);
           else if (e instanceof GatewayIndisponivel) logger.warn({ businessId: c.businessId }, 'Recebimentos: renovação adiada');

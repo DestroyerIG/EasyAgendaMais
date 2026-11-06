@@ -8,7 +8,7 @@ vi.mock('../utils/logger.js', () => ({ default: { info: vi.fn(), warn: vi.fn(), 
 const repo = vi.hoisted(() => ({
   usuario: vi.fn(), conexaoDoNegocio: vi.fn(), conexaoPorContaExterna: vi.fn(), conexoesAtivas: vi.fn(),
   salvarConexao: vi.fn(), atualizarConexao: vi.fn(), reservarAlerta: vi.fn(), apagarConexao: vi.fn(),
-  ultimaConfirmacaoEm: vi.fn(), reservasPendentes: vi.fn(),
+  ultimaConfirmacaoEm: vi.fn(), reservasPendentes: vi.fn(), contaEmOutroNegocio: vi.fn(), marcarReconectar: vi.fn(),
 }));
 vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({ recebimentosRepository: repo }));
 
@@ -77,6 +77,8 @@ describe('Recebimentos: conexão', () => {
     repo.usuario.mockResolvedValue({ id: 'u1', businessId: 'b1', role: 'tenant_admin' });
     repo.salvarConexao.mockImplementation(async (d: Record<string, unknown>) => ({ id: 'c1', ...d }));
     repo.conexaoDoNegocio.mockResolvedValue(null);
+    repo.contaEmOutroNegocio.mockResolvedValue(false);
+    repo.marcarReconectar.mockResolvedValue(true);
     repo.ultimaConfirmacaoEm.mockResolvedValue(null);
     repo.reservasPendentes.mockResolvedValue(0);
     gw.conta.mockResolvedValue({ id: '999', nome: 'Studio Aurora' });
@@ -167,6 +169,23 @@ describe('Recebimentos: conexão', () => {
       expect(decifrarCom(rules.chaveRecebimentos(), salvo.refreshTokenCifrado)).toBe(tokens.refreshToken);
       expect(salvo).toMatchObject({ businessId: 'b1', gateway: 'mercadopago', contaExternaId: '999', contaNome: 'Studio Aurora' });
       expect(JSON.stringify(r.body)).not.toContain(tokens.accessToken);
+    });
+
+    it('recusa conta já conectada a outro negócio', async () => {
+      repo.contaEmOutroNegocio.mockResolvedValue(true);
+      const t = await tokenPendente('u1');
+      const r = await request.post('/api/v1/recebimentos/mercadopago/confirmar').send({ t });
+      expect(r.status).toBe(409);
+      expect(JSON.stringify(r.body)).toContain('já está conectada a outro negócio');
+      expect(repo.contaEmOutroNegocio).toHaveBeenCalledWith('mercadopago', '999', 'b1');
+      expect(repo.salvarConexao).not.toHaveBeenCalled();
+    });
+
+    it('reconectar a mesma conta no mesmo negócio é permitido', async () => {
+      const t = await tokenPendente('u1');
+      const r = await request.post('/api/v1/recebimentos/mercadopago/confirmar').send({ t });
+      expect(r.status).toBe(200);
+      expect(repo.salvarConexao).toHaveBeenCalledTimes(1);
     });
 
     it('uso único: o mesmo t não confirma duas vezes', async () => {
@@ -263,6 +282,63 @@ describe('Recebimentos: conexão', () => {
     });
   });
 
+  describe('tokenAtivo: renovação na hora', () => {
+    const agora = new Date('2027-04-10T00:00:00Z');
+    const comToken = async (expira: Date) => {
+      const { cifrarCom } = await import('../utils/cifra.js');
+      const chave = rules.chaveRecebimentos();
+      repo.conexaoDoNegocio.mockResolvedValue(conexao({
+        tokenExpiraEm: expira, accessTokenCifrado: cifrarCom(chave, 'APP_USR-atual'), refreshTokenCifrado: cifrarCom(chave, 'TG-atual'),
+      }));
+    };
+
+    it('perto de vencer: renova, grava cifrado e devolve o novo', async () => {
+      await comToken(new Date(agora.getTime() + 10 * DIA));
+      gw.renovar.mockResolvedValue({ accessToken: 'APP_USR-novo', refreshToken: 'TG-novo', expiraEm: new Date('2027-10-01T00:00:00Z'), contaId: '999' });
+      expect(await conexaoService.tokenAtivo('b1', agora)).toEqual({ gateway: 'mercadopago', accessToken: 'APP_USR-novo' });
+      expect(gw.renovar).toHaveBeenCalledWith('TG-atual');
+      const patch = repo.atualizarConexao.mock.calls[0][1];
+      expect(decifrarCom(rules.chaveRecebimentos(), patch.accessTokenCifrado)).toBe('APP_USR-novo');
+      expect(decifrarCom(rules.chaveRecebimentos(), patch.refreshTokenCifrado)).toBe('TG-novo');
+    });
+
+    it('longe do vencimento: não renova', async () => {
+      await comToken(new Date(agora.getTime() + 90 * DIA));
+      expect(await conexaoService.tokenAtivo('b1', agora)).toEqual({ gateway: 'mercadopago', accessToken: 'APP_USR-atual' });
+      expect(gw.renovar).not.toHaveBeenCalled();
+    });
+
+    it('GatewayTokenInvalido: marca reconectar, notifica e devolve null', async () => {
+      await comToken(new Date(agora.getTime() + 10 * DIA));
+      gw.renovar.mockRejectedValue(new GatewayTokenInvalido());
+      expect(await conexaoService.tokenAtivo('b1', agora)).toBeNull();
+      expect(repo.marcarReconectar).toHaveBeenCalledWith('b1');
+      expect(notif.notify).toHaveBeenCalledTimes(1);
+    });
+
+    it('GatewayIndisponivel: devolve o token atual se ainda não venceu', async () => {
+      await comToken(new Date(agora.getTime() + 10 * DIA));
+      gw.renovar.mockRejectedValue(new GatewayIndisponivel());
+      expect(await conexaoService.tokenAtivo('b1', agora)).toEqual({ gateway: 'mercadopago', accessToken: 'APP_USR-atual' });
+      expect(repo.atualizarConexao).not.toHaveBeenCalled();
+    });
+
+    it('GatewayIndisponivel com token já vencido: devolve null', async () => {
+      await comToken(new Date(agora.getTime() - DIA));
+      gw.renovar.mockRejectedValue(new GatewayIndisponivel());
+      expect(await conexaoService.tokenAtivo('b1', agora)).toBeNull();
+      expect(repo.marcarReconectar).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('marcarReconectar', () => {
+    it('não notifica quando outra chamada já trocou a situação', async () => {
+      repo.marcarReconectar.mockResolvedValue(false);
+      await conexaoService.marcarReconectar('b1', 'x');
+      expect(notif.notify).not.toHaveBeenCalled();
+    });
+  });
+
   describe('desconectar', () => {
     it('apaga a conexão e não toca nas cobranças', async () => {
       repo.conexaoDoNegocio.mockResolvedValue(conexao());
@@ -325,7 +401,7 @@ describe('Recebimentos: conexão', () => {
       repo.conexaoDoNegocio.mockResolvedValue(conexao());
       gw.renovar.mockRejectedValue(new GatewayTokenInvalido());
       await conexaoService.renovarVencendo(agora);
-      expect(repo.atualizarConexao).toHaveBeenCalledWith('c1', { situacao: 'precisa_reconectar' });
+      expect(repo.marcarReconectar).toHaveBeenCalledWith('b1');
       expect(notif.notify).toHaveBeenCalledWith('b1', expect.objectContaining({ type: 'recebimento_alerta' }));
     });
 
