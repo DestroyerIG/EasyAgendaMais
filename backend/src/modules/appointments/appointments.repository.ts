@@ -177,13 +177,21 @@ export const appointmentsPrismaRepository = {
   ): Promise<AppointmentWithRelations | null> {
     const existing = await prisma.appointment.findFirst({
       where: { id, businessId, status: 'confirmado' },
-      select: { id: true },
+      select: { id: true, date: true, time: true },
     });
     if (!existing) return null;
+
+    // Remarcar de fato (data ou hora diferentes) recomeça o ciclo de lembrete e confirmação.
+    const novaData = data.date ? new Date(data.date).toISOString().slice(0, 10) : null;
+    const novaHora = data.time ? data.time.slice(0, 5) : null;
+    const mudouData = novaData !== null && novaData !== new Date(existing.date).toISOString().slice(0, 10);
+    const mudouHora = novaHora !== null && novaHora !== new Date(existing.time).toISOString().slice(11, 16);
+    const remarcou = mudouData || mudouHora;
 
     return prisma.appointment.update({
       where: { id },
       data: {
+        ...(remarcou && { reminderSent: false, confirmationSentAt: null, clientConfirmedAt: null }),
         ...(data.clientId && { clientId: data.clientId }),
         ...(data.professionalId && { professionalId: data.professionalId }),
         ...(data.serviceId && { serviceId: data.serviceId }),
