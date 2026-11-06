@@ -321,6 +321,20 @@ Referências: telas `studio-camila-rocha-*` e `barbearia-central-*` em `docs/des
 - **Cor do negócio:** tons médios, como `#C2554D`, não têm contraste AA com texto claro nem escuro. A página escurece a cor só o necessário, então o botão pode sair um pouco mais escuro que a cor escolhida.
 - **Conferência:** a página pública foi vista com mock local, a 390 e 320 px. Em produção, as rotas de vagas, horários e situação da reserva responderam em consultas de leitura. Falta uma reserva de verdade, até a confirmação pelo dono.
 
+## Recebimentos pelo Mercado Pago, pendências conhecidas
+
+Spec em `docs/superpowers/specs/2026-11-05-recebimentos-mercado-pago-design.md`, conferências em `docs/design/mercado-pago-verificacoes.md` e guia em `docs/mercado-pago-configuracao.md`. Migração `20261108120000_recebimentos`: aplicar antes do deploy do backend, com autorização do dono.
+
+- **Teste real e autorização com PKCE:** falta testar a autorização com PKCE, que precisa do Client Secret. A troca em `/oauth/token` foi escrita com corpo JSON e não foi testada. Fazer o teste real com valor baixo em Pix e cartão.
+- **Avisos de contas conectadas:** confirmar se a aplicação recebe avisos das contas autorizadas. Sem isso, a rotina de cada minuto confirma em até um minuto.
+- **Endereço técnico do pagador:** confirmar no teste real que o Mercado Pago aceita `reserva-<id>@<domínio>`. Se recusar, a decisão de pedir e-mail volta ao dono.
+- **Logos:** Mercado Pago em https://www.mercadopago.com.br/mp/logo-oficial e InfinitePay em https://www.infinitepay.io/noticias-media. Falta ler as regras de uso das duas. Faltam as logos do Asaas e do PagBank.
+- **Outros gateways:** Asaas, InfinitePay e PagBank aparecem como "Em breve" e ainda não funcionam.
+- **Devolução automática:** não existe. Devolver o sinal é feito no Mercado Pago, pelo dono do negócio.
+- **Clube:** segue com confirmação manual do Pix.
+- **Uma conta, um negócio:** nesta versão, uma conta do Mercado Pago conecta um negócio só.
+- **Cancelamento pelo robô do WhatsApp:** não lembra de devolver o sinal, ao contrário do cancelamento pelo painel.
+
 ## Infraestrutura
 
 - **Resolvido em 05/11:** o RLS foi ligado nas 14 tabelas que ficaram sem ele (comissões, clube, app do profissional e Google Agenda), pela migração `20261106120000_rls_tabelas_restantes` (PR #37). Só a `_prisma_migrations` segue sem RLS, de propósito. Roteiro em `docs/design/rls-tabelas-restantes.md`.

@@ -196,6 +196,17 @@ Abas na ordem do Stitch: Hora de voltar · Automações · Campanhas · Conversa
 - Comprovante do repasse em PDF e exportação para o contador em CSV e PDF.
 - **Salão-parceiro** (só no plano Salão): cota-parte do salão e da profissional, CNPJ do MEI e o aviso da Lei 13.352/2016.
 
+### Recebimentos (Ajustes, só administrador)
+Aparece quando o Mercado Pago está configurado no backend (guia em `docs/mercado-pago-configuracao.md`).
+
+- Lista de gateways com logo e situação. Só o Mercado Pago funciona; Asaas, InfinitePay e PagBank aparecem como "Em breve".
+- Tela de passos: conta no Mercado Pago, chave Pix, conectar pela autorização, escolher Pix e cartão (o cartão pede aceite do aviso de contestação) e conferir a conta conectada.
+- O dinheiro cai direto na conta do negócio. As taxas são do Mercado Pago e saem do sinal.
+- Desconectar apaga os acessos e devolve as reservas pendentes à confirmação manual. Se a autorização vencer, a tela pede "Reconectar" e o sino avisa.
+- Aguardando Pix: reservas com cobrança automática ganham o selo "Automático". O botão manual continua como plano B. O Caixa e a ficha mostram a forma do sinal.
+- Pagamento depois do prazo, em dobro, devolvido ou contestado gera alerta no sino. O sistema não devolve nem cancela sozinho.
+- Se o Mercado Pago falhar na reserva, a cliente cai na chave Pix de Minha página.
+
 ### Minha página (`/dashboard/minha-pagina`)
 - Endereço público (`/agendar/[slug]`) com checagem de disponibilidade.
 - Logo, cor de destaque, galeria de fotos, endereço e chave Pix.
@@ -258,7 +269,9 @@ PWA instalável, com manifesto, ícones e service worker que guarda só a casca 
   - a cliente escolhe o serviço, a profissional e o horário, e informa nome e WhatsApp;
   - a caixa de consentimento vem desmarcada;
   - o horário fica reservado por 15 minutos enquanto ela paga o **sinal Pix**, gerado pela chave do próprio negócio;
-  - a dona confirma o pagamento no painel, e a reserva vencida é cancelada pela rotina de 5 minutos.
+  - sem gateway conectado, a dona confirma o pagamento no painel (aba Aguardando Pix); com o Mercado Pago conectado, a reserva se confirma sozinha;
+  - quando o negócio liberou mais de uma forma, a cliente escolhe Pix ou cartão; no cartão, ela paga no Checkout do Mercado Pago e volta para a reserva, que tem endereço próprio;
+  - a reserva vencida é cancelada pela rotina de 5 minutos.
 - **Adesão ao clube** (`/agendar/[slug]/clube/[ofertaId]`): a cliente escolhe o clube e recebe o Pix. A assinatura começa quando a dona confirma o primeiro pagamento.
 - **Avaliação** (`/avaliar/[token]`): de 1 a 5 estrelas, com comentário opcional, pelo link do comprovante. Nota baixa gera aviso no sino.
 - **Convite da profissional** (`/convite/[token]`).
@@ -285,7 +298,9 @@ Rodam dentro do processo do backend (`backend/src/services/cronService.ts`, node
 | A cada minuto | Fotos de perfil do WhatsApp |
 | A cada minuto | Agendamentos para o Google Agenda |
 | A cada 5 min | Compromissos do Google que bloqueiam horário |
+| A cada minuto | Confere cobranças do Mercado Pago em aberto, para cobrir aviso perdido |
 | A cada 5 min | Cancela reservas públicas com o Pix vencido |
+| Diária, 04:00 | Renova os acessos do Mercado Pago que vencem em menos de 30 dias |
 | A cada 10 min | Lembretes de agendamento |
 | A cada 10 min | Confirmação 24 h antes |
 | A cada 15 min | Radar de retorno e aniversários |
