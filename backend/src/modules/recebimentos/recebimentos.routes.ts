@@ -19,8 +19,18 @@ const callbackLimiter = rateLimit({
   keyGenerator: (req) => ipKeyGenerator(req.ip ?? 'unknown'),
 });
 
+// Excedeu: responde 200 para o gateway não insistir, e a rotina de cada minuto cobre o que foi descartado.
+const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 300,
+  standardHeaders: false,
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req.ip ?? 'unknown'),
+  handler: (_req, res) => { res.sendStatus(200); },
+});
+
 // Público: o aviso não prova nada; o pagamento é conferido no gateway com o token do negócio.
-router.post('/webhook/mercadopago', webhookMercadoPago);
+router.post('/webhook/mercadopago', webhookLimiter, webhookMercadoPago);
 router.get('/conexoes', ...dono, verConexao);
 // Público: o Mercado Pago volta para cá; quem é a pessoa vem do estado assinado.
 router.get('/:gateway/callback', callbackLimiter, gateway, validate({ query: CallbackQuerySchema }), callback);

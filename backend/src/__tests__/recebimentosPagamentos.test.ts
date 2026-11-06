@@ -97,7 +97,7 @@ vi.mock('../modules/appointments/appointments.repository.js', () => ({ appointme
 const conexao = vi.hoisted(() => ({ tokenAtivo: vi.fn(), porContaExterna: vi.fn(), marcarReconectar: vi.fn() }));
 vi.mock('../modules/recebimentos/conexao.service.js', () => ({ conexaoService: conexao }));
 
-const gw = vi.hoisted(() => ({ referenciaDoRecurso: vi.fn(), buscarPorReferencia: vi.fn() }));
+const gw = vi.hoisted(() => ({ referenciaDoRecurso: vi.fn(), buscarPorReferencia: vi.fn(), conta: vi.fn() }));
 vi.mock('../modules/recebimentos/gateways/index.js', async (orig) => ({
   ...(await orig<typeof import('../modules/recebimentos/gateways/index.js')>()), gateways: { mercadopago: gw },
 }));
@@ -106,7 +106,8 @@ const gatilhos = vi.hoisted(() => ({ aoCancelar: vi.fn() }));
 vi.mock('../modules/whatsappAutomacoes/gatilhos.service.js', () => ({ automacoesGatilhos: gatilhos }));
 vi.mock('../modules/googleAgenda/googleAgenda.service.js', () => ({ googleAgendaService: { sincronizarSaida: vi.fn() } }));
 vi.mock('../modules/clube/clube.service.js', () => ({ clubeService: { aoFaltar: vi.fn() } }));
-vi.mock('../services/scheduleSettingsService.js', () => ({ generateAvailableTimeSlots: vi.fn(), getBusinessScheduleSettings: vi.fn() }));
+const agenda = vi.hoisted(() => ({ generateAvailableTimeSlots: vi.fn(), getBusinessScheduleSettings: vi.fn() }));
+vi.mock('../services/scheduleSettingsService.js', () => agenda);
 
 const { pagamentosService } = await import('../modules/recebimentos/pagamentos.service.js');
 const { recebimentosRepository } = await import('../modules/recebimentos/recebimentos.repository.js');
@@ -132,7 +133,7 @@ const emMinutos = (m: number) => new Date(Date.now() + m * MINUTO);
 function reserva(extra: Record<string, unknown> = {}) {
   const r = {
     id: 'a1', businessId: 'b1', professionalId: 'p1', status: 'aguardando_pagamento', expiresAt: emMinutos(10),
-    date: new Date('2026-11-10T00:00:00Z'), time: new Date('1970-01-01T10:00:00Z'),
+    date: new Date('2099-11-10T00:00:00Z'), time: new Date('1970-01-01T10:00:00Z'),
     client: { name: 'Mariana Souza', phone: '5511999999999' }, service: { name: 'Manicure' }, ...extra,
   };
   banco.estado.reservas.push(r);
@@ -167,6 +168,8 @@ beforeEach(() => {
   conexao.marcarReconectar.mockResolvedValue(undefined);
   gw.referenciaDoRecurso.mockResolvedValue(COB);
   gw.buscarPorReferencia.mockResolvedValue([pagamento()]);
+  gw.conta.mockRejectedValue(new GatewayTokenInvalido());
+  agenda.getBusinessScheduleSettings.mockResolvedValue({ timezone: 'America/Sao_Paulo' });
   apptRepo.hasConflict.mockResolvedValue(false);
   apptRepo.findById.mockImplementation(async (id: string) => banco.estado.reservas.find((r) => r.id === id) ?? null);
   gatilhos.aoCancelar.mockResolvedValue(undefined);
@@ -200,11 +203,20 @@ describe('processarAviso', () => {
     expect(sinal.avisarSinalConfirmado).not.toHaveBeenCalled();
   });
 
-  it('valor diferente do da cobrança não confirma', async () => {
+  it('valor diferente do da cobrança não confirma e deixa rastro no log, sem o token', async () => {
     reserva(); cobranca();
     gw.buscarPorReferencia.mockResolvedValue([pagamento({ valor: 29.99 })]);
     await pagamentosService.processarAviso(aviso);
+
     expect(lerReserva().status).toBe('aguardando_pagamento');
+    expect(log.warn).toHaveBeenCalledWith({ cobrancaId: COB, pagamentoId: '555' }, expect.any(String));
+    expect(JSON.stringify(log.warn.mock.calls)).not.toContain('APP_USR-segredo');
+  });
+
+  it('valor igual não registra divergência', async () => {
+    reserva(); cobranca();
+    await pagamentosService.processarAviso(aviso);
+    expect(log.warn).not.toHaveBeenCalled();
   });
 
   it('user_id sem conexão não faz nada, registra warn e não lança', async () => {
@@ -281,11 +293,28 @@ describe('processarAviso', () => {
     expect(alertas()).toHaveLength(0);
   });
 
-  it('GatewayTokenInvalido na referência chama marcarReconectar', async () => {
+  it('GatewayTokenInvalido na referência e na conta chama marcarReconectar', async () => {
     reserva(); cobranca();
     gw.referenciaDoRecurso.mockRejectedValue(new GatewayTokenInvalido());
     await expect(pagamentosService.processarAviso(aviso)).resolves.toBeUndefined();
+    expect(gw.conta).toHaveBeenCalledWith('APP_USR-segredo');
     expect(conexao.marcarReconectar).toHaveBeenCalledWith('b1', expect.any(String));
+  });
+
+  it('401 num id escolhido por quem avisou não desliga a conexão se a conta responde', async () => {
+    reserva(); cobranca();
+    gw.referenciaDoRecurso.mockRejectedValue(new GatewayTokenInvalido());
+    gw.conta.mockResolvedValue({ id: '999', nome: 'Studio' });
+    await expect(pagamentosService.processarAviso(aviso)).resolves.toBeUndefined();
+    expect(conexao.marcarReconectar).not.toHaveBeenCalled();
+  });
+
+  it('conta indisponível na confirmação não desliga a conexão', async () => {
+    reserva(); cobranca();
+    gw.referenciaDoRecurso.mockRejectedValue(new GatewayTokenInvalido());
+    gw.conta.mockRejectedValue(new GatewayIndisponivel());
+    await expect(pagamentosService.processarAviso(aviso)).resolves.toBeUndefined();
+    expect(conexao.marcarReconectar).not.toHaveBeenCalled();
   });
 
   it('nunca lança, mesmo com o banco fora do ar', async () => {
@@ -428,13 +457,25 @@ describe('marcarPagaEConfirmar', () => {
 describe('expirarReserva', () => {
   const agora = () => new Date();
 
-  it('cancela a reserva vencida e marca só as cobranças pendente como expirada', async () => {
+  it('cancela a reserva vencida e marca as cobranças pendente e recusada como expirada', async () => {
     reserva({ expiresAt: emMinutos(-1) }); cobranca(); cobranca({ id: COB2, situacao: 'recusada' });
+    cobranca({ id: 'c-paga', situacao: 'paga', pagamentoExternoId: '1' });
     await expect(recebimentosRepository.expirarReserva('a1', agora())).resolves.toBe(true);
 
     expect(lerReserva().status).toBe('cancelado');
     expect(lerCobranca().situacao).toBe('expirada');
-    expect(lerCobranca(COB2).situacao).toBe('recusada');
+    expect(lerCobranca(COB2).situacao).toBe('expirada');
+    expect(lerCobranca('c-paga').situacao).toBe('paga');
+  });
+
+  it('cartão recusado e aprovado depois do vencimento, com horário livre: reativa', async () => {
+    reserva({ expiresAt: emMinutos(-1) }); cobranca({ situacao: 'recusada' });
+    await recebimentosRepository.expirarReserva('a1', agora());
+    await pagamentosService.processarCobranca(COB);
+
+    expect(lerReserva()).toMatchObject({ status: 'confirmado', expiresAt: null });
+    expect(sinal.avisarSinalConfirmado).toHaveBeenCalledTimes(1);
+    expect(alertas()).toHaveLength(0);
   });
 
   it.each([
@@ -454,9 +495,9 @@ describe('reativar', () => {
     const trava = vi.spyOn(publicBookingRepository, 'withProfessionalDayLock');
     await pagamentosService.processarCobranca(COB);
 
-    expect(trava).toHaveBeenCalledWith('p1', '2026-11-10', expect.any(Function));
+    expect(trava).toHaveBeenCalledWith('p1', '2099-11-10', expect.any(Function));
     expect(banco.db.$executeRaw).toHaveBeenCalled();
-    expect(apptRepo.hasConflict).toHaveBeenCalledWith('b1', 'p1', '2026-11-10', '10:00:00', 'a1', banco.db);
+    expect(apptRepo.hasConflict).toHaveBeenCalledWith('b1', 'p1', '2099-11-10', '10:00:00', 'a1', banco.db);
     expect(lerReserva()).toMatchObject({ status: 'confirmado', expiresAt: null });
     expect(lerCobranca()).toMatchObject({ situacao: 'paga', pagamentoExternoId: '555' });
     expect(sinal.avisarSinalConfirmado).toHaveBeenCalledTimes(1);
@@ -489,6 +530,60 @@ describe('reativar', () => {
     expect(whats.sendWhatsAppMessage.mock.calls[0]![0]).toBe('5511999999999');
     expect(whats.sendWhatsAppMessage.mock.calls[0]![1]).toContain(AVISO_CLIENTE);
     expect(whats.sendWhatsAppMessage.mock.calls[0]![2]).toMatchObject({ businessId: 'b1' });
+  });
+
+  it('pagamento aprovado depois do horário da reserva cai no caminho de ocupado', async () => {
+    reserva({ status: 'cancelado', expiresAt: emMinutos(-20), date: new Date('2020-01-10T00:00:00Z') });
+    cobranca({ situacao: 'expirada' });
+    await pagamentosService.processarCobranca(COB);
+
+    expect(agenda.getBusinessScheduleSettings).toHaveBeenCalledWith('b1');
+    expect(lerReserva().status).toBe('cancelado');
+    expect(lerCobranca()).toMatchObject({ situacao: 'paga', pagamentoExternoId: '555' });
+    expect(sinal.avisarSinalConfirmado).not.toHaveBeenCalled();
+    expect(alertas()).toHaveLength(1);
+    expect(alertas()[0]![1].description).toContain('devolva se for o caso');
+    expect(whats.sendWhatsAppMessage.mock.calls[0]![1]).toContain(AVISO_CLIENTE);
+  });
+
+  it('ao reativar, a cobrança irmã perde a marca expirada e não reverte um cancelamento feito depois', async () => {
+    reserva({ status: 'cancelado', expiresAt: emMinutos(-20) });
+    cobranca({ situacao: 'expirada' });
+    cobranca({ id: COB2, situacao: 'expirada' });
+    await pagamentosService.processarCobranca(COB);
+
+    expect(lerReserva().status).toBe('confirmado');
+    expect(lerCobranca(COB2).situacao).toBe('recusada');
+
+    // Pessoa cancela, a primeira é devolvida e a irmã é paga tarde.
+    lerReserva().status = 'cancelado';
+    lerCobranca().situacao = 'devolvida';
+    gw.buscarPorReferencia.mockResolvedValue([pagamento({ id: '556', referencia: COB2 })]);
+    await pagamentosService.processarCobranca(COB2);
+
+    expect(lerReserva().status).toBe('cancelado');
+    expect(lerCobranca(COB2).situacao).toBe('paga');
+    expect(alertas()).toHaveLength(1);
+  });
+
+  it('com horário ocupado, a cobrança irmã continua expirada', async () => {
+    reserva({ status: 'cancelado', expiresAt: emMinutos(-20) });
+    cobranca({ situacao: 'expirada' });
+    cobranca({ id: COB2, situacao: 'expirada' });
+    apptRepo.hasConflict.mockResolvedValue(true);
+    await pagamentosService.processarCobranca(COB);
+    expect(lerCobranca(COB2).situacao).toBe('expirada');
+  });
+
+  it('reativação desfeita devolve a marca expirada da cobrança irmã', async () => {
+    reserva({ status: 'cancelado', expiresAt: emMinutos(-20) });
+    cobranca({ situacao: 'expirada' });
+    cobranca({ id: COB2, situacao: 'expirada' });
+    vi.spyOn(banco.db.appointment, 'updateMany').mockResolvedValueOnce({ count: 0 });
+    await pagamentosService.processarCobranca(COB);
+
+    expect(lerCobranca().situacao).toBe('expirada');
+    expect(lerCobranca(COB2).situacao).toBe('expirada');
   });
 
   it('horário ocupado com repetição do aviso: alerta uma vez só', async () => {
@@ -627,6 +722,32 @@ describe('devolução e contestação', () => {
     expect(alertas()).toHaveLength(0);
   });
 
+  it('devolução sem linha paga com aquele pagamento não muda nada nem alerta', async () => {
+    reserva(); cobranca();
+    gw.buscarPorReferencia.mockResolvedValue([pagamento({ status: 'refunded' })]);
+    await pagamentosService.processarCobranca(COB);
+
+    expect(lerCobranca().situacao).toBe('pendente');
+    expect(alertas()).toHaveLength(0);
+  });
+
+  it.each([
+    ['refunded', 'devolvida'],
+    ['charged_back', 'contestada'],
+  ])('%s do repetido com a cobrança principal já devolvida marca %s, e o lembrete não pede devolução', async (status, situacao) => {
+    reserva({ status: 'confirmado' }); cobranca({ situacao: 'devolvida', pagamentoExternoId: '1' });
+    cobranca({ id: 'extra', situacao: 'paga', pagamentoExternoId: '2', venceEm: null });
+    gw.buscarPorReferencia.mockResolvedValue([pagamento({ id: '1', status: 'refunded' }), pagamento({ id: '2', status })]);
+    await pagamentosService.processarCobranca(COB);
+    await pagamentosService.processarCobranca(COB);
+
+    expect(lerCobranca('extra').situacao).toBe(situacao);
+    expect(alertas()).toHaveLength(1);
+
+    await recebimentosRepository.lembrarDevolucaoAoCancelar('b1', 'a1');
+    expect(alertas()).toHaveLength(1);
+  });
+
   it('devolução do pagamento repetido marca só o registro dele', async () => {
     reserva({ status: 'confirmado' }); cobranca({ situacao: 'paga', pagamentoExternoId: '1' });
     cobranca({ id: 'extra', situacao: 'paga', pagamentoExternoId: '2', venceEm: null });
@@ -729,11 +850,34 @@ describe('POST /webhook/mercadopago', () => {
     ['sem data.id', { type: 'payment', user_id: 999 }],
     ['id que não é texto nem número', { type: 'payment', user_id: 999, data: { id: { x: 1 } } }],
     ['corpo vazio', {}],
-  ])('%s: responde 200 sem chamar o serviço', async (_n, corpo) => {
+    ['payment com letras', { type: 'payment', user_id: 999, data: { id: 'texto-recebido' } }],
+    ['payment longo demais', { type: 'payment', user_id: 999, data: { id: '1'.repeat(65) } }],
+    ['order com símbolos', { type: 'order', user_id: 999, data: { id: 'ORD/../texto-recebido' } }],
+    ['order longo demais', { type: 'order', user_id: 999, data: { id: 'A'.repeat(65) } }],
+    ['user_id com letras', { type: 'payment', user_id: 'texto-recebido', data: { id: '1' } }],
+    ['user_id longo demais', { type: 'payment', user_id: '9'.repeat(65), data: { id: '1' } }],
+  ])('%s: responde 200 sem chamar o serviço e sem registrar o texto', async (_n, corpo) => {
     const r = await request.post(URL_WEBHOOK).send(corpo);
     expect(r.status).toBe(200);
     expect(processar).not.toHaveBeenCalled();
+    expect(JSON.stringify([log.info.mock.calls, log.warn.mock.calls, log.error.mock.calls])).not.toContain('texto-recebido');
   });
+
+  it('aceita ids no tamanho máximo', async () => {
+    await request.post(URL_WEBHOOK).send({ type: 'order', user_id: '9'.repeat(64), data: { id: 'A'.repeat(64) } });
+    expect(processar).toHaveBeenCalledTimes(1);
+  });
+
+  // Por último: consome o limite do IP, que vale para a janela inteira.
+  it('acima de 300 pedidos por minuto responde 200 e não processa', async () => {
+    const corpo = { type: 'payment', user_id: 999, data: { id: '555' } };
+    for (let i = 0; i < 300; i += 1) await request.post(URL_WEBHOOK).send(corpo);
+    processar.mockClear();
+
+    const r = await request.post(URL_WEBHOOK).send(corpo);
+    expect(r.status).toBe(200);
+    expect(processar).not.toHaveBeenCalled();
+  }, 30_000);
 });
 
 describe('cancelamento de reserva com sinal pago', () => {

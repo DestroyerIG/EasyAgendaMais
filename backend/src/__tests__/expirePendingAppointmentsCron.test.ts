@@ -65,13 +65,13 @@ describe('expirePendingAppointments', () => {
     }
   });
 
-  it('marca as cobranças pendente das reservas vencidas como expirada, na mesma transação do cancelamento', async () => {
+  it('marca as cobranças pendente e recusada das reservas vencidas como expirada, na mesma transação do cancelamento', async () => {
     await expirePendingAppointments(AGORA);
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(2);
     for (const appointmentId of ['apt-1', 'apt-2']) {
       expect(tx.cobrancaSinal.updateMany).toHaveBeenCalledWith({
-        where: { appointmentId, situacao: 'pendente' },
+        where: { appointmentId, situacao: { in: ['pendente', 'recusada'] } },
         data: { situacao: 'expirada' },
       });
     }

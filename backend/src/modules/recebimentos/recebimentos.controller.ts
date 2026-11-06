@@ -11,6 +11,8 @@ const usuario = (req: Request): UsuarioLogado => ({
 });
 const gatewayDe = (req: Request) => req.params['gateway'] as GatewayId;
 const emTexto = (v: unknown): string => (typeof v === 'string' || typeof v === 'number' ? String(v) : '');
+const SO_DIGITOS = /^\d{1,64}$/;
+const ALFANUMERICO = /^[A-Za-z0-9]{1,64}$/;
 
 export const verConexao: H = async (req, res, next) => {
   try { sendSuccess(res, await conexaoService.verConexao(usuario(req))); } catch (e) { next(e); }
@@ -42,6 +44,8 @@ export const webhookMercadoPago = (req: Request, res: Response): void => {
   const tipo = emTexto(corpo.type) || emTexto(req.query['type']);
   const contaId = emTexto(corpo.user_id);
   const recursoId = emTexto(corpo.data?.id) || emTexto(req.query['data.id']);
-  if ((tipo !== 'order' && tipo !== 'payment') || !contaId || !recursoId) return;
+  if (tipo !== 'order' && tipo !== 'payment') return;
+  // Fora do formato não vai ao gateway nem ao log: a rota é pública.
+  if (!SO_DIGITOS.test(contaId) || !(tipo === 'payment' ? SO_DIGITOS : ALFANUMERICO).test(recursoId)) return;
   void pagamentosService.processarAviso({ contaId, tipo, recursoId });
 };

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { randomBytes } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import {
-  assinarEstado, centavos, decidirPagamento, desafioPkce, lerEstado, recebimentosConfigurado,
+  assinarEstado, centavos, decidirPagamento, desafioPkce, horarioJaPassou, lerEstado, recebimentosConfigurado,
   tokenPertoDeVencer, verificadorPkce,
 } from '../modules/recebimentos/recebimentos.rules.js';
 import { cifrarCom, decifrarCom } from '../utils/cifra.js';
@@ -66,11 +66,39 @@ describe('regras dos recebimentos', () => {
     expect(decidirPagamento({ ...base, cobranca: paga, pagamento: { ...base.pagamento, status: 'refunded' } })).toBe('marcar_devolvida');
     expect(decidirPagamento({ ...base, cobranca: paga, pagamento: { ...base.pagamento, status: 'charged_back' } })).toBe('marcar_contestada');
   });
-  it('devolução ou recusa não mexem em cobrança no estado errado', () => {
+  it('devolução e contestação não dependem da situação desta cobrança: quem confere a linha paga é marcarEstorno', () => {
+    for (const situacao of ['pendente', 'devolvida', 'contestada']) {
+      const cobranca = { ...base.cobranca, situacao };
+      expect(decidirPagamento({ ...base, cobranca, pagamento: { ...base.pagamento, status: 'refunded' } })).toBe('marcar_devolvida');
+      expect(decidirPagamento({ ...base, cobranca, pagamento: { ...base.pagamento, status: 'charged_back' } })).toBe('marcar_contestada');
+    }
+  });
+  it('devolução de pagamento de outra referência é ignorada', () => {
+    const pagamento = { ...base.pagamento, status: 'refunded', referencia: 'outra' };
+    expect(decidirPagamento({ ...base, pagamento })).toBe('ignorar');
+  });
+  it('recusa não mexe em cobrança paga', () => {
     const paga = { ...base.cobranca, situacao: 'paga', pagamentoExternoId: 'p1' };
-    expect(decidirPagamento({ ...base, pagamento: { ...base.pagamento, status: 'refunded' } })).toBe('ignorar');
-    expect(decidirPagamento({ ...base, pagamento: { ...base.pagamento, status: 'charged_back' } })).toBe('ignorar');
     expect(decidirPagamento({ ...base, cobranca: paga, pagamento: { ...base.pagamento, status: 'rejected' } })).toBe('ignorar');
+  });
+  describe('horarioJaPassou', () => {
+    const SP = 'America/Sao_Paulo';
+    const agora = new Date('2026-11-10T13:00:30Z'); // 10:00 em São Paulo
+
+    it('compara no fuso do negócio, não em UTC', () => {
+      expect(horarioJaPassou('2026-11-10', '09:59:00', agora, SP)).toBe(true);
+      expect(horarioJaPassou('2026-11-10', '11:00:00', agora, SP)).toBe(false);
+      expect(horarioJaPassou('2026-11-10', '11:00:00', agora, 'UTC')).toBe(true);
+    });
+    it('o minuto em curso ainda vale', () => {
+      expect(horarioJaPassou('2026-11-10', '10:00:00', agora, SP)).toBe(false);
+    });
+    it('considera a data, inclusive na virada do dia no fuso', () => {
+      expect(horarioJaPassou('2026-11-09', '23:00:00', agora, SP)).toBe(true);
+      expect(horarioJaPassou('2026-11-11', '08:00:00', agora, SP)).toBe(false);
+      expect(horarioJaPassou('2026-11-10', '22:00:00', new Date('2026-11-11T01:30:00Z'), SP)).toBe(true);
+      expect(horarioJaPassou('2026-11-11', '00:30:00', new Date('2026-11-11T02:00:00Z'), SP)).toBe(false);
+    });
   });
   it('centavos aceita Decimal, texto e número', () => {
     expect(centavos('15.50')).toBe(1550);

@@ -80,6 +80,14 @@ export function reais(v: unknown): string {
   return (centavos(v) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+/** O horário da reserva já passou no fuso do negócio. O minuto em curso ainda vale, como na lista de horários. */
+export function horarioJaPassou(dia: string, hora: string, agora: Date, timeZone: string): boolean {
+  const relogio = new Intl.DateTimeFormat('sv-SE', {
+    timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  }).format(agora);
+  return `${dia} ${hora.slice(0, 5)}` < relogio;
+}
+
 const DIA_MS = 24 * 60 * 60 * 1000;
 
 /** Renova o token a menos de 30 dias do vencimento. */
@@ -111,8 +119,9 @@ export function decidirPagamento(e: EntradaDecisao): Decisao {
   if (pagamento.referencia !== cobranca.id) return 'ignorar';
 
   const paga = cobranca.situacao === 'paga';
-  if (pagamento.status === 'refunded') return paga ? 'marcar_devolvida' : 'ignorar';
-  if (pagamento.status === 'charged_back') return paga ? 'marcar_contestada' : 'ignorar';
+  // Não olha a situação desta cobrança: o pagamento pode estar na linha do repetido. Quem confere é marcarEstorno.
+  if (pagamento.status === 'refunded') return 'marcar_devolvida';
+  if (pagamento.status === 'charged_back') return 'marcar_contestada';
   if (pagamento.status === 'rejected') return paga ? 'ignorar' : 'marcar_recusada';
   if (pagamento.status !== 'approved') return 'ignorar';
 

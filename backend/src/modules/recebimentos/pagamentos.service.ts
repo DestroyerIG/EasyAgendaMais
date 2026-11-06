@@ -6,7 +6,7 @@ import { notificationsService } from '../notifications/notifications.service.js'
 import { conexaoService } from './conexao.service.js';
 import { GatewayIndisponivel, GatewayRecusou, GatewayTokenInvalido, gateways } from './gateways/index.js';
 import { recebimentosRepository as repo } from './recebimentos.repository.js';
-import { decidirPagamento, reais, recebimentosConfigurado, type Decisao } from './recebimentos.rules.js';
+import { centavos, decidirPagamento, reais, recebimentosConfigurado, type Decisao } from './recebimentos.rules.js';
 import type { GatewayId, PagamentoGateway } from './recebimentos.types.js';
 
 // Pagamentos do sinal. O aviso do gateway só diz onde olhar: a prova é sempre a busca feita com o
@@ -18,14 +18,25 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MENSAGEM_AO_CLIENTE = 'O negócio vai entrar em contato com você sobre o seu sinal.';
 
 type Cobranca = NonNullable<Awaited<ReturnType<typeof repo.cobrancaComReserva>>>;
+type Token = { gateway: GatewayId; accessToken: string };
 
-/** Chamada ao gateway: acesso recusado pede reconexão; indisponível fica para a próxima rodada. */
-async function consultarGateway<T>(businessId: string, chamada: () => Promise<T>): Promise<T | null> {
+/** Um 401 pode vir de um id escolhido por quem avisou. Só a URL fixa da conta prova que o acesso caiu. */
+async function acessoRevogado(token: Token): Promise<boolean> {
+  try {
+    await gateways[token.gateway].conta(token.accessToken);
+    return false;
+  } catch (e) {
+    return e instanceof GatewayTokenInvalido;
+  }
+}
+
+/** Chamada ao gateway: acesso revogado pede reconexão; indisponível fica para a próxima rodada. */
+async function consultarGateway<T>(businessId: string, token: Token, chamada: () => Promise<T>): Promise<T | null> {
   try {
     return await chamada();
   } catch (e) {
     if (e instanceof GatewayTokenInvalido) {
-      await conexaoService.marcarReconectar(businessId, e.message);
+      if (await acessoRevogado(token)) await conexaoService.marcarReconectar(businessId, e.message);
       return null;
     }
     if (e instanceof GatewayIndisponivel || e instanceof GatewayRecusou) {
@@ -60,7 +71,7 @@ async function avisarPagoSemReserva(c: Cobranca): Promise<void> {
   await alertarNegocio(
     c.businessId,
     'Sinal pago, mas a reserva não foi confirmada',
-    `${reserva.client.name} pagou ${reais(c.valor)}, mas o horário não está mais reservado. Fale com a pessoa e, se for o caso, devolva o valor no Mercado Pago.`,
+    `${reserva.client.name} pagou ${reais(c.valor)}, mas o horário não está mais reservado. Fale com a pessoa, confira no Mercado Pago e devolva se for o caso.`,
   );
   try {
     await sendWhatsAppMessage(reserva.client.phone, MENSAGEM_AO_CLIENTE, { businessId: c.businessId, origin: 'pix_recibo' });
@@ -74,8 +85,8 @@ async function avisarDuplicado(c: Cobranca): Promise<void> {
   if (!reserva) return;
   await alertarNegocio(
     c.businessId,
-    'Sinal pago em dobro',
-    `${reserva.client.name} pagou ${reais(c.valor)} a mais nesta reserva. Devolva o pagamento repetido no Mercado Pago.`,
+    'Possível sinal pago em dobro',
+    `${reserva.client.name} pode ter pago ${reais(c.valor)} a mais nesta reserva. Confira no Mercado Pago e devolva se for o caso.`,
   );
 }
 
@@ -86,7 +97,7 @@ async function avisarEstorno(c: Cobranca, situacao: 'devolvida' | 'contestada'):
   await alertarNegocio(
     c.businessId,
     titulo,
-    `O sinal de ${reais(c.valor)} de ${reserva.client.name} ${fato}. A reserva não mudou: você decide se ela continua.`,
+    `O sinal de ${reais(c.valor)} de ${reserva.client.name} ${fato}. Confira no Mercado Pago. A reserva não mudou: você decide se ela continua.`,
   );
 }
 
@@ -136,6 +147,9 @@ async function avaliar(cobrancaId: string, pagamento: PagamentoGateway): Promise
     outraCobrancaPaga: await repo.outraCobrancaPaga(c.appointmentId, c.id),
     agora: new Date(),
   });
+  if (pagamento.status === 'approved' && pagamento.referencia === c.id && centavos(pagamento.valor) !== centavos(c.valor)) {
+    logger.warn({ cobrancaId, pagamentoId: pagamento.id }, 'Recebimentos: pagamento aprovado com valor diferente da cobrança');
+  }
   if (decisao !== 'ignorar') logger.info({ cobrancaId, pagamentoId: pagamento.id, decisao }, 'Recebimentos: decisão sobre pagamento');
   await aplicar(decisao, c, pagamento);
 }
@@ -156,7 +170,7 @@ async function conferirCobranca(cobrancaId: string): Promise<void> {
     return;
   }
   const pagamentos = await consultarGateway(
-    c.businessId, () => gateways[token.gateway].buscarPorReferencia(token.accessToken, c.id),
+    c.businessId, token, () => gateways[token.gateway].buscarPorReferencia(token.accessToken, c.id),
   );
   for (const p of emOrdemDeAvaliacao(pagamentos ?? [])) await avaliar(c.id, p);
 }
@@ -179,7 +193,7 @@ export const pagamentosService = {
         return;
       }
       const referencia = await consultarGateway(
-        businessId, () => gateways[token.gateway].referenciaDoRecurso(token.accessToken, { tipo, id: recursoId }),
+        businessId, token, () => gateways[token.gateway].referenciaDoRecurso(token.accessToken, { tipo, id: recursoId }),
       );
       // A conta também recebe pagamentos que não são sinais: esses têm outra referência, ou nenhuma.
       if (!referencia || !UUID.test(referencia)) return;

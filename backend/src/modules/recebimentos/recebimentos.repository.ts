@@ -2,7 +2,8 @@ import { prisma } from '../../config/prisma.js';
 import { appointmentsPrismaRepository } from '../appointments/appointments.repository.js';
 import { notificationsService } from '../notifications/notifications.service.js';
 import { publicBookingRepository } from '../publicBooking/publicBooking.repository.js';
-import { centavos, reais } from './recebimentos.rules.js';
+import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
+import { centavos, horarioJaPassou, reais } from './recebimentos.rules.js';
 import type { GatewayId, PagamentoGateway } from './recebimentos.types.js';
 
 // Recebimentos (Mercado Pago): acesso ao banco da conexão do negócio e das cobranças do sinal.
@@ -177,15 +178,18 @@ export const recebimentosRepository = {
   /**
    * Pago depois do prazo. Dentro da trava de profissional e dia, relê tudo: cobrança e reserva podem
    * ter mudado desde a decisão, e um cancelamento feito por pessoa nunca é revertido. Este é o único
-   * lugar que tira uma reserva de `cancelado`. Horário ocupado: fica paga e a reserva não muda.
+   * lugar que tira uma reserva de `cancelado`. Horário ocupado ou já passado: fica paga e a reserva
+   * não muda. Ao reativar, as cobranças irmãs perdem a marca `expirada`: ela só valia para este
+   * vencimento, e um pagamento tardio nelas não pode reverter um cancelamento feito depois.
    */
   async marcarPagaEReativar(cobrancaId: string, pagamento: PagamentoGateway): Promise<ResultadoReativacao> {
     const origem = await prisma.cobrancaSinal.findUnique({
-      where: { id: cobrancaId }, select: { appointment: { select: { professionalId: true, date: true } } },
+      where: { id: cobrancaId }, select: { appointment: { select: { businessId: true, professionalId: true, date: true } } },
     });
     if (!origem) return 'sem_efeito';
-    const { professionalId } = origem.appointment;
+    const { businessId, professionalId } = origem.appointment;
     const dia = origem.appointment.date.toISOString().slice(0, 10);
+    const { timezone } = await getBusinessScheduleSettings(businessId);
 
     try {
       return await publicBookingRepository.withProfessionalDayLock(professionalId, dia, async (tx) => {
@@ -193,7 +197,7 @@ export const recebimentosRepository = {
           where: { id: cobrancaId },
           select: {
             situacao: true,
-            appointment: { select: { id: true, businessId: true, status: true, time: true } },
+            appointment: { select: { id: true, status: true, time: true } },
           },
         });
         if (!c) return 'sem_efeito';
@@ -208,11 +212,13 @@ export const recebimentosRepository = {
         if (count !== 1) return 'sem_efeito';
 
         const hora = reserva.time.toISOString().slice(11, 19);
-        const ocupado = await appointmentsPrismaRepository.hasConflict(
-          reserva.businessId, professionalId, dia, hora, reserva.id, tx,
-        );
+        const ocupado = horarioJaPassou(dia, hora, new Date(), timezone)
+          || await appointmentsPrismaRepository.hasConflict(businessId, professionalId, dia, hora, reserva.id, tx);
         if (ocupado) return 'ocupado';
 
+        await tx.cobrancaSinal.updateMany({
+          where: { appointmentId: reserva.id, situacao: 'expirada', id: { not: cobrancaId } }, data: { situacao: 'recusada' },
+        });
         const mudou = await tx.appointment.updateMany({
           where: { id: reserva.id, status: reserva.status }, data: { status: 'confirmado', expiresAt: null },
         });
@@ -265,7 +271,7 @@ export const recebimentosRepository = {
     await prisma.cobrancaSinal.updateMany({ where: { id: cobrancaId, situacao: 'pendente' }, data: { situacao: 'recusada' } });
   },
 
-  /** Muda só a linha que guarda este pagamento. true para quem fez a troca. */
+  /** Muda só a linha paga que guarda este pagamento, seja qual for. true para quem fez a troca. */
   async marcarEstorno(
     c: { businessId: string; gateway: string },
     pagamento: PagamentoGateway,
@@ -279,7 +285,9 @@ export const recebimentosRepository = {
   },
 
   /**
-   * Cancela a reserva vencida e marca as cobranças pendentes como `expirada`, juntas. Se a reserva
+   * Cancela a reserva vencida e marca as cobranças em aberto como `expirada`, juntas. A recusada
+   * entra porque o cartão aceita nova tentativa, e o resultado não pode depender de o aviso da
+   * recusa ter chegado. Se a reserva
    * saiu de `aguardando_pagamento` depois da leitura da rotina, nada fica: `expirada` com reserva
    * cancelada significa vencimento, e é o que autoriza reativar. A cobrança vem antes da reserva,
    * na mesma ordem da confirmação, para as duas transações nunca travarem uma à outra.
@@ -287,7 +295,9 @@ export const recebimentosRepository = {
   async expirarReserva(appointmentId: string, agora: Date): Promise<boolean> {
     try {
       await prisma.$transaction(async (tx) => {
-        await tx.cobrancaSinal.updateMany({ where: { appointmentId, situacao: 'pendente' }, data: { situacao: 'expirada' } });
+        await tx.cobrancaSinal.updateMany({
+          where: { appointmentId, situacao: { in: ['pendente', 'recusada'] } }, data: { situacao: 'expirada' },
+        });
         const { count } = await tx.appointment.updateMany({
           where: { id: appointmentId, status: 'aguardando_pagamento', expiresAt: { lt: agora } },
           data: { status: 'cancelado' },
@@ -313,7 +323,7 @@ export const recebimentosRepository = {
     await notificationsService.notify(businessId, {
       type: 'recebimento_alerta',
       title: 'Reserva cancelada com sinal pago',
-      description: `${primeira.appointment.client.name} pagou ${reais(total)} de sinal. Se for o caso, devolva o valor no Mercado Pago.`,
+      description: `${primeira.appointment.client.name} pagou ${reais(total)} de sinal. Confira no Mercado Pago e devolva se for o caso.`,
     });
   },
 };
