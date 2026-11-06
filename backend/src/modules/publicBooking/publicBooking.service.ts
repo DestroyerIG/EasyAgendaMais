@@ -185,7 +185,8 @@ export const publicBookingService = {
     let pixPayload: string | null = null;
     let checkoutUrl: string | null = null;
     if (situacao === 'aguardando') {
-      const atual = cobrancas.find((c) => c.situacao === 'pendente' || c.situacao === 'recusada');
+      // Sem id externo a cobrança ainda não existe no gateway (ou ficou órfã): não há o que pagar nela.
+      const atual = cobrancas.find((c) => c.idExterno !== null && (c.situacao === 'pendente' || c.situacao === 'recusada'));
       forma = atual?.forma === 'cartao' ? 'cartao' : 'pix';
       checkoutUrl = atual?.checkoutUrl ?? null;
       if (forma === 'pix') pixPayload = atual?.codigoPix ?? pixManual(business, sinal, reserva.service.name);

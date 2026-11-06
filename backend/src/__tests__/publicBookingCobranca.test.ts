@@ -5,7 +5,7 @@ import { appointmentsPrismaRepository } from '../modules/appointments/appointmen
 import { recebimentosRepository } from '../modules/recebimentos/recebimentos.repository.js';
 import { conexaoService } from '../modules/recebimentos/conexao.service.js';
 import { automacoesGatilhos } from '../modules/whatsappAutomacoes/gatilhos.service.js';
-import { gateways, GatewayIndisponivel, GatewayRecusou } from '../modules/recebimentos/gateways/index.js';
+import { gateways, GatewayIndisponivel, GatewayRecusou, GatewayTokenInvalido } from '../modules/recebimentos/gateways/index.js';
 import { CreatePublicAppointmentSchema } from '../modules/publicBooking/publicBooking.types.js';
 import { generateAvailableTimeSlots, getBusinessScheduleSettings } from '../services/scheduleSettingsService.js';
 import { ConflictError, ValidationError } from '../utils/errors.js';
@@ -83,6 +83,7 @@ beforeEach(() => {
     expect(lockTerminou).toBe(true);
     return { id: 'cob-1' };
   });
+  recRepo.apagarCobranca.mockResolvedValue(undefined);
   gw.criarPix.mockResolvedValue({ idExterno: 'ord-1', codigoPix: 'PIX-DO-GATEWAY' });
   gw.criarCheckoutCartao.mockResolvedValue({ idExterno: 'pref-1', checkoutUrl: 'https://mp.test/checkout' });
 });
@@ -156,6 +157,22 @@ describe('criação da reserva com cobrança', () => {
     expect(lockTerminou).toBe(true);
   });
 
+  it('falha ao apagar a cobrança não impede a reserva', async () => {
+    gw.criarPix.mockRejectedValue(new Error('boom'));
+    gw.criarPix.mockRejectedValue(new GatewayRecusou());
+    recRepo.apagarCobranca.mockRejectedValue(new Error('banco'));
+    const r = await publicBookingService.createPendingAppointment('studio', INPUT);
+    expect(r).toMatchObject({ appointmentId: 'appt-1', pixPayload: MANUAL_PIX, automatica: false });
+    expect(conexaoService.alertarRecusa).toHaveBeenCalledWith('biz-1');
+  });
+
+  it('GatewayTokenInvalido na criação marca a conexão para reconectar', async () => {
+    gw.criarPix.mockRejectedValue(new GatewayTokenInvalido());
+    const r = await publicBookingService.createPendingAppointment('studio', INPUT);
+    expect(conexaoService.marcarReconectar).toHaveBeenCalledWith('biz-1', expect.any(String));
+    expect(r).toMatchObject({ pixPayload: MANUAL_PIX, automatica: false });
+  });
+
   it('cartão que falha vira Pix manual, avisa a página e manda o código por WhatsApp', async () => {
     gw.criarCheckoutCartao.mockRejectedValue(new Error('boom'));
     const r = await publicBookingService.createPendingAppointment('studio', { ...INPUT, formaPagamento: 'cartao' });
@@ -225,6 +242,15 @@ describe('GET /status', () => {
     expect(r.reserva).toMatchObject({ forma: 'cartao', pixPayload: null, checkoutUrl: 'https://mp.test/c' });
   });
 
+  it('linha pendente sem idExterno é ignorada', async () => {
+    pubRepo.findPublicAppointment.mockResolvedValue(reserva());
+    recRepo.cobrancasDaReserva.mockResolvedValue([
+      { forma: 'cartao', situacao: 'pendente', idExterno: null, codigoPix: null, checkoutUrl: null, pagoEm: null },
+    ]);
+    const r = await publicBookingService.getAppointmentStatus('studio', 'appt-1');
+    expect(r.reserva).toMatchObject({ forma: 'pix', pixPayload: MANUAL_PIX, checkoutUrl: null });
+  });
+
   it('pixKey ausente: pixPayload nulo, sem erro', async () => {
     pubRepo.findBusinessBySlug.mockResolvedValue({ ...BUSINESS, pixKey: null, pixKeyType: null });
     pubRepo.findPublicAppointment.mockResolvedValue(reserva());
@@ -291,6 +317,16 @@ describe('POST /pix', () => {
     const r = await publicBookingService.getPixDaReserva('studio', 'appt-1');
     expect(r.pixPayload).toEqual(MANUAL_PIX);
     expect(recRepo.apagarCobranca).toHaveBeenCalledWith('cob-2');
+  });
+
+  it('com aceitaPix desligado devolve o código manual, sem gateway', async () => {
+    pubRepo.findPublicAppointment.mockResolvedValue(reserva());
+    recRepo.cobrancasDaReserva.mockResolvedValue([]);
+    fn(conexaoService.formas).mockResolvedValue(['cartao']);
+    const r = await publicBookingService.getPixDaReserva('studio', 'appt-1');
+    expect(r.pixPayload).toEqual(MANUAL_PIX);
+    expect(gw.criarPix).not.toHaveBeenCalled();
+    expect(recRepo.criarCobranca).not.toHaveBeenCalled();
   });
 
   it('sem conexão devolve o código manual sem chamar o gateway', async () => {

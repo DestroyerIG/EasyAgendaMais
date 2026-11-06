@@ -67,8 +67,15 @@ export const cobrancasService = {
       return { forma: 'cartao', pixPayload: null, checkoutUrl: r.checkoutUrl };
     } catch (err) {
       logger.warn({ err, businessId: e.businessId, appointmentId: e.appointmentId, forma: e.forma }, 'Recebimentos: falha ao criar a cobrança');
+      // A linha que sobrar (apagar falhou) não aparece na página: sem id externo, não há o que pagar.
+      if (cobrancaId) {
+        try {
+          await repo.apagarCobranca(cobrancaId);
+        } catch (e2) {
+          logger.warn({ err: e2, cobrancaId }, 'Recebimentos: falha ao apagar a cobrança');
+        }
+      }
       try {
-        if (cobrancaId) await repo.apagarCobranca(cobrancaId);
         if (err instanceof GatewayRecusou) await conexaoService.alertarRecusa(e.businessId);
         else if (err instanceof GatewayTokenInvalido) await conexaoService.marcarReconectar(e.businessId, err.message);
       } catch (e2) {
