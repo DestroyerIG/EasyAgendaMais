@@ -11,8 +11,9 @@ vi.mock('next/navigation', () => ({
 
 const get = vi.fn();
 const post = vi.fn();
+const put = vi.fn();
 vi.mock('@/lib/api', () => ({
-  default: { get: (...a: unknown[]) => get(...a), post: (...a: unknown[]) => post(...a), put: vi.fn(), delete: vi.fn() },
+  default: { get: (...a: unknown[]) => get(...a), post: (...a: unknown[]) => post(...a), put: (...a: unknown[]) => put(...a), delete: vi.fn() },
 }));
 const showToast = vi.fn();
 vi.mock('@/components/Toast', () => ({ useToast: () => ({ showToast }) }));
@@ -32,7 +33,16 @@ vi.mock('@/components/whatsapp/ConnectionPanel', () => ({
 vi.mock('@/components/whatsapp/retorno/HoraDeVoltar', () => ({ HoraDeVoltar: () => <div>painel-hora-de-voltar</div> }));
 vi.mock('@/components/whatsapp/campanhas/Campanhas', () => ({ Campanhas: () => <div>painel-campanhas</div> }));
 vi.mock('@/components/whatsapp/conversas/CentralConversas', () => ({ CentralConversas: () => <div>painel-conversas</div> }));
-vi.mock('@/components/whatsapp/MenuOptionsPanel', () => ({ MenuOptionsPanel: () => <div>painel-menu</div> }));
+vi.mock('@/components/whatsapp/MenuOptionsPanel', () => ({
+  MenuOptionsPanel: (p: { onToggle: (id: string, a: boolean) => void; onUpdate: (id: string, d: object) => void; onReorder: (ids: string[]) => void }) => (
+    <div>
+      painel-menu
+      <button onClick={() => p.onToggle('velho', true)}>acao-ligar</button>
+      <button onClick={() => p.onUpdate('velho', { label: 'X' })}>acao-editar</button>
+      <button onClick={() => p.onReorder(['velho'])}>acao-reordenar</button>
+    </div>
+  ),
+}));
 vi.mock('@/components/whatsapp/MessageConfigPanel', () => ({
   MessageConfigPanel: (p: { onReset: () => void }) => <div>painel-mensagens<button onClick={p.onReset}>acao-resetar-mensagens</button></div>,
 }));
@@ -60,6 +70,7 @@ describe('WhatsAppModule', () => {
     get.mockReset();
     replace.mockReset();
     post.mockReset();
+    put.mockReset();
     post.mockResolvedValue({ data: {} });
     abaNaUrl = null;
   });
@@ -164,6 +175,21 @@ describe('WhatsAppModule', () => {
     await waitFor(() => expect(screen.getByText('painel-simulador')).toBeInTheDocument());
     expect(get).toHaveBeenCalledWith('/whatsapp/config');
     expect(get).toHaveBeenCalledWith('/whatsapp/config/menu');
+  });
+
+  it.each([
+    ['acao-ligar', 'ligar'],
+    ['acao-editar', 'editar'],
+    ['acao-reordenar', 'reordenar'],
+  ])('erro ao %s recarrega o menu (ids velhos)', async (botao) => {
+    abaNaUrl = 'conexao';
+    responderStatus('connected');
+    put.mockRejectedValue(new Error('409'));
+    render(<WhatsAppModule />);
+    await screen.findByText('painel-menu');
+    get.mockClear();
+    await userEvent.click(screen.getByText(botao));
+    await waitFor(() => expect(get).toHaveBeenCalledWith('/whatsapp/config/menu'));
   });
 
   it('resetar as mensagens recarrega a config e nao acusa alteracao por campo extra do backend', async () => {

@@ -5,9 +5,11 @@
 import { Prisma } from '@prisma/client';
 import logger from '../../utils/logger.js';
 import { prisma } from '../../config/prisma.js';
-import { DEFAULT_BOT_CONFIG, PADROES_ANTIGOS, DEFAULT_MENU_OPTIONS, BotConfig, MenuOption } from './whatsappConstants.js';
+import { DEFAULT_BOT_CONFIG, PADROES_ANTIGOS, BotConfig } from './whatsappConstants.js';
 import { aplicarVocabulario } from './whatsappVocabulario.js';
 import { vocabularioDe } from '../../config/vocabulario.js';
+import type { Segmento } from '../../modules/crm/technicalSheetTemplates.js';
+import { menuPadrao, menuNaoPersonalizado, mesmoMenu } from './whatsappMenuPadrao.js';
 
 // ── Menu option row shape returned by the DB ──────────────────────────────────
 
@@ -21,6 +23,8 @@ export interface MenuOptionRow {
   handler: string;
   active: boolean;
   response_message?: string | null;
+  created_at?: Date | string | null;
+  updated_at?: Date | string | null;
 }
 
 /**
@@ -61,6 +65,9 @@ const lerBotConfig = async (businessId: string): Promise<BotConfig> => {
         reschedule_no_appointments_message: salvoOuPadrao('reschedule_no_appointments_message', dbConfig.rescheduleNoAppointmentsMessage),
         reschedule_list_message:           dbConfig.rescheduleListMessage           ?? DEFAULT_BOT_CONFIG.reschedule_list_message,
         reschedule_success_message:        DEFAULT_BOT_CONFIG.reschedule_success_message,
+        manage_list_message:               DEFAULT_BOT_CONFIG.manage_list_message,
+        manage_no_appointments_message:    DEFAULT_BOT_CONFIG.manage_no_appointments_message,
+        manage_action_message:             DEFAULT_BOT_CONFIG.manage_action_message,
         promotions_message:                salvoOuPadrao('promotions_message', dbConfig.promotionsMessage),
         instagram_message:                 salvoOuPadrao('instagram_message', dbConfig.instagramMessage),
         politica_message:                  dbConfig.politicaMessage                 ?? DEFAULT_BOT_CONFIG.politica_message,
@@ -80,6 +87,7 @@ const lerBotConfig = async (businessId: string): Promise<BotConfig> => {
  */
 export const getMenuOptions = async (businessId: string): Promise<MenuOptionRow[]> => {
   try {
+    await garantirMenuAtualSemFalhar(businessId);
     const rows = await prisma.$queryRaw<MenuOptionRow[]>(Prisma.sql`
       SELECT * FROM whatsapp_menu_options
        WHERE business_id = ${businessId}::uuid AND active = true
@@ -89,6 +97,12 @@ export const getMenuOptions = async (businessId: string): Promise<MenuOptionRow[
     if (rows.length > 0) {
       return rows;
     }
+
+    // Só semeia quando o negócio não tem linha nenhuma: menu com tudo desligado é escolha do dono.
+    const existentes = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+      SELECT id FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid LIMIT 1
+    `);
+    if (existentes.length > 0) return [];
 
     await seedDefaultMenuOptions(businessId);
     return prisma.$queryRaw<MenuOptionRow[]>(Prisma.sql`
@@ -102,11 +116,62 @@ export const getMenuOptions = async (businessId: string): Promise<MenuOptionRow[
   }
 };
 
+/** Segmento do negócio; `outro` quando não há configuração ou o valor é inválido. */
+export const segmentoDoNegocio = async (businessId: string): Promise<Segmento> => {
+  const s = await prisma.businessSettings.findUnique({ where: { businessId }, select: { segment: true } });
+  return vocabularioDe(s?.segment).segmento;
+};
+
+/**
+ * Atualiza o menu gravado: o que nunca foi personalizado passa para o menu atual do segmento, e a
+ * linha `rating` (a avaliação saiu do menu) é apagada de menu personalizado, sem tocar no resto.
+ * Lê primeiro e só escreve, em uma transação, se algo mudar.
+ */
+export const garantirMenuAtual = async (businessId: string, segmento: Segmento): Promise<void> => {
+  const rows = await prisma.$queryRaw<MenuOptionRow[]>(Prisma.sql`
+    SELECT * FROM whatsapp_menu_options
+     WHERE business_id = ${businessId}::uuid
+     ORDER BY option_order ASC
+  `);
+  if (rows.length === 0) return;
+
+  if (menuNaoPersonalizado(rows, segmento)) {
+    if (mesmoMenu(rows, segmento)) return;
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw(Prisma.sql`DELETE FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid`);
+      for (const opt of menuPadrao(segmento)) {
+        await tx.$executeRaw(Prisma.sql`
+          INSERT INTO whatsapp_menu_options (business_id, option_order, label, emoji, type, handler, active)
+          VALUES (${businessId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)
+        `);
+      }
+    });
+    return;
+  }
+
+  if (rows.some((r) => r.handler === 'rating')) {
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw(
+        Prisma.sql`DELETE FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid AND handler = 'rating'`,
+      );
+    });
+  }
+};
+
+/** Como `garantirMenuAtual`, mas uma falha só vira aviso: o robô segue com as linhas como estão. */
+export const garantirMenuAtualSemFalhar = async (businessId: string): Promise<void> => {
+  try {
+    await garantirMenuAtual(businessId, await segmentoDoNegocio(businessId));
+  } catch (error) {
+    logger.warn({ err: error, businessId }, 'Não foi possível atualizar o menu do robô');
+  }
+};
+
 /**
  * Seed de opções padrão do menu para um negócio.
  */
 export const seedDefaultMenuOptions = async (businessId: string): Promise<void> => {
-  for (const opt of DEFAULT_MENU_OPTIONS as MenuOption[]) {
+  for (const opt of menuPadrao(await segmentoDoNegocio(businessId))) {
     await prisma.$executeRaw(Prisma.sql`
       INSERT INTO whatsapp_menu_options (business_id, option_order, label, emoji, type, handler, active)
       VALUES (${businessId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)

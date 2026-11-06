@@ -1,4 +1,4 @@
-import { vi, describe, it, beforeEach, expect } from 'vitest';
+import { vi, describe, it, beforeEach, afterEach, expect } from 'vitest';
 
 const mockPoolQuery = vi.hoisted(() => vi.fn());
 const mockSendWhatsAppMessage = vi.hoisted(() => vi.fn());
@@ -89,6 +89,7 @@ vi.mock('../config/prisma.js', () => {
         findMany: stubResolveEmpty(),
         create: stubResolveNull(),
         update: stubResolveNull(),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
         count: stubResolveZero(),
       },
       whatsappRating: { upsert: vi.fn().mockResolvedValue(null) },
@@ -1203,7 +1204,7 @@ describe('whatsappFlowService guards', () => {
       expect(prisma.client.update).not.toHaveBeenCalled();
       expect(mockAppointmentServiceCreate).not.toHaveBeenCalled();
       expect(mockAppointmentServiceUpdate).not.toHaveBeenCalled();
-      expect(prisma.appointment.update).not.toHaveBeenCalled();
+      expect(prisma.appointment.updateMany).not.toHaveBeenCalled();
       expect(mockPedirHumano).not.toHaveBeenCalled();
       expect(mockAoCancelar).not.toHaveBeenCalled();
     };
@@ -1460,7 +1461,7 @@ describe('whatsappFlowService guards', () => {
       expect(result).toEqual(expect.objectContaining({ ok: true }));
       expect(mockAppointmentServiceUpdate).toHaveBeenCalledTimes(1);
       expect(mockAppointmentServiceCreate).not.toHaveBeenCalled();
-      expect(prisma.appointment.update).not.toHaveBeenCalled();
+      expect(prisma.appointment.updateMany).not.toHaveBeenCalled();
       expect(mockDeleteSession).not.toHaveBeenCalled();
       const enviadas = mockSendWhatsAppMessage.mock.calls.map((c) => String(c[1]));
       expect(enviadas.some((m) => m.includes('acabou de ser reservado'))).toBe(true);
@@ -1617,5 +1618,280 @@ describe('whatsappFlowService guards', () => {
     expect(mockDeleteSession).toHaveBeenCalledWith('5511777777777', 'tenant-1');
     expect(mockCreateSession).toHaveBeenCalledWith('5511777777777', 'tenant-1');
     expect(mockSendWhatsAppMessage).toHaveBeenCalledTimes(1);
+  });
+
+  describe('remarcar ou cancelar', () => {
+    const NUMERO = '5511777777777';
+    const AGORA = new Date('2026-04-18T10:00:00-03:00');
+    const agendamento = (id: string, date: string, time: string) => ({
+      id, date: new Date(date), time, service_id: 'service-1', professional_id: 'professional-1',
+    });
+    const A1 = agendamento('apt-1', '2026-04-20T12:00:00Z', '10:00');
+    const A2 = agendamento('apt-2', '2026-04-22T12:00:00Z', '15:30');
+
+    const real = (texto: string) => handleIncomingMessage(NUMERO, texto, { now: AGORA });
+    const sim = (texto: string) => handleIncomingMessage(NUMERO, texto, {
+      simulationMode: true, businessId: 'tenant-1', businessContextSource: 'payload', now: AGORA,
+    });
+    const ultima = () => String(mockSendWhatsAppMessage.mock.calls.at(-1)?.[1]);
+
+    afterEach(() => {
+      vi.mocked(formatMessage).mockImplementation(((message: unknown) => message) as never);
+    });
+
+    beforeEach(() => {
+      vi.mocked(prisma.appointment.updateMany).mockResolvedValue({ count: 1 } as never);
+      process.env.WHATSAPP_DEFAULT_BUSINESS_ID = 'tenant-1';
+      mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
+      mockGetBotConfig.mockResolvedValue({
+        invalid_option_message: 'Opcao invalida.',
+        manage_list_message: '🔄 Seus agendamentos:',
+        manage_no_appointments_message: '📋 Sem agendamentos.',
+        manage_action_message: 'Acao para {data} as {horario}? 1 Remarcar 2 Cancelar',
+        cancel_success_message: 'Cancelado.',
+      });
+      vi.mocked(formatMessage).mockImplementation(((t: string, d: { dateFormatted?: string; time?: string } = {}) =>
+        t.replace(/\{data\}/g, d.dateFormatted ?? '').replace(/\{horario\}/g, d.time ?? '')) as never);
+    });
+
+    /** Responde a consulta de agendamentos do cliente; as demais consultas seguem vazias. */
+    const consultaAgendamentos = (rows: unknown[]) => {
+      mockPoolQuery.mockImplementation(async (q: string) =>
+        ({ rows: typeof q === 'string' && q.includes('FROM appointments') ? rows : [] }));
+    };
+
+    const menuManage = () => {
+      mockGetSession.mockResolvedValue({ step: 'menu', data: {} });
+      mockGetMenuOptions.mockResolvedValue([
+        { option_order: 1, handler: 'manage', type: 'system', active: true, label: 'Remarcar ou cancelar', emoji: '', response_message: null },
+      ]);
+    };
+
+    it('dois agendamentos: mostra a lista e grava a etapa de escolha', async () => {
+      menuManage();
+      consultaAgendamentos([A1, A2]);
+
+      await real('1');
+
+      const msg = ultima();
+      expect(msg).toContain('Seus agendamentos');
+      expect(msg).toContain('1️⃣');
+      expect(msg).toContain('2️⃣');
+      expect(msg).toContain('15:30');
+      expect(mockUpdateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1', 'manage_choose', { appointments: [A1, A2] });
+    });
+
+    it('a consulta pega os proximos do cliente, mais cedo primeiro', async () => {
+      menuManage();
+      consultaAgendamentos([A1, A2]);
+
+      await real('1');
+
+      const [consulta] = (mockPoolQuery.mock.calls as unknown as [string][]).find(([q]) => q.includes('FROM appointments')) ?? [''];
+      expect(consulta).toContain('service_id');
+      expect(consulta).toContain('professional_id');
+      expect(consulta).toContain("status = 'confirmado'");
+      expect(consulta).toContain('CURRENT_DATE');
+      expect(consulta).toMatch(/ORDER BY date ASC/);
+      expect(consulta).toContain('LIMIT 5');
+    });
+
+    it('escolher 2 mostra a pergunta daquele agendamento', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_choose', data: { appointments: [A1, A2] } });
+
+      await real('2');
+
+      expect(ultima()).toBe('Acao para 22/04/2026 as 15:30? 1 Remarcar 2 Cancelar');
+      expect(mockUpdateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1', 'manage_action', { appointment: A2 });
+    });
+
+    it('um agendamento so: pula a lista', async () => {
+      menuManage();
+      consultaAgendamentos([A1]);
+
+      await real('1');
+
+      expect(ultima()).toBe('Acao para 20/04/2026 as 10:00? 1 Remarcar 2 Cancelar');
+      expect(mockUpdateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1', 'manage_action', { appointment: A1 });
+    });
+
+    it('nenhum agendamento: avisa', async () => {
+      menuManage();
+      mockPoolQuery.mockResolvedValueOnce({ rows: [] });
+
+      await real('1');
+
+      expect(ultima()).toContain('📋 Sem agendamentos.');
+      expect(ultima()).toContain('menu');
+      expect(mockCreateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1');
+    });
+
+    it('escolha invalida na lista repete a lista com o aviso', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_choose', data: { appointments: [A1, A2] } });
+
+      await real('9');
+
+      expect(ultima()).toContain('Opcao invalida.');
+      expect(ultima()).toContain('Seus agendamentos');
+      expect(ultima()).toContain('2️⃣');
+    });
+
+    it('acao 1 inicia a remarcacao do agendamento escolhido', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_action', data: { appointment: A2 } });
+      vi.mocked(prisma.service.findFirst).mockResolvedValueOnce({ name: 'Corte', durationMinutes: 30 } as never);
+      vi.mocked(prisma.professional.findFirst).mockResolvedValueOnce({ name: 'Joao' } as never);
+
+      await real('1');
+
+      expect(mockUpdateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1', 'choose_date', expect.objectContaining({
+        rescheduleAppointmentId: 'apt-2',
+        serviceId: 'service-1',
+        serviceName: 'Corte',
+        serviceDuration: 30,
+        professionalId: 'professional-1',
+        professionalName: 'Joao',
+      }));
+      expect(ultima()).toContain('Escolha a nova data');
+    });
+
+    it('acao 2 cancela o agendamento e dispara o gatilho', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_action', data: { appointment: A2 } });
+      mockAoCancelar.mockResolvedValue(undefined);
+
+      await real('2');
+
+      expect(prisma.appointment.updateMany).toHaveBeenCalledWith({ where: { id: 'apt-2', businessId: 'tenant-1', status: 'confirmado' }, data: { status: 'cancelado' } });
+      expect(mockAoCancelar).toHaveBeenCalledWith('tenant-1', 'apt-2');
+      expect(ultima()).toContain('Cancelado.');
+    });
+
+    it('acao 0 volta ao menu sem alterar nada', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_action', data: { appointment: A1 } });
+
+      await real('0');
+
+      expect(mockDeleteSession).toHaveBeenCalledWith(NUMERO, 'tenant-1');
+      expect(mockCreateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1');
+      expect(prisma.appointment.updateMany).not.toHaveBeenCalled();
+      expect(mockAoCancelar).not.toHaveBeenCalled();
+    });
+
+    it('menu na lista tambem volta ao menu', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_choose', data: { appointments: [A1, A2] } });
+
+      await real('menu');
+
+      expect(mockCreateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1');
+    });
+
+    it('acao invalida repete a pergunta', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_action', data: { appointment: A1 } });
+
+      await real('7');
+
+      expect(ultima()).toContain('Opcao invalida.');
+      expect(ultima()).toContain('Acao para 20/04/2026 as 10:00?');
+      expect(prisma.appointment.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('em simulacao a acao 2 nao grava nada nem dispara gatilho', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_action', data: { appointment: agendamentoExemplo(AGORA) } });
+
+      await sim('2');
+
+      expect(prisma.appointment.updateMany).not.toHaveBeenCalled();
+      expect(mockAoCancelar).not.toHaveBeenCalled();
+      expect(ultima()).toContain('Cancelado.');
+    });
+
+    it('cancelamento com agendamento que ja nao esta confirmado nao dispara gatilho', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_action', data: { appointment: A2 } });
+      vi.mocked(prisma.appointment.updateMany).mockResolvedValueOnce({ count: 0 } as never);
+
+      await real('2');
+
+      expect(mockAoCancelar).not.toHaveBeenCalled();
+      expect(ultima()).toContain('Esse agendamento não está mais ativo.');
+      expect(ultima()).toContain('menu');
+      expect(ultima()).not.toContain('Cancelado.');
+      expect(mockCreateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1');
+    });
+
+    it('cancelamento com count 1 dispara o gatilho', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_action', data: { appointment: A2 } });
+      mockAoCancelar.mockResolvedValue(undefined);
+
+      await real('2');
+
+      expect(mockAoCancelar).toHaveBeenCalledWith('tenant-1', 'apt-2');
+    });
+
+    it('em simulacao a acao 1 nao grava nada', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_action', data: { appointment: agendamentoExemplo(AGORA) } });
+
+      await sim('1');
+
+      expect(prisma.appointment.updateMany).not.toHaveBeenCalled();
+      expect(prisma.appointment.update).not.toHaveBeenCalled();
+      expect(mockAoCancelar).not.toHaveBeenCalled();
+    });
+
+    it('emoji numerico na lista escolhe o agendamento', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_choose', data: { appointments: [A1, A2] } });
+
+      await real('2️⃣');
+
+      expect(mockUpdateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1', 'manage_action', { appointment: A2 });
+    });
+
+    it('emoji 0️⃣ na lista volta ao menu', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_choose', data: { appointments: [A1, A2] } });
+
+      await real('0️⃣');
+
+      expect(mockCreateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1');
+    });
+
+    it('emoji 1️⃣ na acao inicia a remarcacao', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_action', data: { appointment: A2 } });
+      vi.mocked(prisma.service.findFirst).mockResolvedValueOnce({ name: 'Corte', durationMinutes: 30 } as never);
+      vi.mocked(prisma.professional.findFirst).mockResolvedValueOnce({ name: 'Joao' } as never);
+
+      await real('1️⃣');
+
+      expect(mockUpdateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1', 'choose_date', expect.objectContaining({ rescheduleAppointmentId: 'apt-2' }));
+    });
+
+    it('emoji 2️⃣ na acao cancela', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_action', data: { appointment: A2 } });
+      mockAoCancelar.mockResolvedValue(undefined);
+
+      await real('2️⃣');
+
+      expect(mockAoCancelar).toHaveBeenCalledWith('tenant-1', 'apt-2');
+      expect(ultima()).toContain('Cancelado.');
+    });
+
+    it('emoji 0️⃣ na acao volta ao menu sem alterar nada', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_action', data: { appointment: A1 } });
+
+      await real('0️⃣');
+
+      expect(mockCreateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1');
+      expect(prisma.appointment.updateMany).not.toHaveBeenCalled();
+      expect(mockAoCancelar).not.toHaveBeenCalled();
+    });
+
+    it('os handlers cancel e reschedule continuam funcionando', async () => {
+      mockAoCancelar.mockResolvedValue(undefined);
+      mockGetSession.mockResolvedValue({ step: 'confirm_cancel', data: { appointments: [A1] } });
+      await real('1');
+      expect(prisma.appointment.updateMany).toHaveBeenCalledWith({ where: { id: 'apt-1', businessId: 'tenant-1', status: 'confirmado' }, data: { status: 'cancelado' } });
+      expect(mockAoCancelar).toHaveBeenCalledWith('tenant-1', 'apt-1');
+
+      mockGetSession.mockResolvedValue({ step: 'confirm_reschedule', data: { appointments: [A1] } });
+      await real('1');
+      expect(mockUpdateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1', 'choose_date', expect.objectContaining({ rescheduleAppointmentId: 'apt-1' }));
+    });
   });
 });
