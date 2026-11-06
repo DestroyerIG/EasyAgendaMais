@@ -1,4 +1,5 @@
 import { prisma } from '../../config/prisma.js';
+import logger from '../../utils/logger.js';
 import { appointmentsPrismaRepository } from '../appointments/appointments.repository.js';
 import { notificationsService } from '../notifications/notifications.service.js';
 import { publicBookingRepository } from '../publicBooking/publicBooking.repository.js';
@@ -38,21 +39,33 @@ export const recebimentosRepository = {
   /** Reservas cujo sinal foi pago no cartão. Pagamento repetido (sem id externo) é dinheiro a devolver, não o sinal. */
   async reservasComSinalNoCartao(businessId: string, appointmentIds: string[]): Promise<Set<string>> {
     if (appointmentIds.length === 0) return new Set();
-    const rows = await prisma.cobrancaSinal.findMany({
-      where: { businessId, appointmentId: { in: appointmentIds }, situacao: 'paga', forma: 'cartao', idExterno: { not: null } },
-      select: { appointmentId: true },
-    });
-    return new Set(rows.map((r) => r.appointmentId));
+    try {
+      const rows = await prisma.cobrancaSinal.findMany({
+        where: { businessId, appointmentId: { in: appointmentIds }, situacao: 'paga', forma: 'cartao', idExterno: { not: null } },
+        select: { appointmentId: true },
+      });
+      return new Set(rows.map((r) => r.appointmentId));
+    } catch (err) {
+      // Selo e rótulo não valem derrubar a tela: sem a consulta, cai no comportamento anterior.
+      logger.warn({ err, businessId }, 'Recebimentos: falha ao consultar cobranças de sinal da reserva');
+      return new Set();
+    }
   },
 
   /** Reservas com cobrança automática ainda esperando o pagamento. */
   async reservasComCobrancaPendente(businessId: string, appointmentIds: string[]): Promise<Set<string>> {
     if (appointmentIds.length === 0) return new Set();
-    const rows = await prisma.cobrancaSinal.findMany({
-      where: { businessId, appointmentId: { in: appointmentIds }, situacao: 'pendente' },
-      select: { appointmentId: true },
-    });
-    return new Set(rows.map((r) => r.appointmentId));
+    try {
+      const rows = await prisma.cobrancaSinal.findMany({
+        where: { businessId, appointmentId: { in: appointmentIds }, situacao: 'pendente' },
+        select: { appointmentId: true },
+      });
+      return new Set(rows.map((r) => r.appointmentId));
+    } catch (err) {
+      // Selo e rótulo não valem derrubar a tela: sem a consulta, cai no comportamento anterior.
+      logger.warn({ err, businessId }, 'Recebimentos: falha ao consultar cobranças de sinal da reserva');
+      return new Set();
+    }
   },
 
   conexaoDoNegocio(businessId: string) {
