@@ -56,6 +56,12 @@ export function lerEstado(estado: string, agora: number = Date.now()): { userId:
   }
 }
 
+/** Nonce de um estado recém-assinado, para derivar o desafio PKCE sem consumir o estado. */
+export function nonceDoEstado(estado: string): string {
+  const carga = estado.split('.')[0] ?? '';
+  return (JSON.parse(Buffer.from(carga, 'base64url').toString('utf8')) as { n: string }).n;
+}
+
 /** Verificador PKCE derivado do nonce: sobrevive a um reinício sem guardar estado. */
 export const verificadorPkce = (nonce: string): string => hmac(`pkce:${nonce}`);
 

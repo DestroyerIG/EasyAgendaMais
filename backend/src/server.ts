@@ -48,6 +48,7 @@ import onboardingRoutes from './modules/onboarding/onboarding.routes.js';
 import bancadaRoutes from './modules/bancada/bancada.routes.js';
 import pushRoutes from './modules/push/push.routes.js';
 import googleAgendaRoutes from './modules/googleAgenda/googleAgenda.routes.js';
+import recebimentosRoutes from './modules/recebimentos/recebimentos.routes.js';
 import avaliacoesRoutes from './modules/avaliacoes/avaliacoes.routes.js';
 import depoimentosRoutes from './modules/depoimentos/depoimentos.routes.js';
 import depoimentosAdminRoutes from './modules/depoimentos/depoimentos.admin.routes.js';
@@ -357,6 +358,7 @@ const webhookPaths = [
   `${API_V1}/billing/webhooks/asaas`,
   `${API_V1}/billing/webhook/asaas`,
   `${API_V1}/whatsapp/webhook`,
+  `${API_V1}/recebimentos/webhook`,
 ];
 
 const apiLimiter = rateLimit({
@@ -461,6 +463,7 @@ app.use(`${API_V1}/convites`, conviteRoutes);
 app.use(`${API_V1}/bancada`, bancadaRoutes);
 app.use(`${API_V1}/push`, pushRoutes);
 app.use(`${API_V1}/google-agenda`, googleAgendaRoutes);
+app.use(`${API_V1}/recebimentos`, recebimentosRoutes);
 app.use(`${API_V1}/avaliacoes`, avaliacoesRoutes);
 app.use(`${API_V1}/depoimentos`, depoimentosRoutes);
 app.use(`${API_V1}/admin/depoimentos`, authMiddleware, requireAdmin, depoimentosAdminRoutes);

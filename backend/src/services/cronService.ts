@@ -17,6 +17,7 @@ import { automacoesRotinas, linkMapa } from '../modules/whatsappAutomacoes/rotin
 import { rotinasRepository } from '../modules/whatsappAutomacoes/rotinas.repository.js';
 import { clubeService } from '../modules/clube/clube.service.js';
 import { googleAgendaService } from '../modules/googleAgenda/googleAgenda.service.js';
+import { conexaoService } from '../modules/recebimentos/conexao.service.js';
 import { envioAutomaticoLiberado } from '../modules/conta/envioAutomatico.js';
 
 // Agendamentos gravam `time`/`date` no relógio local do negócio (BR), não UTC.
@@ -205,6 +206,11 @@ export const startReminderCron = (): void => {
   // E os compromissos do Google, que bloqueiam horário, a cada 5 minutos.
   cron.schedule('*/5 * * * *', async () => {
     await googleAgendaService.atualizarOcupado();
+  }, { noOverlap: true });
+
+  // Recebimentos: renova os tokens do Mercado Pago que vencem em menos de 30 dias (nunca lança).
+  cron.schedule('0 4 * * *', async () => {
+    await conexaoService.renovarVencendo();
   }, { noOverlap: true });
 
   cron.schedule('* * * * *', async () => {
