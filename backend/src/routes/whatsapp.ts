@@ -1809,7 +1809,8 @@ router.post('/simulator/message', ...waProtected, async (req: Request, res: Resp
 router.post('/simulator/reset', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const body = (req.body ?? {}) as Record<string, unknown>;
-    const phone = normalizeWhatsAppNumber(body['phone']) ?? '5511999999999';
+    // O telefone do corpo é ignorado: reiniciar nunca pode apagar a conversa de um cliente real.
+    const phone = '5511999999999';
 
     const context = await resolveSimulatorBusinessContext({
       payloadBusinessId: normalizeSimulatorBusinessId(body['businessId']),
@@ -2423,8 +2424,9 @@ router.get('/config/instagram', ...waProtected, async (req: Request, res: Respon
 router.put('/config/instagram', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { businessId } = req.user;
-    const { handle } = req.body as { handle?: unknown };
-    if (handle !== null && handle !== undefined && typeof handle !== 'string') {
+    const { handle } = (req.body ?? {}) as { handle?: unknown };
+    // Sem a chave `handle` o pedido é inválido; `null` ou '' limpam o perfil de propósito.
+    if (handle === undefined || (handle !== null && typeof handle !== 'string')) {
       throw new ValidationError('Perfil do Instagram inválido');
     }
     const normalizado = normalizarInstagram(typeof handle === 'string' ? handle : '');

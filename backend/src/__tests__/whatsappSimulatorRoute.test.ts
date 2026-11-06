@@ -238,7 +238,7 @@ describe('POST /api/v1/whatsapp/simulator/reset', () => {
     mockPoolQuery.mockResolvedValue({ rows: [{ id: 'tenant-1' }] });
   });
 
-  it('apaga so a sessao do telefone do simulador no negocio autenticado', async () => {
+  it('ignora o telefone do corpo e apaga so a sessao do numero do simulador', async () => {
     const response = await request
       .post('/api/v1/whatsapp/simulator/reset')
       .send({ phone: '5583999990000' });
@@ -246,7 +246,7 @@ describe('POST /api/v1/whatsapp/simulator/reset', () => {
     expect(response.status).toBe(200);
     expect(response.body.data).toEqual({ reiniciado: true });
     expect(mockDeleteSession).toHaveBeenCalledTimes(1);
-    expect(mockDeleteSession).toHaveBeenCalledWith('5583999990000', 'tenant-1');
+    expect(mockDeleteSession).toHaveBeenCalledWith('5511999999999', 'tenant-1');
   });
 
   it('sem telefone usa o numero padrao do simulador', async () => {
@@ -262,6 +262,41 @@ describe('POST /api/v1/whatsapp/simulator/reset', () => {
 
     expect(response.status).toBe(403);
     expect(mockDeleteSession).not.toHaveBeenCalled();
+  });
+});
+
+describe('PUT /api/v1/whatsapp/config/instagram', () => {
+  const atualizar = async () => {
+    const { prisma } = await import('../config/prisma.js');
+    const fn = vi.fn().mockResolvedValue({});
+    (prisma as unknown as { business: Record<string, unknown> }).business.update = fn;
+    return fn;
+  };
+
+  it('sem a chave handle devolve 400 e nao grava', async () => {
+    const update = await atualizar();
+    const response = await request.put('/api/v1/whatsapp/config/instagram').send({});
+
+    expect(response.status).toBe(400);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('grava usando o businessId do token e normaliza o perfil', async () => {
+    const update = await atualizar();
+    const response = await request.put('/api/v1/whatsapp/config/instagram').send({ handle: 'minha.barbearia' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual({ handle: '@minha.barbearia' });
+    expect(update).toHaveBeenCalledWith({ where: { id: 'tenant-1' }, data: { instagramHandle: '@minha.barbearia' } });
+  });
+
+  it('perfil invalido devolve 400 com a mensagem', async () => {
+    const update = await atualizar();
+    const response = await request.put('/api/v1/whatsapp/config/instagram').send({ handle: 'perfil inválido!!' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.message).toBe('Perfil do Instagram inválido');
+    expect(update).not.toHaveBeenCalled();
   });
 });
 
