@@ -332,16 +332,69 @@ describe('PUT /api/v1/whatsapp/config/menu-reorder', () => {
 });
 
 describe('GET /api/v1/whatsapp/config/menu', () => {
-  it('nao devolve a opcao de avaliacao (ela fica so na automacao)', async () => {
+  it('atualiza o menu antes de ler: menu personalizado perde a linha de avaliacao', async () => {
     const { prisma } = await import('../config/prisma.js');
-    const linhas = [
-      { id: 'o1', option_order: 1, handler: 'schedule', label: 'Agendar' },
-      { id: 'o5', option_order: 5, handler: 'rating', label: 'Avaliação pós-atendimento' },
-      { id: 'o6', option_order: 6, handler: 'promotions', label: 'Promoções' },
+    const personalizado = [
+      { id: 'o1', option_order: 1, handler: 'schedule', label: 'Marcar já', emoji: '📅', type: 'system', active: true },
+      { id: 'o5', option_order: 5, handler: 'rating', label: 'Avaliação pós-atendimento', emoji: '⭐', type: 'system', active: true },
+      { id: 'o6', option_order: 6, handler: 'promotions', label: 'Promoções', emoji: '🎉', type: 'system', active: true },
     ];
-    vi.mocked(prisma.$queryRaw).mockResolvedValueOnce(linhas as never);
+    const sem = personalizado.filter((o) => o.handler !== 'rating');
+    const settings = { segment: 'barbearia' };
+    (prisma as unknown as { businessSettings: unknown }).businessSettings = { findUnique: vi.fn().mockResolvedValue(settings) };
+    const executeTx = vi.fn().mockResolvedValue(1);
+    vi.mocked(prisma.$transaction).mockImplementationOnce((async (cb: (t: unknown) => unknown) => cb({ $executeRaw: executeTx })) as never);
+    vi.mocked(prisma.$queryRaw)
+      .mockResolvedValueOnce(personalizado as never) // leitura do garantirMenuAtual
+      .mockResolvedValueOnce(sem as never); // leitura da rota
     const response = await request.get('/api/v1/whatsapp/config/menu');
     expect(response.status).toBe(200);
+    expect(executeTx).toHaveBeenCalledTimes(1);
     expect(response.body.data.map((o: { handler: string }) => o.handler)).toEqual(['schedule', 'promotions']);
+  });
+});
+
+describe('POST /api/v1/whatsapp/config/menu/reset', () => {
+  it('le o segmento antes e faz o DELETE e os INSERTs na mesma transacao', async () => {
+    const { prisma } = await import('../config/prisma.js');
+    const ordem: string[] = [];
+    (prisma as unknown as { businessSettings: unknown }).businessSettings = {
+      findUnique: vi.fn(async () => { ordem.push('segmento'); return { segment: 'estetica' }; }),
+    };
+    const tx = {
+      $queryRaw: vi.fn(async (q: { strings?: string[]; sql?: string }) => {
+        const t = (q.strings ?? [q.sql ?? '']).join(' ');
+        ordem.push(t.includes('DELETE') ? 'delete' : t.includes('INSERT') ? 'insert' : 'select');
+        return [];
+      }),
+    };
+    vi.mocked(prisma.$transaction).mockImplementationOnce((async (cb: (t: unknown) => unknown) => {
+      ordem.push('transacao');
+      return cb(tx);
+    }) as never);
+    vi.mocked(prisma.$queryRaw).mockResolvedValueOnce([{ id: 'x', handler: 'schedule' }] as never);
+
+    const response = await request.post('/api/v1/whatsapp/config/menu/reset');
+
+    expect(response.status).toBe(200);
+    expect(ordem.filter((o) => o === 'transacao')).toHaveLength(1);
+    expect(ordem.slice(0, 3)).toEqual(['segmento', 'transacao', 'delete']);
+    expect(ordem.filter((o) => o === 'insert')).toHaveLength(6);
+    expect(ordem.filter((o) => o === 'delete')).toHaveLength(1);
+  });
+
+  it('se um INSERT falhar, o erro sobe de dentro da transacao (nada fica pela metade)', async () => {
+    const { prisma } = await import('../config/prisma.js');
+    (prisma as unknown as { businessSettings: unknown }).businessSettings = { findUnique: vi.fn().mockResolvedValue({ segment: 'barbearia' }) };
+    const tx = {
+      $queryRaw: vi.fn(async (q: { strings?: string[]; sql?: string }) => {
+        if ((q.strings ?? [q.sql ?? '']).join(' ').includes('INSERT')) throw new Error('falhou o insert');
+        return [];
+      }),
+    };
+    vi.mocked(prisma.$transaction).mockImplementationOnce((async (cb: (t: unknown) => unknown) => cb(tx)) as never);
+    const response = await request.post('/api/v1/whatsapp/config/menu/reset');
+    expect(response.status).toBe(500);
+    expect(prisma.$queryRaw).not.toHaveBeenCalledWith(expect.objectContaining({ strings: expect.arrayContaining([expect.stringContaining('DELETE')]) }));
   });
 });

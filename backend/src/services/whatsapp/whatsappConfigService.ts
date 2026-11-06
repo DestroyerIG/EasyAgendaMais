@@ -9,7 +9,7 @@ import { DEFAULT_BOT_CONFIG, PADROES_ANTIGOS, BotConfig } from './whatsappConsta
 import { aplicarVocabulario } from './whatsappVocabulario.js';
 import { vocabularioDe } from '../../config/vocabulario.js';
 import type { Segmento } from '../../modules/crm/technicalSheetTemplates.js';
-import { menuPadrao } from './whatsappMenuPadrao.js';
+import { menuPadrao, menuNaoPersonalizado } from './whatsappMenuPadrao.js';
 
 // ── Menu option row shape returned by the DB ──────────────────────────────────
 
@@ -85,6 +85,7 @@ const lerBotConfig = async (businessId: string): Promise<BotConfig> => {
  */
 export const getMenuOptions = async (businessId: string): Promise<MenuOptionRow[]> => {
   try {
+    await garantirMenuAtualSemFalhar(businessId);
     const rows = await prisma.$queryRaw<MenuOptionRow[]>(Prisma.sql`
       SELECT * FROM whatsapp_menu_options
        WHERE business_id = ${businessId}::uuid AND active = true
@@ -107,15 +108,69 @@ export const getMenuOptions = async (businessId: string): Promise<MenuOptionRow[
   }
 };
 
-/**
- * Seed de opções padrão do menu para um negócio.
- */
 /** Segmento do negócio; `outro` quando não há configuração ou o valor é inválido. */
 export const segmentoDoNegocio = async (businessId: string): Promise<Segmento> => {
   const s = await prisma.businessSettings.findUnique({ where: { businessId }, select: { segment: true } });
   return vocabularioDe(s?.segment).segmento;
 };
 
+const mesmoMenu = (rows: MenuOptionRow[], segmento: Segmento): boolean => {
+  const padrao = menuPadrao(segmento);
+  const ordenadas = [...rows].sort((a, b) => a.option_order - b.option_order);
+  return (
+    padrao.length === ordenadas.length &&
+    padrao.every((o, i) => o.emoji === ordenadas[i].emoji && o.label === ordenadas[i].label && o.handler === ordenadas[i].handler)
+  );
+};
+
+/**
+ * Atualiza o menu gravado: o que nunca foi personalizado passa para o menu atual do segmento, e a
+ * linha `rating` (a avaliação saiu do menu) é apagada de menu personalizado, sem tocar no resto.
+ * Lê primeiro e só escreve, em uma transação, se algo mudar.
+ */
+export const garantirMenuAtual = async (businessId: string, segmento: Segmento): Promise<void> => {
+  const rows = await prisma.$queryRaw<MenuOptionRow[]>(Prisma.sql`
+    SELECT * FROM whatsapp_menu_options
+     WHERE business_id = ${businessId}::uuid
+     ORDER BY option_order ASC
+  `);
+  if (rows.length === 0) return;
+
+  if (menuNaoPersonalizado(rows)) {
+    if (mesmoMenu(rows, segmento)) return;
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw(Prisma.sql`DELETE FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid`);
+      for (const opt of menuPadrao(segmento)) {
+        await tx.$executeRaw(Prisma.sql`
+          INSERT INTO whatsapp_menu_options (business_id, option_order, label, emoji, type, handler, active)
+          VALUES (${businessId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)
+        `);
+      }
+    });
+    return;
+  }
+
+  if (rows.some((r) => r.handler === 'rating')) {
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw(
+        Prisma.sql`DELETE FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid AND handler = 'rating'`,
+      );
+    });
+  }
+};
+
+/** Como `garantirMenuAtual`, mas uma falha só vira aviso: o robô segue com as linhas como estão. */
+export const garantirMenuAtualSemFalhar = async (businessId: string): Promise<void> => {
+  try {
+    await garantirMenuAtual(businessId, await segmentoDoNegocio(businessId));
+  } catch (error) {
+    logger.warn({ err: error, businessId }, 'Não foi possível atualizar o menu do robô');
+  }
+};
+
+/**
+ * Seed de opções padrão do menu para um negócio.
+ */
 export const seedDefaultMenuOptions = async (businessId: string): Promise<void> => {
   for (const opt of menuPadrao(await segmentoDoNegocio(businessId))) {
     await prisma.$executeRaw(Prisma.sql`

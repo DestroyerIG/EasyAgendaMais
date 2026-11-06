@@ -18,7 +18,7 @@ import {
 } from '../services/whatsappClient.js';
 import { updateInstanceFromPayload } from '../services/whatsapp/whatsappInstanceCache.js';
 import { getBusinessWhatsAppInstanceContext } from '../services/whatsapp/whatsappInstanceService.js';
-import { getBotConfig, segmentoDoNegocio } from '../services/whatsapp/whatsappConfigService.js';
+import { getBotConfig, segmentoDoNegocio, garantirMenuAtualSemFalhar } from '../services/whatsapp/whatsappConfigService.js';
 import { menuPadrao } from '../services/whatsapp/whatsappMenuPadrao.js';
 import { deleteSession } from '../services/whatsapp/whatsappSessionService.js';
 import { authMiddleware } from '../middleware/auth.js';
@@ -2424,6 +2424,8 @@ router.get('/config/menu', ...waProtected, async (req: Request, res: Response, n
   try {
     const { businessId } = req.user;
 
+    await garantirMenuAtualSemFalhar(businessId!);
+
     let rows = await prisma.$queryRaw<Record<string, unknown>[]>(
       Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid ORDER BY option_order ASC`
     );
@@ -2442,8 +2444,7 @@ router.get('/config/menu', ...waProtected, async (req: Request, res: Response, n
       );
     }
 
-    // A avaliação saiu do menu: linhas antigas com esse handler ficam no banco, mas não aparecem.
-    sendSuccess(res, rows.filter((o) => o.handler !== 'rating'));
+    sendSuccess(res, rows);
   } catch (error) {
     next(error);
   }
@@ -2629,16 +2630,19 @@ router.post('/config/menu/reset', ...waProtected, async (req: Request, res: Resp
   try {
     const { businessId } = req.user;
 
-    await prisma.$queryRaw(
-      Prisma.sql`DELETE FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid`
-    );
-
-    for (const opt of menuPadrao(await segmentoDoNegocio(businessId!))) {
-      await prisma.$queryRaw(
-        Prisma.sql`INSERT INTO whatsapp_menu_options (business_id, option_order, label, emoji, type, handler, active)
-         VALUES (${businessId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)`
+    // Segmento lido antes de apagar; DELETE e INSERTs na mesma transação: uma falha nunca deixa o menu vazio.
+    const padrao = menuPadrao(await segmentoDoNegocio(businessId!));
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(
+        Prisma.sql`DELETE FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid`
       );
-    }
+      for (const opt of padrao) {
+        await tx.$queryRaw(
+          Prisma.sql`INSERT INTO whatsapp_menu_options (business_id, option_order, label, emoji, type, handler, active)
+           VALUES (${businessId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)`
+        );
+      }
+    });
 
     const rows = await prisma.$queryRaw<Record<string, unknown>[]>(
       Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid ORDER BY option_order ASC`
