@@ -33,8 +33,12 @@ vi.mock('@/components/whatsapp/retorno/HoraDeVoltar', () => ({ HoraDeVoltar: () 
 vi.mock('@/components/whatsapp/campanhas/Campanhas', () => ({ Campanhas: () => <div>painel-campanhas</div> }));
 vi.mock('@/components/whatsapp/conversas/CentralConversas', () => ({ CentralConversas: () => <div>painel-conversas</div> }));
 vi.mock('@/components/whatsapp/MenuOptionsPanel', () => ({ MenuOptionsPanel: () => <div>painel-menu</div> }));
-vi.mock('@/components/whatsapp/MessageConfigPanel', () => ({ MessageConfigPanel: () => <div>painel-mensagens</div> }));
-vi.mock('@/components/whatsapp/ChatSimulator', () => ({ ChatSimulator: () => <div>painel-simulador</div> }));
+vi.mock('@/components/whatsapp/MessageConfigPanel', () => ({
+  MessageConfigPanel: (p: { onReset: () => void }) => <div>painel-mensagens<button onClick={p.onReset}>acao-resetar-mensagens</button></div>,
+}));
+vi.mock('@/components/whatsapp/ChatSimulator', () => ({
+  ChatSimulator: (p: { temAlteracoes?: boolean }) => <div>painel-simulador<span>alteracoes:{String(p.temAlteracoes)}</span></div>,
+}));
 const automacoesProps = vi.hoisted(() => ({ conectado: null as null | boolean }));
 vi.mock('@/components/whatsapp/automacoes/Automacoes', () => ({
   Automacoes: (p: { conectado: boolean; onAbrirConexao: () => void }) => {
@@ -162,6 +166,23 @@ describe('WhatsAppModule', () => {
     expect(get).toHaveBeenCalledWith('/whatsapp/config/menu');
   });
 
+  it('resetar as mensagens recarrega a config e nao acusa alteracao por campo extra do backend', async () => {
+    abaNaUrl = 'conexao';
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    get.mockImplementation(async (url: string) => {
+      if (url === '/whatsapp/status') return { data: { status: 'connected' } };
+      if (url === '/whatsapp/config') return { data: { welcome_header: 'Oi', id: 'x', business_id: 'b1' } };
+      return { data: [] };
+    });
+    post.mockResolvedValue({ data: { welcome_header: 'Oi', id: 'x', business_id: 'b1', updated_at: 'agora' } });
+    render(<WhatsAppModule />);
+    await userEvent.click(await screen.findByRole('tab', { name: /Mensagens/ }));
+    await userEvent.click(await screen.findByText('acao-resetar-mensagens'));
+    await waitFor(() => expect(post).toHaveBeenCalledWith('/whatsapp/config/reset'));
+    await userEvent.click(screen.getByRole('tab', { name: /Simulador/ }));
+    expect(await screen.findByText('alteracoes:false')).toBeInTheDocument();
+    expect(get.mock.calls.filter(([u]) => u === '/whatsapp/config').length).toBeGreaterThanOrEqual(2);
+  });
   it('a aba acompanha o ?aba= quando a URL muda (voltar/avançar e links internos)', async () => {
     abaNaUrl = 'conversas';
     responderStatus('connected');

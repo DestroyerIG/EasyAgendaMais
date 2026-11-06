@@ -123,6 +123,10 @@ const CONFIG_VAZIA: BotConfig = {
   promotions_message: '', instagram_message: '', politica_message: '',
 };
 
+/** Compara só as mensagens conhecidas: campos extras que o backend devolva não contam como edição. */
+const CHAVES_CONFIG = Object.keys(CONFIG_VAZIA) as Array<keyof BotConfig>;
+const configsDiferem = (a: BotConfig, b: BotConfig) => CHAVES_CONFIG.some((k) => (a[k] ?? '') !== (b[k] ?? ''));
+
 export const WhatsAppModule = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -132,6 +136,7 @@ export const WhatsAppModule = () => {
   const [botConfig, setBotConfig] = useState<BotConfig>(CONFIG_VAZIA);
   // Última versão salva das mensagens: o simulador usa só ela, então avisamos quando há edição pendente.
   const [configSalva, setConfigSalva] = useState<BotConfig | null>(null);
+  const temAlteracoes = configSalva !== null && configsDiferem(botConfig, configSalva);
   const [menuOptions, setMenuOptions] = useState<MenuOption[]>([]);
   const [menuLoading, setMenuLoading] = useState(false);
   const [instagramHandle, setInstagramHandle] = useState<string | null>(null);
@@ -347,7 +352,7 @@ export const WhatsAppModule = () => {
   const handleResetConfig = async () => {
     if (!confirm('Tem certeza que deseja resetar todas as mensagens para o padrão?')) return;
     setActionLoading(true);
-    try { const r = await api.post('/whatsapp/config/reset'); setBotConfig(r.data); setConfigSalva(r.data); showToast('Mensagens resetadas para o padrão', 'success'); }
+    try { await api.post('/whatsapp/config/reset'); await fetchConfig(); showToast('Mensagens resetadas para o padrão', 'success'); }
     catch { showToast('Erro ao resetar configurações', 'error'); }
     finally { setActionLoading(false); }
   };
@@ -367,10 +372,14 @@ export const WhatsAppModule = () => {
     finally { setActionLoading(false); }
   };
 
-  const handleSalvarInstagram = async (handle: string | null) => {
+  const handleSalvarInstagram = async (handle: string | null): Promise<boolean> => {
     setActionLoading(true);
-    try { const r = await api.put('/whatsapp/config/instagram', { handle }); setInstagramHandle(r.data?.handle ?? null); showToast('Perfil do Instagram salvo', 'success'); }
-    catch { showToast('Erro ao salvar o perfil do Instagram', 'error'); }
+    try { const r = await api.put('/whatsapp/config/instagram', { handle }); setInstagramHandle(r.data?.handle ?? null); showToast('Perfil do Instagram salvo', 'success'); return true; }
+    catch (erro) {
+      const msg = (erro as { response?: { data?: { error?: unknown } } })?.response?.data?.error;
+      showToast(typeof msg === 'string' && msg ? msg : 'Erro ao salvar o perfil do Instagram', 'error');
+      return false;
+    }
     finally { setActionLoading(false); }
   };
 
@@ -552,6 +561,8 @@ export const WhatsAppModule = () => {
                     onReset={handleMenuReset}
                     instagramHandle={instagramHandle}
                     onSalvarInstagram={handleSalvarInstagram}
+                    promocoesMessage={configSalva?.promotions_message}
+                    instagramMessage={configSalva?.instagram_message}
                   />
                 }
                 mensagens={
@@ -568,7 +579,7 @@ export const WhatsAppModule = () => {
                   <ChatSimulator
                     onSendMessage={handleSimulatorMessage}
                     onLimpar={handleLimparSimulador}
-                    temAlteracoes={configSalva !== null && JSON.stringify(botConfig) !== JSON.stringify(configSalva)}
+                    temAlteracoes={temAlteracoes}
                   />
                 }
               />
