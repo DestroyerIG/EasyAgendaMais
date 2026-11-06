@@ -5,7 +5,7 @@
 import { Prisma } from '@prisma/client';
 import logger from '../../utils/logger.js';
 import { prisma } from '../../config/prisma.js';
-import { DEFAULT_BOT_CONFIG, PROMOCOES_PADRAO_ANTIGO, FALLBACK_BOT_CONFIG, DEFAULT_MENU_OPTIONS, BotConfig, MenuOption } from './whatsappConstants.js';
+import { DEFAULT_BOT_CONFIG, PADROES_ANTIGOS, DEFAULT_MENU_OPTIONS, BotConfig, MenuOption } from './whatsappConstants.js';
 import { aplicarVocabulario } from './whatsappVocabulario.js';
 import { vocabularioDe } from '../../config/vocabulario.js';
 
@@ -33,6 +33,10 @@ export const getBotConfig = async (businessId: string): Promise<BotConfig> => {
   return aplicarVocabulario(config, vocabularioDe(s?.segment));
 };
 
+/** Valor salvo; se for nulo ou exatamente o texto padrão antigo (nunca editado), vale o padrão atual. */
+const salvoOuPadrao = (chave: keyof BotConfig, salvo: string | null | undefined): string =>
+  salvo == null || salvo === PADROES_ANTIGOS[chave] ? DEFAULT_BOT_CONFIG[chave] : salvo;
+
 const lerBotConfig = async (businessId: string): Promise<BotConfig> => {
   try {
     const dbConfig = await prisma.whatsappBotConfig.findFirst({
@@ -41,9 +45,9 @@ const lerBotConfig = async (businessId: string): Promise<BotConfig> => {
 
     if (dbConfig) {
       return {
-        welcome_header:                    dbConfig.welcomeHeader                   ?? DEFAULT_BOT_CONFIG.welcome_header,
+        welcome_header:                    salvoOuPadrao('welcome_header', dbConfig.welcomeHeader),
         ask_name_message:                  dbConfig.askNameMessage                  ?? DEFAULT_BOT_CONFIG.ask_name_message,
-        attendant_message:                 dbConfig.attendantMessage                ?? DEFAULT_BOT_CONFIG.attendant_message,
+        attendant_message:                 salvoOuPadrao('attendant_message', dbConfig.attendantMessage),
         confirmation_message:              dbConfig.confirmationMessage             ?? DEFAULT_BOT_CONFIG.confirmation_message,
         reminder_message:                  dbConfig.reminderMessage                 ?? DEFAULT_BOT_CONFIG.reminder_message,
         invalid_option_message:            dbConfig.invalidOptionMessage            ?? DEFAULT_BOT_CONFIG.invalid_option_message,
@@ -51,14 +55,14 @@ const lerBotConfig = async (businessId: string): Promise<BotConfig> => {
         end_session_message:               dbConfig.endSessionMessage               ?? DEFAULT_BOT_CONFIG.end_session_message,
         name_validation_message:           dbConfig.nameValidationMessage           ?? DEFAULT_BOT_CONFIG.name_validation_message,
         no_slots_message:                  dbConfig.noSlotsMessage                  ?? DEFAULT_BOT_CONFIG.no_slots_message,
-        cancel_no_appointments_message:    dbConfig.cancelNoAppointmentsMessage     ?? DEFAULT_BOT_CONFIG.cancel_no_appointments_message,
+        cancel_no_appointments_message:    salvoOuPadrao('cancel_no_appointments_message', dbConfig.cancelNoAppointmentsMessage),
         cancel_list_message:               dbConfig.cancelListMessage               ?? DEFAULT_BOT_CONFIG.cancel_list_message,
         cancel_success_message:            dbConfig.cancelSuccessMessage            ?? DEFAULT_BOT_CONFIG.cancel_success_message,
-        reschedule_no_appointments_message: dbConfig.rescheduleNoAppointmentsMessage ?? DEFAULT_BOT_CONFIG.reschedule_no_appointments_message,
+        reschedule_no_appointments_message: salvoOuPadrao('reschedule_no_appointments_message', dbConfig.rescheduleNoAppointmentsMessage),
         reschedule_list_message:           dbConfig.rescheduleListMessage           ?? DEFAULT_BOT_CONFIG.reschedule_list_message,
         reschedule_success_message:        DEFAULT_BOT_CONFIG.reschedule_success_message,
-        promotions_message:                (dbConfig.promotionsMessage === PROMOCOES_PADRAO_ANTIGO ? '' : dbConfig.promotionsMessage) ?? DEFAULT_BOT_CONFIG.promotions_message,
-        instagram_message:                 dbConfig.instagramMessage                ?? DEFAULT_BOT_CONFIG.instagram_message,
+        promotions_message:                salvoOuPadrao('promotions_message', dbConfig.promotionsMessage),
+        instagram_message:                 salvoOuPadrao('instagram_message', dbConfig.instagramMessage),
         politica_message:                  dbConfig.politicaMessage                 ?? DEFAULT_BOT_CONFIG.politica_message,
       };
     }

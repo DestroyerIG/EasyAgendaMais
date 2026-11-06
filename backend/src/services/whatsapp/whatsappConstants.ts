@@ -78,6 +78,19 @@ export interface BotConfig {
 export const PROMOCOES_PADRAO_ANTIGO =
   '🎉 *Promoções e Ofertas Especiais!*\n\n✨ *Desconto de 10%* em todos os serviços para clientes frequentes!\n\n💝 *Promoção do Mês:* combo de serviços com preço especial\n(Válido até o final do mês)\n\n🎁 *Indique um amigo* e ganhe 5% em seu próximo atendimento!\n\nPara aproveitar as promoções, agende agora!';
 
+/**
+ * Textos padrão anteriores que podem estar gravados no banco. Se o valor salvo for exatamente igual,
+ * o dono nunca editou: a leitura devolve o padrão atual (Promoções volta vazio).
+ */
+export const PADROES_ANTIGOS: Partial<Record<keyof BotConfig, string>> = {
+  welcome_header: 'Olá 👋 Bem-vindo!\n\nSou o assistente virtual de {nome_negocio} 🤖 e estou aqui para agilizar seu atendimento.\n\nComo posso ajudar hoje?',
+  attendant_message: 'Um atendente entrará em contato em breve! 👨‍💼',
+  cancel_no_appointments_message: '📋 Você não tem agendamentos próximos para cancelar.\n\nSe deseja agendar, escolha a opção 1️⃣',
+  reschedule_no_appointments_message: '📋 Você não tem agendamentos para reagendar.\n\nSe deseja agendar, escolha a opção 1️⃣',
+  instagram_message: '📱 *Nos acompanhe no Instagram!*\n\n🎨 Veja nossos trabalhos, dicas de estilo e tendências!\n\n👉 {instagram_handle}\n\n📸 Siga-nos para:\n✨ Ver nossos trabalhos mais recentes\n💡 Receber dicas de beleza\n🎯 Acompanhar promoções exclusivas\n\n📲 Clique no link para nos seguir!',
+  promotions_message: PROMOCOES_PADRAO_ANTIGO,
+};
+
 export const DEFAULT_BOT_CONFIG: BotConfig = {
   welcome_header: 'Olá 👋 Que bom ter você aqui!\n\nSou o assistente virtual de {nome_negocio} 🤖.\n\nComo posso ajudar hoje?',
   ask_name_message: 'Vejo que é sua primeira vez aqui! 😊\n\nQual o seu *nome completo*?',
