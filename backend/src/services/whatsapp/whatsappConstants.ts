@@ -17,6 +17,8 @@ export const STEPS = {
   CONFIRM_CANCEL: 'confirm_cancel',
   CONFIRM_RESCHEDULE: 'confirm_reschedule',
   VIEW_SERVICES: 'view_services',
+  MANAGE_CHOOSE: 'manage_choose',
+  MANAGE_ACTION: 'manage_action',
 } as const;
 
 export type StepKey = keyof typeof STEPS;
@@ -52,6 +54,9 @@ export interface BotConfig {
   reschedule_no_appointments_message: string;
   reschedule_list_message: string;
   reschedule_success_message: string;
+  manage_list_message: string;
+  manage_no_appointments_message: string;
+  manage_action_message: string;
   promotions_message: string;
   instagram_message: string;
   politica_message: string;
@@ -97,6 +102,9 @@ export const DEFAULT_BOT_CONFIG: BotConfig = {
   reschedule_no_appointments_message: '📋 Você não tem agendamentos para reagendar.\n\nSe quiser marcar um horário, volte ao menu.',
   reschedule_list_message: '🔄 Seus agendamentos disponíveis para reagendamento:',
   reschedule_success_message: '✅ Seu horário foi remarcado!\n\n📋 Serviço: {servico}\n👤 Profissional: {profissional}\n📅 Data: {data}\n⏰ Horário: {horario}\n\nAté lá! 👋',
+  manage_list_message: '🔄 Seus agendamentos:',
+  manage_no_appointments_message: '📋 Você não tem agendamentos próximos.',
+  manage_action_message: 'O que deseja fazer com o agendamento de {data} às {horario}?\n\n1️⃣ Remarcar\n2️⃣ Cancelar\n\n0️⃣ Voltar ao menu',
   promotions_message: '',
   instagram_message: '📱 *Nos acompanhe no Instagram!*\n\n👉 {instagram_handle}\n\nVeja nossos trabalhos mais recentes e novidades.',
   politica_message: '',

@@ -68,6 +68,19 @@ interface BookingMessageResult {
   message: string;
 }
 
+/** O exemplo não tem serviço nem profissional: usa os primeiros ativos para a escolha de data achar horários. */
+const agendamentoExemploCompleto = async (businessId: string): Promise<AppointmentListRow[]> => {
+  const [servico, profissional] = await Promise.all([
+    prisma.service.findFirst({ where: { businessId, active: true }, select: { id: true }, orderBy: { name: 'asc' } }),
+    prisma.professional.findFirst({ where: { businessId, active: true }, select: { id: true }, orderBy: { name: 'asc' } }),
+  ]);
+  return [{
+    ...agendamentoExemplo(new Date()),
+    ...(servico ? { service_id: servico.id } : {}),
+    ...(profissional ? { professional_id: profissional.id } : {}),
+  }];
+};
+
 // ==================== CANCELAMENTO ====================
 
 export const handleCancelAppointment = async (
@@ -131,8 +144,17 @@ export const handleConfirmCancel = async (
   if (!selectedAppointment) {
     return { message: 'Opção inválida. Por favor, escolha um número válido.' };
   }
-  const appointmentId = selectedAppointment.id;
+  return cancelarAgendamento(phone, businessId, selectedAppointment.id, config, simulado);
+};
 
+/** Cancela o agendamento, dispara o gatilho da lista de espera e volta ao menu. Em simulação não grava nada. */
+const cancelarAgendamento = async (
+  phone: string,
+  businessId: string,
+  appointmentId: string,
+  config: BotConfig,
+  simulado: boolean,
+): Promise<BookingMessageResult> => {
   try {
     if (!simulado) {
       await prisma.appointment.update({
@@ -159,19 +181,7 @@ export const handleRescheduleAppointment = async (
   simulado: boolean,
 ): Promise<BookingMessageResult> => {
   try {
-    // O exemplo não tem serviço nem profissional: usa os primeiros ativos para a escolha de data achar horários.
-    const exemplo = async (): Promise<AppointmentListRow[]> => {
-      const [servico, profissional] = await Promise.all([
-        prisma.service.findFirst({ where: { businessId, active: true }, select: { id: true }, orderBy: { name: 'asc' } }),
-        prisma.professional.findFirst({ where: { businessId, active: true }, select: { id: true }, orderBy: { name: 'asc' } }),
-      ]);
-      return [{
-        ...agendamentoExemplo(new Date()),
-        ...(servico ? { service_id: servico.id } : {}),
-        ...(profissional ? { professional_id: profissional.id } : {}),
-      }];
-    };
-    const appointments = simulado ? await exemplo() : await prisma.$queryRaw<AppointmentListRow[]>(Prisma.sql`
+    const appointments = simulado ? await agendamentoExemploCompleto(businessId) : await prisma.$queryRaw<AppointmentListRow[]>(Prisma.sql`
       SELECT id, date, time, service_id, professional_id FROM appointments
        WHERE business_id = ${businessId}::uuid
          AND client_id = (
@@ -223,6 +233,15 @@ export const handleConfirmReschedule = async (
   if (!appointment) {
     return { message: 'Opção inválida. Por favor, escolha um número válido.' };
   }
+  return iniciarRemarcacao(phone, businessId, appointment);
+};
+
+/** Grava o agendamento escolhido na sessão e pergunta a nova data. */
+const iniciarRemarcacao = async (
+  phone: string,
+  businessId: string,
+  appointment: AppointmentListRow,
+): Promise<BookingMessageResult> => {
   // A escolha de data usa a duração do serviço e a profissional da sessão; sem eles o fluxo não acha horários.
   const servico = appointment.service_id
     ? await prisma.service.findFirst({
@@ -268,4 +287,110 @@ export const handleConfirmReschedule = async (
   });
 
   return { message };
+};
+
+// ==================== REMARCAR OU CANCELAR ====================
+
+const montarListaManage = (appointments: AppointmentListRow[], config: BotConfig): string => {
+  let message = formatMessage(config.manage_list_message) + '\n\n';
+  appointments.forEach((appointment, index) => {
+    const date = new Date(appointment.date).toLocaleDateString('pt-BR');
+    message += `${index + 1}️⃣ ${date} às ${formatTimeHm(appointment.time)}\n`;
+  });
+  message += '\n0️⃣ Voltar ao menu';
+  return message;
+};
+
+const textoAcaoManage = (appointment: AppointmentListRow, config: BotConfig): string =>
+  formatMessage(config.manage_action_message, {
+    dateFormatted: new Date(appointment.date).toLocaleDateString('pt-BR'),
+    time: formatTimeHm(appointment.time),
+  });
+
+const perguntarAcaoManage = async (
+  phone: string,
+  businessId: string,
+  appointment: AppointmentListRow,
+  config: BotConfig,
+): Promise<BookingMessageResult> => {
+  await updateSession(phone, businessId, STEPS.MANAGE_ACTION, { appointment });
+  return { message: textoAcaoManage(appointment, config) };
+};
+
+export const handleManageAppointments = async (
+  phone: string,
+  businessId: string,
+  config: BotConfig,
+  simulado: boolean,
+): Promise<BookingMessageResult> => {
+  try {
+    // No simulador o número de teste pode ser cliente real: lista só o exemplo.
+    const appointments = simulado ? await agendamentoExemploCompleto(businessId) : await prisma.$queryRaw<AppointmentListRow[]>(Prisma.sql`
+      SELECT id, date, time, service_id, professional_id FROM appointments
+       WHERE business_id = ${businessId}::uuid
+         AND client_id = (
+           SELECT id FROM clients WHERE phone = ${phone} AND business_id = ${businessId}::uuid
+         )
+         AND status = 'confirmado'
+         AND date >= CURRENT_DATE
+       ORDER BY date ASC, time ASC LIMIT 5
+    `);
+
+    const primeiro = appointments?.[0];
+    if (!primeiro) {
+      return { message: formatMessage(config.manage_no_appointments_message) };
+    }
+    if (appointments.length === 1) {
+      return await perguntarAcaoManage(phone, businessId, primeiro, config);
+    }
+
+    await updateSession(phone, businessId, STEPS.MANAGE_CHOOSE, { appointments });
+    return { message: montarListaManage(appointments, config) };
+  } catch (error) {
+    logger.error({ err: error }, 'Erro ao listar agendamentos para remarcar ou cancelar');
+    return { message: 'Desculpe, ocorreu um erro ao listar os agendamentos. Tente novamente mais tarde.' };
+  }
+};
+
+export const handleManageChoose = async (
+  phone: string,
+  choice: string,
+  businessId: string,
+  data: Record<string, unknown>,
+  config: BotConfig,
+  _simulado: boolean,
+): Promise<BookingMessageResult> => {
+  if (choice === '0' || choice.toLowerCase() === 'menu') {
+    return goBackToMainMenu(phone, businessId);
+  }
+
+  const appointments = (data.appointments as AppointmentListRow[] | undefined) ?? [];
+  const selecionado = /^\d+$/.test(choice) ? appointments[parseInt(choice, 10) - 1] : undefined;
+  if (!selecionado) {
+    return { message: formatMessage(config.invalid_option_message) + '\n\n' + montarListaManage(appointments, config) };
+  }
+  return perguntarAcaoManage(phone, businessId, selecionado, config);
+};
+
+export const handleManageAction = async (
+  phone: string,
+  choice: string,
+  businessId: string,
+  data: Record<string, unknown>,
+  config: BotConfig,
+  simulado: boolean,
+): Promise<BookingMessageResult> => {
+  if (choice === '0' || choice.toLowerCase() === 'menu') {
+    return goBackToMainMenu(phone, businessId);
+  }
+
+  const appointment = data.appointment as AppointmentListRow | undefined;
+  if (!appointment) {
+    return goBackToMainMenu(phone, businessId);
+  }
+
+  if (choice === '1') return iniciarRemarcacao(phone, businessId, appointment);
+  if (choice === '2') return cancelarAgendamento(phone, businessId, appointment.id, config, simulado);
+
+  return { message: formatMessage(config.invalid_option_message) + '\n\n' + textoAcaoManage(appointment, config) };
 };

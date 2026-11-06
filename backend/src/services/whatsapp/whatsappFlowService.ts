@@ -45,6 +45,9 @@ import {
   handleConfirmCancel,
   handleRescheduleAppointment,
   handleConfirmReschedule,
+  handleManageAppointments,
+  handleManageChoose,
+  handleManageAction,
   ID_SIMULADOR,
 } from './whatsappBookingService.js';
 import {
@@ -1108,6 +1111,12 @@ const handleMenuStep = async (
 
     case 'reschedule': {
       const result = await handleRescheduleAppointment(phone, businessId, config, sendContext.simulate === true);
+      await sendWhatsAppMessage(phone, result.message, sendContext);
+      return { ok: true };
+    }
+
+    case 'manage': {
+      const result = await handleManageAppointments(phone, businessId, config, sendContext.simulate === true);
       await sendWhatsAppMessage(phone, result.message, sendContext);
       return { ok: true };
     }
@@ -2315,6 +2324,18 @@ export const handleIncomingMessage = async (
       }
       case STEPS.CONFIRM_RESCHEDULE: {
         const r = await handleConfirmReschedule(normalizedPhone!, normalizedText, businessId, sessionData, config);
+        await sendWhatsAppMessage(normalizedPhone!, r.message, sendContext);
+        stepResult = { ok: true };
+        break;
+      }
+      case STEPS.MANAGE_CHOOSE: {
+        const r = await handleManageChoose(normalizedPhone!, normalizedText, businessId, sessionData, config, sendContext.simulate === true);
+        await sendWhatsAppMessage(normalizedPhone!, r.message, sendContext);
+        stepResult = { ok: true };
+        break;
+      }
+      case STEPS.MANAGE_ACTION: {
+        const r = await handleManageAction(normalizedPhone!, normalizedText, businessId, sessionData, config, sendContext.simulate === true);
         await sendWhatsAppMessage(normalizedPhone!, r.message, sendContext);
         stepResult = { ok: true };
         break;
