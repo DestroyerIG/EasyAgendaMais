@@ -113,30 +113,5 @@ export const DEFAULT_BOT_CONFIG: BotConfig = {
   politica_message: '',
 };
 
-/**
- * Mensagens de fallback para erros de configuração.
- */
-export const FALLBACK_BOT_CONFIG: BotConfig = {
-  welcome_header: 'Olá 👋 Que bom ter você aqui!',
-  ask_name_message: 'Qual o seu nome?',
-  attendant_message: 'Aguarde um momento.',
-  confirmation_message: 'Agendado!',
-  reminder_message: 'Lembrete: seu horário é em breve!',
-  invalid_option_message: 'Opção inválida.',
-  session_expired_message: 'Sessão expirada.',
-  end_session_message: 'Atendimento encerrado.',
-  name_validation_message: 'Digite seu nome completo.',
-  no_slots_message: 'Sem horários disponíveis.',
-  cancel_no_appointments_message: 'Sem agendamentos para cancelar.',
-  cancel_list_message: 'Seus agendamentos:',
-  cancel_success_message: 'Cancelado com sucesso!',
-  reschedule_no_appointments_message: 'Sem agendamentos para reagendar.',
-  reschedule_list_message: 'Seus agendamentos:',
-  reschedule_success_message: 'Remarcado com sucesso!',
-  promotions_message: 'Confira nossas promoções!',
-  instagram_message: 'Siga-nos no Instagram!',
-  politica_message: '',
-};
-
 /** Fecha as respostas de agendamento do simulador: nada foi gravado de verdade. */
 export const AVISO_TESTE = '🧪 Teste: nada foi agendado.';

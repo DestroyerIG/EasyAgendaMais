@@ -55,7 +55,7 @@ import {
   formatBusinessHoursRange,
 } from '../scheduleSettingsService.js';
 import { appointmentService } from '../appointmentService.js';
-import { ConflictError } from '../../utils/errors.js';
+import { ConflictError, NotFoundError, ForbiddenError } from '../../utils/errors.js';
 import { appointmentsPrismaRepository } from '../../modules/appointments/appointments.repository.js';
 import { businessSettingsRepository } from '../../repositories/businessSettingsRepository.js';
 import { estadoContaService } from '../../modules/conta/estadoConta.service.js';
@@ -1494,7 +1494,8 @@ const handleChooseTimeStep = async (
   }
   const selectedDate = sessionData.selectedDate as string;
   const professionalId = sessionData.professionalId as string;
-  const rescheduleAppointmentId = sessionData.rescheduleAppointmentId as string | undefined;
+  // Sessão aberta antes do deploy guardava o agendamento em `appointmentId`.
+  const rescheduleAppointmentId = (sessionData.rescheduleAppointmentId ?? sessionData.appointmentId) as string | undefined;
   const simulado = sendContext.simulate === true;
 
   // Na remarcação o próprio agendamento não pode bloquear o horário que ele já ocupa.
@@ -1566,6 +1567,12 @@ const handleChooseTimeStep = async (
       });
     } catch (error) {
       if (error instanceof ConflictError) return oferecerOutrosHorarios();
+      if (error instanceof NotFoundError || error instanceof ForbiddenError) {
+        // O agendamento foi cancelado, concluído ou mudou enquanto ela escolhia: volta ao menu.
+        const menu = await goBackToMainMenu(phone, businessId);
+        await sendWhatsAppMessage(phone, `⚠️ Esse agendamento não está mais ativo, então não consegui remarcar.\n\n${menu.message}`, sendContext);
+        return { ok: true };
+      }
       logger.error({ err: error, phone, businessId, rescheduleAppointmentId }, 'Falha ao remarcar agendamento via WhatsApp bot');
       await sendWhatsAppMessage(
         phone,
@@ -1575,9 +1582,20 @@ const handleChooseTimeStep = async (
       return { ok: true };
     }
 
+    // Sessão antiga não tem os nomes: busca pelo agendamento para a mensagem não sair com campo vazio.
+    let serviceName = (sessionData.serviceName as string) || '';
+    let professionalName = (sessionData.professionalName as string) || '';
+    if ((!serviceName || !professionalName) && !simulado) {
+      const ag = await prisma.appointment.findFirst({
+        where: { id: rescheduleAppointmentId, businessId },
+        select: { service: { select: { name: true } }, professional: { select: { name: true } } },
+      }).catch(() => null);
+      serviceName = serviceName || ag?.service?.name || '';
+      professionalName = professionalName || ag?.professional?.name || '';
+    }
     const remarcadoMsg = formatMessage(config.reschedule_success_message, {
-      serviceName: (sessionData.serviceName as string) || '',
-      professionalName: (sessionData.professionalName as string) || '',
+      serviceName,
+      professionalName,
       dateFormatted: formatDateBR(selectedDate, { day: '2-digit', month: '2-digit', year: 'numeric' }),
       time: selectedTime,
     });

@@ -31,7 +31,6 @@ export interface FormatMessageData {
   time?: string;
   servicePrice?: string;
   clientName?: string;
-  ratingText?: string;
   instagramHandle?: string;
 }
 
@@ -147,7 +146,6 @@ export const formatMessage = (template: string, data: FormatMessageData = {}): s
     '{horario}': data.time || '',
     '{valor}': data.servicePrice || '',
     '{nome_cliente}': data.clientName || '',
-    '{avaliacao}': data.ratingText || '',
     '{instagram_handle}': data.instagramHandle || '',
   };
 

@@ -172,7 +172,7 @@ const {
   handleWebhook,
 } = await import('../services/whatsapp/whatsappFlowService.js');
 const { prisma } = await import('../config/prisma.js');
-const { ConflictError } = await import('../utils/errors.js');
+const { ConflictError, NotFoundError, ForbiddenError } = await import('../utils/errors.js');
 const { AVISO_TESTE } = await import('../services/whatsapp/whatsappConstants.js');
 const { agendamentoExemplo } = await import('../services/whatsapp/whatsappBookingService.js');
 const { formatMessage } = await import('../services/whatsapp/whatsappMessageService.js');
@@ -1405,6 +1405,47 @@ describe('whatsappFlowService guards', () => {
       const conflito = chamadas.find(([q]) => typeof q === 'string' && q.includes('SELECT id FROM appointments'));
       expect(conflito?.[0]).toMatch(/AND id <> /);
       expect(conflito?.[1]).toContain('apt-orig');
+    });
+
+    it('sessao antiga (appointmentId, sem nomes) remarca e preenche servico e profissional pelo agendamento', async () => {
+      sessaoRemarcacao();
+      mockGetSession.mockResolvedValue({
+        step: 'choose_time',
+        data: {
+          availableSlots: ['10:00'], selectedDate: '2026-04-20', professionalId: 'professional-1',
+          appointmentId: 'apt-antigo',
+        },
+      });
+      mockPoolQuery.mockResolvedValueOnce({ rows: [] });
+      vi.mocked(prisma.appointment.findFirst).mockResolvedValueOnce({
+        service: { name: 'Barba' }, professional: { name: 'Carlos' },
+      } as never);
+      mockAppointmentServiceUpdate.mockResolvedValue({ id: 'apt-antigo', status: 'confirmado' });
+      vi.mocked(formatMessage).mockImplementationOnce(preencherRemarcacao as never);
+
+      await handleIncomingMessage('5511777777777', '1', { now: new Date('2026-04-18T10:00:00-03:00') });
+
+      expect(mockAppointmentServiceUpdate).toHaveBeenCalledWith('apt-antigo', 'tenant-1', expect.any(Object));
+      expect(mockAppointmentServiceCreate).not.toHaveBeenCalled();
+      const enviada = String(mockSendWhatsAppMessage.mock.calls.at(-1)?.[1]);
+      expect(enviada).toContain('Barba');
+      expect(enviada).toContain('Carlos');
+    });
+
+    it.each([
+      ['NotFoundError', () => new NotFoundError('Agendamento')],
+      ['ForbiddenError', () => new ForbiddenError('Profissional inativo')],
+    ])('agendamento encerrado no meio da remarcacao (%s) avisa e volta ao menu', async (_nome, criar) => {
+      sessaoRemarcacao();
+      mockPoolQuery.mockResolvedValueOnce({ rows: [] });
+      mockAppointmentServiceUpdate.mockRejectedValue(criar());
+
+      await handleIncomingMessage('5511777777777', '1', { now: new Date('2026-04-18T10:00:00-03:00') });
+
+      const enviada = String(mockSendWhatsAppMessage.mock.calls.at(-1)?.[1]);
+      expect(enviada).toContain('não está mais ativo');
+      expect(enviada).not.toContain('tente novamente');
+      expect(mockAppointmentServiceCreate).not.toHaveBeenCalled();
     });
 
     it('horario tomado no meio da remarcacao deixa o agendamento original intacto', async () => {

@@ -35,7 +35,7 @@ export const getBotConfig = async (businessId: string): Promise<BotConfig> => {
 
 /** Valor salvo; se for nulo ou exatamente o texto padrão antigo (nunca editado), vale o padrão atual. */
 const salvoOuPadrao = (chave: keyof BotConfig, salvo: string | null | undefined): string =>
-  salvo == null || salvo === PADROES_ANTIGOS[chave] ? DEFAULT_BOT_CONFIG[chave] : salvo;
+  salvo == null || salvo === PADROES_ANTIGOS[chave] ? (DEFAULT_BOT_CONFIG[chave] ?? '') : salvo;
 
 const lerBotConfig = async (businessId: string): Promise<BotConfig> => {
   try {
