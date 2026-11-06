@@ -204,6 +204,15 @@ describe('volta do Checkout', () => {
     expect(screen.queryByRole('button', { name: 'Pagar com Pix' })).not.toBeInTheDocument();
   });
 
+  it('reserva de cartão expirada mostra o título do prazo para pagar, sem falar em Pix', async () => {
+    abrirEm('?reserva=appt-1&retorno=falha');
+    api.getAppointmentStatus.mockResolvedValue({ situacao: 'expirado', reserva: { ...RESERVA, checkoutUrl: null } });
+    render(<PublicBookingFlow slug="studio-aurora" />);
+
+    expect(await screen.findByRole('heading', { name: 'O prazo para pagar acabou' })).toBeInTheDocument();
+    expect(screen.queryByText('O prazo do Pix acabou')).not.toBeInTheDocument();
+  });
+
   it('com Pix e sem código (null) não gera QR Code', async () => {
     abrirEm('?reserva=appt-1');
     api.getAppointmentStatus.mockResolvedValue({

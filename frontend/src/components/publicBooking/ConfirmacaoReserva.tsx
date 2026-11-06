@@ -131,10 +131,12 @@ export function ConfirmacaoReserva({
 /** Reserva que venceu sem pagamento ou foi cancelada pelo estabelecimento. */
 export function ReservaEncerrada({
   situacao,
+  forma = 'pix',
   whatsapp,
   onNovoHorario,
 }: {
   situacao: 'expirado' | 'cancelado';
+  forma?: 'pix' | 'cartao';
   whatsapp: string | null;
   onNovoHorario: () => void;
 }) {
@@ -144,7 +146,7 @@ export function ReservaEncerrada({
         <Icon name="event_busy" size={32} />
       </span>
       <h1 className="text-[22px] font-bold text-ink">
-        {situacao === 'expirado' ? 'O prazo do Pix acabou' : 'Esta reserva foi cancelada'}
+        {situacao === 'expirado' ? (forma === 'cartao' ? 'O prazo para pagar acabou' : 'O prazo do Pix acabou') : 'Esta reserva foi cancelada'}
       </h1>
       <p className="text-sm text-muted">
         {situacao === 'expirado'

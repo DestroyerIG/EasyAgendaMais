@@ -563,7 +563,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
         )}
 
         {step === 'pagamento' && reserva && (situacao === 'expirado' || situacao === 'cancelado') && (
-          <ReservaEncerrada situacao={situacao} whatsapp={whatsapp} onNovoHorario={escolherOutroHorario} />
+          <ReservaEncerrada situacao={situacao} forma={reserva.forma} whatsapp={whatsapp} onNovoHorario={escolherOutroHorario} />
         )}
 
         {step === 'pagamento' && resumo && !reservaFinalizada && (
