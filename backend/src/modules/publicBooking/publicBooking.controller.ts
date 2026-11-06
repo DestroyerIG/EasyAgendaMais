@@ -29,6 +29,33 @@ export const getAvailability = async (req: Request, res: Response, next: NextFun
   }
 };
 
+export const getAvailabilityGrid = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await publicBookingService.getAvailabilityGrid(String(req.params['slug']), req.query as never);
+    sendSuccess(res, data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAvailabilityDays = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await publicBookingService.getAvailabilityDays(String(req.params['slug']), req.query as never);
+    sendSuccess(res, data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAppointmentStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await publicBookingService.getAppointmentStatus(String(req.params['slug']), String(req.params['id']));
+    sendSuccess(res, data);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const createAppointment = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const data = await publicBookingService.createPendingAppointment(String(req.params['slug']), req.body);

@@ -7,6 +7,7 @@ interface ServiceData {
   price: number;
   duration_minutes: number;
   depositPercentage?: number;
+  description?: string;
 }
 
 export const serviceService = {
@@ -23,6 +24,7 @@ export const serviceService = {
         price: number;
         duration_minutes: number;
         depositPercentage?: number;
+        description?: string;
       }): Promise<Parameters<typeof toServiceDto>[0]>;
     }).create({
       business_id: businessId,
@@ -30,6 +32,7 @@ export const serviceService = {
       price: data.price,
       duration_minutes: data.duration_minutes,
       depositPercentage: data.depositPercentage,
+      description: data.description,
     });
     return toServiceDto(created);
   },
@@ -39,13 +42,14 @@ export const serviceService = {
       update(
         id: string,
         businessId: string,
-        data: { name: string; price: number; duration_minutes: number; depositPercentage?: number }
+        data: { name: string; price: number; duration_minutes: number; depositPercentage?: number; description?: string }
       ): Promise<Parameters<typeof toServiceDto>[0] | null>;
     }).update(id, businessId, {
       name: data.name,
       price: data.price,
       duration_minutes: data.duration_minutes,
       depositPercentage: data.depositPercentage,
+      description: data.description,
     });
     if (!result) throw new NotFoundError('Serviço');
     return toServiceDto(result);

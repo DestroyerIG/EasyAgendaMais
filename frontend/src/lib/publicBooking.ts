@@ -9,6 +9,7 @@ export interface StorefrontServiceDto {
   durationMinutes: number;
   depositPercentage: number;
   depositAmount: number;
+  descricao?: string | null;
 }
 
 export interface StorefrontDto {
@@ -18,6 +19,13 @@ export interface StorefrontDto {
   brandColor: string | null;
   galleryPhotos: string[];
   address: string | null;
+  coverUrl?: string | null;
+  descricao?: string | null;
+  comodidades?: string[];
+  /** Só vem com o dono ligando e 5 ou mais avaliações. */
+  nota?: { media: number; quantidade: number } | null;
+  /** "19:00"; null se não abre hoje ou já fechou. */
+  atendeHojeAte?: string | null;
   services: StorefrontServiceDto[];
   /** Termos do segmento do negócio (fase 6). */
   vocabulario?: Vocabulario;
@@ -31,6 +39,10 @@ export interface ProfessionalDto {
   id: string;
   name: string;
 }
+
+export interface HorarioDto { horario: string; livre: boolean }
+export interface VagasDoDiaDto { date: string; vagas: number }
+export type SituacaoReserva = 'aguardando' | 'confirmado' | 'expirado' | 'cancelado';
 
 export interface CreatePublicAppointmentPayload {
   serviceId: string;
@@ -61,8 +73,18 @@ export const publicBookingApi = {
     return response.data;
   },
 
-  async getAvailability(slug: string, params: { serviceId: string; professionalId: string; date: string }): Promise<string[]> {
-    const response = await api.get(`/public/${slug}/availability`, { params });
+  async getAvailabilityGrid(slug: string, params: { serviceId: string; professionalId: string; date: string }): Promise<HorarioDto[]> {
+    const response = await api.get(`/public/${slug}/availability/grade`, { params });
+    return response.data;
+  },
+
+  async getAvailabilityDays(slug: string, params: { serviceId: string; professionalId: string }): Promise<VagasDoDiaDto[]> {
+    const response = await api.get(`/public/${slug}/availability/dias`, { params });
+    return response.data;
+  },
+
+  async getAppointmentStatus(slug: string, appointmentId: string): Promise<{ situacao: SituacaoReserva }> {
+    const response = await api.get(`/public/${slug}/appointments/${appointmentId}/status`);
     return response.data;
   },
 

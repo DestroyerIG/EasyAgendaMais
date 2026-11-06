@@ -1,6 +1,8 @@
 'use client';
 
 import { Icon } from '@/components/ui';
+import { horaCurta } from '@/lib/agendamentoPublico';
+import { comodidadesDe } from '@/lib/comodidades';
 import type { StorefrontDto } from '@/lib/publicBooking';
 import { iniciais } from './CascaPublica';
 
@@ -13,8 +15,9 @@ export function PerfilNegocio({
   especialidade: string | null;
   semServicos: string | null;
 }) {
-  const { name, logoUrl, galleryPhotos, address } = storefront;
-  const capa = galleryPhotos[0];
+  const { name, logoUrl, galleryPhotos, address, descricao, nota, atendeHojeAte } = storefront;
+  const capa = storefront.coverUrl ?? galleryPhotos[0];
+  const comodidades = comodidadesDe(storefront.comodidades);
 
   return (
     <div className="flex flex-col pb-6">
@@ -43,11 +46,36 @@ export function PerfilNegocio({
           <h1 className="text-[24px] font-bold leading-tight tracking-tight text-ink">{name}</h1>
           {especialidade && <p className="text-sm text-muted">{especialidade}</p>}
         </div>
-        <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-[13px] font-semibold text-success-text">
-          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-success" />
-          Agendamento online
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {nota && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-1 text-[13px] text-ink">
+              <Icon name="star" size={15} filled className="text-warning-text" />
+              <span className="font-bold tabular-nums">{nota.media.toLocaleString('pt-BR', { minimumFractionDigits: 1 })}</span>
+              <span className="tabular-nums text-muted">({nota.quantidade})</span>
+            </span>
+          )}
+          <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-[13px] font-semibold text-success-text">
+            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-success" />
+            {atendeHojeAte ? `Atende hoje até ${horaCurta(atendeHojeAte)}` : 'Agendamento online'}
+          </span>
+        </div>
       </div>
+
+      {(descricao || comodidades.length > 0) && (
+        <section className="mx-4 mt-4 flex flex-col gap-2 rounded-card bg-surface p-4 shadow-sm">
+          {descricao && <p className="whitespace-pre-line text-sm leading-relaxed text-ink">{descricao}</p>}
+          {comodidades.length > 0 && (
+            <ul className="flex flex-wrap gap-x-3 gap-y-1 pt-1 text-[13px] text-muted">
+              {comodidades.map((c) => (
+                <li key={c.id} className="flex items-center gap-1">
+                  <Icon name={c.icone} size={15} className="text-brand-text" />
+                  {c.rotulo}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       {semServicos && <p className="mx-4 mt-4 rounded-card border border-line bg-surface p-4 text-sm text-muted">{semServicos}</p>}
 

@@ -6,8 +6,14 @@ import {
   dataPorExtenso, diaDaSemanaCurto, diaDoMes, formatarDuracao, hojeIso, horaDeTermino, mesEAno,
   proximosDias, separarPorPeriodo,
 } from '@/lib/agendamentoPublico';
+import type { HorarioDto } from '@/lib/publicBooking';
 
 const DIAS_NA_FAIXA = 14;
+
+const rotuloVagas = (vagas: number): string => {
+  if (vagas === 0) return 'Sem vagas';
+  return vagas === 1 ? '1 vaga' : `${vagas} vagas`;
+};
 
 function Periodo({
   titulo,
@@ -18,7 +24,7 @@ function Periodo({
 }: {
   titulo: string;
   icone: string;
-  horarios: string[];
+  horarios: HorarioDto[];
   selecionado: string | null;
   onEscolher: (horario: string) => void;
 }) {
@@ -32,7 +38,21 @@ function Periodo({
         <span className="text-sm font-bold text-ink">{titulo}</span>
       </div>
       <div className="grid grid-cols-3 gap-2.5">
-        {horarios.map((horario) => {
+        {horarios.map(({ horario, livre }) => {
+          if (!livre) {
+            return (
+              <button
+                key={horario}
+                type="button"
+                disabled
+                aria-label={`${horario} ocupado`}
+                className="flex min-h-[46px] cursor-not-allowed flex-col items-center justify-center rounded-control bg-surface-2 text-muted"
+              >
+                <span className="text-sm tabular-nums line-through">{horario}</span>
+                <span className="text-[9px] font-semibold uppercase leading-none">Ocupado</span>
+              </button>
+            );
+          }
           const ativo = selecionado === horario;
           return (
             <button
@@ -59,6 +79,7 @@ export function EscolhaHorario({
   profissional,
   data,
   horarios,
+  vagas,
   carregando,
   horario,
   onData,
@@ -67,7 +88,8 @@ export function EscolhaHorario({
   servico: { name: string; price: number; durationMinutes: number };
   profissional: string | undefined;
   data: string;
-  horarios: string[];
+  horarios: HorarioDto[];
+  vagas: Record<string, number>;
   carregando: boolean;
   horario: string | null;
   onData: (data: string) => void;
@@ -107,20 +129,27 @@ export function EscolhaHorario({
         <div className="-mx-4 flex select-none gap-2.5 overflow-x-auto px-4 pb-2 pt-1 [scrollbar-width:none]">
           {dias.map((dia) => {
             const ativo = data === dia;
+            const vagasDoDia = vagas[dia];
+            const rotulo = vagasDoDia === undefined ? null : rotuloVagas(vagasDoDia);
             return (
               <button
                 key={dia}
                 type="button"
                 aria-pressed={ativo}
-                aria-label={dataPorExtenso(dia)}
+                aria-label={rotulo ? `${dataPorExtenso(dia)}, ${rotulo}` : dataPorExtenso(dia)}
                 onClick={() => onData(dia)}
                 className={cn(
-                  'flex h-[74px] w-[68px] shrink-0 flex-col items-center justify-center rounded-card transition-colors',
+                  'flex h-[86px] w-[68px] shrink-0 flex-col items-center justify-center rounded-card transition-colors',
                   ativo ? 'bg-brand text-on-brand shadow-md' : 'border border-line bg-surface text-ink shadow-sm',
                 )}
               >
                 <span className={cn('text-xs font-medium', !ativo && 'text-muted')}>{diaDaSemanaCurto(dia)}</span>
                 <span className="my-0.5 text-[20px] font-bold tabular-nums">{diaDoMes(dia)}</span>
+                {rotulo && (
+                  <span className={cn('text-[10px] font-semibold leading-tight tabular-nums', !ativo && (vagasDoDia === 0 ? 'text-muted' : 'text-success-text'))}>
+                    {rotulo}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -143,7 +172,7 @@ export function EscolhaHorario({
           <h2 className="text-[17px] font-bold text-ink">Horários para {dataPorExtenso(data)}</h2>
           {carregando ? (
             <p className="mt-2 text-sm text-muted">Carregando horários...</p>
-          ) : horarios.length === 0 ? (
+          ) : !horarios.some((h) => h.livre) ? (
             <p className="mt-2 text-sm text-muted">Nenhum horário livre nesta data. Tente outro dia.</p>
           ) : (
             <>

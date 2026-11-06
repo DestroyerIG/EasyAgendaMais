@@ -36,8 +36,8 @@ Atualizado em 27/10/2026.
 | Salão | Plano Salão sob consulta, com valor combinado por negócio no SuperAdmin | ✅ Concluída (sem migração) | PR #27 |
 | Segurança | `/billing/status` deixa de expor o token do cartão | ✅ Concluída (sem migração) | PR #28 |
 | Busca | Busca geral do painel: clientes, agendamentos e telas, no computador e no celular | ✅ Concluída (juntada em 05/11, sem migração) | PR #41 |
-| Página pública 1 | Página de agendamento fiel ao Stitch com os dados atuais: perfil, 3 etapas e cor do negócio | Aguardando PR (sem migração) | — |
-| Página pública 2 | Capa, descrição, comodidades, vagas por dia, horários ocupados e confirmação | Não iniciada (precisa de migração autorizada) | — |
+| Página pública 1 | Página de agendamento fiel ao Stitch com os dados atuais: perfil, 3 etapas e cor do negócio | ✅ Concluída (juntada em 05/11, sem migração) | PR #43 |
+| Página pública 2 | Capa, descrição, comodidades, nota, vagas por dia, horários ocupados e confirmação | ✅ Concluída (juntada e migrada em 05/11) | PR #45 |
 
 ## Fase 7 (concluída)
 

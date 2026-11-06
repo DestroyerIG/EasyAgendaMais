@@ -5,5 +5,5 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-  return proxyRequest(request, `/public/${slug}/availability`, 'GET');
+  return proxyRequest(request, `/public/${slug}/availability/grade`, 'GET');
 }

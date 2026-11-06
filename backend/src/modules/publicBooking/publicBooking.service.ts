@@ -1,13 +1,14 @@
 import { NotFoundError, ValidationError, ConflictError } from '../../utils/errors.js';
 import { publicBookingRepository } from './publicBooking.repository.js';
 import { appointmentsPrismaRepository } from '../appointments/appointments.repository.js';
-import { generateAvailableTimeSlots, getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
+import { closesTodayAt, generateAvailableTimeSlots, getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
 import { buildPixPayload } from '../../utils/pixPayload.js';
 import { notificationsService } from '../notifications/notifications.service.js';
 import logger from '../../utils/logger.js';
 import { vocabularioDe } from '../../config/vocabulario.js';
 import { automacoesGatilhos } from '../whatsappAutomacoes/gatilhos.service.js';
-import type { CreatePublicAppointmentInput, GetPublicAvailabilityQuery, Storefront } from './publicBooking.types.js';
+import type { CreatePublicAppointmentInput, GetPublicAvailabilityQuery, GetPublicDaysQuery, Storefront } from './publicBooking.types.js';
+import { DIAS_NA_FAIXA, diasAPartirDe, notaPublica, situacaoDaReserva } from './publicBooking.rules.js';
 import { estadoContaService } from '../conta/estadoConta.service.js';
 import { textoAgendaPausada } from '../conta/estadoConta.rules.js';
 import { googleAgendaService } from '../googleAgenda/googleAgenda.service.js';
@@ -34,7 +35,18 @@ const computeAvailableSlots = async (
   serviceDurationMinutes: number
 ): Promise<string[]> => {
   const businessSettings = await getBusinessScheduleSettings(businessId);
+  return slotsLivres(businessSettings, businessId, professionalId, date, serviceDurationMinutes);
+};
 
+type ScheduleSettings = Awaited<ReturnType<typeof getBusinessScheduleSettings>>;
+
+const slotsLivres = async (
+  businessSettings: ScheduleSettings,
+  businessId: string,
+  professionalId: string,
+  date: string,
+  serviceDurationMinutes: number
+): Promise<string[]> => {
   const timeZone = businessSettings?.timezone || 'America/Sao_Paulo';
   if (date < todayInTimezone(timeZone)) {
     throw new ValidationError('Não é possível agendar em uma data que já passou');
@@ -52,6 +64,19 @@ const computeAvailableSlots = async (
   });
 };
 
+const consultaDeAgenda = async (slug: string, query: GetPublicDaysQuery) => {
+  const business = await publicBookingRepository.findBusinessBySlug(slug);
+  if (!business) throw new NotFoundError('Página');
+
+  const service = await publicBookingRepository.findServiceForBusiness(business.id, query.serviceId);
+  if (!service) throw new ValidationError('Serviço indisponível para este negócio');
+
+  const professional = await publicBookingRepository.findProfessionalForBusiness(business.id, query.professionalId);
+  if (!professional) throw new ValidationError('Profissional indisponível para este negócio');
+
+  return { business, service };
+};
+
 export const publicBookingService = {
   async getStorefront(slug: string): Promise<Storefront> {
     const business = await publicBookingRepository.findBusinessBySlug(slug);
@@ -59,6 +84,8 @@ export const publicBookingService = {
 
     const services = await publicBookingRepository.findEligibleServices(business.id);
     const estado = await estadoContaService.doNegocio(business.id);
+    const agenda = await getBusinessScheduleSettings(business.id);
+    const notas = business.mostrarNota ? await publicBookingRepository.resumoDasNotas(business.id) : null;
 
     return {
       businessId: business.id,
@@ -67,6 +94,11 @@ export const publicBookingService = {
       brandColor: business.brandColor,
       galleryPhotos: business.galleryPhotos,
       address: business.address,
+      coverUrl: business.coverUrl,
+      descricao: business.description,
+      comodidades: business.comodidades,
+      nota: notaPublica(business.mostrarNota, notas),
+      atendeHojeAte: closesTodayAt(agenda),
       whatsapp: business.whatsapp ?? null,
       agendaPausada: estado.tipo !== 'ativa',
       services: services.map((s) => ({
@@ -76,6 +108,7 @@ export const publicBookingService = {
         durationMinutes: s.durationMinutes,
         depositPercentage: Number(s.depositPercentage),
         depositAmount: calcDeposit(Number(s.price), Number(s.depositPercentage)),
+        descricao: s.description,
       })),
       vocabulario: vocabularioDe(business.settings?.segment),
     };
@@ -88,16 +121,37 @@ export const publicBookingService = {
   },
 
   async getAvailability(slug: string, query: GetPublicAvailabilityQuery) {
+    const { business, service } = await consultaDeAgenda(slug, query);
+    return computeAvailableSlots(business.id, query.professionalId, query.date, service.durationMinutes);
+  },
+
+  /** Horários do dia com a situação de cada um: os ocupados aparecem riscados na página. */
+  async getAvailabilityGrid(slug: string, query: GetPublicAvailabilityQuery) {
+    const { business, service } = await consultaDeAgenda(slug, query);
+    const agenda = await getBusinessScheduleSettings(business.id);
+    const livres = new Set(await slotsLivres(agenda, business.id, query.professionalId, query.date, service.durationMinutes));
+    const todos = generateAvailableTimeSlots(agenda, query.date, { serviceDurationMinutes: service.durationMinutes });
+    return todos.map((horario) => ({ horario, livre: livres.has(horario) }));
+  },
+
+  /** Vagas de cada um dos próximos dias, para a faixa de escolha do dia. */
+  async getAvailabilityDays(slug: string, query: GetPublicDaysQuery) {
+    const { business, service } = await consultaDeAgenda(slug, query);
+    const agenda = await getBusinessScheduleSettings(business.id);
+    const hoje = todayInTimezone(agenda?.timezone || 'America/Sao_Paulo');
+    return Promise.all(diasAPartirDe(hoje, DIAS_NA_FAIXA).map(async (date) => ({
+      date,
+      vagas: (await slotsLivres(agenda, business.id, query.professionalId, date, service.durationMinutes)).length,
+    })));
+  },
+
+  /** Situação da reserva para a página acompanhar a confirmação. Não devolve dado da cliente. */
+  async getAppointmentStatus(slug: string, id: string) {
     const business = await publicBookingRepository.findBusinessBySlug(slug);
     if (!business) throw new NotFoundError('Página');
-
-    const service = await publicBookingRepository.findServiceForBusiness(business.id, query.serviceId);
-    if (!service) throw new ValidationError('Serviço indisponível para este negócio');
-
-    const professional = await publicBookingRepository.findProfessionalForBusiness(business.id, query.professionalId);
-    if (!professional) throw new ValidationError('Profissional indisponível para este negócio');
-
-    return computeAvailableSlots(business.id, query.professionalId, query.date, service.durationMinutes);
+    const reserva = await publicBookingRepository.findPublicAppointment(business.id, id);
+    if (!reserva) throw new NotFoundError('Reserva');
+    return { situacao: situacaoDaReserva(reserva.status, reserva.expiresAt, new Date()) };
   },
 
   async createPendingAppointment(slug: string, data: CreatePublicAppointmentInput) {

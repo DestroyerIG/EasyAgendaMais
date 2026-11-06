@@ -12,6 +12,7 @@ interface RawService {
   price: unknown;
   durationMinutes: number;
   depositPercentage?: unknown;
+  description?: string | null;
   active: boolean;
   createdAt?: Date | string;
 }
@@ -23,6 +24,7 @@ export interface ServiceDto {
   price: number;
   duration_minutes: number;
   deposit_percentage: number | null;
+  description: string | null;
   active: boolean;
   created_at?: string;
 }
@@ -41,6 +43,7 @@ export const toServiceDto = (s: RawService): ServiceDto => ({
   deposit_percentage: s.depositPercentage !== null && s.depositPercentage !== undefined
     ? Number(s.depositPercentage)
     : null,
+  description: s.description ?? null,
   active: s.active,
   created_at: s.createdAt ? new Date(s.createdAt).toISOString() : undefined,
 });

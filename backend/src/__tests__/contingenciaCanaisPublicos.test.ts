@@ -49,6 +49,7 @@ vi.mock('../services/whatsapp/whatsappConfigService.js', () => ({
 }));
 vi.mock('../services/scheduleSettingsService.js', () => ({
   getBusinessScheduleSettings: mockSettings,
+  closesTodayAt: () => null,
   isWithinBusinessHours: mockDentroDoHorario,
   isBusinessOpenOnDate: vi.fn(() => true),
   generateAvailableTimeSlots: vi.fn(() => []),

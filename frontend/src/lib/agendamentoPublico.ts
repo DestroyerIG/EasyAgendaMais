@@ -59,7 +59,33 @@ export const dataCurta = (iso: string): string => {
   return `${semana}, ${data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`;
 };
 
-export const separarPorPeriodo = (horarios: string[]): { manha: string[]; tarde: string[] } => ({
-  manha: horarios.filter((h) => Number(h.slice(0, 2)) < 12),
-  tarde: horarios.filter((h) => Number(h.slice(0, 2)) >= 12),
+export const separarPorPeriodo = <T extends { horario: string }>(horarios: T[]): { manha: T[]; tarde: T[] } => ({
+  manha: horarios.filter((h) => Number(h.horario.slice(0, 2)) < 12),
+  tarde: horarios.filter((h) => Number(h.horario.slice(0, 2)) >= 12),
 });
+
+/** "19:00" → "19h"; "19:30" → "19h30". */
+export const horaCurta = (hora: string): string => {
+  const [h, m] = hora.split(':');
+  return m === '00' ? `${Number(h)}h` : `${Number(h)}h${m}`;
+};
+
+const textoIcs = (texto: string): string => texto.replace(/[\\;,]/g, (c) => `\\${c}`).replace(/\n/g, '\\n');
+
+/** Evento de calendário, no horário local de quem abre, para "Adicionar à agenda do celular". */
+export const gerarIcs = ({ titulo, data, horario, duracaoMinutos, local }: {
+  titulo: string; data: string; horario: string; duracaoMinutos: number; local: string | null;
+}): string => {
+  const [ano, mes, dia] = data.split('-').map(Number);
+  const [hora, minuto] = horario.split(':').map(Number);
+  const carimbo = (d: Date) => `${paraIso(d).replace(/-/g, '')}T${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}00`;
+  const inicio = new Date(ano, mes - 1, dia, hora, minuto);
+  const fim = new Date(ano, mes - 1, dia, hora, minuto + duracaoMinutos);
+  return [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//EasyAgenda+//Agendamento//PT-BR', 'BEGIN:VEVENT',
+    `UID:${carimbo(inicio)}-${duracaoMinutos}@easyagenda`, `DTSTAMP:${carimbo(new Date())}`,
+    `DTSTART:${carimbo(inicio)}`, `DTEND:${carimbo(fim)}`, `SUMMARY:${textoIcs(titulo)}`,
+    ...(local ? [`LOCATION:${textoIcs(local)}`] : []),
+    'END:VEVENT', 'END:VCALENDAR',
+  ].join('\r\n');
+};

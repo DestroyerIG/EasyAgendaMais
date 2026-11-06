@@ -283,6 +283,15 @@ export const isBusinessOpenOnDate = (settings: ScheduleSettings = {}, selectedDa
   return normalized.diasAbertos[diaSemana] === true;
 };
 
+/** Hora em que o negócio fecha hoje, no fuso dele; null se não abre hoje ou já fechou. */
+export const closesTodayAt = (settings: ScheduleSettings = {}, currentDate: Date = new Date()): string | null => {
+  const normalized = normalizeScheduleSettings(settings);
+  const today = getDateInTimezone(currentDate, normalized.timezone);
+  if (!isBusinessOpenOnDate(normalized, today ?? currentDate)) return null;
+  const now = getClockInTimezone(currentDate, normalized.timezone).totalMinutes;
+  return now < toMinutes(normalized.closingTime) ? normalized.closingTime : null;
+};
+
 interface GenerateSlotsOptions {
   serviceDurationMinutes?: number;
   bookedTimes?: unknown[];
