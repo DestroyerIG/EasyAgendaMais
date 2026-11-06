@@ -18,6 +18,8 @@ import { rotinasRepository } from '../modules/whatsappAutomacoes/rotinas.reposit
 import { clubeService } from '../modules/clube/clube.service.js';
 import { googleAgendaService } from '../modules/googleAgenda/googleAgenda.service.js';
 import { conexaoService } from '../modules/recebimentos/conexao.service.js';
+import { pagamentosService } from '../modules/recebimentos/pagamentos.service.js';
+import { recebimentosRepository } from '../modules/recebimentos/recebimentos.repository.js';
 import { envioAutomaticoLiberado } from '../modules/conta/envioAutomatico.js';
 
 // Agendamentos gravam `time`/`date` no relógio local do negócio (BR), não UTC.
@@ -180,13 +182,18 @@ export const expirePendingAppointments = async (now: Date = new Date()): Promise
 
   if (toExpire.length === 0) return 0;
 
-  await prisma.appointment.updateMany({
-    where: { id: { in: toExpire.map((a) => a.id) } },
-    data: { status: 'cancelado' },
-  });
+  // Uma a uma: quem pagou ou foi cancelada depois da leitura acima fica como está.
+  const canceladas: typeof toExpire = [];
+  for (const a of toExpire) {
+    try {
+      if (await recebimentosRepository.expirarReserva(a.id, now)) canceladas.push(a);
+    } catch (err) {
+      logger.warn({ err, appointmentId: a.id }, 'Falha ao expirar a reserva; fica para a próxima rodada');
+    }
+  }
 
   await Promise.all(
-    toExpire.map((a) =>
+    canceladas.map((a) =>
       notificationsService.notify(a.businessId, {
         type: 'reserva_expirada',
         title: 'Reserva expirada sem pagamento',
@@ -195,7 +202,7 @@ export const expirePendingAppointments = async (now: Date = new Date()): Promise
     )
   );
 
-  return toExpire.length;
+  return canceladas.length;
 };
 
 export const startReminderCron = (): void => {
@@ -211,6 +218,11 @@ export const startReminderCron = (): void => {
   // Recebimentos: renova os tokens do Mercado Pago que vencem em menos de 30 dias (nunca lança).
   cron.schedule('0 4 * * *', async () => {
     await conexaoService.renovarVencendo();
+  }, { noOverlap: true });
+
+  // Recebimentos: confere as cobranças em aberto, para cobrir avisos perdidos (nunca lança).
+  cron.schedule('* * * * *', async () => {
+    await pagamentosService.conferirPendentes();
   }, { noOverlap: true });
 
   cron.schedule('* * * * *', async () => {

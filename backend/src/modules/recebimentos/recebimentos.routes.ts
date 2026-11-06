@@ -4,7 +4,7 @@ import { authMiddleware } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
 import { CallbackQuerySchema, ConfirmarSchema, FormasSchema, GatewayParamSchema } from './recebimentos.types.js';
-import { callback, conectar, confirmar, definirFormas, desconectar, verConexao } from './recebimentos.controller.js';
+import { callback, conectar, confirmar, definirFormas, desconectar, verConexao, webhookMercadoPago } from './recebimentos.controller.js';
 
 // Recebimentos automáticos do sinal (Mercado Pago). Só quem administra o negócio mexe.
 const router = express.Router();
@@ -19,6 +19,8 @@ const callbackLimiter = rateLimit({
   keyGenerator: (req) => ipKeyGenerator(req.ip ?? 'unknown'),
 });
 
+// Público: o aviso não prova nada; o pagamento é conferido no gateway com o token do negócio.
+router.post('/webhook/mercadopago', webhookMercadoPago);
 router.get('/conexoes', ...dono, verConexao);
 // Público: o Mercado Pago volta para cá; quem é a pessoa vem do estado assinado.
 router.get('/:gateway/callback', callbackLimiter, gateway, validate({ query: CallbackQuerySchema }), callback);

@@ -21,6 +21,13 @@ import type { AppointmentStatus } from '../../types/domain.js';
 import { automacoesGatilhos } from '../whatsappAutomacoes/gatilhos.service.js';
 import { clubeService } from '../clube/clube.service.js';
 import { avisarProfissional, avisarSinalConfirmado, dataBr, horaDe, primeiroNome } from './sinalConfirmado.js';
+import { recebimentosRepository } from '../recebimentos/recebimentos.repository.js';
+
+/** Cancelar com sinal pago lembra de devolver. Nunca derruba o cancelamento. */
+function lembrarDevolucao(businessId: string, appointmentId: string): void {
+  void recebimentosRepository.lembrarDevolucaoAoCancelar(businessId, appointmentId)
+    .catch((err) => logger.warn({ err, appointmentId }, 'Lembrete de devolver o sinal falhou'));
+}
 
 export const appointmentsService = {
   async getDetails(id: string, businessId: string) {
@@ -143,6 +150,7 @@ export const appointmentsService = {
     if (newStatus === 'cancelado') {
       void automacoesGatilhos.aoCancelar(businessId, id)
         .catch((err) => logger.warn({ err, appointmentId: id }, 'Gatilho da lista de espera falhou'));
+      lembrarDevolucao(businessId, id);
     }
 
     logger.info({ appointmentId: id, from: currentStatus, to: newStatus }, 'Status atualizado');
@@ -197,6 +205,7 @@ export const appointmentsService = {
     if (!deleted) throw new NotFoundError('Agendamento');
     void automacoesGatilhos.aoCancelar(businessId, id)
       .catch((err) => logger.warn({ err, appointmentId: id }, 'Gatilho da lista de espera falhou'));
+    lembrarDevolucao(businessId, id);
     logger.info({ appointmentId: id, businessId }, 'Agendamento cancelado');
   },
 

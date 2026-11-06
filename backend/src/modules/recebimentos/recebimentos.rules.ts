@@ -75,6 +75,11 @@ export function centavos(v: unknown): number {
   return Math.round(Number(String(v)) * 100);
 }
 
+/** Valor em reais para mostrar em alertas. */
+export function reais(v: unknown): string {
+  return (centavos(v) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
 const DIA_MS = 24 * 60 * 60 * 1000;
 
 /** Renova o token a menos de 30 dias do vencimento. */
