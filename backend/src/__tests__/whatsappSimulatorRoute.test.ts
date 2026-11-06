@@ -4,6 +4,9 @@ import express from 'express';
 const mockHandleIncomingMessage = vi.hoisted(() => vi.fn());
 const mockPoolQuery = vi.hoisted(() => vi.fn());
 const mockSendWhatsAppMessage = vi.hoisted(() => vi.fn());
+const mockDeleteSession = vi.hoisted(() => vi.fn());
+
+vi.mock('../services/whatsapp/whatsappSessionService.js', () => ({ deleteSession: mockDeleteSession }));
 
 let mockAuthenticatedUser: {
   userId: string;
@@ -219,5 +222,126 @@ describe('POST /api/v1/whatsapp/simulator/message', () => {
     expect(response.status).toBe(422);
     expect(response.body.success).toBe(false);
     expect(response.body.error.code).toBe('WHATSAPP_SIMULATOR_CONTEXT_UNRESOLVED');
+  });
+});
+
+describe('POST /api/v1/whatsapp/simulator/reset', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuthenticatedUser = {
+      userId: 'user-1',
+      businessId: 'tenant-1',
+      email: 'tenant@test.com',
+      plan: 'premium',
+      role: 'tenant_admin',
+    };
+    mockPoolQuery.mockResolvedValue({ rows: [{ id: 'tenant-1' }] });
+  });
+
+  it('ignora o telefone do corpo e apaga so a sessao do numero do simulador', async () => {
+    const response = await request
+      .post('/api/v1/whatsapp/simulator/reset')
+      .send({ phone: '5583999990000' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual({ reiniciado: true });
+    expect(mockDeleteSession).toHaveBeenCalledTimes(1);
+    expect(mockDeleteSession).toHaveBeenCalledWith('5511999999999', 'tenant-1');
+  });
+
+  it('sem telefone usa o numero padrao do simulador', async () => {
+    await request.post('/api/v1/whatsapp/simulator/reset').send({});
+
+    expect(mockDeleteSession).toHaveBeenCalledWith('5511999999999', 'tenant-1');
+  });
+
+  it('rejeita businessId de outro negocio sem apagar nada', async () => {
+    const response = await request
+      .post('/api/v1/whatsapp/simulator/reset')
+      .send({ businessId: 'tenant-2' });
+
+    expect(response.status).toBe(403);
+    expect(mockDeleteSession).not.toHaveBeenCalled();
+  });
+});
+
+describe('PUT /api/v1/whatsapp/config/instagram', () => {
+  const atualizar = async () => {
+    const { prisma } = await import('../config/prisma.js');
+    const fn = vi.fn().mockResolvedValue({});
+    (prisma as unknown as { business: Record<string, unknown> }).business.update = fn;
+    return fn;
+  };
+
+  it('sem a chave handle devolve 400 e nao grava', async () => {
+    const update = await atualizar();
+    const response = await request.put('/api/v1/whatsapp/config/instagram').send({});
+
+    expect(response.status).toBe(400);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('grava usando o businessId do token e normaliza o perfil', async () => {
+    const update = await atualizar();
+    const response = await request.put('/api/v1/whatsapp/config/instagram').send({ handle: 'minha.barbearia' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual({ handle: '@minha.barbearia' });
+    expect(update).toHaveBeenCalledWith({ where: { id: 'tenant-1' }, data: { instagramHandle: '@minha.barbearia' } });
+  });
+
+  it('perfil invalido devolve 400 com a mensagem', async () => {
+    const update = await atualizar();
+    const response = await request.put('/api/v1/whatsapp/config/instagram').send({ handle: 'perfil inválido!!' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.message).toBe('Perfil do Instagram inválido');
+    expect(update).not.toHaveBeenCalled();
+  });
+});
+
+describe('PUT /api/v1/whatsapp/config/menu-reorder', () => {
+  const ID1 = '11111111-1111-1111-1111-111111111111';
+  const ID2 = '22222222-2222-2222-2222-222222222222';
+
+  it('apaga a linha antiga de avaliacao antes de reordenar, na mesma transacao, e nao a devolve', async () => {
+    const { prisma } = await import('../config/prisma.js');
+    const chamadas: string[] = [];
+    const tx = {
+      $queryRaw: vi.fn(async (q: { strings?: string[]; sql?: string }) => {
+        const texto = (q.strings ?? [q.sql ?? '']).join(' ');
+        chamadas.push(texto);
+        if (texto.includes('SELECT')) {
+          return [{ id: ID1, handler: 'schedule', option_order: 1 }, { id: ID2, handler: 'promotions', option_order: 2 }];
+        }
+        return [];
+      }),
+    };
+    vi.mocked(prisma.$transaction).mockImplementationOnce((async (cb: (t: unknown) => unknown) => cb(tx)) as never);
+
+    const response = await request.put('/api/v1/whatsapp/config/menu-reorder').send({ order: [ID1, ID2] });
+
+    expect(response.status).toBe(200);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(chamadas[0]).toContain('DELETE FROM whatsapp_menu_options');
+    expect(chamadas[0]).toContain("handler = 'rating'");
+    expect(chamadas.slice(1, 5).every((t) => t.includes('UPDATE'))).toBe(true);
+    expect(chamadas[chamadas.length - 1]).toContain('SELECT');
+    expect(response.body.data.map((o: { handler: string }) => o.handler)).toEqual(['schedule', 'promotions']);
+  });
+});
+
+describe('GET /api/v1/whatsapp/config/menu', () => {
+  it('nao devolve a opcao de avaliacao (ela fica so na automacao)', async () => {
+    const { prisma } = await import('../config/prisma.js');
+    const linhas = [
+      { id: 'o1', option_order: 1, handler: 'schedule', label: 'Agendar' },
+      { id: 'o5', option_order: 5, handler: 'rating', label: 'Avaliação pós-atendimento' },
+      { id: 'o6', option_order: 6, handler: 'promotions', label: 'Promoções' },
+    ];
+    vi.mocked(prisma.$queryRaw).mockResolvedValueOnce(linhas as never);
+    const response = await request.get('/api/v1/whatsapp/config/menu');
+    expect(response.status).toBe(200);
+    expect(response.body.data.map((o: { handler: string }) => o.handler)).toEqual(['schedule', 'promotions']);
   });
 });

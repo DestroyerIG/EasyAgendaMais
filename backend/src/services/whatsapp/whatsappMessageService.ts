@@ -31,7 +31,6 @@ export interface FormatMessageData {
   time?: string;
   servicePrice?: string;
   clientName?: string;
-  ratingText?: string;
   instagramHandle?: string;
 }
 
@@ -147,7 +146,6 @@ export const formatMessage = (template: string, data: FormatMessageData = {}): s
     '{horario}': data.time || '',
     '{valor}': data.servicePrice || '',
     '{nome_cliente}': data.clientName || '',
-    '{avaliacao}': data.ratingText || '',
     '{instagram_handle}': data.instagramHandle || '',
   };
 
@@ -165,8 +163,9 @@ export const buildWelcomeMessage = (
   welcomeHeader: string | null | undefined,
   menuOptions: MenuOption[],
   businessName: string,
+  contexto?: string,
 ): string => {
-  const header = formatMessage(welcomeHeader || 'Olá 👋 Bem-vindo!', { businessName });
+  const header = formatMessage(welcomeHeader || 'Olá 👋 Que bom ter você aqui!', { businessName });
 
   const numberEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
 
@@ -177,5 +176,6 @@ export const buildWelcomeMessage = (
     menuText += `\n${num} *${opt.label}*${emoji}`;
   });
 
-  return header + '\n' + menuText;
+  const cabecalho = contexto ? `${header}\n\n${contexto}` : header;
+  return cabecalho + '\n' + menuText;
 };

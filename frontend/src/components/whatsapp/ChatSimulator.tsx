@@ -14,10 +14,13 @@ interface BotMessage {
 }
 
 interface ChatSimulatorProps {
-  onSendMessage: (text: string) => Promise<string | null>;
+  onSendMessage: (text: string) => Promise<string[]>;
+  onLimpar: () => Promise<void>;
+  /** Há mensagens editadas e ainda não salvas: o teste usa só as salvas. */
+  temAlteracoes: boolean;
 }
 
-export const ChatSimulator = ({ onSendMessage }: ChatSimulatorProps) => {
+export const ChatSimulator = ({ onSendMessage, onLimpar, temAlteracoes }: ChatSimulatorProps) => {
   const [messages, setMessages] = useState<BotMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,14 +44,25 @@ export const ChatSimulator = ({ onSendMessage }: ChatSimulatorProps) => {
     setInputText('');
     setLoading(true);
 
-    const botResponse = await onSendMessage(inputText);
-    if (botResponse) {
+    const respostas = await onSendMessage(inputText);
+    if (respostas.length) {
+      const base = Date.now();
       setMessages(prev => [
         ...prev,
-        { id: (Date.now() + 1).toString(), sender: 'bot', text: botResponse, timestamp: new Date() },
+        ...respostas.map((texto, i): BotMessage => ({
+          id: `${base}-bot-${i}`,
+          sender: 'bot',
+          text: texto,
+          timestamp: new Date(),
+        })),
       ]);
     }
     setLoading(false);
+  };
+
+  const handleLimpar = async () => {
+    await onLimpar();
+    setMessages([]);
   };
 
   return (
@@ -63,10 +77,16 @@ export const ChatSimulator = ({ onSendMessage }: ChatSimulatorProps) => {
             <p className="text-[13px] font-bold text-success-text">Assistente virtual online</p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => setMessages([])}>
+        <Button variant="ghost" size="sm" onClick={handleLimpar}>
           Limpar Conversa
         </Button>
       </div>
+
+      {temAlteracoes && (
+        <p className="border-b border-line bg-warning/12 px-4 py-2 text-[13px] font-bold text-ink">
+          O teste usa as mensagens salvas. Salve as alterações para testar a versão nova.
+        </p>
+      )}
 
       <div className="flex-1 space-y-4 overflow-y-auto p-6">
         {messages.length === 0 && (

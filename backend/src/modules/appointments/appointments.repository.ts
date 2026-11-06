@@ -10,6 +10,37 @@ const APPOINTMENT_INCLUDE = {
   comanda: { select: { id: true, status: true, number: true, totalCharged: true, depositApplied: true, enviadaRecepcaoEm: true } },
 } as const;
 
+/** Dia como YYYY-MM-DD, de Date válido ou de texto que comece assim; null se não der para ler. */
+const diaDe = (v: unknown): string | null => {
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v.toISOString().slice(0, 10);
+  if (typeof v === 'string') return /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null;
+  return null;
+};
+
+/** Hora como HH:mm, de Date (UTC literal) ou de texto HH:mm / HH:mm:ss; null se não der para ler. */
+const horaDe = (v: unknown): string | null => {
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v.toISOString().slice(11, 16);
+  if (typeof v === 'string') {
+    const m = v.match(/^(\d{1,2}):(\d{2})/);
+    return m ? `${m[1]!.padStart(2, '0')}:${m[2]}` : null;
+  }
+  return null;
+};
+
+/**
+ * Data ou hora informadas diferem das gravadas? Nunca lança: valor ilegível conta como mudança,
+ * porque reenviar lembrete é melhor do que deixar um horário remarcado sem aviso.
+ */
+const mudouDataOuHora = (
+  existente: { date?: unknown; time?: unknown } | null,
+  data: { date?: string; time?: string },
+): boolean => {
+  const mudou = (novo: string | null, atual: string | null) => novo === null || atual === null || novo !== atual;
+  if (data.date && mudou(diaDe(data.date), diaDe(existente?.date))) return true;
+  if (data.time && mudou(horaDe(data.time), horaDe(existente?.time))) return true;
+  return false;
+};
+
 export const appointmentsPrismaRepository = {
   async findAll(
     businessId: string,
@@ -177,13 +208,17 @@ export const appointmentsPrismaRepository = {
   ): Promise<AppointmentWithRelations | null> {
     const existing = await prisma.appointment.findFirst({
       where: { id, businessId, status: 'confirmado' },
-      select: { id: true },
+      select: { id: true, date: true, time: true },
     });
     if (!existing) return null;
+
+    // Remarcar de fato (data ou hora diferentes) recomeça o ciclo de lembrete e confirmação.
+    const remarcou = mudouDataOuHora(existing, data);
 
     return prisma.appointment.update({
       where: { id },
       data: {
+        ...(remarcou && { reminderSent: false, confirmationSentAt: null, clientConfirmedAt: null }),
         ...(data.clientId && { clientId: data.clientId }),
         ...(data.professionalId && { professionalId: data.professionalId }),
         ...(data.serviceId && { serviceId: data.serviceId }),

@@ -12,6 +12,7 @@ export function mensagensPadrao(v: Vocabulario): Partial<BotConfig> {
   return {
     confirmation_message: DEFAULT_BOT_CONFIG.confirmation_message.replace('👤 Profissional:', `👤 ${rotuloProfissional(v)}:`),
     reminder_message: DEFAULT_BOT_CONFIG.reminder_message.replace('👤 Profissional:', `👤 ${rotuloProfissional(v)}:`),
+    reschedule_success_message: DEFAULT_BOT_CONFIG.reschedule_success_message.replace('👤 Profissional:', `👤 ${rotuloProfissional(v)}:`),
     no_slots_message: DEFAULT_BOT_CONFIG.no_slots_message
       .replace('com este profissional', `com ${pelo(p, 'esta', 'este')} ${p.singular}`)
       .replace('outro profissional', `${pelo(p, 'outra', 'outro')} ${p.singular}`),

@@ -114,23 +114,32 @@ const ABAS: { id: Aba; label: string }[] = [
 const abaDaUrl = (valor: string | null): Aba | null =>
   ABAS.some((a) => a.id === valor) ? (valor as Aba) : null;
 
+const CONFIG_VAZIA: BotConfig = {
+  welcome_header: '', ask_name_message: '', attendant_message: '',
+  confirmation_message: '', reminder_message: '', invalid_option_message: '', session_expired_message: '',
+  end_session_message: '', name_validation_message: '', no_slots_message: '',
+  cancel_no_appointments_message: '', cancel_list_message: '', cancel_success_message: '',
+  reschedule_no_appointments_message: '', reschedule_list_message: '',
+  promotions_message: '', instagram_message: '', politica_message: '',
+};
+
+/** Compara só as mensagens conhecidas: campos extras que o backend devolva não contam como edição. */
+const CHAVES_CONFIG = Object.keys(CONFIG_VAZIA) as Array<keyof BotConfig>;
+const configsDiferem = (a: BotConfig, b: BotConfig) => CHAVES_CONFIG.some((k) => (a[k] ?? '') !== (b[k] ?? ''));
+
 export const WhatsAppModule = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   // Sem ?aba= válido, a aba inicial depende do status (decidido quando o primeiro status chega).
   const [activeTab, setActiveTab] = useState<Aba | null>(() => abaDaUrl(searchParams.get('aba')));
   const [waStatus, setWaStatus] = useState<WhatsAppStatus>(DEFAULT_WA_STATUS);
-  const [botConfig, setBotConfig] = useState<BotConfig>({
-    welcome_header: '', ask_name_message: '', attendant_message: '',
-    confirmation_message: '', reminder_message: '', invalid_option_message: '', session_expired_message: '',
-    end_session_message: '', name_validation_message: '', no_slots_message: '',
-    cancel_no_appointments_message: '', cancel_list_message: '', cancel_success_message: '',
-    reschedule_no_appointments_message: '', reschedule_list_message: '',
-    no_previous_appointments_message: '', rating_question_message: '', rating_confirmation_message: '',
-    promotions_message: '', instagram_message: '', politica_message: '',
-  });
+  const [botConfig, setBotConfig] = useState<BotConfig>(CONFIG_VAZIA);
+  // Última versão salva das mensagens: o simulador usa só ela, então avisamos quando há edição pendente.
+  const [configSalva, setConfigSalva] = useState<BotConfig | null>(null);
+  const temAlteracoes = configSalva !== null && configsDiferem(botConfig, configSalva);
   const [menuOptions, setMenuOptions] = useState<MenuOption[]>([]);
   const [menuLoading, setMenuLoading] = useState(false);
+  const [instagramHandle, setInstagramHandle] = useState<string | null>(null);
   const [configLoading, setConfigLoading] = useState(false);
   const [statusLoading, setStatusLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -199,7 +208,9 @@ export const WhatsAppModule = () => {
     setConfigLoading(true);
     try {
       const response = await api.get('/whatsapp/config');
-      setBotConfig((atual) => ({ ...atual, ...asObjectPayload(response.data) }));
+      const carregada = asObjectPayload(response.data);
+      setBotConfig((atual) => ({ ...atual, ...carregada }));
+      setConfigSalva({ ...CONFIG_VAZIA, ...carregada });
     } catch {
       showToast('Erro ao carregar configurações de mensagens', 'error');
     } finally {
@@ -210,7 +221,11 @@ export const WhatsAppModule = () => {
   const fetchMenuOptions = useCallback(async () => {
     setMenuLoading(true);
     try {
-      const response = await api.get('/whatsapp/config/menu');
+      const [response, instagram] = await Promise.all([
+        api.get('/whatsapp/config/menu'),
+        api.get('/whatsapp/config/instagram').catch(() => null),
+      ]);
+      setInstagramHandle(instagram?.data?.handle ?? null);
       // A aba Conexão (a inicial de quem está desconectado) monta o menu: resposta fora do formato não pode derrubá-la.
       setMenuOptions(Array.isArray(response.data) ? response.data : []);
     } catch {
@@ -329,7 +344,7 @@ export const WhatsAppModule = () => {
 
   const handleSaveConfig = async () => {
     setActionLoading(true);
-    try { await api.put('/whatsapp/config', botConfig); showToast('Configurações salvas com sucesso!', 'success'); }
+    try { await api.put('/whatsapp/config', botConfig); setConfigSalva(botConfig); showToast('Configurações salvas com sucesso!', 'success'); }
     catch { showToast('Erro ao salvar configurações', 'error'); }
     finally { setActionLoading(false); }
   };
@@ -337,7 +352,7 @@ export const WhatsAppModule = () => {
   const handleResetConfig = async () => {
     if (!confirm('Tem certeza que deseja resetar todas as mensagens para o padrão?')) return;
     setActionLoading(true);
-    try { const r = await api.post('/whatsapp/config/reset'); setBotConfig(r.data); showToast('Mensagens resetadas para o padrão', 'success'); }
+    try { await api.post('/whatsapp/config/reset'); await fetchConfig(); showToast('Mensagens resetadas para o padrão', 'success'); }
     catch { showToast('Erro ao resetar configurações', 'error'); }
     finally { setActionLoading(false); }
   };
@@ -354,6 +369,17 @@ export const WhatsAppModule = () => {
     setActionLoading(true);
     try { const r = await api.put(`/whatsapp/config/menu/${id}`, data); setMenuOptions(prev => prev.map(o => o.id === id ? r.data : o)); showToast('Opção atualizada', 'success'); }
     catch { showToast('Erro ao atualizar opção', 'error'); }
+    finally { setActionLoading(false); }
+  };
+
+  const handleSalvarInstagram = async (handle: string | null): Promise<boolean> => {
+    setActionLoading(true);
+    try { const r = await api.put('/whatsapp/config/instagram', { handle }); setInstagramHandle(r.data?.handle ?? null); showToast('Perfil do Instagram salvo', 'success'); return true; }
+    catch (erro) {
+      const msg = (erro as { response?: { data?: { error?: unknown } } })?.response?.data?.error;
+      showToast(typeof msg === 'string' && msg ? msg : 'Erro ao salvar o perfil do Instagram', 'error');
+      return false;
+    }
     finally { setActionLoading(false); }
   };
 
@@ -386,7 +412,17 @@ export const WhatsAppModule = () => {
     finally { setActionLoading(false); }
   };
 
-  const handleSimulatorMessage = async (text: string): Promise<string | null> => {
+  const handleLimparSimulador = async (): Promise<void> => {
+    const businessId = typeof user?.businessId === 'string' ? user.businessId.trim() : '';
+    if (!businessId) return;
+    try {
+      await api.post('/whatsapp/simulator/reset', { phone: '5511999999999', businessId });
+    } catch {
+      showToast('Erro ao reiniciar a conversa de teste', 'error');
+    }
+  };
+
+  const handleSimulatorMessage = async (text: string): Promise<string[]> => {
     const businessId =
       typeof user?.businessId === 'string' && user.businessId.trim()
         ? user.businessId.trim()
@@ -397,7 +433,7 @@ export const WhatsAppModule = () => {
         'Não foi possível identificar o negócio autenticado para o simulador. Faça login novamente.',
         'error'
       );
-      return null;
+      return [];
     }
 
     try {
@@ -408,7 +444,7 @@ export const WhatsAppModule = () => {
         businessId,
       });
 
-      return response.data?.lastBotResponse || null;
+      return response.data?.botResponses ?? [];
     } catch (error) {
       const apiError = error as {
         response?: {
@@ -428,7 +464,7 @@ export const WhatsAppModule = () => {
             : apiError.response?.data?.message;
 
       showToast(backendMessage || 'Erro ao enviar mensagem para o bot', 'error');
-      return null;
+      return [];
     }
   };
 
@@ -523,6 +559,10 @@ export const WhatsAppModule = () => {
                     onCreate={handleMenuCreate}
                     onReorder={handleMenuReorder}
                     onReset={handleMenuReset}
+                    instagramHandle={instagramHandle}
+                    onSalvarInstagram={handleSalvarInstagram}
+                    promocoesMessage={configSalva?.promotions_message}
+                    instagramMessage={configSalva?.instagram_message}
                   />
                 }
                 mensagens={
@@ -535,7 +575,13 @@ export const WhatsAppModule = () => {
                     onReset={handleResetConfig}
                   />
                 }
-                simulador={<ChatSimulator onSendMessage={handleSimulatorMessage} />}
+                simulador={
+                  <ChatSimulator
+                    onSendMessage={handleSimulatorMessage}
+                    onLimpar={handleLimparSimulador}
+                    temAlteracoes={temAlteracoes}
+                  />
+                }
               />
             </div>
           )}
