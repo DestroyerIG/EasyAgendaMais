@@ -5,9 +5,11 @@
 import { Prisma } from '@prisma/client';
 import logger from '../../utils/logger.js';
 import { prisma } from '../../config/prisma.js';
-import { DEFAULT_BOT_CONFIG, PADROES_ANTIGOS, DEFAULT_MENU_OPTIONS, BotConfig, MenuOption } from './whatsappConstants.js';
+import { DEFAULT_BOT_CONFIG, PADROES_ANTIGOS, BotConfig } from './whatsappConstants.js';
 import { aplicarVocabulario } from './whatsappVocabulario.js';
 import { vocabularioDe } from '../../config/vocabulario.js';
+import type { Segmento } from '../../modules/crm/technicalSheetTemplates.js';
+import { menuPadrao } from './whatsappMenuPadrao.js';
 
 // ── Menu option row shape returned by the DB ──────────────────────────────────
 
@@ -105,8 +107,14 @@ export const getMenuOptions = async (businessId: string): Promise<MenuOptionRow[
 /**
  * Seed de opções padrão do menu para um negócio.
  */
+/** Segmento do negócio; `outro` quando não há configuração ou o valor é inválido. */
+export const segmentoDoNegocio = async (businessId: string): Promise<Segmento> => {
+  const s = await prisma.businessSettings.findUnique({ where: { businessId }, select: { segment: true } });
+  return vocabularioDe(s?.segment).segmento;
+};
+
 export const seedDefaultMenuOptions = async (businessId: string): Promise<void> => {
-  for (const opt of DEFAULT_MENU_OPTIONS as MenuOption[]) {
+  for (const opt of menuPadrao(await segmentoDoNegocio(businessId))) {
     await prisma.$executeRaw(Prisma.sql`
       INSERT INTO whatsapp_menu_options (business_id, option_order, label, emoji, type, handler, active)
       VALUES (${businessId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)

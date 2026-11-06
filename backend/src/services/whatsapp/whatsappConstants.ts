@@ -32,17 +32,6 @@ export interface MenuOption {
   handler: string;
 }
 
-export const DEFAULT_MENU_OPTIONS: MenuOption[] = [
-  { order: 1, label: 'Agendar um horário', emoji: '📅', handler: 'schedule' },
-  { order: 2, label: 'Ver nossos serviços', emoji: '📋', handler: 'view_services' },
-  { order: 3, label: 'Cancelar agendamento', emoji: '❌', handler: 'cancel' },
-  { order: 4, label: 'Reagendamento', emoji: '🔄', handler: 'reschedule' },
-  { order: 6, label: 'Promoções', emoji: '🎉', handler: 'promotions' },
-  { order: 7, label: 'Instagram', emoji: '📱', handler: 'instagram' },
-  { order: 8, label: 'Falar com um humano', emoji: '👨‍💼', handler: 'attendant' },
-  { order: 9, label: 'Encerrar atendimento', emoji: '🚪', handler: 'end_session' },
-];
-
 /**
  * Shape of bot config messages.
  */

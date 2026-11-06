@@ -939,21 +939,6 @@ const getBusinessName = async (businessId: string): Promise<string> => {
   }
 };
 
-const buildFallbackWelcomeMessage = (businessName: string): string => [
-  'Olá 👋 Que bom ter você aqui!', '',
-  `Sou o assistente virtual de *${businessName}* 🤖.`, '',
-  'Como posso ajudar hoje?', '',
-  '1️⃣ *Agendar um horário* 📅',
-  '2️⃣ *Ver nossos serviços* 📋',
-  '3️⃣ *Cancelar agendamento* ❌',
-  '4️⃣ *Reagendamento* 🔄',
-  '5️⃣ *Avaliação pós-atendimento* ⭐',
-  '6️⃣ *Promoções* 🎉',
-  '7️⃣ *Instagram* 📱',
-  '8️⃣ *Falar com um humano* 👨‍💼',
-  '9️⃣ *Encerrar atendimento* 🚪',
-].join('\n');
-
 const buildMenuMessage = async (businessId: string, contexto?: string): Promise<string> => {
   const [config, businessName] = await Promise.all([
     getBotConfig(businessId),
@@ -964,7 +949,8 @@ const buildMenuMessage = async (businessId: string, contexto?: string): Promise<
     visiveis = await carregarMenuVisivel(businessId, config);
   } catch (error) {
     logger.error({ err: error, businessId }, 'Falha ao ler as opções do menu do WhatsApp');
-    return buildFallbackWelcomeMessage(businessName);
+    // Sem a lista, números não funcionam: só o cabeçalho e a mensagem de atendimento.
+    visiveis = [];
   }
   const cabecalho = buildWelcomeMessage(
     config?.welcome_header || 'Olá 👋 Que bom ter você aqui!\n\nSou o assistente virtual de {nome_negocio}.\n\nComo posso ajudar hoje?',

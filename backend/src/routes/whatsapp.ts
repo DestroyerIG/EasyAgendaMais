@@ -18,7 +18,8 @@ import {
 } from '../services/whatsappClient.js';
 import { updateInstanceFromPayload } from '../services/whatsapp/whatsappInstanceCache.js';
 import { getBusinessWhatsAppInstanceContext } from '../services/whatsapp/whatsappInstanceService.js';
-import { getBotConfig } from '../services/whatsapp/whatsappConfigService.js';
+import { getBotConfig, segmentoDoNegocio } from '../services/whatsapp/whatsappConfigService.js';
+import { menuPadrao } from '../services/whatsapp/whatsappMenuPadrao.js';
 import { deleteSession } from '../services/whatsapp/whatsappSessionService.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireTenantRoles } from '../middleware/rbac.js';
@@ -125,13 +126,6 @@ interface DedupeResult {
   deduped: boolean;
   dedupeKey: string;
   messageId: string | null;
-}
-
-interface DefaultMenuOption {
-  order: number;
-  label: string;
-  emoji: string;
-  handler: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -2400,17 +2394,6 @@ router.post('/config/reset', ...waProtected, async (req: Request, res: Response,
 
 // ==================== OPÇÕES DO MENU DO BOT ====================
 
-const DEFAULT_MENU_OPTIONS: DefaultMenuOption[] = [
-  { order: 1, label: 'Agendar um horário', emoji: '📅', handler: 'schedule' },
-  { order: 2, label: 'Ver nossos serviços', emoji: '📋', handler: 'view_services' },
-  { order: 3, label: 'Cancelar agendamento', emoji: '❌', handler: 'cancel' },
-  { order: 4, label: 'Reagendamento', emoji: '🔄', handler: 'reschedule' },
-  { order: 6, label: 'Promoções', emoji: '🎉', handler: 'promotions' },
-  { order: 7, label: 'Instagram', emoji: '📱', handler: 'instagram' },
-  { order: 8, label: 'Falar com um humano', emoji: '👨‍💼', handler: 'attendant' },
-  { order: 9, label: 'Encerrar atendimento', emoji: '🚪', handler: 'end_session' },
-];
-
 router.get('/config/instagram', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { businessId } = req.user;
@@ -2446,7 +2429,7 @@ router.get('/config/menu', ...waProtected, async (req: Request, res: Response, n
     );
 
     if (rows.length === 0) {
-      for (const opt of DEFAULT_MENU_OPTIONS) {
+      for (const opt of menuPadrao(await segmentoDoNegocio(businessId!))) {
         await prisma.$queryRaw(
           Prisma.sql`INSERT INTO whatsapp_menu_options (business_id, option_order, label, emoji, type, handler, active)
            VALUES (${businessId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)
@@ -2650,7 +2633,7 @@ router.post('/config/menu/reset', ...waProtected, async (req: Request, res: Resp
       Prisma.sql`DELETE FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid`
     );
 
-    for (const opt of DEFAULT_MENU_OPTIONS) {
+    for (const opt of menuPadrao(await segmentoDoNegocio(businessId!))) {
       await prisma.$queryRaw(
         Prisma.sql`INSERT INTO whatsapp_menu_options (business_id, option_order, label, emoji, type, handler, active)
          VALUES (${businessId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)`
