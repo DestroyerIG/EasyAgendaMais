@@ -35,6 +35,26 @@ export const recebimentosRepository = {
     return prisma.user.findUnique({ where: { id: userId }, select: { id: true, businessId: true, role: true } });
   },
 
+  /** Reservas cujo sinal foi pago no cartão. Pagamento repetido (sem id externo) é dinheiro a devolver, não o sinal. */
+  async reservasComSinalNoCartao(businessId: string, appointmentIds: string[]): Promise<Set<string>> {
+    if (appointmentIds.length === 0) return new Set();
+    const rows = await prisma.cobrancaSinal.findMany({
+      where: { businessId, appointmentId: { in: appointmentIds }, situacao: 'paga', forma: 'cartao', idExterno: { not: null } },
+      select: { appointmentId: true },
+    });
+    return new Set(rows.map((r) => r.appointmentId));
+  },
+
+  /** Reservas com cobrança automática ainda esperando o pagamento. */
+  async reservasComCobrancaPendente(businessId: string, appointmentIds: string[]): Promise<Set<string>> {
+    if (appointmentIds.length === 0) return new Set();
+    const rows = await prisma.cobrancaSinal.findMany({
+      where: { businessId, appointmentId: { in: appointmentIds }, situacao: 'pendente' },
+      select: { appointmentId: true },
+    });
+    return new Set(rows.map((r) => r.appointmentId));
+  },
+
   conexaoDoNegocio(businessId: string) {
     return prisma.conexaoRecebimento.findUnique({ where: { businessId } });
   },

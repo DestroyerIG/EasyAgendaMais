@@ -20,6 +20,7 @@ const dia = (over: Partial<caixa.CashDay> = {}): caixa.CashDay => ({
   comandasResumo: { total: 4, fechadas: 3, abertas: 0, falta: 1 },
   formas: [
     { chave: 'pix', valor: 115, quantidade: 1 }, { chave: 'sinal_pix', valor: 30, quantidade: 1 },
+    { chave: 'sinal_cartao', valor: 0, quantidade: 0 },
     { chave: 'debito', valor: 75, quantidade: 1 }, { chave: 'credito', valor: 0, quantidade: 0 }, { chave: 'dinheiro', valor: 120, quantidade: 1 },
   ],
   linhas: [{ appointmentId: 'a9', comandaId: null, numero: null, hora: '12:30', cliente: 'Camila Prado', telefone: '83991208844', profissional: 'Paula', servicos: 'Corte', pagamento: 'faltou', depositApplied: 0, total: 140, status: 'Falta' }],
@@ -38,6 +39,7 @@ describe('Caixa com dado real', () => {
     abrir();
     expect(await screen.findByText(/por Carla/)).toBeInTheDocument();
     expect(screen.getByText('Sinais Pix')).toBeInTheDocument();
+    expect(screen.getByText('Sinais cartão')).toBeInTheDocument();
     expect(screen.getByText('R$ 180,00')).toBeInTheDocument();
     expect(screen.getByText('Não compareceu')).toBeInTheDocument();
     expect(screen.queryByText(/exemplo/i)).not.toBeInTheDocument();

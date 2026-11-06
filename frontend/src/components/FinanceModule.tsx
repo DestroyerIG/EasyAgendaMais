@@ -530,7 +530,7 @@ export const FinanceModule = ({
                     Total faturado: <strong className="font-semibold tabular-nums text-ink">{formatCurrency(dia.totals.entradas)}</strong>
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                   {dia.formas.map(forma => {
                     const rotulo = ROTULO_FORMA_CAIXA[forma.chave];
                     return (

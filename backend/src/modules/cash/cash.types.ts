@@ -26,7 +26,7 @@ export interface CashDayDto {
   };
   totals: { entradas: number; entradasQtd: number; saidas: number; saidasQtd: number; saldo: number };
   comandasResumo: { total: number; fechadas: number; abertas: number; falta: number };
-  formas: Array<{ chave: 'pix' | 'sinal_pix' | 'debito' | 'credito' | 'dinheiro'; valor: number; quantidade: number }>;
+  formas: Array<{ chave: 'pix' | 'sinal_pix' | 'sinal_cartao' | 'debito' | 'credito' | 'dinheiro'; valor: number; quantidade: number }>;
   linhas: Array<{
     appointmentId: string | null; comandaId: string | null; numero: number | null; hora: string;
     cliente: string; telefone: string; profissional: string; servicos: string;

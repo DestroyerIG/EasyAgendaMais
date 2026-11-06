@@ -7,7 +7,10 @@ import { getApiErrorMessage } from '@/utils/handleApiError';
 import type { Appointment } from '@/types';
 
 // A rota devolve o DTO plano de `toAppointmentDto`, sem `client` nem `service` aninhados.
-type PendingAppointment = Pick<Appointment, 'id' | 'client_name' | 'service_name' | 'date' | 'time'>;
+type PendingAppointment = Pick<Appointment, 'id' | 'client_name' | 'service_name' | 'date' | 'time'> & {
+  /** Há cobrança automática esperando o pagamento: a confirmação chega sozinha. */
+  cobranca_automatica?: boolean;
+};
 
 export function PendingPaymentList() {
   const [items, setItems] = useState<PendingAppointment[]>([]);
@@ -71,7 +74,12 @@ export function PendingPaymentList() {
       {items.map((item) => (
         <div key={item.id} className="flex items-center justify-between rounded-card border border-line bg-surface p-4">
           <div>
-            <p className="font-bold text-ink">{item.client_name}</p>
+            <p className="flex items-center gap-2 font-bold text-ink">
+              {item.client_name}
+              {item.cobranca_automatica && (
+                <span className="rounded border border-line bg-surface-2 px-1.5 py-0.5 text-[11px] font-semibold text-muted">Automático</span>
+              )}
+            </p>
             <p className="text-sm text-muted">
               {item.service_name} · {formatDateShort(item.date.split('T')[0])} {formatTime(item.time)}
             </p>

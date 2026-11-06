@@ -45,6 +45,23 @@ describe('PendingPaymentList', () => {
   });
 });
 
+describe('PendingPaymentList — cobrança automática', () => {
+  const reserva = (id: string, automatica: boolean) => ({
+    id, client_name: id === 'apt-1' ? 'Mariana' : 'Renata', service_name: 'Manutenção', date: '2026-10-24T00:00:00', time: '14:00:00',
+    cobranca_automatica: automatica,
+  });
+
+  it('mostra o selo Automático só nas reservas com cobrança automática e mantém o botão manual', async () => {
+    const getMock = api.get as unknown as ReturnType<typeof vi.fn>;
+    getMock.mockResolvedValueOnce({ data: [reserva('apt-1', true), reserva('apt-2', false)] });
+    render(<PendingPaymentList />);
+
+    expect(await screen.findByText('Mariana')).toBeInTheDocument();
+    expect(screen.getAllByText('Automático')).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /confirmar recebimento do pix/i })).toHaveLength(2);
+  });
+});
+
 describe('PendingPaymentList — falha ao confirmar', () => {
   it('mostra o motivo e recarrega a lista quando a reserva já expirou (409)', async () => {
     const user = userEvent.setup();

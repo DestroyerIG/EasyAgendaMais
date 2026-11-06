@@ -1,6 +1,6 @@
 import api from '@/lib/api';
 
-export type FormaCaixa = 'pix' | 'sinal_pix' | 'debito' | 'credito' | 'dinheiro';
+export type FormaCaixa = 'pix' | 'sinal_pix' | 'sinal_cartao' | 'debito' | 'credito' | 'dinheiro';
 
 export interface CashDay {
   date: string; isToday: boolean; responsavel: string;
@@ -28,6 +28,7 @@ export interface CashDay {
 export const ROTULO_FORMA_CAIXA: Record<FormaCaixa, { rotulo: string; legenda: (n: number) => string }> = {
   pix: { rotulo: 'Pix', legenda: (n) => `${n} no balcão` },
   sinal_pix: { rotulo: 'Sinais Pix', legenda: (n) => `${n} ${n === 1 ? 'antecipado' : 'antecipados'}` },
+  sinal_cartao: { rotulo: 'Sinais cartão', legenda: (n) => `${n} ${n === 1 ? 'antecipado' : 'antecipados'}` },
   debito: { rotulo: 'Débito', legenda: (n) => `${n} ${n === 1 ? 'transação' : 'transações'}` },
   credito: { rotulo: 'Crédito', legenda: (n) => `${n} ${n === 1 ? 'transação' : 'transações'}` },
   dinheiro: { rotulo: 'Dinheiro', legenda: (n) => `${n} na gaveta` },

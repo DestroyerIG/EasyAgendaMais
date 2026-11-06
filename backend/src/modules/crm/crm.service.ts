@@ -10,6 +10,7 @@ import { getBusinessScheduleSettings } from '../../services/scheduleSettingsServ
 import { avatares } from '../whatsappAvatar/avatar.service.js';
 import { semAcento, digitos } from '../../utils/textoBusca.js';
 import { canonicalizePhone } from '../../services/whatsapp/utils/phoneUtils.js';
+import { recebimentosRepository } from '../recebimentos/recebimentos.repository.js';
 
 const FASES: Fase[] = ['novo', 'recorrente', 'fiel', 'em_risco', 'perdido'];
 const br = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
@@ -156,6 +157,7 @@ export const crmService = {
     if (!c) throw new NotFoundError('Cliente');
     const { timezone } = await getBusinessScheduleSettings(businessId);
     const agenda: AgendamentoLinha[] = await crmRepository.agendamentosDoCliente(businessId, clientId);
+    const noCartao = await recebimentosRepository.reservasComSinalNoCartao(businessId, agenda.map((a) => a.id));
     const ev: TimelineEvento[] = [];
     for (const a of agenda) {
       const dd = `${a.date.slice(8, 10)}/${a.date.slice(5, 7)}`;
@@ -181,7 +183,7 @@ export const crmService = {
         });
       }
       if (a.source === 'publico' && a.depositAmount && ['confirmado', 'em_atendimento', 'concluido', 'faltou'].includes(a.status)) {
-        ev.push({ tipo: 'sinal_pix', data: a.createdAt, titulo: `Sinal Pix de R$ ${brl(a.depositAmount)} pago na reserva online`, descricao: null, valor: a.depositAmount });
+        ev.push({ tipo: 'sinal_pix', data: a.createdAt, titulo: `Sinal ${noCartao.has(a.id) ? 'no cartão' : 'Pix'} de R$ ${brl(a.depositAmount)} pago na reserva online`, descricao: null, valor: a.depositAmount });
       }
     }
     ev.push({ tipo: 'cadastro', data: c.createdAt, titulo: 'Cadastro da cliente', descricao: null, valor: null });
