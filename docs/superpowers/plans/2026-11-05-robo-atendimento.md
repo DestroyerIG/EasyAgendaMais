@@ -411,13 +411,14 @@ Expected: PASS.
 
 **Interfaces:**
 - Produces:
-  - `menuNaoPersonalizado(rows: MenuOptionRow[]): boolean`: verdadeiro se as linhas forem iguais, em ordem, nome, emoji e estado, a `menuPadrao` de qualquer segmento, ao menu antigo de 9 opções ou à variante com 💈 em Agendar, e sem opção própria.
+  - `menuNaoPersonalizado(rows: MenuOptionRow[]): boolean`: verdadeiro se as linhas forem iguais, em ordem, nome, emoji e estado, a `menuPadrao` de qualquer segmento, ao menu antigo de 9 opções, à variante com 💈 em Agendar ou ao menu de 8 opções sem ating que o PR 1 gravou, e sem opção própria.
   - `garantirMenuAtual(businessId: string, segmento: Segmento): Promise<void>`: em uma transação, troca o menu não personalizado por `menuPadrao(segmento)` se ele for diferente, e apaga a linha `rating` de menu personalizado.
 - `getMenuOptions` e `GET /config/menu` chamam `garantirMenuAtual` antes de ler.
 
 - [ ] **Step 1: Escrever os testes que falham**
 
 - Menu antigo de 9 opções → não personalizado. O mesmo com 💈.
+- Menu de 8 opções sem ating, gravado pelo PR 1 → não personalizado, e garantirMenuAtual o troca pelo menu atual.
 - Uma opção renomeada, desligada, movida ou própria → personalizado.
 - `menuPadrao('barbearia')` lido com segmento `estetica` → menu de estética. É assim que a troca de segmento funciona.
 - Menu personalizado com `rating` perde só essa linha.
@@ -537,7 +538,7 @@ Expected: FAIL.
 
 - [ ] **Step 3: Implementar e fazer a varredura**
 
-Trocar cada texto fixo pela chave. Depois varrer `whatsappFlowService.ts` e `whatsappBookingService.ts` em busca de strings que chegam a `sendWhatsAppMessage` ou a `{ message }`. O que a cliente lê e ficou de fora entra no catálogo, exceto erros técnicos genéricos.
+Trocar cada texto fixo pela chave. Depois varrer `whatsappFlowService.ts` e `whatsappBookingService.ts` em busca de strings que chegam a `sendWhatsAppMessage` ou a `{ message }`. O que a cliente lê e ficou de fora entra no catálogo, exceto erros técnicos genéricos. A resposta de opção própria (esponse_message do menu personalizado) também passa por `formatMessage`, para aceitar variáveis como `{nome_negocio}`.
 
 - [ ] **Step 4: Rodar e ver passar**
 
