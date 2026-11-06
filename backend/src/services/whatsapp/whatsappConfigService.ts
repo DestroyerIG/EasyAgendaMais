@@ -98,6 +98,12 @@ export const getMenuOptions = async (businessId: string): Promise<MenuOptionRow[
       return rows;
     }
 
+    // Só semeia quando o negócio não tem linha nenhuma: menu com tudo desligado é escolha do dono.
+    const existentes = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+      SELECT id FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid LIMIT 1
+    `);
+    if (existentes.length > 0) return [];
+
     await seedDefaultMenuOptions(businessId);
     return prisma.$queryRaw<MenuOptionRow[]>(Prisma.sql`
       SELECT * FROM whatsapp_menu_options

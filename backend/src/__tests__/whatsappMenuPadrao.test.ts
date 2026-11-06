@@ -3,13 +3,15 @@ import type { Segmento } from '../modules/crm/technicalSheetTemplates.js';
 
 const mockQueryRaw = vi.hoisted(() => vi.fn());
 const mockTransaction = vi.hoisted(() => vi.fn());
+const mockExecuteRaw = vi.hoisted(() => vi.fn());
+const mockFindUnique = vi.hoisted(() => vi.fn());
 vi.mock('../config/prisma.js', () => ({
-  prisma: { $queryRaw: mockQueryRaw, $transaction: mockTransaction, businessSettings: { findUnique: vi.fn().mockResolvedValue({ segment: 'barbearia' }) } },
+  prisma: { $queryRaw: mockQueryRaw, $executeRaw: mockExecuteRaw, $transaction: mockTransaction, businessSettings: { findUnique: mockFindUnique } },
 }));
 vi.mock('../utils/logger.js', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 
 const { menuPadrao, menuNaoPersonalizado } = await import('../services/whatsapp/whatsappMenuPadrao.js');
-const { garantirMenuAtual, getMenuOptions } = await import('../services/whatsapp/whatsappConfigService.js');
+const { garantirMenuAtual, getMenuOptions, segmentoDoNegocio } = await import('../services/whatsapp/whatsappConfigService.js');
 
 describe('menuPadrao', () => {
   it.each([
@@ -83,6 +85,8 @@ describe('garantirMenuAtual', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFindUnique.mockResolvedValue({ segment: 'barbearia' });
+    mockExecuteRaw.mockResolvedValue(1);
     tx.$queryRaw.mockResolvedValue([]);
     tx.$executeRaw.mockResolvedValue(1);
     mockTransaction.mockImplementation(async (cb: (t: unknown) => unknown) => cb(tx));
@@ -166,5 +170,40 @@ describe('garantirMenuAtual', () => {
     mockQueryRaw.mockResolvedValueOnce([linha(1, '📅', 'Agendar', 'schedule')]);
     const rows = await getMenuOptions('b1');
     expect(rows.map((r) => r.handler)).toEqual(['schedule']);
+  });
+});
+
+describe('getMenuOptions e segmentoDoNegocio', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockQueryRaw.mockReset();
+    mockFindUnique.mockResolvedValue({ segment: 'barbearia' });
+    mockExecuteRaw.mockResolvedValue(1);
+  });
+
+  it('menu com tudo desligado não recebe linhas novas', async () => {
+    const desligadas = comoPadrao('barbearia').map((r) => ({ ...r, active: false }));
+    mockQueryRaw
+      .mockResolvedValueOnce(desligadas) // garantirMenuAtual
+      .mockResolvedValueOnce([]) // ativas
+      .mockResolvedValueOnce([{ id: 'x' }]); // existe alguma linha
+    expect(await getMenuOptions('b1')).toEqual([]);
+    expect(mockExecuteRaw).not.toHaveBeenCalled();
+  });
+
+  it('negócio sem nenhuma linha recebe o menu padrão', async () => {
+    mockQueryRaw
+      .mockResolvedValueOnce([]) // garantirMenuAtual
+      .mockResolvedValueOnce([]) // ativas
+      .mockResolvedValueOnce([]) // nenhuma linha
+      .mockResolvedValueOnce(comoPadrao('barbearia')); // depois do seed
+    const rows = await getMenuOptions('b1');
+    expect(mockExecuteRaw).toHaveBeenCalledTimes(6);
+    expect(rows).toHaveLength(6);
+  });
+
+  it('segmentoDoNegocio sem linha de configuração devolve outro', async () => {
+    mockFindUnique.mockResolvedValueOnce(null);
+    expect(await segmentoDoNegocio('b1')).toBe('outro');
   });
 });
