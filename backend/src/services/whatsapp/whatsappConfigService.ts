@@ -9,7 +9,7 @@ import { DEFAULT_BOT_CONFIG, PADROES_ANTIGOS, BotConfig } from './whatsappConsta
 import { aplicarVocabulario } from './whatsappVocabulario.js';
 import { vocabularioDe } from '../../config/vocabulario.js';
 import type { Segmento } from '../../modules/crm/technicalSheetTemplates.js';
-import { menuPadrao, menuNaoPersonalizado } from './whatsappMenuPadrao.js';
+import { menuPadrao, menuNaoPersonalizado, mesmoMenu } from './whatsappMenuPadrao.js';
 
 // ── Menu option row shape returned by the DB ──────────────────────────────────
 
@@ -23,6 +23,8 @@ export interface MenuOptionRow {
   handler: string;
   active: boolean;
   response_message?: string | null;
+  created_at?: Date | string | null;
+  updated_at?: Date | string | null;
 }
 
 /**
@@ -114,15 +116,6 @@ export const segmentoDoNegocio = async (businessId: string): Promise<Segmento> =
   return vocabularioDe(s?.segment).segmento;
 };
 
-const mesmoMenu = (rows: MenuOptionRow[], segmento: Segmento): boolean => {
-  const padrao = menuPadrao(segmento);
-  const ordenadas = [...rows].sort((a, b) => a.option_order - b.option_order);
-  return (
-    padrao.length === ordenadas.length &&
-    padrao.every((o, i) => o.emoji === ordenadas[i].emoji && o.label === ordenadas[i].label && o.handler === ordenadas[i].handler)
-  );
-};
-
 /**
  * Atualiza o menu gravado: o que nunca foi personalizado passa para o menu atual do segmento, e a
  * linha `rating` (a avaliação saiu do menu) é apagada de menu personalizado, sem tocar no resto.
@@ -136,7 +129,7 @@ export const garantirMenuAtual = async (businessId: string, segmento: Segmento):
   `);
   if (rows.length === 0) return;
 
-  if (menuNaoPersonalizado(rows)) {
+  if (menuNaoPersonalizado(rows, segmento)) {
     if (mesmoMenu(rows, segmento)) return;
     await prisma.$transaction(async (tx) => {
       await tx.$executeRaw(Prisma.sql`DELETE FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid`);

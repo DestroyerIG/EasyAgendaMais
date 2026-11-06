@@ -29,9 +29,11 @@ describe('menuPadrao', () => {
   });
 });
 
-type Linha = { id: string; option_order: number; emoji: string; label: string; handler: string; type: string; active: boolean };
+const T0 = new Date('2026-11-01T10:00:00Z');
+const T1 = new Date('2026-11-02T10:00:00Z');
+type Linha = { id: string; option_order: number; emoji: string; label: string; handler: string; type: string; active: boolean; created_at: Date; updated_at: Date };
 const linha = (n: number, emoji: string, label: string, handler: string, extra: Partial<Linha> = {}): Linha =>
-  ({ id: `id${n}-${handler}`, option_order: n, emoji, label, handler, type: 'system', active: true, ...extra });
+  ({ id: `id${n}-${handler}`, option_order: n, emoji, label, handler, type: 'system', active: true, created_at: T0, updated_at: T0, ...extra });
 
 const antigo9 = (agendar = '📅'): Linha[] => [
   linha(1, agendar, 'Agendar um horário', 'schedule'),
@@ -108,6 +110,33 @@ describe('garantirMenuAtual', () => {
     expect(mockTransaction).toHaveBeenCalledTimes(1);
     const valores = tx.$executeRaw.mock.calls.flatMap((c) => (c[0] as { values?: unknown[] }).values ?? []);
     expect(valores).toContain('Procedimentos e preços');
+  });
+
+  it('outro com a linha de serviços tocada para ✂️ continua ✂️', async () => {
+    const rows = comoPadrao('barbearia').map((r) => (r.handler === 'view_services' ? { ...r, updated_at: T1 } : r));
+    mockQueryRaw.mockResolvedValueOnce(rows);
+    await garantirMenuAtual('b1', 'outro');
+    expect(mockTransaction).not.toHaveBeenCalled();
+  });
+
+  it('estetica renomeada para os textos de cílios continua', async () => {
+    const rows = comoPadrao('cilios_sobrancelhas').map((r) => (r.handler === 'view_services' ? { ...r, updated_at: T1 } : r));
+    mockQueryRaw.mockResolvedValueOnce(rows);
+    await garantirMenuAtual('b1', 'estetica');
+    expect(mockTransaction).not.toHaveBeenCalled();
+  });
+
+  it('menu de barbearia intocado em negócio que virou estetica troca', async () => {
+    mockQueryRaw.mockResolvedValueOnce(comoPadrao('barbearia'));
+    await garantirMenuAtual('b1', 'estetica');
+    expect(mockTransaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('menu de outro segmento com qualquer linha tocada não troca', async () => {
+    const rows = comoPadrao('barbearia').map((r, i) => (i === 3 ? { ...r, updated_at: T1 } : r));
+    mockQueryRaw.mockResolvedValueOnce(rows);
+    await garantirMenuAtual('b1', 'estetica');
+    expect(mockTransaction).not.toHaveBeenCalled();
   });
 
   it('menu já atual não escreve nada (segunda chamada)', async () => {

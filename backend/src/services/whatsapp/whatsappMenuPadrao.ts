@@ -1,5 +1,5 @@
 /**
- * Fonte única do menu padrão do robô de WhatsApp: criação, reset e mensagem de reserva usam esta lista.
+ * Fonte única do menu padrão do robô de WhatsApp: criação, reset e detecção de menu não personalizado usam esta lista.
  */
 
 import type { Segmento } from '../../modules/crm/technicalSheetTemplates.js';
@@ -55,19 +55,31 @@ const MENUS_ANTIGOS: Impressao[][] = [
   antigoCom('💈', false),
 ];
 
+const ordenar = (rows: MenuOptionRow[]): MenuOptionRow[] => [...rows].sort((a, b) => a.option_order - b.option_order);
+
+const igualA = (ordenadas: MenuOptionRow[], menu: Impressao[]): boolean =>
+  menu.length === ordenadas.length &&
+  menu.every((o, i) => o.emoji === ordenadas[i].emoji && o.label === ordenadas[i].label && o.handler === ordenadas[i].handler);
+
+/** Verdadeiro se as linhas são exatamente o `menuPadrao` do segmento (mesma ordem, emoji, nome e handler). */
+export const mesmoMenu = (rows: MenuOptionRow[], segmento: Segmento): boolean => igualA(ordenar(rows), menuPadrao(segmento));
+
+/** Linha nunca editada pelo dono: `updated_at` igual a `created_at` (PUT e reordenação atualizam `updated_at`). */
+const intocada = (r: MenuOptionRow): boolean =>
+  r.created_at != null && r.updated_at != null && new Date(r.created_at).getTime() === new Date(r.updated_at).getTime();
+
 /**
- * Verdadeiro se as linhas são exatamente um menu que o sistema criou (algum `menuPadrao` ou um dos
- * menus antigos): mesma ordem, nome, emoji e handler, todas de sistema e ativas. Ignora os buracos
- * em `option_order`. Qualquer diferença ou opção própria significa menu personalizado.
+ * Verdadeiro se as linhas são exatamente um menu que o sistema criou: mesma ordem, nome, emoji e
+ * handler, todas de sistema e ativas. Ignora os buracos em `option_order`. Vale para o `menuPadrao`
+ * do `segmento` e para os menus antigos; o `menuPadrao` de OUTRO segmento só vale se o dono não
+ * tocou em nenhuma linha (senão uma troca de 📋 por ✂️ em `outro` seria desfeita em silêncio).
+ * Qualquer outra diferença ou opção própria significa menu personalizado.
  */
-export const menuNaoPersonalizado = (rows: MenuOptionRow[]): boolean => {
+export const menuNaoPersonalizado = (rows: MenuOptionRow[], segmento?: Segmento): boolean => {
   if (rows.length === 0) return false;
-  const ordenadas = [...rows].sort((a, b) => a.option_order - b.option_order);
+  const ordenadas = ordenar(rows);
   if (!ordenadas.every((r) => r.type === 'system' && r.active)) return false;
-  const conhecidos: Impressao[][] = [...SEGMENTOS_VALIDOS.map((s) => menuPadrao(s)), ...MENUS_ANTIGOS];
-  return conhecidos.some(
-    (m) =>
-      m.length === ordenadas.length &&
-      m.every((o, i) => o.emoji === ordenadas[i].emoji && o.label === ordenadas[i].label && o.handler === ordenadas[i].handler),
-  );
+  if (MENUS_ANTIGOS.some((m) => igualA(ordenadas, m))) return true;
+  if (segmento && igualA(ordenadas, menuPadrao(segmento))) return true;
+  return SEGMENTOS_VALIDOS.some((s) => igualA(ordenadas, menuPadrao(s))) && ordenadas.every(intocada);
 };
