@@ -53,11 +53,12 @@ export interface AppointmentListRow {
   professional_id?: string;
 }
 
-const ID_AGENDAMENTO_EXEMPLO = 'simulador';
+/** Id fictício do cliente e do agendamento de exemplo do simulador (não é UUID: nunca vai ao banco). */
+export const ID_SIMULADOR = 'simulador';
 
 /** Agendamento fictício que o simulador mostra em cancelar e remarcar: amanhã às 14:00. */
 export const agendamentoExemplo = (agora: Date): AppointmentListRow => ({
-  id: ID_AGENDAMENTO_EXEMPLO,
+  id: ID_SIMULADOR,
   date: new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() + 1),
   time: '14:00',
   status: 'confirmado',

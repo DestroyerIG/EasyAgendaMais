@@ -45,6 +45,7 @@ import {
   handleConfirmCancel,
   handleRescheduleAppointment,
   handleConfirmReschedule,
+  ID_SIMULADOR,
 } from './whatsappBookingService.js';
 import {
   getBusinessScheduleSettings,
@@ -1165,8 +1166,6 @@ const handleMenuStep = async (
   }
 };
 
-const ID_SIMULADOR = 'simulador';
-
 const handleAskNameStep = async (
   phone: string,
   text: string,
@@ -1394,7 +1393,14 @@ const handleChooseDateStep = async (
     return { ok: true };
   }
 
-  const professionalId = sessionData.professionalId as string;
+  const professionalId = sessionData.professionalId as string | undefined;
+
+  // Remarcação de exemplo no simulador sem profissional ativo: não há agenda para consultar.
+  if (!professionalId) {
+    await sendWhatsAppMessage(phone, config.no_professionals_message ?? 'Desculpe, não há profissionais disponíveis no momento.', sendContext);
+    await deleteSession(phone, businessId);
+    return { ok: true };
+  }
 
   const bookedRows = await prisma.$queryRaw<Array<{ time: string }>>(
     Prisma.sql`
@@ -1489,6 +1495,7 @@ const handleChooseTimeStep = async (
   const selectedDate = sessionData.selectedDate as string;
   const professionalId = sessionData.professionalId as string;
   const rescheduleAppointmentId = sessionData.rescheduleAppointmentId as string | undefined;
+  const simulado = sendContext.simulate === true;
 
   // Na remarcação o próprio agendamento não pode bloquear o horário que ele já ocupa.
   const conflictRows = await prisma.$queryRaw<Array<{ id: string }>>(
@@ -1498,7 +1505,7 @@ const handleChooseTimeStep = async (
          AND professional_id = ${professionalId}::uuid
          AND date = ${selectedDate}::date
          AND time = ${(selectedTime + ':00')}::time
-         ${rescheduleAppointmentId ? Prisma.sql`AND id <> ${rescheduleAppointmentId}::uuid` : Prisma.empty}
+         ${rescheduleAppointmentId && !simulado ? Prisma.sql`AND id <> ${rescheduleAppointmentId}::uuid` : Prisma.empty}
          AND (
            status IN ('confirmado', 'em_atendimento')
            OR (status = 'aguardando_pagamento' AND expires_at > NOW())
@@ -1549,8 +1556,6 @@ const handleChooseTimeStep = async (
   };
 
   if (conflictRows.length > 0) return oferecerOutrosHorarios();
-
-  const simulado = sendContext.simulate === true;
 
   if (rescheduleAppointmentId) {
     try {

@@ -1264,6 +1264,40 @@ describe('whatsappFlowService guards', () => {
       expect(String(mockSendWhatsAppMessage.mock.calls.at(-1)?.[1])).toContain(AVISO_TESTE);
     });
 
+    it('remarcacao simulada nao consulta conflito com o id de exemplo', async () => {
+      mockGetSession.mockResolvedValue({
+        step: 'choose_time',
+        data: {
+          availableSlots: ['10:00'], selectedDate: '2026-04-20', professionalId: 'professional-1',
+          serviceId: 'service-1', serviceName: 'Corte', professionalName: 'Joao',
+          rescheduleAppointmentId: 'simulador',
+        },
+      });
+      mockPoolQuery.mockClear();
+
+      await sim('1');
+
+      const params = (mockPoolQuery.mock.calls as unknown as [string, unknown[]][]).flatMap(([, v]) => v ?? []);
+      expect(params).not.toContain('simulador');
+    });
+
+    it('remarcacao simulada sem profissional ativo avisa em vez de quebrar', async () => {
+      mockGetSession.mockResolvedValue({
+        step: 'choose_date',
+        data: { rescheduleAppointmentId: 'simulador', availableDates: ['2026-04-20'] },
+      });
+      mockGetBotConfig.mockResolvedValue({
+        invalid_option_message: 'Opcao invalida.',
+        no_professionals_message: 'Sem profissionais agora.',
+      });
+      mockPoolQuery.mockClear();
+
+      await sim('1');
+
+      expect(mockPoolQuery).not.toHaveBeenCalled();
+      expect(String(mockSendWhatsAppMessage.mock.calls.at(-1)?.[1])).toContain('Sem profissionais agora.');
+    });
+
     it('falar com um humano nao registra pedido de atendimento', async () => {
       mockGetSession.mockResolvedValue({ step: 'menu', data: {} });
       mockGetMenuOptions.mockResolvedValue([
