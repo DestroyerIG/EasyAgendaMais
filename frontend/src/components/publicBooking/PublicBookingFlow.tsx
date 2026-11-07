@@ -28,6 +28,8 @@ const ABA_DA_ETAPA: Record<Exclude<Step, 'pagamento'>, AbaPublica> = {
 };
 
 const INTERVALO_SITUACAO_MS = 10_000;
+// Depois do prazo, o pagamento feito no último minuto ainda pode confirmar a reserva: segue consultando.
+const CONSULTA_APOS_VENCER_MS = 30 * 60 * 1000;
 
 type RetornoCheckout = 'sucesso' | 'pendente' | 'falha';
 
@@ -136,6 +138,8 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
   const [copied, setCopied] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const formasLiberadas: FormaSinal[] = storefront?.formasPagamento?.length ? storefront.formasPagamento : ['pix'];
+  // O negócio pode receber só no cartão: sem escolha válida, vale a primeira forma liberada.
+  const formaEfetiva: FormaSinal = formasLiberadas.includes(formaEscolhida) ? formaEscolhida : formasLiberadas[0];
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Só a última consulta de horários vale: trocar de dia rápido não pode mostrar a resposta antiga.
   const consultaHorarios = useRef(0);
@@ -192,9 +196,16 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
   // O dono confirma o Pix à mão: acompanha a reserva enquanto a página estiver aberta. Ao voltar do
   // aplicativo do banco consulta na hora, porque o navegador segura o intervalo em segundo plano.
   const reservaId = reserva?.id;
+  const reservaVenceEm = reserva?.expiresAt ?? null;
   useEffect(() => {
-    if (!reservaId || situacao !== 'aguardando') return;
+    if (!reservaId) return;
+    // Vencida ou cancelada pela rotina, ainda pode confirmar com um pagamento feito no limite.
+    const ate = reservaVenceEm ? Date.parse(reservaVenceEm) + CONSULTA_APOS_VENCER_MS : 0;
+    const acompanhar = situacao === 'aguardando'
+      || ((situacao === 'expirado' || situacao === 'cancelado') && Date.now() < ate);
+    if (!acompanhar) return;
     const consultar = () => {
+      if (situacao !== 'aguardando' && Date.now() >= ate) return;
       publicBookingApi.getAppointmentStatus(slug, reservaId).then((r) => setSituacao(r.situacao)).catch(() => undefined);
     };
     const aoVoltar = () => { if (document.visibilityState === 'visible') consultar(); };
@@ -204,7 +215,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
       clearInterval(intervalo);
       document.removeEventListener('visibilitychange', aoVoltar);
     };
-  }, [slug, reservaId, situacao]);
+  }, [slug, reservaId, reservaVenceEm, situacao]);
 
   useEffect(() => {
     publicBookingApi
@@ -291,10 +302,10 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
     setSubmitting(true);
     setError(null);
     try {
-      const formaPagamento = formasLiberadas.includes(formaEscolhida) ? formaEscolhida : 'pix';
+      const soPix = formasLiberadas.length === 1 && formasLiberadas[0] === 'pix';
       const result = await publicBookingApi.createAppointment(slug, {
         serviceId, professionalId, date, time, clientName, clientPhone, whatsappConsent,
-        ...(formasLiberadas.length > 1 ? { formaPagamento } : {}),
+        ...(soPix ? {} : { formaPagamento: formaEfetiva }),
       });
       const servico = storefront?.services.find((s) => s.id === serviceId);
       if (!servico) return;
@@ -311,7 +322,13 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
         checkoutUrl: result.checkoutUrl ?? null,
         expiresAt: result.expiresAt,
       });
-      if (result.forma === 'cartao' && result.checkoutUrl) window.location.assign(result.checkoutUrl);
+      if (result.forma === 'cartao' && result.checkoutUrl) {
+        // Quem usa "voltar" no Checkout precisa achar a reserva no endereço, e não o próprio horário ocupado.
+        const busca = new URLSearchParams(window.location.search);
+        busca.set('reserva', result.appointmentId);
+        window.history.replaceState(window.history.state, '', `${window.location.pathname}?${busca.toString()}`);
+        window.location.assign(result.checkoutUrl);
+      }
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
         // Outra pessoa reservou este horário enquanto o cliente preenchia os dados:
@@ -437,7 +454,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
     : selectedService && time
       ? {
         servico: selectedService, profissional: selectedProfessional?.name, data: date, horario: time,
-        forma: formasLiberadas.includes(formaEscolhida) ? formaEscolhida : ('pix' as FormaSinal),
+        forma: formaEfetiva,
       }
       : null;
   const sinalDoResumo = reserva ? reserva.sinal : (selectedService?.depositAmount ?? 0);
@@ -643,7 +660,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                       </span>
                     </span>
                   </label>
-                  <EscolhaFormaPagamento formas={formasLiberadas} valor={formaEscolhida} onChange={setFormaEscolhida} />
+                  <EscolhaFormaPagamento formas={formasLiberadas} valor={formaEfetiva} onChange={setFormaEscolhida} />
                 </section>
               )}
 
@@ -671,14 +688,19 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                         {reserva.expiresAt && ` Você tem até ${formatDeadline(reserva.expiresAt)} para pagar, depois o horário é liberado.`}
                       </p>
                     )}
-                    {reserva.checkoutUrl && (
-                      <Button type="button" onClick={() => window.location.assign(reserva.checkoutUrl as string)}>
-                        {retorno === 'falha' ? 'Tentar de novo' : 'Ir para o pagamento'}
-                      </Button>
+                    {/* Pago ou em análise só aguarda: oferecer pagar de novo convida a pagar em dobro. */}
+                    {retorno !== 'sucesso' && retorno !== 'pendente' && (
+                      <>
+                        {reserva.checkoutUrl && (
+                          <Button type="button" onClick={() => window.location.assign(reserva.checkoutUrl as string)}>
+                            {retorno === 'falha' ? 'Tentar de novo' : 'Ir para o pagamento'}
+                          </Button>
+                        )}
+                        <Button type="button" variant="ghost" loading={trocandoParaPix} onClick={pagarComPix}>
+                          Pagar com Pix
+                        </Button>
+                      </>
                     )}
-                    <Button type="button" variant="ghost" loading={trocandoParaPix} onClick={pagarComPix}>
-                      Pagar com Pix
-                    </Button>
                   </>
                 ) : (
                   <>

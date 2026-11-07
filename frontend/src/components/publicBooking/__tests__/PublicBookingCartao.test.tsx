@@ -126,6 +126,39 @@ describe('escolha da forma de pagamento', () => {
     );
   });
 
+  it('antes de ir ao Checkout grava a reserva no endereço, para o "voltar" achá-la', async () => {
+    const troca = vi.spyOn(window.history, 'replaceState');
+    api.createAppointment.mockResolvedValue({
+      appointmentId: 'appt-1', depositAmount: 39, pixPayload: null, checkoutUrl, forma: 'cartao',
+      automatica: true, cartaoIndisponivel: false, expiresAt: FUTURO,
+    });
+    const user = userEvent.setup();
+    await irAteOsDados(user);
+    await user.click(screen.getAllByRole('radio')[1]);
+    await preencherEConfirmar(user);
+
+    await waitFor(() => expect(assign).toHaveBeenCalledWith(checkoutUrl));
+    expect(troca).toHaveBeenCalledWith(null, '', '/agendar/studio-aurora?reserva=appt-1');
+    troca.mockRestore();
+  });
+
+  it('negócio só com cartão: o resumo diz cartão e a reserva pede cartão', async () => {
+    api.getStorefront.mockResolvedValue({ ...STOREFRONT, formasPagamento: ['cartao'] });
+    api.createAppointment.mockResolvedValue({
+      appointmentId: 'appt-1', depositAmount: 39, pixPayload: null, checkoutUrl, forma: 'cartao',
+      automatica: true, cartaoIndisponivel: false, expiresAt: FUTURO,
+    });
+    const user = userEvent.setup();
+    await irAteOsDados(user);
+
+    expect(screen.getByText('Sinal cartão')).toBeInTheDocument();
+    await preencherEConfirmar(user);
+    await waitFor(() => expect(assign).toHaveBeenCalledWith(checkoutUrl));
+    expect(api.createAppointment).toHaveBeenCalledWith(
+      'studio-aurora', expect.objectContaining({ formaPagamento: 'cartao' }),
+    );
+  });
+
   it('com o cartão indisponível avisa e mostra o código Pix', async () => {
     api.createAppointment.mockResolvedValue({
       appointmentId: 'appt-1', depositAmount: 39, pixPayload: '000201PIX', checkoutUrl: null, forma: 'pix',
@@ -175,6 +208,40 @@ describe('volta do Checkout', () => {
     api.getAppointmentStatus.mockResolvedValue({ situacao: 'confirmado', reserva: RESERVA });
     fireEvent(document, new Event('visibilitychange'));
     expect(await screen.findByRole('heading', { name: 'Agendamento confirmado!' })).toBeInTheDocument();
+  });
+
+  it('retorno=sucesso ou pendente ainda aguardando não oferece pagar de novo', async () => {
+    for (const volta of ['sucesso', 'pendente']) {
+      abrirEm(`?reserva=appt-1&retorno=${volta}`);
+      api.getAppointmentStatus.mockResolvedValue({ situacao: 'aguardando', reserva: RESERVA });
+      const { unmount } = render(<PublicBookingFlow slug="studio-aurora" />);
+      expect(await screen.findByText(/Estamos aguardando a confirmação do pagamento/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Ir para o pagamento' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Pagar com Pix' })).not.toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it('vencida há pouco segue consultando: o pagamento feito no limite ainda confirma na mesma tela', async () => {
+    abrirEm('?reserva=appt-1&retorno=falha');
+    const venceu = new Date(Date.now() - 60_000).toISOString();
+    api.getAppointmentStatus.mockResolvedValueOnce({ situacao: 'expirado', reserva: { ...RESERVA, checkoutUrl: null, expiresAt: venceu } });
+    render(<PublicBookingFlow slug="studio-aurora" />);
+    expect(await screen.findByRole('button', { name: 'Escolher outro horário' })).toBeInTheDocument();
+
+    api.getAppointmentStatus.mockResolvedValue({ situacao: 'confirmado', reserva: { ...RESERVA, expiresAt: venceu } });
+    fireEvent(document, new Event('visibilitychange'));
+    expect(await screen.findByRole('heading', { name: 'Agendamento confirmado!' })).toBeInTheDocument();
+  });
+
+  it('vencida há mais de 30 minutos para de consultar', async () => {
+    abrirEm('?reserva=appt-1&retorno=falha');
+    const venceu = new Date(Date.now() - 31 * 60_000).toISOString();
+    api.getAppointmentStatus.mockResolvedValue({ situacao: 'expirado', reserva: { ...RESERVA, checkoutUrl: null, expiresAt: venceu } });
+    render(<PublicBookingFlow slug="studio-aurora" />);
+    expect(await screen.findByRole('button', { name: 'Escolher outro horário' })).toBeInTheDocument();
+    fireEvent(document, new Event('visibilitychange'));
+    expect(api.getAppointmentStatus).toHaveBeenCalledTimes(1);
   });
 
   it('retorno=falha oferece tentar de novo no Checkout e trocar para Pix', async () => {
