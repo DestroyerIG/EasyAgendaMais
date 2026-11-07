@@ -10,7 +10,7 @@ Neste guia, `<backend>` é o endereço do backend, sem barra no final.
 
 > **Aplique a migração `20261108120000_recebimentos` ANTES do deploy do backend.**
 >
-> A rotina que expira reservas passou a consultar a tabela nova em toda reserva, com ou sem gateway conectado. Se o código novo subir antes da migração, a consulta falha e **nenhuma reserva expira**.
+> A rotina que expira reservas passou a consultar a tabela nova em toda reserva, com ou sem gateway conectado. Se o código novo subir antes da migração, a consulta falha e **nenhuma reserva expira**. A página pública também para de acompanhar a reserva, porque a consulta da situação lê a mesma tabela.
 >
 > A migração só acrescenta tabelas e precisa da autorização do dono. Ordem certa: 1) aplicar a migração; 2) conferir o `migrate status`; 3) deploy do backend; 4) deploy do frontend.
 
@@ -80,6 +80,8 @@ Antes de avisar os clientes, teste com um negócio seu e um sinal pequeno (por e
    - **Débito no Checkout:** o Checkout aceita cartão de débito e não oferece boleto, Pix nem parcelamento.
    - **Endereço técnico do pagador:** o Pix é aceito. A reserva não pede e-mail, então o sistema envia ao Mercado Pago `reserva-<id da cobrança>@<domínio do FRONTEND_URL>`. Se o Mercado Pago recusar (erro ou bloqueio antifraude), **pare**. A decisão de pedir o e-mail do cliente na reserva volta ao dono.
 4. Devolva os valores do teste pelo painel do Mercado Pago. A devolução não é automática.
+5. Confira que a devolução gerou o alerta de devolução no sino do negócio. Devolução e contestação só chegam pelo aviso do Mercado Pago: se o alerta não aparecer, o aviso de conta conectada não está chegando.
+6. Confira no Render que `FRONTEND_URL` começa com `https://`. Sem o protocolo, a volta do Checkout e o endereço técnico do pagador saem errados.
 
 ## 5. Troca de domínio
 
