@@ -84,6 +84,11 @@ export interface BotConfig {
   today_hours_message: string;
   paused_message: string;
   invalid_list_choice_message: string;
+  service_selected_message: string;
+  professional_selected_message: string;
+  cancel_list_hint: string;
+  reschedule_list_hint: string;
+  cancel_failed_message: string;
 }
 
 /**
@@ -151,6 +156,11 @@ export const DEFAULT_BOT_CONFIG: BotConfig = {
   today_hours_message: 'Hoje atendemos até as {hora_fechamento}.',
   paused_message: 'A agenda online está pausada no momento. Fale direto com {nome_negocio} pelo WhatsApp.',
   invalid_list_choice_message: 'Opção inválida. Por favor, escolha um número válido.',
+  service_selected_message: '✅ *{servico}* selecionado!',
+  professional_selected_message: '✅ *{profissional}* selecionado!',
+  cancel_list_hint: '⚠️ Clique no número do agendamento para cancelar ou digite 0️⃣ para voltar ao menu de atendimento',
+  reschedule_list_hint: '👉 Clique no número para reagendar ou digite 0️⃣ para voltar ao menu de atendimento',
+  cancel_failed_message: 'Desculpe, ocorreu um erro ao cancelar o agendamento. Tente novamente.',
 };
 
 /** Fecha as respostas de agendamento do simulador: nada foi gravado de verdade. */

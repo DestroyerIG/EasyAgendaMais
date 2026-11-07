@@ -111,7 +111,7 @@ export const handleCancelAppointment = async (
       const date = new Date(appointment.date).toLocaleDateString('pt-BR');
       message += `${index + 1}️⃣ ${date} às ${formatTimeHm(appointment.time)}\n`;
     });
-    message += '\n⚠️ Clique no número do agendamento para cancelar ou digite 0️⃣ para voltar ao menu de atendimento';
+    message += '\n' + await formatarTexto(config.cancel_list_hint, businessId);
 
     await updateSession(phone, businessId, STEPS.CONFIRM_CANCEL, { appointments });
     return { message };
@@ -173,7 +173,7 @@ const cancelarAgendamento = async (
     return { message: await formatarTexto(config.cancel_success_message, businessId) + '\n\n' + mainMenu.message };
   } catch (error) {
     logger.error({ err: error }, 'Erro ao cancelar agendamento');
-    return { message: 'Desculpe, ocorreu um erro ao cancelar o agendamento. Tente novamente.' };
+    return { message: await formatarTexto(config.cancel_failed_message, businessId) };
   }
 };
 
@@ -206,7 +206,7 @@ export const handleRescheduleAppointment = async (
       const date = new Date(appointment.date).toLocaleDateString('pt-BR');
       message += `${index + 1}️⃣ ${date} às ${formatTimeHm(appointment.time)}\n`;
     });
-    message += '\n👉 Clique no número para reagendar ou digite 0️⃣ para voltar ao menu de atendimento';
+    message += '\n' + await formatarTexto(config.reschedule_list_hint, businessId);
 
     await updateSession(phone, businessId, STEPS.CONFIRM_RESCHEDULE, { appointments });
     return { message };

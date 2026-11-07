@@ -1308,7 +1308,7 @@ const handleChooseServiceStep = async (
     professionals: professionals.map((b) => ({ id: b.id, name: b.name })),
   });
 
-  let msg = `✅ *${sel.name}* selecionado!\n\n👤 *${config.choose_professional_title}:*\n\n`;
+  let msg = `${await formatarTexto(config.service_selected_message, businessId, { serviceName: sel.name })}\n\n👤 *${config.choose_professional_title}:*\n\n`;
   professionals.forEach((b, i) => { msg += `${i + 1}️⃣ *${b.name}*\n`; });
   msg += '\n0️⃣ Voltar ao menu';
   await sendWhatsAppMessage(phone, msg, sendContext);
@@ -1356,7 +1356,7 @@ const handleChooseProfessionalStep = async (
     availableDates,
   });
 
-  let msg = `✅ *${sel.name}* selecionado!\n\n📅 *${config.choose_date_title}:*\n\n`;
+  let msg = `${await formatarTexto(config.professional_selected_message, businessId, { professionalName: sel.name })}\n\n📅 *${config.choose_date_title}:*\n\n`;
   availableDates.forEach((dateStr, index) => {
     // FIX Bug 5: formatDateBR usa construtor local
     msg += `${index + 1}️⃣ ${formatDateBR(dateStr, { weekday: 'long', day: '2-digit', month: '2-digit' })}\n`;

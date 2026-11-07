@@ -1922,6 +1922,11 @@ describe('whatsappFlowService guards', () => {
       ]);
     };
 
+    const comAgendamentosLista = (rows: unknown[]) => {
+      mockPoolQuery.mockImplementation(async (q: string) =>
+        ({ rows: typeof q === 'string' && q.includes('FROM appointments') ? rows : [] }));
+    };
+
     beforeEach(() => {
       process.env.WHATSAPP_DEFAULT_BUSINESS_ID = 'tenant-1';
       mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
@@ -2071,6 +2076,39 @@ describe('whatsappFlowService guards', () => {
       mockPoolQuery.mockRejectedValue(new Error('banco fora'));
       await real('1');
       expect(enviadas()).toContain(marca('list_error_message'));
+    });
+
+    it('service_selected_message recebe o nome do servico escolhido', async () => {
+      mockGetSession.mockResolvedValue({ step: 'choose_service', data: { services: [{ id: 's1', name: 'Corte', price: '40', duration_minutes: 30 }] } });
+      await real('1');
+      expect(enviadas()).toContain(marca('service_selected_message'));
+      expect(vi.mocked(formatMessage)).toHaveBeenCalledWith(marca('service_selected_message'), expect.objectContaining({ serviceName: 'Corte' }));
+    });
+
+    it('professional_selected_message recebe o nome do profissional escolhido', async () => {
+      mockGetSession.mockResolvedValue({ step: 'choose_professional', data: { professionals: [{ id: 'p1', name: 'Joao' }] } });
+      await real('1');
+      expect(enviadas()).toContain(marca('professional_selected_message'));
+      expect(vi.mocked(formatMessage)).toHaveBeenCalledWith(marca('professional_selected_message'), expect.objectContaining({ professionalName: 'Joao' }));
+    });
+
+    it('cancel_list_hint e reschedule_list_hint fecham as listas de cancelar e remarcar', async () => {
+      comAgendamentosLista([agendamento]);
+      menuCom('cancel');
+      await real('1');
+      expect(enviadas()).toContain(marca('cancel_list_hint'));
+
+      mockSendWhatsAppMessage.mockClear();
+      menuCom('reschedule');
+      await real('1');
+      expect(enviadas()).toContain(marca('reschedule_list_hint'));
+    });
+
+    it('cancel_failed_message quando o cancelamento falha', async () => {
+      mockGetSession.mockResolvedValue({ step: 'confirm_cancel', data: { appointments: [agendamento] } });
+      vi.mocked(prisma.appointment.updateMany).mockRejectedValue(new Error('banco fora'));
+      await real('1');
+      expect(enviadas()).toContain(marca('cancel_failed_message'));
     });
 
     it('invalid_list_choice_message em numero invalido nas listas de cancelar e remarcar', async () => {
