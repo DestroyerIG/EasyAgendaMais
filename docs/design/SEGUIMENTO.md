@@ -323,7 +323,7 @@ Referências: telas `studio-camila-rocha-*` e `barbearia-central-*` em `docs/des
 
 ## Robô de atendimento, pendências conhecidas
 
-Spec: `docs/superpowers/specs/2026-11-05-robo-atendimento-design.md`. Entregue em três PRs: #47 (menu pela lista visível, promoções sem texto inventado, perfil do Instagram, remarcar move o agendamento, simulador que não grava), #48 (menu por segmento) e o PR 3 (textos editáveis e tela única).
+Spec: `docs/superpowers/specs/2026-11-05-robo-atendimento-design.md`. Entregue em três PRs: #47 (menu pela lista visível, promoções sem texto inventado, perfil do Instagram, remarcar move o agendamento, simulador que não grava), #48 (menu por segmento) e #50 (textos editáveis e tela única).
 
 - **Migração do PR 3:** `20261109120000_robo_textos` cria `whatsapp_bot_config.textos_extras JSONB`. Foi aplicada em produção em 07/11/2026, com autorização do dono, antes do merge, pelo pooler de sessão, com `migrate status` antes e depois. O Start Command do Render (`npx prisma migrate deploy && npm start`, DEPLOY.md) aplicaria no deploy as migrações que faltassem. Sem a coluna, `lerBotConfig` cai em silêncio nos textos padrão (negócio com textos salvos os perde no robô e as promoções somem do menu) e `GET/PUT /whatsapp/config/textos` retornam 500.
 - **Dados de teste do simulador em produção:** ficaram registros do número `5511999999999` (do simulador antigo, que gravava). Só saem com autorização do dono. O simulador atual não grava nada.
@@ -332,6 +332,20 @@ Spec: `docs/superpowers/specs/2026-11-05-robo-atendimento-design.md`. Entregue e
 - **Textos:** o texto igual ao padrão é gravado como `null`, então muda junto com o padrão do segmento. As respostas das Automações (`textoConfirmado`, `textoCancelado`, `textoNota`, `textoGoogle` com `{link}`) ficam em `WhatsappAutomacao.config` e seguem a mesma regra.
 - **Menu personalizado:** quem personalizou o menu antes do PR #48 mantém as opções e perde a avaliação, que agora só existe em Automações.
 - **Rotas do Next:** config/textos, config/instagram e simulator/reset ganharam rota no BFF. As duas últimas já eram chamadas desde o PR #47 e não tinham rota.
+
+## Recebimentos pelo Mercado Pago, pendências conhecidas
+
+Spec em `docs/superpowers/specs/2026-11-05-recebimentos-mercado-pago-design.md`, conferências em `docs/design/mercado-pago-verificacoes.md` e guia em `docs/mercado-pago-configuracao.md`. Migração `20261108120000_recebimentos`: aplicar antes do deploy do backend, com autorização do dono.
+
+- **Teste real e autorização com PKCE:** falta testar a autorização com PKCE, que precisa do Client Secret. A troca em `/oauth/token` foi escrita com corpo JSON e não foi testada. Fazer o teste real com valor baixo em Pix e cartão.
+- **Avisos de contas conectadas:** confirmar se a aplicação recebe avisos das contas autorizadas. Sem isso, a rotina de cada minuto confirma em até um minuto.
+- **Endereço técnico do pagador:** confirmar no teste real que o Mercado Pago aceita `reserva-<id>@<domínio>`. Se recusar, a decisão de pedir e-mail volta ao dono.
+- **Logos:** Mercado Pago em https://www.mercadopago.com.br/mp/logo-oficial e InfinitePay em https://www.infinitepay.io/noticias-media. Falta ler as regras de uso das duas. Faltam as logos do Asaas e do PagBank.
+- **Outros gateways:** Asaas, InfinitePay e PagBank aparecem como "Em breve" e ainda não funcionam.
+- **Devolução automática:** não existe. Devolver o sinal é feito no Mercado Pago, pelo dono do negócio.
+- **Clube:** segue com confirmação manual do Pix.
+- **Uma conta, um negócio:** nesta versão, uma conta do Mercado Pago conecta um negócio só.
+- **Cancelamento pelo robô do WhatsApp:** não lembra de devolver o sinal, ao contrário do cancelamento pelo painel.
 
 ## Infraestrutura
 

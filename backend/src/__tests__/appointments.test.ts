@@ -102,6 +102,7 @@ vi.mock('../repositories/subscriptionRepository.js', () => ({
 }));
 
 const mockAppointmentFindMany = vi.hoisted(() => vi.fn().mockResolvedValue([]));
+const mockCobrancaFindMany = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 const mockAppointmentFindFirst = vi.hoisted(() => vi.fn().mockResolvedValue(null));
 const mockAppointmentCreate = vi.hoisted(() => vi.fn().mockResolvedValue({ id: 'apt-uuid' }));
 const mockAppointmentUpdate = vi.hoisted(() => vi.fn().mockResolvedValue({ id: 'apt-uuid' }));
@@ -124,6 +125,7 @@ vi.mock('../config/prisma.js', () => ({
       update: mockAppointmentUpdate,
       updateMany: mockAppointmentUpdateMany,
     },
+    cobrancaSinal: { findMany: mockCobrancaFindMany },
     client: { findFirst: vi.fn().mockResolvedValue({ id: 'client-uuid' }) },
     professional: { findFirst: vi.fn().mockResolvedValue({ id: 'professional-uuid' }) },
     service: { findFirst: vi.fn().mockResolvedValue({ id: 'service-uuid', durationMinutes: 30, price: 30 }) },
@@ -179,6 +181,7 @@ const resetMocks = () => {
   mockBillingContext.current.plan = 'profissional';
   mockAppointmentFindMany.mockResolvedValue([]);
   mockAppointmentFindFirst.mockResolvedValue(null);
+  mockCobrancaFindMany.mockResolvedValue([]);
   mockAppointmentCreate.mockResolvedValue({ id: 'apt-uuid' });
   mockAppointmentUpdate.mockResolvedValue({ id: 'apt-uuid' });
 };
@@ -217,6 +220,35 @@ describe('Appointments API — /api/v1/appointments', () => {
       // feature guard when the underlying status is not active/trialing.
       expect(res.body.error.code).toBe('SUBSCRIPTION_REQUIRED');
       expect(mockAppointmentRepo.findAll).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('GET /api/v1/appointments/pending-payment', () => {
+    const reserva = (id: string) => ({
+      id, date: new Date('2026-10-24T00:00:00Z'), time: new Date('1970-01-01T14:00:00Z'), status: 'aguardando_pagamento',
+      client: { name: 'Mariana', phone: '83999990000' }, service: { name: 'Corte', price: 50 }, professional: { name: 'Camila' },
+    });
+
+    it('cobranca_automatica é true com cobrança pendente e false sem ela', async () => {
+      mockAppointmentFindMany.mockResolvedValue([reserva('apt-1'), reserva('apt-2')]);
+      mockCobrancaFindMany.mockResolvedValue([{ appointmentId: 'apt-1' }]);
+
+      const res = await request.get('/api/v1/appointments/pending-payment').set(authHeader);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.map((d: { id: string; cobranca_automatica: boolean }) => [d.id, d.cobranca_automatica]))
+        .toEqual([['apt-1', true], ['apt-2', false]]);
+      expect(mockCobrancaFindMany).toHaveBeenCalledTimes(1);
+      expect(mockCobrancaFindMany.mock.calls[0][0].where).toMatchObject({
+        businessId: 'bbshop-uuid', situacao: 'pendente', appointmentId: { in: ['apt-1', 'apt-2'] },
+      });
+    });
+
+    it('lista vazia não consulta as cobranças', async () => {
+      const res = await request.get('/api/v1/appointments/pending-payment').set(authHeader);
+      expect(res.status).toBe(200);
+      expect(res.body.data).toEqual([]);
+      expect(mockCobrancaFindMany).not.toHaveBeenCalled();
     });
   });
 

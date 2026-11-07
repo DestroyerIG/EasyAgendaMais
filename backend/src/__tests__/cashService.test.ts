@@ -8,6 +8,8 @@ const repo = vi.hoisted(() => ({
 vi.mock('../modules/cash/cash.repository.js', () => ({ cashRepository: repo }));
 const clube = vi.hoisted(() => ({ recebimentosDoCaixa: vi.fn() }));
 vi.mock('../modules/clube/clube.repository.js', () => ({ clubeRepository: clube }));
+const recebimentos = vi.hoisted(() => ({ reservasComSinalNoCartao: vi.fn() }));
+vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({ recebimentosRepository: recebimentos }));
 vi.mock('../services/scheduleSettingsService.js', () => ({ getBusinessScheduleSettings: vi.fn().mockResolvedValue({ timezone: 'America/Sao_Paulo' }) }));
 
 const { cashService, calcularGaveta } = await import('../modules/cash/cash.service.js');
@@ -27,6 +29,7 @@ beforeEach(() => {
   repo.findExpenses.mockResolvedValue([]);
   repo.findMovements.mockResolvedValue([]);
   clube.recebimentosDoCaixa.mockResolvedValue([]);
+  recebimentos.reservasComSinalNoCartao.mockResolvedValue(new Set());
 });
 
 describe('calcularGaveta', () => {
@@ -145,6 +148,28 @@ describe('cashService.getDay', () => {
     expect(dia.formas.find((f) => f.chave === 'sinal_pix')).toEqual({ chave: 'sinal_pix', valor: 40, quantidade: 1 });
     expect(dia.totals.entradas).toBe(40);
     expect(dia.linhas[0]).toMatchObject({ status: 'Falta', depositApplied: 40 });
+  });
+
+  it('sinal com cobrança paga no cartão soma em Sinais cartão e não em Sinais Pix; o total não muda', async () => {
+    repo.findSession.mockResolvedValue(sessao());
+    repo.findClosedComandas.mockResolvedValue([
+      { id: 'k1', number: 1, paymentMethod: 'pix', totalCharged: '70', depositApplied: '30', appointment: { id: 'a1', time: new Date('1970-01-01T10:00:00Z') }, client: { name: 'A', phone: '1' }, professional: { name: 'P' }, items: [{ name: 'Corte' }] },
+      { id: 'k2', number: 2, paymentMethod: 'dinheiro', totalCharged: '60', depositApplied: '20', appointment: { id: 'a2', time: new Date('1970-01-01T11:00:00Z') }, client: { name: 'B', phone: '2' }, professional: { name: 'P' }, items: [{ name: 'Corte' }] },
+    ]);
+    repo.findAppointmentsByStatus.mockImplementation(async (_b: string, _d: string, status: string) =>
+      status === 'faltou'
+        ? [{ id: 'a9', time: new Date('1970-01-01T12:30:00Z'), depositAmount: '40', client: { name: 'C', phone: '9' }, professional: { name: 'P' }, service: { name: 'Corte', price: '140' } }]
+        : []);
+    recebimentos.reservasComSinalNoCartao.mockResolvedValue(new Set(['a1', 'a9']));
+
+    const dia = await cashService.getDay('b1');
+
+    expect(recebimentos.reservasComSinalNoCartao).toHaveBeenCalledTimes(1);
+    expect(recebimentos.reservasComSinalNoCartao).toHaveBeenCalledWith('b1', expect.arrayContaining(['a1', 'a2', 'a9']));
+    expect(dia.formas.find((f) => f.chave === 'sinal_cartao')).toEqual({ chave: 'sinal_cartao', valor: 70, quantidade: 2 });
+    expect(dia.formas.find((f) => f.chave === 'sinal_pix')).toEqual({ chave: 'sinal_pix', valor: 20, quantidade: 1 });
+    expect(dia.totals.entradas).toBe(70 + 60 + 30 + 20 + 40);
+    expect(dia.totals.entradasQtd).toBe(5);
   });
 
   it('dia sem caixa aberto devolve session null e totais zerados', async () => {

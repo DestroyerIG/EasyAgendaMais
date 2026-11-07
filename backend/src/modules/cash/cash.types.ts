@@ -26,7 +26,7 @@ export interface CashDayDto {
   };
   totals: { entradas: number; entradasQtd: number; saidas: number; saidasQtd: number; saldo: number };
   comandasResumo: { total: number; fechadas: number; abertas: number; falta: number };
-  formas: Array<{ chave: 'pix' | 'sinal_pix' | 'debito' | 'credito' | 'dinheiro'; valor: number; quantidade: number }>;
+  formas: Array<{ chave: 'pix' | 'sinal_pix' | 'sinal_cartao' | 'debito' | 'credito' | 'dinheiro'; valor: number; quantidade: number }>;
   linhas: Array<{
     appointmentId: string | null; comandaId: string | null; numero: number | null; hora: string;
     cliente: string; telefone: string; profissional: string; servicos: string;
@@ -34,6 +34,8 @@ export interface CashDayDto {
     depositApplied: number; total: number; status: 'Fechada' | 'Aberta' | 'Falta' | 'Clube';
     /** A profissional mandou pelo app para a recepção cobrar (fase 5). */
     prontaParaCobrar?: boolean;
+    /** O sinal desta reserva foi pago no cartão (cobrança automática). */
+    sinalNoCartao?: boolean;
   }>;
   despesas: Array<{ id: string; descricao: string; categoria: string; valor: number; formaPagamento: string | null; criadoEm: string }>;
   movimentos: Array<{ id: string; kind: 'sangria' | 'suprimento'; valor: number; descricao: string; criadoEm: string }>;

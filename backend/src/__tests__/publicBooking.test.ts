@@ -6,6 +6,8 @@ import { getBusinessScheduleSettings, generateAvailableTimeSlots } from '../serv
 import { NotFoundError, ValidationError, ConflictError } from '../utils/errors.js';
 import { notificationsService } from '../modules/notifications/notifications.service.js';
 
+vi.mock('../modules/recebimentos/conexao.service.js', () => ({ conexaoService: { formas: vi.fn().mockResolvedValue(['pix']), tokenAtivo: vi.fn().mockResolvedValue(null) } }));
+vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({ recebimentosRepository: { cobrancasDaReserva: vi.fn().mockResolvedValue([]) } }));
 vi.mock('../modules/conta/estadoConta.service.js', () => ({ estadoContaService: { doNegocio: vi.fn().mockResolvedValue({ tipo: 'ativa' }), limparCache: vi.fn() } }));
 vi.mock('../modules/whatsappAutomacoes/gatilhos.service.js', () => ({ automacoesGatilhos: { aoCancelar: vi.fn().mockResolvedValue(0), aoCriarReservaComSinal: vi.fn().mockResolvedValue(false), toleranciaSinal: vi.fn().mockResolvedValue(15), aoFecharComanda: vi.fn().mockResolvedValue(undefined) } }));
 vi.mock('../modules/publicBooking/publicBooking.repository.js', () => ({
@@ -166,7 +168,7 @@ describe('publicBookingService.createPendingAppointment', () => {
     ).rejects.toThrow(ValidationError);
   });
 
-  it('cria a reserva e retorna { appointmentId, depositAmount, pixPayload, expiresAt }', async () => {
+  it('cria a reserva e retorna os dados da reserva e do sinal', async () => {
     mockHappyPathDependencies();
 
     const result = await publicBookingService.createPendingAppointment('studio-aurora', VALID_INPUT);
@@ -175,9 +177,12 @@ describe('publicBookingService.createPendingAppointment', () => {
       appointmentId: 'appt-1',
       depositAmount: 30, // 30% de 100
       pixPayload: expect.any(String),
+      checkoutUrl: null,
+      forma: 'pix',
+      automatica: false,
+      cartaoIndisponivel: false,
       expiresAt: expect.any(String),
     });
-    expect(Object.keys(result).sort()).toEqual(['appointmentId', 'depositAmount', 'expiresAt', 'pixPayload']);
     // A reserva só deve ser criada DEPOIS que o payload Pix foi montado com sucesso —
     // sem isso, uma falha em buildPixPayload deixaria uma reserva "fantasma" segurando
     // o horário por 15min.

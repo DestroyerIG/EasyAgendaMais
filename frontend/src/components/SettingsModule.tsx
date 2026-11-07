@@ -16,6 +16,7 @@ import { AppearanceSection } from '@/components/settings/AppearanceSection';
 import { ComissaoPadraoSection } from '@/components/settings/ComissaoPadraoSection';
 import { AppProfissionalSection } from '@/components/settings/AppProfissionalSection';
 import { GoogleAgendaSection } from '@/components/settings/GoogleAgendaSection';
+import { RecebimentosSection } from '@/components/settings/RecebimentosSection';
 import { CrmSettingsSection } from '@/components/settings/CrmSettingsSection';
 import { EtiquetasSection } from '@/components/settings/EtiquetasSection';
 import {
@@ -501,6 +502,8 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
       />
 
       <GoogleAgendaSection />
+
+      <RecebimentosSection />
 
       <ComissaoPadraoSection />
 

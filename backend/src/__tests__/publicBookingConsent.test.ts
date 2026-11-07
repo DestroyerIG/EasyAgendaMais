@@ -9,6 +9,8 @@ const repo = vi.hoisted(() => ({
   withProfessionalDayLock: vi.fn(),
   registrarConsentimento: vi.fn(),
 }));
+vi.mock('../modules/recebimentos/conexao.service.js', () => ({ conexaoService: { formas: vi.fn().mockResolvedValue(['pix']), tokenAtivo: vi.fn().mockResolvedValue(null) } }));
+vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({ recebimentosRepository: { cobrancasDaReserva: vi.fn().mockResolvedValue([]) } }));
 vi.mock('../modules/conta/estadoConta.service.js', () => ({ estadoContaService: { doNegocio: vi.fn().mockResolvedValue({ tipo: 'ativa' }), limparCache: vi.fn() } }));
 vi.mock('../modules/whatsappAutomacoes/gatilhos.service.js', () => ({ automacoesGatilhos: { aoCancelar: vi.fn().mockResolvedValue(0), aoCriarReservaComSinal: vi.fn().mockResolvedValue(false), toleranciaSinal: vi.fn().mockResolvedValue(15), aoFecharComanda: vi.fn().mockResolvedValue(undefined) } }));
 vi.mock('../modules/publicBooking/publicBooking.repository.js', () => ({ publicBookingRepository: repo }));

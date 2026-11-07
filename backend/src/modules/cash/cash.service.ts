@@ -2,6 +2,7 @@ import { ConflictError } from '../../utils/errors.js';
 import { todayInTimezone } from '../../utils/businessDate.js';
 import { getBusinessScheduleSettings } from '../../services/scheduleSettingsService.js';
 import { cashRepository } from './cash.repository.js';
+import { recebimentosRepository } from '../recebimentos/recebimentos.repository.js';
 import { clubeRepository } from '../clube/clube.repository.js';
 import { intervaloUtc } from '../reports/periodo.js';
 import type { CashDayDto, CashMovementInput, CloseCashInput } from './cash.types.js';
@@ -51,11 +52,24 @@ export const cashService = {
     const comSinal = comandas.filter((k) => n(k.depositApplied) > 0);
     // Sinal retido de quem faltou só entra quando há caixa aberto naquele dia.
     const faltasComSinal = session ? faltas.filter((a) => n(a.depositAmount) > 0) : [];
-    const sinaisCents = comSinal.reduce((t, k) => t + cents(n(k.depositApplied)), 0)
-      + faltasComSinal.reduce((t, a) => t + cents(n(a.depositAmount)), 0);
+    // Sinal pago no cartão (cobrança automática) sai de "Sinais Pix"; todo o resto continua nele.
+    const noCartao = await recebimentosRepository.reservasComSinalNoCartao(
+      businessId, [...comSinal.map((k) => k.appointment.id), ...faltasComSinal.map((a) => a.id)],
+    );
+    const sinais = [
+      ...comSinal.map((k) => ({ id: k.appointment.id, cents: cents(n(k.depositApplied)) })),
+      ...faltasComSinal.map((a) => ({ id: a.id, cents: cents(n(a.depositAmount)) })),
+    ];
+    const soma = (lista: typeof sinais) => lista.reduce((t, x) => t + x.cents, 0);
+    const sinaisCartao = sinais.filter((x) => noCartao.has(x.id));
+    const sinaisPix = sinais.filter((x) => !noCartao.has(x.id));
     const formas: CashDayDto['formas'] = [
       forma('pix'),
-      { chave: 'sinal_pix', valor: reais(sinaisCents), quantidade: comSinal.length + faltasComSinal.length },
+      { chave: 'sinal_pix', valor: reais(soma(sinaisPix)), quantidade: sinaisPix.length },
+      // Só aparece para quem recebeu sinal no cartão: o Caixa de quem não usa a integração não muda.
+      ...(sinaisCartao.length > 0
+        ? [{ chave: 'sinal_cartao' as const, valor: reais(soma(sinaisCartao)), quantidade: sinaisCartao.length }]
+        : []),
       forma('debito'), forma('credito'), forma('dinheiro'),
     ];
     const entradasCents = formas.reduce((t, f) => t + cents(f.valor), 0);
@@ -68,6 +82,7 @@ export const cashService = {
         servicos: k.items.map((i) => i.name).join(' + '),
         pagamento: (k.paymentMethod ?? 'sinal') as Linha['pagamento'],
         depositApplied: n(k.depositApplied), total: reais(cents(n(k.totalCharged)) + cents(n(k.depositApplied))), status: 'Fechada',
+        ...(noCartao.has(k.appointment.id) ? { sinalNoCartao: true } : {}),
       })),
       ...emAtendimento.map((a): Linha => ({
         appointmentId: a.id, comandaId: null, numero: null, hora: hhmm(a.time), cliente: a.client.name, telefone: a.client.phone,
@@ -86,6 +101,7 @@ export const cashService = {
         appointmentId: a.id, comandaId: null, numero: null, hora: hhmm(a.time), cliente: a.client.name, telefone: a.client.phone,
         profissional: a.professional.name, servicos: a.service.name, pagamento: 'faltou',
         depositApplied: n(a.depositAmount), total: n(a.service.price), status: 'Falta',
+        ...(noCartao.has(a.id) ? { sinalNoCartao: true } : {}),
       })),
     ].sort((a, b) => a.hora.localeCompare(b.hora));
 

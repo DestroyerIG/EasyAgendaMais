@@ -6,6 +6,8 @@ const repo = vi.hoisted(() => ({
   registrarConsentimento: vi.fn(), ownerName: vi.fn(), configuracao: vi.fn(), salvarConfiguracao: vi.fn(),
 }));
 vi.mock('../modules/crm/crm.repository.js', () => ({ crmRepository: repo }));
+const recebimentos = vi.hoisted(() => ({ reservasComSinalNoCartao: vi.fn() }));
+vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({ recebimentosRepository: recebimentos }));
 vi.mock('../services/scheduleSettingsService.js', () => ({ getBusinessScheduleSettings: vi.fn().mockResolvedValue({ timezone: 'America/Sao_Paulo' }) }));
 
 const { crmService: crmProfileService } = await import('../modules/crm/crm.service.js');
@@ -29,6 +31,7 @@ beforeEach(() => {
   repo.visitasDoCliente.mockResolvedValue([]);
   repo.agendamentosDoCliente.mockResolvedValue([]);
   repo.ficha.mockResolvedValue(null);
+  recebimentos.reservasComSinalNoCartao.mockResolvedValue(new Set());
   repo.ownerName.mockResolvedValue('Dona Bia');
   repo.configuracao.mockResolvedValue({ segment: 'unhas', dailyRevenueGoal: null });
   repo.salvarFicha.mockImplementation(async (a: Record<string, unknown>) => ({ ...a, updatedAt: '2026-10-14T15:00:00.000Z' }));
@@ -134,6 +137,19 @@ describe('crmService.timeline', () => {
     const reserva = todos.find((e) => e.titulo.includes('20/10'))!;
     expect(reserva.data).toBe('2026-10-14T16:30:00.000Z');
     expect(todos.indexOf(canc)).toBeLessThan(todos.indexOf(reserva));
+  });
+
+  it('sinal pago no cartão aparece como "Sinal no cartão", numa consulta só', async () => {
+    repo.agendamentosDoCliente.mockResolvedValue([
+      agenda({ id: 'a2', status: 'confirmado', source: 'publico', depositAmount: 20, finishedAt: null }),
+      agenda({ id: 'a3', status: 'confirmado', source: 'publico', depositAmount: 15, finishedAt: null }),
+    ]);
+    recebimentos.reservasComSinalNoCartao.mockResolvedValue(new Set(['a2']));
+    const todos = await crmProfileService.timeline('b1', 'c1', 'todos');
+    expect(recebimentos.reservasComSinalNoCartao).toHaveBeenCalledTimes(1);
+    expect(recebimentos.reservasComSinalNoCartao).toHaveBeenCalledWith('b1', expect.arrayContaining(['a2', 'a3']));
+    const sinais = todos.filter((e) => e.tipo === 'sinal_pix').map((e) => e.titulo).sort();
+    expect(sinais).toEqual(['Sinal Pix de R$ 15,00 pago na reserva online', 'Sinal no cartão de R$ 20,00 pago na reserva online']);
   });
 
   it('sinal Pix não aparece para reserva pública cancelada', async () => {
