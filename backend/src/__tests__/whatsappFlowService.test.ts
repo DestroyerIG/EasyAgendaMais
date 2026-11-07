@@ -176,7 +176,9 @@ const { prisma } = await import('../config/prisma.js');
 const { ConflictError, NotFoundError, ForbiddenError } = await import('../utils/errors.js');
 const { AVISO_TESTE } = await import('../services/whatsapp/whatsappConstants.js');
 const { agendamentoExemplo } = await import('../services/whatsapp/whatsappBookingService.js');
-const { formatMessage } = await import('../services/whatsapp/whatsappMessageService.js');
+const { formatMessage, buildWelcomeMessage } = await import('../services/whatsapp/whatsappMessageService.js');
+const { DEFAULT_BOT_CONFIG } = await import('../services/whatsapp/whatsappConstants.js');
+const { estadoContaService } = await import('../modules/conta/estadoConta.service.js');
 
 describe('whatsappFlowService guards', () => {
   beforeEach(() => {
@@ -202,6 +204,7 @@ describe('whatsappFlowService guards', () => {
     mockUpdateSession.mockResolvedValue(undefined);
     mockDeleteSession.mockResolvedValue(undefined);
     mockGetBotConfig.mockResolvedValue({
+      ...DEFAULT_BOT_CONFIG,
       invalid_option_message: 'Opcao invalida.',
       no_slots_message: 'Sem horarios disponiveis.',
       confirmation_message: 'Agendamento confirmado',
@@ -854,6 +857,9 @@ describe('whatsappFlowService guards', () => {
   it('responde fora do expediente quando mensagem chega as 07:30', async () => {
     mockPoolQuery.mockResolvedValueOnce({ rows: [{ id: 'tenant-1' }] });
     mockIsWithinBusinessHours.mockReturnValue(false);
+    mockGetBotConfig.mockResolvedValue({ ...DEFAULT_BOT_CONFIG });
+    vi.mocked(formatMessage).mockImplementationOnce(((t: string, d: { horarioAtendimento?: string } = {}) =>
+      t.replace('{horario_atendimento}', d.horarioAtendimento ?? '')) as never);
 
     const result = await handleIncomingMessage('5511777777777', 'oi', {
       now: new Date('2026-04-18T07:30:00-03:00'),
@@ -868,7 +874,7 @@ describe('whatsappFlowService guards', () => {
 
     expect(mockSendWhatsAppMessage).toHaveBeenCalledWith(
       '5511777777777',
-      expect.stringContaining('08:00 as 18:00'),
+      expect.stringContaining('das 08:00 as 18:00'),
       expect.objectContaining({
         knownInstanceNumbers: ['5511888888888'],
       })
@@ -881,6 +887,9 @@ describe('whatsappFlowService guards', () => {
       .mockResolvedValueOnce({ rows: [{ name: 'Professional Prime' }] });
 
     mockIsWithinBusinessHours.mockReturnValue(true);
+    mockGetBotConfig.mockResolvedValue({ ...DEFAULT_BOT_CONFIG });
+    vi.mocked(formatMessage).mockImplementationOnce(((t: string, d: { horaFechamento?: string } = {}) =>
+      t.replace('{hora_fechamento}', d.horaFechamento ?? '')) as never);
 
     const result = await handleIncomingMessage('5511777777777', 'oi', {
       now: new Date('2026-04-18T10:00:00-03:00'),
@@ -1364,6 +1373,7 @@ describe('whatsappFlowService guards', () => {
         },
       });
       mockGetBotConfig.mockResolvedValue({
+        ...DEFAULT_BOT_CONFIG,
         invalid_option_message: 'Opcao invalida.',
         no_slots_message: 'Sem horarios disponiveis.',
         reschedule_success_message: '✅ Seu horário foi remarcado!\n\n📋 Serviço: {servico}\n👤 Profissional: {profissional}\n📅 Data: {data}\n⏰ Horário: {horario}',
@@ -1644,6 +1654,7 @@ describe('whatsappFlowService guards', () => {
       process.env.WHATSAPP_DEFAULT_BUSINESS_ID = 'tenant-1';
       mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
       mockGetBotConfig.mockResolvedValue({
+        ...DEFAULT_BOT_CONFIG,
         invalid_option_message: 'Opcao invalida.',
         manage_list_message: '🔄 Seus agendamentos:',
         manage_no_appointments_message: '📋 Sem agendamentos.',
@@ -1892,6 +1903,247 @@ describe('whatsappFlowService guards', () => {
       mockGetSession.mockResolvedValue({ step: 'confirm_reschedule', data: { appointments: [A1] } });
       await real('1');
       expect(mockUpdateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1', 'choose_date', expect.objectContaining({ rescheduleAppointmentId: 'apt-1' }));
+    });
+  });
+
+  describe('texto personalizado', () => {
+    const NUMERO = '5511777777777';
+    const AGORA = new Date('2026-04-18T10:00:00-03:00');
+    const marca = (chave: string) => `[[${chave}]]`;
+    const agendamento = { id: 'apt-1', date: new Date('2026-04-20T12:00:00Z'), time: '10:00', service_id: 'service-1', professional_id: 'professional-1' };
+    const servico = { id: 's1', name: 'Corte', price: 40, durationMinutes: 30 };
+
+    const real = (texto: string) => handleIncomingMessage(NUMERO, texto, { now: AGORA });
+    const enviadas = () => mockSendWhatsAppMessage.mock.calls.map((c) => String(c[1])).join('\n---\n');
+    const menuCom = (handler: string) => {
+      mockGetSession.mockResolvedValue({ step: 'menu', data: {} });
+      mockGetMenuOptions.mockResolvedValue([
+        { option_order: 1, handler, type: 'system', active: true, label: 'Opcao', emoji: '', response_message: null },
+      ]);
+    };
+
+    beforeEach(() => {
+      process.env.WHATSAPP_DEFAULT_BUSINESS_ID = 'tenant-1';
+      mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
+      vi.mocked(formatMessage).mockImplementation(((message: unknown) => message) as never);
+      const config: Record<string, string> = { ...DEFAULT_BOT_CONFIG };
+      for (const chave of Object.keys(DEFAULT_BOT_CONFIG)) config[chave] = marca(chave);
+      mockGetBotConfig.mockResolvedValue(config);
+      vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: 'c1', name: 'Maria Silva' } as never);
+      vi.mocked(prisma.service.findMany).mockResolvedValue([servico] as never);
+      vi.mocked(prisma.professional.findMany).mockResolvedValue([{ id: 'p1', name: 'Joao' }] as never);
+      vi.mocked(prisma.business.findFirst).mockResolvedValue(null as never);
+      vi.mocked(prisma.appointment.updateMany).mockResolvedValue({ count: 1 } as never);
+    });
+
+    afterEach(() => {
+      vi.mocked(formatMessage).mockImplementation(((message: unknown) => message) as never);
+      vi.mocked(estadoContaService.doNegocio).mockResolvedValue({ tipo: 'ativa' } as never);
+    });
+
+    it.each([
+      ['services_list_title', 'view_services', () => undefined],
+      ['no_services_message', 'view_services', () => vi.mocked(prisma.service.findMany).mockResolvedValue([] as never)],
+      ['no_services_available_message', 'schedule', () => vi.mocked(prisma.service.findMany).mockResolvedValue([] as never)],
+      ['choose_service_title', 'schedule', () => undefined],
+    ])('%s aparece no ponto certo (menu %s)', async (chave, handler, preparar) => {
+      menuCom(handler);
+      preparar();
+      await real('1');
+      expect(enviadas()).toContain(marca(chave));
+    });
+
+    it('name_greeting_message e choose_service_title depois do nome, com o nome da cliente', async () => {
+      mockGetSession.mockResolvedValue({ step: 'ask_name', data: {} });
+      await real('Joana Silva');
+      expect(enviadas()).toContain(marca('name_greeting_message'));
+      expect(enviadas()).toContain(marca('choose_service_title'));
+      expect(vi.mocked(formatMessage)).toHaveBeenCalledWith(marca('name_greeting_message'), expect.objectContaining({ clientName: 'Joana Silva' }));
+    });
+
+    it('sem servicos depois do nome: no_services_available_message', async () => {
+      mockGetSession.mockResolvedValue({ step: 'ask_name', data: {} });
+      vi.mocked(prisma.service.findMany).mockResolvedValue([] as never);
+      await real('Joana Silva');
+      expect(enviadas()).toContain(marca('no_services_available_message'));
+    });
+
+    it('choose_professional_title e no_professionals_message ao escolher o servico', async () => {
+      mockGetSession.mockResolvedValue({ step: 'choose_service', data: { services: [{ id: 's1', name: 'Corte', price: '40', duration_minutes: 30 }] } });
+      await real('1');
+      expect(enviadas()).toContain(marca('choose_professional_title'));
+
+      mockSendWhatsAppMessage.mockClear();
+      vi.mocked(prisma.professional.findMany).mockResolvedValue([] as never);
+      await real('1');
+      expect(enviadas()).toContain(marca('no_professionals_message'));
+    });
+
+    it('no_professionals_message na remarcacao de exemplo sem profissional passa pelo formatMessage', async () => {
+      mockGetSession.mockResolvedValue({ step: 'choose_date', data: { rescheduleAppointmentId: 'simulador', availableDates: ['2026-04-20'] } });
+      await real('1');
+      expect(enviadas()).toContain(marca('no_professionals_message'));
+      expect(vi.mocked(formatMessage)).toHaveBeenCalledWith(marca('no_professionals_message'), expect.anything());
+    });
+
+    it('choose_date_title ao escolher o profissional', async () => {
+      mockGetSession.mockResolvedValue({ step: 'choose_professional', data: { professionals: [{ id: 'p1', name: 'Joao' }] } });
+      await real('1');
+      expect(enviadas()).toContain(marca('choose_date_title'));
+    });
+
+    it('closed_day_message quando o dia esta fechado', async () => {
+      mockGetSession.mockResolvedValue({ step: 'choose_date', data: { availableDates: ['2026-04-20'], professionalId: 'p1' } });
+      mockIsBusinessOpenOnDate.mockReturnValue(false);
+      await real('1');
+      expect(enviadas()).toContain(marca('closed_day_message'));
+    });
+
+    it('choose_time_title e walkin_notice na lista de horarios', async () => {
+      mockGetSession.mockResolvedValue({ step: 'choose_date', data: { availableDates: ['2026-04-20'], professionalId: 'p1', serviceDuration: 30 } });
+      mockGetBusinessBusinessSettings.mockResolvedValue({ openingTime: '08:00', closingTime: '18:00', slotIntervalMinutes: 30, allowWalkins: true, timezone: 'America/Sao_Paulo' });
+      mockGenerateAvailableTimeSlots.mockReturnValue(['10:00']);
+      await real('1');
+      expect(enviadas()).toContain(marca('choose_time_title'));
+      expect(enviadas()).toContain(marca('walkin_notice'));
+    });
+
+    it('walkin_notice junto de no_slots_message quando nao ha horarios', async () => {
+      mockGetSession.mockResolvedValue({ step: 'choose_date', data: { availableDates: ['2026-04-20'], professionalId: 'p1', serviceDuration: 30 } });
+      mockGetBusinessBusinessSettings.mockResolvedValue({ openingTime: '08:00', closingTime: '18:00', slotIntervalMinutes: 30, allowWalkins: true, timezone: 'America/Sao_Paulo' });
+      mockGenerateAvailableTimeSlots.mockReturnValue([]);
+      await real('1');
+      expect(enviadas()).toContain(marca('no_slots_message'));
+      expect(enviadas()).toContain(marca('walkin_notice'));
+    });
+
+    it('slot_taken_message quando o horario acabou de ser reservado', async () => {
+      mockGetSession.mockResolvedValue({
+        step: 'choose_time',
+        data: { availableSlots: ['10:00', '10:30'], selectedDate: '2026-04-20', professionalId: 'p1', serviceId: 's1', clientId: 'c1' },
+      });
+      mockPoolQuery.mockImplementation(async (q: string) =>
+        ({ rows: typeof q === 'string' && q.includes('SELECT id FROM appointments') ? [{ id: 'x' }] : [] }));
+      await real('1');
+      expect(enviadas()).toContain(marca('slot_taken_message'));
+    });
+
+    it('booking_failed_message quando criar o agendamento falha', async () => {
+      mockGetSession.mockResolvedValue({
+        step: 'choose_time',
+        data: { availableSlots: ['10:00'], selectedDate: '2026-04-20', professionalId: 'p1', serviceId: 's1', clientId: 'c1' },
+      });
+      mockAppointmentServiceCreate.mockRejectedValue(new Error('falhou'));
+      await real('1');
+      expect(enviadas()).toContain(marca('booking_failed_message'));
+    });
+
+    it('a confirmacao passa pelo formatMessage com todos os dados do agendamento', async () => {
+      mockGetSession.mockResolvedValue({
+        step: 'choose_time',
+        data: {
+          availableSlots: ['10:00'], selectedDate: '2026-04-20', professionalId: 'p1', serviceId: 's1', clientId: 'c1',
+          serviceName: 'Corte', professionalName: 'Joao', servicePrice: 55, clientName: 'Maria Silva',
+        },
+      });
+      await real('1');
+      expect(vi.mocked(formatMessage)).toHaveBeenCalledWith(marca('confirmation_message'), expect.objectContaining({
+        serviceName: 'Corte', professionalName: 'Joao', dateFormatted: '20/04/2026', time: '10:00', servicePrice: '55.00', clientName: 'Maria Silva',
+      }));
+      expect(enviadas()).toContain(marca('confirmation_message'));
+    });
+
+    it('manage_action_message recebe data e horario', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_choose', data: { appointments: [agendamento, { ...agendamento, id: 'apt-2' }] } });
+      await real('1');
+      expect(enviadas()).toContain(marca('manage_action_message'));
+      expect(vi.mocked(formatMessage)).toHaveBeenCalledWith(marca('manage_action_message'), expect.objectContaining({ dateFormatted: expect.any(String), time: '10:00' }));
+    });
+
+    it('new_date_title ao remarcar', async () => {
+      mockGetSession.mockResolvedValue({ step: 'manage_action', data: { appointment: agendamento } });
+      await real('1');
+      expect(enviadas()).toContain(marca('new_date_title'));
+    });
+
+    it('list_error_message quando listar os agendamentos falha', async () => {
+      menuCom('manage');
+      mockPoolQuery.mockRejectedValue(new Error('banco fora'));
+      await real('1');
+      expect(enviadas()).toContain(marca('list_error_message'));
+    });
+
+    it('invalid_list_choice_message em numero invalido nas listas de cancelar e remarcar', async () => {
+      for (const step of ['confirm_cancel', 'confirm_reschedule']) {
+        mockSendWhatsAppMessage.mockClear();
+        mockGetSession.mockResolvedValue({ step, data: { appointments: [agendamento] } });
+        await real('9');
+        expect(enviadas()).toContain(marca('invalid_list_choice_message'));
+      }
+    });
+
+    it('appointment_inactive_message ao cancelar um agendamento que ja nao esta ativo', async () => {
+      mockGetSession.mockResolvedValue({ step: 'confirm_cancel', data: { appointments: [agendamento] } });
+      vi.mocked(prisma.appointment.updateMany).mockResolvedValue({ count: 0 } as never);
+      await real('1');
+      expect(enviadas()).toContain(marca('appointment_inactive_message'));
+    });
+
+    it('reschedule_inactive_message e reschedule_failed_message na remarcacao', async () => {
+      mockGetSession.mockResolvedValue({
+        step: 'choose_time',
+        data: { availableSlots: ['10:00'], selectedDate: '2026-04-20', professionalId: 'p1', rescheduleAppointmentId: 'apt-orig' },
+      });
+      mockAppointmentServiceUpdate.mockRejectedValue(new NotFoundError('Agendamento'));
+      await real('1');
+      expect(enviadas()).toContain(marca('reschedule_inactive_message'));
+
+      mockSendWhatsAppMessage.mockClear();
+      mockAppointmentServiceUpdate.mockRejectedValue(new Error('falhou'));
+      await real('1');
+      expect(enviadas()).toContain(marca('reschedule_failed_message'));
+    });
+
+    it('out_of_hours_message recebe o horario de atendimento', async () => {
+      mockIsWithinBusinessHours.mockReturnValue(false);
+      await real('oi');
+      expect(enviadas()).toContain(marca('out_of_hours_message'));
+      expect(vi.mocked(formatMessage)).toHaveBeenCalledWith(marca('out_of_hours_message'), expect.objectContaining({ horarioAtendimento: '08:00 as 18:00' }));
+    });
+
+    it('today_hours_message e walkin_notice entram na saudacao, com a hora de fechamento', async () => {
+      mockGetBusinessBusinessSettings.mockResolvedValue({ openingTime: '08:00', closingTime: '18:00', slotIntervalMinutes: 30, allowWalkins: true, timezone: 'America/Sao_Paulo' });
+      await real('oi');
+      const contexto = vi.mocked(buildWelcomeMessage).mock.calls.at(-1)?.[3];
+      expect(contexto).toContain(marca('today_hours_message'));
+      expect(contexto).toContain(marca('walkin_notice'));
+      expect(vi.mocked(formatMessage)).toHaveBeenCalledWith(marca('today_hours_message'), expect.objectContaining({ horaFechamento: '18:00' }));
+    });
+
+    it('paused_message com o nome do negocio quando a agenda esta pausada', async () => {
+      vi.mocked(estadoContaService.doNegocio).mockResolvedValue({ tipo: 'bloqueada', motivo: 'cobranca' } as never);
+      vi.mocked(prisma.business.findFirst).mockResolvedValue({ name: 'Studio Aurora' } as never);
+      await real('oi');
+      expect(enviadas()).toContain(marca('paused_message'));
+      expect(vi.mocked(formatMessage)).toHaveBeenCalledWith(marca('paused_message'), expect.objectContaining({ businessName: 'Studio Aurora' }));
+    });
+
+    it('resposta de opcao propria passa pelo formatMessage com o nome do negocio', async () => {
+      mockGetSession.mockResolvedValue({ step: 'menu', data: {} });
+      mockGetMenuOptions.mockResolvedValue([
+        { option_order: 1, handler: 'custom', type: 'custom', active: true, label: 'Horarios', emoji: '', response_message: 'Aqui e o {nome_negocio}' },
+      ]);
+      vi.mocked(prisma.business.findFirst).mockResolvedValue({ name: 'Studio Aurora' } as never);
+      await real('1');
+      expect(vi.mocked(formatMessage)).toHaveBeenCalledWith('Aqui e o {nome_negocio}', expect.objectContaining({ businessName: 'Studio Aurora' }));
+    });
+
+    it('{nome_negocio} funciona em texto sem dados proprios (fim do atendimento)', async () => {
+      vi.mocked(prisma.business.findFirst).mockResolvedValue({ name: 'Studio Aurora' } as never);
+      mockGetBotConfig.mockResolvedValue({ ...DEFAULT_BOT_CONFIG, end_session_message: 'Tchau do {nome_negocio}' });
+      menuCom('end_session');
+      await real('1');
+      expect(vi.mocked(formatMessage)).toHaveBeenCalledWith('Tchau do {nome_negocio}', expect.objectContaining({ businessName: 'Studio Aurora' }));
     });
   });
 });

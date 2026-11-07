@@ -155,3 +155,54 @@ describe('textosDoNegocio / salvarTextos', () => {
     expect(semHorario.personalizado).toBe(false);
   });
 });
+
+describe('textos do fluxo', () => {
+  const NOVAS: Record<string, { caminho: string; variaveis: string[] }> = {
+    services_list_title: { caminho: 'view_services', variaveis: [] },
+    no_services_message: { caminho: 'view_services', variaveis: [] },
+    name_greeting_message: { caminho: 'schedule', variaveis: ['nome_cliente'] },
+    choose_service_title: { caminho: 'schedule', variaveis: [] },
+    choose_date_title: { caminho: 'schedule', variaveis: [] },
+    choose_time_title: { caminho: 'schedule', variaveis: [] },
+    closed_day_message: { caminho: 'schedule', variaveis: [] },
+    slot_taken_message: { caminho: 'schedule', variaveis: [] },
+    walkin_notice: { caminho: 'schedule', variaveis: [] },
+    booking_failed_message: { caminho: 'schedule', variaveis: [] },
+    new_date_title: { caminho: 'manage', variaveis: [] },
+    list_error_message: { caminho: 'manage', variaveis: [] },
+    manage_action_message: { caminho: 'manage', variaveis: ['data', 'horario'] },
+    cancel_success_message: { caminho: 'manage', variaveis: [] },
+    reschedule_success_message: { caminho: 'manage', variaveis: ['servico', 'profissional', 'data', 'horario'] },
+    out_of_hours_message: { caminho: 'geral', variaveis: ['horario_atendimento'] },
+    today_hours_message: { caminho: 'geral', variaveis: ['hora_fechamento'] },
+    paused_message: { caminho: 'geral', variaveis: ['nome_negocio'] },
+    invalid_list_choice_message: { caminho: 'geral', variaveis: [] },
+  };
+
+  it('toda chave do catálogo tem padrão e só lembrete e sessão expirada ficam fora dele', () => {
+    const chaves = CATALOGO_TEXTOS.map((t) => t.chave as string);
+    for (const c of chaves) expect(Object.keys(DEFAULT_BOT_CONFIG), c).toContain(c);
+    const fora = Object.keys(DEFAULT_BOT_CONFIG).filter((k) => !chaves.includes(k)).sort();
+    expect(fora).toEqual(['reminder_message', 'session_expired_message']);
+  });
+
+  it.each(Object.entries(NOVAS))('%s: caminho e variáveis do catálogo', (chave, esperado) => {
+    const def = CATALOGO_TEXTOS.find((t) => t.chave === chave);
+    expect(def, chave).toBeDefined();
+    expect(def!.caminho).toBe(esperado.caminho);
+    expect(def!.variaveis).toEqual(esperado.variaveis);
+    expect((DEFAULT_BOT_CONFIG as unknown as Record<string, string>)[chave]!.trim()).not.toBe('');
+  });
+
+  it('salva e lê um texto novo em textos_extras', async () => {
+    await salvarTextos(ID, { walkin_notice: 'Aceitamos encaixe!' });
+    expect(estado.linha?.textosExtras).toEqual({ walkin_notice: 'Aceitamos encaixe!' });
+    expect((await getBotConfig(ID)).walkin_notice).toBe('Aceitamos encaixe!');
+  });
+
+  it('os padrões não prometem número de opção', () => {
+    for (const t of CATALOGO_TEXTOS) {
+      expect((DEFAULT_BOT_CONFIG as unknown as Record<string, string>)[t.chave], t.chave).not.toMatch(/escolha a opção \d/i);
+    }
+  });
+});

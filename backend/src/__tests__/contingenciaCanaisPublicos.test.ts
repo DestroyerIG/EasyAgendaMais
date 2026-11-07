@@ -29,7 +29,7 @@ vi.mock('../modules/whatsappInbox/inbox.recorder.js', () => ({ inboxRecorder: { 
 vi.mock('../services/whatsapp/whatsappMessageService.js', () => ({
   sendWhatsAppMessage: mockSend,
   buildWelcomeMessage: mockBuildMenu,
-  formatMessage: vi.fn((m: unknown) => m),
+  formatMessage: vi.fn((m: string, d: { businessName?: string } = {}) => m.replace('{nome_negocio}', d.businessName ?? '')),
 }));
 vi.mock('../services/whatsappClient.js', () => ({
   getWhatsAppStatus: vi.fn(),
@@ -44,7 +44,9 @@ vi.mock('../services/whatsapp/whatsappSessionService.js', () => ({
   deleteSession: mockDeleteSession,
 }));
 vi.mock('../services/whatsapp/whatsappConfigService.js', () => ({
-  getBotConfig: vi.fn().mockResolvedValue({}),
+  getBotConfig: vi.fn().mockResolvedValue({
+    paused_message: 'A agenda online está pausada no momento. Fale direto com {nome_negocio} pelo WhatsApp.',
+  }),
   getMenuOptions: vi.fn().mockResolvedValue([{ label: 'Agendar', emoji: 'x' }]),
 }));
 vi.mock('../services/scheduleSettingsService.js', () => ({
