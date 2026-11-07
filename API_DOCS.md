@@ -360,12 +360,14 @@ Conexão e robô:
 
 | Método | Rota |
 |---|---|
-| GET | `/status`, `/qrcode`, `/qr`, `/config`, `/config/menu` |
+| GET | `/status`, `/qrcode`, `/qr`, `/config`, `/config/menu`, `/config/textos`, `/config/instagram` |
 | POST | `/connect`, `/initialize`, `/disconnect`, `/logout`, `/restart` |
-| POST | `/send`, `/test-send`, `/debug-send`, `/simulator/message` |
-| PUT | `/config`, `/config/menu/:id`, `/config/menu-reorder` |
+| POST | `/send`, `/test-send`, `/debug-send`, `/simulator/message`, `/simulator/reset` |
+| PUT | `/config`, `/config/menu/:id`, `/config/menu-reorder`, `/config/textos`, `/config/instagram` |
 | POST | `/config/reset`, `/config/menu`, `/config/menu/reset` |
 | DELETE | `/config/menu/:id` |
+
+Notas do robô: `GET /config/menu` devolve `numero` e `motivoOculta` em cada opção. `PUT /config/menu-reorder` responde 409 `MENU_DESATUALIZADO` se a lista estiver desatualizada. `GET/PUT /config/textos` usa `{ textos: Record<string, string|null> }` e `null` restaura o padrão. `PUT /config/instagram` grava o perfil usado na opção do menu. `POST /simulator/message` não grava nada. `PATCH /whatsapp/automacoes/:regra` aceita `textoConfirmado`, `textoCancelado`, `textoNota` e `textoGoogle` em `config`. `POST /config/reset` não é usada pela tela.
 
 Central de conversas:
 

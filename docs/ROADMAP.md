@@ -38,6 +38,9 @@ Atualizado em 27/10/2026.
 | Busca | Busca geral do painel: clientes, agendamentos e telas, no computador e no celular | ✅ Concluída (juntada em 05/11, sem migração) | PR #41 |
 | Página pública 1 | Página de agendamento fiel ao Stitch com os dados atuais: perfil, 3 etapas e cor do negócio | ✅ Concluída (juntada em 05/11, sem migração) | PR #43 |
 | Página pública 2 | Capa, descrição, comodidades, nota, vagas por dia, horários ocupados e confirmação | ✅ Concluída (juntada e migrada em 05/11) | PR #45 |
+| Robô 1 | Robô de atendimento: menu pela lista visível, promoções e Instagram, remarcar move o agendamento, simulador que não grava, avaliação só em Automações | ✅ Concluída (juntada em 06/11, sem migração) | PR #47 |
+| Robô 2 | Robô de atendimento: menu por segmento (até 6 opções), fonte única `menuPadrao(segmento)`, reordenação com `MENU_DESATUALIZADO` | ✅ Concluída (juntada em 06/11, sem migração) | PR #48 |
+| Robô 3 | Robô de atendimento: textos editáveis, respostas das Automações editáveis e tela única (Menu e mensagens + simulador) | 🟡 Em revisão (migração `20261108120000_robo_textos` **pendente**, precisa de autorização do dono) | PR 3 |
 
 ## Fase 7 (concluída)
 

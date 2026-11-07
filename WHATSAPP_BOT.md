@@ -60,12 +60,19 @@ A aba também mostra a saúde da conexão, os limites e o histórico de envios (
 
 ## Robô de agendamento
 
-- Menu configurável (`/whatsapp/config` e `/whatsapp/config/menu`): saudação, mensagens por etapa, opções, reordenação e reset.
+- Menu por segmento (`menuPadrao(segmento)`, fonte única): até 6 opções, com "Remarcar ou cancelar". A numeração segue a lista visível; o menu não personalizado migra sozinho e o personalizado é mantido. A avaliação não é opção do menu: só existe em Automações (nota de 1 a 5, nunca sobrescrita).
+- Rotas do menu (`/whatsapp/config` e `/whatsapp/config/menu`): `GET /config/menu` devolve `numero` e `motivoOculta` (por exemplo promoção sem texto); reordenar com lista desatualizada devolve 409 `MENU_DESATUALIZADO`; o reset usa o segmento atual.
+- **Textos editáveis:** `GET/PUT /whatsapp/config/textos` (`{ textos: Record<string, string|null> }`). `null` restaura o padrão e o texto igual ao padrão é gravado como `null`. Ficam em `whatsapp_bot_config.textos_extras` (JSONB); o catálogo está em `services/whatsapp/whatsappTextos.ts`. Todo texto que a cliente lê no fluxo é editável, e o padrão é neutro e usa o vocabulário do segmento (`services/whatsapp/whatsappVocabulario.ts`).
+- Variáveis: `{nome_negocio}` (inclusive em promoções e Instagram), `{horario_atendimento}` e `{hora_fechamento}` (via `formatMessage`).
+- Promoções só aparecem com texto cadastrado (sem padrão inventado). O perfil do Instagram fica em `GET/PUT /whatsapp/config/instagram`.
+- Remarcar move o agendamento existente: mantém o sinal e zera lembrete e confirmação. O cancelamento confere o negócio e a situação.
 - Agenda com os mesmos horários do painel: dias abertos, abertura e fechamento, intervalo, almoço da profissional, reservas pendentes e compromissos do Google Agenda.
 - Agendamentos criados pelo robô gravam `source = 'whatsapp'`.
-- Os textos padrão usam o vocabulário do segmento (`services/whatsapp/whatsappVocabulario.ts`).
+- Respostas das Automações editáveis (confirmação, cancelamento, nota e convite ao Google com `{link}`): campos `textoConfirmado`, `textoCancelado`, `textoNota` e `textoGoogle` em `WhatsappAutomacao.config`.
 - Resposta rápida "Política" editável (política de cancelamento e sinal).
-- **Simulador:** `POST /whatsapp/simulator/message` testa o fluxo sem mensagem real.
+- **Tela (aba Robô):** Menu e mensagens + Mensagens gerais, com o simulador ao lado no computador e o botão "Testar" no celular. A migração `20261108120000_robo_textos` precisa estar aplicada antes do deploy do backend.
+- **Simulador:** `POST /whatsapp/simulator/message` testa o fluxo sem gravar nada, mostra todas as respostas e avisa "Teste: nada foi agendado". `POST /whatsapp/simulator/reset` zera a conversa de teste.
+- `POST /whatsapp/config/reset` segue no backend, sem uso na tela.
 
 ## Ponto único de envio
 
