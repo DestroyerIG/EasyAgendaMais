@@ -6,29 +6,34 @@ import { DEFAULT_BOT_CONFIG, type BotConfig } from './whatsappConstants.js';
 
 const rotuloProfissional = (v: Vocabulario) => maiuscula(v.profissional.singular);
 
-/** As mensagens padrão já com os termos do segmento. */
-export function mensagensPadrao(v: Vocabulario): Partial<BotConfig> {
+/**
+ * As mensagens padrão já com os termos do segmento. Cobre todo o catálogo de textos (e o lembrete,
+ * que fica fora dele). No segmento `outro` valem os textos de sempre ("o profissional").
+ */
+export function mensagensPadrao(v: Vocabulario): BotConfig {
+  const base: BotConfig = { ...DEFAULT_BOT_CONFIG };
+  if (v.segmento === 'outro') return base;
   const p = v.profissional;
+  const rotulo = (texto: string) => texto.replace('👤 Profissional:', `👤 ${rotuloProfissional(v)}:`);
   return {
-    confirmation_message: DEFAULT_BOT_CONFIG.confirmation_message.replace('👤 Profissional:', `👤 ${rotuloProfissional(v)}:`),
-    reminder_message: DEFAULT_BOT_CONFIG.reminder_message.replace('👤 Profissional:', `👤 ${rotuloProfissional(v)}:`),
-    reschedule_success_message: DEFAULT_BOT_CONFIG.reschedule_success_message.replace('👤 Profissional:', `👤 ${rotuloProfissional(v)}:`),
-    no_slots_message: DEFAULT_BOT_CONFIG.no_slots_message
+    ...base,
+    confirmation_message: rotulo(base.confirmation_message),
+    reminder_message: rotulo(base.reminder_message),
+    reschedule_success_message: rotulo(base.reschedule_success_message),
+    no_slots_message: base.no_slots_message
       .replace('com este profissional', `com ${pelo(p, 'esta', 'este')} ${p.singular}`)
       .replace('outro profissional', `${pelo(p, 'outra', 'outro')} ${p.singular}`),
+    choose_professional_title: `Escolha ${artigo(p)} ${p.singular}`,
+    no_professionals_message: `Desculpe, não há ${p.plural} disponíveis no momento.`,
   };
 }
 
 export function aplicarVocabulario(config: BotConfig, v: Vocabulario): BotConfig {
-  // Sem segmento definido, o bot continua com os textos de sempre ("o profissional").
-  if (v.segmento === 'outro') return config;
   const padrao = mensagensPadrao(v);
   const saida: BotConfig = { ...config };
   for (const chave of Object.keys(padrao) as Array<keyof BotConfig>) {
     if (config[chave] === DEFAULT_BOT_CONFIG[chave]) (saida as unknown as Record<string, string>)[chave] = padrao[chave] as string;
   }
-  saida.choose_professional_title = `Escolha ${artigo(v.profissional)} ${v.profissional.singular}`;
-  saida.no_professionals_message = `Desculpe, não há ${v.profissional.plural} disponíveis no momento.`;
   return saida;
 }
 

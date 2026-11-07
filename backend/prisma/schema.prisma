@@ -463,6 +463,8 @@ model WhatsappBotConfig {
   promotionsMessage                String?  @map("promotions_message") @db.Text
   instagramMessage                 String?  @map("instagram_message") @db.Text
   politicaMessage                  String?  @map("politica_message") @db.Text
+  // Textos sem coluna própria, por chave (ver whatsappTextos.ts).
+  textosExtras                     Json     @default("{}") @map("textos_extras")
   createdAt                        DateTime @default(now()) @map("created_at")
   updatedAt                        DateTime @default(now()) @updatedAt @map("updated_at")
 

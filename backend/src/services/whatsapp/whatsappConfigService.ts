@@ -9,6 +9,7 @@ import { DEFAULT_BOT_CONFIG, PADROES_ANTIGOS, BotConfig } from './whatsappConsta
 import { aplicarVocabulario } from './whatsappVocabulario.js';
 import { vocabularioDe } from '../../config/vocabulario.js';
 import type { Segmento } from '../../modules/crm/technicalSheetTemplates.js';
+import { CATALOGO_TEXTOS, COLUNAS_TEXTO } from './whatsappTextos.js';
 import { menuPadrao, menuNaoPersonalizado, mesmoMenu } from './whatsappMenuPadrao.js';
 
 // ── Menu option row shape returned by the DB ──────────────────────────────────
@@ -48,30 +49,21 @@ const lerBotConfig = async (businessId: string): Promise<BotConfig> => {
     });
 
     if (dbConfig) {
-      return {
-        welcome_header:                    salvoOuPadrao('welcome_header', dbConfig.welcomeHeader),
-        ask_name_message:                  dbConfig.askNameMessage                  ?? DEFAULT_BOT_CONFIG.ask_name_message,
-        attendant_message:                 salvoOuPadrao('attendant_message', dbConfig.attendantMessage),
-        confirmation_message:              dbConfig.confirmationMessage             ?? DEFAULT_BOT_CONFIG.confirmation_message,
-        reminder_message:                  dbConfig.reminderMessage                 ?? DEFAULT_BOT_CONFIG.reminder_message,
-        invalid_option_message:            dbConfig.invalidOptionMessage            ?? DEFAULT_BOT_CONFIG.invalid_option_message,
-        session_expired_message:           dbConfig.sessionExpiredMessage           ?? DEFAULT_BOT_CONFIG.session_expired_message,
-        end_session_message:               dbConfig.endSessionMessage               ?? DEFAULT_BOT_CONFIG.end_session_message,
-        name_validation_message:           dbConfig.nameValidationMessage           ?? DEFAULT_BOT_CONFIG.name_validation_message,
-        no_slots_message:                  dbConfig.noSlotsMessage                  ?? DEFAULT_BOT_CONFIG.no_slots_message,
-        cancel_no_appointments_message:    salvoOuPadrao('cancel_no_appointments_message', dbConfig.cancelNoAppointmentsMessage),
-        cancel_list_message:               dbConfig.cancelListMessage               ?? DEFAULT_BOT_CONFIG.cancel_list_message,
-        cancel_success_message:            dbConfig.cancelSuccessMessage            ?? DEFAULT_BOT_CONFIG.cancel_success_message,
-        reschedule_no_appointments_message: salvoOuPadrao('reschedule_no_appointments_message', dbConfig.rescheduleNoAppointmentsMessage),
-        reschedule_list_message:           dbConfig.rescheduleListMessage           ?? DEFAULT_BOT_CONFIG.reschedule_list_message,
-        reschedule_success_message:        DEFAULT_BOT_CONFIG.reschedule_success_message,
-        manage_list_message:               DEFAULT_BOT_CONFIG.manage_list_message,
-        manage_no_appointments_message:    DEFAULT_BOT_CONFIG.manage_no_appointments_message,
-        manage_action_message:             DEFAULT_BOT_CONFIG.manage_action_message,
-        promotions_message:                salvoOuPadrao('promotions_message', dbConfig.promotionsMessage),
-        instagram_message:                 salvoOuPadrao('instagram_message', dbConfig.instagramMessage),
-        politica_message:                  dbConfig.politicaMessage                 ?? DEFAULT_BOT_CONFIG.politica_message,
+      const linha = dbConfig as unknown as Record<string, unknown>;
+      const extras = (dbConfig.textosExtras ?? {}) as Record<string, unknown>;
+      // Fora do catálogo: ficam na coluna e não são editáveis na tela.
+      const config: BotConfig = {
+        ...DEFAULT_BOT_CONFIG,
+        reminder_message:        dbConfig.reminderMessage       ?? DEFAULT_BOT_CONFIG.reminder_message,
+        session_expired_message: dbConfig.sessionExpiredMessage ?? DEFAULT_BOT_CONFIG.session_expired_message,
       };
+      for (const def of CATALOGO_TEXTOS) {
+        const coluna = COLUNAS_TEXTO[def.chave];
+        const bruto = coluna ? linha[coluna] : extras[def.chave];
+        const salvo = typeof bruto === 'string' && (def.permiteVazio || bruto.trim() !== '') ? bruto : null;
+        config[def.chave] = salvoOuPadrao(def.chave, salvo);
+      }
+      return config;
     }
 
     return DEFAULT_BOT_CONFIG;

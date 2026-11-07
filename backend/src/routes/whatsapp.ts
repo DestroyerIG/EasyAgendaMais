@@ -24,6 +24,7 @@ import { deleteSession } from '../services/whatsapp/whatsappSessionService.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireTenantRoles } from '../middleware/rbac.js';
 import { requireFeature } from '../middleware/subscriptionGuard.js';
+import { textosDoNegocio, salvarTextos } from '../services/whatsapp/whatsappTextos.js';
 import { prisma } from '../config/prisma.js';
 import { Prisma } from '@prisma/client';
 import { sendSuccess, sendCreated, sendError } from '../utils/response.js';
@@ -2387,6 +2388,26 @@ router.post('/config/reset', ...waProtected, async (req: Request, res: Response,
     );
 
     sendSuccess(res, rows[0]);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/config/textos', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { businessId } = req.user;
+    sendSuccess(res, await textosDoNegocio(businessId!));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/config/textos', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { businessId } = req.user;
+    const { textos } = (req.body ?? {}) as { textos?: unknown };
+    if (!textos || typeof textos !== 'object' || Array.isArray(textos)) throw new ValidationError('Informe os textos a salvar');
+    sendSuccess(res, await salvarTextos(businessId!, textos as Record<string, string | null>));
   } catch (error) {
     next(error);
   }

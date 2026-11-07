@@ -60,7 +60,7 @@ export interface BotConfig {
   promotions_message: string;
   instagram_message: string;
   politica_message: string;
-  /** Calculados pelo vocabulário do segmento (fase 6), não ficam no banco. */
+  /** Padrão vem do vocabulário do segmento (fase 6); o texto editado fica em `textos_extras`. */
   choose_professional_title?: string;
   no_professionals_message?: string;
 }
@@ -108,6 +108,8 @@ export const DEFAULT_BOT_CONFIG: BotConfig = {
   promotions_message: '',
   instagram_message: '📱 *Nos acompanhe no Instagram!*\n\n👉 {instagram_handle}\n\nVeja nossos trabalhos mais recentes e novidades.',
   politica_message: '',
+  choose_professional_title: 'Escolha o profissional',
+  no_professionals_message: 'Desculpe, não há profissionais disponíveis no momento.',
 };
 
 /** Fecha as respostas de agendamento do simulador: nada foi gravado de verdade. */
