@@ -66,7 +66,10 @@ export const cashService = {
     const formas: CashDayDto['formas'] = [
       forma('pix'),
       { chave: 'sinal_pix', valor: reais(soma(sinaisPix)), quantidade: sinaisPix.length },
-      { chave: 'sinal_cartao', valor: reais(soma(sinaisCartao)), quantidade: sinaisCartao.length },
+      // Só aparece para quem recebeu sinal no cartão: o Caixa de quem não usa a integração não muda.
+      ...(sinaisCartao.length > 0
+        ? [{ chave: 'sinal_cartao' as const, valor: reais(soma(sinaisCartao)), quantidade: sinaisCartao.length }]
+        : []),
       forma('debito'), forma('credito'), forma('dinheiro'),
     ];
     const entradasCents = formas.reduce((t, f) => t + cents(f.valor), 0);
@@ -79,6 +82,7 @@ export const cashService = {
         servicos: k.items.map((i) => i.name).join(' + '),
         pagamento: (k.paymentMethod ?? 'sinal') as Linha['pagamento'],
         depositApplied: n(k.depositApplied), total: reais(cents(n(k.totalCharged)) + cents(n(k.depositApplied))), status: 'Fechada',
+        ...(noCartao.has(k.appointment.id) ? { sinalNoCartao: true } : {}),
       })),
       ...emAtendimento.map((a): Linha => ({
         appointmentId: a.id, comandaId: null, numero: null, hora: hhmm(a.time), cliente: a.client.name, telefone: a.client.phone,
@@ -97,6 +101,7 @@ export const cashService = {
         appointmentId: a.id, comandaId: null, numero: null, hora: hhmm(a.time), cliente: a.client.name, telefone: a.client.phone,
         profissional: a.professional.name, servicos: a.service.name, pagamento: 'faltou',
         depositApplied: n(a.depositAmount), total: n(a.service.price), status: 'Falta',
+        ...(noCartao.has(a.id) ? { sinalNoCartao: true } : {}),
       })),
     ].sort((a, b) => a.hora.localeCompare(b.hora));
 

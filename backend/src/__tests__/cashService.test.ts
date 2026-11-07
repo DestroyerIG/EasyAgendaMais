@@ -127,7 +127,6 @@ describe('cashService.getDay', () => {
     expect(dia.formas).toEqual([
       { chave: 'pix', valor: 115, quantidade: 1 },
       { chave: 'sinal_pix', valor: 30, quantidade: 1 },
-      { chave: 'sinal_cartao', valor: 0, quantidade: 0 },
       { chave: 'debito', valor: 75, quantidade: 1 },
       { chave: 'credito', valor: 0, quantidade: 0 },
       { chave: 'dinheiro', valor: 120, quantidade: 1 },

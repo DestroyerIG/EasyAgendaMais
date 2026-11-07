@@ -34,6 +34,8 @@ export interface CashDayDto {
     depositApplied: number; total: number; status: 'Fechada' | 'Aberta' | 'Falta' | 'Clube';
     /** A profissional mandou pelo app para a recepção cobrar (fase 5). */
     prontaParaCobrar?: boolean;
+    /** O sinal desta reserva foi pago no cartão (cobrança automática). */
+    sinalNoCartao?: boolean;
   }>;
   despesas: Array<{ id: string; descricao: string; categoria: string; valor: number; formaPagamento: string | null; criadoEm: string }>;
   movimentos: Array<{ id: string; kind: 'sangria' | 'suprimento'; valor: number; descricao: string; criadoEm: string }>;

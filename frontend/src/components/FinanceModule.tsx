@@ -110,7 +110,7 @@ const ROTULO_PAGAMENTO_LINHA: Record<'pix' | 'debito' | 'credito' | 'dinheiro', 
 function rotuloPagamento(linha: LinhaComanda): string {
   if (linha.pagamento === 'em_atendimento') return 'Em atendimento';
   if (linha.pagamento === 'faltou') return 'Não compareceu';
-  const sinal = `Sinal Pix (${formatCurrency(linha.depositApplied)})`;
+  const sinal = `${linha.sinalNoCartao ? 'Sinal cartão' : 'Sinal Pix'} (${formatCurrency(linha.depositApplied)})`;
   if (linha.pagamento === 'sinal') return sinal;
   const forma = ROTULO_PAGAMENTO_LINHA[linha.pagamento];
   return linha.depositApplied > 0 ? `${sinal} + ${forma}` : forma;
@@ -530,7 +530,7 @@ export const FinanceModule = ({
                     Total faturado: <strong className="font-semibold tabular-nums text-ink">{formatCurrency(dia.totals.entradas)}</strong>
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6">
+                <div className={`grid grid-cols-2 gap-3 sm:grid-cols-3 ${dia.formas.length > 5 ? 'lg:grid-cols-3 xl:grid-cols-6' : 'lg:grid-cols-5'}`}>
                   {dia.formas.map(forma => {
                     const rotulo = ROTULO_FORMA_CAIXA[forma.chave];
                     return (
