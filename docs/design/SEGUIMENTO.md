@@ -325,7 +325,7 @@ Referências: telas `studio-camila-rocha-*` e `barbearia-central-*` em `docs/des
 
 Spec: `docs/superpowers/specs/2026-11-05-robo-atendimento-design.md`. Entregue em três PRs: #47 (menu pela lista visível, promoções sem texto inventado, perfil do Instagram, remarcar move o agendamento, simulador que não grava), #48 (menu por segmento) e o PR 3 (textos editáveis e tela única).
 
-- **Migração pendente (PR 3):** `20261108120000_robo_textos` cria `whatsapp_bot_config.textos_extras JSONB`. **Não foi aplicada em produção**: precisa da autorização do dono e tem de rodar **antes** do deploy do backend, pelo pooler de sessão, com `migrate status` antes e depois. Com o backend novo sem a coluna, a configuração do robô dá erro.
+- **Migração pendente (PR 3):** `20261109120000_robo_textos` cria `whatsapp_bot_config.textos_extras JSONB`. **Não foi aplicada em produção**: precisa da autorização do dono ANTES do merge e é aplicada da máquina local, pelo pooler de sessão, com `migrate status` antes e depois. O Start Command do Render (`npx prisma migrate deploy && npm start`, DEPLOY.md) a aplicaria no deploy do backend mesclado. Sem a coluna, `lerBotConfig` cai em silêncio nos textos padrão (negócio com textos salvos os perde no robô e as promoções somem do menu) e `GET/PUT /whatsapp/config/textos` retornam 500.
 - **Dados de teste do simulador em produção:** ficaram registros do número `5511999999999` (do simulador antigo, que gravava). Só saem com autorização do dono. O simulador atual não grava nada.
 - **Limiar da avaliação baixa:** o alerta usa nota até 2 e o link do Google, até 3. Unificar ficou fora do escopo.
 - **`POST /whatsapp/config/reset`:** segue no backend, mas a tela nova não usa. A restauração é por campo (`PUT /whatsapp/config/textos` com `null`).

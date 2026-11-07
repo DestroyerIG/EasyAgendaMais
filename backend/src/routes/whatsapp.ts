@@ -2474,7 +2474,7 @@ router.get('/config/menu', ...waProtected, async (req: Request, res: Response, n
   }
 });
 
-router.post('/config/menu',...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/config/menu', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { businessId } = req.user;
     const body = req.body as Record<string, unknown>;

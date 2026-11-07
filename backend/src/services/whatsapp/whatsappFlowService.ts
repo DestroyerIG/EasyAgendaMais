@@ -964,6 +964,9 @@ const buildMenuMessage = async (businessId: string, contexto?: string): Promise<
   return cabecalho;
 };
 
+/** Títulos de lista entram em `*${titulo}:*`: tira ':' e espaços do fim para não sair '::'. */
+export const tituloLista = (titulo: string): string => titulo.replace(/[\s:：]+$/u, '');
+
 /**
  * formatMessage com `{nome_negocio}` resolvido sob demanda: o nome só é buscado quando o texto usa a
  * variável (e `data.businessName` não veio pronto), então não custa leitura extra na maioria das mensagens.
@@ -1078,7 +1081,7 @@ const handleMenuStep = async (
           return { ok: true };
         }
 
-        let msg = `📋 *${config.choose_service_title}:*\n\n`;
+        let msg = `📋 *${tituloLista(config.choose_service_title)}:*\n\n`;
         services.forEach((s, i) => {
           msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)\n`;
         });
@@ -1112,7 +1115,7 @@ const handleMenuStep = async (
         orderBy: { name: 'asc' },
       });
       const msg = services.length
-        ? `📋 *${config.services_list_title}:*\n\n` + services.map((s) =>
+        ? `📋 *${tituloLista(config.services_list_title)}:*\n\n` + services.map((s) =>
             `✨ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)`
           ).join('\n')
         : config.no_services_message;
@@ -1234,7 +1237,7 @@ const handleAskNameStep = async (
     return { ok: true };
   }
 
-  let msg = `${await formatarTexto(config.name_greeting_message, businessId, { clientName: name })}\n\n📋 *${config.choose_service_title}:*\n\n`;
+  let msg = `${await formatarTexto(config.name_greeting_message, businessId, { clientName: name })}\n\n📋 *${tituloLista(config.choose_service_title)}:*\n\n`;
   services.forEach((s, i) => {
     msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)\n`;
   });
@@ -1272,7 +1275,7 @@ const handleChooseServiceStep = async (
   const services = (sessionData.services as ServiceRow[]) || [];
 
   if (!choice || choice < 1 || choice > services.length) {
-    let msg = `${config.invalid_option_message}\n\n📋 *${config.choose_service_title}:*\n\n`;
+    let msg = `${config.invalid_option_message}\n\n📋 *${tituloLista(config.choose_service_title)}:*\n\n`;
     services.forEach((s, i) => {
       msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.duration_minutes} min)\n`;
     });
@@ -1308,7 +1311,7 @@ const handleChooseServiceStep = async (
     professionals: professionals.map((b) => ({ id: b.id, name: b.name })),
   });
 
-  let msg = `${await formatarTexto(config.service_selected_message, businessId, { serviceName: sel.name })}\n\n👤 *${config.choose_professional_title}:*\n\n`;
+  let msg = `${await formatarTexto(config.service_selected_message, businessId, { serviceName: sel.name })}\n\n👤 *${tituloLista(config.choose_professional_title)}:*\n\n`;
   professionals.forEach((b, i) => { msg += `${i + 1}️⃣ *${b.name}*\n`; });
   msg += '\n0️⃣ Voltar ao menu';
   await sendWhatsAppMessage(phone, msg, sendContext);
@@ -1333,7 +1336,7 @@ const handleChooseProfessionalStep = async (
   const professionals = (sessionData.professionals as ProfessionalRow[]) || [];
 
   if (!choice || choice < 1 || choice > professionals.length) {
-    let msg = `${config.invalid_option_message}\n\n👤 *${config.choose_professional_title}:*\n\n`;
+    let msg = `${config.invalid_option_message}\n\n👤 *${tituloLista(config.choose_professional_title)}:*\n\n`;
     professionals.forEach((b, i) => { msg += `${i + 1}️⃣ *${b.name}*\n`; });
     msg += '\n0️⃣ Voltar ao menu';
     await sendWhatsAppMessage(phone, msg, sendContext);
@@ -1356,7 +1359,7 @@ const handleChooseProfessionalStep = async (
     availableDates,
   });
 
-  let msg = `${await formatarTexto(config.professional_selected_message, businessId, { professionalName: sel.name })}\n\n📅 *${config.choose_date_title}:*\n\n`;
+  let msg = `${await formatarTexto(config.professional_selected_message, businessId, { professionalName: sel.name })}\n\n📅 *${tituloLista(config.choose_date_title)}:*\n\n`;
   availableDates.forEach((dateStr, index) => {
     // FIX Bug 5: formatDateBR usa construtor local
     msg += `${index + 1}️⃣ ${formatDateBR(dateStr, { weekday: 'long', day: '2-digit', month: '2-digit' })}\n`;
@@ -1386,7 +1389,7 @@ const handleChooseDateStep = async (
   const availableDates = (sessionData.availableDates as string[]) || [];
 
   if (!choice || choice < 1 || choice > availableDates.length) {
-    let msg = `${config.invalid_option_message}\n\n📅 *${config.choose_date_title}:*\n\n`;
+    let msg = `${config.invalid_option_message}\n\n📅 *${tituloLista(config.choose_date_title)}:*\n\n`;
     availableDates.forEach((dateStr, index) => {
       msg += `${index + 1}️⃣ ${formatDateBR(dateStr, { weekday: 'long', day: '2-digit', month: '2-digit' })}\n`;
     });
@@ -1463,7 +1466,7 @@ const handleChooseDateStep = async (
   // FIX Bug 5
   const dateFormatted = formatDateBR(selectedDate, { weekday: 'long', day: '2-digit', month: '2-digit' });
 
-  let msg = `📅 *${dateFormatted}*\n\n⏰ *${config.choose_time_title}:*\n\n`;
+  let msg = `📅 *${dateFormatted}*\n\n⏰ *${tituloLista(config.choose_time_title)}:*\n\n`;
   availableSlots.forEach((slot: string, index: number) => { msg += `${index + 1}️⃣ ${slot}\n`; });
 
   if (businessSettings.allowWalkins) {
@@ -1494,7 +1497,7 @@ const handleChooseTimeStep = async (
   const availableSlots = (sessionData.availableSlots as string[]) || [];
 
   if (!choice || choice < 1 || choice > availableSlots.length) {
-    let msg = `${config.invalid_option_message}\n\n⏰ *${config.choose_time_title}:*\n\n`;
+    let msg = `${config.invalid_option_message}\n\n⏰ *${tituloLista(config.choose_time_title)}:*\n\n`;
     availableSlots.forEach((slot, index) => { msg += `${index + 1}️⃣ ${slot}\n`; });
     msg += '\n0️⃣ Voltar ao menu';
     await sendWhatsAppMessage(phone, msg, sendContext);
@@ -1564,7 +1567,7 @@ const handleChooseTimeStep = async (
       availableSlots: newSlots,
     });
 
-    let msg = `⏰ *${config.choose_time_title}:*\n\n`;
+    let msg = `⏰ *${tituloLista(config.choose_time_title)}:*\n\n`;
     newSlots.forEach((slot, index) => { msg += `${index + 1}️⃣ ${slot}\n`; });
     msg += '\n0️⃣ Voltar ao menu';
     await sendWhatsAppMessage(phone, msg, sendContext);

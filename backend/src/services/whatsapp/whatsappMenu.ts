@@ -66,7 +66,7 @@ export const anotarMenu = <T extends MenuOptionRow>(
     });
 };
 
-export const resolverEscolha =(visiveis: MenuOptionRow[], escolha: number): MenuOptionRow | null => {
+export const resolverEscolha = (visiveis: MenuOptionRow[], escolha: number): MenuOptionRow | null => {
   if (!Number.isInteger(escolha) || escolha < 1 || escolha > visiveis.length) return null;
   return visiveis[escolha - 1] ?? null;
 };

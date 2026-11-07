@@ -209,6 +209,21 @@ describe('RoboAtendimento - simulador', () => {
     expect(within(dialogo).getByText(/O teste usa as mensagens salvas/)).toBeInTheDocument();
   });
 
+  it('fechar e reabrir o Testar mantém a conversa', async () => {
+    montar({ onSendMessage: vi.fn().mockResolvedValue(['Resposta do robô']) });
+    await screen.findByRole('heading', { name: 'Mensagens gerais' });
+    await userEvent.click(screen.getByRole('button', { name: /Testar/ }));
+    const dialogo = await screen.findByRole('dialog');
+    await userEvent.type(within(dialogo).getByPlaceholderText('Envie uma mensagem...'), 'Oi{enter}');
+    expect(await within(dialogo).findByText('Resposta do robô')).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: /Testar/ }));
+    const reaberto = await screen.findByRole('dialog');
+    expect(within(reaberto).getByText('Oi')).toBeInTheDocument();
+    expect(within(reaberto).getByText('Resposta do robô')).toBeInTheDocument();
+  });
+
   it('em computador mostra o simulador ao lado, sem botão Testar', async () => {
     const original = window.matchMedia;
     window.matchMedia = vi.fn().mockImplementation((q: string) => ({

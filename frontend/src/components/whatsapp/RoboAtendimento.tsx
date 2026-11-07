@@ -7,7 +7,7 @@ import { useVocabulario } from '@/hooks/useVocabulario';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { listarTextos, salvarTextos, textosGerais, type TextoDto } from '@/lib/roboTextos';
 import { MenuOptionsPanel, type MenuOptionsPanelProps } from './MenuOptionsPanel';
-import { ChatSimulator } from './ChatSimulator';
+import { ChatSimulator, type BotMessage } from './ChatSimulator';
 import { MensagensGerais } from './robo/MensagensGerais';
 import { useRascunhoTextos } from './robo/useRascunhoTextos';
 
@@ -42,6 +42,8 @@ export function RoboAtendimento({ onSendMessage, onLimpar, onTextosSalvos, ...me
   const [erro, setErro] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [testando, setTestando] = useState(false);
+  // A conversa fica aqui: o Testar desmonta o simulador ao fechar, mas a sessão no servidor continua.
+  const [conversa, setConversa] = useState<BotMessage[]>([]);
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -81,7 +83,7 @@ export function RoboAtendimento({ onSendMessage, onLimpar, onTextosSalvos, ...me
   };
 
   const simulador = (
-    <ChatSimulator onSendMessage={onSendMessage} onLimpar={onLimpar} temAlteracoes={rascunhoGeral.temAlteracoes} />
+    <ChatSimulator onSendMessage={onSendMessage} onLimpar={onLimpar} temAlteracoes={rascunhoGeral.temAlteracoes} messages={conversa} setMessages={setConversa} />
   );
 
   return (

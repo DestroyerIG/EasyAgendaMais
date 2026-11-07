@@ -78,16 +78,32 @@ describe('roboTextos', () => {
     expect(previaTexto('{horario} {zzz}')).toBe('14:00 {zzz}');
   });
 
+  it('a prévia da confirmação mostra um único R$ no valor', () => {
+    const previa = previaTexto('Valor: R$ {valor}');
+    expect(previa).toBe('Valor: R$ 60,00');
+    expect(previa.match(/R\$/g)).toHaveLength(1);
+  });
+
   it('textosDaOpcao: cancelar e remarcar incluem o texto de sucesso, que fica em manage', () => {
     const lista = [
       texto({ chave: 'manage_list_message', caminho: 'manage' }),
       texto({ chave: 'cancel_list_message', caminho: 'cancel' }),
       texto({ chave: 'cancel_success_message', caminho: 'manage' }),
       texto({ chave: 'reschedule_success_message', caminho: 'manage' }),
+      texto({ chave: 'new_date_title', caminho: 'manage' }),
+      texto({ chave: 'reschedule_inactive_message', caminho: 'manage' }),
+      texto({ chave: 'reschedule_failed_message', caminho: 'manage' }),
+      texto({ chave: 'appointment_inactive_message', caminho: 'manage' }),
+      texto({ chave: 'cancel_failed_message', caminho: 'manage' }),
+      texto({ chave: 'list_error_message', caminho: 'manage' }),
     ];
-    expect(textosDaOpcao('cancel', lista).map((t) => t.chave)).toEqual(['cancel_list_message', 'cancel_success_message']);
-    expect(textosDaOpcao('reschedule', lista).map((t) => t.chave)).toEqual(['reschedule_success_message']);
-    expect(textosDaOpcao('manage', lista)).toHaveLength(3);
+    expect(textosDaOpcao('cancel', lista).map((t) => t.chave)).toEqual([
+      'cancel_list_message', 'cancel_success_message', 'appointment_inactive_message', 'cancel_failed_message', 'list_error_message',
+    ]);
+    expect(textosDaOpcao('reschedule', lista).map((t) => t.chave)).toEqual([
+      'reschedule_success_message', 'new_date_title', 'reschedule_inactive_message', 'reschedule_failed_message', 'list_error_message',
+    ]);
+    expect(textosDaOpcao('manage', lista)).toHaveLength(9);
     expect(textosDaOpcao(null, lista)).toEqual([]);
   });
 });

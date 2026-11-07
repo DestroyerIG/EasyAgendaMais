@@ -69,7 +69,7 @@ const EXEMPLO: Record<string, string> = {
   profissional: 'Camila',
   data: '12/11',
   horario: '14:00',
-  valor: 'R$ 60,00',
+  valor: '60,00',
   horario_atendimento: '09:00 às 18:00',
   hora_fechamento: '18:00',
   instagram_handle: '@studioaurora',
@@ -86,8 +86,19 @@ export const variaveisUsadas = (texto: string): string[] =>
 /** Textos que aparecem ao abrir uma opção do menu, na ordem do catálogo. Personalizada: sem textos próprios. */
 export const textosDaOpcao = (handler: string | null, textos: TextoDto[]): TextoDto[] => {
   if (!handler) return [];
-  const extra: Record<string, string> = { cancel: 'cancel_success_message', reschedule: 'reschedule_success_message' };
-  return textos.filter((t) => t.caminho === handler || (extra[handler] !== undefined && t.chave === extra[handler]));
+  // Textos do fluxo antigo (lista, escolha e confirmação) que vivem no caminho 'manage' mas também aparecem nele.
+  const extra: Record<string, string[]> = {
+    cancel: ['cancel_success_message', 'appointment_inactive_message', 'cancel_failed_message', 'list_error_message'],
+    reschedule: [
+      'new_date_title',
+      'reschedule_success_message',
+      'reschedule_inactive_message',
+      'reschedule_failed_message',
+      'list_error_message',
+    ],
+  };
+  const chavesExtras = extra[handler] ?? [];
+  return textos.filter((t) => t.caminho === handler || chavesExtras.includes(t.chave));
 };
 
 export const textosGerais = (textos: TextoDto[]): TextoDto[] => textos.filter((t) => t.caminho === 'geral');

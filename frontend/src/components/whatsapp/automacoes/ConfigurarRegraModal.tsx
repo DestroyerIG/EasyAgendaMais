@@ -274,10 +274,10 @@ function CamposDaRegra({ regra, config, erro, onMudar }: CamposProps) {
               value={c.linkGoogle ?? ''} onChange={(ev) => onMudar({ linkGoogle: ev.target.value })} />
           </Field>
           <CampoResposta id="cfg-nota" rotulo="Agradecimento pela nota" padrao={TEXTO_PADRAO_NOTA}
-            dica="Enviado depois de qualquer nota. Em branco, usa o texto padrão." valor={c.textoNota}
+            dica="Enviado depois de qualquer nota. Nenhuma variável é trocada: o que estiver entre { } vai como foi escrito. Em branco, usa o texto padrão." valor={c.textoNota}
             onMudar={(textoNota) => onMudar({ textoNota })} />
           <CampoResposta id="cfg-texto-google" rotulo="Convite para avaliar no Google" padrao={TEXTO_PADRAO_GOOGLE}
-            dica="Para nota 5. {link} é trocado pelo link do Google, e o convite só sai se o link estiver configurado acima. Em branco, usa o texto padrão."
+            dica="Para nota 5. Só {link} é trocado pelo link do Google; qualquer outro {...} vai como foi escrito. O convite só sai se o link estiver configurado acima. Em branco, usa o texto padrão."
             valor={c.textoGoogle} onMudar={(textoGoogle) => onMudar({ textoGoogle })} />
         </>
       );

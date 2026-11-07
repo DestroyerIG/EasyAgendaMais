@@ -1958,6 +1958,15 @@ describe('whatsappFlowService guards', () => {
       expect(enviadas()).toContain(marca(chave));
     });
 
+    it('titulo da lista terminado em ":" nao vira "::"', async () => {
+      mockGetBotConfig.mockResolvedValue({ ...DEFAULT_BOT_CONFIG, choose_service_title: 'Escolha o serviço: ' });
+      menuCom('schedule');
+      await real('1');
+      const msgs = enviadas();
+      expect(msgs).toContain('*Escolha o serviço:*');
+      expect(msgs).not.toContain('::');
+    });
+
     it('name_greeting_message e choose_service_title depois do nome, com o nome da cliente', async () => {
       mockGetSession.mockResolvedValue({ step: 'ask_name', data: {} });
       await real('Joana Silva');
