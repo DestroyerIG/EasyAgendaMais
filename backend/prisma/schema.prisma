@@ -1279,7 +1279,8 @@ model ConexaoRecebimento {
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
-  @@index([gateway, contaExternaId])
+  // Uma conta do gateway em um negócio só: o webhook roteia pelo id da conta.
+  @@unique([gateway, contaExternaId])
   @@map("conexoes_recebimento")
 }
 
@@ -1307,5 +1308,6 @@ model CobrancaSinal {
   @@unique([gateway, pagamentoExternoId])
   @@index([appointmentId])
   @@index([situacao, venceEm])
+  @@index([businessId, situacao, venceEm])
   @@map("cobrancas_sinal")
 }

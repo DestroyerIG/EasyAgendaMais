@@ -116,11 +116,19 @@ export const conexaoService = {
     if (await repo.contaEmOutroNegocio(gateway, contaId, u.businessId)) {
       throw new ConflictError('Esta conta do Mercado Pago já está conectada a outro negócio.');
     }
-    await repo.salvarConexao({
-      businessId: u.businessId, gateway, contaExternaId: contaId, contaNome: conta.nome,
-      accessTokenCifrado: cifrar(p.tokens.accessToken), refreshTokenCifrado: cifrar(p.tokens.refreshToken),
-      tokenExpiraEm: p.tokens.expiraEm,
-    });
+    try {
+      await repo.salvarConexao({
+        businessId: u.businessId, gateway, contaExternaId: contaId, contaNome: conta.nome,
+        accessTokenCifrado: cifrar(p.tokens.accessToken), refreshTokenCifrado: cifrar(p.tokens.refreshToken),
+        tokenExpiraEm: p.tokens.expiraEm,
+      });
+    } catch (e) {
+      // Índice único de (gateway, conta): outro negócio conectou a mesma conta ao mesmo tempo.
+      if ((e as { code?: string }).code === 'P2002') {
+        throw new ConflictError('Esta conta do Mercado Pago já está conectada a outro negócio.');
+      }
+      throw e;
+    }
     return conexaoService.verConexao(user);
   },
 

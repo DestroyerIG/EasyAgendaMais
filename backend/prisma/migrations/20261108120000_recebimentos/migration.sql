@@ -41,10 +41,11 @@ CREATE TABLE "cobrancas_sinal" (
 );
 
 CREATE UNIQUE INDEX "conexoes_recebimento_business_id_key" ON "conexoes_recebimento"("business_id");
-CREATE INDEX "conexoes_recebimento_gateway_conta_externa_id_idx" ON "conexoes_recebimento"("gateway", "conta_externa_id");
+CREATE UNIQUE INDEX "conexoes_recebimento_gateway_conta_externa_id_key" ON "conexoes_recebimento"("gateway", "conta_externa_id");
 CREATE UNIQUE INDEX "cobrancas_sinal_gateway_pagamento_externo_id_key" ON "cobrancas_sinal"("gateway", "pagamento_externo_id");
 CREATE INDEX "cobrancas_sinal_appointment_id_idx" ON "cobrancas_sinal"("appointment_id");
 CREATE INDEX "cobrancas_sinal_situacao_vence_em_idx" ON "cobrancas_sinal"("situacao", "vence_em");
+CREATE INDEX "cobrancas_sinal_business_id_situacao_vence_em_idx" ON "cobrancas_sinal"("business_id", "situacao", "vence_em");
 
 ALTER TABLE "conexoes_recebimento" ADD CONSTRAINT "conexoes_recebimento_business_id_fkey" FOREIGN KEY ("business_id") REFERENCES "businesses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "cobrancas_sinal" ADD CONSTRAINT "cobrancas_sinal_business_id_fkey" FOREIGN KEY ("business_id") REFERENCES "businesses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
