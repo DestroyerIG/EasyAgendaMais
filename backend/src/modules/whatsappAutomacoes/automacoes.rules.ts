@@ -28,12 +28,16 @@ export const VARIAVEIS: Record<Regra, string[]> = {
   avaliacao: ['primeiro_nome', 'negocio', 'servico', 'link_avaliacao'],
 };
 
+const TEXTO_RESPOSTA = z.string().trim().min(1).max(500).nullable();
+
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export const CONFIG_SCHEMA: { [R in Regra]: z.ZodType<ConfigRegras[R]> } = {
   confirmacao: z.object({
     // A fila só envia a partir das 08:00.
     hora: z.string().regex(HHMM).refine((h) => h >= '08:00' && h <= '12:00', 'Entre 08:00 e 12:00'),
+    textoConfirmado: TEXTO_RESPOSTA,
+    textoCancelado: TEXTO_RESPOSTA,
   }),
   sinal_pix: z.object({ toleranciaMin: z.union([z.literal(15), z.literal(30), z.literal(60)]) }),
   retorno: z.object({ modo: z.enum(['ciclo', 'dias']), dias: z.number().int().min(7).max(180) }),
@@ -47,17 +51,19 @@ export const CONFIG_SCHEMA: { [R in Regra]: z.ZodType<ConfigRegras[R]> } = {
   avaliacao: z.object({
     horas: z.union([z.literal(1), z.literal(2), z.literal(4)]),
     linkGoogle: z.string().trim().url().max(500).refine((u) => /^https?:\/\//i.test(u), 'Use um link http(s)').nullable(),
+    textoNota: TEXTO_RESPOSTA,
+    textoGoogle: TEXTO_RESPOSTA,
   }),
 };
 
 const PADRAO: { [R in Regra]: ConfigRegras[R] } = {
-  confirmacao: { hora: '09:00' },
+  confirmacao: { hora: '09:00', textoConfirmado: null, textoCancelado: null },
   sinal_pix: { toleranciaMin: 15 },
   retorno: { modo: 'ciclo', dias: 21 },
   lista_espera: { quantas: 3 },
   lembrete: { modo: '2h', hora: '18:00' },
   aniversario: { presente: 'R$ 20 OFF em qualquer serviço' },
-  avaliacao: { horas: 2, linkGoogle: null },
+  avaliacao: { horas: 2, linkGoogle: null, textoNota: null, textoGoogle: null },
 };
 
 export function configPadrao<R extends Regra>(regra: R): ConfigRegras[R] {

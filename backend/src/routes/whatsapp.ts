@@ -24,12 +24,14 @@ import { deleteSession } from '../services/whatsapp/whatsappSessionService.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireTenantRoles } from '../middleware/rbac.js';
 import { requireFeature } from '../middleware/subscriptionGuard.js';
+import { textosDoNegocio, salvarTextos } from '../services/whatsapp/whatsappTextos.js';
 import { prisma } from '../config/prisma.js';
 import { Prisma } from '@prisma/client';
 import { sendSuccess, sendCreated, sendError } from '../utils/response.js';
 import logger from '../utils/logger.js';
 import { ValidationError } from '../utils/errors.js';
-import { normalizarInstagram } from '../services/whatsapp/whatsappMenu.js';
+import { normalizarInstagram, anotarMenu, instagramVisivel } from '../services/whatsapp/whatsappMenu.js';
+import type { MenuOptionRow } from '../services/whatsapp/whatsappConfigService.js';
 import {
   normalizeWhatsAppNumber,
   normalizePhone,
@@ -2392,6 +2394,26 @@ router.post('/config/reset', ...waProtected, async (req: Request, res: Response,
   }
 });
 
+router.get('/config/textos', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { businessId } = req.user;
+    sendSuccess(res, await textosDoNegocio(businessId!));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/config/textos', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { businessId } = req.user;
+    const { textos } = (req.body ?? {}) as { textos?: unknown };
+    if (!textos || typeof textos !== 'object' || Array.isArray(textos)) throw new ValidationError('Informe os textos a salvar');
+    sendSuccess(res, await salvarTextos(businessId!, textos as Record<string, string | null>));
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ==================== OPÇÕES DO MENU DO BOT ====================
 
 router.get('/config/instagram', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -2438,7 +2460,15 @@ router.get('/config/menu', ...waProtected, async (req: Request, res: Response, n
       );
     }
 
-    sendSuccess(res, rows);
+    // Número que a cliente lê e motivo de a opção não aparecer: mesma regra do robô (whatsappMenu).
+    const [config, negocio] = await Promise.all([
+      getBotConfig(businessId!),
+      prisma.business.findFirst({ where: { id: businessId! }, select: { instagramHandle: true } }).catch(() => null),
+    ]);
+    sendSuccess(res, anotarMenu(rows as unknown as MenuOptionRow[], {
+      promocoes: config.promotions_message ?? '',
+      instagramVisivel: instagramVisivel(negocio?.instagramHandle, config.instagram_message ?? ''),
+    }));
   } catch (error) {
     next(error);
   }

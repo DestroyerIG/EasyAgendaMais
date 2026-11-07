@@ -53,41 +53,42 @@ describe('MenuOptionsPanel - perfil recusado', () => {
   });
 });
 
-describe('MenuOptionsPanel - opcao ligada mas invisivel', () => {
-  const montarCom = (options: MenuOption[], extra: { promocoesMessage?: string; instagramMessage?: string; instagramHandle?: string | null }) =>
+describe('MenuOptionsPanel - numero e motivo vindos do backend', () => {
+  const montarCom = (options: MenuOption[]) =>
     render(
       <MenuOptionsPanel options={options} loading={false} actionLoading={false} onToggle={vi.fn()}
-        onUpdate={vi.fn()} onDelete={vi.fn()} onCreate={vi.fn()} onReorder={vi.fn()} onReset={vi.fn()} {...extra} />,
+        onUpdate={vi.fn()} onDelete={vi.fn()} onCreate={vi.fn()} onReorder={vi.fn()} onReset={vi.fn()} />,
     );
-  const promo = opcao({ id: 'p', handler: 'promotions', label: 'Promoções' });
+  const promo = opcao({ id: 'p', handler: 'promotions', label: 'Promoções', numero: null, motivoOculta: 'sem_promocao' });
 
-  it('promocoes ligada sem texto avisa', () => {
-    montarCom([promo], { promocoesMessage: '  ' });
-    expect(screen.getByText('Não aparece: escreva sua promoção em Mensagens')).toBeInTheDocument();
+  it('promocao sem texto explica e aponta para a propria opcao', () => {
+    montarCom([promo]);
+    expect(screen.getByText('Não aparece: escreva sua promoção')).toBeInTheDocument();
+    expect(screen.queryByText(/em Mensagens/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Resolver' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('promocoes com texto nao avisa', () => {
-    montarCom([promo], { promocoesMessage: '10% na terça' });
-    expect(screen.queryByText(/Não aparece/)).toBeNull();
-  });
-
-  it('promocoes desligada nao avisa', () => {
-    montarCom([{ ...promo, active: false }], { promocoesMessage: '' });
-    expect(screen.queryByText(/Não aparece/)).toBeNull();
-  });
-
-  it('instagram ligado sem perfil e com a variavel avisa', () => {
-    montarCom([opcao({})], { instagramHandle: null, instagramMessage: 'Siga {instagram_handle}' });
+  it('instagram sem perfil explica o motivo', () => {
+    montarCom([opcao({ numero: null, motivoOculta: 'sem_instagram' })]);
     expect(screen.getByText('Não aparece: cadastre seu Instagram')).toBeInTheDocument();
   });
 
-  it('instagram com texto proprio sem a variavel nao avisa', () => {
-    montarCom([opcao({})], { instagramHandle: null, instagramMessage: 'Nos siga no Insta' });
+  it('opcao desligada explica sem atalho', () => {
+    montarCom([opcao({ active: false, numero: null, motivoOculta: 'desligada' })]);
+    expect(screen.getByText('Não aparece: opção desligada')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Resolver' })).toBeNull();
+  });
+
+  it('opcao que aparece mostra o numero e nenhum aviso', () => {
+    montarCom([opcao({ numero: 3 })]);
+    expect(screen.getByLabelText('Número no menu')).toHaveTextContent('3');
     expect(screen.queryByText(/Não aparece/)).toBeNull();
   });
 
-  it('instagram com perfil cadastrado nao avisa', () => {
-    montarCom([opcao({})], { instagramHandle: '@loja', instagramMessage: 'Siga {instagram_handle}' });
-    expect(screen.queryByText(/Não aparece/)).toBeNull();
+  it('mostra a descricao simples e nao o nome interno do handler', () => {
+    montarCom([opcao({ id: 'v', handler: 'view_services', label: 'Serviços' })]);
+    expect(screen.getByText('Mostra seus serviços e preços')).toBeInTheDocument();
+    expect(screen.queryByText(/view_services|Sistema/)).toBeNull();
   });
 });

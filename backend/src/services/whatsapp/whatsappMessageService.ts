@@ -32,6 +32,10 @@ export interface FormatMessageData {
   servicePrice?: string;
   clientName?: string;
   instagramHandle?: string;
+  /** Faixa de atendimento ("08:00 às 18:00"). */
+  horarioAtendimento?: string;
+  /** Hora em que o negócio fecha hoje. */
+  horaFechamento?: string;
 }
 
 export interface MenuOption {
@@ -147,6 +151,8 @@ export const formatMessage = (template: string, data: FormatMessageData = {}): s
     '{valor}': data.servicePrice || '',
     '{nome_cliente}': data.clientName || '',
     '{instagram_handle}': data.instagramHandle || '',
+    '{horario_atendimento}': data.horarioAtendimento || '',
+    '{hora_fechamento}': data.horaFechamento || '',
   };
 
   for (const [key, value] of Object.entries(placeholders)) {

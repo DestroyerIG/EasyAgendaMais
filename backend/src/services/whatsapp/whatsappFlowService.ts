@@ -13,7 +13,7 @@ import type { Request, Response } from 'express';
 import logger from '../../utils/logger.js';
 import { prisma } from '../../config/prisma.js';
 import { Prisma } from '@prisma/client';
-import { sendWhatsAppMessage, buildWelcomeMessage, formatMessage } from './whatsappMessageService.js';
+import { sendWhatsAppMessage, buildWelcomeMessage, formatMessage, type FormatMessageData } from './whatsappMessageService.js';
 import { inboxRecorder } from '../../modules/whatsappInbox/inbox.recorder.js';
 import type { SendWhatsAppMessageContext } from './whatsappMessageService.js';
 import { getWhatsAppStatus, getWhatsAppStatusByInstance, getConnectedNumberCached } from '../whatsappClient.js';
@@ -62,7 +62,6 @@ import { ConflictError, NotFoundError, ForbiddenError } from '../../utils/errors
 import { appointmentsPrismaRepository } from '../../modules/appointments/appointments.repository.js';
 import { businessSettingsRepository } from '../../repositories/businessSettingsRepository.js';
 import { estadoContaService } from '../../modules/conta/estadoConta.service.js';
-import { textoAgendaPausada } from '../../modules/conta/estadoConta.rules.js';
 import { googleAgendaService } from '../../modules/googleAgenda/googleAgenda.service.js';
 
 // ==================== LOCAL INTERFACES ====================
@@ -961,27 +960,49 @@ const buildMenuMessage = async (businessId: string, contexto?: string): Promise<
     businessName,
     contexto,
   );
-  if (!visiveis.length) return `${cabecalho.trimEnd()}\n\n${config.attendant_message}`;
+  if (!visiveis.length) return `${cabecalho.trimEnd()}\n\n${await formatarTexto(config.attendant_message, businessId, { businessName })}`;
   return cabecalho;
 };
 
-const buildOutOfHoursMessage = (businessSettings: BusinessSettings): string => (
-  `Olá! Nosso horário de atendimento é das ${formatBusinessHoursRange(businessSettings)}. `
-  + 'Sua mensagem foi recebida e retornaremos dentro do nosso expediente.'
-);
+/** Títulos de lista entram em `*${titulo}:*`: tira ':' e espaços do fim para não sair '::'. */
+export const tituloLista = (titulo: string): string => titulo.replace(/[\s:：]+$/u, '');
 
-const buildBusinessContextMessage = (businessSettings: BusinessSettings): string => {
-  let message = `Hoje atendemos até as ${businessSettings.closingTime}.`;
+/**
+ * formatMessage com `{nome_negocio}` resolvido sob demanda: o nome só é buscado quando o texto usa a
+ * variável (e `data.businessName` não veio pronto), então não custa leitura extra na maioria das mensagens.
+ */
+export const formatarTexto = async (
+  template: string,
+  businessId: string,
+  data: FormatMessageData = {},
+): Promise<string> => {
+  if (data.businessName !== undefined || !template?.includes('{nome_negocio}')) return formatMessage(template, data);
+  return formatMessage(template, { ...data, businessName: await getBusinessName(businessId) });
+};
+
+const buildOutOfHoursMessage = (businessSettings: BusinessSettings, config: BotConfig, businessId: string): Promise<string> =>
+  formatarTexto(config.out_of_hours_message, businessId, { horarioAtendimento: formatBusinessHoursRange(businessSettings) });
+
+const buildBusinessContextMessage = async (
+  businessSettings: BusinessSettings,
+  config: BotConfig,
+  businessId: string,
+): Promise<string> => {
+  let message = await formatarTexto(config.today_hours_message, businessId, { horaFechamento: businessSettings.closingTime });
 
   if (businessSettings.allowWalkins) {
-    message += ' Também aceitamos encaixes durante o horário de atendimento.';
+    message += ' ' + await formatarTexto(config.walkin_notice, businessId);
   }
 
   return message;
 };
 
-const buildContextualMenuMessage = async (businessId: string, businessSettings: BusinessSettings): Promise<string> => {
-  return buildMenuMessage(businessId, buildBusinessContextMessage(businessSettings));
+const buildContextualMenuMessage = async (
+  businessId: string,
+  businessSettings: BusinessSettings,
+  config: BotConfig,
+): Promise<string> => {
+  return buildMenuMessage(businessId, await buildBusinessContextMessage(businessSettings, config, businessId));
 };
 
 export const goBackToMainMenu = async (phone: string, businessId: string): Promise<{ message: string }> => {
@@ -1035,7 +1056,7 @@ const handleMenuStep = async (
   }
 
   if (option.type === 'custom' && option.response_message) {
-    await sendWhatsAppMessage(phone, option.response_message, sendContext);
+    await sendWhatsAppMessage(phone, await formatarTexto(option.response_message, businessId), sendContext);
     await deleteSession(phone, businessId);
     return { ok: true };
   }
@@ -1055,12 +1076,12 @@ const handleMenuStep = async (
         });
 
         if (!services.length) {
-          await sendWhatsAppMessage(phone, 'Desculpe, não há serviços disponíveis no momento.', sendContext);
+          await sendWhatsAppMessage(phone, config.no_services_available_message, sendContext);
           await deleteSession(phone, businessId);
           return { ok: true };
         }
 
-        let msg = '📋 *Escolha o serviço:*\n\n';
+        let msg = `📋 *${tituloLista(config.choose_service_title)}:*\n\n`;
         services.forEach((s, i) => {
           msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)\n`;
         });
@@ -1082,7 +1103,7 @@ const handleMenuStep = async (
         await sendWhatsAppMessage(phone, msg, sendContext);
       } else {
         await updateSession(phone, businessId, STEPS.ASK_NAME, {});
-        await sendWhatsAppMessage(phone, config.ask_name_message, sendContext);
+        await sendWhatsAppMessage(phone, await formatarTexto(config.ask_name_message, businessId), sendContext);
       }
       return { ok: true };
     }
@@ -1094,10 +1115,10 @@ const handleMenuStep = async (
         orderBy: { name: 'asc' },
       });
       const msg = services.length
-        ? '📋 *Nossos serviços:*\n\n' + services.map((s) =>
+        ? `📋 *${tituloLista(config.services_list_title)}:*\n\n` + services.map((s) =>
             `✨ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)`
           ).join('\n')
-        : 'Não há serviços cadastrados no momento.';
+        : config.no_services_message;
       await sendWhatsAppMessage(phone, msg, sendContext);
       await deleteSession(phone, businessId);
       return { ok: true };
@@ -1144,13 +1165,13 @@ const handleMenuStep = async (
     }
 
     case 'attendant':
-      await sendWhatsAppMessage(phone, config.attendant_message, sendContext);
+      await sendWhatsAppMessage(phone, await formatarTexto(config.attendant_message, businessId), sendContext);
       if (sendContext.simulate !== true) await inboxRecorder.pedirAtendimentoHumano(businessId, phone);
       await deleteSession(phone, businessId);
       return { ok: true };
 
     case 'end_session':
-      await sendWhatsAppMessage(phone, config.end_session_message, sendContext);
+      await sendWhatsAppMessage(phone, await formatarTexto(config.end_session_message, businessId), sendContext);
       await deleteSession(phone, businessId);
       return { ok: true };
 
@@ -1211,12 +1232,12 @@ const handleAskNameStep = async (
   });
 
   if (!services.length) {
-    await sendWhatsAppMessage(phone, 'Desculpe, não há serviços disponíveis no momento.', sendContext);
+    await sendWhatsAppMessage(phone, config.no_services_available_message, sendContext);
     await deleteSession(phone, businessId);
     return { ok: true };
   }
 
-  let msg = `✅ Olá, *${name}*!\n\n📋 *Escolha o serviço:*\n\n`;
+  let msg = `${await formatarTexto(config.name_greeting_message, businessId, { clientName: name })}\n\n📋 *${tituloLista(config.choose_service_title)}:*\n\n`;
   services.forEach((s, i) => {
     msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)\n`;
   });
@@ -1254,7 +1275,7 @@ const handleChooseServiceStep = async (
   const services = (sessionData.services as ServiceRow[]) || [];
 
   if (!choice || choice < 1 || choice > services.length) {
-    let msg = `${config.invalid_option_message}\n\n📋 *Escolha o serviço:*\n\n`;
+    let msg = `${config.invalid_option_message}\n\n📋 *${tituloLista(config.choose_service_title)}:*\n\n`;
     services.forEach((s, i) => {
       msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.duration_minutes} min)\n`;
     });
@@ -1276,7 +1297,7 @@ const handleChooseServiceStep = async (
   });
 
   if (!professionals.length) {
-    await sendWhatsAppMessage(phone, config.no_professionals_message ?? 'Desculpe, não há profissionais disponíveis no momento.', sendContext);
+    await sendWhatsAppMessage(phone, await formatarTexto(config.no_professionals_message, businessId), sendContext);
     await deleteSession(phone, businessId);
     return { ok: true };
   }
@@ -1290,7 +1311,7 @@ const handleChooseServiceStep = async (
     professionals: professionals.map((b) => ({ id: b.id, name: b.name })),
   });
 
-  let msg = `✅ *${sel.name}* selecionado!\n\n👤 *${config.choose_professional_title ?? 'Escolha o profissional'}:*\n\n`;
+  let msg = `${await formatarTexto(config.service_selected_message, businessId, { serviceName: sel.name })}\n\n👤 *${tituloLista(config.choose_professional_title)}:*\n\n`;
   professionals.forEach((b, i) => { msg += `${i + 1}️⃣ *${b.name}*\n`; });
   msg += '\n0️⃣ Voltar ao menu';
   await sendWhatsAppMessage(phone, msg, sendContext);
@@ -1315,7 +1336,7 @@ const handleChooseProfessionalStep = async (
   const professionals = (sessionData.professionals as ProfessionalRow[]) || [];
 
   if (!choice || choice < 1 || choice > professionals.length) {
-    let msg = `${config.invalid_option_message}\n\n👤 *${config.choose_professional_title ?? 'Escolha o profissional'}:*\n\n`;
+    let msg = `${config.invalid_option_message}\n\n👤 *${tituloLista(config.choose_professional_title)}:*\n\n`;
     professionals.forEach((b, i) => { msg += `${i + 1}️⃣ *${b.name}*\n`; });
     msg += '\n0️⃣ Voltar ao menu';
     await sendWhatsAppMessage(phone, msg, sendContext);
@@ -1338,7 +1359,7 @@ const handleChooseProfessionalStep = async (
     availableDates,
   });
 
-  let msg = `✅ *${sel.name}* selecionado!\n\n📅 *Escolha a data:*\n\n`;
+  let msg = `${await formatarTexto(config.professional_selected_message, businessId, { professionalName: sel.name })}\n\n📅 *${tituloLista(config.choose_date_title)}:*\n\n`;
   availableDates.forEach((dateStr, index) => {
     // FIX Bug 5: formatDateBR usa construtor local
     msg += `${index + 1}️⃣ ${formatDateBR(dateStr, { weekday: 'long', day: '2-digit', month: '2-digit' })}\n`;
@@ -1368,7 +1389,7 @@ const handleChooseDateStep = async (
   const availableDates = (sessionData.availableDates as string[]) || [];
 
   if (!choice || choice < 1 || choice > availableDates.length) {
-    let msg = `${config.invalid_option_message}\n\n📅 *Escolha a data:*\n\n`;
+    let msg = `${config.invalid_option_message}\n\n📅 *${tituloLista(config.choose_date_title)}:*\n\n`;
     availableDates.forEach((dateStr, index) => {
       msg += `${index + 1}️⃣ ${formatDateBR(dateStr, { weekday: 'long', day: '2-digit', month: '2-digit' })}\n`;
     });
@@ -1384,7 +1405,7 @@ const handleChooseDateStep = async (
   }
 
   if (!isBusinessOpenOnDate(businessSettings, selectedDate)) {
-    await sendWhatsAppMessage(phone, 'Hoje não estamos atendendo. Escolha outro dia.', sendContext);
+    await sendWhatsAppMessage(phone, config.closed_day_message, sendContext);
     return { ok: true };
   }
 
@@ -1392,7 +1413,7 @@ const handleChooseDateStep = async (
 
   // Remarcação de exemplo no simulador sem profissional ativo: não há agenda para consultar.
   if (!professionalId) {
-    await sendWhatsAppMessage(phone, config.no_professionals_message ?? 'Desculpe, não há profissionais disponíveis no momento.', sendContext);
+    await sendWhatsAppMessage(phone, await formatarTexto(config.no_professionals_message, businessId), sendContext);
     await deleteSession(phone, businessId);
     return { ok: true };
   }
@@ -1427,9 +1448,10 @@ const handleChooseDateStep = async (
   );
 
   if (!availableSlots.length) {
+    const semHorarios = await formatarTexto(config.no_slots_message, businessId);
     const noSlotsMessage = businessSettings.allowWalkins
-      ? `${config.no_slots_message}\n\nℹ️ Também aceitamos encaixes durante o horário de atendimento.`
-      : config.no_slots_message;
+      ? `${semHorarios}\n\nℹ️ ${await formatarTexto(config.walkin_notice, businessId)}`
+      : semHorarios;
 
     await sendWhatsAppMessage(phone, noSlotsMessage, sendContext);
     return { ok: true };
@@ -1444,11 +1466,11 @@ const handleChooseDateStep = async (
   // FIX Bug 5
   const dateFormatted = formatDateBR(selectedDate, { weekday: 'long', day: '2-digit', month: '2-digit' });
 
-  let msg = `📅 *${dateFormatted}*\n\n⏰ *Horários disponíveis:*\n\n`;
+  let msg = `📅 *${dateFormatted}*\n\n⏰ *${tituloLista(config.choose_time_title)}:*\n\n`;
   availableSlots.forEach((slot: string, index: number) => { msg += `${index + 1}️⃣ ${slot}\n`; });
 
   if (businessSettings.allowWalkins) {
-    msg += '\nℹ️ Também aceitamos encaixes dentro do horário de atendimento.\n';
+    msg += `\nℹ️ ${await formatarTexto(config.walkin_notice, businessId)}\n`;
   }
 
   msg += '\n0️⃣ Voltar ao menu';
@@ -1475,7 +1497,7 @@ const handleChooseTimeStep = async (
   const availableSlots = (sessionData.availableSlots as string[]) || [];
 
   if (!choice || choice < 1 || choice > availableSlots.length) {
-    let msg = `${config.invalid_option_message}\n\n⏰ *Horários disponíveis:*\n\n`;
+    let msg = `${config.invalid_option_message}\n\n⏰ *${tituloLista(config.choose_time_title)}:*\n\n`;
     availableSlots.forEach((slot, index) => { msg += `${index + 1}️⃣ ${slot}\n`; });
     msg += '\n0️⃣ Voltar ao menu';
     await sendWhatsAppMessage(phone, msg, sendContext);
@@ -1510,7 +1532,7 @@ const handleChooseTimeStep = async (
   );
 
   const oferecerOutrosHorarios = async (): Promise<{ ok: boolean }> => {
-    await sendWhatsAppMessage(phone, '⚠️ Este horário acabou de ser reservado. Por favor, escolha outro horário.', sendContext);
+    await sendWhatsAppMessage(phone, config.slot_taken_message, sendContext);
 
     const bookedRows = await prisma.$queryRaw<Array<{ time: string }>>(
       Prisma.sql`
@@ -1528,9 +1550,10 @@ const handleChooseTimeStep = async (
     const newSlots = availableSlots.filter((s) => !bookedTimes.has(s));
 
     if (!newSlots.length) {
+      const semHorarios = await formatarTexto(config.no_slots_message, businessId);
       const noSlotsMessage = businessSettings.allowWalkins
-        ? `${config.no_slots_message}\n\nℹ️ Também aceitamos encaixes durante o horário de atendimento.`
-        : config.no_slots_message;
+        ? `${semHorarios}\n\nℹ️ ${await formatarTexto(config.walkin_notice, businessId)}`
+        : semHorarios;
 
       await sendWhatsAppMessage(phone, noSlotsMessage, sendContext);
       return { ok: true };
@@ -1544,7 +1567,7 @@ const handleChooseTimeStep = async (
       availableSlots: newSlots,
     });
 
-    let msg = `⏰ *Horários disponíveis:*\n\n`;
+    let msg = `⏰ *${tituloLista(config.choose_time_title)}:*\n\n`;
     newSlots.forEach((slot, index) => { msg += `${index + 1}️⃣ ${slot}\n`; });
     msg += '\n0️⃣ Voltar ao menu';
     await sendWhatsAppMessage(phone, msg, sendContext);
@@ -1565,15 +1588,11 @@ const handleChooseTimeStep = async (
       if (error instanceof NotFoundError || error instanceof ForbiddenError) {
         // O agendamento foi cancelado, concluído ou mudou enquanto ela escolhia: volta ao menu.
         const menu = await goBackToMainMenu(phone, businessId);
-        await sendWhatsAppMessage(phone, `⚠️ Esse agendamento não está mais ativo, então não consegui remarcar.\n\n${menu.message}`, sendContext);
+        await sendWhatsAppMessage(phone, `${config.reschedule_inactive_message}\n\n${menu.message}`, sendContext);
         return { ok: true };
       }
       logger.error({ err: error, phone, businessId, rescheduleAppointmentId }, 'Falha ao remarcar agendamento via WhatsApp bot');
-      await sendWhatsAppMessage(
-        phone,
-        '⚠️ Não consegui remarcar seu agendamento agora. Por favor, tente novamente em instantes.',
-        sendContext
-      );
+      await sendWhatsAppMessage(phone, config.reschedule_failed_message, sendContext);
       return { ok: true };
     }
 
@@ -1588,7 +1607,7 @@ const handleChooseTimeStep = async (
       serviceName = serviceName || ag?.service?.name || '';
       professionalName = professionalName || ag?.professional?.name || '';
     }
-    const remarcadoMsg = formatMessage(config.reschedule_success_message, {
+    const remarcadoMsg = await formatarTexto(config.reschedule_success_message, businessId, {
       serviceName,
       professionalName,
       dateFormatted: formatDateBR(selectedDate, { day: '2-digit', month: '2-digit', year: 'numeric' }),
@@ -1643,11 +1662,7 @@ const handleChooseTimeStep = async (
       'Falha ao persistir agendamento via WhatsApp bot'
     );
 
-    await sendWhatsAppMessage(
-      phone,
-      '⚠️ Não consegui confirmar seu agendamento agora. Por favor, tente novamente em instantes.',
-      sendContext
-    );
+    await sendWhatsAppMessage(phone, config.booking_failed_message, sendContext);
 
     return { ok: true };
   }
@@ -1668,12 +1683,14 @@ const handleChooseTimeStep = async (
   // FIX Bug 5
   const dateFormatted = formatDateBR(selectedDate, { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-  const confirmationMsg = config.confirmation_message
-    .replace('{servico}', (sessionData.serviceName as string) || '')
-    .replace('{profissional}', (sessionData.professionalName as string) || '')
-    .replace('{data}', dateFormatted)
-    .replace('{horario}', selectedTime)
-    .replace('{valor}', Number(sessionData.servicePrice).toFixed(2));
+  const confirmationMsg = await formatarTexto(config.confirmation_message, businessId, {
+    serviceName: (sessionData.serviceName as string) || '',
+    professionalName: (sessionData.professionalName as string) || '',
+    dateFormatted,
+    time: selectedTime,
+    servicePrice: Number(sessionData.servicePrice).toFixed(2),
+    clientName: (sessionData.clientName as string) || '',
+  });
 
   const confirmationSent = await sendWhatsAppMessage(
     phone,
@@ -2160,7 +2177,7 @@ export const handleIncomingMessage = async (
         if (session) await deleteSession(normalizedPhone!, businessId);
         const sent = await sendWhatsAppMessage(
           normalizedPhone!,
-          textoAgendaPausada(await getBusinessName(businessId)),
+          await formatarTexto(config.paused_message, businessId, { businessName: await getBusinessName(businessId) }),
           sendContext
         );
         return { ok: sent, ignored: false, reason: sent ? null : 'send_failed' };
@@ -2181,7 +2198,7 @@ export const handleIncomingMessage = async (
 
       const sent = await sendWhatsAppMessage(
         normalizedPhone!,
-        buildOutOfHoursMessage(businessSettings),
+        await buildOutOfHoursMessage(businessSettings, config, businessId),
         sendContext
       );
 
@@ -2206,7 +2223,7 @@ export const handleIncomingMessage = async (
       await createSession(normalizedPhone!, businessId);
       const sent = await sendWhatsAppMessage(
         normalizedPhone!,
-        await buildContextualMenuMessage(businessId, businessSettings),
+        await buildContextualMenuMessage(businessId, businessSettings, config),
         sendContext
       );
 
@@ -2346,7 +2363,7 @@ export const handleIncomingMessage = async (
         await createSession(normalizedPhone!, businessId);
         const sent = await sendWhatsAppMessage(
           normalizedPhone!,
-          await buildContextualMenuMessage(businessId, businessSettings),
+          await buildContextualMenuMessage(businessId, businessSettings, config),
           sendContext
         );
         stepResult = { ok: sent };

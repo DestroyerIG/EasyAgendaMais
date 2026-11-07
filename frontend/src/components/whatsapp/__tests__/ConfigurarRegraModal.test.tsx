@@ -18,7 +18,7 @@ const confirmacao = (partes: Partial<RegraDto<'confirmacao'>> = {}): RegraDto<'c
   texto: 'Oi! Confirma?',
   textoPadrao: 'Olá {primeiro_nome}! Confirma seu horário às {horario}?',
   personalizado: true,
-  config: { hora: '09:00' },
+  config: { hora: '09:00', textoConfirmado: null, textoCancelado: null },
   variaveis: ['nome', 'primeiro_nome', 'horario'],
   ...partes,
 });
@@ -50,7 +50,7 @@ describe('ConfigurarRegraModal', () => {
   });
 
   it('salvar manda um PATCH com texto e config', async () => {
-    const salvo = confirmacao({ config: { hora: '10:00' } });
+    const salvo = confirmacao({ config: { hora: '10:00', textoConfirmado: null, textoCancelado: null } });
     api.atualizarRegra.mockResolvedValue(salvo);
     const onSalvo = vi.fn();
     renderizar(confirmacao(), onSalvo);
@@ -58,7 +58,7 @@ describe('ConfigurarRegraModal', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
     await waitFor(() => expect(onSalvo).toHaveBeenCalledWith(salvo));
     expect(api.atualizarRegra).toHaveBeenCalledTimes(1);
-    expect(api.atualizarRegra).toHaveBeenCalledWith('confirmacao', { texto: 'Oi! Confirma?', config: { hora: '10:00' } });
+    expect(api.atualizarRegra).toHaveBeenCalledWith('confirmacao', { texto: 'Oi! Confirma?', config: { hora: '10:00', textoConfirmado: null, textoCancelado: null } });
   });
 
   it('"Restaurar texto padrão" manda texto: null', async () => {
@@ -67,7 +67,7 @@ describe('ConfigurarRegraModal', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Restaurar texto padrão' }));
     expect(caixaDeTexto().value).toBe('Olá {primeiro_nome}! Confirma seu horário às {horario}?');
     await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
-    await waitFor(() => expect(api.atualizarRegra).toHaveBeenCalledWith('confirmacao', { texto: null, config: { hora: '09:00' } }));
+    await waitFor(() => expect(api.atualizarRegra).toHaveBeenCalledWith('confirmacao', { texto: null, config: { hora: '09:00', textoConfirmado: null, textoCancelado: null } }));
   });
 
   it('duplo clique em Salvar faz um só PATCH', async () => {
@@ -127,13 +127,58 @@ describe('ConfigurarRegraModal', () => {
   it('avaliação com link vazio manda linkGoogle null', async () => {
     const avaliacao: RegraDto<'avaliacao'> = {
       regra: 'avaliacao', ativa: true, texto: 'Nota?', textoPadrao: 'Padrão', personalizado: true,
-      config: { horas: 2, linkGoogle: null }, variaveis: ['negocio'],
+      config: { horas: 2, linkGoogle: null, textoNota: null, textoGoogle: null }, variaveis: ['negocio'],
     };
     api.atualizarRegra.mockResolvedValue(avaliacao);
     renderizar(avaliacao);
     await userEvent.click(screen.getByRole('radio', { name: '4 h' }));
     await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
-    await waitFor(() => expect(api.atualizarRegra).toHaveBeenCalledWith('avaliacao', { texto: 'Nota?', config: { horas: 4, linkGoogle: null } }));
+    await waitFor(() => expect(api.atualizarRegra).toHaveBeenCalledWith('avaliacao', { texto: 'Nota?', config: { horas: 4, linkGoogle: null, textoNota: null, textoGoogle: null } }));
+  });
+
+  it('confirmação mostra as respostas padrão como placeholder e salva o texto digitado', async () => {
+    api.atualizarRegra.mockResolvedValue(confirmacao());
+    renderizar();
+    const confirmado = screen.getByLabelText('Resposta ao confirmar') as HTMLTextAreaElement;
+    expect(confirmado).toHaveAttribute('placeholder', 'Agradecemos! Seu horário está confirmado ✨');
+    expect(confirmado).toHaveAttribute('maxlength', '500');
+    expect(screen.getByLabelText('Resposta ao reagendar')).toHaveAttribute('placeholder', expect.stringContaining('Liberamos seu horário'));
+    await userEvent.type(confirmado, 'Fechado, até amanhã!');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(api.atualizarRegra).toHaveBeenCalledWith('confirmacao', {
+      texto: 'Oi! Confirma?', config: { hora: '09:00', textoConfirmado: 'Fechado, até amanhã!', textoCancelado: null },
+    }));
+  });
+
+  it('confirmação com resposta em branco volta a null', async () => {
+    const regra = confirmacao({ config: { hora: '09:00', textoConfirmado: 'Antigo', textoCancelado: 'Outro' } });
+    api.atualizarRegra.mockResolvedValue(regra);
+    renderizar(regra);
+    expect(screen.getByLabelText('Resposta ao confirmar')).toHaveValue('Antigo');
+    await userEvent.clear(screen.getByLabelText('Resposta ao confirmar'));
+    await userEvent.type(screen.getByLabelText('Resposta ao reagendar'), '   ');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(api.atualizarRegra).toHaveBeenCalledWith('confirmacao', {
+      texto: 'Oi! Confirma?', config: { hora: '09:00', textoConfirmado: null, textoCancelado: 'Outro' },
+    }));
+  });
+
+  it('avaliação mostra e salva agradecimento e convite ao Google', async () => {
+    const avaliacao: RegraDto<'avaliacao'> = {
+      regra: 'avaliacao', ativa: true, texto: 'Nota?', textoPadrao: 'Padrão', personalizado: true,
+      config: { horas: 2, linkGoogle: 'https://g.page/x', textoNota: null, textoGoogle: null }, variaveis: ['negocio'],
+    };
+    api.atualizarRegra.mockResolvedValue(avaliacao);
+    renderizar(avaliacao);
+    expect(screen.getByLabelText('Agradecimento pela nota')).toHaveAttribute('placeholder', 'Agradecemos pela nota!');
+    const convite = screen.getByLabelText('Convite para avaliar no Google');
+    expect(convite).toHaveAttribute('placeholder', expect.stringContaining('{link}'));
+    await userEvent.type(screen.getByLabelText('Agradecimento pela nota'), 'Valeu!');
+    fireEvent.change(convite, { target: { value: 'Avalie: {link}' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(api.atualizarRegra).toHaveBeenCalledWith('avaliacao', {
+      texto: 'Nota?', config: { horas: 2, linkGoogle: 'https://g.page/x', textoNota: 'Valeu!', textoGoogle: 'Avalie: {link}' },
+    }));
   });
 
   it('erro ao salvar mostra toast e não fecha', async () => {

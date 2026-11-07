@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Button, Field, Icon, Input, Modal } from '@/components/ui';
+import { Button, Field, Icon, Input, Modal, Textarea } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { cn } from '@/lib/cn';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { inserirVariavel } from '@/lib/inserirVariavel';
 import {
-  atualizarRegra, EXEMPLO_VARIAVEIS, LIMITE_TEXTO_REGRA, ROTULO_REGRA,
+  atualizarRegra, EXEMPLO_VARIAVEIS, LIMITE_TEXTO_REGRA, LIMITE_TEXTO_RESPOSTA, ROTULO_REGRA,
+  TEXTO_PADRAO_CANCELADO, TEXTO_PADRAO_CONFIRMADO, TEXTO_PADRAO_GOOGLE, TEXTO_PADRAO_NOTA,
   type ConfigRegras, type Regra, type RegraDto,
 } from '@/lib/whatsappAutomacoes';
 import { TextoWhatsApp } from '../retorno/PreviaConvite';
@@ -65,8 +66,15 @@ function erroDaConfig(regra: Regra, config: Config): string | null {
   }
 }
 
+/** Texto de resposta aparado; vazio vira null (o backend usa o padrão). */
+const textoOuNull = (t: string | null) => t?.trim() || null;
+
 /** A config como o backend espera: textos aparados e link vazio vira null. */
 function configParaEnviar(regra: Regra, config: Config): Config {
+  if (regra === 'confirmacao') {
+    const c = config as ConfigRegras['confirmacao'];
+    return { hora: c.hora, textoConfirmado: textoOuNull(c.textoConfirmado), textoCancelado: textoOuNull(c.textoCancelado) };
+  }
   if (regra === 'aniversario') return { presente: (config as ConfigRegras['aniversario']).presente.trim() };
   if (regra === 'lembrete') {
     // No modo 2h a hora não aparece; se ficou inválida na véspera, volta ao padrão para o backend aceitar.
@@ -75,7 +83,10 @@ function configParaEnviar(regra: Regra, config: Config): Config {
   }
   if (regra === 'avaliacao') {
     const c = config as ConfigRegras['avaliacao'];
-    return { horas: c.horas, linkGoogle: c.linkGoogle?.trim() || null };
+    return {
+      horas: c.horas, linkGoogle: c.linkGoogle?.trim() || null,
+      textoNota: textoOuNull(c.textoNota), textoGoogle: textoOuNull(c.textoGoogle),
+    };
   }
   return config;
 }
@@ -151,6 +162,25 @@ interface CamposProps {
   onMudar(parcial: Partial<Config>): void;
 }
 
+interface RespostaProps {
+  id: string;
+  rotulo: string;
+  dica: string;
+  padrao: string;
+  valor: string | null;
+  onMudar(v: string): void;
+}
+
+/** Resposta automática editável; vazia usa o texto padrão, mostrado como dica. */
+function CampoResposta({ id, rotulo, dica, padrao, valor, onMudar }: RespostaProps) {
+  return (
+    <Field id={id} label={rotulo} hint={dica}>
+      <Textarea id={id} rows={3} maxLength={LIMITE_TEXTO_RESPOSTA} placeholder={padrao}
+        value={valor ?? ''} onChange={(ev) => onMudar(ev.target.value)} />
+    </Field>
+  );
+}
+
 function CamposDaRegra({ regra, config, erro, onMudar }: CamposProps) {
   const { adaptar } = useVocabulario();
   const e = erro ?? undefined;
@@ -158,10 +188,18 @@ function CamposDaRegra({ regra, config, erro, onMudar }: CamposProps) {
     case 'confirmacao': {
       const c = config as ConfigRegras['confirmacao'];
       return (
-        <Field id="cfg-hora" label="Horário do envio" hint="Na véspera do atendimento, entre 08:00 e 12:00." error={e}>
-          <Input id="cfg-hora" type="time" min="08:00" max="12:00" step={300} value={c.hora} invalid={!!e}
-            onChange={(ev) => onMudar({ hora: ev.target.value })} />
-        </Field>
+        <>
+          <Field id="cfg-hora" label="Horário do envio" hint="Na véspera do atendimento, entre 08:00 e 12:00." error={e}>
+            <Input id="cfg-hora" type="time" min="08:00" max="12:00" step={300} value={c.hora} invalid={!!e}
+              onChange={(ev) => onMudar({ hora: ev.target.value })} />
+          </Field>
+          <CampoResposta id="cfg-confirmado" rotulo="Resposta ao confirmar" padrao={TEXTO_PADRAO_CONFIRMADO}
+            dica="Enviada quando a cliente responde 1. Em branco, usa o texto padrão." valor={c.textoConfirmado}
+            onMudar={(textoConfirmado) => onMudar({ textoConfirmado })} />
+          <CampoResposta id="cfg-cancelado" rotulo="Resposta ao reagendar" padrao={TEXTO_PADRAO_CANCELADO}
+            dica="Enviada quando a cliente responde 2. Em branco, usa o texto padrão." valor={c.textoCancelado}
+            onMudar={(textoCancelado) => onMudar({ textoCancelado })} />
+        </>
       );
     }
     case 'sinal_pix': {
@@ -235,6 +273,12 @@ function CamposDaRegra({ regra, config, erro, onMudar }: CamposProps) {
             <Input id="cfg-google" type="url" inputMode="url" maxLength={500} placeholder="https://g.page/r/..." invalid={!!e}
               value={c.linkGoogle ?? ''} onChange={(ev) => onMudar({ linkGoogle: ev.target.value })} />
           </Field>
+          <CampoResposta id="cfg-nota" rotulo="Agradecimento pela nota" padrao={TEXTO_PADRAO_NOTA}
+            dica="Enviado depois de qualquer nota. Nenhuma variável é trocada: o que estiver entre { } vai como foi escrito. Em branco, usa o texto padrão." valor={c.textoNota}
+            onMudar={(textoNota) => onMudar({ textoNota })} />
+          <CampoResposta id="cfg-texto-google" rotulo="Convite para avaliar no Google" padrao={TEXTO_PADRAO_GOOGLE}
+            dica="Para nota 5. Só {link} é trocado pelo link do Google; qualquer outro {...} vai como foi escrito. O convite só sai se o link estiver configurado acima. Em branco, usa o texto padrão."
+            valor={c.textoGoogle} onMudar={(textoGoogle) => onMudar({ textoGoogle })} />
         </>
       );
     }

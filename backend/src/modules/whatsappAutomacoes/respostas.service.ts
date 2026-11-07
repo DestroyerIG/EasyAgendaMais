@@ -4,12 +4,12 @@ import { sendWhatsAppMessage } from '../../services/whatsapp/whatsappMessageServ
 import { inboxRecorder } from '../whatsappInbox/inbox.recorder.js';
 import { appointmentsService } from '../appointments/appointments.service.js';
 import { automacoes } from './automacoes.service.js';
-import { notaAvaliacao, respostaConfirmacao, TEXTO_REAGENDAR } from './automacoes.rules.js';
+import { notaAvaliacao, renderizarTexto, respostaConfirmacao, TEXTO_REAGENDAR } from './automacoes.rules.js';
 import { respostasRepository, type RespostaPendente } from './respostas.repository.js';
 
-export const TEXTO_CONFIRMADO = 'Obrigada! Seu horário está confirmado ✨';
+export const TEXTO_CONFIRMADO = 'Agradecemos! Seu horário está confirmado ✨';
 export const TEXTO_CANCELADO = 'Tudo bem! Liberamos seu horário e a equipe já vai falar com você para remarcar.';
-export const TEXTO_NOTA = 'Obrigada pela nota!';
+export const TEXTO_NOTA = 'Agradecemos pela nota!';
 export const TEXTO_GOOGLE = (link: string) => `Que bom que gostou! Se puder, deixe sua avaliação no Google: ${link}`;
 
 interface Entrada {
@@ -23,6 +23,10 @@ interface Entrada {
 const enviar = (i: Entrada, texto: string) =>
   sendWhatsAppMessage(i.phone, texto, { businessId: i.businessId, instanceName: i.instanceName, origin: 'sistema' });
 
+/** Lê a regra uma vez por resposta; falha na leitura cai nos textos padrão. */
+const lerRegra = <R extends 'confirmacao' | 'avaliacao'>(i: Entrada, regra: R) =>
+  automacoes.obter(i.businessId, regra).then((r) => r.config).catch(() => null);
+
 async function tratarConfirmacao(i: Entrada, espera: RespostaPendente, agora: Date): Promise<boolean> {
   const r = respostaConfirmacao(i.texto ?? '');
   if (!r) return false;
@@ -35,14 +39,16 @@ async function tratarConfirmacao(i: Entrada, espera: RespostaPendente, agora: Da
     const marcou = await respostasRepository.marcarConfirmadoPeloCliente(espera.appointmentId, i.businessId, agora);
     await respostasRepository.apagar(espera.id);
     if (!marcou) return false;
-    await enviar(i, TEXTO_CONFIRMADO);
+    const config = await lerRegra(i, 'confirmacao');
+    await enviar(i, config?.textoConfirmado ?? TEXTO_CONFIRMADO);
     return true;
   } else {
     await appointmentsService.updateStatus(espera.appointmentId, i.businessId, 'cancelado');
     await respostasRepository.apagar(espera.id);
     await inboxRecorder.pedirAtendimentoHumano(i.businessId, i.phone);
     await inboxRecorder.avisoDoSistema(i.businessId, i.phone, TEXTO_REAGENDAR);
-    await enviar(i, TEXTO_CANCELADO);
+    const config = await lerRegra(i, 'confirmacao');
+    await enviar(i, config?.textoCancelado ?? TEXTO_CANCELADO);
   }
   return true;
 }
@@ -55,11 +61,11 @@ async function tratarAvaliacao(i: Entrada, espera: RespostaPendente): Promise<bo
   await respostasRepository.apagar(espera.id);
   // Nota descartada (já havia uma): nada de agradecimento, Google nem alerta de nota baixa.
   if (!gravou) return true;
-  const link = nota === 5
-    ? await automacoes.obter(i.businessId, 'avaliacao').then((r) => r.config.linkGoogle).catch(() => null)
-    : null;
-  await enviar(i, TEXTO_NOTA);
-  if (link) await enviar(i, TEXTO_GOOGLE(link));
+  const config = await lerRegra(i, 'avaliacao');
+  await enviar(i, config?.textoNota ?? TEXTO_NOTA);
+  // Sem link do Google o convite não sai, nem com texto personalizado.
+  const link = nota === 5 ? config?.linkGoogle : null;
+  if (link) await enviar(i, config?.textoGoogle ? renderizarTexto(config.textoGoogle, { link }) : TEXTO_GOOGLE(link));
   if (nota <= 2) {
     await inboxRecorder.pedirAtendimentoHumano(i.businessId, i.phone);
     await inboxRecorder.avisoDoSistema(i.businessId, i.phone, `Avaliação baixa (${nota}) — vale falar com ela`);

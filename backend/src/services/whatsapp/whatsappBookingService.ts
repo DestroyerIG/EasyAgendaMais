@@ -12,7 +12,7 @@ import { prisma } from '../../config/prisma.js';
 import { STEPS, BotConfig } from './whatsappConstants.js';
 import { updateSession } from './whatsappSessionService.js';
 import { formatMessage } from './whatsappMessageService.js';
-import { goBackToMainMenu, normalizeChoice } from './whatsappFlowService.js';
+import { goBackToMainMenu, normalizeChoice, formatarTexto } from './whatsappFlowService.js';
 import { formatTimeHm } from './utils/timeUtils.js';
 import { automacoesGatilhos } from '../../modules/whatsappAutomacoes/gatilhos.service.js';
 import { recebimentosRepository } from '../../modules/recebimentos/recebimentos.repository.js';
@@ -104,21 +104,21 @@ export const handleCancelAppointment = async (
     `);
 
     if (!appointments?.length) {
-      return { message: formatMessage(config.cancel_no_appointments_message) };
+      return { message: await formatarTexto(config.cancel_no_appointments_message, businessId) };
     }
 
-    let message = formatMessage(config.cancel_list_message) + '\n\n';
+    let message = await formatarTexto(config.cancel_list_message, businessId) + '\n\n';
     appointments.forEach((appointment, index) => {
       const date = new Date(appointment.date).toLocaleDateString('pt-BR');
       message += `${index + 1}️⃣ ${date} às ${formatTimeHm(appointment.time)}\n`;
     });
-    message += '\n⚠️ Clique no número do agendamento para cancelar ou digite 0️⃣ para voltar ao menu de atendimento';
+    message += '\n' + await formatarTexto(config.cancel_list_hint, businessId);
 
     await updateSession(phone, businessId, STEPS.CONFIRM_CANCEL, { appointments });
     return { message };
   } catch (error) {
     logger.error({ err: error }, 'Erro ao listar agendamentos para cancelamento');
-    return { message: 'Desculpe, ocorreu um erro ao listar os agendamentos. Tente novamente mais tarde.' };
+    return { message: await formatarTexto(config.list_error_message, businessId) };
   }
 };
 
@@ -138,12 +138,12 @@ export const handleConfirmCancel = async (
   const appointments = data.appointments as AppointmentListRow[] | undefined;
 
   if (!appointments || appointmentIndex < 0 || appointmentIndex >= appointments.length) {
-    return { message: 'Opção inválida. Por favor, escolha um número válido.' };
+    return { message: await formatarTexto(config.invalid_list_choice_message, businessId) };
   }
 
   const selectedAppointment = appointments[appointmentIndex];
   if (!selectedAppointment) {
-    return { message: 'Opção inválida. Por favor, escolha um número válido.' };
+    return { message: await formatarTexto(config.invalid_list_choice_message, businessId) };
   }
   return cancelarAgendamento(phone, businessId, selectedAppointment.id, config, simulado);
 };
@@ -165,7 +165,7 @@ const cancelarAgendamento = async (
       });
       if (count === 0) {
         const menu = await goBackToMainMenu(phone, businessId);
-        return { message: 'Esse agendamento não está mais ativo.\n\n' + menu.message };
+        return { message: await formatarTexto(config.appointment_inactive_message, businessId) + '\n\n' + menu.message };
       }
       void automacoesGatilhos.aoCancelar(businessId, appointmentId)
         .catch((err) => logger.warn({ err, appointmentId }, 'Gatilho da lista de espera falhou'));
@@ -174,10 +174,10 @@ const cancelarAgendamento = async (
         .catch((err) => logger.warn({ err, appointmentId }, 'Lembrete de devolver o sinal falhou'));
     }
     const mainMenu = await goBackToMainMenu(phone, businessId);
-    return { message: formatMessage(config.cancel_success_message) + '\n\n' + mainMenu.message };
+    return { message: await formatarTexto(config.cancel_success_message, businessId) + '\n\n' + mainMenu.message };
   } catch (error) {
     logger.error({ err: error }, 'Erro ao cancelar agendamento');
-    return { message: 'Desculpe, ocorreu um erro ao cancelar o agendamento. Tente novamente.' };
+    return { message: await formatarTexto(config.cancel_failed_message, businessId) };
   }
 };
 
@@ -202,21 +202,21 @@ export const handleRescheduleAppointment = async (
     `);
 
     if (!appointments?.length) {
-      return { message: formatMessage(config.reschedule_no_appointments_message) };
+      return { message: await formatarTexto(config.reschedule_no_appointments_message, businessId) };
     }
 
-    let message = formatMessage(config.reschedule_list_message) + '\n\n';
+    let message = await formatarTexto(config.reschedule_list_message, businessId) + '\n\n';
     appointments.forEach((appointment, index) => {
       const date = new Date(appointment.date).toLocaleDateString('pt-BR');
       message += `${index + 1}️⃣ ${date} às ${formatTimeHm(appointment.time)}\n`;
     });
-    message += '\n👉 Clique no número para reagendar ou digite 0️⃣ para voltar ao menu de atendimento';
+    message += '\n' + await formatarTexto(config.reschedule_list_hint, businessId);
 
     await updateSession(phone, businessId, STEPS.CONFIRM_RESCHEDULE, { appointments });
     return { message };
   } catch (error) {
     logger.error({ err: error }, 'Erro ao listar agendamentos para reagendamento');
-    return { message: 'Desculpe, ocorreu um erro ao listar os agendamentos. Tente novamente mais tarde.' };
+    return { message: await formatarTexto(config.list_error_message, businessId) };
   }
 };
 
@@ -235,14 +235,14 @@ export const handleConfirmReschedule = async (
   const appointments = data.appointments as AppointmentListRow[] | undefined;
 
   if (!appointments || appointmentIndex < 0 || appointmentIndex >= appointments.length) {
-    return { message: 'Opção inválida. Por favor, escolha um número válido.' };
+    return { message: await formatarTexto(config.invalid_list_choice_message, businessId) };
   }
 
   const appointment = appointments[appointmentIndex];
   if (!appointment) {
-    return { message: 'Opção inválida. Por favor, escolha um número válido.' };
+    return { message: await formatarTexto(config.invalid_list_choice_message, businessId) };
   }
-  return iniciarRemarcacao(phone, businessId, appointment);
+  return iniciarRemarcacao(phone, businessId, appointment, config);
 };
 
 /** Grava o agendamento escolhido na sessão e pergunta a nova data. */
@@ -250,6 +250,7 @@ const iniciarRemarcacao = async (
   phone: string,
   businessId: string,
   appointment: AppointmentListRow,
+  config: BotConfig,
 ): Promise<BookingMessageResult> => {
   // A escolha de data usa a duração do serviço e a profissional da sessão; sem eles o fluxo não acha horários.
   const servico = appointment.service_id
@@ -283,7 +284,7 @@ const iniciarRemarcacao = async (
    */
   const dates = generateNextDays(7);
 
-  let message = '📅 Escolha a nova data para reagendar:\n\n';
+  let message = await formatarTexto(config.new_date_title, businessId) + '\n\n';
   dates.forEach((dateStr, index) => {
     const day = formatDateBR(dateStr, { weekday: 'short', day: '2-digit', month: '2-digit' });
     message += `${index + 1}️⃣ ${day}\n`;
@@ -300,8 +301,8 @@ const iniciarRemarcacao = async (
 
 // ==================== REMARCAR OU CANCELAR ====================
 
-const montarListaManage = (appointments: AppointmentListRow[], config: BotConfig): string => {
-  let message = formatMessage(config.manage_list_message) + '\n\n';
+const montarListaManage = async (appointments: AppointmentListRow[], config: BotConfig, businessId: string): Promise<string> => {
+  let message = await formatarTexto(config.manage_list_message, businessId) + '\n\n';
   appointments.forEach((appointment, index) => {
     const date = new Date(appointment.date).toLocaleDateString('pt-BR');
     message += `${index + 1}️⃣ ${date} às ${formatTimeHm(appointment.time)}\n`;
@@ -310,8 +311,8 @@ const montarListaManage = (appointments: AppointmentListRow[], config: BotConfig
   return message;
 };
 
-const textoAcaoManage = (appointment: AppointmentListRow, config: BotConfig): string =>
-  formatMessage(config.manage_action_message, {
+const textoAcaoManage = (appointment: AppointmentListRow, config: BotConfig, businessId: string): Promise<string> =>
+  formatarTexto(config.manage_action_message, businessId, {
     dateFormatted: new Date(appointment.date).toLocaleDateString('pt-BR'),
     time: formatTimeHm(appointment.time),
   });
@@ -323,7 +324,7 @@ const perguntarAcaoManage = async (
   config: BotConfig,
 ): Promise<BookingMessageResult> => {
   await updateSession(phone, businessId, STEPS.MANAGE_ACTION, { appointment });
-  return { message: textoAcaoManage(appointment, config) };
+  return { message: await textoAcaoManage(appointment, config, businessId) };
 };
 
 export const handleManageAppointments = async (
@@ -348,17 +349,17 @@ export const handleManageAppointments = async (
     const primeiro = appointments?.[0];
     if (!primeiro) {
       const menu = await goBackToMainMenu(phone, businessId);
-      return { message: formatMessage(config.manage_no_appointments_message) + '\n\n' + menu.message };
+      return { message: await formatarTexto(config.manage_no_appointments_message, businessId) + '\n\n' + menu.message };
     }
     if (appointments.length === 1) {
       return await perguntarAcaoManage(phone, businessId, primeiro, config);
     }
 
     await updateSession(phone, businessId, STEPS.MANAGE_CHOOSE, { appointments });
-    return { message: montarListaManage(appointments, config) };
+    return { message: await montarListaManage(appointments, config, businessId) };
   } catch (error) {
     logger.error({ err: error }, 'Erro ao listar agendamentos para remarcar ou cancelar');
-    return { message: 'Desculpe, ocorreu um erro ao listar os agendamentos. Tente novamente mais tarde.' };
+    return { message: await formatarTexto(config.list_error_message, businessId) };
   }
 };
 
@@ -378,7 +379,7 @@ export const handleManageChoose = async (
   const appointments = (data.appointments as AppointmentListRow[] | undefined) ?? [];
   const selecionado = numero != null ? appointments[numero - 1] : undefined;
   if (!selecionado) {
-    return { message: formatMessage(config.invalid_option_message) + '\n\n' + montarListaManage(appointments, config) };
+    return { message: formatMessage(config.invalid_option_message) + '\n\n' + await montarListaManage(appointments, config, businessId) };
   }
   return perguntarAcaoManage(phone, businessId, selecionado, config);
 };
@@ -401,8 +402,8 @@ export const handleManageAction = async (
     return goBackToMainMenu(phone, businessId);
   }
 
-  if (numero === 1) return iniciarRemarcacao(phone, businessId, appointment);
+  if (numero === 1) return iniciarRemarcacao(phone, businessId, appointment, config);
   if (numero === 2) return cancelarAgendamento(phone, businessId, appointment.id, config, simulado);
 
-  return { message: formatMessage(config.invalid_option_message) + '\n\n' + textoAcaoManage(appointment, config) };
+  return { message: formatMessage(config.invalid_option_message) + '\n\n' + await textoAcaoManage(appointment, config, businessId) };
 };

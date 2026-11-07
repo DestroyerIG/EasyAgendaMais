@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type Dispatch, type SetStateAction } from 'react';
 import { format } from 'date-fns';
 import { Card, Button, Icon, Input, IconButton, EmptyState } from '@/components/ui';
 import { materialIcon } from '@/lib/materialIconAdapter';
 import { cn } from '@/lib/cn';
 
-interface BotMessage {
+export interface BotMessage {
   id: string;
   sender: 'user' | 'bot';
   text: string;
@@ -18,10 +18,15 @@ interface ChatSimulatorProps {
   onLimpar: () => Promise<void>;
   /** Há mensagens editadas e ainda não salvas: o teste usa só as salvas. */
   temAlteracoes: boolean;
+  /** Conversa guardada por quem usa o simulador: sobrevive a fechar o Testar e a trocar de largura. */
+  messages?: BotMessage[];
+  setMessages?: Dispatch<SetStateAction<BotMessage[]>>;
 }
 
-export const ChatSimulator = ({ onSendMessage, onLimpar, temAlteracoes }: ChatSimulatorProps) => {
-  const [messages, setMessages] = useState<BotMessage[]>([]);
+export const ChatSimulator = ({ onSendMessage, onLimpar, temAlteracoes, messages: mensagensDeFora, setMessages: setMensagensDeFora }: ChatSimulatorProps) => {
+  const [mensagensLocais, setMensagensLocais] = useState<BotMessage[]>([]);
+  const messages = mensagensDeFora ?? mensagensLocais;
+  const setMessages = setMensagensDeFora ?? setMensagensLocais;
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -66,10 +71,10 @@ export const ChatSimulator = ({ onSendMessage, onLimpar, temAlteracoes }: ChatSi
   };
 
   return (
-    <Card className="flex h-[600px] flex-col overflow-hidden p-0">
-      <div className="flex items-center justify-between border-b border-line bg-surface-2 p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-whatsapp/12 text-whatsapp">
+    <Card className="flex h-[600px] max-h-[75dvh] flex-col overflow-hidden p-0">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2 p-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-whatsapp/12 text-whatsapp">
             <Icon name="chat" size={20} />
           </div>
           <div>

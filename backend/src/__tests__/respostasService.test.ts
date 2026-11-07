@@ -16,6 +16,7 @@ vi.mock('../modules/whatsappAutomacoes/automacoes.service.js', () => ({ automaco
 
 const { respostas } = await import('../modules/whatsappAutomacoes/respostas.service.js');
 
+const configs: Record<string, Record<string, unknown>> = {};
 const base = { businessId: 'b1', phone: '5583999990000', instanceName: 'loja_1' };
 const CRIADA = new Date('2026-10-22T12:00:00Z');
 const espera = (tipo: string, extra: Record<string, unknown> = {}) => ({ id: 'e1', businessId: 'b1', phoneKey: 'k', tipo, appointmentId: 'a1', expiresAt: new Date(), createdAt: CRIADA, ...extra });
@@ -27,7 +28,9 @@ beforeEach(() => {
   repo.statusDoAgendamento.mockResolvedValue('confirmado');
   repo.marcarConfirmadoPeloCliente.mockResolvedValue(true);
   repo.salvarNota.mockResolvedValue(true);
-  auto.obter.mockResolvedValue({ config: { horas: 2, linkGoogle: 'https://g.page/x' } });
+  configs.confirmacao = { hora: '09:00', textoConfirmado: null, textoCancelado: null };
+  configs.avaliacao = { horas: 2, linkGoogle: 'https://g.page/x', textoNota: null, textoGoogle: null };
+  auto.obter.mockImplementation(async (_b: string, regra: string) => ({ config: configs[regra] }));
 });
 
 it('sem espera: false e nada chamado', async () => {
@@ -45,7 +48,7 @@ it('confirmação + "1": grava, responde e apaga', async () => {
   repo.pendentes.mockResolvedValue([espera('confirmacao')]);
   expect(await respostas.tratar({ ...base, texto: '1' })).toBe(true);
   expect(repo.marcarConfirmadoPeloCliente).toHaveBeenCalledWith('a1', 'b1', expect.any(Date));
-  expect(msg.sendWhatsAppMessage).toHaveBeenCalledWith(base.phone, 'Obrigada! Seu horário está confirmado ✨', expect.objectContaining({ origin: 'sistema' }));
+  expect(msg.sendWhatsAppMessage).toHaveBeenCalledWith(base.phone, 'Agradecemos! Seu horário está confirmado ✨', expect.objectContaining({ origin: 'sistema' }));
   expect(repo.apagar).toHaveBeenCalledWith('e1');
 });
 
@@ -167,4 +170,50 @@ it('confirmação com agendamento já cancelado + "2" e avaliação pendente: n�
   repo.statusDoAgendamento.mockResolvedValue('cancelado');
   expect(await respostas.tratar({ ...base, texto: '2' })).toBe(false);
   expect(repo.salvarNota).not.toHaveBeenCalled();
+});
+
+it('confirmação "1" com textoConfirmado personalizado: envia o texto da regra', async () => {
+  configs.confirmacao.textoConfirmado = 'Fechado, até lá!';
+  repo.pendentes.mockResolvedValue([espera('confirmacao')]);
+  await respostas.tratar({ ...base, texto: '1' });
+  expect(msg.sendWhatsAppMessage).toHaveBeenCalledWith(base.phone, 'Fechado, até lá!', expect.any(Object));
+  expect(auto.obter).toHaveBeenCalledTimes(1);
+});
+
+it('confirmação "2" com textoCancelado personalizado: envia o texto da regra', async () => {
+  configs.confirmacao.textoCancelado = 'Sem problema, vamos remarcar.';
+  repo.pendentes.mockResolvedValue([espera('confirmacao')]);
+  await respostas.tratar({ ...base, texto: '2' });
+  expect(msg.sendWhatsAppMessage).toHaveBeenCalledWith(base.phone, 'Sem problema, vamos remarcar.', expect.any(Object));
+});
+
+it('confirmação: falha ao ler a regra usa o texto padrão', async () => {
+  auto.obter.mockRejectedValue(new Error('x'));
+  repo.pendentes.mockResolvedValue([espera('confirmacao')]);
+  expect(await respostas.tratar({ ...base, texto: '1' })).toBe(true);
+  expect(msg.sendWhatsAppMessage).toHaveBeenCalledWith(base.phone, 'Agradecemos! Seu horário está confirmado ✨', expect.any(Object));
+});
+
+it('avaliação 5 com textoNota e textoGoogle: preenche {link}', async () => {
+  configs.avaliacao.textoNota = 'Gratidão pela nota!';
+  configs.avaliacao.textoGoogle = 'Avalie: {link}';
+  repo.pendentes.mockResolvedValue([espera('avaliacao')]);
+  await respostas.tratar({ ...base, texto: '5' });
+  expect(msg.sendWhatsAppMessage.mock.calls.map((c) => c[1])).toEqual(['Gratidão pela nota!', 'Avalie: https://g.page/x']);
+  expect(auto.obter).toHaveBeenCalledTimes(1);
+});
+
+it('avaliação 5 sem link do Google: só o agradecimento, mesmo com textoGoogle com {link}', async () => {
+  configs.avaliacao.linkGoogle = null;
+  configs.avaliacao.textoGoogle = 'Avalie: {link}';
+  repo.pendentes.mockResolvedValue([espera('avaliacao')]);
+  await respostas.tratar({ ...base, texto: '5' });
+  expect(msg.sendWhatsAppMessage.mock.calls.map((c) => c[1])).toEqual(['Agradecemos pela nota!']);
+});
+
+it('avaliação 4 com textoNota: agradece com o texto da regra e não convida ao Google', async () => {
+  configs.avaliacao.textoNota = 'Valeu!';
+  repo.pendentes.mockResolvedValue([espera('avaliacao')]);
+  await respostas.tratar({ ...base, texto: '4' });
+  expect(msg.sendWhatsAppMessage.mock.calls.map((c) => c[1])).toEqual(['Valeu!']);
 });

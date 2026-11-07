@@ -321,6 +321,18 @@ Referências: telas `studio-camila-rocha-*` e `barbearia-central-*` em `docs/des
 - **Cor do negócio:** tons médios, como `#C2554D`, não têm contraste AA com texto claro nem escuro. A página escurece a cor só o necessário, então o botão pode sair um pouco mais escuro que a cor escolhida.
 - **Conferência:** a página pública foi vista com mock local, a 390 e 320 px. Em produção, as rotas de vagas, horários e situação da reserva responderam em consultas de leitura. Falta uma reserva de verdade, até a confirmação pelo dono.
 
+## Robô de atendimento, pendências conhecidas
+
+Spec: `docs/superpowers/specs/2026-11-05-robo-atendimento-design.md`. Entregue em três PRs: #47 (menu pela lista visível, promoções sem texto inventado, perfil do Instagram, remarcar move o agendamento, simulador que não grava), #48 (menu por segmento) e #50 (textos editáveis e tela única).
+
+- **Migração do PR 3:** `20261109120000_robo_textos` cria `whatsapp_bot_config.textos_extras JSONB`. Foi aplicada em produção em 07/11/2026, com autorização do dono, antes do merge, pelo pooler de sessão, com `migrate status` antes e depois. O Start Command do Render (`npx prisma migrate deploy && npm start`, DEPLOY.md) aplicaria no deploy as migrações que faltassem. Sem a coluna, `lerBotConfig` cai em silêncio nos textos padrão (negócio com textos salvos os perde no robô e as promoções somem do menu) e `GET/PUT /whatsapp/config/textos` retornam 500.
+- **Dados de teste do simulador em produção:** ficaram registros do número `5511999999999` (do simulador antigo, que gravava). Só saem com autorização do dono. O simulador atual não grava nada.
+- **Limiar da avaliação baixa:** o alerta usa nota até 2 e o link do Google, até 3. Unificar ficou fora do escopo.
+- **`POST /whatsapp/config/reset`:** segue no backend, mas a tela nova não usa. A restauração é por campo (`PUT /whatsapp/config/textos` com `null`).
+- **Textos:** o texto igual ao padrão é gravado como `null`, então muda junto com o padrão do segmento. As respostas das Automações (`textoConfirmado`, `textoCancelado`, `textoNota`, `textoGoogle` com `{link}`) ficam em `WhatsappAutomacao.config` e seguem a mesma regra.
+- **Menu personalizado:** quem personalizou o menu antes do PR #48 mantém as opções e perde a avaliação, que agora só existe em Automações.
+- **Rotas do Next:** config/textos, config/instagram e simulator/reset ganharam rota no BFF. As duas últimas já eram chamadas desde o PR #47 e não tinham rota.
+
 ## Recebimentos pelo Mercado Pago, pendências conhecidas
 
 Spec em `docs/superpowers/specs/2026-11-05-recebimentos-mercado-pago-design.md`, conferências em `docs/design/mercado-pago-verificacoes.md` e guia em `docs/mercado-pago-configuracao.md`. Migração `20261108120000_recebimentos`: aplicar antes do deploy do backend, com autorização do dono.

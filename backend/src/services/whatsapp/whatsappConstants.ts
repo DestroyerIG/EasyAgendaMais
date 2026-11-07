@@ -60,9 +60,35 @@ export interface BotConfig {
   promotions_message: string;
   instagram_message: string;
   politica_message: string;
-  /** Calculados pelo vocabulário do segmento (fase 6), não ficam no banco. */
-  choose_professional_title?: string;
-  no_professionals_message?: string;
+  /** Padrão vem do vocabulário do segmento (fase 6); o texto editado fica em `textos_extras`. */
+  choose_professional_title: string;
+  no_professionals_message: string;
+  /** Daqui em diante não há coluna própria: o texto editado fica em `textos_extras`. */
+  services_list_title: string;
+  no_services_message: string;
+  no_services_available_message: string;
+  name_greeting_message: string;
+  choose_service_title: string;
+  choose_date_title: string;
+  closed_day_message: string;
+  choose_time_title: string;
+  walkin_notice: string;
+  slot_taken_message: string;
+  booking_failed_message: string;
+  new_date_title: string;
+  reschedule_inactive_message: string;
+  reschedule_failed_message: string;
+  appointment_inactive_message: string;
+  list_error_message: string;
+  out_of_hours_message: string;
+  today_hours_message: string;
+  paused_message: string;
+  invalid_list_choice_message: string;
+  service_selected_message: string;
+  professional_selected_message: string;
+  cancel_list_hint: string;
+  reschedule_list_hint: string;
+  cancel_failed_message: string;
 }
 
 /**
@@ -108,6 +134,33 @@ export const DEFAULT_BOT_CONFIG: BotConfig = {
   promotions_message: '',
   instagram_message: '📱 *Nos acompanhe no Instagram!*\n\n👉 {instagram_handle}\n\nVeja nossos trabalhos mais recentes e novidades.',
   politica_message: '',
+  choose_professional_title: 'Escolha o profissional',
+  no_professionals_message: 'Desculpe, não há profissionais disponíveis no momento.',
+  services_list_title: 'Nossos serviços',
+  no_services_message: 'Não há serviços cadastrados no momento.',
+  no_services_available_message: 'Desculpe, não há serviços disponíveis no momento.',
+  name_greeting_message: '✅ Olá, *{nome_cliente}*!',
+  choose_service_title: 'Escolha o serviço',
+  choose_date_title: 'Escolha a data',
+  closed_day_message: 'Hoje não estamos atendendo. Escolha outro dia.',
+  choose_time_title: 'Horários disponíveis',
+  walkin_notice: 'Também aceitamos encaixes durante o horário de atendimento.',
+  slot_taken_message: '⚠️ Este horário acabou de ser reservado. Por favor, escolha outro horário.',
+  booking_failed_message: '⚠️ Não consegui confirmar seu agendamento agora. Por favor, tente novamente em instantes.',
+  new_date_title: '📅 Escolha a nova data para reagendar:',
+  reschedule_inactive_message: '⚠️ Esse agendamento não está mais ativo, então não consegui remarcar.',
+  reschedule_failed_message: '⚠️ Não consegui remarcar seu agendamento agora. Por favor, tente novamente em instantes.',
+  appointment_inactive_message: 'Esse agendamento não está mais ativo.',
+  list_error_message: 'Desculpe, ocorreu um erro ao listar os agendamentos. Tente novamente mais tarde.',
+  out_of_hours_message: 'Olá! Nosso horário de atendimento é das {horario_atendimento}. Sua mensagem foi recebida e retornaremos dentro do nosso expediente.',
+  today_hours_message: 'Hoje atendemos até as {hora_fechamento}.',
+  paused_message: 'A agenda online está pausada no momento. Fale direto com {nome_negocio} pelo WhatsApp.',
+  invalid_list_choice_message: 'Opção inválida. Por favor, escolha um número válido.',
+  service_selected_message: '✅ *{servico}* selecionado!',
+  professional_selected_message: '✅ *{profissional}* selecionado!',
+  cancel_list_hint: '⚠️ Clique no número do agendamento para cancelar ou digite 0️⃣ para voltar ao menu de atendimento',
+  reschedule_list_hint: '👉 Clique no número para reagendar ou digite 0️⃣ para voltar ao menu de atendimento',
+  cancel_failed_message: 'Desculpe, ocorreu um erro ao cancelar o agendamento. Tente novamente.',
 };
 
 /** Fecha as respostas de agendamento do simulador: nada foi gravado de verdade. */
