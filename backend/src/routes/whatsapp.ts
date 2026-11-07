@@ -18,7 +18,9 @@ import {
 } from '../services/whatsappClient.js';
 import { updateInstanceFromPayload } from '../services/whatsapp/whatsappInstanceCache.js';
 import { getBusinessWhatsAppInstanceContext } from '../services/whatsapp/whatsappInstanceService.js';
-import { getBotConfig } from '../services/whatsapp/whatsappConfigService.js';
+import { getBotConfig, segmentoDoNegocio, garantirMenuAtualSemFalhar, seedDefaultMenuOptions } from '../services/whatsapp/whatsappConfigService.js';
+import { menuPadrao } from '../services/whatsapp/whatsappMenuPadrao.js';
+import { deleteSession } from '../services/whatsapp/whatsappSessionService.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireTenantRoles } from '../middleware/rbac.js';
 import { requireFeature } from '../middleware/subscriptionGuard.js';
@@ -27,6 +29,7 @@ import { Prisma } from '@prisma/client';
 import { sendSuccess, sendCreated, sendError } from '../utils/response.js';
 import logger from '../utils/logger.js';
 import { ValidationError } from '../utils/errors.js';
+import { normalizarInstagram } from '../services/whatsapp/whatsappMenu.js';
 import {
   normalizeWhatsAppNumber,
   normalizePhone,
@@ -123,13 +126,6 @@ interface DedupeResult {
   deduped: boolean;
   dedupeKey: string;
   messageId: string | null;
-}
-
-interface DefaultMenuOption {
-  order: number;
-  label: string;
-  emoji: string;
-  handler: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -1803,6 +1799,30 @@ router.post('/simulator/message', ...waProtected, async (req: Request, res: Resp
   }
 });
 
+// Reinicia a conversa do simulador: apaga só a sessão do número de teste.
+router.post('/simulator/reset', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    // O telefone do corpo é ignorado: reiniciar nunca pode apagar a conversa de um cliente real.
+    const phone = '5511999999999';
+
+    const context = await resolveSimulatorBusinessContext({
+      payloadBusinessId: normalizeSimulatorBusinessId(body['businessId']),
+      authBusinessId: normalizeSimulatorBusinessId(req.user?.businessId),
+    });
+
+    if (!context.ok) {
+      sendError(res, context.statusCode, context.code, context.message);
+      return;
+    }
+
+    await deleteSession(phone, context.businessId);
+    sendSuccess(res, { reiniciado: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ==================== STATUS E CONEXÃO ====================
 
 router.get('/status', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -2296,9 +2316,6 @@ router.put('/config', ...waProtected, async (req: Request, res: Response, next: 
       cancel_success_message,
       reschedule_no_appointments_message,
       reschedule_list_message,
-      no_previous_appointments_message,
-      rating_question_message,
-      rating_confirmation_message,
       promotions_message,
       instagram_message,
       politica_message,
@@ -2316,7 +2333,6 @@ router.put('/config', ...waProtected, async (req: Request, res: Response, next: 
           session_expired_message, end_session_message, name_validation_message,
           no_slots_message, cancel_no_appointments_message, cancel_list_message,
           cancel_success_message, reschedule_no_appointments_message, reschedule_list_message,
-          no_previous_appointments_message, rating_question_message, rating_confirmation_message,
           promotions_message, instagram_message, politica_message, updated_at
       ) VALUES (
         ${businessId}::uuid,${welcome_header ?? null},${ask_name_message ?? null},${attendant_message ?? null},
@@ -2324,7 +2340,6 @@ router.put('/config', ...waProtected, async (req: Request, res: Response, next: 
         ${session_expired_message ?? null},${end_session_message ?? null},${name_validation_message ?? null},
         ${no_slots_message ?? null},${cancel_no_appointments_message ?? null},${cancel_list_message ?? null},
         ${cancel_success_message ?? null},${reschedule_no_appointments_message ?? null},${reschedule_list_message ?? null},
-        ${no_previous_appointments_message ?? null},${rating_question_message ?? null},${rating_confirmation_message ?? null},
         ${promotions_message ?? null},${instagram_message ?? null},${politica_message ?? null},CURRENT_TIMESTAMP
       )
       ON CONFLICT (business_id)
@@ -2344,9 +2359,6 @@ router.put('/config', ...waProtected, async (req: Request, res: Response, next: 
           cancel_success_message = COALESCE(EXCLUDED.cancel_success_message, whatsapp_bot_config.cancel_success_message),
           reschedule_no_appointments_message = COALESCE(EXCLUDED.reschedule_no_appointments_message, whatsapp_bot_config.reschedule_no_appointments_message),
           reschedule_list_message = COALESCE(EXCLUDED.reschedule_list_message, whatsapp_bot_config.reschedule_list_message),
-          no_previous_appointments_message = COALESCE(EXCLUDED.no_previous_appointments_message, whatsapp_bot_config.no_previous_appointments_message),
-          rating_question_message = COALESCE(EXCLUDED.rating_question_message, whatsapp_bot_config.rating_question_message),
-          rating_confirmation_message = COALESCE(EXCLUDED.rating_confirmation_message, whatsapp_bot_config.rating_confirmation_message),
           promotions_message = COALESCE(EXCLUDED.promotions_message, whatsapp_bot_config.promotions_message),
           instagram_message = COALESCE(EXCLUDED.instagram_message, whatsapp_bot_config.instagram_message),
           politica_message = COALESCE(EXCLUDED.politica_message, whatsapp_bot_config.politica_message),
@@ -2382,34 +2394,44 @@ router.post('/config/reset', ...waProtected, async (req: Request, res: Response,
 
 // ==================== OPÇÕES DO MENU DO BOT ====================
 
-const DEFAULT_MENU_OPTIONS: DefaultMenuOption[] = [
-  { order: 1, label: 'Agendar um horário', emoji: '📅', handler: 'schedule' },
-  { order: 2, label: 'Ver nossos serviços', emoji: '📋', handler: 'view_services' },
-  { order: 3, label: 'Cancelar agendamento', emoji: '❌', handler: 'cancel' },
-  { order: 4, label: 'Reagendamento', emoji: '🔄', handler: 'reschedule' },
-  { order: 5, label: 'Avaliação pós-atendimento', emoji: '⭐', handler: 'rating' },
-  { order: 6, label: 'Promoções', emoji: '🎉', handler: 'promotions' },
-  { order: 7, label: 'Instagram', emoji: '📱', handler: 'instagram' },
-  { order: 8, label: 'Falar com um humano', emoji: '👨‍💼', handler: 'attendant' },
-  { order: 9, label: 'Encerrar atendimento', emoji: '🚪', handler: 'end_session' },
-];
+router.get('/config/instagram', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { businessId } = req.user;
+    const negocio = await prisma.business.findFirst({ where: { id: businessId! }, select: { instagramHandle: true } });
+    sendSuccess(res, { handle: negocio?.instagramHandle ?? null });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/config/instagram', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { businessId } = req.user;
+    const { handle } = (req.body ?? {}) as { handle?: unknown };
+    // Sem a chave `handle` o pedido é inválido; `null` ou '' limpam o perfil de propósito.
+    if (handle === undefined || (handle !== null && typeof handle !== 'string')) {
+      throw new ValidationError('Perfil do Instagram inválido');
+    }
+    const normalizado = normalizarInstagram(typeof handle === 'string' ? handle : '');
+    await prisma.business.update({ where: { id: businessId! }, data: { instagramHandle: normalizado } });
+    sendSuccess(res, { handle: normalizado });
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.get('/config/menu', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { businessId } = req.user;
+
+    await garantirMenuAtualSemFalhar(businessId!);
 
     let rows = await prisma.$queryRaw<Record<string, unknown>[]>(
       Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid ORDER BY option_order ASC`
     );
 
     if (rows.length === 0) {
-      for (const opt of DEFAULT_MENU_OPTIONS) {
-        await prisma.$queryRaw(
-          Prisma.sql`INSERT INTO whatsapp_menu_options (business_id, option_order, label, emoji, type, handler, active)
-           VALUES (${businessId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)
-           ON CONFLICT (business_id, option_order) DO NOTHING`
-        );
-      }
+      await seedDefaultMenuOptions(businessId!);
 
       rows = await prisma.$queryRaw<Record<string, unknown>[]>(
         Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid ORDER BY option_order ASC`
@@ -2560,29 +2582,49 @@ router.put('/config/menu-reorder', ...waProtected, async (req: Request, res: Res
       return;
     }
 
-    for (let i = 0; i < order.length; i++) {
-      const itemId = order[i] as string;
-      const tempOrder = -(i + 1);
-      await prisma.$queryRaw(
-        Prisma.sql`UPDATE whatsapp_menu_options
-         SET option_order = ${tempOrder}, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ${itemId}::uuid AND business_id = ${businessId}::uuid`
+    // A linha antiga de avaliação sairia da lista visível, mas seguraria um option_order e
+    // quebraria o índice único: apaga junto, na mesma transação da reordenação.
+    const rows = await prisma.$transaction(async (tx) => {
+      // Ids velhos (a tela não recarregou depois de o menu ser recriado): recusa sem alterar nada.
+      const existentes = await tx.$queryRaw<{ id: string }[]>(
+        Prisma.sql`SELECT id FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid`
       );
-    }
+      const ids = new Set(existentes.map((r) => r.id));
+      if (!order.every((id) => typeof id === 'string' && ids.has(id))) return null;
 
-    for (let i = 0; i < order.length; i++) {
-      const itemId = order[i] as string;
-      const finalOrder = i + 1;
-      await prisma.$queryRaw(
-        Prisma.sql`UPDATE whatsapp_menu_options
-         SET option_order = ${finalOrder}
-         WHERE id = ${itemId}::uuid AND business_id = ${businessId}::uuid`
+      await tx.$queryRaw(
+        Prisma.sql`DELETE FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid AND handler = 'rating'`
       );
-    }
 
-    const rows = await prisma.$queryRaw<Record<string, unknown>[]>(
-      Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid ORDER BY option_order ASC`
-    );
+      for (let i = 0; i < order.length; i++) {
+        const itemId = order[i] as string;
+        const tempOrder = -(i + 1);
+        await tx.$queryRaw(
+          Prisma.sql`UPDATE whatsapp_menu_options
+           SET option_order = ${tempOrder}, updated_at = CURRENT_TIMESTAMP
+           WHERE id = ${itemId}::uuid AND business_id = ${businessId}::uuid`
+        );
+      }
+
+      for (let i = 0; i < order.length; i++) {
+        const itemId = order[i] as string;
+        const finalOrder = i + 1;
+        await tx.$queryRaw(
+          Prisma.sql`UPDATE whatsapp_menu_options
+           SET option_order = ${finalOrder}
+           WHERE id = ${itemId}::uuid AND business_id = ${businessId}::uuid`
+        );
+      }
+
+      return tx.$queryRaw<Record<string, unknown>[]>(
+        Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid ORDER BY option_order ASC`
+      );
+    });
+
+    if (rows === null) {
+      sendError(res, 409, 'MENU_DESATUALIZADO', 'O menu mudou. Recarregue a lista e tente de novo.');
+      return;
+    }
 
     sendSuccess(res, rows);
   } catch (error) {
@@ -2594,16 +2636,19 @@ router.post('/config/menu/reset', ...waProtected, async (req: Request, res: Resp
   try {
     const { businessId } = req.user;
 
-    await prisma.$queryRaw(
-      Prisma.sql`DELETE FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid`
-    );
-
-    for (const opt of DEFAULT_MENU_OPTIONS) {
-      await prisma.$queryRaw(
-        Prisma.sql`INSERT INTO whatsapp_menu_options (business_id, option_order, label, emoji, type, handler, active)
-         VALUES (${businessId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)`
+    // Segmento lido antes de apagar; DELETE e INSERTs na mesma transação: uma falha nunca deixa o menu vazio.
+    const padrao = menuPadrao(await segmentoDoNegocio(businessId!));
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(
+        Prisma.sql`DELETE FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid`
       );
-    }
+      for (const opt of padrao) {
+        await tx.$queryRaw(
+          Prisma.sql`INSERT INTO whatsapp_menu_options (business_id, option_order, label, emoji, type, handler, active)
+           VALUES (${businessId}::uuid, ${opt.order}, ${opt.label}, ${opt.emoji}, 'system', ${opt.handler}, true)`
+        );
+      }
+    });
 
     const rows = await prisma.$queryRaw<Record<string, unknown>[]>(
       Prisma.sql`SELECT * FROM whatsapp_menu_options WHERE business_id = ${businessId}::uuid ORDER BY option_order ASC`

@@ -26,6 +26,12 @@ interface MenuOptionsPanelProps {
   onCreate: (data: { label: string; emoji: string; response_message: string }) => void;
   onReorder: (ids: string[]) => void;
   onReset: () => void;
+  instagramHandle?: string | null;
+  /** Devolve false quando o backend recusou o perfil: o modal fica aberto com o que foi digitado. */
+  onSalvarInstagram?: (handle: string | null) => boolean | void | Promise<boolean | void>;
+  /** Textos já salvos das mensagens: servem para avisar quando a opção está ligada mas não aparece. */
+  promocoesMessage?: string;
+  instagramMessage?: string;
 }
 
 type ModalState = { mode: 'create' } | { mode: 'edit'; target: MenuOption } | null;
@@ -40,11 +46,16 @@ export const MenuOptionsPanel = ({
   onCreate,
   onReorder,
   onReset,
+  instagramHandle = null,
+  onSalvarInstagram,
+  promocoesMessage,
+  instagramMessage,
 }: MenuOptionsPanelProps) => {
   const [modalState, setModalState] = useState<ModalState>(null);
   const [formLabel, setFormLabel] = useState('');
   const [formEmoji, setFormEmoji] = useState('');
   const [formResponse, setFormResponse] = useState('');
+  const [formInstagram, setFormInstagram] = useState('');
 
   const openCreateModal = () => {
     setFormLabel('');
@@ -57,12 +68,13 @@ export const MenuOptionsPanel = ({
     setFormLabel(opt.label);
     setFormEmoji(opt.emoji);
     setFormResponse(opt.response_message || '');
+    setFormInstagram(instagramHandle ?? '');
     setModalState({ mode: 'edit', target: opt });
   };
 
   const closeModal = () => setModalState(null);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!modalState) return;
 
     if (modalState.mode === 'create') {
@@ -73,6 +85,11 @@ export const MenuOptionsPanel = ({
     }
 
     const opt = modalState.target;
+    // O perfil vai primeiro: se o backend recusar, nada é aplicado e o modal segue aberto com o digitado.
+    if (opt.handler === 'instagram' && onSalvarInstagram && formInstagram.trim() !== (instagramHandle ?? '')) {
+      const ok = await onSalvarInstagram(formInstagram.trim() === '' ? null : formInstagram.trim());
+      if (ok === false) return;
+    }
     const updates: Partial<MenuOption> = {};
     if (formLabel !== opt.label) updates.label = formLabel;
     if (formEmoji !== opt.emoji) updates.emoji = formEmoji;
@@ -95,6 +112,18 @@ export const MenuOptionsPanel = ({
     const ids = options.map(o => o.id);
     [ids[index], ids[index + 1]] = [ids[index + 1], ids[index]];
     onReorder(ids);
+  };
+
+  // Ligada mas fora do menu: o robô esconde Promoções sem texto e Instagram sem perfil.
+  const avisoInvisivel = (opt: MenuOption): string | null => {
+    if (!opt.active || opt.type !== 'system') return null;
+    if (opt.handler === 'promotions' && promocoesMessage !== undefined && promocoesMessage.trim() === '') {
+      return 'Não aparece: escreva sua promoção em Mensagens';
+    }
+    if (opt.handler === 'instagram' && !instagramHandle && instagramMessage !== undefined && instagramMessage.includes('{instagram_handle}')) {
+      return 'Não aparece: cadastre seu Instagram';
+    }
+    return null;
   };
 
   const isEditing = modalState?.mode === 'edit';
@@ -167,6 +196,7 @@ export const MenuOptionsPanel = ({
                     </span>
                   )}
                 </p>
+                {avisoInvisivel(opt) && <p className="text-[13px] text-warning">{avisoInvisivel(opt)}</p>}
               </div>
 
               <div className="flex items-center gap-1">
@@ -251,6 +281,18 @@ export const MenuOptionsPanel = ({
                 onChange={e => setFormResponse(e.target.value)}
                 placeholder="Mensagem que o bot enviará quando o cliente escolher esta opção..."
                 rows={3}
+              />
+            </Field>
+          )}
+          {editingTarget?.handler === 'instagram' && (
+            <Field id="menu-option-instagram" label="Perfil do Instagram">
+              <Input
+                id="menu-option-instagram"
+                type="text"
+                value={formInstagram}
+                onChange={e => setFormInstagram(e.target.value)}
+                placeholder="@seuperfil"
+                maxLength={60}
               />
             </Field>
           )}

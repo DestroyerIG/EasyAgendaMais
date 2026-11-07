@@ -50,9 +50,11 @@ async function tratarConfirmacao(i: Entrada, espera: RespostaPendente, agora: Da
 async function tratarAvaliacao(i: Entrada, espera: RespostaPendente): Promise<boolean> {
   const nota = notaAvaliacao(i.texto ?? '');
   if (!nota) return false;
-  await respostasRepository.salvarNota({ businessId: i.businessId, appointmentId: espera.appointmentId, rating: nota });
+  const gravou = await respostasRepository.salvarNota({ businessId: i.businessId, appointmentId: espera.appointmentId, rating: nota });
   // A nota já está gravada: apagar a espera antes dos envios evita repetir o agradecimento numa nova resposta.
   await respostasRepository.apagar(espera.id);
+  // Nota descartada (já havia uma): nada de agradecimento, Google nem alerta de nota baixa.
+  if (!gravou) return true;
   const link = nota === 5
     ? await automacoes.obter(i.businessId, 'avaliacao').then((r) => r.config.linkGoogle).catch(() => null)
     : null;

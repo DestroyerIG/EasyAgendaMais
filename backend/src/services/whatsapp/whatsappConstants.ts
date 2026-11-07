@@ -16,8 +16,9 @@ export const STEPS = {
   CHOOSE_TIME: 'choose_time',
   CONFIRM_CANCEL: 'confirm_cancel',
   CONFIRM_RESCHEDULE: 'confirm_reschedule',
-  SEND_RATING: 'send_rating',
   VIEW_SERVICES: 'view_services',
+  MANAGE_CHOOSE: 'manage_choose',
+  MANAGE_ACTION: 'manage_action',
 } as const;
 
 export type StepKey = keyof typeof STEPS;
@@ -32,18 +33,6 @@ export interface MenuOption {
   emoji: string;
   handler: string;
 }
-
-export const DEFAULT_MENU_OPTIONS: MenuOption[] = [
-  { order: 1, label: 'Agendar um horário', emoji: '📅', handler: 'schedule' },
-  { order: 2, label: 'Ver nossos serviços', emoji: '📋', handler: 'view_services' },
-  { order: 3, label: 'Cancelar agendamento', emoji: '❌', handler: 'cancel' },
-  { order: 4, label: 'Reagendamento', emoji: '🔄', handler: 'reschedule' },
-  { order: 5, label: 'Avaliação pós-atendimento', emoji: '⭐', handler: 'rating' },
-  { order: 6, label: 'Promoções', emoji: '🎉', handler: 'promotions' },
-  { order: 7, label: 'Instagram', emoji: '📱', handler: 'instagram' },
-  { order: 8, label: 'Falar com um humano', emoji: '👨‍💼', handler: 'attendant' },
-  { order: 9, label: 'Encerrar atendimento', emoji: '🚪', handler: 'end_session' },
-];
 
 /**
  * Shape of bot config messages.
@@ -64,9 +53,10 @@ export interface BotConfig {
   cancel_success_message: string;
   reschedule_no_appointments_message: string;
   reschedule_list_message: string;
-  no_previous_appointments_message: string;
-  rating_question_message: string;
-  rating_confirmation_message: string;
+  reschedule_success_message: string;
+  manage_list_message: string;
+  manage_no_appointments_message: string;
+  manage_action_message: string;
   promotions_message: string;
   instagram_message: string;
   politica_message: string;
@@ -78,10 +68,27 @@ export interface BotConfig {
 /**
  * Mensagens padrão do bot (usadas quando não há configuração no banco).
  */
-export const DEFAULT_BOT_CONFIG: BotConfig = {
+/** Texto de promoções que o sistema enviava por padrão, com desconto que o negócio nunca definiu. */
+export const PROMOCOES_PADRAO_ANTIGO =
+  '🎉 *Promoções e Ofertas Especiais!*\n\n✨ *Desconto de 10%* em todos os serviços para clientes frequentes!\n\n💝 *Promoção do Mês:* combo de serviços com preço especial\n(Válido até o final do mês)\n\n🎁 *Indique um amigo* e ganhe 5% em seu próximo atendimento!\n\nPara aproveitar as promoções, agende agora!';
+
+/**
+ * Textos padrão anteriores que podem estar gravados no banco. Se o valor salvo for exatamente igual,
+ * o dono nunca editou: a leitura devolve o padrão atual (Promoções volta vazio).
+ */
+export const PADROES_ANTIGOS: Partial<Record<keyof BotConfig, string>> = {
   welcome_header: 'Olá 👋 Bem-vindo!\n\nSou o assistente virtual de {nome_negocio} 🤖 e estou aqui para agilizar seu atendimento.\n\nComo posso ajudar hoje?',
-  ask_name_message: 'Vejo que é sua primeira vez aqui! 😊\n\nQual o seu *nome completo*?',
   attendant_message: 'Um atendente entrará em contato em breve! 👨‍💼',
+  cancel_no_appointments_message: '📋 Você não tem agendamentos próximos para cancelar.\n\nSe deseja agendar, escolha a opção 1️⃣',
+  reschedule_no_appointments_message: '📋 Você não tem agendamentos para reagendar.\n\nSe deseja agendar, escolha a opção 1️⃣',
+  instagram_message: '📱 *Nos acompanhe no Instagram!*\n\n🎨 Veja nossos trabalhos, dicas de estilo e tendências!\n\n👉 {instagram_handle}\n\n📸 Siga-nos para:\n✨ Ver nossos trabalhos mais recentes\n💡 Receber dicas de beleza\n🎯 Acompanhar promoções exclusivas\n\n📲 Clique no link para nos seguir!',
+  promotions_message: PROMOCOES_PADRAO_ANTIGO,
+};
+
+export const DEFAULT_BOT_CONFIG: BotConfig = {
+  welcome_header: 'Olá 👋 Que bom ter você aqui!\n\nSou o assistente virtual de {nome_negocio} 🤖.\n\nComo posso ajudar hoje?',
+  ask_name_message: 'Vejo que é sua primeira vez aqui! 😊\n\nQual o seu *nome completo*?',
+  attendant_message: 'Nossa equipe vai falar com você em breve! 💬',
   confirmation_message: '✅ Seu horário foi agendado com sucesso!\n\n📋 Serviço: {servico}\n👤 Profissional: {profissional}\n📅 Data: {data}\n⏰ Horário: {horario}\n💰 Valor: R$ {valor}\n\nAté lá! 👋',
   reminder_message: '⏰ Lembrete!\n\nOlá {nome_cliente}!\n\nSeu horário é daqui a 2 horas:\n📋 {servico}\n👤 Profissional: {profissional}\n⏰ {horario}\n\nTe esperamos!',
   invalid_option_message: 'Opção inválida. Por favor, escolha um número da lista.',
@@ -89,49 +96,19 @@ export const DEFAULT_BOT_CONFIG: BotConfig = {
   end_session_message: '✅ Atendimento encerrado.\n\nSe precisar novamente, é só mandar uma nova mensagem.',
   name_validation_message: 'Por favor, digite seu nome completo para continuarmos.\n\n0️⃣ Ou digite 0 para voltar ao menu de atendimento',
   no_slots_message: 'Infelizmente não há horários disponíveis com este profissional nesta data. Escolha outra data ou outro profissional.\n\n0️⃣ Voltar ao menu de atendimento',
-  cancel_no_appointments_message: '📋 Você não tem agendamentos próximos para cancelar.\n\nSe deseja agendar, escolha a opção 1️⃣',
+  cancel_no_appointments_message: '📋 Você não tem agendamentos próximos para cancelar.\n\nSe quiser marcar um horário, volte ao menu.',
   cancel_list_message: '❌ Seus agendamentos próximos:',
   cancel_success_message: '✅ Seu agendamento foi cancelado com sucesso!\n\nSe deseja remarcar ou agende um novo horário.',
-  reschedule_no_appointments_message: '📋 Você não tem agendamentos para reagendar.\n\nSe deseja agendar, escolha a opção 1️⃣',
+  reschedule_no_appointments_message: '📋 Você não tem agendamentos para reagendar.\n\nSe quiser marcar um horário, volte ao menu.',
   reschedule_list_message: '🔄 Seus agendamentos disponíveis para reagendamento:',
-  no_previous_appointments_message: '📊 Você não tem atendimentos anteriores para avaliar.\n\nVolte após seu próximo atendimento! 😊',
-  rating_question_message: '⭐ *Como foi seu atendimento?*\n\n1️⃣ Excelente! 😍\n2️⃣ Bom 😊\n3️⃣ Pode melhorar 😐\n4️⃣ Ruim 😞\n\n0️⃣ Voltar ao menu de atendimento\n\nSua opinião nos ajuda a melhorar cada vez mais!',
-  rating_confirmation_message: '✅ Obrigado pela sua avaliação: {avaliacao}\n\nSua opinião é muito importante para melhorarmos cada vez mais!\n\n👉 O que mais podemos fazer por você?',
-  promotions_message: '🎉 *Promoções e Ofertas Especiais!*\n\n✨ *Desconto de 10%* em todos os serviços para clientes frequentes!\n\n💝 *Promoção do Mês:* combo de serviços com preço especial\n(Válido até o final do mês)\n\n🎁 *Indique um amigo* e ganhe 5% em seu próximo atendimento!\n\nPara aproveitar as promoções, agende agora!',
-  instagram_message: '📱 *Nos acompanhe no Instagram!*\n\n🎨 Veja nossos trabalhos, dicas de estilo e tendências!\n\n👉 {instagram_handle}\n\n📸 Siga-nos para:\n✨ Ver nossos trabalhos mais recentes\n💡 Receber dicas de beleza\n🎯 Acompanhar promoções exclusivas\n\n📲 Clique no link para nos seguir!',
+  reschedule_success_message: '✅ Seu horário foi remarcado!\n\n📋 Serviço: {servico}\n👤 Profissional: {profissional}\n📅 Data: {data}\n⏰ Horário: {horario}\n\nAté lá! 👋',
+  manage_list_message: '🔄 Seus agendamentos:',
+  manage_no_appointments_message: '📋 Você não tem agendamentos próximos.',
+  manage_action_message: 'O que deseja fazer com o agendamento de {data} às {horario}?\n\n1️⃣ Remarcar\n2️⃣ Cancelar\n\n0️⃣ Voltar ao menu',
+  promotions_message: '',
+  instagram_message: '📱 *Nos acompanhe no Instagram!*\n\n👉 {instagram_handle}\n\nVeja nossos trabalhos mais recentes e novidades.',
   politica_message: '',
 };
 
-/**
- * Mensagens de fallback para erros de configuração.
- */
-export const FALLBACK_BOT_CONFIG: BotConfig = {
-  welcome_header: 'Olá 👋 Bem-vindo!',
-  ask_name_message: 'Qual o seu nome?',
-  attendant_message: 'Aguarde um momento.',
-  confirmation_message: 'Agendado!',
-  reminder_message: 'Lembrete: seu horário é em breve!',
-  invalid_option_message: 'Opção inválida.',
-  session_expired_message: 'Sessão expirada.',
-  end_session_message: 'Atendimento encerrado.',
-  name_validation_message: 'Digite seu nome completo.',
-  no_slots_message: 'Sem horários disponíveis.',
-  cancel_no_appointments_message: 'Sem agendamentos para cancelar.',
-  cancel_list_message: 'Seus agendamentos:',
-  cancel_success_message: 'Cancelado com sucesso!',
-  reschedule_no_appointments_message: 'Sem agendamentos para reagendar.',
-  reschedule_list_message: 'Seus agendamentos:',
-  no_previous_appointments_message: 'Sem atendimentos anteriores.',
-  rating_question_message: 'Como foi seu atendimento? (1-4)',
-  rating_confirmation_message: 'Obrigado pela avaliação!',
-  promotions_message: 'Confira nossas promoções!',
-  instagram_message: 'Siga-nos no Instagram!',
-  politica_message: '',
-};
-
-export const RATING_TEXTS: Record<number, string> = {
-  1: 'Excelente! 😍',
-  2: 'Bom 😊',
-  3: 'Pode melhorar 😐',
-  4: 'Ruim 😞',
-};
+/** Fecha as respostas de agendamento do simulador: nada foi gravado de verdade. */
+export const AVISO_TESTE = '🧪 Teste: nada foi agendado.';

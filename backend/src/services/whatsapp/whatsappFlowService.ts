@@ -13,7 +13,7 @@ import type { Request, Response } from 'express';
 import logger from '../../utils/logger.js';
 import { prisma } from '../../config/prisma.js';
 import { Prisma } from '@prisma/client';
-import { sendWhatsAppMessage, buildWelcomeMessage } from './whatsappMessageService.js';
+import { sendWhatsAppMessage, buildWelcomeMessage, formatMessage } from './whatsappMessageService.js';
 import { inboxRecorder } from '../../modules/whatsappInbox/inbox.recorder.js';
 import type { SendWhatsAppMessageContext } from './whatsappMessageService.js';
 import { getWhatsAppStatus, getWhatsAppStatusByInstance, getConnectedNumberCached } from '../whatsappClient.js';
@@ -35,8 +35,9 @@ import {
   deleteSession,
 } from './whatsappSessionService.js';
 import type { WhatsAppSession } from './whatsappSessionService.js';
-import { getBotConfig, getMenuOptions } from './whatsappConfigService.js';
-import { STEPS } from './whatsappConstants.js';
+import { getBotConfig, type MenuOptionRow } from './whatsappConfigService.js';
+import { carregarMenuVisivel, resolverEscolha } from './whatsappMenu.js';
+import { STEPS, AVISO_TESTE } from './whatsappConstants.js';
 import type { BotConfig } from './whatsappConstants.js';
 import { formatTimeHm } from './utils/timeUtils.js';
 import {
@@ -44,8 +45,10 @@ import {
   handleConfirmCancel,
   handleRescheduleAppointment,
   handleConfirmReschedule,
-  handlePostAttendanceEvaluation,
-  handleSendRating,
+  handleManageAppointments,
+  handleManageChoose,
+  handleManageAction,
+  ID_SIMULADOR,
 } from './whatsappBookingService.js';
 import {
   getBusinessScheduleSettings,
@@ -55,6 +58,7 @@ import {
   formatBusinessHoursRange,
 } from '../scheduleSettingsService.js';
 import { appointmentService } from '../appointmentService.js';
+import { ConflictError, NotFoundError, ForbiddenError } from '../../utils/errors.js';
 import { appointmentsPrismaRepository } from '../../modules/appointments/appointments.repository.js';
 import { businessSettingsRepository } from '../../repositories/businessSettingsRepository.js';
 import { estadoContaService } from '../../modules/conta/estadoConta.service.js';
@@ -73,18 +77,6 @@ interface ServiceRow {
 interface ProfessionalRow {
   id: string;
   name: string;
-}
-
-interface MenuOptionRow {
-  id: string;
-  business_id: string;
-  option_order: number;
-  label: string;
-  emoji: string;
-  type: string;
-  handler: string;
-  active: boolean;
-  response_message?: string | null;
 }
 
 export interface PhoneExtraction {
@@ -199,13 +191,13 @@ const INCOMING_MESSAGE_EVENTS = new Set([
   'messagereceived',
 ]);
 
-const normalizeChoice = (text: string): number | null => {
+export const normalizeChoice = (text: string): number | null => {
   const cleaned = normalizeText(text).toLowerCase();
   if (!cleaned) return null;
   const numericMatch = cleaned.match(/^(\d{1,2})$/);
   if (numericMatch) return Number(numericMatch[1] ?? '0');
   const emojiMap: Record<string, number> = {
-    '1️⃣': 1, '2️⃣': 2, '3️⃣': 3, '4️⃣': 4, '5️⃣': 5,
+    '0️⃣': 0, '1️⃣': 1, '2️⃣': 2, '3️⃣': 3, '4️⃣': 4, '5️⃣': 5,
     '6️⃣': 6, '7️⃣': 7, '8️⃣': 8, '9️⃣': 9, '🔟': 10,
   };
   return emojiMap[cleaned] ?? null;
@@ -950,33 +942,27 @@ const getBusinessName = async (businessId: string): Promise<string> => {
   }
 };
 
-const buildFallbackWelcomeMessage = (businessName: string): string => [
-  'Olá 👋 Bem-vindo!', '',
-  `Sou o assistente virtual de *${businessName}* 🤖 e estou aqui para agilizar seu atendimento.`, '',
-  'Como posso ajudar hoje?', '',
-  '1️⃣ *Agendar um horário* 📅',
-  '2️⃣ *Ver nossos serviços* 📋',
-  '3️⃣ *Cancelar agendamento* ❌',
-  '4️⃣ *Reagendamento* 🔄',
-  '5️⃣ *Avaliação pós-atendimento* ⭐',
-  '6️⃣ *Promoções* 🎉',
-  '7️⃣ *Instagram* 📱',
-  '8️⃣ *Falar com um humano* 👨‍💼',
-  '9️⃣ *Encerrar atendimento* 🚪',
-].join('\n');
-
-const buildMenuMessage = async (businessId: string): Promise<string> => {
-  const [config, options, businessName] = await Promise.all([
+const buildMenuMessage = async (businessId: string, contexto?: string): Promise<string> => {
+  const [config, businessName] = await Promise.all([
     getBotConfig(businessId),
-    getMenuOptions(businessId),
     getBusinessName(businessId),
   ]);
-  if (!options?.length) return buildFallbackWelcomeMessage(businessName);
-  return buildWelcomeMessage(
-    config?.welcome_header || 'Olá 👋 Bem-vindo!\n\nSou o assistente virtual de {nome_negocio}.\n\nComo posso ajudar hoje?',
-    (options as MenuOptionRow[]).map((item) => ({ label: item.label, emoji: item.emoji })),
-    businessName
+  let visiveis: MenuOptionRow[];
+  try {
+    visiveis = await carregarMenuVisivel(businessId, config);
+  } catch (error) {
+    logger.error({ err: error, businessId }, 'Falha ao ler as opções do menu do WhatsApp');
+    // Sem a lista, números não funcionam: só o cabeçalho e a mensagem de atendimento.
+    visiveis = [];
+  }
+  const cabecalho = buildWelcomeMessage(
+    config?.welcome_header || 'Olá 👋 Que bom ter você aqui!\n\nSou o assistente virtual de {nome_negocio}.\n\nComo posso ajudar hoje?',
+    visiveis.map((item) => ({ label: item.label, emoji: item.emoji })),
+    businessName,
+    contexto,
   );
+  if (!visiveis.length) return `${cabecalho.trimEnd()}\n\n${config.attendant_message}`;
+  return cabecalho;
 };
 
 const buildOutOfHoursMessage = (businessSettings: BusinessSettings): string => (
@@ -985,18 +971,17 @@ const buildOutOfHoursMessage = (businessSettings: BusinessSettings): string => (
 );
 
 const buildBusinessContextMessage = (businessSettings: BusinessSettings): string => {
-  let message = `Olá! Posso te ajudar com seu agendamento. Hoje atendemos até as ${businessSettings.closingTime}.`;
+  let message = `Hoje atendemos até as ${businessSettings.closingTime}.`;
 
   if (businessSettings.allowWalkins) {
-    message += '\n\nTambem aceitamos encaixes durante o horario de atendimento.';
+    message += ' Também aceitamos encaixes durante o horário de atendimento.';
   }
 
   return message;
 };
 
 const buildContextualMenuMessage = async (businessId: string, businessSettings: BusinessSettings): Promise<string> => {
-  const menuMessage = await buildMenuMessage(businessId);
-  return `${buildBusinessContextMessage(businessSettings)}\n\n${menuMessage}`;
+  return buildMenuMessage(businessId, buildBusinessContextMessage(businessSettings));
 };
 
 export const goBackToMainMenu = async (phone: string, businessId: string): Promise<{ message: string }> => {
@@ -1042,22 +1027,8 @@ const handleMenuStep = async (
     return { ok: true };
   }
 
-  const options = await prisma.$queryRaw<MenuOptionRow[]>(
-    Prisma.sql`
-      SELECT * FROM whatsapp_menu_options
-       WHERE active = true
-         AND business_id = ${businessId}::uuid
-         AND option_order = ${choice}
-       LIMIT 1
-    `
-  );
-
-  if (!options.length) {
-    await sendWhatsAppMessage(phone, config.invalid_option_message + '\n\n' + await buildMenuMessage(businessId), sendContext);
-    return { ok: true };
-  }
-
-  const option = options[0];
+  const visiveis = await carregarMenuVisivel(businessId, config);
+  const option = resolverEscolha(visiveis, choice);
   if (!option) {
     await sendWhatsAppMessage(phone, config.invalid_option_message + '\n\n' + await buildMenuMessage(businessId), sendContext);
     return { ok: true };
@@ -1133,42 +1104,48 @@ const handleMenuStep = async (
     }
 
     case 'cancel': {
-      const result = await handleCancelAppointment(phone, businessId, config);
+      const result = await handleCancelAppointment(phone, businessId, config, sendContext.simulate === true);
       await sendWhatsAppMessage(phone, result.message, sendContext);
       return { ok: true };
     }
 
     case 'reschedule': {
-      const result = await handleRescheduleAppointment(phone, businessId, config);
+      const result = await handleRescheduleAppointment(phone, businessId, config, sendContext.simulate === true);
       await sendWhatsAppMessage(phone, result.message, sendContext);
       return { ok: true };
     }
 
-    case 'rating': {
-      const result = await handlePostAttendanceEvaluation(phone, businessId, config);
+    case 'manage': {
+      const result = await handleManageAppointments(phone, businessId, config, sendContext.simulate === true);
       await sendWhatsAppMessage(phone, result.message, sendContext);
       return { ok: true };
     }
 
-    case 'promotions':
-      await sendWhatsAppMessage(phone, config.promotions_message, sendContext);
+    case 'promotions': {
+      const businessName = await getBusinessName(businessId);
+      await sendWhatsAppMessage(phone, formatMessage(config.promotions_message, { businessName }), sendContext);
       await deleteSession(phone, businessId);
       return { ok: true };
+    }
 
     case 'instagram': {
-      const business = await prisma.business.findFirst({
-        where: { id: businessId },
-        select: { instagramHandle: true },
-      });
-      const handle = business?.instagramHandle || '@seunegocio';
-      await sendWhatsAppMessage(phone, config.instagram_message.replace('{instagram_handle}', handle), sendContext);
+      const [businessName, business] = await Promise.all([
+        getBusinessName(businessId),
+        prisma.business.findFirst({ where: { id: businessId }, select: { instagramHandle: true } }),
+      ]);
+      const instagramHandle = business?.instagramHandle ?? '';
+      await sendWhatsAppMessage(
+        phone,
+        formatMessage(config.instagram_message, { businessName, instagramHandle }),
+        sendContext,
+      );
       await deleteSession(phone, businessId);
       return { ok: true };
     }
 
     case 'attendant':
       await sendWhatsAppMessage(phone, config.attendant_message, sendContext);
-      await inboxRecorder.pedirAtendimentoHumano(businessId, phone);
+      if (sendContext.simulate !== true) await inboxRecorder.pedirAtendimentoHumano(businessId, phone);
       await deleteSession(phone, businessId);
       return { ok: true };
 
@@ -1203,13 +1180,17 @@ const handleAskNameStep = async (
     return { ok: true };
   }
 
-  const existing = await prisma.client.findFirst({
+  // No simulador o nome fica só na sessão: o número de teste pode já ser cliente real.
+  const simulado = sendContext.simulate === true;
+  const existing = simulado ? null : await prisma.client.findFirst({
     where: { phone, businessId },
     select: { id: true },
   });
 
   let clientId: string;
-  if (existing) {
+  if (simulado) {
+    clientId = ID_SIMULADOR;
+  } else if (existing) {
     clientId = existing.id;
     await prisma.client.update({
       where: { id: clientId },
@@ -1235,7 +1216,7 @@ const handleAskNameStep = async (
     return { ok: true };
   }
 
-  let msg = `✅ Olá, *${name}*! Bem-vindo!\n\n📋 *Escolha o serviço:*\n\n`;
+  let msg = `✅ Olá, *${name}*!\n\n📋 *Escolha o serviço:*\n\n`;
   services.forEach((s, i) => {
     msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)\n`;
   });
@@ -1407,7 +1388,14 @@ const handleChooseDateStep = async (
     return { ok: true };
   }
 
-  const professionalId = sessionData.professionalId as string;
+  const professionalId = sessionData.professionalId as string | undefined;
+
+  // Remarcação de exemplo no simulador sem profissional ativo: não há agenda para consultar.
+  if (!professionalId) {
+    await sendWhatsAppMessage(phone, config.no_professionals_message ?? 'Desculpe, não há profissionais disponíveis no momento.', sendContext);
+    await deleteSession(phone, businessId);
+    return { ok: true };
+  }
 
   const bookedRows = await prisma.$queryRaw<Array<{ time: string }>>(
     Prisma.sql`
@@ -1440,7 +1428,7 @@ const handleChooseDateStep = async (
 
   if (!availableSlots.length) {
     const noSlotsMessage = businessSettings.allowWalkins
-      ? `${config.no_slots_message}\n\nℹ️ Tambem aceitamos encaixes durante o horario de atendimento.`
+      ? `${config.no_slots_message}\n\nℹ️ Também aceitamos encaixes durante o horário de atendimento.`
       : config.no_slots_message;
 
     await sendWhatsAppMessage(phone, noSlotsMessage, sendContext);
@@ -1460,7 +1448,7 @@ const handleChooseDateStep = async (
   availableSlots.forEach((slot: string, index: number) => { msg += `${index + 1}️⃣ ${slot}\n`; });
 
   if (businessSettings.allowWalkins) {
-    msg += '\nℹ️ Tambem aceitamos encaixes dentro do horario de atendimento.\n';
+    msg += '\nℹ️ Também aceitamos encaixes dentro do horário de atendimento.\n';
   }
 
   msg += '\n0️⃣ Voltar ao menu';
@@ -1501,7 +1489,11 @@ const handleChooseTimeStep = async (
   }
   const selectedDate = sessionData.selectedDate as string;
   const professionalId = sessionData.professionalId as string;
+  // Sessão aberta antes do deploy guardava o agendamento em `appointmentId`.
+  const rescheduleAppointmentId = (sessionData.rescheduleAppointmentId ?? sessionData.appointmentId) as string | undefined;
+  const simulado = sendContext.simulate === true;
 
+  // Na remarcação o próprio agendamento não pode bloquear o horário que ele já ocupa.
   const conflictRows = await prisma.$queryRaw<Array<{ id: string }>>(
     Prisma.sql`
       SELECT id FROM appointments
@@ -1509,6 +1501,7 @@ const handleChooseTimeStep = async (
          AND professional_id = ${professionalId}::uuid
          AND date = ${selectedDate}::date
          AND time = ${(selectedTime + ':00')}::time
+         ${rescheduleAppointmentId && !simulado ? Prisma.sql`AND id <> ${rescheduleAppointmentId}::uuid` : Prisma.empty}
          AND (
            status IN ('confirmado', 'em_atendimento')
            OR (status = 'aguardando_pagamento' AND expires_at > NOW())
@@ -1516,7 +1509,7 @@ const handleChooseTimeStep = async (
     `
   );
 
-  if (conflictRows.length > 0) {
+  const oferecerOutrosHorarios = async (): Promise<{ ok: boolean }> => {
     await sendWhatsAppMessage(phone, '⚠️ Este horário acabou de ser reservado. Por favor, escolha outro horário.', sendContext);
 
     const bookedRows = await prisma.$queryRaw<Array<{ time: string }>>(
@@ -1536,7 +1529,7 @@ const handleChooseTimeStep = async (
 
     if (!newSlots.length) {
       const noSlotsMessage = businessSettings.allowWalkins
-        ? `${config.no_slots_message}\n\nℹ️ Tambem aceitamos encaixes durante o horario de atendimento.`
+        ? `${config.no_slots_message}\n\nℹ️ Também aceitamos encaixes durante o horário de atendimento.`
         : config.no_slots_message;
 
       await sendWhatsAppMessage(phone, noSlotsMessage, sendContext);
@@ -1556,6 +1549,56 @@ const handleChooseTimeStep = async (
     msg += '\n0️⃣ Voltar ao menu';
     await sendWhatsAppMessage(phone, msg, sendContext);
     return { ok: true };
+  };
+
+  if (conflictRows.length > 0) return oferecerOutrosHorarios();
+
+  if (rescheduleAppointmentId) {
+    try {
+      if (!simulado) await appointmentService.update(rescheduleAppointmentId, businessId, {
+        date: selectedDate,
+        time: selectedTime,
+        professionalId,
+      });
+    } catch (error) {
+      if (error instanceof ConflictError) return oferecerOutrosHorarios();
+      if (error instanceof NotFoundError || error instanceof ForbiddenError) {
+        // O agendamento foi cancelado, concluído ou mudou enquanto ela escolhia: volta ao menu.
+        const menu = await goBackToMainMenu(phone, businessId);
+        await sendWhatsAppMessage(phone, `⚠️ Esse agendamento não está mais ativo, então não consegui remarcar.\n\n${menu.message}`, sendContext);
+        return { ok: true };
+      }
+      logger.error({ err: error, phone, businessId, rescheduleAppointmentId }, 'Falha ao remarcar agendamento via WhatsApp bot');
+      await sendWhatsAppMessage(
+        phone,
+        '⚠️ Não consegui remarcar seu agendamento agora. Por favor, tente novamente em instantes.',
+        sendContext
+      );
+      return { ok: true };
+    }
+
+    // Sessão antiga não tem os nomes: busca pelo agendamento para a mensagem não sair com campo vazio.
+    let serviceName = (sessionData.serviceName as string) || '';
+    let professionalName = (sessionData.professionalName as string) || '';
+    if ((!serviceName || !professionalName) && !simulado) {
+      const ag = await prisma.appointment.findFirst({
+        where: { id: rescheduleAppointmentId, businessId },
+        select: { service: { select: { name: true } }, professional: { select: { name: true } } },
+      }).catch(() => null);
+      serviceName = serviceName || ag?.service?.name || '';
+      professionalName = professionalName || ag?.professional?.name || '';
+    }
+    const remarcadoMsg = formatMessage(config.reschedule_success_message, {
+      serviceName,
+      professionalName,
+      dateFormatted: formatDateBR(selectedDate, { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      time: selectedTime,
+    });
+    const remarcadoEnviado = await sendWhatsAppMessage(phone, simulado ? `${remarcadoMsg}\n\n${AVISO_TESTE}` : remarcadoMsg, sendContext);
+    if (remarcadoEnviado) {
+      await deleteSession(phone, businessId);
+    }
+    return { ok: remarcadoEnviado };
   }
 
   const appointmentPayload = {
@@ -1586,7 +1629,9 @@ const handleChooseTimeStep = async (
 
   let createdAppointment: { id: string; status: string };
   try {
-    createdAppointment = await appointmentService.create(businessId, appointmentPayload, { source: 'whatsapp' }) as { id: string; status: string };
+    createdAppointment = simulado
+      ? { id: ID_SIMULADOR, status: 'confirmado' }
+      : await appointmentService.create(businessId, appointmentPayload, { source: 'whatsapp' }) as { id: string; status: string };
   } catch (error) {
     logger.error(
       {
@@ -1600,7 +1645,7 @@ const handleChooseTimeStep = async (
 
     await sendWhatsAppMessage(
       phone,
-      '⚠️ Nao consegui confirmar seu agendamento agora. Por favor, tente novamente em instantes.',
+      '⚠️ Não consegui confirmar seu agendamento agora. Por favor, tente novamente em instantes.',
       sendContext
     );
 
@@ -1630,7 +1675,11 @@ const handleChooseTimeStep = async (
     .replace('{horario}', selectedTime)
     .replace('{valor}', Number(sessionData.servicePrice).toFixed(2));
 
-  const confirmationSent = await sendWhatsAppMessage(phone, confirmationMsg, sendContext);
+  const confirmationSent = await sendWhatsAppMessage(
+    phone,
+    simulado ? `${confirmationMsg}\n\n${AVISO_TESTE}` : confirmationMsg,
+    sendContext
+  );
 
   logger.info(
     {
@@ -2268,7 +2317,7 @@ export const handleIncomingMessage = async (
         );
         break;
       case STEPS.CONFIRM_CANCEL: {
-        const r = await handleConfirmCancel(normalizedPhone!, normalizedText, businessId, sessionData, config);
+        const r = await handleConfirmCancel(normalizedPhone!, normalizedText, businessId, sessionData, config, sendContext.simulate === true);
         await sendWhatsAppMessage(normalizedPhone!, r.message, sendContext);
         stepResult = { ok: true };
         break;
@@ -2279,8 +2328,14 @@ export const handleIncomingMessage = async (
         stepResult = { ok: true };
         break;
       }
-      case STEPS.SEND_RATING: {
-        const r = await handleSendRating(normalizedPhone!, normalizedText, businessId, sessionData, config);
+      case STEPS.MANAGE_CHOOSE: {
+        const r = await handleManageChoose(normalizedPhone!, normalizedText, businessId, sessionData, config, sendContext.simulate === true);
+        await sendWhatsAppMessage(normalizedPhone!, r.message, sendContext);
+        stepResult = { ok: true };
+        break;
+      }
+      case STEPS.MANAGE_ACTION: {
+        const r = await handleManageAction(normalizedPhone!, normalizedText, businessId, sessionData, config, sendContext.simulate === true);
         await sendWhatsAppMessage(normalizedPhone!, r.message, sendContext);
         stepResult = { ok: true };
         break;
