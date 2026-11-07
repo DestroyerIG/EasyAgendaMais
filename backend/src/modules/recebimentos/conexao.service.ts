@@ -192,6 +192,7 @@ export const conexaoService = {
   /** Formas que o cliente pode escolher. Sem conexão ativa (ou em erro), só Pix. Nunca lança. */
   async formas(businessId: string): Promise<FormaSinal[]> {
     try {
+      if (!recebimentosConfigurado()) return ['pix'];
       const c = await repo.conexaoDoNegocio(businessId);
       if (!c || c.situacao !== 'ativa') return ['pix'];
       const lista: FormaSinal[] = [];
@@ -211,6 +212,16 @@ export const conexaoService = {
       return false;
     } catch (e) {
       return e instanceof GatewayTokenInvalido;
+    }
+  },
+
+  /** O negócio liberou o cartão, mas a conexão não está ativa agora. Nunca lança. */
+  async cartaoForaDoAr(businessId: string): Promise<boolean> {
+    try {
+      const c = await repo.conexaoDoNegocio(businessId);
+      return !!c && c.aceitaCartao && (c.situacao !== 'ativa' || !recebimentosConfigurado());
+    } catch {
+      return false;
     }
   },
 

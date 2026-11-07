@@ -37,7 +37,7 @@ vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({
   },
 }));
 vi.mock('../modules/recebimentos/conexao.service.js', () => ({
-  conexaoService: { formas: vi.fn(), tokenAtivo: vi.fn(), alertarRecusa: vi.fn(), marcarReconectar: vi.fn(), acessoRevogado: vi.fn() },
+  conexaoService: { formas: vi.fn(), tokenAtivo: vi.fn(), alertarRecusa: vi.fn(), marcarReconectar: vi.fn(), acessoRevogado: vi.fn(), cartaoForaDoAr: vi.fn() },
 }));
 vi.mock('../modules/recebimentos/gateways/index.js', async (original) => ({
   ...(await original<typeof import('../modules/recebimentos/gateways/index.js')>()),
@@ -195,6 +195,21 @@ describe('criação da reserva com cobrança', () => {
     expect(pubRepo.createPendingAppointment).not.toHaveBeenCalled();
   });
 
+  it('cartão pedido com a conexão fora do ar: cria a reserva no Pix manual e avisa a página', async () => {
+    fn(conexaoService.formas).mockResolvedValue(['pix']);
+    fn(conexaoService.cartaoForaDoAr).mockResolvedValue(true);
+    const r = await publicBookingService.createPendingAppointment('studio', { ...INPUT, formaPagamento: 'cartao' });
+    expect(r).toMatchObject({ forma: 'pix', cartaoIndisponivel: true, automatica: false, pixPayload: MANUAL_PIX, checkoutUrl: null });
+    expect(recRepo.criarCobranca).not.toHaveBeenCalled();
+  });
+
+  it('negócio só com cartão: sem forma pedida, cobra no cartão', async () => {
+    fn(conexaoService.formas).mockResolvedValue(['cartao']);
+    const r = await publicBookingService.createPendingAppointment('studio', INPUT);
+    expect(gw.criarCheckoutCartao).toHaveBeenCalled();
+    expect(r).toMatchObject({ forma: 'cartao' });
+  });
+
   it('o corpo aceita formaPagamento pix ou cartao e o padrão é pix', () => {
     const base = { ...INPUT, serviceId: crypto.randomUUID(), professionalId: crypto.randomUUID() };
     expect(CreatePublicAppointmentSchema.parse(base).formaPagamento).toBeUndefined();
@@ -276,6 +291,24 @@ describe('GET /status', () => {
     const r = await publicBookingService.getAppointmentStatus('studio', 'appt-1');
     expect(r.situacao).toBe('confirmado');
     expect(r.reserva).toMatchObject({ forma: 'cartao', pixPayload: null, checkoutUrl: null, expiresAt: null });
+  });
+
+  it('cartão vencido e cancelado pela rotina: aparece como expirado, na forma cartão', async () => {
+    pubRepo.findPublicAppointment.mockResolvedValue(reserva({ status: 'cancelado', expiresAt: new Date(Date.now() - 1000) }));
+    recRepo.cobrancasDaReserva.mockResolvedValue([
+      { forma: 'cartao', situacao: 'expirada', idExterno: 'pref-1', codigoPix: null, checkoutUrl: 'https://mp.test/c', pagoEm: null },
+    ]);
+    const r = await publicBookingService.getAppointmentStatus('studio', 'appt-1');
+    expect(r.situacao).toBe('expirado');
+    expect(r.reserva).toMatchObject({ forma: 'cartao', pixPayload: null, checkoutUrl: null });
+  });
+
+  it('cancelada pelo negócio continua cancelada', async () => {
+    pubRepo.findPublicAppointment.mockResolvedValue(reserva({ status: 'cancelado' }));
+    recRepo.cobrancasDaReserva.mockResolvedValue([
+      { forma: 'pix', situacao: 'pendente', idExterno: 'o', codigoPix: 'X', checkoutUrl: null, pagoEm: null },
+    ]);
+    expect((await publicBookingService.getAppointmentStatus('studio', 'appt-1')).situacao).toBe('cancelado');
   });
 
   it('vencida: sem código nem link', async () => {

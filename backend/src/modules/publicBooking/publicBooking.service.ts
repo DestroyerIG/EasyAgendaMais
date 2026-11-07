@@ -177,7 +177,7 @@ export const publicBookingService = {
     const reserva = await publicBookingRepository.findPublicAppointment(business.id, id);
     if (!reserva) throw new NotFoundError('Reserva');
 
-    const situacao = situacaoDaReserva(reserva.status, reserva.expiresAt, new Date());
+    let situacao = situacaoDaReserva(reserva.status, reserva.expiresAt, new Date());
     const sinal = Number(reserva.depositAmount ?? 0);
     const cobrancas = await recebimentosRepository.cobrancasDaReserva(reserva.id);
 
@@ -191,9 +191,13 @@ export const publicBookingService = {
       checkoutUrl = atual?.checkoutUrl ?? null;
       if (forma === 'pix') pixPayload = atual?.codigoPix ?? pixManual(business, sinal, reserva.service.name);
     } else {
-      // A paga original tem id externo; as linhas de pagamento repetido não.
+      // A paga original tem id externo; as linhas de pagamento repetido não. Sem paga, vale a
+      // última cobrança que chegou ao gateway (a reserva de cartão vencida não vira "prazo do Pix").
       const paga = cobrancas.find((c) => c.situacao === 'paga' && c.idExterno !== null);
-      if (paga?.forma === 'cartao') forma = 'cartao';
+      const ultima = paga ?? cobrancas.find((c) => c.idExterno !== null);
+      if (ultima?.forma === 'cartao') forma = 'cartao';
+      // A rotina cancela a reserva vencida e marca a cobrança como expirada: para a cliente, venceu.
+      if (situacao === 'cancelado' && !paga && cobrancas.some((c) => c.situacao === 'expirada')) situacao = 'expirado';
     }
 
     return {
@@ -253,10 +257,16 @@ export const publicBookingService = {
     }
 
     const formas = await conexaoService.formas(business.id);
-    const formaPedida: FormaSinal = data.formaPagamento ?? 'pix';
-    if (formaPedida === 'cartao' && !formas.includes('cartao')) {
+    // Sem forma pedida, vale a primeira liberada (o negócio pode receber só no cartão).
+    const formaEscolhida: FormaSinal = data.formaPagamento ?? formas[0] ?? 'pix';
+    // Cartão pedido com a conexão fora do ar (a página estava aberta): cai no Pix manual e avisa.
+    // Cartão que o negócio nunca liberou é pedido inválido.
+    const cartaoForaDoAr = formaEscolhida === 'cartao' && !formas.includes('cartao')
+      && await conexaoService.cartaoForaDoAr(business.id);
+    if (formaEscolhida === 'cartao' && !formas.includes('cartao') && !cartaoForaDoAr) {
       throw new ValidationError('Este negócio não recebe o sinal no cartão');
     }
+    const formaPedida: FormaSinal = cartaoForaDoAr ? 'pix' : formaEscolhida;
 
     const service = await publicBookingRepository.findServiceForBusiness(business.id, data.serviceId);
     if (!service) throw new ValidationError('Serviço indisponível para este negócio');
@@ -315,7 +325,7 @@ export const publicBookingService = {
 
     // Cobrança automática fora da transação (não segura a trava durante a chamada ao gateway).
     // Qualquer falha cai no Pix manual; o cartão que falha vira Pix manual e avisa a página.
-    const usaGateway = formaPedida === 'cartao' || formas.includes('pix');
+    const usaGateway = !cartaoForaDoAr && (formaPedida === 'cartao' || formas.includes('pix'));
     const cobranca = usaGateway
       ? await cobrancasService.criar({
         businessId: business.id, slug, appointmentId: appointment.id, forma: formaPedida, valor: depositAmount,
@@ -323,7 +333,7 @@ export const publicBookingService = {
       })
       : null;
     const forma: FormaSinal = cobranca ? formaPedida : 'pix';
-    const cartaoIndisponivel = formaPedida === 'cartao' && !cobranca;
+    const cartaoIndisponivel = cartaoForaDoAr || (formaPedida === 'cartao' && !cobranca);
     const pixPayload = forma === 'pix' ? (cobranca?.pixPayload ?? pixManualPayload) : null;
     const checkoutUrl = cobranca?.checkoutUrl ?? null;
 
