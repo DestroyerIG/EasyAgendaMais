@@ -34,14 +34,21 @@ export const EXEMPLO_VARIAVEIS: Record<string, string> = {
 /** Presente padrão do aniversário (o mesmo de configPadrao em automacoes.rules.ts). */
 export const PRESENTE_PADRAO = 'R$ 20 OFF em qualquer serviço';
 
+/** Respostas padrão (as mesmas de respostas.service.ts), mostradas como dica quando o campo está vazio. */
+export const TEXTO_PADRAO_CONFIRMADO = 'Obrigada! Seu horário está confirmado ✨';
+export const TEXTO_PADRAO_CANCELADO = 'Tudo bem! Liberamos seu horário e a equipe já vai falar com você para remarcar.';
+export const TEXTO_PADRAO_NOTA = 'Obrigada pela nota!';
+export const TEXTO_PADRAO_GOOGLE = 'Que bom que gostou! Se puder, deixe sua avaliação no Google: {link}';
+export const LIMITE_TEXTO_RESPOSTA = 500;
+
 export interface ConfigRegras {
-  confirmacao: { hora: string };
+  confirmacao: { hora: string; textoConfirmado: string | null; textoCancelado: string | null };
   sinal_pix: { toleranciaMin: 15 | 30 | 60 };
   retorno: { modo: 'ciclo' | 'dias'; dias: number };
   lista_espera: { quantas: 1 | 3 | 5 };
   lembrete: { modo: '2h' | 'vespera'; hora: string };
   aniversario: { presente: string };
-  avaliacao: { horas: 1 | 2 | 4; linkGoogle: string | null };
+  avaliacao: { horas: 1 | 2 | 4; linkGoogle: string | null; textoNota: string | null; textoGoogle: string | null };
 }
 
 export type RegraDto<R extends Regra = Regra> = {

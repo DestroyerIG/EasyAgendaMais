@@ -20,13 +20,13 @@ import type { PainelAutomacoesDto, RegraDto } from '@/lib/whatsappAutomacoes';
 
 const base = { texto: 'Olá {nome}!', textoPadrao: 'Olá {nome}!', personalizado: false, variaveis: ['nome'] };
 const regras = (): RegraDto[] => [
-  { ...base, regra: 'confirmacao', ativa: false, config: { hora: '09:00' } },
+  { ...base, regra: 'confirmacao', ativa: false, config: { hora: '09:00', textoConfirmado: null, textoCancelado: null } },
   { ...base, regra: 'sinal_pix', ativa: false, config: { toleranciaMin: 30 } },
   { ...base, regra: 'retorno', ativa: false, config: { modo: 'dias', dias: 21 } },
   { ...base, regra: 'lista_espera', ativa: false, config: { quantas: 3 } },
   { ...base, regra: 'lembrete', ativa: true, config: { modo: 'vespera', hora: '18:00' } },
   { ...base, regra: 'aniversario', ativa: false, config: { presente: '' } },
-  { ...base, regra: 'avaliacao', ativa: false, config: { horas: 2, linkGoogle: null } },
+  { ...base, regra: 'avaliacao', ativa: false, config: { horas: 2, linkGoogle: null, textoNota: null, textoGoogle: null } },
 ];
 
 const painelMock: PainelAutomacoesDto = {

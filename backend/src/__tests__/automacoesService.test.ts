@@ -56,7 +56,7 @@ describe('automacoes.obterTodas', () => {
 describe('automacoes.atualizar', () => {
   it('mescla a config e salva', async () => {
     await automacoes.atualizar('b1', 'confirmacao', { config: { hora: '10:30' } });
-    expect(repo.salvar).toHaveBeenCalledWith('b1', 'confirmacao', expect.objectContaining({ config: { hora: '10:30' } }));
+    expect(repo.salvar).toHaveBeenCalledWith('b1', 'confirmacao', expect.objectContaining({ config: { hora: '10:30', textoConfirmado: null, textoCancelado: null } }));
   });
 
   it('config inválida lança ValidationError e não salva', async () => {

@@ -36,16 +36,16 @@ describe('automacoes.rules', () => {
     expect(entradaCompativel({ serviceId: 's1', professionalId: null, desiredDate: null, period: 'manha', duracaoServico: 60 }, vaga)).toBe(false);
   });
   it('lerConfig volta ao padrão em campo inválido', () => {
-    expect(lerConfig('confirmacao', { hora: '15:00' })).toEqual({ hora: '09:00' });
+    expect(lerConfig('confirmacao', { hora: '15:00' })).toEqual({ hora: '09:00', textoConfirmado: null, textoCancelado: null });
     expect(lerConfig('lista_espera', { quantas: 5 })).toEqual({ quantas: 5 });
     expect(lerConfig('retorno', null)).toEqual({ modo: 'ciclo', dias: 21 });
     expect(lerConfig('retorno', { modo: 'dias', dias: 500 })).toEqual({ modo: 'dias', dias: 21 });
   });
   it('confirmação: hora só entre 08:00 e 12:00 (a fila abre às 08:00)', () => {
-    expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '07:55' }).success).toBe(false);
-    expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '08:00' }).success).toBe(true);
-    expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '12:00' }).success).toBe(true);
-    expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '12:05' }).success).toBe(false);
+    expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '07:55', textoConfirmado: null, textoCancelado: null }).success).toBe(false);
+    expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '08:00', textoConfirmado: null, textoCancelado: null }).success).toBe(true);
+    expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '12:00', textoConfirmado: null, textoCancelado: null }).success).toBe(true);
+    expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '12:05', textoConfirmado: null, textoCancelado: null }).success).toBe(false);
   });
   it('lembrete: hora da véspera só entre 08:00 e 18:00 (sobra janela da fila até 20:00)', () => {
     expect(CONFIG_SCHEMA.lembrete.safeParse({ modo: 'vespera', hora: '07:59' }).success).toBe(false);
@@ -55,7 +55,7 @@ describe('automacoes.rules', () => {
     expect(lerConfig('lembrete', { modo: 'vespera', hora: '23:00' })).toEqual({ modo: 'vespera', hora: '18:00' });
   });
   it('avaliação: linkGoogle só aceita http/https', () => {
-    const ok = (linkGoogle: string | null) => CONFIG_SCHEMA.avaliacao.safeParse({ horas: 2, linkGoogle }).success;
+    const ok = (linkGoogle: string | null) => CONFIG_SCHEMA.avaliacao.safeParse({ horas: 2, linkGoogle, textoNota: null, textoGoogle: null }).success;
     expect(ok('https://g.page/r/abc')).toBe(true);
     expect(ok('http://exemplo.com/avaliar')).toBe(true);
     expect(ok(null)).toBe(true);
@@ -65,6 +65,20 @@ describe('automacoes.rules', () => {
   it('avaliação: texto padrão sem data relativa (a fila pode atrasar para o dia seguinte)', () => {
     expect(TEXTO_PADRAO.avaliacao).not.toMatch(/hoje|amanhã|ontem/i);
     expect(TEXTO_PADRAO.avaliacao).toBe('Como foi sua experiência no {negocio}? Responda com uma nota de 1 a 5 ⭐');
+  });
+  it('config antiga, sem os textos de resposta, lê null nos campos novos', () => {
+    expect(lerConfig('confirmacao', { hora: '10:00' })).toEqual({ hora: '10:00', textoConfirmado: null, textoCancelado: null });
+    expect(lerConfig('avaliacao', { horas: 4, linkGoogle: 'https://g.page/x' }))
+      .toEqual({ horas: 4, linkGoogle: 'https://g.page/x', textoNota: null, textoGoogle: null });
+  });
+  it('textos de resposta: guarda texto válido, aceita null e rejeita acima de 500 caracteres', () => {
+    expect(lerConfig('confirmacao', { hora: '09:00', textoConfirmado: 'Fechado!', textoCancelado: 'Ok' }))
+      .toEqual({ hora: '09:00', textoConfirmado: 'Fechado!', textoCancelado: 'Ok' });
+    expect(lerConfig('avaliacao', { horas: 2, linkGoogle: null, textoNota: 'Valeu', textoGoogle: 'Avalie: {link}' }).textoGoogle).toBe('Avalie: {link}');
+    expect(lerConfig('avaliacao', { textoNota: 'x'.repeat(501) }).textoNota).toBeNull();
+    expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '09:00', textoConfirmado: 'x'.repeat(501), textoCancelado: null }).success).toBe(false);
+    expect(CONFIG_SCHEMA.confirmacao.safeParse({ hora: '09:00', textoConfirmado: 'x'.repeat(500), textoCancelado: null }).success).toBe(true);
+    expect(CONFIG_SCHEMA.avaliacao.safeParse({ horas: 2, linkGoogle: null, textoNota: null, textoGoogle: '' }).success).toBe(false);
   });
   it('seloTaxa', () => { expect(seloTaxa(80)).toBe('Excelente'); expect(seloTaxa(50)).toBe('Boa'); expect(seloTaxa(49.9)).toBe('Baixa'); });
   it('catálogo cobre todas as regras e textos só usam variáveis declaradas', () => {
