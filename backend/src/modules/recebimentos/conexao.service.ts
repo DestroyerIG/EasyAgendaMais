@@ -31,13 +31,41 @@ const decifrar = (cifrado: string) => decifrarCom(chaveRecebimentos(), cifrado);
 
 type ConexaoComTokens = NonNullable<Awaited<ReturnType<typeof repo.conexaoDoNegocio>>>;
 
-/** Renova os tokens de uma conexão com o refresh token e grava os novos, cifrados. Devolve o novo access token. */
-async function renovarConexao(c: ConexaoComTokens): Promise<string> {
-  const t = await gateways[c.gateway as GatewayId].renovar(decifrar(c.refreshTokenCifrado));
-  await repo.atualizarConexao(c.id, {
-    accessTokenCifrado: cifrar(t.accessToken), refreshTokenCifrado: cifrar(t.refreshToken), tokenExpiraEm: t.expiraEm,
-  });
-  return t.accessToken;
+// Uma renovação por negócio de cada vez nesta instância: o refresh token é de uso único, e duas
+// chamadas com o mesmo token fariam a segunda receber `invalid_grant` com a conexão boa.
+const renovando = new Map<string, Promise<string>>();
+
+/**
+ * Renova os tokens da conexão e grava os novos, cifrados, só se o refresh token gravado ainda for o
+ * que foi usado. Devolve o access token válido. Se o gateway recusar o refresh, relê a linha: quando
+ * ele mudou, outra chamada (ou outra instância) renovou antes, e o token salvo serve.
+ */
+function renovarConexao(c: ConexaoComTokens): Promise<string> {
+  const emCurso = renovando.get(c.businessId);
+  if (emCurso) return emCurso;
+  const p = (async () => {
+    try {
+      const t = await gateways[c.gateway as GatewayId].renovar(decifrar(c.refreshTokenCifrado));
+      const gravou = await repo.atualizarTokensSe(c.id, c.refreshTokenCifrado, {
+        accessTokenCifrado: cifrar(t.accessToken), refreshTokenCifrado: cifrar(t.refreshToken), tokenExpiraEm: t.expiraEm,
+      });
+      if (gravou) return t.accessToken;
+      // Não gravou: a linha foi reconectada ou apagada no meio. Vale o que estiver salvo agora.
+      const atual = await repo.conexaoDoNegocio(c.businessId);
+      if (!atual || atual.situacao !== 'ativa') throw new GatewayIndisponivel();
+      return decifrar(atual.accessTokenCifrado);
+    } catch (e) {
+      if (e instanceof GatewayTokenInvalido) {
+        const atual = await repo.conexaoDoNegocio(c.businessId);
+        if (atual && atual.situacao === 'ativa' && atual.refreshTokenCifrado !== c.refreshTokenCifrado) {
+          return decifrar(atual.accessTokenCifrado);
+        }
+      }
+      throw e;
+    }
+  })().finally(() => renovando.delete(c.businessId));
+  renovando.set(c.businessId, p);
+  return p;
 }
 
 export const conexaoService = {
@@ -79,12 +107,17 @@ export const conexaoService = {
     if (!u) throw new NotFoundError('Usuário');
     if (u.role !== 'tenant_admin') throw new ForbiddenError('Só quem administra o negócio conecta os recebimentos');
 
-    if (await repo.contaEmOutroNegocio(gateway, p.tokens.contaId, u.businessId)) {
+    // O id da conta vem de /users/me: o webhook roteia por ele, e o `user_id` do OAuth pode faltar.
+    const conta = await gateways[gateway].conta(p.tokens.accessToken);
+    const contaId = conta.id || p.tokens.contaId;
+    if (!contaId || (p.tokens.contaId && conta.id && p.tokens.contaId !== conta.id)) {
+      throw new ValidationError('O Mercado Pago não confirmou a conta. Conecte de novo.');
+    }
+    if (await repo.contaEmOutroNegocio(gateway, contaId, u.businessId)) {
       throw new ConflictError('Esta conta do Mercado Pago já está conectada a outro negócio.');
     }
-    const conta = await gateways[gateway].conta(p.tokens.accessToken);
     await repo.salvarConexao({
-      businessId: u.businessId, gateway, contaExternaId: p.tokens.contaId, contaNome: conta.nome,
+      businessId: u.businessId, gateway, contaExternaId: contaId, contaNome: conta.nome,
       accessTokenCifrado: cifrar(p.tokens.accessToken), refreshTokenCifrado: cifrar(p.tokens.refreshToken),
       tokenExpiraEm: p.tokens.expiraEm,
     });
@@ -171,6 +204,16 @@ export const conexaoService = {
     }
   },
 
+  /** Um 401 numa chamada qualquer não prova token vencido. Só a URL fixa da conta prova que o acesso caiu. */
+  async acessoRevogado(token: { gateway: GatewayId; accessToken: string }): Promise<boolean> {
+    try {
+      await gateways[token.gateway].conta(token.accessToken);
+      return false;
+    } catch (e) {
+      return e instanceof GatewayTokenInvalido;
+    }
+  },
+
   /** O gateway recusou o acesso: a conexão vai para "precisa reconectar" e avisa uma vez (na troca de situação). */
   async marcarReconectar(businessId: string, motivo: string): Promise<void> {
     if (!(await repo.marcarReconectar(businessId))) return;
@@ -204,8 +247,11 @@ export const conexaoService = {
   async renovarVencendo(agora: Date = new Date()): Promise<void> {
     if (!recebimentosConfigurado()) return;
     try {
-      for (const c of await repo.conexoesAtivas()) {
-        if (!tokenPertoDeVencer(c.tokenExpiraEm, agora)) continue;
+      for (const lida of await repo.conexoesAtivas()) {
+        if (!tokenPertoDeVencer(lida.tokenExpiraEm, agora)) continue;
+        // Relê a linha: a foto da lista pode ter ficado velha se uma renovação na hora rodou no meio.
+        const c = await repo.conexaoDoNegocio(lida.businessId);
+        if (!c || c.situacao !== 'ativa' || !tokenPertoDeVencer(c.tokenExpiraEm, agora)) continue;
         try {
           await renovarConexao(c);
         } catch (e) {

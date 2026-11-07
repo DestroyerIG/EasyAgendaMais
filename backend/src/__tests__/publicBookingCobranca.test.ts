@@ -37,7 +37,7 @@ vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({
   },
 }));
 vi.mock('../modules/recebimentos/conexao.service.js', () => ({
-  conexaoService: { formas: vi.fn(), tokenAtivo: vi.fn(), alertarRecusa: vi.fn(), marcarReconectar: vi.fn() },
+  conexaoService: { formas: vi.fn(), tokenAtivo: vi.fn(), alertarRecusa: vi.fn(), marcarReconectar: vi.fn(), acessoRevogado: vi.fn() },
 }));
 vi.mock('../modules/recebimentos/gateways/index.js', async (original) => ({
   ...(await original<typeof import('../modules/recebimentos/gateways/index.js')>()),
@@ -166,10 +166,19 @@ describe('criação da reserva com cobrança', () => {
     expect(conexaoService.alertarRecusa).toHaveBeenCalledWith('biz-1');
   });
 
-  it('GatewayTokenInvalido na criação marca a conexão para reconectar', async () => {
+  it('GatewayTokenInvalido na criação com acesso revogado marca a conexão para reconectar', async () => {
     gw.criarPix.mockRejectedValue(new GatewayTokenInvalido());
+    vi.mocked(conexaoService.acessoRevogado).mockResolvedValue(true);
     const r = await publicBookingService.createPendingAppointment('studio', INPUT);
     expect(conexaoService.marcarReconectar).toHaveBeenCalledWith('biz-1', expect.any(String));
+    expect(r).toMatchObject({ pixPayload: MANUAL_PIX, automatica: false });
+  });
+
+  it('401 na criação com a conta respondendo não derruba a conexão', async () => {
+    gw.criarPix.mockRejectedValue(new GatewayTokenInvalido());
+    vi.mocked(conexaoService.acessoRevogado).mockResolvedValue(false);
+    const r = await publicBookingService.createPendingAppointment('studio', INPUT);
+    expect(conexaoService.marcarReconectar).not.toHaveBeenCalled();
     expect(r).toMatchObject({ pixPayload: MANUAL_PIX, automatica: false });
   });
 

@@ -94,10 +94,16 @@ vi.mock('../modules/appointments/sinalConfirmado.js', async (orig) => ({
 const apptRepo = vi.hoisted(() => ({ hasConflict: vi.fn(), findById: vi.fn(), updateStatus: vi.fn(), softDelete: vi.fn() }));
 vi.mock('../modules/appointments/appointments.repository.js', () => ({ appointmentsPrismaRepository: apptRepo }));
 
-const conexao = vi.hoisted(() => ({ tokenAtivo: vi.fn(), porContaExterna: vi.fn(), marcarReconectar: vi.fn() }));
+const gw = vi.hoisted(() => ({ referenciaDoRecurso: vi.fn(), buscarPorReferencia: vi.fn(), conta: vi.fn() }));
+const conexao = vi.hoisted(() => ({
+  tokenAtivo: vi.fn(), porContaExterna: vi.fn(), marcarReconectar: vi.fn(),
+  // Mesma regra do serviço real: só a conta do gateway prova que o acesso caiu.
+  acessoRevogado: vi.fn(async (t: { accessToken: string }) => {
+    try { await gw.conta(t.accessToken); return false; } catch (e) { return (e as Error).name === 'GatewayTokenInvalido'; }
+  }),
+}));
 vi.mock('../modules/recebimentos/conexao.service.js', () => ({ conexaoService: conexao }));
 
-const gw = vi.hoisted(() => ({ referenciaDoRecurso: vi.fn(), buscarPorReferencia: vi.fn(), conta: vi.fn() }));
 vi.mock('../modules/recebimentos/gateways/index.js', async (orig) => ({
   ...(await orig<typeof import('../modules/recebimentos/gateways/index.js')>()), gateways: { mercadopago: gw },
 }));

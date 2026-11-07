@@ -26,7 +26,8 @@ async function lerJson(r: Response): Promise<unknown> {
 /** Só o status e o código de erro do OAuth entram na decisão; o corpo nunca vai para a mensagem. */
 function erroDoStatus(status: number, corpo: unknown): Error {
   const codigo = (corpo as { error?: unknown } | null)?.error;
-  if (status === 401 || codigo === 'invalid_grant') return new GatewayTokenInvalido();
+  if (codigo === 'invalid_grant') return new GatewayTokenInvalido(undefined, true);
+  if (status === 401) return new GatewayTokenInvalido();
   if (status === 429 || status >= 500) return new GatewayIndisponivel();
   return new GatewayRecusou(`Mercado Pago recusou a chamada (${status})`);
 }
@@ -55,18 +56,32 @@ const dinheiro = (valor: number) => (centavos(valor) / 100).toFixed(2);
 
 const emTexto = (v: unknown): string => (typeof v === 'string' || typeof v === 'number' ? String(v) : '');
 
+// Prazo do token do Mercado Pago (180 dias), usado quando a resposta não traz `expires_in`.
+const VALIDADE_PADRAO_S = 180 * 24 * 60 * 60;
+
 async function pedirToken(corpo: Json): Promise<Tokens> {
   const c = cliente();
-  const { corpo: r } = await chamar(`${API}/oauth/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ client_id: c.id, client_secret: c.segredo, ...corpo }),
-  });
+  let r: unknown;
+  try {
+    ({ corpo: r } = await chamar(`${API}/oauth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ client_id: c.id, client_secret: c.segredo, ...corpo }),
+    }));
+  } catch (e) {
+    // Em /oauth/token, um 401 é credencial da plataforma errada, não token do negócio inválido:
+    // só `invalid_grant` derruba a conexão.
+    if (e instanceof GatewayTokenInvalido && !e.invalidGrant) {
+      throw new GatewayRecusou('Mercado Pago recusou as credenciais da plataforma');
+    }
+    throw e;
+  }
   const d = (r ?? {}) as { access_token?: unknown; refresh_token?: unknown; expires_in?: unknown; user_id?: unknown };
   if (typeof d.access_token !== 'string' || typeof d.refresh_token !== 'string') {
     throw new GatewayRecusou('Resposta do Mercado Pago sem tokens');
   }
-  const expiraEm = new Date(Date.now() + Number(d.expires_in ?? 0) * 1000);
+  const segundos = Number(d.expires_in);
+  const expiraEm = new Date(Date.now() + (Number.isFinite(segundos) && segundos > 0 ? segundos : VALIDADE_PADRAO_S) * 1000);
   return { accessToken: d.access_token, refreshToken: d.refresh_token, expiraEm, contaId: emTexto(d.user_id) };
 }
 

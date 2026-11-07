@@ -20,23 +20,14 @@ const MENSAGEM_AO_CLIENTE = 'O negócio vai entrar em contato com você sobre o 
 type Cobranca = NonNullable<Awaited<ReturnType<typeof repo.cobrancaComReserva>>>;
 type Token = { gateway: GatewayId; accessToken: string };
 
-/** Um 401 pode vir de um id escolhido por quem avisou. Só a URL fixa da conta prova que o acesso caiu. */
-async function acessoRevogado(token: Token): Promise<boolean> {
-  try {
-    await gateways[token.gateway].conta(token.accessToken);
-    return false;
-  } catch (e) {
-    return e instanceof GatewayTokenInvalido;
-  }
-}
-
 /** Chamada ao gateway: acesso revogado pede reconexão; indisponível fica para a próxima rodada. */
 async function consultarGateway<T>(businessId: string, token: Token, chamada: () => Promise<T>): Promise<T | null> {
   try {
     return await chamada();
   } catch (e) {
     if (e instanceof GatewayTokenInvalido) {
-      if (await acessoRevogado(token)) await conexaoService.marcarReconectar(businessId, e.message);
+      // Um 401 pode vir de um id escolhido por quem avisou: só a conta prova que o acesso caiu.
+      if (await conexaoService.acessoRevogado(token)) await conexaoService.marcarReconectar(businessId, e.message);
       return null;
     }
     if (e instanceof GatewayIndisponivel || e instanceof GatewayRecusou) {

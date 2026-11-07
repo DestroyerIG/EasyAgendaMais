@@ -81,6 +81,18 @@ describe('OAuth', () => {
     await expect(mp.renovar('r1')).rejects.toBeInstanceOf(GatewayTokenInvalido);
   });
 
+  it('401 em /oauth/token é credencial da plataforma, não token do negócio', async () => {
+    fetchMock.mockResolvedValue(resposta(401, { message: 'invalid client' }));
+    await expect(mp.renovar('r1')).rejects.toBeInstanceOf(GatewayRecusou);
+  });
+
+  it('sem expires_in, usa o prazo padrão de 180 dias em vez de vencer agora', async () => {
+    fetchMock.mockResolvedValue(resposta(200, { access_token: 'a1', refresh_token: 'r1', user_id: 1 }));
+    const antes = Date.now();
+    const t = await mp.renovar('r1');
+    expect(t.expiraEm.getTime()).toBeGreaterThanOrEqual(antes + 180 * 24 * 60 * 60 * 1000);
+  });
+
   it('conta lê /users/me e usa e-mail, com nickname de alternativa', async () => {
     fetchMock.mockResolvedValueOnce(resposta(200, { id: 99, email: 'a@b.com', nickname: 'NICK' }));
     expect(await mp.conta(TOKEN)).toEqual({ id: '99', nome: 'a@b.com' });

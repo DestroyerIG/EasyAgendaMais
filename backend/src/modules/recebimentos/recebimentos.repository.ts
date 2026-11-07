@@ -121,6 +121,17 @@ export const recebimentosRepository = {
     return prisma.conexaoRecebimento.update({ where: { id }, data: patch });
   },
 
+  /** Grava tokens renovados só se o refresh token gravado ainda for o usado; true quando gravou. */
+  async atualizarTokensSe(
+    id: string, refreshAntigoCifrado: string,
+    patch: { accessTokenCifrado: string; refreshTokenCifrado: string; tokenExpiraEm: Date },
+  ): Promise<boolean> {
+    const { count } = await prisma.conexaoRecebimento.updateMany({
+      where: { id, refreshTokenCifrado: refreshAntigoCifrado }, data: patch,
+    });
+    return count === 1;
+  },
+
   /** Reserva o alerta com um UPDATE condicional: duas chamadas juntas alertam uma vez só. */
   async reservarAlerta(id: string, agora: Date, intervaloMs: number): Promise<boolean> {
     const { count } = await prisma.conexaoRecebimento.updateMany({

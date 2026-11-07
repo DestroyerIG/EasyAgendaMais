@@ -2,7 +2,11 @@ import type { GatewayId, PagamentoGateway } from '../recebimentos.types.js';
 
 /** O gateway recusou o acesso (revogado, token vencido): a conexão precisa ser refeita. */
 export class GatewayTokenInvalido extends Error {
-  constructor(msg = 'Acesso ao gateway de pagamento recusado') { super(msg); this.name = 'GatewayTokenInvalido'; }
+  /** `invalid_grant` do OAuth: o refresh token (ou o código) não vale mais. */
+  readonly invalidGrant: boolean;
+  constructor(msg = 'Acesso ao gateway de pagamento recusado', invalidGrant = false) {
+    super(msg); this.name = 'GatewayTokenInvalido'; this.invalidGrant = invalidGrant;
+  }
 }
 
 /** Limite de uso, instabilidade ou estouro de tempo: tenta de novo mais tarde. */

@@ -41,8 +41,9 @@ export const cobrancasService = {
    */
   async criar(e: EntradaCobranca): Promise<CobrancaCriada | null> {
     let cobrancaId: string | null = null;
+    let conexao: Awaited<ReturnType<typeof conexaoService.tokenAtivo>> = null;
     try {
-      const conexao = await conexaoService.tokenAtivo(e.businessId);
+      conexao = await conexaoService.tokenAtivo(e.businessId);
       if (!conexao) return null;
 
       cobrancaId = (await repo.criarCobranca({
@@ -77,7 +78,10 @@ export const cobrancasService = {
       }
       try {
         if (err instanceof GatewayRecusou) await conexaoService.alertarRecusa(e.businessId);
-        else if (err instanceof GatewayTokenInvalido) await conexaoService.marcarReconectar(e.businessId, err.message);
+        else if (err instanceof GatewayTokenInvalido && conexao && await conexaoService.acessoRevogado(conexao)) {
+          // Um 401 na criação não prova token vencido: só a conta do gateway prova.
+          await conexaoService.marcarReconectar(e.businessId, err.message);
+        }
       } catch (e2) {
         logger.warn({ err: e2, businessId: e.businessId }, 'Recebimentos: falha ao avisar sobre a cobrança');
       }

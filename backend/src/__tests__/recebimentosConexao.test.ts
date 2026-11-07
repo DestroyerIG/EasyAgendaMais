@@ -9,6 +9,7 @@ const repo = vi.hoisted(() => ({
   usuario: vi.fn(), conexaoDoNegocio: vi.fn(), conexaoPorContaExterna: vi.fn(), conexoesAtivas: vi.fn(),
   salvarConexao: vi.fn(), atualizarConexao: vi.fn(), reservarAlerta: vi.fn(), apagarConexao: vi.fn(),
   ultimaConfirmacaoEm: vi.fn(), reservasPendentes: vi.fn(), contaEmOutroNegocio: vi.fn(), marcarReconectar: vi.fn(),
+  atualizarTokensSe: vi.fn(),
 }));
 vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({ recebimentosRepository: repo }));
 
@@ -78,6 +79,7 @@ describe('Recebimentos: conexão', () => {
     repo.salvarConexao.mockImplementation(async (d: Record<string, unknown>) => ({ id: 'c1', ...d }));
     repo.conexaoDoNegocio.mockResolvedValue(null);
     repo.contaEmOutroNegocio.mockResolvedValue(false);
+    repo.atualizarTokensSe.mockResolvedValue(true);
     repo.marcarReconectar.mockResolvedValue(true);
     repo.ultimaConfirmacaoEm.mockResolvedValue(null);
     repo.reservasPendentes.mockResolvedValue(0);
@@ -186,6 +188,22 @@ describe('Recebimentos: conexão', () => {
       const r = await request.post('/api/v1/recebimentos/mercadopago/confirmar').send({ t });
       expect(r.status).toBe(200);
       expect(repo.salvarConexao).toHaveBeenCalledTimes(1);
+    });
+
+    it('sem user_id no OAuth, grava o id da conta lido em /users/me', async () => {
+      const estado = rules.assinarEstado('u1', 'mercadopago');
+      gw.trocarCodigo.mockResolvedValue({ ...tokens, contaId: '' });
+      const t = new URL(await conexaoService.callback('mercadopago', 'codigo', estado)).searchParams.get('t')!;
+      await conexaoService.confirmar(dono, 'mercadopago', t);
+      expect(repo.salvarConexao.mock.calls[0][0]).toMatchObject({ contaExternaId: '999' });
+    });
+
+    it('recusa quando o id do OAuth difere da conta de /users/me', async () => {
+      const estado = rules.assinarEstado('u1', 'mercadopago');
+      gw.trocarCodigo.mockResolvedValue({ ...tokens, contaId: '111' });
+      const t = new URL(await conexaoService.callback('mercadopago', 'codigo', estado)).searchParams.get('t')!;
+      await expect(conexaoService.confirmar(dono, 'mercadopago', t)).rejects.toMatchObject({ statusCode: 400 });
+      expect(repo.salvarConexao).not.toHaveBeenCalled();
     });
 
     it('uso único: o mesmo t não confirma duas vezes', async () => {
@@ -297,7 +315,7 @@ describe('Recebimentos: conexão', () => {
       gw.renovar.mockResolvedValue({ accessToken: 'APP_USR-novo', refreshToken: 'TG-novo', expiraEm: new Date('2027-10-01T00:00:00Z'), contaId: '999' });
       expect(await conexaoService.tokenAtivo('b1', agora)).toEqual({ gateway: 'mercadopago', accessToken: 'APP_USR-novo' });
       expect(gw.renovar).toHaveBeenCalledWith('TG-atual');
-      const patch = repo.atualizarConexao.mock.calls[0][1];
+      const patch = repo.atualizarTokensSe.mock.calls[0][2];
       expect(decifrarCom(rules.chaveRecebimentos(), patch.accessTokenCifrado)).toBe('APP_USR-novo');
       expect(decifrarCom(rules.chaveRecebimentos(), patch.refreshTokenCifrado)).toBe('TG-novo');
     });
@@ -316,11 +334,54 @@ describe('Recebimentos: conexão', () => {
       expect(notif.notify).toHaveBeenCalledTimes(1);
     });
 
+    it('chamadas juntas renovam uma vez só e recebem o mesmo token', async () => {
+      await comToken(new Date(agora.getTime() + 10 * DIA));
+      let soltar!: () => void;
+      gw.renovar.mockImplementation(() => new Promise((ok) => {
+        soltar = () => ok({ accessToken: 'APP_USR-novo', refreshToken: 'TG-novo', expiraEm: new Date('2027-10-01T00:00:00Z'), contaId: '999' });
+      }));
+      const a = conexaoService.tokenAtivo('b1', agora);
+      const b = conexaoService.tokenAtivo('b1', agora);
+      await vi.waitFor(() => expect(gw.renovar).toHaveBeenCalled());
+      await new Promise((r) => setTimeout(r, 0));
+      soltar();
+      expect(await a).toEqual({ gateway: 'mercadopago', accessToken: 'APP_USR-novo' });
+      expect(await b).toEqual({ gateway: 'mercadopago', accessToken: 'APP_USR-novo' });
+      expect(gw.renovar).toHaveBeenCalledTimes(1);
+    });
+
+    it('invalid_grant com o refresh já trocado por outra instância: usa o token salvo e não marca nada', async () => {
+      const { cifrarCom } = await import('../utils/cifra.js');
+      const chave = rules.chaveRecebimentos();
+      const antiga = conexao({
+        tokenExpiraEm: new Date(agora.getTime() + 10 * DIA), accessTokenCifrado: cifrarCom(chave, 'APP_USR-atual'), refreshTokenCifrado: cifrarCom(chave, 'TG-atual'),
+      });
+      const nova = conexao({
+        tokenExpiraEm: new Date('2027-10-01T00:00:00Z'), accessTokenCifrado: cifrarCom(chave, 'APP_USR-outra'), refreshTokenCifrado: cifrarCom(chave, 'TG-outra'),
+      });
+      repo.conexaoDoNegocio.mockResolvedValueOnce(antiga).mockResolvedValue(nova);
+      gw.renovar.mockRejectedValue(new GatewayTokenInvalido(undefined, true));
+      expect(await conexaoService.tokenAtivo('b1', agora)).toEqual({ gateway: 'mercadopago', accessToken: 'APP_USR-outra' });
+      expect(repo.marcarReconectar).not.toHaveBeenCalled();
+    });
+
+    it('renovou mas a linha mudou no meio: usa o token gravado agora', async () => {
+      const { cifrarCom } = await import('../utils/cifra.js');
+      const chave = rules.chaveRecebimentos();
+      const antiga = conexao({
+        tokenExpiraEm: new Date(agora.getTime() + 10 * DIA), accessTokenCifrado: cifrarCom(chave, 'APP_USR-atual'), refreshTokenCifrado: cifrarCom(chave, 'TG-atual'),
+      });
+      repo.conexaoDoNegocio.mockResolvedValueOnce(antiga).mockResolvedValue(conexao({ accessTokenCifrado: cifrarCom(chave, 'APP_USR-gravado') }));
+      repo.atualizarTokensSe.mockResolvedValue(false);
+      gw.renovar.mockResolvedValue({ accessToken: 'APP_USR-novo', refreshToken: 'TG-novo', expiraEm: new Date('2027-10-01T00:00:00Z'), contaId: '999' });
+      expect(await conexaoService.tokenAtivo('b1', agora)).toEqual({ gateway: 'mercadopago', accessToken: 'APP_USR-gravado' });
+    });
+
     it('GatewayIndisponivel: devolve o token atual se ainda não venceu', async () => {
       await comToken(new Date(agora.getTime() + 10 * DIA));
       gw.renovar.mockRejectedValue(new GatewayIndisponivel());
       expect(await conexaoService.tokenAtivo('b1', agora)).toEqual({ gateway: 'mercadopago', accessToken: 'APP_USR-atual' });
-      expect(repo.atualizarConexao).not.toHaveBeenCalled();
+      expect(repo.atualizarTokensSe).not.toHaveBeenCalled();
     });
 
     it('GatewayIndisponivel com token já vencido: devolve null', async () => {
@@ -379,12 +440,14 @@ describe('Recebimentos: conexão', () => {
     };
 
     it('salva o novo refreshToken, cifrado', async () => {
-      repo.conexoesAtivas.mockResolvedValue([await vencendo()]);
+      const v = await vencendo();
+      repo.conexoesAtivas.mockResolvedValue([v]);
+      repo.conexaoDoNegocio.mockResolvedValue(v);
       const novo = { accessToken: 'APP_USR-novo', refreshToken: 'TG-novo', expiraEm: new Date('2027-10-01T00:00:00Z'), contaId: '999' };
       gw.renovar.mockResolvedValue(novo);
       await conexaoService.renovarVencendo(agora);
       expect(gw.renovar).toHaveBeenCalledWith('TG-antigo');
-      const patch = repo.atualizarConexao.mock.calls[0][1];
+      const patch = repo.atualizarTokensSe.mock.calls[0][2];
       expect(decifrarCom(rules.chaveRecebimentos(), patch.refreshTokenCifrado)).toBe('TG-novo');
       expect(decifrarCom(rules.chaveRecebimentos(), patch.accessTokenCifrado)).toBe('APP_USR-novo');
       expect(patch.tokenExpiraEm).toEqual(novo.expiraEm);
@@ -397,8 +460,9 @@ describe('Recebimentos: conexão', () => {
     });
 
     it('GatewayTokenInvalido marca precisa_reconectar e notifica', async () => {
-      repo.conexoesAtivas.mockResolvedValue([await vencendo()]);
-      repo.conexaoDoNegocio.mockResolvedValue(conexao());
+      const v = await vencendo();
+      repo.conexoesAtivas.mockResolvedValue([v]);
+      repo.conexaoDoNegocio.mockResolvedValue(v);
       gw.renovar.mockRejectedValue(new GatewayTokenInvalido());
       await conexaoService.renovarVencendo(agora);
       expect(repo.marcarReconectar).toHaveBeenCalledWith('b1');
@@ -406,21 +470,33 @@ describe('Recebimentos: conexão', () => {
     });
 
     it('GatewayIndisponivel não muda nada', async () => {
-      repo.conexoesAtivas.mockResolvedValue([await vencendo()]);
+      const v = await vencendo();
+      repo.conexoesAtivas.mockResolvedValue([v]);
+      repo.conexaoDoNegocio.mockResolvedValue(v);
       gw.renovar.mockRejectedValue(new GatewayIndisponivel());
       await conexaoService.renovarVencendo(agora);
-      expect(repo.atualizarConexao).not.toHaveBeenCalled();
+      expect(repo.atualizarTokensSe).not.toHaveBeenCalled();
       expect(notif.notify).not.toHaveBeenCalled();
     });
 
     it('uma conexão com erro não impede as outras', async () => {
       const a = await vencendo();
-      repo.conexoesAtivas.mockResolvedValue([{ ...a, id: 'c0', businessId: 'b0' }, a]);
+      const b0 = { ...a, id: 'c0', businessId: 'b0' };
+      repo.conexoesAtivas.mockResolvedValue([b0, a]);
+      repo.conexaoDoNegocio.mockImplementation(async (id: string) => (id === 'b0' ? b0 : a));
       gw.renovar.mockRejectedValueOnce(new GatewayIndisponivel())
         .mockResolvedValueOnce({ accessToken: 'n', refreshToken: 'r', expiraEm: new Date('2027-10-01T00:00:00Z'), contaId: '999' });
       await conexaoService.renovarVencendo(agora);
-      expect(repo.atualizarConexao).toHaveBeenCalledTimes(1);
-      expect(repo.atualizarConexao.mock.calls[0][0]).toBe('c1');
+      expect(repo.atualizarTokensSe).toHaveBeenCalledTimes(1);
+      expect(repo.atualizarTokensSe.mock.calls[0][0]).toBe('c1');
+    });
+
+    it('relê a conexão: se outra renovação já trocou o token, não renova de novo', async () => {
+      const v = await vencendo();
+      repo.conexoesAtivas.mockResolvedValue([v]);
+      repo.conexaoDoNegocio.mockResolvedValue({ ...v, tokenExpiraEm: new Date(agora.getTime() + 180 * DIA) });
+      await conexaoService.renovarVencendo(agora);
+      expect(gw.renovar).not.toHaveBeenCalled();
     });
   });
 
