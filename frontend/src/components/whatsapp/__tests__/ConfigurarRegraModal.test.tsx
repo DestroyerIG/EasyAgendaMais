@@ -140,7 +140,7 @@ describe('ConfigurarRegraModal', () => {
     api.atualizarRegra.mockResolvedValue(confirmacao());
     renderizar();
     const confirmado = screen.getByLabelText('Resposta ao confirmar') as HTMLTextAreaElement;
-    expect(confirmado).toHaveAttribute('placeholder', 'Obrigada! Seu horário está confirmado ✨');
+    expect(confirmado).toHaveAttribute('placeholder', 'Agradecemos! Seu horário está confirmado ✨');
     expect(confirmado).toHaveAttribute('maxlength', '500');
     expect(screen.getByLabelText('Resposta ao reagendar')).toHaveAttribute('placeholder', expect.stringContaining('Liberamos seu horário'));
     await userEvent.type(confirmado, 'Fechado, até amanhã!');
@@ -170,7 +170,7 @@ describe('ConfigurarRegraModal', () => {
     };
     api.atualizarRegra.mockResolvedValue(avaliacao);
     renderizar(avaliacao);
-    expect(screen.getByLabelText('Agradecimento pela nota')).toHaveAttribute('placeholder', 'Obrigada pela nota!');
+    expect(screen.getByLabelText('Agradecimento pela nota')).toHaveAttribute('placeholder', 'Agradecemos pela nota!');
     const convite = screen.getByLabelText('Convite para avaliar no Google');
     expect(convite).toHaveAttribute('placeholder', expect.stringContaining('{link}'));
     await userEvent.type(screen.getByLabelText('Agradecimento pela nota'), 'Valeu!');

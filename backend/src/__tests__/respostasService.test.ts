@@ -48,7 +48,7 @@ it('confirmação + "1": grava, responde e apaga', async () => {
   repo.pendentes.mockResolvedValue([espera('confirmacao')]);
   expect(await respostas.tratar({ ...base, texto: '1' })).toBe(true);
   expect(repo.marcarConfirmadoPeloCliente).toHaveBeenCalledWith('a1', 'b1', expect.any(Date));
-  expect(msg.sendWhatsAppMessage).toHaveBeenCalledWith(base.phone, 'Obrigada! Seu horário está confirmado ✨', expect.objectContaining({ origin: 'sistema' }));
+  expect(msg.sendWhatsAppMessage).toHaveBeenCalledWith(base.phone, 'Agradecemos! Seu horário está confirmado ✨', expect.objectContaining({ origin: 'sistema' }));
   expect(repo.apagar).toHaveBeenCalledWith('e1');
 });
 
@@ -191,7 +191,7 @@ it('confirmação: falha ao ler a regra usa o texto padrão', async () => {
   auto.obter.mockRejectedValue(new Error('x'));
   repo.pendentes.mockResolvedValue([espera('confirmacao')]);
   expect(await respostas.tratar({ ...base, texto: '1' })).toBe(true);
-  expect(msg.sendWhatsAppMessage).toHaveBeenCalledWith(base.phone, 'Obrigada! Seu horário está confirmado ✨', expect.any(Object));
+  expect(msg.sendWhatsAppMessage).toHaveBeenCalledWith(base.phone, 'Agradecemos! Seu horário está confirmado ✨', expect.any(Object));
 });
 
 it('avaliação 5 com textoNota e textoGoogle: preenche {link}', async () => {
@@ -208,7 +208,7 @@ it('avaliação 5 sem link do Google: só o agradecimento, mesmo com textoGoogle
   configs.avaliacao.textoGoogle = 'Avalie: {link}';
   repo.pendentes.mockResolvedValue([espera('avaliacao')]);
   await respostas.tratar({ ...base, texto: '5' });
-  expect(msg.sendWhatsAppMessage.mock.calls.map((c) => c[1])).toEqual(['Obrigada pela nota!']);
+  expect(msg.sendWhatsAppMessage.mock.calls.map((c) => c[1])).toEqual(['Agradecemos pela nota!']);
 });
 
 it('avaliação 4 com textoNota: agradece com o texto da regra e não convida ao Google', async () => {

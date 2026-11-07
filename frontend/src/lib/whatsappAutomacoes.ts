@@ -35,9 +35,9 @@ export const EXEMPLO_VARIAVEIS: Record<string, string> = {
 export const PRESENTE_PADRAO = 'R$ 20 OFF em qualquer serviço';
 
 /** Respostas padrão (as mesmas de respostas.service.ts), mostradas como dica quando o campo está vazio. */
-export const TEXTO_PADRAO_CONFIRMADO = 'Obrigada! Seu horário está confirmado ✨';
+export const TEXTO_PADRAO_CONFIRMADO = 'Agradecemos! Seu horário está confirmado ✨';
 export const TEXTO_PADRAO_CANCELADO = 'Tudo bem! Liberamos seu horário e a equipe já vai falar com você para remarcar.';
-export const TEXTO_PADRAO_NOTA = 'Obrigada pela nota!';
+export const TEXTO_PADRAO_NOTA = 'Agradecemos pela nota!';
 export const TEXTO_PADRAO_GOOGLE = 'Que bom que gostou! Se puder, deixe sua avaliação no Google: {link}';
 export const LIMITE_TEXTO_RESPOSTA = 500;
 

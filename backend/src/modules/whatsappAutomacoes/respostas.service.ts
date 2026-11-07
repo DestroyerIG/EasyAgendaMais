@@ -7,9 +7,9 @@ import { automacoes } from './automacoes.service.js';
 import { notaAvaliacao, renderizarTexto, respostaConfirmacao, TEXTO_REAGENDAR } from './automacoes.rules.js';
 import { respostasRepository, type RespostaPendente } from './respostas.repository.js';
 
-export const TEXTO_CONFIRMADO = 'Obrigada! Seu horário está confirmado ✨';
+export const TEXTO_CONFIRMADO = 'Agradecemos! Seu horário está confirmado ✨';
 export const TEXTO_CANCELADO = 'Tudo bem! Liberamos seu horário e a equipe já vai falar com você para remarcar.';
-export const TEXTO_NOTA = 'Obrigada pela nota!';
+export const TEXTO_NOTA = 'Agradecemos pela nota!';
 export const TEXTO_GOOGLE = (link: string) => `Que bom que gostou! Se puder, deixe sua avaliação no Google: ${link}`;
 
 interface Entrada {

@@ -277,7 +277,7 @@ function CamposDaRegra({ regra, config, erro, onMudar }: CamposProps) {
             dica="Enviado depois de qualquer nota. Em branco, usa o texto padrão." valor={c.textoNota}
             onMudar={(textoNota) => onMudar({ textoNota })} />
           <CampoResposta id="cfg-texto-google" rotulo="Convite para avaliar no Google" padrao={TEXTO_PADRAO_GOOGLE}
-            dica="Para nota 5, só se houver link do Google. Use {link} para o endereço. Em branco, usa o texto padrão."
+            dica="Para nota 5. {link} é trocado pelo link do Google, e o convite só sai se o link estiver configurado acima. Em branco, usa o texto padrão."
             valor={c.textoGoogle} onMudar={(textoGoogle) => onMudar({ textoGoogle })} />
         </>
       );
