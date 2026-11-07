@@ -207,9 +207,27 @@ export const recebimentosRepository = {
   },
 
   /** Cobranças que ainda podem receber pagamento. A recusada entra porque o cartão aceita nova tentativa. */
-  cobrancasParaConferir(venceuDesde: Date) {
+  cobrancasParaConferir(venceuDesde: Date, cartaoVenceuDesde?: Date) {
     return prisma.cobrancaSinal.findMany({
-      where: { situacao: { in: ['pendente', 'expirada', 'recusada'] }, venceEm: { gte: venceuDesde } },
+      where: {
+        situacao: { in: ['pendente', 'expirada', 'recusada'] },
+        OR: [
+          { venceEm: { gte: venceuDesde } },
+          // Cartão em análise pode ser aprovado horas depois: a janela dele é maior.
+          ...(cartaoVenceuDesde ? [{ forma: 'cartao', idExterno: { not: null }, venceEm: { gte: cartaoVenceuDesde } }] : []),
+        ],
+      },
+      select: { id: true },
+    });
+  },
+
+  /** Cobranças do negócio que chegaram ao gateway e ainda podem ter sido pagas, para conferir ao reconectar. */
+  cobrancasDoNegocioParaConferir(businessId: string, venceuDesde: Date) {
+    return prisma.cobrancaSinal.findMany({
+      where: {
+        businessId, idExterno: { not: null },
+        situacao: { in: ['pendente', 'expirada', 'recusada'] }, venceEm: { gte: venceuDesde },
+      },
       select: { id: true },
     });
   },

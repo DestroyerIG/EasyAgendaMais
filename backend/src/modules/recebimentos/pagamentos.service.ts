@@ -14,6 +14,11 @@ import type { GatewayId, PagamentoGateway } from './recebimentos.types.js';
 
 const GATEWAY: GatewayId = 'mercadopago';
 const JANELA_APOS_VENCER_MS = 30 * 60 * 1000;
+// Cartão em análise: conferido por mais 24 horas, a cada 15 minutos.
+const JANELA_CARTAO_MS = 24 * 60 * 60 * 1000;
+const PASSO_CARTAO_MIN = 15;
+// Ao reconectar, confere o que venceu nos últimos 7 dias: o pagamento pode ter entrado com a conexão caída.
+const JANELA_RECONEXAO_MS = 7 * 24 * 60 * 60 * 1000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MENSAGEM_AO_CLIENTE = 'O negócio vai entrar em contato com você sobre o seu sinal.';
 
@@ -207,12 +212,23 @@ export const pagamentosService = {
     }
   },
 
+  /** Depois de (re)conectar: confere as cobranças do negócio que podem ter sido pagas com a conexão caída. Nunca lança. */
+  async conferirAoReconectar(businessId: string, agora: Date = new Date()): Promise<void> {
+    try {
+      const desde = new Date(agora.getTime() - JANELA_RECONEXAO_MS);
+      for (const { id } of await repo.cobrancasDoNegocioParaConferir(businessId, desde)) await pagamentosService.processarCobranca(id);
+    } catch (e) {
+      logger.error({ err: e, businessId }, 'Recebimentos: falha ao conferir as cobranças ao reconectar');
+    }
+  },
+
   /** Rede de segurança para avisos perdidos: roda a cada minuto. Nunca lança. */
   async conferirPendentes(agora: Date = new Date()): Promise<void> {
     if (!recebimentosConfigurado()) return;
     try {
       const limite = new Date(agora.getTime() - JANELA_APOS_VENCER_MS);
-      for (const { id } of await repo.cobrancasParaConferir(limite)) await pagamentosService.processarCobranca(id);
+      const limiteCartao = agora.getMinutes() % PASSO_CARTAO_MIN === 0 ? new Date(agora.getTime() - JANELA_CARTAO_MS) : undefined;
+      for (const { id } of await repo.cobrancasParaConferir(limite, limiteCartao)) await pagamentosService.processarCobranca(id);
     } catch (e) {
       logger.error({ err: e }, 'Recebimentos: falha ao conferir as cobranças pendentes');
     }

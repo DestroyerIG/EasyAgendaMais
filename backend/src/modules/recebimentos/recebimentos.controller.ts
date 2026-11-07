@@ -28,7 +28,13 @@ export const callback: H = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 export const confirmar: H = async (req, res, next) => {
-  try { sendSuccess(res, await conexaoService.confirmar(usuario(req), gatewayDe(req), req.body.t)); } catch (e) { next(e); }
+  try {
+    const u = usuario(req);
+    const estado = await conexaoService.confirmar(u, gatewayDe(req), req.body.t);
+    sendSuccess(res, estado);
+    // Pagamentos que entraram com a conexão caída: confere em segundo plano, sem segurar a resposta.
+    void pagamentosService.conferirAoReconectar(u.businessId);
+  } catch (e) { next(e); }
 };
 export const definirFormas: H = async (req, res, next) => {
   try { sendSuccess(res, await conexaoService.definirFormas(usuario(req), gatewayDe(req), req.body)); } catch (e) { next(e); }

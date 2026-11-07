@@ -16,7 +16,8 @@ const banco = vi.hoisted(() => {
     if ('lt' in c && !(v !== null && v < c.lt)) return false;
     return true;
   };
-  const casa = (l: Linha, where: Linha) => Object.entries(where).every(([k, c]) => casaCondicao(l[k], c));
+  const casa = (l: Linha, where: Linha): boolean => Object.entries(where).every(([k, c]) =>
+    (k === 'OR' ? (c as Linha[]).some((w) => casa(l, w)) : casaCondicao(l[k], c)));
   const comReserva = (c: Linha | undefined) =>
     (c ? { ...c, appointment: { ...estado.reservas.find((r) => r.id === c.appointmentId) } } : null);
 
@@ -149,7 +150,7 @@ function reserva(extra: Record<string, unknown> = {}) {
 function cobranca(extra: Record<string, unknown> = {}) {
   const c = {
     id: COB, businessId: 'b1', appointmentId: 'a1', gateway: 'mercadopago', forma: 'pix', valor: '30.00', situacao: 'pendente',
-    pagamentoExternoId: null, formaPaga: null, pagoEm: null, venceEm: emMinutos(10), ...extra,
+    pagamentoExternoId: null, formaPaga: null, pagoEm: null, venceEm: emMinutos(10), idExterno: 'ext-1', ...extra,
   };
   banco.estado.cobrancas.push(c);
   return c;
@@ -786,6 +787,19 @@ describe('conferirPendentes', () => {
     expect(gw.referenciaDoRecurso).not.toHaveBeenCalled();
   });
 
+  it('cartão vencido há horas é conferido a cada 15 minutos, por até 24 horas', async () => {
+    reserva();
+    cobranca({ id: 'c-cartao', forma: 'cartao', situacao: 'expirada', venceEm: aos(-6 * 60) });
+    cobranca({ id: 'c-cartao-velho', forma: 'cartao', situacao: 'expirada', venceEm: aos(-25 * 60) });
+    cobranca({ id: 'c-pix', situacao: 'expirada', venceEm: aos(-6 * 60) });
+    gw.buscarPorReferencia.mockResolvedValue([]);
+    await pagamentosService.conferirPendentes(agora);
+    expect(gw.buscarPorReferencia.mock.calls.map((c) => c[1])).toEqual(['c-cartao']);
+    gw.buscarPorReferencia.mockClear();
+    await pagamentosService.conferirPendentes(aos(1));
+    expect(gw.buscarPorReferencia).not.toHaveBeenCalled();
+  });
+
   it('confirma pelo caminho comum', async () => {
     reserva(); cobranca({ venceEm: emMinutos(5) });
     await pagamentosService.conferirPendentes();
@@ -820,6 +834,22 @@ describe('conferirPendentes', () => {
     reserva(); cobranca({ venceEm: emMinutos(5) });
     await pagamentosService.conferirPendentes();
     expect(conexao.tokenAtivo).not.toHaveBeenCalled();
+  });
+});
+
+describe('conferirAoReconectar', () => {
+  it('confere as cobranças do negócio vencidas nos últimos 7 dias, e só elas', async () => {
+    const agora = new Date('2026-11-10T12:00:00Z');
+    const dias = (d: number) => new Date(agora.getTime() - d * 24 * 60 * MINUTO);
+    reserva();
+    cobranca({ id: 'c-2d', situacao: 'expirada', venceEm: dias(2) });
+    cobranca({ id: 'c-8d', situacao: 'expirada', venceEm: dias(8) });
+    cobranca({ id: 'c-outro', businessId: 'b2', situacao: 'expirada', venceEm: dias(1) });
+    cobranca({ id: 'c-orfa', situacao: 'expirada', venceEm: dias(1), idExterno: null });
+    cobranca({ id: 'c-paga', situacao: 'paga', venceEm: dias(1) });
+    gw.buscarPorReferencia.mockResolvedValue([]);
+    await pagamentosService.conferirAoReconectar('b1', agora);
+    expect(gw.buscarPorReferencia.mock.calls.map((c) => c[1])).toEqual(['c-2d']);
   });
 });
 
