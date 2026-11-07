@@ -1,0 +1,42 @@
+import express from 'express';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import { authMiddleware } from '../../middleware/auth.js';
+import { requireRole } from '../../middleware/rbac.js';
+import { validate } from '../../middleware/validate.js';
+import { CallbackQuerySchema, ConfirmarSchema, FormasSchema, GatewayParamSchema } from './recebimentos.types.js';
+import { callback, conectar, confirmar, definirFormas, desconectar, verConexao, webhookMercadoPago } from './recebimentos.controller.js';
+
+// Recebimentos automáticos do sinal (Mercado Pago). Só quem administra o negócio mexe.
+const router = express.Router();
+const dono = [authMiddleware, requireRole(['tenant_admin'])];
+const gateway = validate({ params: GatewayParamSchema });
+
+const callbackLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req.ip ?? 'unknown'),
+});
+
+// Excedeu: responde 200 para o gateway não insistir, e a rotina de cada minuto cobre o que foi descartado.
+const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 300,
+  standardHeaders: false,
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req.ip ?? 'unknown'),
+  handler: (_req, res) => { res.sendStatus(200); },
+});
+
+// Público: o aviso não prova nada; o pagamento é conferido no gateway com o token do negócio.
+router.post('/webhook/mercadopago', webhookLimiter, webhookMercadoPago);
+router.get('/conexoes', ...dono, verConexao);
+// Público: o Mercado Pago volta para cá; quem é a pessoa vem do estado assinado.
+router.get('/:gateway/callback', callbackLimiter, gateway, validate({ query: CallbackQuerySchema }), callback);
+router.get('/:gateway/conectar', ...dono, gateway, conectar);
+router.post('/:gateway/confirmar', ...dono, gateway, validate({ body: ConfirmarSchema }), confirmar);
+router.put('/:gateway/formas', ...dono, gateway, validate({ body: FormasSchema }), definirFormas);
+router.delete('/:gateway/conexao', ...dono, gateway, desconectar);
+
+export default router;

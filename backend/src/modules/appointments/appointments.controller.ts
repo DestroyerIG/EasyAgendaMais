@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { sendSuccess, sendCreated } from '../../utils/response.js';
 import { appointmentsService } from './appointments.service.js';
 import { toAppointmentDto } from './appointment.serializer.js';
+import { recebimentosRepository } from '../recebimentos/recebimentos.repository.js';
 import type { AppointmentStatus } from '../../types/domain.js';
 
 export const getAppointments = async (
@@ -84,7 +85,8 @@ export const getPendingPayment = async (
 ): Promise<void> => {
   try {
     const data = await appointmentsService.getPendingPayment(req.user.businessId!);
-    sendSuccess(res, data.map(toAppointmentDto));
+    const comCobranca = await recebimentosRepository.reservasComCobrancaPendente(req.user.businessId!, data.map((a) => a.id));
+    sendSuccess(res, data.map((a) => ({ ...toAppointmentDto(a), cobranca_automatica: comCobranca.has(a.id) })));
   } catch (error) {
     next(error);
   }

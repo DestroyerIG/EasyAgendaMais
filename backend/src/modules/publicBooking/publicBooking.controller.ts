@@ -64,3 +64,12 @@ export const createAppointment = async (req: Request, res: Response, next: NextF
     next(error);
   }
 };
+
+export const getPixDaReserva = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await publicBookingService.getPixDaReserva(String(req.params['slug']), String(req.params['id']));
+    sendSuccess(res, data);
+  } catch (error) {
+    next(error);
+  }
+};

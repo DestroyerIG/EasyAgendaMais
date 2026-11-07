@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import axios from 'axios';
 import QRCode from 'qrcode';
 import {
-  publicBookingApi, type HorarioDto, type ProfessionalDto, type SituacaoReserva, type StorefrontDto, type StorefrontServiceDto,
+  publicBookingApi, type FormaSinal, type HorarioDto, type ProfessionalDto, type ReservaPublicaDto, type SituacaoReserva,
+  type StorefrontDto, type StorefrontServiceDto,
 } from '@/lib/publicBooking';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { Button, Icon } from '@/components/ui';
@@ -16,6 +17,7 @@ import {
   CabecalhoPublico, CascaPublica, MarcaPlataforma, NavegacaoPublica, ProgressoEtapas, type AbaPublica,
 } from './CascaPublica';
 import { ConfirmacaoReserva, ReservaEncerrada } from './ConfirmacaoReserva';
+import { EscolhaFormaPagamento } from './EscolhaFormaPagamento';
 import { EscolhaHorario } from './EscolhaHorario';
 import { PerfilNegocio } from './PerfilNegocio';
 
@@ -26,6 +28,13 @@ const ABA_DA_ETAPA: Record<Exclude<Step, 'pagamento'>, AbaPublica> = {
 };
 
 const INTERVALO_SITUACAO_MS = 10_000;
+// Depois do prazo, o pagamento feito no último minuto ainda pode confirmar a reserva: segue consultando.
+const CONSULTA_APOS_VENCER_MS = 30 * 60 * 1000;
+
+type RetornoCheckout = 'sucesso' | 'pendente' | 'falha';
+
+/** A reserva em andamento: a mesma forma vale para a recém-criada e para a remontada pela URL. */
+type Reserva = ReservaPublicaDto & { id: string };
 
 const SEM_SERVICOS = 'Nenhum serviço disponível para agendamento online no momento. Entre em contato diretamente com o estabelecimento.';
 
@@ -116,10 +125,21 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
   // LGPD: consentimento pré-marcado não vale — a caixa começa desmarcada.
   const [whatsappConsent, setWhatsappConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [pixResult, setPixResult] = useState<{ appointmentId: string; pixPayload: string; depositAmount: number; expiresAt: string } | null>(null);
+  const [formaEscolhida, setFormaEscolhida] = useState<FormaSinal>('pix');
+  const [reserva, setReserva] = useState<Reserva | null>(null);
+  const [cartaoIndisponivel, setCartaoIndisponivel] = useState(false);
+  const [trocandoParaPix, setTrocandoParaPix] = useState(false);
+  // Voltou do Checkout (ou abriu o endereço da reserva): a tela vem do /status, não de etapas anteriores.
+  const [remontando, setRemontando] = useState(true);
+  const [remontada, setRemontada] = useState(false);
+  const [retorno, setRetorno] = useState<RetornoCheckout | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
   const [situacao, setSituacao] = useState<SituacaoReserva>('aguardando');
   const [copied, setCopied] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const formasLiberadas: FormaSinal[] = storefront?.formasPagamento?.length ? storefront.formasPagamento : ['pix'];
+  // O negócio pode receber só no cartão: sem escolha válida, vale a primeira forma liberada.
+  const formaEfetiva: FormaSinal = formasLiberadas.includes(formaEscolhida) ? formaEscolhida : formasLiberadas[0];
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Só a última consulta de horários vale: trocar de dia rápido não pode mostrar a resposta antiga.
   const consultaHorarios = useRef(0);
@@ -129,16 +149,45 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
   }, []);
 
   useEffect(() => {
-    if (!pixResult) {
+    const codigo = reserva?.forma === 'pix' ? reserva.pixPayload : null;
+    if (!codigo) {
       setQrCodeUrl(null);
       return;
     }
     let cancelado = false;
-    QRCode.toDataURL(pixResult.pixPayload, { margin: 1, width: 220 })
+    QRCode.toDataURL(codigo, { margin: 1, width: 220 })
       .then((url) => { if (!cancelado) setQrCodeUrl(url); })
       .catch(() => { if (!cancelado) setQrCodeUrl(null); });
     return () => { cancelado = true; };
-  }, [pixResult]);
+  }, [reserva?.forma, reserva?.pixPayload]);
+
+  useEffect(() => {
+    const busca = new URLSearchParams(window.location.search);
+    const id = busca.get('reserva');
+    if (!id) {
+      setRemontando(false);
+      return;
+    }
+    const volta = busca.get('retorno');
+    let cancelado = false;
+    publicBookingApi.getAppointmentStatus(slug, id)
+      .then((r) => {
+        if (cancelado) return;
+        setReserva({ ...r.reserva, id });
+        setSituacao(r.situacao);
+        setRetorno(volta === 'sucesso' || volta === 'pendente' || volta === 'falha' ? volta : null);
+        setRemontada(true);
+        setStep('pagamento');
+      })
+      .catch((err) => {
+        if (cancelado) return;
+        setAviso(axios.isAxiosError(err) && err.response?.status === 404
+          ? 'Não encontramos esta reserva.'
+          : 'Não foi possível carregar esta reserva. Tente abrir o link de novo.');
+      })
+      .finally(() => { if (!cancelado) setRemontando(false); });
+    return () => { cancelado = true; };
+  }, [slug]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -146,10 +195,17 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
 
   // O dono confirma o Pix à mão: acompanha a reserva enquanto a página estiver aberta. Ao voltar do
   // aplicativo do banco consulta na hora, porque o navegador segura o intervalo em segundo plano.
-  const reservaId = pixResult?.appointmentId;
+  const reservaId = reserva?.id;
+  const reservaVenceEm = reserva?.expiresAt ?? null;
   useEffect(() => {
-    if (!reservaId || situacao !== 'aguardando') return;
+    if (!reservaId) return;
+    // Vencida ou cancelada pela rotina, ainda pode confirmar com um pagamento feito no limite.
+    const ate = reservaVenceEm ? Date.parse(reservaVenceEm) + CONSULTA_APOS_VENCER_MS : 0;
+    const acompanhar = situacao === 'aguardando'
+      || ((situacao === 'expirado' || situacao === 'cancelado') && Date.now() < ate);
+    if (!acompanhar) return;
     const consultar = () => {
+      if (situacao !== 'aguardando' && Date.now() >= ate) return;
       publicBookingApi.getAppointmentStatus(slug, reservaId).then((r) => setSituacao(r.situacao)).catch(() => undefined);
     };
     const aoVoltar = () => { if (document.visibilityState === 'visible') consultar(); };
@@ -159,7 +215,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
       clearInterval(intervalo);
       document.removeEventListener('visibilitychange', aoVoltar);
     };
-  }, [slug, reservaId, situacao]);
+  }, [slug, reservaId, reservaVenceEm, situacao]);
 
   useEffect(() => {
     publicBookingApi
@@ -246,12 +302,33 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
     setSubmitting(true);
     setError(null);
     try {
+      const soPix = formasLiberadas.length === 1 && formasLiberadas[0] === 'pix';
       const result = await publicBookingApi.createAppointment(slug, {
         serviceId, professionalId, date, time, clientName, clientPhone, whatsappConsent,
+        ...(soPix ? {} : { formaPagamento: formaEfetiva }),
       });
-      setPixResult({
-        appointmentId: result.appointmentId, pixPayload: result.pixPayload, depositAmount: result.depositAmount, expiresAt: result.expiresAt,
+      const servico = storefront?.services.find((s) => s.id === serviceId);
+      if (!servico) return;
+      setCartaoIndisponivel(Boolean(result.cartaoIndisponivel));
+      setReserva({
+        id: result.appointmentId,
+        servico: { name: servico.name, price: servico.price, durationMinutes: servico.durationMinutes },
+        profissional: professionals.find((p) => p.id === professionalId)?.name ?? null,
+        data: date,
+        horario: time,
+        sinal: result.depositAmount,
+        forma: result.forma ?? 'pix',
+        pixPayload: result.pixPayload,
+        checkoutUrl: result.checkoutUrl ?? null,
+        expiresAt: result.expiresAt,
       });
+      if (result.forma === 'cartao' && result.checkoutUrl) {
+        // Quem usa "voltar" no Checkout precisa achar a reserva no endereço, e não o próprio horário ocupado.
+        const busca = new URLSearchParams(window.location.search);
+        busca.set('reserva', result.appointmentId);
+        window.history.replaceState(window.history.state, '', `${window.location.pathname}?${busca.toString()}`);
+        window.location.assign(result.checkoutUrl);
+      }
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
         // Outra pessoa reservou este horário enquanto o cliente preenchia os dados:
@@ -269,14 +346,14 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
   };
 
   const encerrarReserva = () => {
-    setPixResult(null);
+    setReserva(null);
     setSituacao('aguardando');
     setTime(null);
-  };
-
-  const escolherOutroHorario = () => {
-    encerrarReserva();
-    if (professionalId) void goToHorario(professionalId);
+    setRetorno(null);
+    setRemontada(false);
+    setCartaoIndisponivel(false);
+    // O endereço da reserva (?reserva=...) deixa de valer ao sair dela.
+    window.history.replaceState(null, '', window.location.pathname);
   };
 
   const voltarAoPerfil = () => {
@@ -286,10 +363,35 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
     setStep('perfil');
   };
 
-  const copyPixCode = async () => {
-    if (!pixResult) return;
+  const escolherOutroHorario = () => {
+    // Remontada pela URL não há serviço escolhido: recomeça pelo perfil.
+    if (!serviceId || !professionalId) {
+      voltarAoPerfil();
+      return;
+    }
+    encerrarReserva();
+    void goToHorario(professionalId);
+  };
+
+  const pagarComPix = async () => {
+    if (!reserva) return;
+    setTrocandoParaPix(true);
+    setError(null);
     try {
-      await navigator.clipboard.writeText(pixResult.pixPayload);
+      const pix = await publicBookingApi.trocarParaPix(slug, reserva.id);
+      setReserva({ ...reserva, forma: 'pix', pixPayload: pix.pixPayload, checkoutUrl: null, expiresAt: pix.expiresAt });
+      setRetorno(null);
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Não foi possível gerar o código Pix. Tente novamente.'));
+    } finally {
+      setTrocandoParaPix(false);
+    }
+  };
+
+  const copyPixCode = async () => {
+    if (!reserva?.pixPayload) return;
+    try {
+      await navigator.clipboard.writeText(reserva.pixPayload);
       setCopied(true);
       if (copiedTimer.current) clearTimeout(copiedTimer.current);
       copiedTimer.current = setTimeout(() => setCopied(false), 3000);
@@ -298,13 +400,20 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
     }
   };
 
-  if (loading) return <CascaPublica cor={null}><p className="p-8 text-center text-muted">Carregando...</p></CascaPublica>;
-  if (error && !storefront) return <CascaPublica cor={null}><p className="p-8 text-center text-danger">{error}</p></CascaPublica>;
-  if (!storefront) return null;
+  // Com a reserva remontada a vitrine pode demorar: a tela da reserva não espera por ela.
+  if (remontando || (loading && !reserva)) {
+    return <CascaPublica cor={null}><p className="p-8 text-center text-muted">Carregando...</p></CascaPublica>;
+  }
+  if (error && !storefront && !reserva) return <CascaPublica cor={null}><p className="p-8 text-center text-danger">{error}</p></CascaPublica>;
+  if (!storefront && !reserva) return null;
 
-  const whatsapp = numeroWhatsapp(storefront.whatsapp);
+  const whatsapp = numeroWhatsapp(storefront?.whatsapp);
 
-  if (storefront.agendaPausada) {
+  const vitrine: StorefrontDto = storefront ?? {
+    businessId: '', name: '', logoUrl: null, brandColor: null, galleryPhotos: [], address: null, services: [],
+  };
+
+  if (storefront?.agendaPausada && !reserva) {
     return (
       <CascaPublica cor={storefront.brandColor}>
         <CabecalhoPublico negocio={storefront.name} titulo="Agenda pausada" logoUrl={storefront.logoUrl} />
@@ -329,22 +438,37 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
     );
   }
 
-  const selectedService: StorefrontServiceDto | undefined = storefront.services.find((s) => s.id === serviceId);
+  // Se a pessoa sai da reserva remontada antes da vitrine chegar, espera por ela.
+  if (!storefront && step !== 'pagamento') {
+    return <CascaPublica cor={null}><p className="p-8 text-center text-muted">Carregando...</p></CascaPublica>;
+  }
+
+  const selectedService: StorefrontServiceDto | undefined = vitrine.services.find((s) => s.id === serviceId);
   const selectedProfessional = professionals.find((p) => p.id === professionalId);
   const totalEtapas = professionals.length >= 2 ? 4 : 3;
-  const semServicos = storefront.services.length === 0;
-  const reservaFinalizada = Boolean(pixResult) && situacao !== 'aguardando';
+  const semServicos = vitrine.services.length === 0;
+  const reservaFinalizada = Boolean(reserva) && situacao !== 'aguardando';
+  // O resumo vem da reserva quando ela existe (inclusive remontada); antes disso, das escolhas feitas.
+  const resumo = reserva
+    ? { servico: reserva.servico, profissional: reserva.profissional ?? undefined, data: reserva.data, horario: reserva.horario, forma: reserva.forma }
+    : selectedService && time
+      ? {
+        servico: selectedService, profissional: selectedProfessional?.name, data: date, horario: time,
+        forma: formaEfetiva,
+      }
+      : null;
+  const sinalDoResumo = reserva ? reserva.sinal : (selectedService?.depositAmount ?? 0);
   const tituloEtapa: Record<Step, string> = {
     perfil: 'Perfil', servico: 'Serviços', profissional: prof.S, horario: 'Horário', pagamento: 'Pagamento',
   };
 
   return (
-    <CascaPublica cor={storefront.brandColor}>
+    <CascaPublica cor={vitrine.brandColor}>
       <CabecalhoPublico
-        negocio={storefront.name}
+        negocio={vitrine.name}
         titulo={reservaFinalizada ? 'Confirmação' : tituloEtapa[step]}
-        logoUrl={storefront.logoUrl}
-        onVoltar={step === 'pagamento' && !pixResult ? () => setStep('horario') : undefined}
+        logoUrl={vitrine.logoUrl}
+        onVoltar={step === 'pagamento' && !reserva ? () => setStep('horario') : undefined}
       />
 
       <main className={cn('flex-1', step !== 'perfil' && 'px-4 pb-6 pt-4')}>
@@ -354,9 +478,13 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
           </p>
         )}
 
+        {aviso && step === 'perfil' && (
+          <p role="status" className="px-4 pt-4 text-sm text-muted">{aviso}</p>
+        )}
+
         {step === 'perfil' && (
           <PerfilNegocio
-            storefront={storefront}
+            storefront={vitrine}
             especialidade={segmento === 'outro' ? null : prof.S}
             semServicos={semServicos ? SEM_SERVICOS : null}
           />
@@ -372,7 +500,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
             ) : (
               <>
                 <div className="flex flex-col gap-3">
-                  {storefront.services.map((s) => (
+                  {vitrine.services.map((s) => (
                     <SelectableCard key={s.id} selected={serviceId === s.id} onClick={() => setServiceId(s.id)}>
                       <span className="mb-1 flex flex-wrap items-center gap-2">
                         <span className="text-[17px] font-bold text-ink">{s.name}</span>
@@ -434,64 +562,65 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
           </>
         )}
 
-        {step === 'pagamento' && selectedService && time && pixResult && situacao === 'confirmado' && (
+        {step === 'pagamento' && reserva && situacao === 'confirmado' && (
           <ConfirmacaoReserva
-            negocio={storefront.name}
-            cliente={clientName}
-            servico={selectedService}
-            profissional={selectedProfessional?.name}
-            data={date}
-            horario={time}
-            sinal={pixResult.depositAmount}
-            endereco={storefront.address}
+            negocio={vitrine.name}
+            cliente={remontada ? '' : clientName}
+            servico={reserva.servico}
+            profissional={reserva.profissional ?? undefined}
+            data={reserva.data}
+            horario={reserva.horario}
+            sinal={reserva.sinal}
+            forma={reserva.forma}
+            endereco={vitrine.address}
             whatsapp={whatsapp}
-            comLembretes={whatsappConsent}
+            comLembretes={!remontada && whatsappConsent}
             onVoltar={voltarAoPerfil}
           />
         )}
 
-        {step === 'pagamento' && (situacao === 'expirado' || situacao === 'cancelado') && (
-          <ReservaEncerrada situacao={situacao} whatsapp={whatsapp} onNovoHorario={escolherOutroHorario} />
+        {step === 'pagamento' && reserva && (situacao === 'expirado' || situacao === 'cancelado') && (
+          <ReservaEncerrada situacao={situacao} forma={reserva.forma} whatsapp={whatsapp} onNovoHorario={escolherOutroHorario} />
         )}
 
-        {step === 'pagamento' && selectedService && !reservaFinalizada && (
+        {step === 'pagamento' && resumo && !reservaFinalizada && (
           <>
-            <ProgressoEtapas etapa={totalEtapas} total={totalEtapas} rotulo="Finalização segura" />
+            {!remontada && <ProgressoEtapas etapa={totalEtapas} total={totalEtapas} rotulo="Finalização segura" />}
             <div className="flex flex-col gap-4">
               <section className="flex flex-col gap-3.5 rounded-card border border-line bg-surface p-4 shadow-sm">
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wide text-brand-text">Agendamento selecionado</span>
-                  <h1 className="mt-0.5 text-xl font-bold text-ink">{selectedService.name}</h1>
+                  <h1 className="mt-0.5 text-xl font-bold text-ink">{resumo.servico.name}</h1>
                 </div>
                 <div className="flex flex-col gap-2.5 rounded-control border border-line/60 bg-bg p-3">
                   <div className="flex items-start gap-2.5">
                     <Icon name="calendar_today" className="mt-0.5 shrink-0 text-brand-text" />
                     <div className="flex min-w-0 flex-col">
-                      <span className="text-sm font-semibold text-ink">{dataPorExtenso(date)} às {time}</span>
-                      <span className="text-xs text-muted">Duração estimada: {formatarDuracao(selectedService.durationMinutes)}</span>
+                      <span className="text-sm font-semibold text-ink">{dataPorExtenso(resumo.data)} às {resumo.horario}</span>
+                      <span className="text-xs text-muted">Duração estimada: {formatarDuracao(resumo.servico.durationMinutes)}</span>
                     </div>
                   </div>
-                  {selectedProfessional && (
+                  {resumo.profissional && (
                     <div className="flex items-center gap-2.5">
                       <Icon name="person" className="shrink-0 text-brand-text" />
-                      <span className="text-sm font-medium text-ink">{selectedProfessional.name}</span>
+                      <span className="text-sm font-medium text-ink">{resumo.profissional}</span>
                     </div>
                   )}
-                  {storefront.address && (
+                  {vitrine.address && (
                     <div className="flex items-start gap-2.5">
                       <Icon name="location_on" className="mt-0.5 shrink-0 text-brand-text" />
-                      <span className="text-sm leading-snug text-muted">{storefront.address}</span>
+                      <span className="text-sm leading-snug text-muted">{vitrine.address}</span>
                     </div>
                   )}
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center">
-                  <Resumo rotulo="Total" valor={formatCurrency(selectedService.price)} />
-                  <Resumo rotulo="Sinal Pix" valor={formatCurrency(selectedService.depositAmount)} destaque />
-                  <Resumo rotulo="No atendimento" valor={formatCurrency(selectedService.price - selectedService.depositAmount)} />
+                  <Resumo rotulo="Total" valor={formatCurrency(resumo.servico.price)} />
+                  <Resumo rotulo={resumo.forma === 'cartao' ? 'Sinal cartão' : 'Sinal Pix'} valor={formatCurrency(sinalDoResumo)} destaque />
+                  <Resumo rotulo="No atendimento" valor={formatCurrency(resumo.servico.price - sinalDoResumo)} />
                 </div>
               </section>
 
-              {!pixResult && (
+              {!reserva && (
                 <section className="flex flex-col gap-3.5 rounded-card border border-line bg-surface p-4 shadow-sm">
                   <TituloSecao numero={1}>Seus dados rápidos</TituloSecao>
                   <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
@@ -524,27 +653,67 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                     />
                     <span className="flex flex-col gap-0.5">
                       <span id="consentimento-whatsapp" className="text-[13px] font-medium text-ink">
-                        Quero receber lembretes e novidades pelo WhatsApp de {storefront.name}
+                        Quero receber lembretes e novidades pelo WhatsApp de {vitrine.name}
                       </span>
                       <span id="consentimento-whatsapp-ajuda" className="text-xs text-muted">
                         Você pode cancelar quando quiser, é só avisar o estabelecimento.
                       </span>
                     </span>
                   </label>
+                  <EscolhaFormaPagamento formas={formasLiberadas} valor={formaEfetiva} onChange={setFormaEscolhida} />
                 </section>
               )}
 
               <section className="flex flex-col gap-3.5 rounded-card border border-line bg-surface p-4 shadow-sm">
-                <TituloSecao numero={pixResult ? 1 : 2}>Pagamento do sinal Pix</TituloSecao>
-                {!pixResult ? (
+                <TituloSecao numero={reserva ? 1 : 2}>
+                  {resumo.forma === 'cartao' ? 'Pagamento do sinal no cartão' : 'Pagamento do sinal Pix'}
+                </TituloSecao>
+                {!reserva ? (
                   <p className="text-sm text-muted">
-                    O sinal é descontado no dia do atendimento. O código Pix aparece assim que você confirmar.
+                    {resumo.forma === 'cartao'
+                      ? 'O sinal é descontado no dia do atendimento. Você vai para o Checkout do Mercado Pago para pagar no cartão.'
+                      : 'O sinal é descontado no dia do atendimento. O código Pix aparece assim que você confirmar.'}
                   </p>
+                ) : reserva.forma === 'cartao' ? (
+                  <>
+                    {retorno === 'sucesso' || retorno === 'pendente' ? (
+                      <p className="text-sm font-semibold text-ink">
+                        Estamos aguardando a confirmação do pagamento. Esta tela atualiza sozinha, mas você pode fechar a página.
+                      </p>
+                    ) : (
+                      <p className="text-sm font-semibold text-ink">
+                        {retorno === 'falha'
+                          ? 'O pagamento não foi concluído.'
+                          : 'O pagamento do sinal no cartão ainda não foi concluído.'}
+                        {reserva.expiresAt && ` Você tem até ${formatDeadline(reserva.expiresAt)} para pagar, depois o horário é liberado.`}
+                      </p>
+                    )}
+                    {/* Pago ou em análise só aguarda: oferecer pagar de novo convida a pagar em dobro. */}
+                    {retorno !== 'sucesso' && retorno !== 'pendente' && (
+                      <>
+                        {reserva.checkoutUrl && (
+                          <Button type="button" onClick={() => window.location.assign(reserva.checkoutUrl as string)}>
+                            {retorno === 'falha' ? 'Tentar de novo' : 'Ir para o pagamento'}
+                          </Button>
+                        )}
+                        <Button type="button" variant="ghost" loading={trocandoParaPix} onClick={pagarComPix}>
+                          Pagar com Pix
+                        </Button>
+                      </>
+                    )}
+                  </>
                 ) : (
                   <>
-                    <p className="text-sm font-semibold text-ink">
-                      Pague até {formatDeadline(pixResult.expiresAt)}. Depois disso, o horário é liberado para outras pessoas.
-                    </p>
+                    {cartaoIndisponivel && (
+                      <p role="status" className="rounded-control bg-surface-2 p-3 text-sm text-ink">
+                        O pagamento com cartão está indisponível agora. Use o Pix para garantir seu horário.
+                      </p>
+                    )}
+                    {reserva.expiresAt && (
+                      <p className="text-sm font-semibold text-ink">
+                        Pague até {formatDeadline(reserva.expiresAt)}. Depois disso, o horário é liberado para outras pessoas.
+                      </p>
+                    )}
                     {qrCodeUrl && (
                       // eslint-disable-next-line @next/next/no-img-element -- data: URL gerado no cliente, sem domínio pro next/image otimizar
                       <img
@@ -555,15 +724,19 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                         className="mx-auto rounded-lg border border-line bg-surface p-2"
                       />
                     )}
-                    <textarea
-                      readOnly
-                      aria-label="Código Pix copia e cola"
-                      value={pixResult.pixPayload}
-                      className="h-24 rounded-control border border-line bg-bg p-3 text-xs text-ink"
-                    />
-                    <Button type="button" onClick={copyPixCode}>
-                      {copied ? 'Copiado!' : 'Copiar código'}
-                    </Button>
+                    {reserva.pixPayload && (
+                      <>
+                        <textarea
+                          readOnly
+                          aria-label="Código Pix copia e cola"
+                          value={reserva.pixPayload}
+                          className="h-24 rounded-control border border-line bg-bg p-3 text-xs text-ink"
+                        />
+                        <Button type="button" onClick={copyPixCode}>
+                          {copied ? 'Copiado!' : 'Copiar código'}
+                        </Button>
+                      </>
+                    )}
                     <p className="text-sm text-muted">
                       Aguardando confirmação do estabelecimento. Esta tela atualiza sozinha, mas você pode fechar a página.
                     </p>
@@ -645,7 +818,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
           </BarraAcao>
         )}
 
-        {step === 'pagamento' && !pixResult && (
+        {step === 'pagamento' && !reserva && (
           <BarraAcao>
             <Button type="button" size="lg" fullWidth disabled={submitting || !clientName || !clientPhone} loading={submitting} onClick={submit}>
               Confirmar agendamento

@@ -115,6 +115,8 @@ model Business {
   googleAgendaConexoes GoogleAgendaConexao[]
   depoimentos          Depoimento[]
   depoimentoPedido     DepoimentoPedido?
+  conexaoRecebimento   ConexaoRecebimento?
+  cobrancasSinal       CobrancaSinal[]
   @@map("businesses")
 }
 
@@ -295,6 +297,7 @@ model Appointment {
   waitlistEntry  WaitlistEntry?
   whatsappRespostasPendentes WhatsappRespostaPendente[]
   googleAgendaEventos GoogleAgendaEvento[]
+  cobrancasSinal CobrancaSinal[]
 
   @@map("appointments")
 }
@@ -1253,4 +1256,58 @@ model DepoimentoPedido {
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@map("depoimento_pedidos")
+}
+
+// ─── Recebimentos (Mercado Pago) ────────────────────────────────────────────────
+
+model ConexaoRecebimento {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId           String    @unique @map("business_id") @db.Uuid
+  gateway              String    @db.VarChar(20)
+  situacao             String    @default("ativa") @db.VarChar(30)
+  contaExternaId       String    @map("conta_externa_id") @db.VarChar(100)
+  contaNome            String?   @map("conta_nome") @db.VarChar(255)
+  accessTokenCifrado   String    @map("access_token_cifrado") @db.Text
+  refreshTokenCifrado  String    @map("refresh_token_cifrado") @db.Text
+  tokenExpiraEm        DateTime  @map("token_expira_em") @db.Timestamptz(6)
+  aceitaPix            Boolean   @default(true) @map("aceita_pix")
+  aceitaCartao         Boolean   @default(false) @map("aceita_cartao")
+  aceiteCartaoEm       DateTime? @map("aceite_cartao_em") @db.Timestamptz(6)
+  ultimoAlertaEm       DateTime? @map("ultimo_alerta_em") @db.Timestamptz(6)
+  criadoEm             DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm         DateTime  @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // Uma conta do gateway em um negócio só: o webhook roteia pelo id da conta.
+  @@unique([gateway, contaExternaId])
+  @@map("conexoes_recebimento")
+}
+
+model CobrancaSinal {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  businessId         String    @map("business_id") @db.Uuid
+  appointmentId      String    @map("appointment_id") @db.Uuid
+  gateway            String    @db.VarChar(20)
+  forma              String    @db.VarChar(10)
+  valor              Decimal   @db.Decimal(10, 2)
+  situacao           String    @default("pendente") @db.VarChar(20)
+  idExterno          String?   @map("id_externo") @db.VarChar(100)
+  pagamentoExternoId String?   @map("pagamento_externo_id") @db.VarChar(100)
+  formaPaga          String?   @map("forma_paga") @db.VarChar(10)
+  codigoPix          String?   @map("codigo_pix") @db.Text
+  checkoutUrl        String?   @map("checkout_url") @db.Text
+  venceEm            DateTime? @map("vence_em") @db.Timestamptz(6)
+  pagoEm             DateTime? @map("pago_em") @db.Timestamptz(6)
+  criadoEm           DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  atualizadoEm       DateTime  @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(6)
+
+  business    Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@unique([gateway, pagamentoExternoId])
+  @@index([appointmentId])
+  @@index([situacao, venceEm])
+  @@index([businessId, situacao, venceEm])
+  @@map("cobrancas_sinal")
 }

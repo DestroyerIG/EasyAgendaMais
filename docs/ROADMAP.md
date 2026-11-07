@@ -6,7 +6,7 @@ As fases do relançamento e o estado de cada uma.
 - As pendências de cada fase entregue ficam em `docs/design/SEGUIMENTO.md`.
 - O que o sistema faz hoje, tela por tela, está em `docs/FUNCIONALIDADES.md`.
 
-Atualizado em 27/10/2026.
+Atualizado em 06/11/2026.
 
 ## Fases
 
@@ -38,6 +38,7 @@ Atualizado em 27/10/2026.
 | Busca | Busca geral do painel: clientes, agendamentos e telas, no computador e no celular | ✅ Concluída (juntada em 05/11, sem migração) | PR #41 |
 | Página pública 1 | Página de agendamento fiel ao Stitch com os dados atuais: perfil, 3 etapas e cor do negócio | ✅ Concluída (juntada em 05/11, sem migração) | PR #43 |
 | Página pública 2 | Capa, descrição, comodidades, nota, vagas por dia, horários ocupados e confirmação | ✅ Concluída (juntada e migrada em 05/11) | PR #45 |
+| Recebimentos | Mercado Pago: sinal confirmado sozinho no Pix e no cartão, com tela de conexão em Ajustes | Implementada, aguardando PR. Migração `20261108120000_recebimentos` pendente de autorização | Guia: `docs/mercado-pago-configuracao.md` |
 
 ## Fase 7 (concluída)
 

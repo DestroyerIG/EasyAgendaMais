@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { FormaSinal } from '../recebimentos/recebimentos.types.js';
 
 export const GetPublicAvailabilitySchema = z.object({
   serviceId: z.string().uuid(),
@@ -19,6 +20,7 @@ export const CreatePublicAppointmentSchema = z.object({
   clientPhone: z.string().trim().min(10).max(20),
   // Caixa desmarcada por padrão na página (LGPD): só `true` grava consentimento.
   whatsappConsent: z.boolean().optional(),
+  formaPagamento: z.enum(['pix', 'cartao']).optional(),
 });
 
 export type GetPublicAvailabilityQuery = z.infer<typeof GetPublicAvailabilitySchema>;
@@ -51,6 +53,7 @@ export interface Storefront {
   atendeHojeAte: string | null;
   whatsapp: string | null;
   agendaPausada: boolean;
+  formasPagamento: FormaSinal[];
   services: StorefrontService[];
   vocabulario: Vocabulario;
 }

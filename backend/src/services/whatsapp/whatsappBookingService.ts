@@ -15,6 +15,7 @@ import { formatMessage } from './whatsappMessageService.js';
 import { goBackToMainMenu, normalizeChoice } from './whatsappFlowService.js';
 import { formatTimeHm } from './utils/timeUtils.js';
 import { automacoesGatilhos } from '../../modules/whatsappAutomacoes/gatilhos.service.js';
+import { recebimentosRepository } from '../../modules/recebimentos/recebimentos.repository.js';
 
 // ==================== UTILITÁRIO DE DATA (FIX Bug 5) ====================
 
@@ -168,6 +169,9 @@ const cancelarAgendamento = async (
       }
       void automacoesGatilhos.aoCancelar(businessId, appointmentId)
         .catch((err) => logger.warn({ err, appointmentId }, 'Gatilho da lista de espera falhou'));
+      // Cancelar com sinal pago lembra quem administra de devolver; nunca derruba o cancelamento.
+      void recebimentosRepository.lembrarDevolucaoAoCancelar(businessId, appointmentId)
+        .catch((err) => logger.warn({ err, appointmentId }, 'Lembrete de devolver o sinal falhou'));
     }
     const mainMenu = await goBackToMainMenu(phone, businessId);
     return { message: formatMessage(config.cancel_success_message) + '\n\n' + mainMenu.message };

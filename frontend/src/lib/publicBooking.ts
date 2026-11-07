@@ -33,6 +33,8 @@ export interface StorefrontDto {
   agendaPausada?: boolean;
   /** Só dígitos, como cadastrado; pode já trazer o 55. */
   whatsapp?: string | null;
+  /** Formas de sinal liberadas pelo negócio; sem o campo, só Pix. */
+  formasPagamento?: FormaSinal[];
 }
 
 export interface ProfessionalDto {
@@ -42,6 +44,7 @@ export interface ProfessionalDto {
 
 export interface HorarioDto { horario: string; livre: boolean }
 export interface VagasDoDiaDto { date: string; vagas: number }
+export type FormaSinal = 'pix' | 'cartao';
 export type SituacaoReserva = 'aguardando' | 'confirmado' | 'expirado' | 'cancelado';
 
 export interface CreatePublicAppointmentPayload {
@@ -53,13 +56,36 @@ export interface CreatePublicAppointmentPayload {
   clientPhone: string;
   /** Caixa de consentimento de WhatsApp (começa desmarcada); true grava o consentimento com canal "publico". */
   whatsappConsent: boolean;
+  formaPagamento?: FormaSinal;
 }
 
 export interface CreatePublicAppointmentResponse {
   appointmentId: string;
   depositAmount: number;
-  pixPayload: string;
+  pixPayload: string | null;
+  checkoutUrl?: string | null;
+  forma?: FormaSinal;
+  automatica?: boolean;
+  cartaoIndisponivel?: boolean;
   expiresAt: string;
+}
+
+/** O que a página precisa para remontar a reserva; sem dado pessoal da cliente. */
+export interface ReservaPublicaDto {
+  servico: { name: string; price: number; durationMinutes: number };
+  profissional: string | null;
+  data: string;
+  horario: string;
+  sinal: number;
+  forma: FormaSinal;
+  pixPayload: string | null;
+  checkoutUrl: string | null;
+  expiresAt: string | null;
+}
+
+export interface StatusReservaDto {
+  situacao: SituacaoReserva;
+  reserva: ReservaPublicaDto;
 }
 
 export const publicBookingApi = {
@@ -83,13 +109,18 @@ export const publicBookingApi = {
     return response.data;
   },
 
-  async getAppointmentStatus(slug: string, appointmentId: string): Promise<{ situacao: SituacaoReserva }> {
+  async getAppointmentStatus(slug: string, appointmentId: string): Promise<StatusReservaDto> {
     const response = await api.get(`/public/${slug}/appointments/${appointmentId}/status`);
     return response.data;
   },
 
   async createAppointment(slug: string, payload: CreatePublicAppointmentPayload): Promise<CreatePublicAppointmentResponse> {
     const response = await api.post(`/public/${slug}/appointments`, payload);
+    return response.data;
+  },
+
+  async trocarParaPix(slug: string, appointmentId: string): Promise<{ pixPayload: string; forma: 'pix'; expiresAt: string }> {
+    const response = await api.post(`/public/${slug}/appointments/${appointmentId}/pix`);
     return response.data;
   },
 };

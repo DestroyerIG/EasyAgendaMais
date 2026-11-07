@@ -18,25 +18,15 @@ import type {
 } from './appointments.types.js';
 import { VALID_STATUS_TRANSITIONS as TRANSITIONS } from './appointments.types.js';
 import type { AppointmentStatus } from '../../types/domain.js';
-// @ts-ignore — sendWhatsAppMessage é um serviço JS legado ainda não tipado
-import { sendWhatsAppMessage } from '../../services/whatsapp/index.js';
-import { notificationsService } from '../notifications/notifications.service.js';
 import { automacoesGatilhos } from '../whatsappAutomacoes/gatilhos.service.js';
 import { clubeService } from '../clube/clube.service.js';
-import { pushService } from '../push/push.service.js';
+import { avisarProfissional, avisarSinalConfirmado, dataBr, horaDe, primeiroNome } from './sinalConfirmado.js';
+import { recebimentosRepository } from '../recebimentos/recebimentos.repository.js';
 
-const dataBr = (d: Date) => `${d.toISOString().slice(8, 10)}/${d.toISOString().slice(5, 7)}`;
-const horaDe = (t: Date) => t.toISOString().slice(11, 16);
-const primeiroNome = (nome: string) => nome.split(' ')[0] || nome;
-
-/** Push para a profissional do agendamento (app da bancada). Nunca lança. */
-/** Push para a profissional. Nunca derruba a operação: o texto é montado aqui dentro, protegido. */
-function avisarProfissional(a: AppointmentWithRelations, titulo: string, corpo: () => string): void {
-  try {
-    void pushService.paraProfissional(a.businessId, a.professionalId, { titulo, corpo: corpo(), link: '/bancada', tag: `agendamento-${a.id}` });
-  } catch (err) {
-    logger.warn({ err, appointmentId: a.id }, 'Push para a profissional não enviado');
-  }
+/** Cancelar com sinal pago lembra de devolver. Nunca derruba o cancelamento. */
+function lembrarDevolucao(businessId: string, appointmentId: string): void {
+  void recebimentosRepository.lembrarDevolucaoAoCancelar(businessId, appointmentId)
+    .catch((err) => logger.warn({ err, appointmentId }, 'Lembrete de devolver o sinal falhou'));
 }
 
 export const appointmentsService = {
@@ -142,14 +132,8 @@ export const appointmentsService = {
     }
 
     if (newStatus === 'confirmado' && currentStatus === 'aguardando_pagamento') {
-      const message = `Olá ${appointment.client.name}! Seu sinal foi confirmado e seu horário está garantido. Te esperamos!`;
-      await sendWhatsAppMessage(appointment.client.phone, message, { businessId, origin: 'pix_recibo' });
-      await notificationsService.notify(businessId, {
-        type: 'pagamento_confirmado',
-        title: 'Pagamento confirmado',
-        description: `${appointment.client.name} · ${appointment.service.name}`,
-      });
-      avisarProfissional(result, 'Novo agendamento', () => `${primeiroNome(result.client.name)} · ${result.service.name} · ${dataBr(result.date)} às ${horaDe(result.time)}`);
+      // O sincronismo da agenda fica no fim de updateStatus (vale para todas as transições).
+      await avisarSinalConfirmado(result, { sincronizar: false });
     }
 
     // Clube/pacote com "falta debita": a falta consome a sessão ("faltou" é terminal, não há estorno).
@@ -166,6 +150,7 @@ export const appointmentsService = {
     if (newStatus === 'cancelado') {
       void automacoesGatilhos.aoCancelar(businessId, id)
         .catch((err) => logger.warn({ err, appointmentId: id }, 'Gatilho da lista de espera falhou'));
+      lembrarDevolucao(businessId, id);
     }
 
     logger.info({ appointmentId: id, from: currentStatus, to: newStatus }, 'Status atualizado');
@@ -220,6 +205,7 @@ export const appointmentsService = {
     if (!deleted) throw new NotFoundError('Agendamento');
     void automacoesGatilhos.aoCancelar(businessId, id)
       .catch((err) => logger.warn({ err, appointmentId: id }, 'Gatilho da lista de espera falhou'));
+    lembrarDevolucao(businessId, id);
     logger.info({ appointmentId: id, businessId }, 'Agendamento cancelado');
   },
 
