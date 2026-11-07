@@ -40,7 +40,7 @@ Atualizado em 27/10/2026.
 | Página pública 2 | Capa, descrição, comodidades, nota, vagas por dia, horários ocupados e confirmação | ✅ Concluída (juntada e migrada em 05/11) | PR #45 |
 | Robô 1 | Robô de atendimento: menu pela lista visível, promoções e Instagram, remarcar move o agendamento, simulador que não grava, avaliação só em Automações | ✅ Concluída (juntada em 06/11, sem migração) | PR #47 |
 | Robô 2 | Robô de atendimento: menu por segmento (até 6 opções), fonte única `menuPadrao(segmento)`, reordenação com `MENU_DESATUALIZADO` | ✅ Concluída (juntada em 06/11, sem migração) | PR #48 |
-| Robô 3 | Robô de atendimento: textos editáveis, respostas das Automações editáveis e tela única (Menu e mensagens + simulador) | 🟡 Em revisão (migração `20261109120000_robo_textos` **pendente**: precisa da autorização do dono antes do merge e é aplicada da máquina local, senão o Start Command a aplica no deploy) | PR #50 |
+| Robô 3 | Robô de atendimento: textos editáveis, respostas das Automações editáveis e tela única (Menu e mensagens + simulador) | 🟡 Em revisão (migração `20261109120000_robo_textos` aplicada em produção em 07/11, com autorização do dono, antes do merge) | PR #50 |
 
 ## Fase 7 (concluída)
 
