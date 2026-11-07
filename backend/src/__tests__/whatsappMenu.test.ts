@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { opcoesVisiveis, resolverEscolha, instagramVisivel, normalizarInstagram } from '../services/whatsapp/whatsappMenu.js';
+import { opcoesVisiveis, resolverEscolha, instagramVisivel, normalizarInstagram, anotarMenu } from '../services/whatsapp/whatsappMenu.js';
 import { DEFAULT_BOT_CONFIG } from '../services/whatsapp/whatsappConstants.js';
 import type { MenuOptionRow } from '../services/whatsapp/whatsappConfigService.js';
 
@@ -34,5 +34,27 @@ describe('whatsappMenu', () => {
     expect(normalizarInstagram('@loja')).toBe('@loja');
     expect(normalizarInstagram('')).toBeNull();
     expect(() => normalizarInstagram('com espaço')).toThrow();
+  });
+});
+
+describe('anotarMenu', () => {
+  it('numera as visíveis e explica a oculta', () => {
+    const linhas = anotarMenu(
+      [op(1, 'schedule'), op(2, 'view_services', false), op(3, 'promotions'), op(4, 'instagram'), op(5, 'attendant'), op(6, 'rating')],
+      { promocoes: '  ', instagramVisivel: false },
+    );
+    expect(linhas.map((l) => [l.handler, l.numero, l.motivoOculta])).toEqual([
+      ['schedule', 1, null],
+      ['view_services', null, 'desligada'],
+      ['promotions', null, 'sem_promocao'],
+      ['instagram', null, 'sem_instagram'],
+      ['attendant', 2, null],
+      ['rating', null, null],
+    ]);
+  });
+  it('a numeração segue option_order, não a ordem das linhas recebidas', () => {
+    const linhas = anotarMenu([op(2, 'attendant'), op(1, 'schedule')], ctx);
+    expect(linhas.find((l) => l.handler === 'schedule')?.numero).toBe(1);
+    expect(linhas.find((l) => l.handler === 'attendant')?.numero).toBe(2);
   });
 });

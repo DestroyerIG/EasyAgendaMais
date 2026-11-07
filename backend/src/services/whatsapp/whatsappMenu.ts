@@ -41,7 +41,32 @@ export const opcoesVisiveis = (options: MenuOptionRow[], ctx: ContextoMenu): Men
     .filter((o) => o.handler !== 'instagram' || ctx.instagramVisivel)
     .sort((a, b) => a.option_order - b.option_order);
 
-export const resolverEscolha = (visiveis: MenuOptionRow[], escolha: number): MenuOptionRow | null => {
+export type MotivoOculta = 'desligada' | 'sem_promocao' | 'sem_instagram';
+
+/**
+ * Todas as linhas do menu, na ordem, com o número que a cliente lê (`numero`) ou, quando a opção
+ * não aparece, o motivo. A avaliação nunca aparece no menu e não tem motivo a mostrar.
+ */
+export const anotarMenu = <T extends MenuOptionRow>(
+  options: T[],
+  ctx: ContextoMenu,
+): Array<T & { numero: number | null; motivoOculta: MotivoOculta | null }> => {
+  const numeros = new Map(opcoesVisiveis(options, ctx).map((o, i) => [o.id, i + 1]));
+  return [...options]
+    .sort((a, b) => a.option_order - b.option_order)
+    .map((o) => {
+      const numero = numeros.get(o.id) ?? null;
+      let motivoOculta: MotivoOculta | null = null;
+      if (numero === null && o.handler !== 'rating') {
+        if (!o.active) motivoOculta = 'desligada';
+        else if (o.handler === 'promotions') motivoOculta = 'sem_promocao';
+        else if (o.handler === 'instagram') motivoOculta = 'sem_instagram';
+      }
+      return { ...o, numero, motivoOculta };
+    });
+};
+
+export const resolverEscolha =(visiveis: MenuOptionRow[], escolha: number): MenuOptionRow | null => {
   if (!Number.isInteger(escolha) || escolha < 1 || escolha > visiveis.length) return null;
   return visiveis[escolha - 1] ?? null;
 };

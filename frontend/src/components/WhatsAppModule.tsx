@@ -8,9 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { PageHeader, Card, Icon, Skeleton, buttonVariants } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { ConnectionPanel } from '@/components/whatsapp/ConnectionPanel';
-import { MessageConfigPanel, BotConfig } from '@/components/whatsapp/MessageConfigPanel';
-import { MenuOptionsPanel, MenuOption } from '@/components/whatsapp/MenuOptionsPanel';
-import { ChatSimulator } from '@/components/whatsapp/ChatSimulator';
+import type { MenuOption } from '@/components/whatsapp/MenuOptionsPanel';
 import { RoboAtendimento } from '@/components/whatsapp/RoboAtendimento';
 import { Automacoes } from '@/components/whatsapp/automacoes/Automacoes';
 import { Campanhas } from '@/components/whatsapp/campanhas/Campanhas';
@@ -114,33 +112,15 @@ const ABAS: { id: Aba; label: string }[] = [
 const abaDaUrl = (valor: string | null): Aba | null =>
   ABAS.some((a) => a.id === valor) ? (valor as Aba) : null;
 
-const CONFIG_VAZIA: BotConfig = {
-  welcome_header: '', ask_name_message: '', attendant_message: '',
-  confirmation_message: '', reminder_message: '', invalid_option_message: '', session_expired_message: '',
-  end_session_message: '', name_validation_message: '', no_slots_message: '',
-  cancel_no_appointments_message: '', cancel_list_message: '', cancel_success_message: '',
-  reschedule_no_appointments_message: '', reschedule_list_message: '',
-  promotions_message: '', instagram_message: '', politica_message: '',
-};
-
-/** Compara só as mensagens conhecidas: campos extras que o backend devolva não contam como edição. */
-const CHAVES_CONFIG = Object.keys(CONFIG_VAZIA) as Array<keyof BotConfig>;
-const configsDiferem = (a: BotConfig, b: BotConfig) => CHAVES_CONFIG.some((k) => (a[k] ?? '') !== (b[k] ?? ''));
-
 export const WhatsAppModule = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   // Sem ?aba= válido, a aba inicial depende do status (decidido quando o primeiro status chega).
   const [activeTab, setActiveTab] = useState<Aba | null>(() => abaDaUrl(searchParams.get('aba')));
   const [waStatus, setWaStatus] = useState<WhatsAppStatus>(DEFAULT_WA_STATUS);
-  const [botConfig, setBotConfig] = useState<BotConfig>(CONFIG_VAZIA);
-  // Última versão salva das mensagens: o simulador usa só ela, então avisamos quando há edição pendente.
-  const [configSalva, setConfigSalva] = useState<BotConfig | null>(null);
-  const temAlteracoes = configSalva !== null && configsDiferem(botConfig, configSalva);
   const [menuOptions, setMenuOptions] = useState<MenuOption[]>([]);
   const [menuLoading, setMenuLoading] = useState(false);
   const [instagramHandle, setInstagramHandle] = useState<string | null>(null);
-  const [configLoading, setConfigLoading] = useState(false);
   const [statusLoading, setStatusLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [featureBlocked, setFeatureBlocked] = useState(false);
@@ -204,22 +184,9 @@ export const WhatsAppModule = () => {
     }
   }, []);
 
-  const fetchConfig = useCallback(async () => {
-    setConfigLoading(true);
-    try {
-      const response = await api.get('/whatsapp/config');
-      const carregada = asObjectPayload(response.data);
-      setBotConfig((atual) => ({ ...atual, ...carregada }));
-      setConfigSalva({ ...CONFIG_VAZIA, ...carregada });
-    } catch {
-      showToast('Erro ao carregar configurações de mensagens', 'error');
-    } finally {
-      setConfigLoading(false);
-    }
-  }, [showToast]);
-
-  const fetchMenuOptions = useCallback(async () => {
-    setMenuLoading(true);
+  // `silencioso`: recarrega depois de uma edição sem trocar a lista pelo esqueleto.
+  const fetchMenuOptions = useCallback(async (silencioso = false) => {
+    if (!silencioso) setMenuLoading(true);
     try {
       const [response, instagram] = await Promise.all([
         api.get('/whatsapp/config/menu'),
@@ -284,13 +251,12 @@ export const WhatsAppModule = () => {
     setActiveTab(waStatus.status === 'connected' ? 'conversas' : 'conexao');
   }, [activeTab, statusLoading, waStatus.status]);
 
-  // Os painéis do robô (Menu, Mensagens, Simulador) moram na aba Conexão.
+  // O robô de atendimento (menu, mensagens e simulador) mora na aba Conexão.
   useEffect(() => {
     if (activeTab === 'conexao') {
-      fetchConfig();
       fetchMenuOptions();
     }
-  }, [activeTab, fetchConfig, fetchMenuOptions]);
+  }, [activeTab, fetchMenuOptions]);
 
   const trocarAba = (aba: Aba) => {
     setActiveTab(aba);
@@ -342,39 +308,24 @@ export const WhatsAppModule = () => {
     }
   };
 
-  const handleSaveConfig = async () => {
-    setActionLoading(true);
-    try { await api.put('/whatsapp/config', botConfig); setConfigSalva(botConfig); showToast('Configurações salvas com sucesso!', 'success'); }
-    catch { showToast('Erro ao salvar configurações', 'error'); }
-    finally { setActionLoading(false); }
-  };
-
-  const handleResetConfig = async () => {
-    if (!confirm('Tem certeza que deseja resetar todas as mensagens para o padrão?')) return;
-    setActionLoading(true);
-    try { await api.post('/whatsapp/config/reset'); await fetchConfig(); showToast('Mensagens resetadas para o padrão', 'success'); }
-    catch { showToast('Erro ao resetar configurações', 'error'); }
-    finally { setActionLoading(false); }
-  };
-
   // Menu CRUD handlers
   const handleMenuToggle = async (id: string, active: boolean) => {
     setActionLoading(true);
-    try { const r = await api.put(`/whatsapp/config/menu/${id}`, { active }); setMenuOptions(prev => prev.map(o => o.id === id ? r.data : o)); }
-    catch { showToast('Erro ao atualizar opção', 'error'); void fetchMenuOptions(); }
+    try { await api.put(`/whatsapp/config/menu/${id}`, { active }); await fetchMenuOptions(true); }
+    catch { showToast('Erro ao atualizar opção', 'error'); void fetchMenuOptions(true); }
     finally { setActionLoading(false); }
   };
 
   const handleMenuUpdate = async (id: string, data: Partial<MenuOption>) => {
     setActionLoading(true);
-    try { const r = await api.put(`/whatsapp/config/menu/${id}`, data); setMenuOptions(prev => prev.map(o => o.id === id ? r.data : o)); showToast('Opção atualizada', 'success'); }
-    catch { showToast('Erro ao atualizar opção', 'error'); void fetchMenuOptions(); }
+    try { await api.put(`/whatsapp/config/menu/${id}`, data); await fetchMenuOptions(true); showToast('Opção atualizada', 'success'); }
+    catch { showToast('Erro ao atualizar opção', 'error'); void fetchMenuOptions(true); }
     finally { setActionLoading(false); }
   };
 
   const handleSalvarInstagram = async (handle: string | null): Promise<boolean> => {
     setActionLoading(true);
-    try { const r = await api.put('/whatsapp/config/instagram', { handle }); setInstagramHandle(r.data?.handle ?? null); showToast('Perfil do Instagram salvo', 'success'); return true; }
+    try { const r = await api.put('/whatsapp/config/instagram', { handle }); setInstagramHandle(r.data?.handle ?? null); showToast('Perfil do Instagram salvo', 'success'); void fetchMenuOptions(true); return true; }
     catch (erro) {
       const msg = (erro as { response?: { data?: { error?: unknown } } })?.response?.data?.error;
       showToast(typeof msg === 'string' && msg ? msg : 'Erro ao salvar o perfil do Instagram', 'error');
@@ -385,29 +336,29 @@ export const WhatsAppModule = () => {
 
   const handleMenuDelete = async (id: string) => {
     setActionLoading(true);
-    try { await api.delete(`/whatsapp/config/menu/${id}`); await fetchMenuOptions(); showToast('Opção excluída', 'success'); }
+    try { await api.delete(`/whatsapp/config/menu/${id}`); await fetchMenuOptions(true); showToast('Opção excluída', 'success'); }
     catch { showToast('Erro ao excluir opção', 'error'); }
     finally { setActionLoading(false); }
   };
 
   const handleMenuCreate = async (data: { label: string; emoji: string; response_message: string }) => {
     setActionLoading(true);
-    try { await api.post('/whatsapp/config/menu', data); await fetchMenuOptions(); showToast('Opção criada!', 'success'); }
+    try { await api.post('/whatsapp/config/menu', data); await fetchMenuOptions(true); showToast('Opção criada!', 'success'); }
     catch { showToast('Erro ao criar opção', 'error'); }
     finally { setActionLoading(false); }
   };
 
   const handleMenuReorder = async (ids: string[]) => {
     setActionLoading(true);
-    try { const r = await api.put('/whatsapp/config/menu-reorder', { order: ids }); setMenuOptions(r.data); }
-    catch { showToast('Erro ao reordenar menu', 'error'); void fetchMenuOptions(); }
+    try { await api.put('/whatsapp/config/menu-reorder', { order: ids }); await fetchMenuOptions(true); }
+    catch { showToast('Erro ao reordenar menu', 'error'); void fetchMenuOptions(true); }
     finally { setActionLoading(false); }
   };
 
   const handleMenuReset = async () => {
     if (!confirm('Resetar menu para as opções padrão? Opções personalizadas serão excluídas.')) return;
     setActionLoading(true);
-    try { const r = await api.post('/whatsapp/config/menu/reset'); setMenuOptions(r.data); showToast('Menu resetado', 'success'); }
+    try { await api.post('/whatsapp/config/menu/reset'); await fetchMenuOptions(true); showToast('Menu resetado', 'success'); }
     catch { showToast('Erro ao resetar menu', 'error'); }
     finally { setActionLoading(false); }
   };
@@ -548,40 +499,20 @@ export const WhatsAppModule = () => {
                 onTestSend={handleTestSend}
               />
               <RoboAtendimento
-                menu={
-                  <MenuOptionsPanel
-                    options={menuOptions}
-                    loading={menuLoading}
-                    actionLoading={actionLoading}
-                    onToggle={handleMenuToggle}
-                    onUpdate={handleMenuUpdate}
-                    onDelete={handleMenuDelete}
-                    onCreate={handleMenuCreate}
-                    onReorder={handleMenuReorder}
-                    onReset={handleMenuReset}
-                    instagramHandle={instagramHandle}
-                    onSalvarInstagram={handleSalvarInstagram}
-                    promocoesMessage={configSalva?.promotions_message}
-                    instagramMessage={configSalva?.instagram_message}
-                  />
-                }
-                mensagens={
-                  <MessageConfigPanel
-                    botConfig={botConfig}
-                    onChange={setBotConfig}
-                    configLoading={configLoading}
-                    actionLoading={actionLoading}
-                    onSave={handleSaveConfig}
-                    onReset={handleResetConfig}
-                  />
-                }
-                simulador={
-                  <ChatSimulator
-                    onSendMessage={handleSimulatorMessage}
-                    onLimpar={handleLimparSimulador}
-                    temAlteracoes={temAlteracoes}
-                  />
-                }
+                options={menuOptions}
+                loading={menuLoading}
+                actionLoading={actionLoading}
+                onToggle={handleMenuToggle}
+                onUpdate={handleMenuUpdate}
+                onDelete={handleMenuDelete}
+                onCreate={handleMenuCreate}
+                onReorder={handleMenuReorder}
+                onReset={handleMenuReset}
+                instagramHandle={instagramHandle}
+                onSalvarInstagram={handleSalvarInstagram}
+                onSendMessage={handleSimulatorMessage}
+                onLimpar={handleLimparSimulador}
+                onTextosSalvos={() => { void fetchMenuOptions(true); }}
               />
             </div>
           )}

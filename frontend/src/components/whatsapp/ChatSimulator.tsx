@@ -66,10 +66,10 @@ export const ChatSimulator = ({ onSendMessage, onLimpar, temAlteracoes }: ChatSi
   };
 
   return (
-    <Card className="flex h-[600px] flex-col overflow-hidden p-0">
-      <div className="flex items-center justify-between border-b border-line bg-surface-2 p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-whatsapp/12 text-whatsapp">
+    <Card className="flex h-[600px] max-h-[75dvh] flex-col overflow-hidden p-0">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2 p-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-whatsapp/12 text-whatsapp">
             <Icon name="chat" size={20} />
           </div>
           <div>

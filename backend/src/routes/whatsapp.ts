@@ -30,7 +30,8 @@ import { Prisma } from '@prisma/client';
 import { sendSuccess, sendCreated, sendError } from '../utils/response.js';
 import logger from '../utils/logger.js';
 import { ValidationError } from '../utils/errors.js';
-import { normalizarInstagram } from '../services/whatsapp/whatsappMenu.js';
+import { normalizarInstagram, anotarMenu, instagramVisivel } from '../services/whatsapp/whatsappMenu.js';
+import type { MenuOptionRow } from '../services/whatsapp/whatsappConfigService.js';
 import {
   normalizeWhatsAppNumber,
   normalizePhone,
@@ -2459,13 +2460,21 @@ router.get('/config/menu', ...waProtected, async (req: Request, res: Response, n
       );
     }
 
-    sendSuccess(res, rows);
+    // Número que a cliente lê e motivo de a opção não aparecer: mesma regra do robô (whatsappMenu).
+    const [config, negocio] = await Promise.all([
+      getBotConfig(businessId!),
+      prisma.business.findFirst({ where: { id: businessId! }, select: { instagramHandle: true } }).catch(() => null),
+    ]);
+    sendSuccess(res, anotarMenu(rows as unknown as MenuOptionRow[], {
+      promocoes: config.promotions_message ?? '',
+      instagramVisivel: instagramVisivel(negocio?.instagramHandle, config.instagram_message ?? ''),
+    }));
   } catch (error) {
     next(error);
   }
 });
 
-router.post('/config/menu', ...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/config/menu',...waProtected, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { businessId } = req.user;
     const body = req.body as Record<string, unknown>;

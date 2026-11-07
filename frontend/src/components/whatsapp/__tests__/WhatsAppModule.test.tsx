@@ -43,9 +43,6 @@ vi.mock('@/components/whatsapp/MenuOptionsPanel', () => ({
     </div>
   ),
 }));
-vi.mock('@/components/whatsapp/MessageConfigPanel', () => ({
-  MessageConfigPanel: (p: { onReset: () => void }) => <div>painel-mensagens<button onClick={p.onReset}>acao-resetar-mensagens</button></div>,
-}));
 vi.mock('@/components/whatsapp/ChatSimulator', () => ({
   ChatSimulator: (p: { temAlteracoes?: boolean }) => <div>painel-simulador<span>alteracoes:{String(p.temAlteracoes)}</span></div>,
 }));
@@ -160,7 +157,7 @@ describe('WhatsAppModule', () => {
     expect(await screen.findByText(/painel-conexao/)).toBeInTheDocument();
   });
 
-  it('Conexão mostra o Robô de atendimento com Menu, Mensagens e Simulador abaixo do painel de conexão', async () => {
+  it('Conexão mostra o Robô de atendimento abaixo do painel de conexão, sem sub-abas', async () => {
     abaNaUrl = 'conexao';
     responderStatus('connected');
     render(<WhatsAppModule />);
@@ -169,12 +166,12 @@ describe('WhatsAppModule', () => {
     const conexao = screen.getByText(/painel-conexao/);
     const robo = screen.getByRole('heading', { name: 'Robô de atendimento' });
     expect(conexao.compareDocumentPosition(robo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    await userEvent.click(screen.getByRole('tab', { name: /Mensagens/ }));
-    await waitFor(() => expect(screen.getByText('painel-mensagens')).toBeInTheDocument());
-    await userEvent.click(screen.getByRole('tab', { name: /Simulador/ }));
+    expect(screen.queryByRole('tab', { name: /Mensagens/ })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /Testar/ }));
     await waitFor(() => expect(screen.getByText('painel-simulador')).toBeInTheDocument());
-    expect(get).toHaveBeenCalledWith('/whatsapp/config');
+    expect(get).toHaveBeenCalledWith('/whatsapp/config/textos');
     expect(get).toHaveBeenCalledWith('/whatsapp/config/menu');
+    expect(get).not.toHaveBeenCalledWith('/whatsapp/config');
   });
 
   it.each([
@@ -192,23 +189,21 @@ describe('WhatsAppModule', () => {
     await waitFor(() => expect(get).toHaveBeenCalledWith('/whatsapp/config/menu'));
   });
 
-  it('resetar as mensagens recarrega a config e nao acusa alteracao por campo extra do backend', async () => {
+  it.each([
+    ['acao-ligar', 'ligar'],
+    ['acao-editar', 'editar'],
+    ['acao-reordenar', 'reordenar'],
+  ])('depois de %s com sucesso recarrega o menu para atualizar os números', async (botao) => {
     abaNaUrl = 'conexao';
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-    get.mockImplementation(async (url: string) => {
-      if (url === '/whatsapp/status') return { data: { status: 'connected' } };
-      if (url === '/whatsapp/config') return { data: { welcome_header: 'Oi', id: 'x', business_id: 'b1' } };
-      return { data: [] };
-    });
-    post.mockResolvedValue({ data: { welcome_header: 'Oi', id: 'x', business_id: 'b1', updated_at: 'agora' } });
+    responderStatus('connected');
+    put.mockResolvedValue({ data: {} });
     render(<WhatsAppModule />);
-    await userEvent.click(await screen.findByRole('tab', { name: /Mensagens/ }));
-    await userEvent.click(await screen.findByText('acao-resetar-mensagens'));
-    await waitFor(() => expect(post).toHaveBeenCalledWith('/whatsapp/config/reset'));
-    await userEvent.click(screen.getByRole('tab', { name: /Simulador/ }));
-    expect(await screen.findByText('alteracoes:false')).toBeInTheDocument();
-    expect(get.mock.calls.filter(([u]) => u === '/whatsapp/config').length).toBeGreaterThanOrEqual(2);
+    await screen.findByText('painel-menu');
+    get.mockClear();
+    await userEvent.click(screen.getByText(botao));
+    await waitFor(() => expect(get).toHaveBeenCalledWith('/whatsapp/config/menu'));
   });
+
   it('a aba acompanha o ?aba= quando a URL muda (voltar/avançar e links internos)', async () => {
     abaNaUrl = 'conversas';
     responderStatus('connected');
