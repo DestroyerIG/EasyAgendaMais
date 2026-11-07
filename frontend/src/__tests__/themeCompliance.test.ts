@@ -30,6 +30,7 @@ const COVERAGE_EXEMPT: readonly string[] = [
   'src/app/privacidade', // página institucional: fora do escopo
   'src/components/dev', // vitrine interna dos componentes
   'src/components/theme/ForcedDark.tsx', // só alterna a classe de tema, não pinta nada
+  'src/components/recebimentos/GatewayLogo.tsx', // fundo branco fixo: as logos oficiais são feitas para fundo claro
 ];
 
 const toPosix = (file: string) => path.relative(process.cwd(), file).split(path.sep).join('/');
