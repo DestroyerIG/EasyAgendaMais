@@ -1158,6 +1158,119 @@ describe('whatsappFlowService guards', () => {
   const preencher = (t: string, d: { businessName?: string; instagramHandle?: string } = {}) =>
     t.replace(/\{nome_negocio\}/g, d.businessName ?? '').replace(/\{instagram_handle\}/g, d.instagramHandle ?? '');
 
+  describe('voltar ao menu depois de opcoes informativas', () => {
+    const PHONE = '5511777777777';
+    const NOW = { now: new Date('2026-04-18T10:00:00-03:00') };
+    const AGENDAR = { option_order: 1, handler: 'schedule', type: 'system', active: true, label: 'Agendar', emoji: '' };
+    const SERVICOS = { option_order: 2, handler: 'view_services', type: 'system', active: true, label: 'Serviços', emoji: '' };
+
+    const ultimaEnviada = () => String(mockSendWhatsAppMessage.mock.calls.at(-1)?.[1]);
+
+    beforeEach(() => {
+      process.env.WHATSAPP_DEFAULT_BUSINESS_ID = 'tenant-1';
+      mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
+      mockGetBotConfig.mockResolvedValue({
+        invalid_option_message: 'Opcao invalida.',
+        services_list_title: 'Nossos serviços',
+        no_services_message: 'Sem servicos.',
+        choose_service_title: 'Escolha o serviço',
+      });
+      mockGetMenuOptions.mockResolvedValue([AGENDAR, SERVICOS]);
+    });
+
+    afterEach(() => {
+      vi.mocked(prisma.client.findFirst).mockResolvedValue(null as never);
+      vi.mocked(prisma.service.findMany).mockResolvedValue([] as never);
+    });
+
+    it('"Ver servicos" mantem a sessao e oferece agendar ou voltar', async () => {
+      vi.mocked(prisma.service.findMany).mockResolvedValue([{ name: 'Corte', price: 40, durationMinutes: 30 }] as never);
+      mockGetSession.mockResolvedValue({ step: 'menu', data: {} });
+
+      await handleIncomingMessage(PHONE, '2', NOW);
+
+      expect(mockDeleteSession).not.toHaveBeenCalled();
+      expect(mockUpdateSession).toHaveBeenCalledWith(PHONE, 'tenant-1', 'view_services', {});
+      expect(ultimaEnviada()).toContain('Corte');
+      expect(ultimaEnviada()).toContain('1️⃣ Agendar um horário');
+      expect(ultimaEnviada()).toContain('0️⃣ Voltar ao menu');
+    });
+
+    it('"Ver servicos" sem a opcao de agendar no menu so oferece voltar', async () => {
+      mockGetMenuOptions.mockResolvedValue([SERVICOS]);
+      vi.mocked(prisma.service.findMany).mockResolvedValue([{ name: 'Corte', price: 40, durationMinutes: 30 }] as never);
+      mockGetSession.mockResolvedValue({ step: 'menu', data: {} });
+
+      await handleIncomingMessage(PHONE, '1', NOW);
+
+      expect(ultimaEnviada()).toContain('0️⃣ Voltar ao menu');
+      expect(ultimaEnviada()).not.toContain('Agendar um horário');
+    });
+
+    it('no passo view_services, "0" volta ao menu principal', async () => {
+      mockGetSession.mockResolvedValue({ step: 'view_services', data: {} });
+
+      const result = await handleIncomingMessage(PHONE, '0', NOW);
+
+      expect(result).toEqual(expect.objectContaining({ ok: true, ignored: false }));
+      expect(mockDeleteSession).toHaveBeenCalledWith(PHONE, 'tenant-1');
+      expect(mockCreateSession).toHaveBeenCalledWith(PHONE, 'tenant-1');
+    });
+
+    it('no passo view_services, "1" inicia o agendamento', async () => {
+      vi.mocked(prisma.client.findFirst).mockResolvedValue({ id: 'c-1', name: 'Ana Silva' } as never);
+      vi.mocked(prisma.service.findMany).mockResolvedValue([
+        { id: 's-1', name: 'Corte', price: 40, durationMinutes: 30 },
+      ] as never);
+      mockGetSession.mockResolvedValue({ step: 'view_services', data: {} });
+
+      await handleIncomingMessage(PHONE, '1', NOW);
+
+      expect(mockUpdateSession).toHaveBeenCalledWith(
+        PHONE,
+        'tenant-1',
+        'choose_service',
+        expect.objectContaining({ clientId: 'c-1' }),
+      );
+      expect(ultimaEnviada()).toContain('Escolha o serviço');
+    });
+
+    it('no passo view_services, opcao invalida repete as opcoes sem encerrar', async () => {
+      mockGetSession.mockResolvedValue({ step: 'view_services', data: {} });
+
+      await handleIncomingMessage(PHONE, '7', NOW);
+
+      expect(mockDeleteSession).not.toHaveBeenCalled();
+      expect(ultimaEnviada()).toContain('Opcao invalida.');
+      expect(ultimaEnviada()).toContain('0️⃣ Voltar ao menu');
+    });
+
+    it('opcao personalizada mantem a sessao e oferece voltar', async () => {
+      mockGetMenuOptions.mockResolvedValue([
+        { option_order: 1, handler: 'custom', type: 'custom', active: true, label: 'Endereço', emoji: '', response_message: 'Rua A, 10' },
+      ]);
+      mockGetSession.mockResolvedValue({ step: 'menu', data: {} });
+
+      await handleIncomingMessage(PHONE, '1', NOW);
+
+      expect(mockDeleteSession).not.toHaveBeenCalled();
+      expect(mockUpdateSession).toHaveBeenCalledWith(PHONE, 'tenant-1', 'info', {});
+      expect(ultimaEnviada()).toContain('0️⃣ Voltar ao menu');
+    });
+
+    it('no passo info, "menu" volta ao menu e outra resposta repete o voltar', async () => {
+      mockGetSession.mockResolvedValue({ step: 'info', data: {} });
+
+      await handleIncomingMessage(PHONE, 'qualquer coisa', NOW);
+      expect(mockDeleteSession).not.toHaveBeenCalled();
+      expect(ultimaEnviada()).toContain('0️⃣ Voltar ao menu');
+
+      const result = await handleIncomingMessage(PHONE, 'menu', NOW);
+      expect(result).toEqual(expect.objectContaining({ ok: true, ignored: false }));
+      expect(mockCreateSession).toHaveBeenCalledWith(PHONE, 'tenant-1');
+    });
+  });
+
   it('promocoes chega com o nome do negocio', async () => {
     process.env.WHATSAPP_DEFAULT_BUSINESS_ID = 'tenant-1';
     mockGetWhatsAppStatus.mockReturnValue({ connectedNumber: null });
@@ -1173,7 +1286,7 @@ describe('whatsappFlowService guards', () => {
 
     await handleIncomingMessage('5511777777777', '1', { now: new Date('2026-04-18T10:00:00-03:00') });
 
-    expect(mockSendWhatsAppMessage.mock.calls.at(-1)?.[1]).toBe('Ofertas da Barbearia Alfa');
+    expect(mockSendWhatsAppMessage.mock.calls.at(-1)?.[1]).toBe('Ofertas da Barbearia Alfa\n\n0️⃣ Voltar ao menu');
     vi.mocked(prisma.business.findFirst).mockResolvedValue(null as never);
   });
 
@@ -1193,7 +1306,7 @@ describe('whatsappFlowService guards', () => {
     await handleIncomingMessage('5511777777777', '1', { now: new Date('2026-04-18T10:00:00-03:00') });
 
     const enviadas = mockSendWhatsAppMessage.mock.calls.map((c) => String(c[1]));
-    expect(enviadas.at(-1)).toBe('Barbearia Alfa: @alfa');
+    expect(enviadas.at(-1)).toBe('Barbearia Alfa: @alfa\n\n0️⃣ Voltar ao menu');
     expect(enviadas.some((m) => m.includes('@seunegocio'))).toBe(false);
     vi.mocked(prisma.business.findFirst).mockResolvedValue(null as never);
   });
