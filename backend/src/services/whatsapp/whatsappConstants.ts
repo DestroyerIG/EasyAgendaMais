@@ -17,6 +17,8 @@ export const STEPS = {
   CONFIRM_CANCEL: 'confirm_cancel',
   CONFIRM_RESCHEDULE: 'confirm_reschedule',
   VIEW_SERVICES: 'view_services',
+  /** Mensagem informativa (promoções, Instagram, opção personalizada): só aceita voltar ao menu. */
+  INFO: 'info',
   MANAGE_CHOOSE: 'manage_choose',
   MANAGE_ACTION: 'manage_action',
 } as const;

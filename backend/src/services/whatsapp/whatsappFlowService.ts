@@ -1034,6 +1034,123 @@ const logGreetingEvaluation = (
 
 // ==================== HANDLERS DE STEPS ====================
 
+const BACK_TO_MENU_FOOTER = '\n\n0️⃣ Voltar ao menu';
+
+const isBackToMenu = (text: string): boolean => text === '0' || text.toLowerCase() === 'menu';
+
+/** O atalho "1 Agendar" só aparece quando a opção de agendar está visível no menu do negócio. */
+const agendarVisivel = async (businessId: string, config: BotConfig): Promise<boolean> =>
+  (await carregarMenuVisivel(businessId, config)).some((o) => o.handler === 'schedule');
+
+const viewServicesFooter = (podeAgendar: boolean): string =>
+  podeAgendar ? '\n\n1️⃣ Agendar um horário\n0️⃣ Voltar ao menu' : BACK_TO_MENU_FOOTER;
+
+/**
+ * Inicia o agendamento: cliente conhecida vai direto para a escolha do serviço,
+ * cliente nova primeiro informa o nome.
+ */
+const startScheduleFlow = async (
+  phone: string,
+  businessId: string,
+  config: BotConfig,
+  sendContext: SendWhatsAppMessageContext
+): Promise<{ ok: boolean }> => {
+  const client = await prisma.client.findFirst({
+    where: { phone, businessId },
+    select: { id: true, name: true },
+  });
+
+  if (client) {
+    const services = await prisma.service.findMany({
+      where: { businessId, active: true },
+      select: { id: true, name: true, price: true, durationMinutes: true },
+      orderBy: { name: 'asc' },
+    });
+
+    if (!services.length) {
+      await sendWhatsAppMessage(phone, config.no_services_available_message, sendContext);
+      await deleteSession(phone, businessId);
+      return { ok: true };
+    }
+
+    let msg = `📋 *${tituloLista(config.choose_service_title)}:*\n\n`;
+    services.forEach((s, i) => {
+      msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)\n`;
+    });
+    msg += '\n0️⃣ Voltar ao menu';
+
+    /**
+     * FIX Bug 4 — um único updateSession com todos os dados necessários.
+     */
+    await updateSession(phone, businessId, STEPS.CHOOSE_SERVICE, {
+      clientId: client.id,
+      clientName: client.name,
+      services: services.map((s) => ({
+        id: s.id,
+        name: s.name,
+        price: s.price.toString(),
+        duration_minutes: s.durationMinutes,
+      })),
+    });
+    await sendWhatsAppMessage(phone, msg, sendContext);
+  } else {
+    await updateSession(phone, businessId, STEPS.ASK_NAME, {});
+    await sendWhatsAppMessage(phone, await formatarTexto(config.ask_name_message, businessId), sendContext);
+  }
+  return { ok: true };
+};
+
+/** Envia uma mensagem informativa e mantém a sessão aberta para a cliente poder voltar ao menu. */
+const sendInfoAndKeepSession = async (
+  phone: string,
+  businessId: string,
+  message: string,
+  sendContext: SendWhatsAppMessageContext
+): Promise<{ ok: boolean }> => {
+  await updateSession(phone, businessId, STEPS.INFO, {});
+  await sendWhatsAppMessage(phone, message + BACK_TO_MENU_FOOTER, sendContext);
+  return { ok: true };
+};
+
+const handleViewServicesStep = async (
+  phone: string,
+  text: string,
+  businessId: string,
+  config: BotConfig,
+  sendContext: SendWhatsAppMessageContext
+): Promise<{ ok: boolean }> => {
+  if (isBackToMenu(text)) {
+    const r = await goBackToMainMenu(phone, businessId);
+    await sendWhatsAppMessage(phone, r.message, sendContext);
+    return { ok: true };
+  }
+
+  const podeAgendar = await agendarVisivel(businessId, config);
+  if (podeAgendar && normalizeChoice(text) === 1) {
+    return startScheduleFlow(phone, businessId, config, sendContext);
+  }
+
+  await sendWhatsAppMessage(phone, config.invalid_option_message + viewServicesFooter(podeAgendar), sendContext);
+  return { ok: true };
+};
+
+const handleInfoStep = async (
+  phone: string,
+  text: string,
+  businessId: string,
+  config: BotConfig,
+  sendContext: SendWhatsAppMessageContext
+): Promise<{ ok: boolean }> => {
+  if (isBackToMenu(text)) {
+    const r = await goBackToMainMenu(phone, businessId);
+    await sendWhatsAppMessage(phone, r.message, sendContext);
+    return { ok: true };
+  }
+
+  await sendWhatsAppMessage(phone, config.invalid_option_message + BACK_TO_MENU_FOOTER, sendContext);
+  return { ok: true };
+};
+
 const handleMenuStep = async (
   phone: string,
   text: string,
@@ -1056,57 +1173,12 @@ const handleMenuStep = async (
   }
 
   if (option.type === 'custom' && option.response_message) {
-    await sendWhatsAppMessage(phone, await formatarTexto(option.response_message, businessId), sendContext);
-    await deleteSession(phone, businessId);
-    return { ok: true };
+    return sendInfoAndKeepSession(phone, businessId, await formatarTexto(option.response_message, businessId), sendContext);
   }
 
   switch (option.handler) {
-    case 'schedule': {
-      const client = await prisma.client.findFirst({
-        where: { phone, businessId },
-        select: { id: true, name: true },
-      });
-
-      if (client) {
-        const services = await prisma.service.findMany({
-          where: { businessId, active: true },
-          select: { id: true, name: true, price: true, durationMinutes: true },
-          orderBy: { name: 'asc' },
-        });
-
-        if (!services.length) {
-          await sendWhatsAppMessage(phone, config.no_services_available_message, sendContext);
-          await deleteSession(phone, businessId);
-          return { ok: true };
-        }
-
-        let msg = `📋 *${tituloLista(config.choose_service_title)}:*\n\n`;
-        services.forEach((s, i) => {
-          msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)\n`;
-        });
-        msg += '\n0️⃣ Voltar ao menu';
-
-        /**
-         * FIX Bug 4 — um único updateSession com todos os dados necessários.
-         */
-        await updateSession(phone, businessId, STEPS.CHOOSE_SERVICE, {
-          clientId: client.id,
-          clientName: client.name,
-          services: services.map((s) => ({
-            id: s.id,
-            name: s.name,
-            price: s.price.toString(),
-            duration_minutes: s.durationMinutes,
-          })),
-        });
-        await sendWhatsAppMessage(phone, msg, sendContext);
-      } else {
-        await updateSession(phone, businessId, STEPS.ASK_NAME, {});
-        await sendWhatsAppMessage(phone, await formatarTexto(config.ask_name_message, businessId), sendContext);
-      }
-      return { ok: true };
-    }
+    case 'schedule':
+      return startScheduleFlow(phone, businessId, config, sendContext);
 
     case 'view_services': {
       const services = await prisma.service.findMany({
@@ -1119,8 +1191,11 @@ const handleMenuStep = async (
             `✨ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)`
           ).join('\n')
         : config.no_services_message;
-      await sendWhatsAppMessage(phone, msg, sendContext);
-      await deleteSession(phone, businessId);
+      if (!services.length) {
+        return sendInfoAndKeepSession(phone, businessId, msg, sendContext);
+      }
+      await updateSession(phone, businessId, STEPS.VIEW_SERVICES, {});
+      await sendWhatsAppMessage(phone, msg + viewServicesFooter(await agendarVisivel(businessId, config)), sendContext);
       return { ok: true };
     }
 
@@ -1144,9 +1219,7 @@ const handleMenuStep = async (
 
     case 'promotions': {
       const businessName = await getBusinessName(businessId);
-      await sendWhatsAppMessage(phone, formatMessage(config.promotions_message, { businessName }), sendContext);
-      await deleteSession(phone, businessId);
-      return { ok: true };
+      return sendInfoAndKeepSession(phone, businessId, formatMessage(config.promotions_message, { businessName }), sendContext);
     }
 
     case 'instagram': {
@@ -1155,13 +1228,12 @@ const handleMenuStep = async (
         prisma.business.findFirst({ where: { id: businessId }, select: { instagramHandle: true } }),
       ]);
       const instagramHandle = business?.instagramHandle ?? '';
-      await sendWhatsAppMessage(
+      return sendInfoAndKeepSession(
         phone,
+        businessId,
         formatMessage(config.instagram_message, { businessName, instagramHandle }),
         sendContext,
       );
-      await deleteSession(phone, businessId);
-      return { ok: true };
     }
 
     case 'attendant':
@@ -2300,6 +2372,12 @@ export const handleIncomingMessage = async (
     switch (currentStep) {
       case STEPS.MENU:
         stepResult = await handleMenuStep(normalizedPhone!, normalizedText, businessId, config, sendContext);
+        break;
+      case STEPS.VIEW_SERVICES:
+        stepResult = await handleViewServicesStep(normalizedPhone!, normalizedText, businessId, config, sendContext);
+        break;
+      case STEPS.INFO:
+        stepResult = await handleInfoStep(normalizedPhone!, normalizedText, businessId, config, sendContext);
         break;
       case STEPS.ASK_NAME:
         stepResult = await handleAskNameStep(normalizedPhone!, normalizedText, businessId, config, sendContext);
