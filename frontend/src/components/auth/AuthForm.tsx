@@ -13,6 +13,7 @@ import { resolveAuthConfirmRedirectUrl } from '@/lib/supabase/client';
 import { guardarSegmentoDoCadastro } from '@/lib/onboarding';
 import { guardarEscolhaTeste, type EscolhaTeste } from '@/lib/escolhaTeste';
 import { BotaoGoogle } from './BotaoGoogle';
+import { TelaCarregandoPainel } from './TelaCarregandoPainel';
 
 type AuthMode = 'login' | 'register';
 
@@ -31,6 +32,8 @@ const isTimeoutError = (error: unknown): boolean => {
 
 export function AuthForm({ mode }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
+  // Login deu certo: a tela de carregamento cobre a espera até o painel abrir.
+  const [entrando, setEntrando] = useState(false);
   const [escolhaTeste, setEscolhaTeste] = useState<EscolhaTeste>('sem_cartao');
   const [resendingVerification, setResendingVerification] = useState(false);
   const [showConfirmedNotice, setShowConfirmedNotice] = useState(false);
@@ -103,7 +106,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     try {
       if (isLogin) {
         await login(formData.email, formData.password);
-        showToast('Login realizado com sucesso.', 'success');
+        setEntrando(true);
       } else {
         const normalizedCpfCnpj = normalizeCpfCnpjDigits(formData.cpfCnpj);
 
@@ -219,6 +222,10 @@ export function AuthForm({ mode }: AuthFormProps) {
       setResendingVerification(false);
     }
   };
+
+  if (entrando) {
+    return <TelaCarregandoPainel />;
+  }
 
   return (
     <div className="app-theme min-h-screen px-4 py-10">

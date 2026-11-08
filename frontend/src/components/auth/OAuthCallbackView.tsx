@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { destinoAposConfirmar } from './AuthConfirmView';
+import { TelaCarregandoPainel } from './TelaCarregandoPainel';
 
 export const CHAVE_OAUTH_COMPLETAR = 'easyagenda:oauth-completar';
 
@@ -80,19 +81,17 @@ export function OAuthCallbackView() {
     })();
   }, [refreshMe, router]);
 
+  if (!erro) {
+    return <TelaCarregandoPainel mensagem="Entrando com o Google…" />;
+  }
+
   return (
     <main className="app-theme flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-md text-center">
-        {erro ? (
-          <>
-            <p className="text-[15px] text-ink">{erro}</p>
-            <Link href="/login" className="mt-4 inline-block text-[14px] font-semibold text-brand-text hover:underline">
-              Voltar para o login
-            </Link>
-          </>
-        ) : (
-          <p className="text-[15px] text-muted">Entrando com o Google...</p>
-        )}
+        <p className="text-[15px] text-ink">{erro}</p>
+        <Link href="/login" className="mt-4 inline-block text-[14px] font-semibold text-brand-text hover:underline">
+          Voltar para o login
+        </Link>
       </Card>
     </main>
   );

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AuthForm } from '../AuthForm';
 
 /**
@@ -62,5 +62,29 @@ describe('AuthForm', () => {
   it('login não mostra a escolha do teste', () => {
     render(<AuthForm mode="login" />);
     expect(screen.queryByRole('radio', { name: /Testar 7 dias grátis/ })).not.toBeInTheDocument();
+  });
+
+  it('login bem-sucedido troca o formulário pela tela "Abrindo seu painel" até o painel abrir', async () => {
+    mockLogin.mockResolvedValueOnce(undefined);
+    render(<AuthForm mode="login" />);
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'dona@teste.com' } });
+    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'Senha123' } });
+    fireEvent.submit(screen.getByRole('form', { name: 'Formulário de login' }));
+
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Abrindo seu painel'));
+    expect(screen.queryByRole('form', { name: 'Formulário de login' })).not.toBeInTheDocument();
+  });
+
+  it('login com erro mantém o formulário e não mostra a tela de carregamento', async () => {
+    mockLogin.mockRejectedValueOnce(new Error('Credenciais inválidas'));
+    render(<AuthForm mode="login" />);
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'dona@teste.com' } });
+    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'errada' } });
+    fireEvent.submit(screen.getByRole('form', { name: 'Formulário de login' }));
+
+    await waitFor(() => expect(mockLogin).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Entrar' })).toBeEnabled());
+    expect(screen.queryByText('Abrindo seu painel…')).not.toBeInTheDocument();
+    expect(screen.getByRole('form', { name: 'Formulário de login' })).toBeInTheDocument();
   });
 });
