@@ -910,6 +910,21 @@ describe('POST /webhook/infinitepay/:cobrancaId', () => {
     expect(e).not.toHaveBeenCalled();
   });
 
+  it('tem limite próprio: avisos do Mercado Pago não esgotam o da InfinitePay', async () => {
+    // Endereço só deste teste, para não gastar o limite dos outros.
+    const comProxy = express();
+    comProxy.set('trust proxy', 1);
+    comProxy.use(express.json());
+    comProxy.use('/api/v1/recebimentos', routes);
+    const de = (r: ReturnType<ReturnType<typeof supertest>['post']>) => r.set('X-Forwarded-For', '10.200.0.1');
+    vi.spyOn(pagamentosService, 'processarAviso').mockResolvedValue(undefined);
+    for (let i = 0; i < 300; i++) {
+      await de(supertest(comProxy).post('/api/v1/recebimentos/webhook/mercadopago')).send({});
+    }
+    espiao().mockResolvedValue('tentar_de_novo');
+    expect((await de(supertest(comProxy).post(`/api/v1/recebimentos/webhook/infinitepay/${COB}`)).send(corpo)).status).toBe(400);
+  });
+
   it('cobrancaId que não é UUID responde 200 sem chamar o serviço', async () => {
     const e = espiao();
     const r = await request.post('/api/v1/recebimentos/webhook/infinitepay/xyz').send(corpo);
