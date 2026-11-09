@@ -211,6 +211,24 @@ describe('Recebimentos: conexão', () => {
       expect(repo.salvarConexao).not.toHaveBeenCalled();
     });
 
+    it('recusa quando a InfinitePay está ativa no negócio', async () => {
+      process.env.BACKEND_URL = 'https://api.test';
+      repo.conexaoDoNegocio.mockResolvedValue(conexao({ gateway: 'infinitepay', contaExternaId: 'ana', aceitaPix: false, aceitaCartao: true }));
+      const t = await tokenPendente('u1');
+      const r = await request.post('/api/v1/recebimentos/mercadopago/confirmar').send({ t });
+      expect(r.status).toBe(409);
+      expect(r.body.error.message).toBe('Desconecte a InfinitePay antes de conectar o Mercado Pago.');
+      expect(gw.conta).not.toHaveBeenCalled();
+      expect(repo.salvarConexao).not.toHaveBeenCalled();
+    });
+
+    it('conecta por cima de uma InfinitePay que precisa reconectar', async () => {
+      repo.conexaoDoNegocio.mockResolvedValue(conexao({ gateway: 'infinitepay', situacao: 'precisa_reconectar' }));
+      const t = await tokenPendente('u1');
+      expect((await request.post('/api/v1/recebimentos/mercadopago/confirmar').send({ t })).status).toBe(200);
+      expect(repo.salvarConexao).toHaveBeenCalledTimes(1);
+    });
+
     it('uso único: o mesmo t não confirma duas vezes', async () => {
       const t = await tokenPendente('u1');
       await conexaoService.confirmar(dono, 'mercadopago', t);
@@ -456,6 +474,15 @@ describe('Recebimentos: conexão', () => {
       expect(decifrarCom(rules.chaveRecebimentos(), patch.refreshTokenCifrado)).toBe('TG-novo');
       expect(decifrarCom(rules.chaveRecebimentos(), patch.accessTokenCifrado)).toBe('APP_USR-novo');
       expect(patch.tokenExpiraEm).toEqual(novo.expiraEm);
+    });
+
+    it('só com a InfinitePay disponível não roda', async () => {
+      delete process.env.MERCADOPAGO_CLIENT_ID;
+      process.env.BACKEND_URL = 'https://api.test';
+      repo.conexoesAtivas.mockResolvedValue([await vencendo()]);
+      await conexaoService.renovarVencendo(agora);
+      expect(repo.conexoesAtivas).not.toHaveBeenCalled();
+      expect(gw.renovar).not.toHaveBeenCalled();
     });
 
     it('não renova quem ainda tem mais de 30 dias', async () => {

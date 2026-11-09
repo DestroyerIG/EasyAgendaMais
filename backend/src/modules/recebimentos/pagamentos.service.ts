@@ -8,7 +8,7 @@ import { GatewayIndisponivel, GatewayRecusou, GatewayTokenInvalido } from './gat
 import { infinitePay } from './gateways/infinitePay.js';
 import { gatewayDe } from './gateways/porId.js';
 import { recebimentosRepository as repo } from './recebimentos.repository.js';
-import { centavos, decidirPagamento, gatewayDisponivel, nomeDoGateway, reais, recebimentosConfigurado, type Decisao } from './recebimentos.rules.js';
+import { centavos, decidirPagamento, gatewayDisponivel, nomeDoGateway, reais, type Decisao } from './recebimentos.rules.js';
 import type { GatewayId, PagamentoGateway } from './recebimentos.types.js';
 
 // Pagamentos do sinal. O aviso do gateway só diz onde olhar: a prova é sempre a busca feita com o
@@ -263,7 +263,8 @@ export const pagamentosService = {
 
   /** Rede de segurança para avisos perdidos: roda a cada minuto. Nunca lança. */
   async conferirPendentes(agora: Date = new Date()): Promise<void> {
-    if (!recebimentosConfigurado()) return;
+    // Só confere cobranças do Mercado Pago: a InfinitePay não tem consulta por referência.
+    if (!gatewayDisponivel('mercadopago')) return;
     try {
       const limite = new Date(agora.getTime() - JANELA_APOS_VENCER_MS);
       const limiteCartao = agora.getMinutes() % PASSO_CARTAO_MIN === 0 ? new Date(agora.getTime() - JANELA_CARTAO_MS) : undefined;

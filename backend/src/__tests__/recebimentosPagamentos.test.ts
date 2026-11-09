@@ -840,6 +840,20 @@ describe('conferirPendentes', () => {
     await pagamentosService.conferirPendentes();
     expect(conexao.tokenAtivo).not.toHaveBeenCalled();
   });
+
+  it('só com a InfinitePay disponível a rotina do Mercado Pago não roda', async () => {
+    delete process.env['MERCADOPAGO_CLIENT_ID'];
+    process.env['BACKEND_URL'] = 'https://api.test';
+    try {
+      reserva(); cobranca({ venceEm: emMinutos(5) });
+      const buscar = vi.spyOn(recebimentosRepository, 'cobrancasParaConferir');
+      await pagamentosService.conferirPendentes();
+      expect(buscar).not.toHaveBeenCalled();
+      expect(conexao.tokenAtivo).not.toHaveBeenCalled();
+    } finally {
+      delete process.env['BACKEND_URL'];
+    }
+  });
 });
 
 describe('conferirAoReconectar', () => {
