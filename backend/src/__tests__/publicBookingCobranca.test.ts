@@ -38,6 +38,7 @@ vi.mock('../services/scheduleSettingsService.js', () => ({
 vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({
   recebimentosRepository: {
     criarCobranca: vi.fn(), completarCobranca: vi.fn(), apagarCobranca: vi.fn(), cobrancasDaReserva: vi.fn(), cobrancaDaReserva: vi.fn(),
+    marcarSubstituidas: vi.fn(),
   },
 }));
 vi.mock('../modules/recebimentos/conexao.service.js', () => ({
@@ -441,6 +442,57 @@ describe('InfinitePay: link na reserva', () => {
     fn(infinitePay.criarLink).mockRejectedValue(new GatewayRecusou());
     await publicBookingService.createPendingAppointment('studio', { ...INPUT, formaPagamento: 'cartao' });
     expect(conexaoService.alertarRecusa).toHaveBeenCalledWith('biz-1');
+  });
+});
+
+describe('InfinitePay: troca para o Pix direto', () => {
+  const LINK = { gateway: 'infinitepay', forma: 'cartao', situacao: 'pendente', idExterno: 'cob-1', codigoPix: null, checkoutUrl: 'https://ip.test/pay', pagoEm: null };
+  beforeEach(() => {
+    fn(conexaoService.formas).mockResolvedValue(['cartao']);
+    fn(conexaoService.credencial).mockResolvedValue({ gateway: 'infinitepay', cred: { handle: 'loja' } });
+    fn(conexaoService.tokenAtivo).mockResolvedValue(null);
+    pubRepo.findPublicAppointment.mockResolvedValue(reserva());
+    recRepo.cobrancasDaReserva.mockResolvedValue([LINK]);
+    recRepo.marcarSubstituidas.mockResolvedValue(undefined);
+  });
+
+  it('devolve o Pix manual e tira o link da InfinitePay de cena', async () => {
+    const r = await publicBookingService.getPixDaReserva('studio', 'appt-1');
+    expect(r).toMatchObject({ pixPayload: MANUAL_PIX, forma: 'pix' });
+    expect(recRepo.marcarSubstituidas).toHaveBeenCalledWith('appt-1', 'infinitepay');
+    expect(recRepo.criarCobranca).not.toHaveBeenCalled();
+  });
+
+  it('falha ao marcar não impede o Pix manual', async () => {
+    recRepo.marcarSubstituidas.mockRejectedValue(new Error('banco'));
+    expect((await publicBookingService.getPixDaReserva('studio', 'appt-1')).pixPayload).toEqual(MANUAL_PIX);
+  });
+
+  it('sem Pix manual possível, o link continua valendo', async () => {
+    pubRepo.findBusinessBySlug.mockResolvedValue({ ...BUSINESS, pixKey: null, pixKeyType: null });
+    await expect(publicBookingService.getPixDaReserva('studio', 'appt-1')).rejects.toBeInstanceOf(ValidationError);
+    expect(recRepo.marcarSubstituidas).not.toHaveBeenCalled();
+  });
+
+  it('Mercado Pago sem Pix automático não mexe nas cobranças', async () => {
+    fn(conexaoService.credencial).mockResolvedValue(null);
+    fn(conexaoService.tokenAtivo).mockResolvedValue(TOKEN);
+    recRepo.cobrancasDaReserva.mockResolvedValue([{ ...LINK, gateway: 'mercadopago' }]);
+    await publicBookingService.getPixDaReserva('studio', 'appt-1');
+    expect(recRepo.marcarSubstituidas).not.toHaveBeenCalled();
+  });
+
+  it('depois da troca, o status não mostra o link de novo', async () => {
+    recRepo.cobrancasDaReserva.mockResolvedValue([{ ...LINK, situacao: 'substituida' }]);
+    const r = await publicBookingService.getAppointmentStatus('studio', 'appt-1');
+    expect(r.reserva).toMatchObject({ forma: 'pix', gateway: null, checkoutUrl: null, pixPayload: MANUAL_PIX });
+  });
+
+  it('encerrada depois da troca: o link substituído não define a forma', async () => {
+    pubRepo.findPublicAppointment.mockResolvedValue(reserva({ status: 'confirmado', expiresAt: null }));
+    recRepo.cobrancasDaReserva.mockResolvedValue([{ ...LINK, situacao: 'substituida' }]);
+    const r = await publicBookingService.getAppointmentStatus('studio', 'appt-1');
+    expect(r.reserva).toMatchObject({ forma: 'pix', gateway: null });
   });
 });
 

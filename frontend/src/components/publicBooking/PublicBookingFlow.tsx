@@ -143,7 +143,11 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
   const formasLiberadas: FormaSinal[] = storefront?.formasPagamento?.length ? storefront.formasPagamento : ['pix'];
   // O negócio pode receber só no cartão: sem escolha válida, vale a primeira forma liberada.
   const formaEfetiva: FormaSinal = formasLiberadas.includes(formaEscolhida) ? formaEscolhida : formasLiberadas[0];
-  const ehInfinitePay = (reserva?.gateway ?? storefront?.gatewayPagamento) === 'infinitepay';
+  // Com a reserva criada, só o link da InfinitePay (cartão) usa os rótulos dela: o Pix direto ao
+  // estabelecimento, escolhido ou de reserva, é o Pix manual de sempre.
+  const ehInfinitePay = reserva
+    ? reserva.forma === 'cartao' && (reserva.gateway ?? storefront?.gatewayPagamento) === 'infinitepay'
+    : storefront?.gatewayPagamento === 'infinitepay';
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Só a última consulta de horários vale: trocar de dia rápido não pode mostrar a resposta antiga.
   const consultaHorarios = useRef(0);

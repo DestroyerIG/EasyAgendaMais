@@ -201,7 +201,7 @@ export const publicBookingService = {
       // A paga original tem id externo; as linhas de pagamento repetido não. Sem paga, vale a
       // última cobrança que chegou ao gateway (a reserva de cartão vencida não vira "prazo do Pix").
       const paga = cobrancas.find((c) => c.situacao === 'paga' && c.idExterno !== null);
-      const ultima = paga ?? cobrancas.find((c) => c.idExterno !== null);
+      const ultima = paga ?? cobrancas.find((c) => c.idExterno !== null && c.situacao !== 'substituida');
       if (ultima?.forma === 'cartao') forma = 'cartao';
       gateway = (ultima?.gateway as GatewayId | undefined) ?? null;
       // A rotina cancela a reserva vencida e marca a cobrança como expirada: para a cliente, venceu.
@@ -263,6 +263,15 @@ export const publicBookingService = {
 
     const manual = pixManual(business, sinal, reserva.service.name);
     if (!manual) throw new ValidationError('Este negócio ainda não configurou o recebimento de sinal via Pix');
+    // Quem troca o link da InfinitePay pelo Pix direto não deve reencontrar o link ao recarregar a página.
+    // A cobrança continua confirmável pelo webhook, se a pessoa pagar o link mesmo assim.
+    if (cobrancas.some((c) => c.gateway === 'infinitepay' && (c.situacao === 'pendente' || c.situacao === 'recusada'))) {
+      try {
+        await recebimentosRepository.marcarSubstituidas(reserva.id, 'infinitepay');
+      } catch (err) {
+        logger.warn({ err, appointmentId: reserva.id }, 'Recebimentos: falha ao marcar o link da InfinitePay como substituído');
+      }
+    }
     return { pixPayload: manual, forma: 'pix' as const, expiresAt };
   },
 

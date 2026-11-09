@@ -409,6 +409,52 @@ describe('InfinitePay', () => {
     expect(screen.queryByRole('button', { name: 'Ir para o pagamento' })).not.toBeInTheDocument();
   });
 
+  it('depois de trocar para o Pix direto, os rótulos passam a ser do Pix', async () => {
+    abrirEm('?reserva=appt-1&retorno=infinitepay');
+    api.getStorefront.mockResolvedValue(STOREFRONT_IP);
+    api.getAppointmentStatus.mockResolvedValue({ situacao: 'aguardando', reserva: RESERVA_IP });
+    api.trocarParaPix.mockResolvedValue({ pixPayload: '000201pix', forma: 'pix', expiresAt: FUTURO });
+    render(<PublicBookingFlow slug="studio-aurora" />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Pagar com Pix direto ao estabelecimento' }));
+    expect(await screen.findByLabelText('Código Pix copia e cola')).toHaveValue('000201pix');
+    expect(screen.getByText('Sinal Pix')).toBeInTheDocument();
+    expect(screen.getByText('Pagamento do sinal Pix')).toBeInTheDocument();
+    expect(screen.queryByText('Pagamento do sinal na InfinitePay')).not.toBeInTheDocument();
+  });
+
+  it('reserva remontada no Pix manual, com a InfinitePay conectada, usa os rótulos do Pix', async () => {
+    abrirEm('?reserva=appt-1');
+    api.getStorefront.mockResolvedValue(STOREFRONT_IP);
+    api.getAppointmentStatus.mockResolvedValue({
+      situacao: 'aguardando', reserva: { ...RESERVA, forma: 'pix', gateway: null, checkoutUrl: null, pixPayload: '000201manual' },
+    });
+    render(<PublicBookingFlow slug="studio-aurora" />);
+
+    expect(await screen.findByLabelText('Código Pix copia e cola')).toHaveValue('000201manual');
+    await waitFor(() => expect(api.getStorefront).toHaveBeenCalled());
+    expect(await screen.findByText('Sinal Pix')).toBeInTheDocument();
+    expect(screen.getByText('Pagamento do sinal Pix')).toBeInTheDocument();
+  });
+
+  it('link que não pôde ser criado cai no Pix manual com os rótulos do Pix', async () => {
+    api.getStorefront.mockResolvedValue(STOREFRONT_IP);
+    api.createAppointment.mockResolvedValue({
+      appointmentId: 'appt-1', depositAmount: 39, pixPayload: '000201manual', checkoutUrl: null, forma: 'pix',
+      automatica: false, cartaoIndisponivel: true, expiresAt: FUTURO,
+    });
+    const user = userEvent.setup();
+    await irAteOsDados(user);
+    await user.type(screen.getByPlaceholderText('Seu nome'), 'Mariana');
+    await user.type(screen.getByPlaceholderText('Seu WhatsApp'), '83999990000');
+    await user.click(screen.getByRole('button', { name: 'Pagar o sinal na InfinitePay (Pix ou cartão)' }));
+
+    expect(await screen.findByLabelText('Código Pix copia e cola')).toHaveValue('000201manual');
+    expect(screen.getByText('Sinal Pix')).toBeInTheDocument();
+    expect(screen.getByText('Pagamento do sinal Pix')).toBeInTheDocument();
+    expect(assign).not.toHaveBeenCalled();
+  });
+
   it('Mercado Pago segue com os rótulos de hoje', async () => {
     api.getStorefront.mockResolvedValue({ ...STOREFRONT, formasPagamento: ['cartao'], gatewayPagamento: 'mercadopago' });
     const user = userEvent.setup();

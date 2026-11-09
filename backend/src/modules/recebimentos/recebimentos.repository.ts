@@ -180,6 +180,16 @@ export const recebimentosRepository = {
     await prisma.cobrancaSinal.deleteMany({ where: { id } });
   },
 
+  /**
+   * A pessoa trocou o pagamento do gateway pelo Pix manual: as cobranças em aberto desse gateway saem da
+   * página. Não usa `expirada`, que com a reserva cancelada autoriza reativar; paga depois, vale como atrasada.
+   */
+  async marcarSubstituidas(appointmentId: string, gateway: GatewayId): Promise<void> {
+    await prisma.cobrancaSinal.updateMany({
+      where: { appointmentId, gateway, situacao: { in: ['pendente', 'recusada'] } }, data: { situacao: 'substituida' },
+    });
+  },
+
   /** Cobranças da reserva, da mais nova para a mais antiga, para a página pública escolher o que mostrar. */
   cobrancasDaReserva(appointmentId: string) {
     return prisma.cobrancaSinal.findMany({

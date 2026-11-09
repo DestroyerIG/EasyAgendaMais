@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export type GatewayId = 'mercadopago' | 'infinitepay';
 export type FormaSinal = 'pix' | 'cartao';
-export type SituacaoCobranca = 'pendente' | 'paga' | 'expirada' | 'recusada' | 'devolvida' | 'contestada';
+export type SituacaoCobranca = 'pendente' | 'paga' | 'expirada' | 'recusada' | 'devolvida' | 'contestada' | 'substituida';
 
 /** Pagamento já buscado no gateway. `status` é o do Mercado Pago (approved, pending, rejected, refunded, charged_back...). */
 export interface PagamentoGateway {

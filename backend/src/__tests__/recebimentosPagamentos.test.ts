@@ -131,6 +131,12 @@ const app = express();
 app.use(express.json());
 app.use('/api/v1/recebimentos', routes);
 const request = supertest(app);
+// Testes que esgotam o limite dos webhooks usam um endereço próprio, para não gastar o dos outros.
+const comProxy = express();
+comProxy.set('trust proxy', 1);
+comProxy.use(express.json());
+comProxy.use('/api/v1/recebimentos', routes);
+const postarDe = (ip: string, url: string) => supertest(comProxy).post(url).set('X-Forwarded-For', ip);
 
 const COB = '11111111-1111-4111-8111-111111111111';
 const COB2 = '22222222-2222-4222-8222-222222222222';
@@ -911,19 +917,11 @@ describe('POST /webhook/infinitepay/:cobrancaId', () => {
   });
 
   it('tem limite próprio: avisos do Mercado Pago não esgotam o da InfinitePay', async () => {
-    // Endereço só deste teste, para não gastar o limite dos outros.
-    const comProxy = express();
-    comProxy.set('trust proxy', 1);
-    comProxy.use(express.json());
-    comProxy.use('/api/v1/recebimentos', routes);
-    const de = (r: ReturnType<ReturnType<typeof supertest>['post']>) => r.set('X-Forwarded-For', '10.200.0.1');
     vi.spyOn(pagamentosService, 'processarAviso').mockResolvedValue(undefined);
-    for (let i = 0; i < 300; i++) {
-      await de(supertest(comProxy).post('/api/v1/recebimentos/webhook/mercadopago')).send({});
-    }
+    for (let i = 0; i < 300; i++) await postarDe('10.200.0.1', '/api/v1/recebimentos/webhook/mercadopago').send({});
     espiao().mockResolvedValue('tentar_de_novo');
-    expect((await de(supertest(comProxy).post(`/api/v1/recebimentos/webhook/infinitepay/${COB}`)).send(corpo)).status).toBe(400);
-  });
+    expect((await postarDe('10.200.0.1', `/api/v1/recebimentos/webhook/infinitepay/${COB}`).send(corpo)).status).toBe(400);
+  }, 30_000);
 
   it('cobrancaId que não é UUID responde 200 sem chamar o serviço', async () => {
     const e = espiao();
@@ -984,13 +982,12 @@ describe('POST /webhook/mercadopago', () => {
     expect(processar).toHaveBeenCalledTimes(1);
   });
 
-  // Por último: consome o limite do IP, que vale para a janela inteira.
   it('acima de 300 pedidos por minuto responde 200 e não processa', async () => {
     const corpo = { type: 'payment', user_id: 999, data: { id: '555' } };
-    for (let i = 0; i < 300; i += 1) await request.post(URL_WEBHOOK).send(corpo);
+    for (let i = 0; i < 300; i += 1) await postarDe('10.200.0.2', URL_WEBHOOK).send(corpo);
     processar.mockClear();
 
-    const r = await request.post(URL_WEBHOOK).send(corpo);
+    const r = await postarDe('10.200.0.2', URL_WEBHOOK).send(corpo);
     expect(r.status).toBe(200);
     expect(processar).not.toHaveBeenCalled();
   }, 30_000);
@@ -1157,6 +1154,32 @@ describe('confirmarInfinitePay', () => {
     const texto = alertas().map((c) => c[1].description).join(' ');
     expect(texto).toContain('InfinitePay');
     expect(texto).not.toContain('Mercado Pago');
+  });
+
+  it('marcarSubstituidas só tira de cena as cobranças em aberto do gateway pedido', async () => {
+    reserva();
+    ipCobranca();
+    ipCobranca({ id: 'c-recusada', situacao: 'recusada' });
+    ipCobranca({ id: 'c-paga', situacao: 'paga' });
+    cobranca({ id: 'c-mp' });
+    await recebimentosRepository.marcarSubstituidas('a1', 'infinitepay');
+    expect(banco.estado.cobrancas.map((c) => [c.id, c.situacao])).toEqual([
+      [COB, 'substituida'], ['c-recusada', 'substituida'], ['c-paga', 'paga'], ['c-mp', 'pendente'],
+    ]);
+  });
+
+  it('link substituído pelo Pix e pago mesmo assim ainda confirma a reserva que aguarda', async () => {
+    reserva(); ipCobranca({ situacao: 'substituida' });
+    await expect(pagamentosService.confirmarInfinitePay(d)).resolves.toBe('ok');
+    expect(lerReserva().status).toBe('confirmado');
+  });
+
+  it('link substituído e pago com a reserva cancelada pelo negócio não reativa: avisa', async () => {
+    reserva({ status: 'cancelado' }); ipCobranca({ situacao: 'substituida' });
+    await pagamentosService.confirmarInfinitePay(d);
+    expect(lerReserva().status).toBe('cancelado');
+    expect(lerCobranca().situacao).toBe('paga');
+    expect(alertas()).toHaveLength(1);
   });
 
   it('a rotina de cada minuto não confere cobrança da InfinitePay', async () => {
