@@ -89,4 +89,14 @@ describe('InfinitePayPassos', () => {
     render(<InfinitePayPassos />);
     expect(await screen.findByText(/não está disponível/)).toBeInTheDocument();
   });
+
+  it('com o Mercado Pago conectado, avisa e não mostra conectar nem desconectar', async () => {
+    api.conexoes.mockResolvedValue({ configurado: true, disponiveis: ['mercadopago', 'infinitepay'], conexao: conexao({ gateway: 'mercadopago', contaNome: 'Conta MP' }) });
+    render(<InfinitePayPassos />);
+    expect(await screen.findByText(/Você já recebe pelo Mercado Pago/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir para o Mercado Pago' })).toHaveAttribute('href', '/dashboard/configuracoes/recebimentos/mercadopago');
+    expect(screen.queryByText('Conta MP')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Conectar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Desconectar' })).not.toBeInTheDocument();
+  });
 });

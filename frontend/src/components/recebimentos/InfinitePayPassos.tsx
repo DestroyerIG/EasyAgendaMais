@@ -46,6 +46,17 @@ export function InfinitePayPassos() {
 
   if (estado === null) return <Skeleton className="h-48 w-full" label="Carregando recebimentos..." />;
   const c = estado.conexao;
+  if (c && c.gateway !== 'infinitepay') {
+    return (
+      <div className="space-y-3">
+        {voltar}
+        <Banner tone="warning" variant="inline" className="flex-col items-start">
+          Você já recebe pelo Mercado Pago. Desconecte por lá antes de conectar a InfinitePay.
+          <Link href="/dashboard/configuracoes/recebimentos/mercadopago" className={linkExterno}>Ir para o Mercado Pago</Link>
+        </Banner>
+      </div>
+    );
+  }
   if (!estado.configurado || (!c && !estado.disponiveis.includes('infinitepay'))) {
     return (
       <div className="space-y-3">
