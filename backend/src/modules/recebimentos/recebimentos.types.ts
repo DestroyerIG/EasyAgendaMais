@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export type GatewayId = 'mercadopago';
+export type GatewayId = 'mercadopago' | 'infinitepay';
 export type FormaSinal = 'pix' | 'cartao';
 export type SituacaoCobranca = 'pendente' | 'paga' | 'expirada' | 'recusada' | 'devolvida' | 'contestada';
 
@@ -15,6 +15,7 @@ export interface PagamentoGateway {
 
 export interface EstadoRecebimentos {
   configurado: boolean;
+  disponiveis: GatewayId[];
   conexao: {
     gateway: GatewayId; situacao: 'ativa' | 'precisa_reconectar'; contaNome: string;
     aceitaPix: boolean; aceitaCartao: boolean; aceiteCartaoEm: string | null;
@@ -24,7 +25,10 @@ export interface EstadoRecebimentos {
 
 export interface UsuarioLogado { userId: string; businessId: string; role: string }
 
-export const GatewayParamSchema = z.object({ gateway: z.enum(['mercadopago']) });
+export const GatewayParamSchema = z.object({ gateway: z.enum(['mercadopago', 'infinitepay']) });
+
+/** Rotas do fluxo OAuth: só o Mercado Pago usa. */
+export const GatewayOAuthParamSchema = z.object({ gateway: z.literal('mercadopago') });
 
 export const CallbackQuerySchema = z.object({
   code: z.string().max(2048).optional(),

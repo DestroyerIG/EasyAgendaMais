@@ -4,9 +4,10 @@ import { sendWhatsAppMessage } from '../../services/whatsapp/index.js';
 import { avisarSinalConfirmado } from '../appointments/sinalConfirmado.js';
 import { notificationsService } from '../notifications/notifications.service.js';
 import { conexaoService } from './conexao.service.js';
-import { GatewayIndisponivel, GatewayRecusou, GatewayTokenInvalido, gateways } from './gateways/index.js';
+import { GatewayIndisponivel, GatewayRecusou, GatewayTokenInvalido } from './gateways/index.js';
+import { gatewayDe } from './gateways/porId.js';
 import { recebimentosRepository as repo } from './recebimentos.repository.js';
-import { centavos, decidirPagamento, reais, recebimentosConfigurado, type Decisao } from './recebimentos.rules.js';
+import { centavos, decidirPagamento, gatewayDisponivel, reais, recebimentosConfigurado, type Decisao } from './recebimentos.rules.js';
 import type { GatewayId, PagamentoGateway } from './recebimentos.types.js';
 
 // Pagamentos do sinal. O aviso do gateway só diz onde olhar: a prova é sempre a busca feita com o
@@ -166,7 +167,7 @@ async function conferirCobranca(cobrancaId: string): Promise<void> {
     return;
   }
   const pagamentos = await consultarGateway(
-    c.businessId, token, () => gateways[token.gateway].buscarPorReferencia(token.accessToken, c.id),
+    c.businessId, token, () => gatewayDe(token.gateway).buscarPorReferencia(token.accessToken, c.id),
   );
   for (const p of emOrdemDeAvaliacao(pagamentos ?? [])) await avaliar(c.id, p);
 }
@@ -174,7 +175,7 @@ async function conferirCobranca(cobrancaId: string): Promise<void> {
 export const pagamentosService = {
   /** Aviso do gateway. Nunca lança: quem chama já respondeu 200. */
   async processarAviso(aviso: { contaId: string; tipo: 'order' | 'payment'; recursoId: string }): Promise<void> {
-    if (!recebimentosConfigurado()) return;
+    if (!gatewayDisponivel('mercadopago')) return;
     const { contaId, tipo, recursoId } = aviso;
     try {
       const conexao = await conexaoService.porContaExterna(GATEWAY, contaId);
@@ -189,7 +190,7 @@ export const pagamentosService = {
         return;
       }
       const referencia = await consultarGateway(
-        businessId, token, () => gateways[token.gateway].referenciaDoRecurso(token.accessToken, { tipo, id: recursoId }),
+        businessId, token, () => gatewayDe(token.gateway).referenciaDoRecurso(token.accessToken, { tipo, id: recursoId }),
       );
       // A conta também recebe pagamentos que não são sinais: esses têm outra referência, ou nenhuma.
       if (!referencia || !UUID.test(referencia)) return;

@@ -3,13 +3,14 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { authMiddleware } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
-import { CallbackQuerySchema, ConfirmarSchema, FormasSchema, GatewayParamSchema } from './recebimentos.types.js';
+import { CallbackQuerySchema, ConfirmarSchema, FormasSchema, GatewayOAuthParamSchema, GatewayParamSchema } from './recebimentos.types.js';
 import { callback, conectar, confirmar, definirFormas, desconectar, verConexao, webhookMercadoPago } from './recebimentos.controller.js';
 
 // Recebimentos automáticos do sinal (Mercado Pago). Só quem administra o negócio mexe.
 const router = express.Router();
 const dono = [authMiddleware, requireRole(['tenant_admin'])];
 const gateway = validate({ params: GatewayParamSchema });
+const gatewayOAuth = validate({ params: GatewayOAuthParamSchema });
 
 const callbackLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -33,9 +34,9 @@ const webhookLimiter = rateLimit({
 router.post('/webhook/mercadopago', webhookLimiter, webhookMercadoPago);
 router.get('/conexoes', ...dono, verConexao);
 // Público: o Mercado Pago volta para cá; quem é a pessoa vem do estado assinado.
-router.get('/:gateway/callback', callbackLimiter, gateway, validate({ query: CallbackQuerySchema }), callback);
-router.get('/:gateway/conectar', ...dono, gateway, conectar);
-router.post('/:gateway/confirmar', ...dono, gateway, validate({ body: ConfirmarSchema }), confirmar);
+router.get('/:gateway/callback', callbackLimiter, gatewayOAuth, validate({ query: CallbackQuerySchema }), callback);
+router.get('/:gateway/conectar', ...dono, gatewayOAuth, conectar);
+router.post('/:gateway/confirmar', ...dono, gatewayOAuth, validate({ body: ConfirmarSchema }), confirmar);
 router.put('/:gateway/formas', ...dono, gateway, validate({ body: FormasSchema }), definirFormas);
 router.delete('/:gateway/conexao', ...dono, gateway, desconectar);
 

@@ -3,10 +3,11 @@ import logger from '../../utils/logger.js';
 import { cifrarCom, decifrarCom } from '../../utils/cifra.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../utils/errors.js';
 import { notificationsService } from '../notifications/notifications.service.js';
-import { GatewayIndisponivel, GatewayTokenInvalido, gateways, type Tokens } from './gateways/index.js';
+import { GatewayIndisponivel, GatewayTokenInvalido, type Tokens } from './gateways/index.js';
+import { gatewayDe } from './gateways/porId.js';
 import { recebimentosRepository as repo } from './recebimentos.repository.js';
 import {
-  assinarEstado, chaveRecebimentos, desafioPkce, lerEstado, nonceDoEstado, recebimentosConfigurado,
+  assinarEstado, chaveRecebimentos, desafioPkce, lerEstado, gatewayDisponivel, gatewaysDisponiveis, nonceDoEstado, recebimentosConfigurado,
   tokenPertoDeVencer, verificadorPkce,
 } from './recebimentos.rules.js';
 import type { EstadoRecebimentos, FormaSinal, GatewayId, UsuarioLogado } from './recebimentos.types.js';
@@ -45,7 +46,7 @@ function renovarConexao(c: ConexaoComTokens): Promise<string> {
   if (emCurso) return emCurso;
   const p = (async () => {
     try {
-      const t = await gateways[c.gateway as GatewayId].renovar(decifrar(c.refreshTokenCifrado));
+      const t = await gatewayDe(c.gateway as GatewayId).renovar(decifrar(c.refreshTokenCifrado));
       const gravou = await repo.atualizarTokensSe(c.id, c.refreshTokenCifrado, {
         accessTokenCifrado: cifrar(t.accessToken), refreshTokenCifrado: cifrar(t.refreshToken), tokenExpiraEm: t.expiraEm,
       });
@@ -70,10 +71,10 @@ function renovarConexao(c: ConexaoComTokens): Promise<string> {
 
 export const conexaoService = {
   conectarUrl(user: UsuarioLogado, gateway: GatewayId): { url: string } {
-    if (!recebimentosConfigurado()) throw new NotFoundError('Recebimentos');
+    if (!gatewayDisponivel('mercadopago')) throw new NotFoundError('Recebimentos');
     const estado = assinarEstado(user.userId, gateway);
     const desafio = desafioPkce(verificadorPkce(nonceDoEstado(estado)));
-    return { url: gateways[gateway].urlAutorizacao(estado, desafio) };
+    return { url: gatewayDe(gateway).urlAutorizacao(estado, desafio) };
   },
 
   /**
@@ -84,9 +85,9 @@ export const conexaoService = {
   async callback(gateway: GatewayId, code: string | undefined, state: string | undefined): Promise<string> {
     const tela = telaDe(gateway);
     try {
-      const lido = recebimentosConfigurado() && state ? lerEstado(state) : null;
+      const lido = gatewayDisponivel('mercadopago') && state ? lerEstado(state) : null;
       if (!lido || lido.gateway !== gateway || !code) return `${tela}?recebimento=erro`;
-      const tokens = await gateways[gateway].trocarCodigo(code, verificadorPkce(lido.nonce));
+      const tokens = await gatewayDe(gateway).trocarCodigo(code, verificadorPkce(lido.nonce));
       limparPendentes();
       const t = randomBytes(24).toString('base64url');
       pendentes.set(t, { userId: lido.userId, gateway, tokens, exp: Date.now() + VALIDADE_PENDENTE_MS });
@@ -108,7 +109,7 @@ export const conexaoService = {
     if (u.role !== 'tenant_admin') throw new ForbiddenError('Só quem administra o negócio conecta os recebimentos');
 
     // O id da conta vem de /users/me: o webhook roteia por ele, e o `user_id` do OAuth pode faltar.
-    const conta = await gateways[gateway].conta(p.tokens.accessToken);
+    const conta = await gatewayDe(gateway).conta(p.tokens.accessToken);
     const contaId = conta.id || p.tokens.contaId;
     if (!contaId || (p.tokens.contaId && conta.id && p.tokens.contaId !== conta.id)) {
       throw new ValidationError('O Mercado Pago não confirmou a conta. Conecte de novo.');
@@ -133,12 +134,14 @@ export const conexaoService = {
   },
 
   async verConexao(user: UsuarioLogado): Promise<EstadoRecebimentos> {
-    if (!recebimentosConfigurado()) return { configurado: false, conexao: null };
+    if (!recebimentosConfigurado()) return { configurado: false, disponiveis: [], conexao: null };
+    const disponiveis = gatewaysDisponiveis();
     const c = await repo.conexaoDoNegocio(user.businessId);
-    if (!c) return { configurado: true, conexao: null };
+    if (!c) return { configurado: true, disponiveis, conexao: null };
     const [ultima, pendentesN] = await Promise.all([repo.ultimaConfirmacaoEm(user.businessId), repo.reservasPendentes(user.businessId)]);
     return {
       configurado: true,
+      disponiveis,
       conexao: {
         gateway: c.gateway as GatewayId,
         situacao: c.situacao === 'ativa' ? 'ativa' : 'precisa_reconectar',
@@ -200,9 +203,8 @@ export const conexaoService = {
   /** Formas que o cliente pode escolher. Sem conexão ativa (ou em erro), só Pix. Nunca lança. */
   async formas(businessId: string): Promise<FormaSinal[]> {
     try {
-      if (!recebimentosConfigurado()) return ['pix'];
       const c = await repo.conexaoDoNegocio(businessId);
-      if (!c || c.situacao !== 'ativa') return ['pix'];
+      if (!c || c.situacao !== 'ativa' || !gatewayDisponivel(c.gateway as GatewayId)) return ['pix'];
       const lista: FormaSinal[] = [];
       if (c.aceitaPix) lista.push('pix');
       if (c.aceitaCartao) lista.push('cartao');
@@ -216,7 +218,7 @@ export const conexaoService = {
   /** Um 401 numa chamada qualquer não prova token vencido. Só a URL fixa da conta prova que o acesso caiu. */
   async acessoRevogado(token: { gateway: GatewayId; accessToken: string }): Promise<boolean> {
     try {
-      await gateways[token.gateway].conta(token.accessToken);
+      await gatewayDe(token.gateway).conta(token.accessToken);
       return false;
     } catch (e) {
       return e instanceof GatewayTokenInvalido;
@@ -227,7 +229,7 @@ export const conexaoService = {
   async cartaoForaDoAr(businessId: string): Promise<boolean> {
     try {
       const c = await repo.conexaoDoNegocio(businessId);
-      return !!c && c.aceitaCartao && (c.situacao !== 'ativa' || !recebimentosConfigurado());
+      return !!c && c.aceitaCartao && (c.situacao !== 'ativa' || !gatewayDisponivel(c.gateway as GatewayId));
     } catch {
       return false;
     }

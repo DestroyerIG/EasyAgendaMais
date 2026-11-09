@@ -227,9 +227,9 @@ describe('Recebimentos: conexão', () => {
     });
 
     it('sem configuração e sem conexão', async () => {
-      expect(await conexaoService.verConexao(dono)).toEqual({ configurado: true, conexao: null });
+      expect(await conexaoService.verConexao(dono)).toEqual({ configurado: true, disponiveis: ['mercadopago'], conexao: null });
       for (const v of ENVS) delete process.env[v];
-      expect(await conexaoService.verConexao(dono)).toEqual({ configurado: false, conexao: null });
+      expect(await conexaoService.verConexao(dono)).toEqual({ configurado: false, disponiveis: [], conexao: null });
     });
 
     it('situação diferente de ativa vira precisa_reconectar', async () => {

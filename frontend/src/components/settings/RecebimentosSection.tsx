@@ -19,7 +19,7 @@ export function RecebimentosSection() {
     let ativo = true;
     recebimentosApi.conexoes()
       .then((e) => { if (ativo) setEstado(e); })
-      .catch(() => { if (ativo) setEstado({ configurado: false, conexao: null }); });
+      .catch(() => { if (ativo) setEstado({ configurado: false, disponiveis: [], conexao: null }); });
     return () => { ativo = false; };
   }, [ehDona]);
 

@@ -3,12 +3,32 @@ import type { GatewayId, PagamentoGateway, SituacaoCobranca } from './recebiment
 
 // Regras puras dos recebimentos automáticos (Mercado Pago).
 
-/** Sem as quatro variáveis, Recebimentos some das telas e nada é chamado. */
+/** Cada gateway só aparece e é chamado se as suas variáveis estiverem definidas. */
+export function gatewayDisponivel(g: GatewayId): boolean {
+  if (g === 'mercadopago') {
+    return Boolean(
+      process.env.MERCADOPAGO_CLIENT_ID && process.env.MERCADOPAGO_CLIENT_SECRET
+        && process.env.MERCADOPAGO_REDIRECT_URI && process.env.RECEBIMENTOS_TOKEN_KEY,
+    );
+  }
+  return Boolean(process.env.RECEBIMENTOS_TOKEN_KEY && process.env.BACKEND_URL);
+}
+
+const TODOS_GATEWAYS: GatewayId[] = ['mercadopago', 'infinitepay'];
+
+/** Algum gateway disponível. Sem nenhum, Recebimentos some das telas. */
 export function recebimentosConfigurado(): boolean {
-  return Boolean(
-    process.env.MERCADOPAGO_CLIENT_ID && process.env.MERCADOPAGO_CLIENT_SECRET
-      && process.env.MERCADOPAGO_REDIRECT_URI && process.env.RECEBIMENTOS_TOKEN_KEY,
-  );
+  return TODOS_GATEWAYS.some(gatewayDisponivel);
+}
+
+/** Gateways disponíveis agora. */
+export function gatewaysDisponiveis(): GatewayId[] {
+  return TODOS_GATEWAYS.filter(gatewayDisponivel);
+}
+
+/** URL pública do backend, sem barra final. */
+export function backendUrl(): string {
+  return (process.env.BACKEND_URL ?? '').replace(/\/+$/, '');
 }
 
 export function chaveRecebimentos(): Buffer {

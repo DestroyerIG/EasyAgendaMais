@@ -1,6 +1,7 @@
 import logger from '../../utils/logger.js';
 import { conexaoService } from './conexao.service.js';
-import { GatewayRecusou, GatewayTokenInvalido, gateways } from './gateways/index.js';
+import { GatewayRecusou, GatewayTokenInvalido } from './gateways/index.js';
+import { gatewayDe } from './gateways/porId.js';
 import { recebimentosRepository as repo } from './recebimentos.repository.js';
 import type { FormaSinal } from './recebimentos.types.js';
 
@@ -51,7 +52,7 @@ export const cobrancasService = {
         forma: e.forma, valor: e.valor, venceEm: e.venceEm,
       })).id;
 
-      const gateway = gateways[conexao.gateway];
+      const gateway = gatewayDe(conexao.gateway);
       const c = { cobrancaId, valor: e.valor, descricao: e.descricao, venceEm: e.venceEm, pagadorEmail: `reserva-${cobrancaId}@${dominio()}` };
 
       if (e.forma === 'pix') {

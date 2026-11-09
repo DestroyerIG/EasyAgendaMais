@@ -2,7 +2,7 @@ import api from '@/lib/api';
 
 // Recebimentos automáticos. Espelha backend/src/modules/recebimentos (EstadoRecebimentos).
 
-export type GatewayId = 'mercadopago';
+export type GatewayId = 'mercadopago' | 'infinitepay';
 
 export interface ConexaoRecebimento {
   gateway: GatewayId;
@@ -17,6 +17,7 @@ export interface ConexaoRecebimento {
 
 export interface EstadoRecebimentos {
   configurado: boolean;
+  disponiveis: GatewayId[];
   conexao: ConexaoRecebimento | null;
 }
 

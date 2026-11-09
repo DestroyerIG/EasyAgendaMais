@@ -44,4 +44,5 @@ export interface Gateway {
   buscarPorReferencia(accessToken: string, cobrancaId: string): Promise<PagamentoGateway[]>;
 }
 
-export type Gateways = Record<GatewayId, Gateway>;
+/** Só o Mercado Pago tem implementação por enquanto. */
+export type Gateways = Record<'mercadopago', Gateway>;

@@ -63,7 +63,7 @@ export function GatewayPassos({ gatewayId }: { gatewayId: string }) {
       try {
         setEstado(await recebimentosApi.conexoes());
       } catch {
-        setEstado({ configurado: false, conexao: null });
+        setEstado({ configurado: false, disponiveis: [], conexao: null });
       }
     })();
   }, [gateway, showToast]);
