@@ -118,6 +118,15 @@ export const publicBookingApi = {
     return response.data;
   },
 
+  async confirmarInfinitePay(
+    slug: string,
+    appointmentId: string,
+    d: { orderNsu: string; transactionNsu: string; fatura: string },
+  ): Promise<StatusReservaDto> {
+    const response = await api.post(`/public/${slug}/appointments/${appointmentId}/infinitepay`, d);
+    return response.data;
+  },
+
   async createAppointment(slug: string, payload: CreatePublicAppointmentPayload): Promise<CreatePublicAppointmentResponse> {
     const response = await api.post(`/public/${slug}/appointments`, payload);
     return response.data;

@@ -15,6 +15,7 @@ vi.mock('@/lib/publicBooking', () => ({
     getAppointmentStatus: vi.fn(),
     createAppointment: vi.fn(),
     trocarParaPix: vi.fn(),
+    confirmarInfinitePay: vi.fn(),
   },
 }));
 
@@ -323,5 +324,79 @@ describe('volta do Checkout', () => {
     expect(await screen.findByRole('button', { name: 'Agendar horário' })).toBeInTheDocument();
     expect(troca).toHaveBeenCalledWith(null, '', '/agendar/studio-aurora');
     troca.mockRestore();
+  });
+});
+
+describe('InfinitePay', () => {
+  const STOREFRONT_IP = { ...STOREFRONT, formasPagamento: ['cartao'], gatewayPagamento: 'infinitepay' };
+  const RESERVA_IP = { ...RESERVA, gateway: 'infinitepay', checkoutUrl: 'https://checkout.infinitepay.io/x' };
+
+  it('antes de pagar usa os rótulos da InfinitePay, sem falar em cartão', async () => {
+    api.getStorefront.mockResolvedValue(STOREFRONT_IP);
+    const user = userEvent.setup();
+    await irAteOsDados(user);
+
+    expect(screen.getByText('Sinal')).toBeInTheDocument();
+    expect(screen.queryByText('Sinal cartão')).not.toBeInTheDocument();
+    expect(screen.getByText('Pagamento do sinal na InfinitePay')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pagar o sinal na InfinitePay (Pix ou cartão)' })).toBeInTheDocument();
+    expect(screen.getByText('Você escolhe Pix ou cartão na página da InfinitePay.')).toBeInTheDocument();
+  });
+
+  it('na volta confirma a cobrança uma vez, mostra a situação e limpa os parâmetros da URL', async () => {
+    abrirEm('?reserva=appt-1&retorno=infinitepay&order_nsu=C&transaction_nsu=T&slug=F&capture_method=pix&receipt_url=x');
+    const replace = vi.spyOn(window.history, 'replaceState');
+    api.confirmarInfinitePay.mockResolvedValue({ situacao: 'confirmado', reserva: RESERVA_IP });
+    render(<PublicBookingFlow slug="studio-aurora" />);
+
+    expect(await screen.findByRole('heading', { name: 'Agendamento confirmado!' })).toBeInTheDocument();
+    expect(api.confirmarInfinitePay).toHaveBeenCalledTimes(1);
+    expect(api.confirmarInfinitePay).toHaveBeenCalledWith('studio-aurora', 'appt-1', {
+      orderNsu: 'C', transactionNsu: 'T', fatura: 'F',
+    });
+    expect(api.getAppointmentStatus).not.toHaveBeenCalled();
+    expect(replace).toHaveBeenCalledWith(
+      window.history.state, '', '/agendar/studio-aurora?reserva=appt-1&retorno=infinitepay',
+    );
+    replace.mockRestore();
+  });
+
+  it('na volta sem pagamento confirmado oferece ir para o pagamento', async () => {
+    abrirEm('?reserva=appt-1&retorno=infinitepay&order_nsu=C&transaction_nsu=T&slug=F');
+    api.confirmarInfinitePay.mockResolvedValue({ situacao: 'aguardando', reserva: RESERVA_IP });
+    render(<PublicBookingFlow slug="studio-aurora" />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Ir para o pagamento' }));
+    expect(assign).toHaveBeenCalledWith('https://checkout.infinitepay.io/x');
+  });
+
+  it('sem transaction_nsu só consulta o status', async () => {
+    abrirEm('?reserva=appt-1&retorno=infinitepay');
+    api.getAppointmentStatus.mockResolvedValue({ situacao: 'aguardando', reserva: RESERVA_IP });
+    render(<PublicBookingFlow slug="studio-aurora" />);
+
+    expect(await screen.findByRole('button', { name: 'Ir para o pagamento' })).toBeInTheDocument();
+    expect(api.confirmarInfinitePay).not.toHaveBeenCalled();
+    expect(api.getAppointmentStatus).toHaveBeenCalledWith('studio-aurora', 'appt-1');
+  });
+
+  it('se a confirmação falha, cai na consulta do status sem erro na tela', async () => {
+    abrirEm('?reserva=appt-1&retorno=infinitepay&order_nsu=C&transaction_nsu=T&slug=F');
+    api.confirmarInfinitePay.mockRejectedValue(new Error('rede'));
+    api.getAppointmentStatus.mockResolvedValue({ situacao: 'confirmado', reserva: RESERVA_IP });
+    render(<PublicBookingFlow slug="studio-aurora" />);
+
+    expect(await screen.findByRole('heading', { name: 'Agendamento confirmado!' })).toBeInTheDocument();
+    expect(api.getAppointmentStatus).toHaveBeenCalledWith('studio-aurora', 'appt-1');
+  });
+
+  it('Mercado Pago segue com os rótulos de hoje', async () => {
+    api.getStorefront.mockResolvedValue({ ...STOREFRONT, formasPagamento: ['cartao'], gatewayPagamento: 'mercadopago' });
+    const user = userEvent.setup();
+    await irAteOsDados(user);
+
+    expect(screen.getByText('Sinal cartão')).toBeInTheDocument();
+    expect(screen.getByText('Pagamento do sinal no cartão')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /confirmar agendamento/i })).toBeInTheDocument();
   });
 });
