@@ -155,8 +155,8 @@ Assim, pago depois do vencimento, pago em dobro e reativação seguem as mesmas 
 
 - A cobrança não existe, é de outro gateway ou o `order_nsu` não bate: responde 200 e ignora, para a InfinitePay não insistir.
 - O `payment_check` respondeu `paid: false`: responde 200 e não grava nada.
-- A conferência falhou porque a InfinitePay estava fora do ar: responde 400, para ela tentar de novo.
-- Nos outros casos, responde 200.
+- A cobrança já estava paga, ou a confirmação foi aplicada: responde 200.
+- Nos outros casos, responde 400, para ela tentar de novo. Isso cobre a InfinitePay fora do ar ou recusando a conferência, o negócio sem chave utilizável (precisa reconectar, chave trocada, `BACKEND_URL` ausente) e qualquer erro inesperado, inclusive do banco. Assim o pagamento não se perde enquanto o problema é resolvido.
 
 ### Banco
 

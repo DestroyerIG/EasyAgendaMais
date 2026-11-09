@@ -176,38 +176,38 @@ async function conferirCobranca(cobrancaId: string): Promise<void> {
 export const pagamentosService = {
   /**
    * Confirmação da InfinitePay (webhook ou volta do cliente): a prova é a conferência feita com a chave do negócio.
-   * Nunca lança. 'tentar_de_novo' só quando a InfinitePay não respondeu.
+   * Nunca lança. 'ok' só quando não há o que confirmar (cobrança que não é nossa, order_nsu trocado, não pago)
+   * ou quando a confirmação foi aplicada; em qualquer outro caso, 'tentar_de_novo' para a InfinitePay repetir.
    */
   async confirmarInfinitePay(d: { cobrancaId: string; transactionNsu: string; fatura: string; orderNsu: string }): Promise<'ok' | 'tentar_de_novo'> {
     try {
       if (d.orderNsu !== d.cobrancaId) return 'ok';
       const c = await repo.cobrancaComReserva(d.cobrancaId);
       if (!c || c.gateway !== 'infinitepay') return 'ok';
+      // Daqui em diante a cobrança é nossa: sem conferir, o pagamento pode se perder, então pede nova tentativa.
       const conta = await conexaoService.credencial(c.businessId);
       if (!conta) {
         logger.warn({ cobrancaId: d.cobrancaId, businessId: c.businessId }, 'Recebimentos: negócio sem conexão ativa da InfinitePay para conferir a cobrança');
-        return 'ok';
+        return 'tentar_de_novo';
       }
       let pagamento: PagamentoGateway | null;
       try {
         pagamento = await infinitePay.conferirPagamento(conta.cred, { cobrancaId: c.id, transactionNsu: d.transactionNsu, fatura: d.fatura });
       } catch (e) {
-        if (e instanceof GatewayIndisponivel) return 'tentar_de_novo';
         if (e instanceof GatewayTokenInvalido) {
           if (await conexaoService.acessoRevogado(c.businessId, 'infinitepay')) await conexaoService.marcarReconectar(c.businessId, e.message);
-          return 'ok';
-        }
-        if (e instanceof GatewayRecusou) {
+        } else if (e instanceof GatewayRecusou) {
           logger.warn({ cobrancaId: c.id, erro: e.name }, 'Recebimentos: InfinitePay recusou a conferência');
-          return 'ok';
+        } else if (!(e instanceof GatewayIndisponivel)) {
+          throw e;
         }
-        throw e;
+        return 'tentar_de_novo';
       }
       if (pagamento) await avaliar(c.id, pagamento);
       return 'ok';
     } catch (e) {
       logger.error({ err: e, cobrancaId: d.cobrancaId }, 'Recebimentos: falha ao confirmar o pagamento da InfinitePay');
-      return 'ok';
+      return 'tentar_de_novo';
     }
   },
 

@@ -66,7 +66,7 @@ export const webhookMercadoPago = (req: Request, res: Response): void => {
 const NSU = /^[A-Za-z0-9_-]{1,100}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Espera a conferência: 400 faz a InfinitePay tentar de novo quando ela mesma não respondeu. Fora do formato, 200 sem chamar nada. */
+/** Espera a conferência: 400 faz a InfinitePay tentar de novo quando a cobrança é nossa e não deu para conferir. Fora do formato, 200 sem chamar nada. */
 export const webhookInfinitePay: H = async (req, res, next) => {
   try {
     const corpo = (req.body ?? {}) as Record<string, unknown>;
