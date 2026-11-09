@@ -5,6 +5,7 @@ import { appointmentsPrismaRepository } from '../modules/appointments/appointmen
 import { recebimentosRepository } from '../modules/recebimentos/recebimentos.repository.js';
 import { conexaoService } from '../modules/recebimentos/conexao.service.js';
 import { automacoesGatilhos } from '../modules/whatsappAutomacoes/gatilhos.service.js';
+import { infinitePay } from '../modules/recebimentos/gateways/infinitePay.js';
 import { gateways, GatewayIndisponivel, GatewayRecusou, GatewayTokenInvalido } from '../modules/recebimentos/gateways/index.js';
 import { CreatePublicAppointmentSchema } from '../modules/publicBooking/publicBooking.types.js';
 import { generateAvailableTimeSlots, getBusinessScheduleSettings } from '../services/scheduleSettingsService.js';
@@ -37,12 +38,14 @@ vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({
   },
 }));
 vi.mock('../modules/recebimentos/conexao.service.js', () => ({
-  conexaoService: { formas: vi.fn(), tokenAtivo: vi.fn(), alertarRecusa: vi.fn(), marcarReconectar: vi.fn(), acessoRevogado: vi.fn(), cartaoForaDoAr: vi.fn() },
+  conexaoService: { formas: vi.fn(), credencial: vi.fn(), gatewayAtivo: vi.fn(), tokenAtivo: vi.fn(), alertarRecusa: vi.fn(), marcarReconectar: vi.fn(), acessoRevogado: vi.fn(), cartaoForaDoAr: vi.fn() },
 }));
 vi.mock('../modules/recebimentos/gateways/index.js', async (original) => ({
   ...(await original<typeof import('../modules/recebimentos/gateways/index.js')>()),
   gateways: { mercadopago: { criarPix: vi.fn(), criarCheckoutCartao: vi.fn() } },
 }));
+
+vi.mock('../modules/recebimentos/gateways/infinitePay.js', () => ({ infinitePay: { criarLink: vi.fn() } }));
 
 const fn = (x: unknown) => x as ReturnType<typeof vi.fn>;
 const pubRepo = publicBookingRepository as unknown as Record<string, ReturnType<typeof vi.fn>>;
@@ -79,6 +82,8 @@ beforeEach(() => {
   fn(appointmentsPrismaRepository.hasConflict).mockResolvedValue(false);
   fn(conexaoService.formas).mockResolvedValue(['pix', 'cartao']);
   fn(conexaoService.tokenAtivo).mockResolvedValue(TOKEN);
+  fn(conexaoService.credencial).mockResolvedValue(null);
+  fn(conexaoService.gatewayAtivo).mockResolvedValue('mercadopago');
   recRepo.criarCobranca.mockImplementation(async () => {
     expect(lockTerminou).toBe(true);
     return { id: 'cob-1' };
@@ -88,7 +93,7 @@ beforeEach(() => {
   gw.criarCheckoutCartao.mockResolvedValue({ idExterno: 'pref-1', checkoutUrl: 'https://mp.test/checkout' });
 });
 
-afterEach(() => { delete process.env.FRONTEND_URL; });
+afterEach(() => { delete process.env.FRONTEND_URL; delete process.env.BACKEND_URL; });
 
 describe('criação da reserva com cobrança', () => {
   it('sem conexão: igual a hoje, com código manual e automatica false', async () => {
@@ -378,5 +383,70 @@ describe('POST /pix', () => {
     const r = await publicBookingService.getPixDaReserva('studio', 'appt-1');
     expect(r.pixPayload).toEqual(MANUAL_PIX);
     expect(recRepo.criarCobranca).not.toHaveBeenCalled();
+  });
+});
+
+describe('InfinitePay: link na reserva', () => {
+  const CRED = { gateway: 'infinitepay', cred: { handle: 'loja' } };
+  beforeEach(() => {
+    process.env.BACKEND_URL = 'https://api.x.com/';
+    fn(conexaoService.formas).mockResolvedValue(['cartao']);
+    fn(conexaoService.credencial).mockResolvedValue(CRED);
+    fn(conexaoService.tokenAtivo).mockResolvedValue(null);
+    fn(infinitePay.criarLink).mockResolvedValue({ checkoutUrl: 'https://ip.test/pay' });
+  });
+
+  it('cria o link com a volta da reserva e o webhook da cobrança', async () => {
+    const r = await publicBookingService.createPendingAppointment('studio', { ...INPUT, formaPagamento: 'cartao' });
+    expect(infinitePay.criarLink).toHaveBeenCalledWith(CRED.cred, expect.objectContaining({ cobrancaId: 'cob-1', valor: 30 }), {
+      volta: 'https://www.easybarber.com.br/agendar/studio?reserva=appt-1&retorno=infinitepay',
+      webhook: 'https://api.x.com/api/v1/recebimentos/webhook/infinitepay/cob-1',
+    });
+    expect(recRepo.criarCobranca).toHaveBeenCalledWith(expect.objectContaining({ gateway: 'infinitepay', forma: 'cartao' }));
+    expect(recRepo.completarCobranca).toHaveBeenCalledWith('cob-1', { idExterno: 'cob-1', checkoutUrl: 'https://ip.test/pay' });
+    expect(r).toMatchObject({ forma: 'cartao', pixPayload: null, checkoutUrl: 'https://ip.test/pay', automatica: true });
+    expect(gw.criarCheckoutCartao).not.toHaveBeenCalled();
+    expect(automacoesGatilhos.aoCriarReservaComSinal).not.toHaveBeenCalled();
+  });
+
+  it('GatewayTokenInvalido com acesso revogado marca reconectar e apaga a cobrança', async () => {
+    fn(infinitePay.criarLink).mockRejectedValue(new GatewayTokenInvalido());
+    vi.mocked(conexaoService.acessoRevogado).mockResolvedValue(true);
+    await publicBookingService.createPendingAppointment('studio', { ...INPUT, formaPagamento: 'cartao' });
+    expect(conexaoService.acessoRevogado).toHaveBeenCalledWith('biz-1', 'infinitepay', undefined);
+    expect(conexaoService.marcarReconectar).toHaveBeenCalledWith('biz-1', expect.any(String));
+    expect(recRepo.apagarCobranca).toHaveBeenCalledWith('cob-1');
+  });
+
+  it('GatewayRecusou alerta o negócio', async () => {
+    fn(infinitePay.criarLink).mockRejectedValue(new GatewayRecusou());
+    await publicBookingService.createPendingAppointment('studio', { ...INPUT, formaPagamento: 'cartao' });
+    expect(conexaoService.alertarRecusa).toHaveBeenCalledWith('biz-1');
+  });
+});
+
+describe('gateway da reserva', () => {
+  it('storefront traz gatewayPagamento de gatewayAtivo', async () => {
+    pubRepo.findEligibleServices.mockResolvedValue([]);
+    pubRepo.findBusinessBySlug.mockResolvedValue({ ...BUSINESS, settings: null, mostrarNota: false, galleryPhotos: [], comodidades: [] });
+    fn(conexaoService.gatewayAtivo).mockResolvedValue('infinitepay');
+    expect((await publicBookingService.getStorefront('studio')).gatewayPagamento).toBe('infinitepay');
+    fn(conexaoService.gatewayAtivo).mockRejectedValue(new Error('x'));
+    expect((await publicBookingService.getStorefront('studio')).gatewayPagamento).toBeNull();
+  });
+
+  it('status traz o gateway da cobrança atual e da paga', async () => {
+    pubRepo.findPublicAppointment.mockResolvedValue(reserva());
+    recRepo.cobrancasDaReserva.mockResolvedValue([
+      { gateway: 'infinitepay', forma: 'cartao', situacao: 'pendente', idExterno: 'c', codigoPix: null, checkoutUrl: 'https://ip.test/pay', pagoEm: null },
+    ]);
+    expect((await publicBookingService.getAppointmentStatus('studio', 'appt-1')).reserva.gateway).toBe('infinitepay');
+    pubRepo.findPublicAppointment.mockResolvedValue(reserva({ status: 'confirmado', expiresAt: null }));
+    recRepo.cobrancasDaReserva.mockResolvedValue([
+      { gateway: 'mercadopago', forma: 'cartao', situacao: 'paga', idExterno: 'c', codigoPix: null, checkoutUrl: null, pagoEm: new Date() },
+    ]);
+    expect((await publicBookingService.getAppointmentStatus('studio', 'appt-1')).reserva.gateway).toBe('mercadopago');
+    recRepo.cobrancasDaReserva.mockResolvedValue([]);
+    expect((await publicBookingService.getAppointmentStatus('studio', 'appt-1')).reserva.gateway).toBeNull();
   });
 });

@@ -260,6 +260,18 @@ export const conexaoService = {
     }
   },
 
+  /** Gateway da conexão ativa e disponível; `null` sem ela ou em erro. Nunca lança. */
+  async gatewayAtivo(businessId: string): Promise<GatewayId | null> {
+    try {
+      const c = await repo.conexaoDoNegocio(businessId);
+      if (!c || c.situacao !== 'ativa' || !gatewayDisponivel(c.gateway as GatewayId)) return null;
+      return c.gateway as GatewayId;
+    } catch (e) {
+      logger.warn({ err: e, businessId }, 'Recebimentos: falha ao ler o gateway ativo');
+      return null;
+    }
+  },
+
   /** Formas que o cliente pode escolher. Sem conexão ativa (ou em erro), só Pix. Nunca lança. */
   async formas(businessId: string): Promise<FormaSinal[]> {
     try {

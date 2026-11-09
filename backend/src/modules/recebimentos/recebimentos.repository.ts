@@ -44,7 +44,10 @@ export const recebimentosRepository = {
     if (appointmentIds.length === 0) return new Set();
     try {
       const rows = await prisma.cobrancaSinal.findMany({
-        where: { businessId, appointmentId: { in: appointmentIds }, situacao: 'paga', forma: 'cartao', idExterno: { not: null } },
+        where: { businessId, appointmentId: { in: appointmentIds }, situacao: 'paga', forma: 'cartao', idExterno: { not: null },
+          // Cartão da InfinitePay pago no Pix não é cartão: não ganha selo nem rótulo de cartão.
+          OR: [{ formaPaga: null }, { formaPaga: { not: 'pix' } }],
+        },
         select: { appointmentId: true },
       });
       return new Set(rows.map((r) => r.appointmentId));
@@ -181,7 +184,7 @@ export const recebimentosRepository = {
   cobrancasDaReserva(appointmentId: string) {
     return prisma.cobrancaSinal.findMany({
       where: { appointmentId }, orderBy: { criadoEm: 'desc' },
-      select: { forma: true, situacao: true, idExterno: true, codigoPix: true, checkoutUrl: true, pagoEm: true },
+      select: { gateway: true, forma: true, situacao: true, idExterno: true, codigoPix: true, checkoutUrl: true, pagoEm: true },
     });
   },
 
@@ -213,6 +216,8 @@ export const recebimentosRepository = {
   cobrancasParaConferir(venceuDesde: Date, cartaoVenceuDesde?: Date) {
     return prisma.cobrancaSinal.findMany({
       where: {
+        // A InfinitePay não tem consulta por referência: só o webhook confirma.
+        gateway: 'mercadopago',
         situacao: { in: ['pendente', 'expirada', 'recusada'] },
         OR: [
           { venceEm: { gte: venceuDesde } },
@@ -228,7 +233,7 @@ export const recebimentosRepository = {
   cobrancasDoNegocioParaConferir(businessId: string, venceuDesde: Date) {
     return prisma.cobrancaSinal.findMany({
       where: {
-        businessId, idExterno: { not: null },
+        businessId, gateway: 'mercadopago', idExterno: { not: null },
         situacao: { in: ['pendente', 'expirada', 'recusada'] }, venceEm: { gte: venceuDesde },
       },
       select: { id: true },

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { FormaSinal } from '../recebimentos/recebimentos.types.js';
+import type { FormaSinal, GatewayId } from '../recebimentos/recebimentos.types.js';
 
 export const GetPublicAvailabilitySchema = z.object({
   serviceId: z.string().uuid(),
@@ -54,6 +54,8 @@ export interface Storefront {
   whatsapp: string | null;
   agendaPausada: boolean;
   formasPagamento: FormaSinal[];
+  /** Gateway da conexão ativa, para a página saber como mostrar o pagamento. */
+  gatewayPagamento: GatewayId | null;
   services: StorefrontService[];
   vocabulario: Vocabulario;
 }

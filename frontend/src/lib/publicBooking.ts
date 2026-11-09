@@ -35,6 +35,8 @@ export interface StorefrontDto {
   whatsapp?: string | null;
   /** Formas de sinal liberadas pelo negócio; sem o campo, só Pix. */
   formasPagamento?: FormaSinal[];
+  /** Gateway da conexão ativa; sem o campo ou nulo, Pix manual. */
+  gatewayPagamento?: 'mercadopago' | 'infinitepay' | null;
 }
 
 export interface ProfessionalDto {
@@ -78,6 +80,8 @@ export interface ReservaPublicaDto {
   horario: string;
   sinal: number;
   forma: FormaSinal;
+  /** Gateway da cobrança usada; nulo sem cobrança automática. */
+  gateway?: 'mercadopago' | 'infinitepay' | null;
   pixPayload: string | null;
   checkoutUrl: string | null;
   expiresAt: string | null;
