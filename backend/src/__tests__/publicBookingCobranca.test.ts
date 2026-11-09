@@ -10,6 +10,7 @@ import { gateways, GatewayIndisponivel, GatewayRecusou, GatewayTokenInvalido } f
 import { CreatePublicAppointmentSchema } from '../modules/publicBooking/publicBooking.types.js';
 import { generateAvailableTimeSlots, getBusinessScheduleSettings } from '../services/scheduleSettingsService.js';
 import { pagamentosService } from '../modules/recebimentos/pagamentos.service.js';
+import { cobrancasService } from '../modules/recebimentos/cobrancas.service.js';
 import { ConfirmarInfinitePaySchema } from '../modules/publicBooking/publicBooking.types.js';
 import { ConflictError, NotFoundError, ValidationError } from '../utils/errors.js';
 
@@ -415,6 +416,16 @@ describe('InfinitePay: link na reserva', () => {
   it('pedido de Pix com credencial: a linha nasce como cartão (caminho do link)', async () => {
     await publicBookingService.createPendingAppointment('studio', INPUT);
     expect(recRepo.criarCobranca).toHaveBeenCalledWith(expect.objectContaining({ gateway: 'infinitepay', forma: 'cartao' }));
+  });
+
+  it('cobrança pedida em Pix com a InfinitePay: nenhuma cobrança, quem chama cai no Pix manual', async () => {
+    const r = await cobrancasService.criar({
+      businessId: 'biz-1', slug: 'studio', appointmentId: 'appt-1', forma: 'pix', valor: 30, descricao: 'Sinal - Corte', venceEm: new Date(),
+    });
+    expect(r).toBeNull();
+    expect(recRepo.criarCobranca).not.toHaveBeenCalled();
+    expect(infinitePay.criarLink).not.toHaveBeenCalled();
+    expect(gw.criarPix).not.toHaveBeenCalled();
   });
 
   it('GatewayTokenInvalido com acesso revogado marca reconectar e apaga a cobrança', async () => {

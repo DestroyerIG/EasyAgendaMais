@@ -49,6 +49,8 @@ export const cobrancasService = {
     try {
       const ip = await conexaoService.credencial(e.businessId);
       if (ip) {
+        // A InfinitePay só tem o link (Pix ou cartão na página dela): Pix pedido aqui é o manual.
+        if (e.forma === 'pix') return null;
         gatewayDaCobranca = 'infinitepay';
         cobrancaId = (await repo.criarCobranca({
           businessId: e.businessId, appointmentId: e.appointmentId, gateway: 'infinitepay',
