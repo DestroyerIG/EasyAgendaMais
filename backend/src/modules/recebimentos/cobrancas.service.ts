@@ -1,8 +1,11 @@
 import logger from '../../utils/logger.js';
 import { conexaoService } from './conexao.service.js';
-import { GatewayRecusou, GatewayTokenInvalido, gateways } from './gateways/index.js';
+import { GatewayRecusou, GatewayTokenInvalido } from './gateways/index.js';
+import { infinitePay } from './gateways/infinitePay.js';
+import { gatewayDe } from './gateways/porId.js';
 import { recebimentosRepository as repo } from './recebimentos.repository.js';
-import type { FormaSinal } from './recebimentos.types.js';
+import { backendUrl } from './recebimentos.rules.js';
+import type { FormaSinal, GatewayId } from './recebimentos.types.js';
 
 // Cobrança do sinal de uma reserva pública no gateway do negócio.
 
@@ -42,7 +45,27 @@ export const cobrancasService = {
   async criar(e: EntradaCobranca): Promise<CobrancaCriada | null> {
     let cobrancaId: string | null = null;
     let conexao: Awaited<ReturnType<typeof conexaoService.tokenAtivo>> = null;
+    let gatewayDaCobranca: GatewayId = 'mercadopago';
     try {
+      const ip = await conexaoService.credencial(e.businessId);
+      if (ip) {
+        // A InfinitePay só tem o link (Pix ou cartão na página dela): Pix pedido aqui é o manual.
+        if (e.forma === 'pix') return null;
+        gatewayDaCobranca = 'infinitepay';
+        cobrancaId = (await repo.criarCobranca({
+          businessId: e.businessId, appointmentId: e.appointmentId, gateway: 'infinitepay',
+          forma: 'cartao', valor: e.valor, venceEm: e.venceEm,
+        })).id;
+        const c = { cobrancaId, valor: e.valor, descricao: e.descricao, venceEm: e.venceEm, pagadorEmail: `reserva-${cobrancaId}@${dominio()}` };
+        const r = await infinitePay.criarLink(ip.cred, c, {
+          volta: `${frontend()}/agendar/${e.slug}?reserva=${e.appointmentId}&retorno=infinitepay`,
+          webhook: `${backendUrl()}/api/v1/recebimentos/webhook/infinitepay/${cobrancaId}`,
+        });
+        // O link não tem id próprio: a referência (o id da cobrança) é o que o webhook devolve.
+        await repo.completarCobranca(cobrancaId, { idExterno: cobrancaId, checkoutUrl: r.checkoutUrl });
+        return { forma: 'cartao', pixPayload: null, checkoutUrl: r.checkoutUrl };
+      }
+
       conexao = await conexaoService.tokenAtivo(e.businessId);
       if (!conexao) return null;
 
@@ -51,7 +74,7 @@ export const cobrancasService = {
         forma: e.forma, valor: e.valor, venceEm: e.venceEm,
       })).id;
 
-      const gateway = gateways[conexao.gateway];
+      const gateway = gatewayDe(conexao.gateway);
       const c = { cobrancaId, valor: e.valor, descricao: e.descricao, venceEm: e.venceEm, pagadorEmail: `reserva-${cobrancaId}@${dominio()}` };
 
       if (e.forma === 'pix') {
@@ -78,7 +101,7 @@ export const cobrancasService = {
       }
       try {
         if (err instanceof GatewayRecusou) await conexaoService.alertarRecusa(e.businessId);
-        else if (err instanceof GatewayTokenInvalido && conexao && await conexaoService.acessoRevogado(conexao)) {
+        else if (err instanceof GatewayTokenInvalido && await conexaoService.acessoRevogado(e.businessId, gatewayDaCobranca, conexao?.accessToken)) {
           // Um 401 na criação não prova token vencido: só a conta do gateway prova.
           await conexaoService.marcarReconectar(e.businessId, err.message);
         }

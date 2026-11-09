@@ -6,7 +6,7 @@ import { diasAPartirDe, notaPublica, situacaoDaReserva } from '../modules/public
 import { closesTodayAt } from '../services/scheduleSettingsService.js';
 import { NotFoundError } from '../utils/errors.js';
 
-vi.mock('../modules/recebimentos/conexao.service.js', () => ({ conexaoService: { formas: vi.fn().mockResolvedValue(['pix']), tokenAtivo: vi.fn().mockResolvedValue(null) } }));
+vi.mock('../modules/recebimentos/conexao.service.js', () => ({ conexaoService: { formas: vi.fn().mockResolvedValue(['pix']), gatewayAtivo: vi.fn().mockResolvedValue(null), credencial: vi.fn().mockResolvedValue(null), tokenAtivo: vi.fn().mockResolvedValue(null) } }));
 vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({ recebimentosRepository: { cobrancasDaReserva: vi.fn().mockResolvedValue([]) } }));
 vi.mock('../modules/conta/estadoConta.service.js', () => ({ estadoContaService: { doNegocio: vi.fn().mockResolvedValue({ tipo: 'ativa' }) } }));
 vi.mock('../modules/whatsappAutomacoes/gatilhos.service.js', () => ({ automacoesGatilhos: {} }));

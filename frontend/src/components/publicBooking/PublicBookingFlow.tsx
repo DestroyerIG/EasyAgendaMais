@@ -31,7 +31,10 @@ const INTERVALO_SITUACAO_MS = 10_000;
 // Depois do prazo, o pagamento feito no último minuto ainda pode confirmar a reserva: segue consultando.
 const CONSULTA_APOS_VENCER_MS = 30 * 60 * 1000;
 
-type RetornoCheckout = 'sucesso' | 'pendente' | 'falha';
+type RetornoCheckout = 'sucesso' | 'pendente' | 'falha' | 'infinitepay';
+
+// A InfinitePay acrescenta estes parâmetros ao voltar; saem da URL depois de lidos.
+const PARAMS_INFINITEPAY = ['order_nsu', 'slug', 'transaction_nsu', 'capture_method', 'receipt_url'];
 
 /** A reserva em andamento: a mesma forma vale para a recém-criada e para a remontada pela URL. */
 type Reserva = ReservaPublicaDto & { id: string };
@@ -140,6 +143,11 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
   const formasLiberadas: FormaSinal[] = storefront?.formasPagamento?.length ? storefront.formasPagamento : ['pix'];
   // O negócio pode receber só no cartão: sem escolha válida, vale a primeira forma liberada.
   const formaEfetiva: FormaSinal = formasLiberadas.includes(formaEscolhida) ? formaEscolhida : formasLiberadas[0];
+  // Com a reserva criada, só o link da InfinitePay (cartão) usa os rótulos dela: o Pix direto ao
+  // estabelecimento, escolhido ou de reserva, é o Pix manual de sempre.
+  const ehInfinitePay = reserva
+    ? reserva.forma === 'cartao' && (reserva.gateway ?? storefront?.gatewayPagamento) === 'infinitepay'
+    : storefront?.gatewayPagamento === 'infinitepay';
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Só a última consulta de horários vale: trocar de dia rápido não pode mostrar a resposta antiga.
   const consultaHorarios = useRef(0);
@@ -169,13 +177,26 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
       return;
     }
     const volta = busca.get('retorno');
+    const orderNsu = busca.get('order_nsu');
+    const transactionNsu = busca.get('transaction_nsu');
+    // O "slug" que a InfinitePay devolve é o da fatura, não o do negócio.
+    const fatura = busca.get('slug');
+    if (volta === 'infinitepay' && PARAMS_INFINITEPAY.some((nome) => busca.has(nome))) {
+      PARAMS_INFINITEPAY.forEach((nome) => busca.delete(nome));
+      window.history.replaceState(window.history.state, '', `${window.location.pathname}?${busca.toString()}`);
+    }
     let cancelado = false;
-    publicBookingApi.getAppointmentStatus(slug, id)
+    const consulta = volta === 'infinitepay' && orderNsu && transactionNsu && fatura
+      ? publicBookingApi.confirmarInfinitePay(slug, id, { orderNsu, transactionNsu, fatura })
+        // Sem a confirmação a página ainda renderiza pelo status; o webhook pode confirmar depois.
+        .catch(() => publicBookingApi.getAppointmentStatus(slug, id))
+      : publicBookingApi.getAppointmentStatus(slug, id);
+    consulta
       .then((r) => {
         if (cancelado) return;
         setReserva({ ...r.reserva, id });
         setSituacao(r.situacao);
-        setRetorno(volta === 'sucesso' || volta === 'pendente' || volta === 'falha' ? volta : null);
+        setRetorno(volta === 'sucesso' || volta === 'pendente' || volta === 'falha' || volta === 'infinitepay' ? volta : null);
         setRemontada(true);
         setStep('pagamento');
       })
@@ -615,7 +636,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <Resumo rotulo="Total" valor={formatCurrency(resumo.servico.price)} />
-                  <Resumo rotulo={resumo.forma === 'cartao' ? 'Sinal cartão' : 'Sinal Pix'} valor={formatCurrency(sinalDoResumo)} destaque />
+                  <Resumo rotulo={ehInfinitePay ? 'Sinal' : resumo.forma === 'cartao' ? 'Sinal cartão' : 'Sinal Pix'} valor={formatCurrency(sinalDoResumo)} destaque />
                   <Resumo rotulo="No atendimento" valor={formatCurrency(resumo.servico.price - sinalDoResumo)} />
                 </div>
               </section>
@@ -666,14 +687,21 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
 
               <section className="flex flex-col gap-3.5 rounded-card border border-line bg-surface p-4 shadow-sm">
                 <TituloSecao numero={reserva ? 1 : 2}>
-                  {resumo.forma === 'cartao' ? 'Pagamento do sinal no cartão' : 'Pagamento do sinal Pix'}
+                  {ehInfinitePay
+                    ? 'Pagamento do sinal na InfinitePay'
+                    : resumo.forma === 'cartao' ? 'Pagamento do sinal no cartão' : 'Pagamento do sinal Pix'}
                 </TituloSecao>
                 {!reserva ? (
-                  <p className="text-sm text-muted">
-                    {resumo.forma === 'cartao'
-                      ? 'O sinal é descontado no dia do atendimento. Você vai para o Checkout do Mercado Pago para pagar no cartão.'
-                      : 'O sinal é descontado no dia do atendimento. O código Pix aparece assim que você confirmar.'}
-                  </p>
+                  <>
+                    <p className="text-sm text-muted">
+                      {ehInfinitePay
+                        ? 'O sinal é descontado no dia do atendimento.'
+                        : resumo.forma === 'cartao'
+                        ? 'O sinal é descontado no dia do atendimento. Você vai para o Checkout do Mercado Pago para pagar no cartão.'
+                        : 'O sinal é descontado no dia do atendimento. O código Pix aparece assim que você confirmar.'}
+                    </p>
+                    {ehInfinitePay && <p className="text-sm text-muted">Você escolhe Pix ou cartão na página da InfinitePay.</p>}
+                  </>
                 ) : reserva.forma === 'cartao' ? (
                   <>
                     {retorno === 'sucesso' || retorno === 'pendente' ? (
@@ -684,7 +712,9 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                       <p className="text-sm font-semibold text-ink">
                         {retorno === 'falha'
                           ? 'O pagamento não foi concluído.'
-                          : 'O pagamento do sinal no cartão ainda não foi concluído.'}
+                          : ehInfinitePay
+                            ? 'O pagamento do sinal ainda não foi concluído.'
+                            : 'O pagamento do sinal no cartão ainda não foi concluído.'}
                         {reserva.expiresAt && ` Você tem até ${formatDeadline(reserva.expiresAt)} para pagar, depois o horário é liberado.`}
                       </p>
                     )}
@@ -697,7 +727,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                           </Button>
                         )}
                         <Button type="button" variant="ghost" loading={trocandoParaPix} onClick={pagarComPix}>
-                          Pagar com Pix
+                          {ehInfinitePay ? 'Pagar com Pix direto ao estabelecimento' : 'Pagar com Pix'}
                         </Button>
                       </>
                     )}
@@ -821,7 +851,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
         {step === 'pagamento' && !reserva && (
           <BarraAcao>
             <Button type="button" size="lg" fullWidth disabled={submitting || !clientName || !clientPhone} loading={submitting} onClick={submit}>
-              Confirmar agendamento
+              {ehInfinitePay ? 'Pagar o sinal na InfinitePay (Pix ou cartão)' : 'Confirmar agendamento'}
             </Button>
             <p className="mt-1.5 text-center text-xs text-muted">Sem necessidade de cadastro com senha</p>
           </BarraAcao>

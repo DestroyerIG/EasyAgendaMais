@@ -30,6 +30,15 @@ describe('GatewayPassos', () => {
     Object.defineProperty(window, 'location', { configurable: true, value: LOCATION_ORIGINAL });
   });
 
+  it('com a InfinitePay conectada, avisa e não mostra conectar nem desconectar', async () => {
+    api.conexoes.mockResolvedValue(conectado({ gateway: 'infinitepay', contaNome: 'Conta IP' }));
+    render(<GatewayPassos gatewayId="mercadopago" />);
+    expect(await screen.findByText(/Você já recebe pela InfinitePay/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir para a InfinitePay' })).toHaveAttribute('href', '/dashboard/configuracoes/recebimentos/infinitepay');
+    expect(screen.queryByText('Conta IP')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Conectar|Desconectar/ })).not.toBeInTheDocument();
+  });
+
   it('gateway inexistente mostra "Gateway não encontrado"', () => {
     render(<GatewayPassos gatewayId="xyz" />);
     expect(screen.getByText('Gateway não encontrado.')).toBeInTheDocument();
@@ -130,7 +139,7 @@ describe('GatewayPassos', () => {
     expect(await screen.findByText(/3 reservas pendentes/)).toBeInTheDocument();
     expect(api.desconectar).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Sim, desconectar' }));
-    await waitFor(() => expect(api.desconectar).toHaveBeenCalled());
+    await waitFor(() => expect(api.desconectar).toHaveBeenCalledWith('mercadopago'));
     expect(await screen.findByRole('button', { name: 'Conectar com o Mercado Pago' })).toBeInTheDocument();
   });
 });

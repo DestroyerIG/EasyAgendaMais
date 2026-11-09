@@ -36,6 +36,13 @@ export const confirmar: H = async (req, res, next) => {
     void pagamentosService.conferirAoReconectar(u.businessId);
   } catch (e) { next(e); }
 };
+export const conectarChave: H = async (req, res, next) => {
+  try {
+    const u = usuario(req);
+    sendSuccess(res, await conexaoService.conectarChave(u, { handle: req.body.handle, chave: req.body.chave }));
+    void pagamentosService.conferirAoReconectar(u.businessId);
+  } catch (e) { next(e); }
+};
 export const definirFormas: H = async (req, res, next) => {
   try { sendSuccess(res, await conexaoService.definirFormas(usuario(req), gatewayDe(req), req.body)); } catch (e) { next(e); }
 };
@@ -54,4 +61,23 @@ export const webhookMercadoPago = (req: Request, res: Response): void => {
   // Fora do formato não vai ao gateway nem ao log: a rota é pública.
   if (!SO_DIGITOS.test(contaId) || !(tipo === 'payment' ? SO_DIGITOS : ALFANUMERICO).test(recursoId)) return;
   void pagamentosService.processarAviso({ contaId, tipo, recursoId });
+};
+
+const NSU = /^[A-Za-z0-9_-]{1,100}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Espera a conferência: 400 faz a InfinitePay tentar de novo quando a cobrança é nossa e não deu para conferir. Fora do formato, 200 sem chamar nada. */
+export const webhookInfinitePay: H = async (req, res, next) => {
+  try {
+    const corpo = (req.body ?? {}) as Record<string, unknown>;
+    const orderNsu = corpo['order_nsu'], transactionNsu = corpo['transaction_nsu'], fatura = corpo['invoice_slug'];
+    if (!UUID.test(String(req.params['cobrancaId'])) || ![orderNsu, transactionNsu, fatura].every((v) => typeof v === 'string' && NSU.test(v))) {
+      res.sendStatus(200);
+      return;
+    }
+    const r = await pagamentosService.confirmarInfinitePay({
+      cobrancaId: String(req.params['cobrancaId']), orderNsu: orderNsu as string, transactionNsu: transactionNsu as string, fatura: fatura as string,
+    });
+    res.sendStatus(r === 'tentar_de_novo' ? 400 : 200);
+  } catch (e) { next(e); }
 };

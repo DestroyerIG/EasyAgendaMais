@@ -17,6 +17,9 @@ export interface DadosConexao {
   accessTokenCifrado: string;
   refreshTokenCifrado: string;
   tokenExpiraEm: Date;
+  aceitaPix?: boolean;
+  aceitaCartao?: boolean;
+  aceiteCartaoEm?: Date;
 }
 
 /** Lançada dentro de uma transação para desfazê-la sem que isso seja um erro. */
@@ -41,7 +44,10 @@ export const recebimentosRepository = {
     if (appointmentIds.length === 0) return new Set();
     try {
       const rows = await prisma.cobrancaSinal.findMany({
-        where: { businessId, appointmentId: { in: appointmentIds }, situacao: 'paga', forma: 'cartao', idExterno: { not: null } },
+        where: { businessId, appointmentId: { in: appointmentIds }, situacao: 'paga', forma: 'cartao', idExterno: { not: null },
+          // Cartão da InfinitePay pago no Pix não é cartão: não ganha selo nem rótulo de cartão.
+          OR: [{ formaPaga: null }, { formaPaga: { not: 'pix' } }],
+        },
         select: { appointmentId: true },
       });
       return new Set(rows.map((r) => r.appointmentId));
@@ -107,7 +113,7 @@ export const recebimentosRepository = {
         return tx.conexaoRecebimento.update({ where: { id: anterior.id }, data: { ...d, situacao: 'ativa' } });
       }
       if (anterior) await tx.conexaoRecebimento.delete({ where: { id: anterior.id } });
-      return tx.conexaoRecebimento.create({ data: { ...d, situacao: 'ativa', aceitaPix: true, aceitaCartao: false } });
+      return tx.conexaoRecebimento.create({ data: { aceitaPix: true, aceitaCartao: false, ...d, situacao: 'ativa' } });
     });
   },
 
@@ -174,11 +180,21 @@ export const recebimentosRepository = {
     await prisma.cobrancaSinal.deleteMany({ where: { id } });
   },
 
+  /**
+   * A pessoa trocou o pagamento do gateway pelo Pix manual: as cobranças em aberto desse gateway saem da
+   * página. Não usa `expirada`, que com a reserva cancelada autoriza reativar; paga depois, vale como atrasada.
+   */
+  async marcarSubstituidas(appointmentId: string, gateway: GatewayId): Promise<void> {
+    await prisma.cobrancaSinal.updateMany({
+      where: { appointmentId, gateway, situacao: { in: ['pendente', 'recusada'] } }, data: { situacao: 'substituida' },
+    });
+  },
+
   /** Cobranças da reserva, da mais nova para a mais antiga, para a página pública escolher o que mostrar. */
   cobrancasDaReserva(appointmentId: string) {
     return prisma.cobrancaSinal.findMany({
       where: { appointmentId }, orderBy: { criadoEm: 'desc' },
-      select: { forma: true, situacao: true, idExterno: true, codigoPix: true, checkoutUrl: true, pagoEm: true },
+      select: { gateway: true, forma: true, situacao: true, idExterno: true, codigoPix: true, checkoutUrl: true, pagoEm: true },
     });
   },
 
@@ -191,6 +207,11 @@ export const recebimentosRepository = {
 
   cobrancaDoNegocio(cobrancaId: string, businessId: string) {
     return prisma.cobrancaSinal.findFirst({ where: { id: cobrancaId, businessId }, select: { id: true } });
+  },
+
+  /** A cobrança da InfinitePay que pertence a esta reserva, para a volta do cliente. */
+  cobrancaDaReserva(cobrancaId: string, appointmentId: string, gateway: GatewayId) {
+    return prisma.cobrancaSinal.findFirst({ where: { id: cobrancaId, appointmentId, gateway }, select: { id: true } });
   },
 
   /** A reserva completa, com cliente e serviço, para os avisos. */
@@ -210,6 +231,8 @@ export const recebimentosRepository = {
   cobrancasParaConferir(venceuDesde: Date, cartaoVenceuDesde?: Date) {
     return prisma.cobrancaSinal.findMany({
       where: {
+        // A InfinitePay não tem consulta por referência: só o webhook confirma.
+        gateway: 'mercadopago',
         situacao: { in: ['pendente', 'expirada', 'recusada'] },
         OR: [
           { venceEm: { gte: venceuDesde } },
@@ -225,7 +248,7 @@ export const recebimentosRepository = {
   cobrancasDoNegocioParaConferir(businessId: string, venceuDesde: Date) {
     return prisma.cobrancaSinal.findMany({
       where: {
-        businessId, idExterno: { not: null },
+        businessId, gateway: 'mercadopago', idExterno: { not: null },
         situacao: { in: ['pendente', 'expirada', 'recusada'] }, venceEm: { gte: venceuDesde },
       },
       select: { id: true },

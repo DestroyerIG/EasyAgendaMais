@@ -20,6 +20,7 @@ describe('recebimentosRepository.reservasComSinalNoCartao', () => {
     expect(findMany).toHaveBeenCalledTimes(1);
     expect(findMany.mock.calls[0][0].where).toEqual({
       businessId: 'b1', appointmentId: { in: ['a1', 'a2'] }, situacao: 'paga', forma: 'cartao', idExterno: { not: null },
+      OR: [{ formaPaga: null }, { formaPaga: { not: 'pix' } }],
     });
   });
 
@@ -36,5 +37,13 @@ describe('falha na consulta', () => {
     expect(await recebimentosRepository[fn]('b1', ['a1'])).toEqual(new Set());
     expect(warn).toHaveBeenCalledTimes(1);
     expect(JSON.stringify(warn.mock.calls[0][0])).not.toContain('a1');
+  });
+});
+
+describe('conferência só do Mercado Pago', () => {
+  it.each(['cobrancasParaConferir', 'cobrancasDoNegocioParaConferir'] as const)('%s filtra gateway mercadopago', async (fn) => {
+    if (fn === 'cobrancasParaConferir') await recebimentosRepository.cobrancasParaConferir(new Date());
+    else await recebimentosRepository.cobrancasDoNegocioParaConferir('b1', new Date());
+    expect(findMany.mock.calls[0][0].where).toMatchObject({ gateway: 'mercadopago' });
   });
 });

@@ -63,7 +63,7 @@ export function GatewayPassos({ gatewayId }: { gatewayId: string }) {
       try {
         setEstado(await recebimentosApi.conexoes());
       } catch {
-        setEstado({ configurado: false, conexao: null });
+        setEstado({ configurado: false, disponiveis: [], conexao: null });
       }
     })();
   }, [gateway, showToast]);
@@ -91,6 +91,17 @@ export function GatewayPassos({ gatewayId }: { gatewayId: string }) {
   }
 
   const c = estado.conexao;
+  if (c && c.gateway !== 'mercadopago') {
+    return (
+      <div className="space-y-3">
+        {voltar}
+        <Banner tone="warning" variant="inline" className="flex-col items-start">
+          Você já recebe pela InfinitePay. Desconecte por lá antes de conectar o Mercado Pago.
+          <Link href="/dashboard/configuracoes/recebimentos/infinitepay" className={linkExterno}>Ir para a InfinitePay</Link>
+        </Banner>
+      </div>
+    );
+  }
 
   const conectar = async () => {
     setIndo(true);
@@ -146,7 +157,7 @@ export function GatewayPassos({ gatewayId }: { gatewayId: string }) {
   const desconectar = async () => {
     setDesconectando(true);
     try {
-      await recebimentosApi.desconectar();
+      await recebimentosApi.desconectar('mercadopago');
       setEstado(await recebimentosApi.conexoes());
       showToast('Mercado Pago desconectado.', 'success');
       setConfirmando(false);

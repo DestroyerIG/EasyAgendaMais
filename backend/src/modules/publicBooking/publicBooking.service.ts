@@ -7,7 +7,8 @@ import { notificationsService } from '../notifications/notifications.service.js'
 import logger from '../../utils/logger.js';
 import { vocabularioDe } from '../../config/vocabulario.js';
 import { automacoesGatilhos } from '../whatsappAutomacoes/gatilhos.service.js';
-import type { CreatePublicAppointmentInput, GetPublicAvailabilityQuery, GetPublicDaysQuery, Storefront } from './publicBooking.types.js';
+import { pagamentosService } from '../recebimentos/pagamentos.service.js';
+import type { ConfirmarInfinitePayInput, CreatePublicAppointmentInput, GetPublicAvailabilityQuery, GetPublicDaysQuery, Storefront } from './publicBooking.types.js';
 import { DIAS_NA_FAIXA, diasAPartirDe, notaPublica, situacaoDaReserva } from './publicBooking.rules.js';
 import { estadoContaService } from '../conta/estadoConta.service.js';
 import { textoAgendaPausada } from '../conta/estadoConta.rules.js';
@@ -15,7 +16,9 @@ import { googleAgendaService } from '../googleAgenda/googleAgenda.service.js';
 import { conexaoService } from '../recebimentos/conexao.service.js';
 import { cobrancasService } from '../recebimentos/cobrancas.service.js';
 import { recebimentosRepository } from '../recebimentos/recebimentos.repository.js';
-import type { FormaSinal } from '../recebimentos/recebimentos.types.js';
+import type { FormaSinal, GatewayId } from '../recebimentos/recebimentos.types.js';
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type PixKeyType = Parameters<typeof buildPixPayload>[0]['pixKeyType'];
 
@@ -109,6 +112,7 @@ export const publicBookingService = {
     const estado = await estadoContaService.doNegocio(business.id);
     const agenda = await getBusinessScheduleSettings(business.id);
     const formasPagamento = await conexaoService.formas(business.id).catch((): FormaSinal[] => ['pix']);
+    const gatewayPagamento = await conexaoService.gatewayAtivo(business.id).catch(() => null);
     const notas = business.mostrarNota ? await publicBookingRepository.resumoDasNotas(business.id) : null;
 
     return {
@@ -126,6 +130,7 @@ export const publicBookingService = {
       whatsapp: business.whatsapp ?? null,
       agendaPausada: estado.tipo !== 'ativa',
       formasPagamento,
+      gatewayPagamento,
       services: services.map((s) => ({
         id: s.id,
         name: s.name,
@@ -184,18 +189,21 @@ export const publicBookingService = {
     let forma: FormaSinal = 'pix';
     let pixPayload: string | null = null;
     let checkoutUrl: string | null = null;
+    let gateway: GatewayId | null = null;
     if (situacao === 'aguardando') {
       // Sem id externo a cobrança ainda não existe no gateway (ou ficou órfã): não há o que pagar nela.
       const atual = cobrancas.find((c) => c.idExterno !== null && (c.situacao === 'pendente' || c.situacao === 'recusada'));
       forma = atual?.forma === 'cartao' ? 'cartao' : 'pix';
+      gateway = (atual?.gateway as GatewayId | undefined) ?? null;
       checkoutUrl = atual?.checkoutUrl ?? null;
       if (forma === 'pix') pixPayload = atual?.codigoPix ?? pixManual(business, sinal, reserva.service.name);
     } else {
       // A paga original tem id externo; as linhas de pagamento repetido não. Sem paga, vale a
       // última cobrança que chegou ao gateway (a reserva de cartão vencida não vira "prazo do Pix").
       const paga = cobrancas.find((c) => c.situacao === 'paga' && c.idExterno !== null);
-      const ultima = paga ?? cobrancas.find((c) => c.idExterno !== null);
+      const ultima = paga ?? cobrancas.find((c) => c.idExterno !== null && c.situacao !== 'substituida');
       if (ultima?.forma === 'cartao') forma = 'cartao';
+      gateway = (ultima?.gateway as GatewayId | undefined) ?? null;
       // A rotina cancela a reserva vencida e marca a cobrança como expirada: para a cliente, venceu.
       if (situacao === 'cancelado' && !paga && cobrancas.some((c) => c.situacao === 'expirada')) situacao = 'expirado';
     }
@@ -208,7 +216,7 @@ export const publicBookingService = {
         data: reserva.date.toISOString().slice(0, 10),
         horario: reserva.time.toISOString().slice(11, 16),
         sinal,
-        forma, pixPayload, checkoutUrl,
+        forma, gateway, pixPayload, checkoutUrl,
         expiresAt: reserva.expiresAt?.toISOString() ?? null,
       },
     };
@@ -218,6 +226,18 @@ export const publicBookingService = {
    * Código Pix da reserva. Repete o da cobrança Pix pendente; sem ela, tenta criar uma no gateway
    * e, se não der, devolve o código manual (sem cobrança).
    */
+  /** Volta do cliente da InfinitePay: confere o pagamento e devolve o status da reserva já atualizado. */
+  async confirmarInfinitePay(slug: string, id: string, d: ConfirmarInfinitePayInput) {
+    const business = await publicBookingRepository.findBusinessBySlug(slug);
+    if (!business) throw new NotFoundError('Página');
+    const reserva = await publicBookingRepository.findPublicAppointment(business.id, id);
+    if (!reserva) throw new NotFoundError('Reserva');
+    const cobranca = UUID.test(d.orderNsu) ? await recebimentosRepository.cobrancaDaReserva(d.orderNsu, reserva.id, 'infinitepay') : null;
+    if (!cobranca) throw new NotFoundError('Cobrança');
+    await pagamentosService.confirmarInfinitePay({ cobrancaId: cobranca.id, orderNsu: d.orderNsu, transactionNsu: d.transactionNsu, fatura: d.fatura });
+    return publicBookingService.getAppointmentStatus(slug, id);
+  },
+
   async getPixDaReserva(slug: string, id: string) {
     const business = await publicBookingRepository.findBusinessBySlug(slug);
     if (!business) throw new NotFoundError('Página');
@@ -243,6 +263,15 @@ export const publicBookingService = {
 
     const manual = pixManual(business, sinal, reserva.service.name);
     if (!manual) throw new ValidationError('Este negócio ainda não configurou o recebimento de sinal via Pix');
+    // Quem troca o link da InfinitePay pelo Pix direto não deve reencontrar o link ao recarregar a página.
+    // A cobrança continua confirmável pelo webhook, se a pessoa pagar o link mesmo assim.
+    if (cobrancas.some((c) => c.gateway === 'infinitepay' && (c.situacao === 'pendente' || c.situacao === 'recusada'))) {
+      try {
+        await recebimentosRepository.marcarSubstituidas(reserva.id, 'infinitepay');
+      } catch (err) {
+        logger.warn({ err, appointmentId: reserva.id }, 'Recebimentos: falha ao marcar o link da InfinitePay como substituído');
+      }
+    }
     return { pixPayload: manual, forma: 'pix' as const, expiresAt };
   },
 

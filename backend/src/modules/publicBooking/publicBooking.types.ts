@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { FormaSinal } from '../recebimentos/recebimentos.types.js';
+import type { FormaSinal, GatewayId } from '../recebimentos/recebimentos.types.js';
 
 export const GetPublicAvailabilitySchema = z.object({
   serviceId: z.string().uuid(),
@@ -10,6 +10,10 @@ export const GetPublicAvailabilitySchema = z.object({
 export const GetPublicDaysSchema = GetPublicAvailabilitySchema.omit({ date: true });
 
 export const PublicAppointmentParamsSchema = z.object({ slug: z.string(), id: z.string().uuid() });
+
+const NsuSchema = z.string().regex(/^[A-Za-z0-9_-]{1,100}$/);
+export const ConfirmarInfinitePaySchema = z.object({ orderNsu: NsuSchema, transactionNsu: NsuSchema, fatura: NsuSchema });
+export type ConfirmarInfinitePayInput = z.infer<typeof ConfirmarInfinitePaySchema>;
 
 export const CreatePublicAppointmentSchema = z.object({
   serviceId: z.string().uuid(),
@@ -54,6 +58,8 @@ export interface Storefront {
   whatsapp: string | null;
   agendaPausada: boolean;
   formasPagamento: FormaSinal[];
+  /** Gateway da conexão ativa, para a página saber como mostrar o pagamento. */
+  gatewayPagamento: GatewayId | null;
   services: StorefrontService[];
   vocabulario: Vocabulario;
 }

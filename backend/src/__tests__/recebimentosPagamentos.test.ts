@@ -97,10 +97,10 @@ vi.mock('../modules/appointments/appointments.repository.js', () => ({ appointme
 
 const gw = vi.hoisted(() => ({ referenciaDoRecurso: vi.fn(), buscarPorReferencia: vi.fn(), conta: vi.fn() }));
 const conexao = vi.hoisted(() => ({
-  tokenAtivo: vi.fn(), porContaExterna: vi.fn(), marcarReconectar: vi.fn(),
+  credencial: vi.fn(), tokenAtivo: vi.fn(), porContaExterna: vi.fn(), marcarReconectar: vi.fn(),
   // Mesma regra do serviço real: só a conta do gateway prova que o acesso caiu.
-  acessoRevogado: vi.fn(async (t: { accessToken: string }) => {
-    try { await gw.conta(t.accessToken); return false; } catch (e) { return (e as Error).name === 'GatewayTokenInvalido'; }
+  acessoRevogado: vi.fn(async (_b: string, _g: string, accessToken: string) => {
+    try { await gw.conta(accessToken); return false; } catch (e) { return (e as Error).name === 'GatewayTokenInvalido'; }
   }),
 }));
 vi.mock('../modules/recebimentos/conexao.service.js', () => ({ conexaoService: conexao }));
@@ -108,6 +108,9 @@ vi.mock('../modules/recebimentos/conexao.service.js', () => ({ conexaoService: c
 vi.mock('../modules/recebimentos/gateways/index.js', async (orig) => ({
   ...(await orig<typeof import('../modules/recebimentos/gateways/index.js')>()), gateways: { mercadopago: gw },
 }));
+
+const ip = vi.hoisted(() => ({ conferirPagamento: vi.fn() }));
+vi.mock('../modules/recebimentos/gateways/infinitePay.js', () => ({ infinitePay: ip }));
 
 const gatilhos = vi.hoisted(() => ({ aoCancelar: vi.fn() }));
 vi.mock('../modules/whatsappAutomacoes/gatilhos.service.js', () => ({ automacoesGatilhos: gatilhos }));
@@ -120,7 +123,7 @@ const { pagamentosService } = await import('../modules/recebimentos/pagamentos.s
 const { recebimentosRepository } = await import('../modules/recebimentos/recebimentos.repository.js');
 const { publicBookingRepository } = await import('../modules/publicBooking/publicBooking.repository.js');
 const { appointmentsService } = await import('../modules/appointments/appointments.service.js');
-const { GatewayIndisponivel, GatewayTokenInvalido } = await import('../modules/recebimentos/gateways/index.js');
+const { GatewayIndisponivel, GatewayRecusou, GatewayTokenInvalido } = await import('../modules/recebimentos/gateways/index.js');
 const routes = (await import('../modules/recebimentos/recebimentos.routes.js')).default;
 const supertest = (await import('supertest')).default;
 
@@ -128,6 +131,12 @@ const app = express();
 app.use(express.json());
 app.use('/api/v1/recebimentos', routes);
 const request = supertest(app);
+// Testes que esgotam o limite dos webhooks usam um endereço próprio, para não gastar o dos outros.
+const comProxy = express();
+comProxy.set('trust proxy', 1);
+comProxy.use(express.json());
+comProxy.use('/api/v1/recebimentos', routes);
+const postarDe = (ip: string, url: string) => supertest(comProxy).post(url).set('X-Forwarded-For', ip);
 
 const COB = '11111111-1111-4111-8111-111111111111';
 const COB2 = '22222222-2222-4222-8222-222222222222';
@@ -176,6 +185,8 @@ beforeEach(() => {
   gw.referenciaDoRecurso.mockResolvedValue(COB);
   gw.buscarPorReferencia.mockResolvedValue([pagamento()]);
   gw.conta.mockRejectedValue(new GatewayTokenInvalido());
+  conexao.credencial.mockResolvedValue({ gateway: 'infinitepay', cred: { handle: 'barbearia', chave: 'chave-ip' } });
+  ip.conferirPagamento.mockResolvedValue({ id: 'tx-1', status: 'approved', valor: 30, referencia: COB, formaPaga: 'cartao_credito' });
   agenda.getBusinessScheduleSettings.mockResolvedValue({ timezone: 'America/Sao_Paulo' });
   apptRepo.hasConflict.mockResolvedValue(false);
   apptRepo.findById.mockImplementation(async (id: string) => banco.estado.reservas.find((r) => r.id === id) ?? null);
@@ -835,6 +846,20 @@ describe('conferirPendentes', () => {
     await pagamentosService.conferirPendentes();
     expect(conexao.tokenAtivo).not.toHaveBeenCalled();
   });
+
+  it('só com a InfinitePay disponível a rotina do Mercado Pago não roda', async () => {
+    delete process.env['MERCADOPAGO_CLIENT_ID'];
+    process.env['BACKEND_URL'] = 'https://api.test';
+    try {
+      reserva(); cobranca({ venceEm: emMinutos(5) });
+      const buscar = vi.spyOn(recebimentosRepository, 'cobrancasParaConferir');
+      await pagamentosService.conferirPendentes();
+      expect(buscar).not.toHaveBeenCalled();
+      expect(conexao.tokenAtivo).not.toHaveBeenCalled();
+    } finally {
+      delete process.env['BACKEND_URL'];
+    }
+  });
 });
 
 describe('conferirAoReconectar', () => {
@@ -850,6 +875,59 @@ describe('conferirAoReconectar', () => {
     gw.buscarPorReferencia.mockResolvedValue([]);
     await pagamentosService.conferirAoReconectar('b1', agora);
     expect(gw.buscarPorReferencia.mock.calls.map((c) => c[1])).toEqual(['c-2d']);
+  });
+});
+
+describe('POST /webhook/infinitepay/:cobrancaId', () => {
+  const corpo = { order_nsu: COB, transaction_nsu: 'tx-1', invoice_slug: 'fat-1' };
+  const espiao = () => vi.spyOn(pagamentosService, 'confirmarInfinitePay');
+
+  it('confirma e responde 200 depois da conferência', async () => {
+    reserva(); cobranca({ gateway: 'infinitepay', forma: 'cartao', idExterno: COB });
+    const r = await request.post(`/api/v1/recebimentos/webhook/infinitepay/${COB}`).send(corpo);
+    expect(r.status).toBe(200);
+    expect(lerReserva().status).toBe('confirmado');
+  });
+
+  it('InfinitePay fora do ar responde 400', async () => {
+    espiao().mockResolvedValue('tentar_de_novo');
+    expect((await request.post(`/api/v1/recebimentos/webhook/infinitepay/${COB}`).send(corpo)).status).toBe(400);
+  });
+
+  it('cobrança nossa sem credencial utilizável responde 400 para a InfinitePay tentar de novo', async () => {
+    reserva(); cobranca({ gateway: 'infinitepay', forma: 'cartao', idExterno: COB });
+    conexao.credencial.mockResolvedValue(null);
+    expect((await request.post(`/api/v1/recebimentos/webhook/infinitepay/${COB}`).send(corpo)).status).toBe(400);
+    expect(lerReserva().status).toBe('aguardando_pagamento');
+  });
+
+  it('cobrança que não existe responde 200', async () => {
+    expect((await request.post(`/api/v1/recebimentos/webhook/infinitepay/${COB}`).send(corpo)).status).toBe(200);
+  });
+
+  it.each([
+    ['order_nsu com espaço', { ...corpo, order_nsu: 'a b' }],
+    ['transaction_nsu ausente', { order_nsu: COB, invoice_slug: 'fat-1' }],
+    ['invoice_slug longo', { ...corpo, invoice_slug: 'x'.repeat(101) }],
+    ['tipo errado', { ...corpo, transaction_nsu: 12 }],
+  ])('corpo fora do formato (%s) responde 200 sem chamar o serviço', async (_n, c) => {
+    const e = espiao();
+    expect((await request.post(`/api/v1/recebimentos/webhook/infinitepay/${COB}`).send(c)).status).toBe(200);
+    expect(e).not.toHaveBeenCalled();
+  });
+
+  it('tem limite próprio: avisos do Mercado Pago não esgotam o da InfinitePay', async () => {
+    vi.spyOn(pagamentosService, 'processarAviso').mockResolvedValue(undefined);
+    for (let i = 0; i < 300; i++) await postarDe('10.200.0.1', '/api/v1/recebimentos/webhook/mercadopago').send({});
+    espiao().mockResolvedValue('tentar_de_novo');
+    expect((await postarDe('10.200.0.1', `/api/v1/recebimentos/webhook/infinitepay/${COB}`).send(corpo)).status).toBe(400);
+  }, 30_000);
+
+  it('cobrancaId que não é UUID responde 200 sem chamar o serviço', async () => {
+    const e = espiao();
+    const r = await request.post('/api/v1/recebimentos/webhook/infinitepay/xyz').send(corpo);
+    expect(r.status).toBe(200);
+    expect(e).not.toHaveBeenCalled();
   });
 });
 
@@ -904,13 +982,12 @@ describe('POST /webhook/mercadopago', () => {
     expect(processar).toHaveBeenCalledTimes(1);
   });
 
-  // Por último: consome o limite do IP, que vale para a janela inteira.
   it('acima de 300 pedidos por minuto responde 200 e não processa', async () => {
     const corpo = { type: 'payment', user_id: 999, data: { id: '555' } };
-    for (let i = 0; i < 300; i += 1) await request.post(URL_WEBHOOK).send(corpo);
+    for (let i = 0; i < 300; i += 1) await postarDe('10.200.0.2', URL_WEBHOOK).send(corpo);
     processar.mockClear();
 
-    const r = await request.post(URL_WEBHOOK).send(corpo);
+    const r = await postarDe('10.200.0.2', URL_WEBHOOK).send(corpo);
     expect(r.status).toBe(200);
     expect(processar).not.toHaveBeenCalled();
   }, 30_000);
@@ -965,5 +1042,151 @@ describe('cancelamento de reserva com sinal pago', () => {
     reserva({ status: 'confirmado' }); cobranca({ situacao: 'paga', pagamentoExternoId: '555' });
     await appointmentsService.delete('a1', 'b1');
     await vi.waitFor(() => expect(alertas()).toHaveLength(1));
+  });
+});
+
+describe('confirmarInfinitePay', () => {
+  const d = { cobrancaId: COB, orderNsu: COB, transactionNsu: 'tx-1', fatura: 'fat-1' };
+  const ipCobranca = (extra: Record<string, unknown> = {}) => cobranca({ gateway: 'infinitepay', forma: 'cartao', idExterno: COB, ...extra });
+
+  it('pago com valor igual confirma a reserva e grava o pagamento', async () => {
+    reserva(); ipCobranca();
+    await expect(pagamentosService.confirmarInfinitePay(d)).resolves.toBe('ok');
+
+    expect(ip.conferirPagamento).toHaveBeenCalledWith({ handle: 'barbearia', chave: 'chave-ip' }, { cobrancaId: COB, transactionNsu: 'tx-1', fatura: 'fat-1' });
+    expect(lerReserva().status).toBe('confirmado');
+    expect(lerCobranca()).toMatchObject({ situacao: 'paga', pagamentoExternoId: 'tx-1', formaPaga: 'cartao_credito' });
+    expect(sinal.avisarSinalConfirmado).toHaveBeenCalledTimes(1);
+  });
+
+  it('order_nsu trocado não consulta a InfinitePay', async () => {
+    reserva(); ipCobranca();
+    await expect(pagamentosService.confirmarInfinitePay({ ...d, orderNsu: COB2 })).resolves.toBe('ok');
+    expect(ip.conferirPagamento).not.toHaveBeenCalled();
+    expect(lerReserva().status).toBe('aguardando_pagamento');
+  });
+
+  it('cobrança inexistente ou de outro gateway é ignorada', async () => {
+    await expect(pagamentosService.confirmarInfinitePay(d)).resolves.toBe('ok');
+    reserva(); cobranca();
+    await expect(pagamentosService.confirmarInfinitePay(d)).resolves.toBe('ok');
+    expect(ip.conferirPagamento).not.toHaveBeenCalled();
+    expect(lerReserva().status).toBe('aguardando_pagamento');
+  });
+
+  it('cobrança nossa sem credencial utilizável pede nova tentativa, sem gravar nada', async () => {
+    reserva(); ipCobranca();
+    conexao.credencial.mockResolvedValue(null);
+    await expect(pagamentosService.confirmarInfinitePay(d)).resolves.toBe('tentar_de_novo');
+    expect(ip.conferirPagamento).not.toHaveBeenCalled();
+    expect(lerReserva().status).toBe('aguardando_pagamento');
+    expect(lerCobranca().situacao).toBe('pendente');
+  });
+
+  it('falha no banco ao confirmar pede nova tentativa', async () => {
+    reserva(); ipCobranca();
+    vi.spyOn(recebimentosRepository, 'marcarPagaEConfirmar').mockRejectedValue(new Error('banco caiu'));
+    await expect(pagamentosService.confirmarInfinitePay(d)).resolves.toBe('tentar_de_novo');
+  });
+
+  it('InfinitePay recusando a conferência pede nova tentativa', async () => {
+    reserva(); ipCobranca();
+    ip.conferirPagamento.mockRejectedValue(new GatewayRecusou());
+    await expect(pagamentosService.confirmarInfinitePay(d)).resolves.toBe('tentar_de_novo');
+  });
+
+  it('paid false não grava nada', async () => {
+    reserva(); ipCobranca();
+    ip.conferirPagamento.mockResolvedValue(null);
+    await expect(pagamentosService.confirmarInfinitePay(d)).resolves.toBe('ok');
+    expect(lerCobranca()).toMatchObject({ situacao: 'pendente', pagamentoExternoId: null });
+    expect(lerReserva().status).toBe('aguardando_pagamento');
+  });
+
+  it('valor diferente não confirma', async () => {
+    reserva(); ipCobranca();
+    ip.conferirPagamento.mockResolvedValue({ id: 'tx-1', status: 'approved', valor: 10, referencia: COB, formaPaga: 'pix' });
+    await expect(pagamentosService.confirmarInfinitePay(d)).resolves.toBe('ok');
+    expect(lerReserva().status).toBe('aguardando_pagamento');
+    expect(lerCobranca().situacao).toBe('pendente');
+  });
+
+  it('a mesma confirmação duas vezes não muda nada nem avisa de novo', async () => {
+    reserva(); ipCobranca();
+    await pagamentosService.confirmarInfinitePay(d);
+    const depois = structuredClone(lerCobranca());
+    await pagamentosService.confirmarInfinitePay(d);
+    expect(lerCobranca()).toEqual(depois);
+    expect(banco.estado.cobrancas).toHaveLength(1);
+    expect(sinal.avisarSinalConfirmado).toHaveBeenCalledTimes(1);
+    expect(alertas()).toHaveLength(0);
+  });
+
+  it('InfinitePay fora do ar pede nova tentativa', async () => {
+    reserva(); ipCobranca();
+    ip.conferirPagamento.mockRejectedValue(new GatewayIndisponivel());
+    await expect(pagamentosService.confirmarInfinitePay(d)).resolves.toBe('tentar_de_novo');
+  });
+
+  it('chave revogada pede reconexão só se a conta confirmar, e pede nova tentativa', async () => {
+    reserva(); ipCobranca();
+    ip.conferirPagamento.mockRejectedValue(new GatewayTokenInvalido());
+    conexao.acessoRevogado.mockResolvedValueOnce(true);
+    await expect(pagamentosService.confirmarInfinitePay(d)).resolves.toBe('tentar_de_novo');
+    expect(conexao.acessoRevogado).toHaveBeenCalledWith('b1', 'infinitepay');
+    expect(conexao.marcarReconectar).toHaveBeenCalledTimes(1);
+
+    conexao.marcarReconectar.mockClear();
+    conexao.acessoRevogado.mockResolvedValueOnce(false);
+    await pagamentosService.confirmarInfinitePay(d);
+    expect(conexao.marcarReconectar).not.toHaveBeenCalled();
+  });
+
+  it('erro inesperado não lança e pede nova tentativa', async () => {
+    reserva(); ipCobranca();
+    ip.conferirPagamento.mockRejectedValue(new Error('boom'));
+    await expect(pagamentosService.confirmarInfinitePay(d)).resolves.toBe('tentar_de_novo');
+  });
+
+  it('pago sem reserva avisa com o nome da InfinitePay', async () => {
+    reserva({ status: 'cancelado' }); ipCobranca();
+    await pagamentosService.confirmarInfinitePay(d);
+    const texto = alertas().map((c) => c[1].description).join(' ');
+    expect(texto).toContain('InfinitePay');
+    expect(texto).not.toContain('Mercado Pago');
+  });
+
+  it('marcarSubstituidas só tira de cena as cobranças em aberto do gateway pedido', async () => {
+    reserva();
+    ipCobranca();
+    ipCobranca({ id: 'c-recusada', situacao: 'recusada' });
+    ipCobranca({ id: 'c-paga', situacao: 'paga' });
+    cobranca({ id: 'c-mp' });
+    await recebimentosRepository.marcarSubstituidas('a1', 'infinitepay');
+    expect(banco.estado.cobrancas.map((c) => [c.id, c.situacao])).toEqual([
+      [COB, 'substituida'], ['c-recusada', 'substituida'], ['c-paga', 'paga'], ['c-mp', 'pendente'],
+    ]);
+  });
+
+  it('link substituído pelo Pix e pago mesmo assim ainda confirma a reserva que aguarda', async () => {
+    reserva(); ipCobranca({ situacao: 'substituida' });
+    await expect(pagamentosService.confirmarInfinitePay(d)).resolves.toBe('ok');
+    expect(lerReserva().status).toBe('confirmado');
+  });
+
+  it('link substituído e pago com a reserva cancelada pelo negócio não reativa: avisa', async () => {
+    reserva({ status: 'cancelado' }); ipCobranca({ situacao: 'substituida' });
+    await pagamentosService.confirmarInfinitePay(d);
+    expect(lerReserva().status).toBe('cancelado');
+    expect(lerCobranca().situacao).toBe('paga');
+    expect(alertas()).toHaveLength(1);
+  });
+
+  it('a rotina de cada minuto não confere cobrança da InfinitePay', async () => {
+    reserva(); ipCobranca();
+    await pagamentosService.conferirPendentes();
+    expect(ip.conferirPagamento).not.toHaveBeenCalled();
+    expect(gw.buscarPorReferencia).not.toHaveBeenCalled();
+    expect(lerReserva().status).toBe('aguardando_pagamento');
   });
 });

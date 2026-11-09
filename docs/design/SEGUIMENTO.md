@@ -347,6 +347,16 @@ Spec em `docs/superpowers/specs/2026-11-05-recebimentos-mercado-pago-design.md`,
 - **Uma conta, um negócio:** nesta versão, uma conta do Mercado Pago conecta um negócio só.
 - **Cancelamento pelo robô do WhatsApp:** não lembra de devolver o sinal, ao contrário do cancelamento pelo painel.
 
+## Recebimentos pela InfinitePay, pendências conhecidas
+
+Spec em `docs/superpowers/specs/2026-11-09-recebimentos-infinitepay-design.md` e guia em `docs/infinitepay-configuracao.md`. Em PR (feat/recebimentos-infinitepay); falta criar `BACKEND_URL` no Render e o teste real.
+
+- **`payment_check` com pedido inexistente:** confirmar que responde 200. A conferência da chave ao conectar depende disso. Se responder 4xx, chaves válidas são recusadas.
+- **`payment_check` exige a chave?** Confirmar se precisa do `X-Api-Key`. Se não exigir, a prova de chave revogada passa a ser o 401/403 ao criar o link.
+- **Webhook:** confirmar o corpo para eventos que não são de pagamento e a política de reenvio.
+- **`/links`:** conferir a resposta completa.
+- **Devolução:** só pelo app da InfinitePay.
+
 ## Infraestrutura
 
 - **Resolvido em 05/11:** o RLS foi ligado nas 14 tabelas que ficaram sem ele (comissões, clube, app do profissional e Google Agenda), pela migração `20261106120000_rls_tabelas_restantes` (PR #37). Só a `_prisma_migrations` segue sem RLS, de propósito. Roteiro em `docs/design/rls-tabelas-restantes.md`.

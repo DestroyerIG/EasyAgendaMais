@@ -4,9 +4,11 @@ import { sendWhatsAppMessage } from '../../services/whatsapp/index.js';
 import { avisarSinalConfirmado } from '../appointments/sinalConfirmado.js';
 import { notificationsService } from '../notifications/notifications.service.js';
 import { conexaoService } from './conexao.service.js';
-import { GatewayIndisponivel, GatewayRecusou, GatewayTokenInvalido, gateways } from './gateways/index.js';
+import { GatewayIndisponivel, GatewayRecusou, GatewayTokenInvalido } from './gateways/index.js';
+import { infinitePay } from './gateways/infinitePay.js';
+import { gatewayDe } from './gateways/porId.js';
 import { recebimentosRepository as repo } from './recebimentos.repository.js';
-import { centavos, decidirPagamento, reais, recebimentosConfigurado, type Decisao } from './recebimentos.rules.js';
+import { centavos, decidirPagamento, gatewayDisponivel, nomeDoGateway, reais, type Decisao } from './recebimentos.rules.js';
 import type { GatewayId, PagamentoGateway } from './recebimentos.types.js';
 
 // Pagamentos do sinal. O aviso do gateway só diz onde olhar: a prova é sempre a busca feita com o
@@ -32,7 +34,7 @@ async function consultarGateway<T>(businessId: string, token: Token, chamada: ()
   } catch (e) {
     if (e instanceof GatewayTokenInvalido) {
       // Um 401 pode vir de um id escolhido por quem avisou: só a conta prova que o acesso caiu.
-      if (await conexaoService.acessoRevogado(token)) await conexaoService.marcarReconectar(businessId, e.message);
+      if (await conexaoService.acessoRevogado(businessId, token.gateway, token.accessToken)) await conexaoService.marcarReconectar(businessId, e.message);
       return null;
     }
     if (e instanceof GatewayIndisponivel || e instanceof GatewayRecusou) {
@@ -67,7 +69,7 @@ async function avisarPagoSemReserva(c: Cobranca): Promise<void> {
   await alertarNegocio(
     c.businessId,
     'Sinal pago, mas a reserva não foi confirmada',
-    `${reserva.client.name} pagou ${reais(c.valor)}, mas o horário não está mais reservado. Fale com a pessoa, confira no Mercado Pago e devolva se for o caso.`,
+    `${reserva.client.name} pagou ${reais(c.valor)}, mas o horário não está mais reservado. Fale com a pessoa, confira no ${nomeDoGateway(c.gateway as GatewayId)} e devolva se for o caso.`,
   );
   try {
     await sendWhatsAppMessage(reserva.client.phone, MENSAGEM_AO_CLIENTE, { businessId: c.businessId, origin: 'pix_recibo' });
@@ -82,7 +84,7 @@ async function avisarDuplicado(c: Cobranca): Promise<void> {
   await alertarNegocio(
     c.businessId,
     'Possível sinal pago em dobro',
-    `${reserva.client.name} pode ter pago ${reais(c.valor)} a mais nesta reserva. Confira no Mercado Pago e devolva se for o caso.`,
+    `${reserva.client.name} pode ter pago ${reais(c.valor)} a mais nesta reserva. Confira no ${nomeDoGateway(c.gateway as GatewayId)} e devolva se for o caso.`,
   );
 }
 
@@ -93,7 +95,7 @@ async function avisarEstorno(c: Cobranca, situacao: 'devolvida' | 'contestada'):
   await alertarNegocio(
     c.businessId,
     titulo,
-    `O sinal de ${reais(c.valor)} de ${reserva.client.name} ${fato}. Confira no Mercado Pago. A reserva não mudou: você decide se ela continua.`,
+    `O sinal de ${reais(c.valor)} de ${reserva.client.name} ${fato}. Confira no ${nomeDoGateway(c.gateway as GatewayId)}. A reserva não mudou: você decide se ela continua.`,
   );
 }
 
@@ -166,15 +168,52 @@ async function conferirCobranca(cobrancaId: string): Promise<void> {
     return;
   }
   const pagamentos = await consultarGateway(
-    c.businessId, token, () => gateways[token.gateway].buscarPorReferencia(token.accessToken, c.id),
+    c.businessId, token, () => gatewayDe(token.gateway).buscarPorReferencia(token.accessToken, c.id),
   );
   for (const p of emOrdemDeAvaliacao(pagamentos ?? [])) await avaliar(c.id, p);
 }
 
 export const pagamentosService = {
+  /**
+   * Confirmação da InfinitePay (webhook ou volta do cliente): a prova é a conferência feita com a chave do negócio.
+   * Nunca lança. 'ok' só quando não há o que confirmar (cobrança que não é nossa, order_nsu trocado, não pago)
+   * ou quando a confirmação foi aplicada; em qualquer outro caso, 'tentar_de_novo' para a InfinitePay repetir.
+   */
+  async confirmarInfinitePay(d: { cobrancaId: string; transactionNsu: string; fatura: string; orderNsu: string }): Promise<'ok' | 'tentar_de_novo'> {
+    try {
+      if (d.orderNsu !== d.cobrancaId) return 'ok';
+      const c = await repo.cobrancaComReserva(d.cobrancaId);
+      if (!c || c.gateway !== 'infinitepay') return 'ok';
+      // Daqui em diante a cobrança é nossa: sem conferir, o pagamento pode se perder, então pede nova tentativa.
+      const conta = await conexaoService.credencial(c.businessId);
+      if (!conta) {
+        logger.warn({ cobrancaId: d.cobrancaId, businessId: c.businessId }, 'Recebimentos: negócio sem conexão ativa da InfinitePay para conferir a cobrança');
+        return 'tentar_de_novo';
+      }
+      let pagamento: PagamentoGateway | null;
+      try {
+        pagamento = await infinitePay.conferirPagamento(conta.cred, { cobrancaId: c.id, transactionNsu: d.transactionNsu, fatura: d.fatura });
+      } catch (e) {
+        if (e instanceof GatewayTokenInvalido) {
+          if (await conexaoService.acessoRevogado(c.businessId, 'infinitepay')) await conexaoService.marcarReconectar(c.businessId, e.message);
+        } else if (e instanceof GatewayRecusou) {
+          logger.warn({ cobrancaId: c.id, erro: e.name }, 'Recebimentos: InfinitePay recusou a conferência');
+        } else if (!(e instanceof GatewayIndisponivel)) {
+          throw e;
+        }
+        return 'tentar_de_novo';
+      }
+      if (pagamento) await avaliar(c.id, pagamento);
+      return 'ok';
+    } catch (e) {
+      logger.error({ err: e, cobrancaId: d.cobrancaId }, 'Recebimentos: falha ao confirmar o pagamento da InfinitePay');
+      return 'tentar_de_novo';
+    }
+  },
+
   /** Aviso do gateway. Nunca lança: quem chama já respondeu 200. */
   async processarAviso(aviso: { contaId: string; tipo: 'order' | 'payment'; recursoId: string }): Promise<void> {
-    if (!recebimentosConfigurado()) return;
+    if (!gatewayDisponivel('mercadopago')) return;
     const { contaId, tipo, recursoId } = aviso;
     try {
       const conexao = await conexaoService.porContaExterna(GATEWAY, contaId);
@@ -189,7 +228,7 @@ export const pagamentosService = {
         return;
       }
       const referencia = await consultarGateway(
-        businessId, token, () => gateways[token.gateway].referenciaDoRecurso(token.accessToken, { tipo, id: recursoId }),
+        businessId, token, () => gatewayDe(token.gateway).referenciaDoRecurso(token.accessToken, { tipo, id: recursoId }),
       );
       // A conta também recebe pagamentos que não são sinais: esses têm outra referência, ou nenhuma.
       if (!referencia || !UUID.test(referencia)) return;
@@ -224,7 +263,8 @@ export const pagamentosService = {
 
   /** Rede de segurança para avisos perdidos: roda a cada minuto. Nunca lança. */
   async conferirPendentes(agora: Date = new Date()): Promise<void> {
-    if (!recebimentosConfigurado()) return;
+    // Só confere cobranças do Mercado Pago: a InfinitePay não tem consulta por referência.
+    if (!gatewayDisponivel('mercadopago')) return;
     try {
       const limite = new Date(agora.getTime() - JANELA_APOS_VENCER_MS);
       const limiteCartao = agora.getMinutes() % PASSO_CARTAO_MIN === 0 ? new Date(agora.getTime() - JANELA_CARTAO_MS) : undefined;

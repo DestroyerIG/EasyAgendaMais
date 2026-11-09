@@ -2,9 +2,9 @@ import express from 'express';
 import { z } from 'zod';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { validate } from '../../middleware/validate.js';
-import { GetPublicAvailabilitySchema, GetPublicDaysSchema, PublicAppointmentParamsSchema, CreatePublicAppointmentSchema } from './publicBooking.types.js';
+import { GetPublicAvailabilitySchema, GetPublicDaysSchema, PublicAppointmentParamsSchema, CreatePublicAppointmentSchema, ConfirmarInfinitePaySchema } from './publicBooking.types.js';
 import {
-  getStorefront, getProfessionals, getAvailability, getAvailabilityGrid, getAvailabilityDays, getAppointmentStatus, createAppointment, getPixDaReserva,
+  getStorefront, getProfessionals, getAvailability, getAvailabilityGrid, getAvailabilityDays, getAppointmentStatus, createAppointment, getPixDaReserva, confirmarInfinitePay,
 } from './publicBooking.controller.js';
 import { AdesaoSchema } from '../clube/clube.types.js';
 import { publicClub, publicClubs, publicJoin } from '../clube/clube.controller.js';
@@ -35,6 +35,18 @@ const pixLimiter = rateLimit({
   },
 });
 
+const infinitePayLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req.ip ?? 'unknown'),
+  message: {
+    success: false,
+    error: { code: 'RATE_LIMIT_PUBLIC_BOOKING', message: 'Muitas tentativas. Tente novamente em alguns minutos.' },
+  },
+});
+
 const adesaoLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
@@ -54,6 +66,7 @@ router.get('/:slug/availability/grade', validate({ query: GetPublicAvailabilityS
 router.get('/:slug/availability/dias', validate({ query: GetPublicDaysSchema }), getAvailabilityDays);
 router.get('/:slug/appointments/:id/status', validate({ params: PublicAppointmentParamsSchema }), getAppointmentStatus);
 router.post('/:slug/appointments/:id/pix', pixLimiter, validate({ params: PublicAppointmentParamsSchema }), getPixDaReserva);
+router.post('/:slug/appointments/:id/infinitepay', infinitePayLimiter, validate({ params: PublicAppointmentParamsSchema, body: ConfirmarInfinitePaySchema }), confirmarInfinitePay);
 router.post('/:slug/appointments', createAppointmentLimiter, validate({ body: CreatePublicAppointmentSchema }), createAppointment);
 
 router.get('/:slug/clube', publicClubs);

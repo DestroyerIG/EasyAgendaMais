@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { randomBytes } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import {
-  assinarEstado, centavos, decidirPagamento, desafioPkce, horarioJaPassou, lerEstado, recebimentosConfigurado,
+  assinarEstado, centavos, decidirPagamento, backendUrl, desafioPkce, gatewayDisponivel, horarioJaPassou, lerEstado, recebimentosConfigurado,
   tokenPertoDeVencer, verificadorPkce,
 } from '../modules/recebimentos/recebimentos.rules.js';
 import { cifrarCom, decifrarCom } from '../utils/cifra.js';
@@ -12,7 +12,7 @@ const AGORA = Date.UTC(2026, 10, 8, 12, 0, 0);
 const FUTURO = AGORA + 10 * 60 * 1000;
 const PASSADO = AGORA - 10 * 60 * 1000;
 
-const VARS = ['MERCADOPAGO_CLIENT_ID', 'MERCADOPAGO_CLIENT_SECRET', 'MERCADOPAGO_REDIRECT_URI', 'RECEBIMENTOS_TOKEN_KEY'] as const;
+const VARS = ['MERCADOPAGO_CLIENT_ID', 'MERCADOPAGO_CLIENT_SECRET', 'MERCADOPAGO_REDIRECT_URI', 'RECEBIMENTOS_TOKEN_KEY', 'BACKEND_URL'] as const;
 
 const base = {
   cobranca: { id: 'c1', situacao: 'pendente', valor: '15.50', pagamentoExternoId: null as string | null },
@@ -134,6 +134,28 @@ describe('regras dos recebimentos', () => {
     expect(recebimentosConfigurado()).toBe(true);
     delete process.env.RECEBIMENTOS_TOKEN_KEY;
     expect(recebimentosConfigurado()).toBe(false);
+  });
+  it('gatewayDisponivel da InfinitePay exige só a chave e a URL do backend', () => {
+    expect(gatewayDisponivel('infinitepay')).toBe(false);
+    process.env.BACKEND_URL = 'https://api.exemplo.com';
+    expect(gatewayDisponivel('infinitepay')).toBe(true);
+    delete process.env.RECEBIMENTOS_TOKEN_KEY;
+    expect(gatewayDisponivel('infinitepay')).toBe(false);
+  });
+  it('gatewayDisponivel do Mercado Pago falha sem MERCADOPAGO_CLIENT_ID', () => {
+    expect(gatewayDisponivel('mercadopago')).toBe(true);
+    delete process.env.MERCADOPAGO_CLIENT_ID;
+    expect(gatewayDisponivel('mercadopago')).toBe(false);
+  });
+  it('recebimentosConfigurado vale com só as variáveis da InfinitePay', () => {
+    for (const v of ['MERCADOPAGO_CLIENT_ID', 'MERCADOPAGO_CLIENT_SECRET', 'MERCADOPAGO_REDIRECT_URI']) delete process.env[v];
+    expect(recebimentosConfigurado()).toBe(false);
+    process.env.BACKEND_URL = 'https://api.exemplo.com';
+    expect(recebimentosConfigurado()).toBe(true);
+  });
+  it('backendUrl tira a barra final', () => {
+    process.env.BACKEND_URL = 'https://x.com/';
+    expect(backendUrl()).toBe('https://x.com');
   });
   it('cifra com chave informada, ida e volta', () => {
     const chave = randomBytes(32);

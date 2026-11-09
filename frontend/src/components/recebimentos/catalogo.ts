@@ -1,4 +1,4 @@
-﻿// Gateways de recebimento exibidos em Ajustes. Só o Mercado Pago está disponível.
+﻿// Gateways de recebimento exibidos em Ajustes. Mercado Pago e InfinitePay estão disponíveis.
 
 export interface GatewayCatalogo {
   id: string;
@@ -13,6 +13,16 @@ export interface GatewayCatalogo {
 
 export const URL_MERCADO_PAGO = 'https://www.mercadopago.com.br/';
 export const URL_TAXAS_MERCADO_PAGO = 'https://www.mercadopago.com.br/costs-section';
+
+export const URL_INFINITEPAY = 'https://www.infinitepay.io/';
+export const URL_TAXAS_INFINITEPAY = 'https://www.infinitepay.io/taxas';
+
+export const AVISOS_INFINITEPAY = [
+  'As taxas são as do link de pagamento da InfinitePay e saem do valor do sinal.',
+  'O cliente escolhe na página da InfinitePay entre Pix e cartão, em até 12x. Os juros do parcelamento ficam com o cliente.',
+  'No cartão, o cliente pode contestar a compra no banco.',
+  'A devolução do sinal é feita no app da InfinitePay.',
+];
 
 export const AVISOS_MERCADO_PAGO = [
   'As taxas são cobradas pelo Mercado Pago e saem do valor do sinal.',
@@ -57,7 +67,40 @@ export const GATEWAYS: GatewayCatalogo[] = [
     avisos: AVISOS_MERCADO_PAGO,
   },
   { id: 'asaas', nome: 'Asaas', logo: '/images/gateways/asaas.svg', situacao: 'em_breve', conexao: 'chave', passos: [], avisos: [] },
-  { id: 'infinitepay', nome: 'InfinitePay', logo: '/images/gateways/infinitepay.png', situacao: 'em_breve', conexao: 'usuario', passos: [], avisos: [] },
+  {
+    id: 'infinitepay',
+    nome: 'InfinitePay',
+    logo: '/images/gateways/infinitepay.png',
+    situacao: 'disponivel',
+    conexao: 'chave',
+    passos: [
+      {
+        titulo: 'Tenha uma conta na InfinitePay',
+        texto: 'Entre na sua conta ou crie uma, se ainda não tiver.',
+        links: [
+          { rotulo: 'Entrar na InfinitePay', url: URL_INFINITEPAY },
+          { rotulo: 'Criar conta', url: URL_INFINITEPAY },
+        ],
+      },
+      {
+        titulo: 'Ligue o Checkout integrado',
+        texto: 'No app ou no site da InfinitePay, em Configurações › Checkout, ligue "Habilitar checkout integrado".',
+      },
+      {
+        titulo: 'Gere uma chave de API',
+        texto: 'No mesmo lugar, crie uma chave e copie na hora, porque ela só aparece uma vez.',
+      },
+      {
+        titulo: 'Cole aqui',
+        texto: 'Preencha a InfiniteTag (com ou sem $) e a Chave de API, e toque em Conectar.',
+      },
+      {
+        titulo: 'Pronto',
+        texto: 'A tela mostra a InfiniteTag conectada, e os novos sinais passam a ser confirmados sozinhos.',
+      },
+    ],
+    avisos: AVISOS_INFINITEPAY,
+  },
   { id: 'pagbank', nome: 'PagBank', logo: '/images/gateways/pagbank.svg', situacao: 'em_breve', conexao: 'chave', passos: [], avisos: [] },
 ];
 

@@ -34,7 +34,7 @@ describe('RecebimentosSection', () => {
   });
 
   it('mostra as quatro logos; só o Mercado Pago é link e os demais são Em breve', async () => {
-    api.conexoes.mockResolvedValue({ configurado: true, conexao: null });
+    api.conexoes.mockResolvedValue({ configurado: true, disponiveis: ['mercadopago'], conexao: null });
     render(<RecebimentosSection />);
     for (const nome of ['Mercado Pago', 'Asaas', 'InfinitePay', 'PagBank']) {
       expect(await screen.findByAltText(nome)).toBeInTheDocument();
@@ -47,8 +47,34 @@ describe('RecebimentosSection', () => {
   });
 
   it('mostra Conectado quando há conexão', async () => {
-    api.conexoes.mockResolvedValue({ configurado: true, conexao });
+    api.conexoes.mockResolvedValue({ configurado: true, disponiveis: ['mercadopago'], conexao });
     render(<RecebimentosSection />);
     expect(await screen.findByText('Conectado')).toBeInTheDocument();
+  });
+
+  it('a InfinitePay fica Disponível e vira link quando está em disponiveis', async () => {
+    api.conexoes.mockResolvedValue({ configurado: true, disponiveis: ['mercadopago', 'infinitepay'], conexao: null });
+    render(<RecebimentosSection />);
+    expect(await screen.findByAltText('InfinitePay')).toBeInTheDocument();
+    expect(screen.getAllByText('Disponível')).toHaveLength(2);
+    expect(screen.getByRole('link', { name: 'InfinitePay: Disponível' })).toHaveAttribute('href', '/dashboard/configuracoes/recebimentos/infinitepay');
+  });
+
+  it('o Mercado Pago só fica Disponível se estiver em disponiveis', async () => {
+    api.conexoes.mockResolvedValue({ configurado: true, disponiveis: ['infinitepay'], conexao: null });
+    render(<RecebimentosSection />);
+    expect(await screen.findByAltText('Mercado Pago')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Mercado Pago/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'InfinitePay: Disponível' })).toBeInTheDocument();
+  });
+
+  it('com uma conexão, o outro gateway aparece Disponível mas não abre', async () => {
+    api.conexoes.mockResolvedValue({ configurado: true, disponiveis: ['mercadopago', 'infinitepay'], conexao: { ...conexao, gateway: 'infinitepay' } });
+    render(<RecebimentosSection />);
+    expect(await screen.findByText('Conectado')).toBeInTheDocument();
+    expect(screen.getByText('Disponível')).toBeInTheDocument();
+    const links = screen.getAllByRole('link');
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute('href', '/dashboard/configuracoes/recebimentos/infinitepay');
   });
 });
