@@ -12,7 +12,7 @@ const mockSettings = vi.hoisted(() => vi.fn());
 const mockFindBySlug = vi.hoisted(() => vi.fn());
 const mockDentroDoHorario = vi.hoisted(() => vi.fn(() => true));
 
-vi.mock('../modules/recebimentos/conexao.service.js', () => ({ conexaoService: { formas: vi.fn().mockResolvedValue(['pix']), tokenAtivo: vi.fn().mockResolvedValue(null) } }));
+vi.mock('../modules/recebimentos/conexao.service.js', () => ({ conexaoService: { formas: vi.fn().mockResolvedValue(['pix']), gatewayAtivo: vi.fn().mockResolvedValue(null), credencial: vi.fn().mockResolvedValue(null), tokenAtivo: vi.fn().mockResolvedValue(null) } }));
 vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({ recebimentosRepository: { cobrancasDaReserva: vi.fn().mockResolvedValue([]) } }));
 vi.mock('../modules/conta/estadoConta.service.js', () => ({
   estadoContaService: { doNegocio: mockEstado, limparCache: vi.fn() },

@@ -42,6 +42,7 @@ Atualizado em 06/11/2026.
 | Robô 2 | Robô de atendimento: menu por segmento (até 6 opções), fonte única `menuPadrao(segmento)`, reordenação com `MENU_DESATUALIZADO` | ✅ Concluída (juntada em 06/11, sem migração) | PR #48 |
 | Robô 3 | Robô de atendimento: textos editáveis, respostas das Automações editáveis e tela única (Menu e mensagens + simulador) | 🟡 Em revisão (migração `20261109120000_robo_textos` aplicada em produção em 07/11, com autorização do dono, antes do merge) | PR #50 |
 | Recebimentos | Mercado Pago: sinal confirmado sozinho no Pix e no cartão, com tela de conexão em Ajustes | Na main (PR #49) e migrada. Aplicação do Mercado Pago configurada; aguarda a ativação pelo Mercado Pago e o teste real | Guia: `docs/mercado-pago-configuracao.md` |
+| Recebimentos | InfinitePay: sinal por Pix ou cartão confirmado sozinho, com tela de conexão em Ajustes | Em PR (feat/recebimentos-infinitepay); falta criar BACKEND_URL no Render e o teste real | Guia: `docs/infinitepay-configuracao.md` |
 
 ## Fase 7 (concluída)
 

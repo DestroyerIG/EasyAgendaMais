@@ -113,7 +113,8 @@ Se a InfinitePay recusar a chave (401 ou 403 numa conferência), a conexão vai 
 
 - Na etapa de pagamento, o cliente vê um único botão: **"Pagar o sinal na InfinitePay (Pix ou cartão)"**, sem escolha de forma.
 - A reserva é criada, e o cliente vai para a página da InfinitePay pelo mesmo caminho do Checkout de cartão do Mercado Pago.
-- A mensagem de WhatsApp leva o link da InfinitePay no lugar do código Pix.
+- A InfinitePay não manda mensagem de sinal pelo WhatsApp, como o cartão do Mercado Pago.
+- Abaixo do botão fica o botão de reserva **"Pagar com Pix direto ao estabelecimento"**: Pix manual pela chave do negócio, com confirmação manual.
 - Ao voltar, o cliente vê a situação real da reserva, como acontece hoje na volta do cartão.
 
 ## Como o sistema confirma
@@ -129,7 +130,7 @@ Se a InfinitePay recusar a chave (401 ou 403 numa conferência), a conexão vai 
   - `single_payment: true`;
   - `assured_installments: 0`.
 
-Guardamos a `url` em `checkout_url` e o `order_nsu` em `id_externo`. Com isso, a cobrança aparece na página como já acontece com o Checkout.
+Guardamos a `url` em `checkout_url` e o id da cobrança (o `order_nsu`) em `id_externo`. Com isso, a cobrança aparece na página como já acontece com o Checkout.
 
 ### Dois caminhos, uma conferência
 
@@ -138,7 +139,7 @@ Os dois caminhos levam à mesma conferência, com o `slug` e o `transaction_nsu`
 1. **Webhook:** o id da cobrança vem na URL. O backend confere se o `order_nsu` do corpo é igual a ele.
 2. **Volta do cliente:** a página pública manda ao backend o `slug`, o `transaction_nsu` e o `order_nsu` da query, por um endpoint público com limite de chamadas.
 
-**Nada que chega por esses caminhos é gravado antes de conferido** (escolha do Claude). O webhook não tem assinatura, e o cliente conhece o id da cobrança. Gravar antes da conferência deixaria qualquer pessoa trocar o par verdadeiro por um falso. Só depois de o `payment_check` responder `paid: true` com o `order_nsu` certo, o `transaction_nsu` vai para `pagamento_externo_id` e o `slug` vai para `id_externo`. Esses campos já guardam o pagamento aprovado no Mercado Pago, então o sentido deles não muda.
+**Nada que chega por esses caminhos é gravado antes de conferido** (escolha do Claude). O webhook não tem assinatura, e o cliente conhece o id da cobrança. Gravar antes da conferência deixaria qualquer pessoa trocar o par verdadeiro por um falso. Só depois de o `payment_check` responder `paid: true` com o `order_nsu` certo, o `transaction_nsu` vai para `pagamento_externo_id`. O `slug` não é guardado: nada mais consulta a InfinitePay depois do pagamento, e `id_externo` continua com o id da cobrança.
 
 **A rotina de cada minuto não confere cobranças da InfinitePay**, porque sem o par não há o que consultar. A garantia contra aviso perdido é a própria InfinitePay repetir o webhook até receber 2xx. O cliente também pode recarregar a volta. Se nada disso funcionar, a cobrança vence como hoje, e o profissional confirma à mão na aba Aguardando Pix.
 
@@ -159,7 +160,7 @@ Assim, pago depois do vencimento, pago em dobro e reativação seguem as mesmas 
 
 ### Banco
 
-Não precisa de migração. O `order_nsu` não precisa ser guardado, porque é o próprio id da cobrança. Até a confirmação, `id_externo` fica com o id da cobrança, para a página saber que existe link para pagar. Depois, recebe o `slug`.
+Não precisa de migração. O `order_nsu` não precisa ser guardado, porque é o próprio id da cobrança. Até a confirmação, `id_externo` fica com o id da cobrança, para a página saber que existe link para pagar. Depois de pago, continua com o id da cobrança, porque o `slug` não é guardado; só o `pagamento_externo_id` recebe o `transaction_nsu`.
 
 ### Endereço público do backend
 

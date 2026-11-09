@@ -32,6 +32,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/app/dashboard/minha-pagina',
   'src/app/dashboard/configuracoes/recebimentos',
   'src/components/recebimentos/GatewayPassos.tsx',
+  'src/components/recebimentos/InfinitePayPassos.tsx',
   'src/components/DashboardCards.tsx',
   'src/components/WeeklyChart.tsx',
   'src/components/dashboard',
