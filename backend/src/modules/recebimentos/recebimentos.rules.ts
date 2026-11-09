@@ -26,6 +26,11 @@ export function gatewaysDisponiveis(): GatewayId[] {
   return TODOS_GATEWAYS.filter(gatewayDisponivel);
 }
 
+/** Nome do gateway para mostrar ao usuário. */
+export function nomeDoGateway(g: GatewayId): string {
+  return g === 'infinitepay' ? 'InfinitePay' : 'Mercado Pago';
+}
+
 /** URL pública do backend, sem barra final. */
 export function backendUrl(): string {
   return (process.env.BACKEND_URL ?? '').replace(/\/+$/, '');

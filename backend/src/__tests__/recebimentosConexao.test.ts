@@ -21,6 +21,11 @@ vi.mock('../modules/recebimentos/gateways/index.js', async (orig) => ({
   ...(await orig<typeof import('../modules/recebimentos/gateways/index.js')>()), gateways: { mercadopago: gw },
 }));
 
+const ip = vi.hoisted(() => ({ conferirChave: vi.fn() }));
+vi.mock('../modules/recebimentos/gateways/infinitePay.js', async (orig) => ({
+  ...(await orig<typeof import('../modules/recebimentos/gateways/infinitePay.js')>()), infinitePay: ip,
+}));
+
 const notif = vi.hoisted(() => ({ notify: vi.fn() }));
 vi.mock('../modules/notifications/notifications.service.js', () => ({ notificationsService: notif }));
 vi.mock('../middleware/auth.js', () => ({
@@ -35,8 +40,8 @@ vi.mock('../middleware/auth.js', () => ({
 
 const rules = await import('../modules/recebimentos/recebimentos.rules.js');
 const { conexaoService } = await import('../modules/recebimentos/conexao.service.js');
-const { GatewayIndisponivel, GatewayTokenInvalido } = await import('../modules/recebimentos/gateways/index.js');
-const { decifrarCom } = await import('../utils/cifra.js');
+const { GatewayIndisponivel, GatewayTokenInvalido, GatewayCheckoutDesligado } = await import('../modules/recebimentos/gateways/index.js');
+const { decifrarCom, cifrarCom } = await import('../utils/cifra.js');
 const routes = (await import('../modules/recebimentos/recebimentos.routes.js')).default;
 const { errorHandler } = await import('../middleware/errorHandler.js');
 const supertest = (await import('supertest')).default;
@@ -85,7 +90,7 @@ describe('Recebimentos: conexão', () => {
     repo.reservasPendentes.mockResolvedValue(0);
     gw.conta.mockResolvedValue({ id: '999', nome: 'Studio Aurora' });
   });
-  afterEach(() => { for (const v of ENVS) delete process.env[v]; });
+  afterEach(() => { for (const v of ENVS) delete process.env[v]; delete process.env.BACKEND_URL; });
 
   describe('conectarUrl', () => {
     it('devolve 404 sem configuração', async () => {
@@ -497,6 +502,165 @@ describe('Recebimentos: conexão', () => {
       repo.conexaoDoNegocio.mockResolvedValue({ ...v, tokenExpiraEm: new Date(agora.getTime() + 180 * DIA) });
       await conexaoService.renovarVencendo(agora);
       expect(gw.renovar).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('conexão da InfinitePay por chave', () => {
+    const CHAVE = 'chave-secreta-infinitepay';
+    const enviar = (corpo: object = { handle: ' $Ana ', chave: CHAVE, aceite: true }) =>
+      request.post('/api/v1/recebimentos/infinitepay/chave').send(corpo);
+    const ipConexao = (extra: Record<string, unknown> = {}) => conexao({
+      gateway: 'infinitepay', contaExternaId: 'ana', contaNome: '$ana', aceitaPix: false, aceitaCartao: true,
+      aceiteCartaoEm: new Date(), ...extra,
+    });
+    beforeEach(() => { process.env.BACKEND_URL = 'https://api.test'; ip.conferirChave.mockResolvedValue(undefined); });
+
+    it('grava a conta normalizada e a chave cifrada', async () => {
+      const r = await enviar();
+      expect(r.status).toBe(200);
+      expect(ip.conferirChave).toHaveBeenCalledWith({ handle: 'ana', chave: CHAVE });
+      const salvo = repo.salvarConexao.mock.calls[0][0];
+      expect(salvo).toMatchObject({
+        businessId: 'b1', gateway: 'infinitepay', contaExternaId: 'ana', contaNome: '$ana',
+        aceitaPix: false, aceitaCartao: true,
+      });
+      expect(salvo.aceiteCartaoEm).toBeInstanceOf(Date);
+      expect(salvo.tokenExpiraEm.getUTCFullYear()).toBe(9999);
+      expect(decifrarCom(rules.chaveRecebimentos(), salvo.accessTokenCifrado)).toBe(CHAVE);
+      expect(decifrarCom(rules.chaveRecebimentos(), salvo.refreshTokenCifrado)).toBe('');
+      expect(JSON.stringify(r.body)).not.toContain(CHAVE);
+    });
+
+    it('exige o aceite e uma chave de tamanho razoável', async () => {
+      expect((await enviar({ handle: 'ana', chave: CHAVE, aceite: false })).status).toBe(400);
+      expect((await enviar({ handle: 'ana', chave: 'curta', aceite: true })).status).toBe(400);
+      expect(repo.salvarConexao).not.toHaveBeenCalled();
+    });
+
+    it('recusa InfiniteTag vazia depois de normalizar', async () => {
+      const r = await enviar({ handle: ' $ ', chave: CHAVE, aceite: true });
+      expect(r.status).toBe(400);
+      expect(r.body.error.message).toBe('Informe a InfiniteTag.');
+    });
+
+    it.each([
+      [new GatewayTokenInvalido(), 'A InfinitePay recusou a chave. Confira se a chave e a InfiniteTag são da mesma conta.'],
+      [new GatewayCheckoutDesligado(), 'Ligue o Checkout integrado na InfinitePay e tente de novo.'],
+      [new GatewayIndisponivel(), 'A InfinitePay não respondeu. Tente de novo em alguns minutos.'],
+    ])('traduz o erro da conferência', async (erro, mensagem) => {
+      ip.conferirChave.mockRejectedValue(erro);
+      const r = await enviar();
+      expect(r.status).toBe(400);
+      expect(r.body.error.message).toBe(mensagem);
+      expect(repo.salvarConexao).not.toHaveBeenCalled();
+    });
+
+    it('recusa handle já conectado a outro negócio', async () => {
+      repo.contaEmOutroNegocio.mockResolvedValue(true);
+      const r = await enviar();
+      expect(r.status).toBe(409);
+      expect(r.body.error.message).toBe('Esta conta da InfinitePay já está conectada a outro negócio.');
+      expect(repo.contaEmOutroNegocio).toHaveBeenCalledWith('infinitepay', 'ana', 'b1');
+    });
+
+    it('recusa quando o Mercado Pago está ativo no negócio', async () => {
+      repo.conexaoDoNegocio.mockResolvedValue(conexao());
+      const r = await enviar();
+      expect(r.status).toBe(409);
+      expect(r.body.error.message).toBe('Desconecte o Mercado Pago antes de conectar a InfinitePay.');
+      expect(ip.conferirChave).not.toHaveBeenCalled();
+    });
+
+    it('reconecta por cima de uma conexão da InfinitePay que precisa reconectar', async () => {
+      repo.conexaoDoNegocio.mockResolvedValue(ipConexao({ situacao: 'precisa_reconectar' }));
+      expect((await enviar()).status).toBe(200);
+      expect(repo.salvarConexao).toHaveBeenCalled();
+    });
+
+    it('devolve 404 sem a InfinitePay disponível', async () => {
+      delete process.env.BACKEND_URL;
+      expect((await enviar()).status).toBe(404);
+      expect(ip.conferirChave).not.toHaveBeenCalled();
+    });
+
+    it('só o dono conecta', async () => {
+      const r = await request.post('/api/v1/recebimentos/infinitepay/chave').set('x-role', 'employee')
+        .send({ handle: 'ana', chave: CHAVE, aceite: true });
+      expect(r.status).toBe(403);
+    });
+
+    it('formas() devolve só cartão', async () => {
+      repo.conexaoDoNegocio.mockResolvedValue(ipConexao());
+      await expect(conexaoService.formas('b1')).resolves.toEqual(['cartao']);
+    });
+
+    it('definirFormas é recusado', async () => {
+      repo.conexaoDoNegocio.mockResolvedValue(ipConexao());
+      const r = await request.put('/api/v1/recebimentos/infinitepay/formas').send({ aceitaPix: false, aceitaCartao: true });
+      expect(r.status).toBe(400);
+      expect(r.body.error.message).toBe('A InfinitePay não permite escolher as formas de pagamento.');
+      expect(repo.atualizarConexao).not.toHaveBeenCalled();
+    });
+
+    it('tokenAtivo devolve null e credencial devolve a chave decifrada', async () => {
+      await enviar();
+      const cifrada = repo.salvarConexao.mock.calls[0][0].accessTokenCifrado;
+      repo.conexaoDoNegocio.mockResolvedValue(ipConexao({ accessTokenCifrado: cifrada }));
+      await expect(conexaoService.tokenAtivo('b1')).resolves.toBeNull();
+      await expect(conexaoService.credencial('b1')).resolves.toEqual({ gateway: 'infinitepay', cred: { handle: 'ana', chave: CHAVE } });
+    });
+
+    it('credencial é null para o Mercado Pago e sem conexão', async () => {
+      repo.conexaoDoNegocio.mockResolvedValue(conexao());
+      await expect(conexaoService.credencial('b1')).resolves.toBeNull();
+      repo.conexaoDoNegocio.mockResolvedValue(null);
+      await expect(conexaoService.credencial('b1')).resolves.toBeNull();
+    });
+
+    it('marcarReconectar avisa com o nome da InfinitePay', async () => {
+      repo.conexaoDoNegocio.mockResolvedValue(ipConexao());
+      await conexaoService.marcarReconectar('b1', 'x');
+      expect(notif.notify).toHaveBeenCalledWith('b1', expect.objectContaining({
+        title: 'Reconecte a InfinitePay', link: '/dashboard/configuracoes/recebimentos/infinitepay',
+      }));
+    });
+
+    it('alertarRecusa usa o nome do gateway da conexão', async () => {
+      repo.conexaoDoNegocio.mockResolvedValue(ipConexao());
+      repo.reservarAlerta.mockResolvedValue(true);
+      await conexaoService.alertarRecusa('b1');
+      expect(notif.notify).toHaveBeenCalledWith('b1', expect.objectContaining({
+        title: 'A InfinitePay recusou uma cobrança', link: '/dashboard/configuracoes/recebimentos/infinitepay',
+      }));
+    });
+
+    it('renovarVencendo pula a InfinitePay', async () => {
+      repo.conexoesAtivas.mockResolvedValue([ipConexao({ tokenExpiraEm: new Date('2020-01-01T00:00:00Z') })]);
+      await conexaoService.renovarVencendo(new Date('2026-01-01T00:00:00Z'));
+      expect(repo.conexaoDoNegocio).not.toHaveBeenCalled();
+      expect(repo.atualizarTokensSe).not.toHaveBeenCalled();
+    });
+
+    describe('acessoRevogado', () => {
+      beforeEach(() => {
+        repo.conexaoDoNegocio.mockResolvedValue(ipConexao({ accessTokenCifrado: cifrarCom(rules.chaveRecebimentos(), CHAVE) }));
+      });
+
+      it('só é true quando a InfinitePay recusa a chave', async () => {
+        ip.conferirChave.mockRejectedValue(new GatewayTokenInvalido());
+        await expect(conexaoService.acessoRevogado('b1', 'infinitepay')).resolves.toBe(true);
+        ip.conferirChave.mockRejectedValue(new GatewayIndisponivel());
+        await expect(conexaoService.acessoRevogado('b1', 'infinitepay')).resolves.toBe(false);
+        ip.conferirChave.mockResolvedValue(undefined);
+        await expect(conexaoService.acessoRevogado('b1', 'infinitepay')).resolves.toBe(false);
+        expect(ip.conferirChave).toHaveBeenCalledWith(expect.objectContaining({ handle: 'ana' }));
+      });
+
+      it('Mercado Pago confere a conta com o token', async () => {
+        gw.conta.mockRejectedValue(new GatewayTokenInvalido());
+        await expect(conexaoService.acessoRevogado('b1', 'mercadopago', 'tok')).resolves.toBe(true);
+        expect(gw.conta).toHaveBeenCalledWith('tok');
+      });
     });
   });
 

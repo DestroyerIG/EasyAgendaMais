@@ -99,8 +99,8 @@ const gw = vi.hoisted(() => ({ referenciaDoRecurso: vi.fn(), buscarPorReferencia
 const conexao = vi.hoisted(() => ({
   tokenAtivo: vi.fn(), porContaExterna: vi.fn(), marcarReconectar: vi.fn(),
   // Mesma regra do serviço real: só a conta do gateway prova que o acesso caiu.
-  acessoRevogado: vi.fn(async (t: { accessToken: string }) => {
-    try { await gw.conta(t.accessToken); return false; } catch (e) { return (e as Error).name === 'GatewayTokenInvalido'; }
+  acessoRevogado: vi.fn(async (_b: string, _g: string, accessToken: string) => {
+    try { await gw.conta(accessToken); return false; } catch (e) { return (e as Error).name === 'GatewayTokenInvalido'; }
   }),
 }));
 vi.mock('../modules/recebimentos/conexao.service.js', () => ({ conexaoService: conexao }));

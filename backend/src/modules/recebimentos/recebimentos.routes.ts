@@ -3,8 +3,8 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { authMiddleware } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
-import { CallbackQuerySchema, ConfirmarSchema, FormasSchema, GatewayOAuthParamSchema, GatewayParamSchema } from './recebimentos.types.js';
-import { callback, conectar, confirmar, definirFormas, desconectar, verConexao, webhookMercadoPago } from './recebimentos.controller.js';
+import { CallbackQuerySchema, ChaveSchema, ConfirmarSchema, FormasSchema, GatewayOAuthParamSchema, GatewayParamSchema } from './recebimentos.types.js';
+import { callback, conectar, conectarChave, confirmar, definirFormas, desconectar, verConexao, webhookMercadoPago } from './recebimentos.controller.js';
 
 // Recebimentos automáticos do sinal (Mercado Pago). Só quem administra o negócio mexe.
 const router = express.Router();
@@ -37,6 +37,7 @@ router.get('/conexoes', ...dono, verConexao);
 router.get('/:gateway/callback', callbackLimiter, gatewayOAuth, validate({ query: CallbackQuerySchema }), callback);
 router.get('/:gateway/conectar', ...dono, gatewayOAuth, conectar);
 router.post('/:gateway/confirmar', ...dono, gatewayOAuth, validate({ body: ConfirmarSchema }), confirmar);
+router.post('/infinitepay/chave', ...dono, validate({ body: ChaveSchema }), conectarChave);
 router.put('/:gateway/formas', ...dono, gateway, validate({ body: FormasSchema }), definirFormas);
 router.delete('/:gateway/conexao', ...dono, gateway, desconectar);
 

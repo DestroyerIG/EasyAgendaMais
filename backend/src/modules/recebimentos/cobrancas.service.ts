@@ -79,7 +79,7 @@ export const cobrancasService = {
       }
       try {
         if (err instanceof GatewayRecusou) await conexaoService.alertarRecusa(e.businessId);
-        else if (err instanceof GatewayTokenInvalido && conexao && await conexaoService.acessoRevogado(conexao)) {
+        else if (err instanceof GatewayTokenInvalido && conexao && await conexaoService.acessoRevogado(e.businessId, conexao.gateway, conexao.accessToken)) {
           // Um 401 na criação não prova token vencido: só a conta do gateway prova.
           await conexaoService.marcarReconectar(e.businessId, err.message);
         }

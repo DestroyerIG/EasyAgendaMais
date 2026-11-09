@@ -33,7 +33,7 @@ async function consultarGateway<T>(businessId: string, token: Token, chamada: ()
   } catch (e) {
     if (e instanceof GatewayTokenInvalido) {
       // Um 401 pode vir de um id escolhido por quem avisou: só a conta prova que o acesso caiu.
-      if (await conexaoService.acessoRevogado(token)) await conexaoService.marcarReconectar(businessId, e.message);
+      if (await conexaoService.acessoRevogado(businessId, token.gateway, token.accessToken)) await conexaoService.marcarReconectar(businessId, e.message);
       return null;
     }
     if (e instanceof GatewayIndisponivel || e instanceof GatewayRecusou) {

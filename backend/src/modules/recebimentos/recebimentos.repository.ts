@@ -17,6 +17,9 @@ export interface DadosConexao {
   accessTokenCifrado: string;
   refreshTokenCifrado: string;
   tokenExpiraEm: Date;
+  aceitaPix?: boolean;
+  aceitaCartao?: boolean;
+  aceiteCartaoEm?: Date;
 }
 
 /** Lançada dentro de uma transação para desfazê-la sem que isso seja um erro. */
@@ -107,7 +110,7 @@ export const recebimentosRepository = {
         return tx.conexaoRecebimento.update({ where: { id: anterior.id }, data: { ...d, situacao: 'ativa' } });
       }
       if (anterior) await tx.conexaoRecebimento.delete({ where: { id: anterior.id } });
-      return tx.conexaoRecebimento.create({ data: { ...d, situacao: 'ativa', aceitaPix: true, aceitaCartao: false } });
+      return tx.conexaoRecebimento.create({ data: { aceitaPix: true, aceitaCartao: false, ...d, situacao: 'ativa' } });
     });
   },
 

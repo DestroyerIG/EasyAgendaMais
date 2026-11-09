@@ -36,6 +36,13 @@ export const confirmar: H = async (req, res, next) => {
     void pagamentosService.conferirAoReconectar(u.businessId);
   } catch (e) { next(e); }
 };
+export const conectarChave: H = async (req, res, next) => {
+  try {
+    const u = usuario(req);
+    sendSuccess(res, await conexaoService.conectarChave(u, { handle: req.body.handle, chave: req.body.chave }));
+    void pagamentosService.conferirAoReconectar(u.businessId);
+  } catch (e) { next(e); }
+};
 export const definirFormas: H = async (req, res, next) => {
   try { sendSuccess(res, await conexaoService.definirFormas(usuario(req), gatewayDe(req), req.body)); } catch (e) { next(e); }
 };

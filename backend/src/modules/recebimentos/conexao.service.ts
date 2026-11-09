@@ -3,7 +3,8 @@ import logger from '../../utils/logger.js';
 import { cifrarCom, decifrarCom } from '../../utils/cifra.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../utils/errors.js';
 import { notificationsService } from '../notifications/notifications.service.js';
-import { GatewayIndisponivel, GatewayTokenInvalido, type Tokens } from './gateways/index.js';
+import { GatewayCheckoutDesligado, GatewayIndisponivel, GatewayTokenInvalido, type Tokens } from './gateways/index.js';
+import { infinitePay, normalizarHandle, type CredencialInfinitePay } from './gateways/infinitePay.js';
 import { gatewayDe } from './gateways/porId.js';
 import { recebimentosRepository as repo } from './recebimentos.repository.js';
 import {
@@ -12,7 +13,14 @@ import {
 } from './recebimentos.rules.js';
 import type { EstadoRecebimentos, FormaSinal, GatewayId, UsuarioLogado } from './recebimentos.types.js';
 
-// Conexão do negócio com o gateway de recebimentos (Mercado Pago). Os tokens ficam cifrados e nunca saem daqui.
+// Conexão do negócio com o gateway de recebimentos (Mercado Pago ou InfinitePay). Tokens e chaves ficam cifrados e nunca saem daqui.
+
+// A InfinitePay não tem expiração: a conexão fica com validade "infinita".
+const SEM_EXPIRACAO = new Date('9999-12-31T00:00:00Z');
+const COM_ARTIGO: Record<GatewayId, { o: string; O: string }> = {
+  mercadopago: { o: 'o Mercado Pago', O: 'O Mercado Pago' },
+  infinitepay: { o: 'a InfinitePay', O: 'A InfinitePay' },
+};
 
 const frontend = () => (process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000').replace(/\/+$/, '');
 const telaDe = (gateway: GatewayId) => `${frontend()}/dashboard/configuracoes/recebimentos/${gateway}`;
@@ -133,6 +141,57 @@ export const conexaoService = {
     return conexaoService.verConexao(user);
   },
 
+  /**
+   * Conecta a InfinitePay por chave: confere a chave na API antes de gravar. Reconectar com chave nova
+   * passa por aqui também e sobrescreve a linha do negócio.
+   */
+  async conectarChave(user: UsuarioLogado, d: { handle: string; chave: string }): Promise<EstadoRecebimentos> {
+    if (!gatewayDisponivel('infinitepay')) throw new NotFoundError('Recebimentos');
+    const u = await repo.usuario(user.userId);
+    if (!u) throw new NotFoundError('Usuário');
+    if (u.role !== 'tenant_admin') throw new ForbiddenError('Só quem administra o negócio conecta os recebimentos');
+    const handle = normalizarHandle(d.handle);
+    if (!handle) throw new ValidationError('Informe a InfiniteTag.');
+    const atual = await repo.conexaoDoNegocio(u.businessId);
+    if (atual && atual.gateway === 'mercadopago' && atual.situacao === 'ativa') {
+      throw new ConflictError('Desconecte o Mercado Pago antes de conectar a InfinitePay.');
+    }
+    try {
+      await infinitePay.conferirChave({ handle, chave: d.chave });
+    } catch (e) {
+      if (e instanceof GatewayTokenInvalido) {
+        throw new ValidationError('A InfinitePay recusou a chave. Confira se a chave e a InfiniteTag são da mesma conta.');
+      }
+      if (e instanceof GatewayCheckoutDesligado) {
+        throw new ValidationError('Ligue o Checkout integrado na InfinitePay e tente de novo.');
+      }
+      if (e instanceof GatewayIndisponivel) {
+        throw new ValidationError('A InfinitePay não respondeu. Tente de novo em alguns minutos.');
+      }
+      throw e;
+    }
+    const jaConectada = 'Esta conta da InfinitePay já está conectada a outro negócio.';
+    if (await repo.contaEmOutroNegocio('infinitepay', handle, u.businessId)) throw new ConflictError(jaConectada);
+    try {
+      await repo.salvarConexao({
+        businessId: u.businessId, gateway: 'infinitepay', contaExternaId: handle, contaNome: `$${handle}`,
+        accessTokenCifrado: cifrar(d.chave), refreshTokenCifrado: cifrar(''), tokenExpiraEm: SEM_EXPIRACAO,
+        aceitaPix: false, aceitaCartao: true, aceiteCartaoEm: new Date(),
+      });
+    } catch (e) {
+      if ((e as { code?: string }).code === 'P2002') throw new ConflictError(jaConectada);
+      throw e;
+    }
+    return conexaoService.verConexao(user);
+  },
+
+  /** Chave e InfiniteTag da conexão ativa da InfinitePay. Outro gateway ou sem conexão: null. */
+  async credencial(businessId: string): Promise<{ gateway: 'infinitepay'; cred: CredencialInfinitePay } | null> {
+    const c = await repo.conexaoDoNegocio(businessId);
+    if (!c || c.situacao !== 'ativa' || c.gateway !== 'infinitepay') return null;
+    return { gateway: 'infinitepay', cred: { handle: c.contaExternaId, chave: decifrar(c.accessTokenCifrado) } };
+  },
+
   async verConexao(user: UsuarioLogado): Promise<EstadoRecebimentos> {
     if (!recebimentosConfigurado()) return { configurado: false, disponiveis: [], conexao: null };
     const disponiveis = gatewaysDisponiveis();
@@ -160,6 +219,7 @@ export const conexaoService = {
   ): Promise<EstadoRecebimentos> {
     const c = await repo.conexaoDoNegocio(user.businessId);
     if (!c || c.gateway !== gateway) throw new NotFoundError('Conexão de recebimentos');
+    if (gateway === 'infinitepay') throw new ValidationError('A InfinitePay não permite escolher as formas de pagamento.');
     if (!f.aceitaPix && !f.aceitaCartao) throw new ValidationError('Deixe ao menos uma forma de receber ligada');
     const novoAceite = f.aceitaCartao && !c.aceiteCartaoEm && f.aceiteCartao === true;
     if (f.aceitaCartao && !c.aceiteCartaoEm && !novoAceite) {
@@ -185,7 +245,7 @@ export const conexaoService = {
    */
   async tokenAtivo(businessId: string, agora: Date = new Date()): Promise<{ gateway: GatewayId; accessToken: string } | null> {
     const c = await repo.conexaoDoNegocio(businessId);
-    if (!c || c.situacao !== 'ativa') return null;
+    if (!c || c.situacao !== 'ativa' || c.gateway === 'infinitepay') return null;
     const gateway = c.gateway as GatewayId;
     if (!tokenPertoDeVencer(c.tokenExpiraEm, agora)) return { gateway, accessToken: decifrar(c.accessTokenCifrado) };
     try {
@@ -215,10 +275,20 @@ export const conexaoService = {
     }
   },
 
-  /** Um 401 numa chamada qualquer não prova token vencido. Só a URL fixa da conta prova que o acesso caiu. */
-  async acessoRevogado(token: { gateway: GatewayId; accessToken: string }): Promise<boolean> {
+  /**
+   * Um 401 numa chamada qualquer não prova token vencido. Só a URL fixa da conta prova que o acesso caiu.
+   * Mercado Pago confere o token; InfinitePay confere a chave gravada do negócio.
+   */
+  async acessoRevogado(businessId: string, gateway: GatewayId, accessToken?: string): Promise<boolean> {
     try {
-      await gatewayDe(token.gateway).conta(token.accessToken);
+      if (gateway === 'infinitepay') {
+        const c = await conexaoService.credencial(businessId);
+        if (!c) return false;
+        await infinitePay.conferirChave(c.cred);
+      } else {
+        if (!accessToken) return false;
+        await gatewayDe(gateway).conta(accessToken);
+      }
       return false;
     } catch (e) {
       return e instanceof GatewayTokenInvalido;
@@ -239,11 +309,12 @@ export const conexaoService = {
   async marcarReconectar(businessId: string, motivo: string): Promise<void> {
     if (!(await repo.marcarReconectar(businessId))) return;
     logger.warn({ businessId, motivo }, 'Recebimentos: conexão precisa ser refeita');
+    const gateway = ((await repo.conexaoDoNegocio(businessId))?.gateway ?? 'mercadopago') as GatewayId;
     await notificationsService.notify(businessId, {
       type: 'recebimento_alerta',
-      title: 'Reconecte o Mercado Pago',
-      description: 'O Mercado Pago recusou o acesso. Enquanto isso, os sinais voltam a ser pagos por Pix manual.',
-      link: '/dashboard/configuracoes/recebimentos/mercadopago',
+      title: `Reconecte ${COM_ARTIGO[gateway].o}`,
+      description: `${COM_ARTIGO[gateway].O} recusou o acesso. Enquanto isso, os sinais voltam a ser pagos por Pix manual.`,
+      link: `/dashboard/configuracoes/recebimentos/${gateway}`,
     });
   },
 
@@ -252,11 +323,14 @@ export const conexaoService = {
     const c = await repo.conexaoDoNegocio(businessId);
     if (!c) return;
     if (!(await repo.reservarAlerta(c.id, new Date(), INTERVALO_ALERTA_MS))) return;
+    const gateway = c.gateway as GatewayId;
     await notificationsService.notify(businessId, {
       type: 'recebimento_alerta',
-      title: 'O Mercado Pago recusou uma cobrança',
-      description: 'Confira se a conta tem chave Pix cadastrada e se o acesso está ativo.',
-      link: '/dashboard/configuracoes/recebimentos/mercadopago',
+      title: `${COM_ARTIGO[gateway].O} recusou uma cobrança`,
+      description: gateway === 'infinitepay'
+        ? 'Confira se o Checkout integrado continua ligado na InfinitePay e se a chave ainda vale.'
+        : 'Confira se a conta tem chave Pix cadastrada e se o acesso está ativo.',
+      link: `/dashboard/configuracoes/recebimentos/${gateway}`,
     });
   },
 
@@ -269,10 +343,10 @@ export const conexaoService = {
     if (!recebimentosConfigurado()) return;
     try {
       for (const lida of await repo.conexoesAtivas()) {
-        if (!tokenPertoDeVencer(lida.tokenExpiraEm, agora)) continue;
+        if (lida.gateway !== 'mercadopago' || !tokenPertoDeVencer(lida.tokenExpiraEm, agora)) continue;
         // Relê a linha: a foto da lista pode ter ficado velha se uma renovação na hora rodou no meio.
         const c = await repo.conexaoDoNegocio(lida.businessId);
-        if (!c || c.situacao !== 'ativa' || !tokenPertoDeVencer(c.tokenExpiraEm, agora)) continue;
+        if (!c || c.situacao !== 'ativa' || c.gateway !== 'mercadopago' || !tokenPertoDeVencer(c.tokenExpiraEm, agora)) continue;
         try {
           await renovarConexao(c);
         } catch (e) {

@@ -36,6 +36,12 @@ export const CallbackQuerySchema = z.object({
   error: z.string().max(255).optional(),
 });
 
+export const ChaveSchema = z.object({
+  handle: z.string().min(1).max(64),
+  chave: z.string().min(10).max(200),
+  aceite: z.literal(true),
+});
+
 export const ConfirmarSchema = z.object({ t: z.string().min(20).max(100) });
 
 export const FormasSchema = z.object({
