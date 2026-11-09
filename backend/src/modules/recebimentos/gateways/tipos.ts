@@ -46,3 +46,10 @@ export interface Gateway {
 
 /** Só o Mercado Pago tem implementação por enquanto. */
 export type Gateways = Record<'mercadopago', Gateway>;
+
+/** A conta da InfinitePay não liberou o checkout por link (`external_checkout_not_enabled`). */
+export class GatewayCheckoutDesligado extends GatewayRecusou {
+  constructor(msg = 'Checkout por link não liberado na conta da InfinitePay') {
+    super(msg); this.name = 'GatewayCheckoutDesligado';
+  }
+}
