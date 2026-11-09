@@ -9,7 +9,10 @@ describe('filtrarTelas', () => {
     expect(filtrarTelas('financeiro', 'Clientes')[0].titulo).toBe('Caixa');
   });
   it('ignora acento', () => {
-    expect(filtrarTelas('configuracoes', 'Clientes')[0].titulo).toBe('Ajustes');
+    expect(filtrarTelas('configuracoes', 'Clientes')[0].titulo).toBe('Configurações');
+  });
+  it('acha uma subpágina de configuração', () => {
+    expect(filtrarTelas('funcionamento', 'Clientes')[0].href).toBe('/configuracoes/horarios');
   });
   it('acha a ação de novo agendamento', () => {
     expect(filtrarTelas('novo', 'Clientes')[0].href).toBe('/agendamentos?novo=1');

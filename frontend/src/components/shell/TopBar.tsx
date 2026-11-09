@@ -44,12 +44,13 @@ export interface TopBarProps {
   activeId: NavItemId | null;
   pageTitle: string;
   businessName: string;
+  logoUrl?: string | null;
   roleLabel: string;
   onLogout: () => void;
   onAvaliar?: () => void;
 }
 
-export function TopBar({ activeId, pageTitle, businessName, roleLabel, onLogout, onAvaliar }: TopBarProps) {
+export function TopBar({ activeId, pageTitle, businessName, logoUrl, roleLabel, onLogout, onAvaliar }: TopBarProps) {
   const [desktopAccountOpen, setDesktopAccountOpen] = useState(false);
   const [mobileAccountOpen, setMobileAccountOpen] = useState(false);
   const [desktopNotificationsOpen, setDesktopNotificationsOpen] = useState(false);
@@ -60,12 +61,7 @@ export function TopBar({ activeId, pageTitle, businessName, roleLabel, onLogout,
     <>
       {/* Barra superior do computador — hoje-desktop.html / INVENTARIO 0.3 */}
       <header className="sticky top-0 z-30 hidden h-16 items-center justify-between border-b border-line bg-surface/90 px-6 backdrop-blur-md lg:flex">
-        <div className="flex items-center gap-2 text-[14px] font-medium text-muted">
-          <Icon name="storefront" size={18} className="text-muted" />
-          <span>{businessName}</span>
-          <span className="font-light text-line">/</span>
-          <span className="font-semibold text-ink">{pageTitle}</span>
-        </div>
+        <div className="flex items-center text-[14px] font-semibold text-ink">{pageTitle}</div>
         <div className="flex items-center gap-4">
           <BuscaGeral />
           <DropdownMenu open={desktopNotificationsOpen} onOpenChange={setDesktopNotificationsOpen}>
@@ -85,7 +81,7 @@ export function TopBar({ activeId, pageTitle, businessName, roleLabel, onLogout,
           <div className="h-6 w-px bg-line" />
           <DropdownMenu open={desktopAccountOpen} onOpenChange={setDesktopAccountOpen}>
             <DropdownMenuTrigger className="flex cursor-pointer items-center gap-2.5 pl-1">
-              <Avatar name={businessName} size={32} className="rounded-xl border border-line bg-surface-2 font-bold text-ink" />
+              <Avatar name={businessName} src={logoUrl} size={32} className="rounded-xl border border-line bg-surface-2 font-bold text-ink" />
               <span className="hidden flex-col text-left leading-none md:flex">
                 <span className="text-[13px] font-bold text-ink">{businessName}</span>
                 <span className="mt-0.5 text-[11px] font-medium text-muted">{roleLabel}</span>
@@ -102,7 +98,7 @@ export function TopBar({ activeId, pageTitle, businessName, roleLabel, onLogout,
       {/* Barra superior do celular — hoje-mobile.html / INVENTARIO 0.4 */}
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-line bg-surface/90 px-4 backdrop-blur-md lg:hidden">
         <div className="flex min-w-0 items-center gap-2">
-          <Avatar name={businessName} size={36} className="rounded-lg bg-surface-2 font-bold text-ink" />
+          <Avatar name={businessName} src={logoUrl} size={36} className="rounded-lg bg-surface-2 font-bold text-ink" />
           <div className="flex min-w-0 flex-col">
             <span className="text-[11px] font-semibold leading-none text-muted">Espaço Ativo</span>
             <span className="flex min-w-0 items-center gap-1 text-[17px] font-bold leading-tight text-ink">

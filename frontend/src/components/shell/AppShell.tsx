@@ -87,9 +87,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="app-theme min-h-screen">
       <TopBarSearchProvider>
-        <Sidebar activeId={activeId} businessName={businessName} planLabel={planLabel} onLogout={handleLogout} onAvaliar={onAvaliar} />
+        <Sidebar activeId={activeId} businessName={businessName} planLabel={planLabel} logoUrl={user?.logoUrl} />
         <div className="lg:pl-[248px]">
-          <TopBar activeId={activeId} pageTitle={title} businessName={businessName} roleLabel={roleLabel} onLogout={handleLogout} onAvaliar={onAvaliar} />
+          <TopBar activeId={activeId} pageTitle={title} businessName={businessName} logoUrl={user?.logoUrl} roleLabel={roleLabel} onLogout={handleLogout} onAvaliar={onAvaliar} />
           <TrialBanner />
           {estado?.tipo === 'carencia' && <FaixaContingencia diasRestantes={estado.diasRestantes} />}
           <main id="main-content" className="mx-auto max-w-7xl px-4 pb-28 pt-4 lg:px-8 lg:pb-10 lg:pt-8">
