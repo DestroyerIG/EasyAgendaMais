@@ -130,7 +130,7 @@ describe('GatewayPassos', () => {
     expect(await screen.findByText(/3 reservas pendentes/)).toBeInTheDocument();
     expect(api.desconectar).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Sim, desconectar' }));
-    await waitFor(() => expect(api.desconectar).toHaveBeenCalled());
+    await waitFor(() => expect(api.desconectar).toHaveBeenCalledWith('mercadopago'));
     expect(await screen.findByRole('button', { name: 'Conectar com o Mercado Pago' })).toBeInTheDocument();
   });
 });

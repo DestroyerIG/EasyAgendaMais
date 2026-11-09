@@ -29,5 +29,7 @@ export const recebimentosApi = {
   confirmar: async (t: string) => (await api.post<EstadoRecebimentos>('/recebimentos/mercadopago/confirmar', { t })).data,
   definirFormas: async (formas: FormasRecebimento) =>
     (await api.put<EstadoRecebimentos>('/recebimentos/mercadopago/formas', formas)).data,
-  desconectar: async () => (await api.delete<{ desconectado: boolean }>('/recebimentos/mercadopago/conexao')).data,
+  conectarChave: async (d: { handle: string; chave: string; aceite: true }) =>
+    (await api.post<EstadoRecebimentos>('/recebimentos/infinitepay/chave', d)).data,
+  desconectar: async (gateway: GatewayId) => (await api.delete<{ desconectado: boolean }>(`/recebimentos/${gateway}/conexao`)).data,
 };

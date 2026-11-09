@@ -146,7 +146,7 @@ export function GatewayPassos({ gatewayId }: { gatewayId: string }) {
   const desconectar = async () => {
     setDesconectando(true);
     try {
-      await recebimentosApi.desconectar();
+      await recebimentosApi.desconectar('mercadopago');
       setEstado(await recebimentosApi.conexoes());
       showToast('Mercado Pago desconectado.', 'success');
       setConfirmando(false);

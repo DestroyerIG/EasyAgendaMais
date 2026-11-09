@@ -36,9 +36,12 @@ export function RecebimentosSection() {
       <ul className="grid gap-3 sm:grid-cols-2">
         {GATEWAYS.map((g) => {
           const conectado = estado.conexao?.gateway === g.id;
+          const disponivel = g.situacao === 'disponivel' && estado.disponiveis.some((d) => d === g.id);
           const situacao = conectado
             ? estado.conexao?.situacao === 'precisa_reconectar' ? 'Precisa reconectar' : 'Conectado'
-            : g.situacao === 'disponivel' ? 'Disponível' : 'Em breve';
+            : disponivel ? 'Disponível' : 'Em breve';
+          // Um gateway por vez: com uma conexão, só o cartão dela abre.
+          const abre = conectado || (disponivel && !estado.conexao);
           const conteudo = (
             <>
               <GatewayLogo nome={g.nome} logo={g.logo} />
@@ -51,7 +54,7 @@ export function RecebimentosSection() {
           const base = 'flex min-h-14 items-center gap-3 rounded-control border border-line bg-surface p-3';
           return (
             <li key={g.id}>
-              {g.situacao === 'disponivel' ? (
+              {abre ? (
                 <Link
                   href={`/dashboard/configuracoes/recebimentos/${g.id}`}
                   aria-label={`${g.nome}: ${situacao}`}
