@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/Toast';
 import { BrandLogo, Button, Card, Field, Icon, Input } from '@/components/ui';
+import { CpfCnpjModal } from '@/components/billing/CpfCnpjModal';
 import {
   billingApi,
   type CheckoutPaymentMethod,
@@ -15,7 +16,9 @@ import {
 import { formatCurrency } from '@/lib/formatters';
 import { isPlanId, PLAN_MAP, type PlanId } from '@/lib/plans';
 import { linkFalarSobreSalao, planoDoCatalogo, precoParaNegocio, rotuloEquipe } from '@/lib/planCatalog';
-import { getApiErrorMessage } from '@/utils/handleApiError';
+import { getApiErrorCode, getApiErrorMessage } from '@/utils/handleApiError';
+import { businessProfileApi } from '@/lib/businessProfile';
+import { formatCpfCnpj, isValidCpfCnpj, normalizeCpfCnpjDigits } from '@/utils/cpfCnpj';
 import { contaApi, type EstadoConta } from '@/lib/conta';
 
 const ACTIVE_STATUSES = new Set(['active', 'trialing']);
@@ -55,6 +58,10 @@ function PagamentoContent() {
   const [couponCode, setCouponCode] = useState('');
   const [couponState, setCouponState] = useState<'idle' | 'loading' | 'valid' | 'invalid'>('idle');
   const [couponData, setCouponData] = useState<Pick<CouponValidationResponse, 'discount' | 'finalAmount'> | null>(null);
+  const [cpfCnpjOpen, setCpfCnpjOpen] = useState(false);
+  const [cpfCnpjInput, setCpfCnpjInput] = useState('');
+  const [cpfCnpjError, setCpfCnpjError] = useState<string | null>(null);
+  const [cpfCnpjSaving, setCpfCnpjSaving] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, loading: authLoading, logout } = useAuth();
@@ -247,9 +254,42 @@ function PagamentoContent() {
       } : current);
       showToast('Cobrança Pix criada. Finalize o pagamento para ativar sua conta.', 'success');
     } catch (error: unknown) {
+      const code = getApiErrorCode(error);
+      // O Pix exige CPF/CNPJ do negócio: em vez de só um erro, abre o campo para informar.
+      if (code === 'CPF_CNPJ_REQUIRED' || code === 'INVALID_CPF_CNPJ') {
+        setCpfCnpjInput('');
+        setCpfCnpjError(code === 'INVALID_CPF_CNPJ' ? 'CPF/CNPJ inválido. Confira os números informados.' : null);
+        setCpfCnpjOpen(true);
+        return;
+      }
       showToast(getApiErrorMessage(error, 'Não foi possível iniciar o pagamento agora.'), 'error');
     } finally {
       setProcessingMethod(null);
+    }
+  };
+
+  const saveCpfCnpj = async () => {
+    const digits = normalizeCpfCnpjDigits(cpfCnpjInput);
+    if (!digits) {
+      setCpfCnpjError('Informe o CPF ou CNPJ para continuar.');
+      return;
+    }
+    if (!isValidCpfCnpj(digits)) {
+      setCpfCnpjError('CPF/CNPJ inválido. Verifique os números informados.');
+      return;
+    }
+
+    setCpfCnpjSaving(true);
+    try {
+      await businessProfileApi.updateProfile(digits);
+      setCpfCnpjOpen(false);
+      setCpfCnpjError(null);
+      showToast('CPF/CNPJ salvo com sucesso.', 'success');
+      await startCheckout('pix');
+    } catch (error: unknown) {
+      setCpfCnpjError(getApiErrorMessage(error, 'Não foi possível salvar o CPF/CNPJ agora.'));
+    } finally {
+      setCpfCnpjSaving(false);
     }
   };
 
@@ -521,6 +561,19 @@ function PagamentoContent() {
           </Button>
         </Card>
       </section>
+
+      <CpfCnpjModal
+        isOpen={cpfCnpjOpen}
+        value={cpfCnpjInput}
+        errorMessage={cpfCnpjError}
+        submitting={cpfCnpjSaving}
+        onChange={(value) => {
+          setCpfCnpjInput(formatCpfCnpj(value));
+          if (cpfCnpjError) setCpfCnpjError(null);
+        }}
+        onClose={() => setCpfCnpjOpen(false)}
+        onSubmit={saveCpfCnpj}
+      />
     </main>
   );
 }
