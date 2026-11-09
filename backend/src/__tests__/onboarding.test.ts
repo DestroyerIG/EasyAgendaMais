@@ -135,10 +135,11 @@ describe('serviço do onboarding', () => {
   });
 
   it('resumo para o /me: sem negócio usa o vocabulário padrão', async () => {
-    expect(await onboardingService.resumo(null)).toMatchObject({ onboarding: null, vocabulario: { segmento: 'outro' } });
-    repo.resumo.mockResolvedValue({ onboardingEtapa: 2, onboardingConcluidoEm: null, settings: { segment: 'unhas' } });
+    expect(await onboardingService.resumo(null)).toMatchObject({ onboarding: null, vocabulario: { segmento: 'outro' }, logoUrl: null });
+    repo.resumo.mockResolvedValue({ onboardingEtapa: 2, onboardingConcluidoEm: null, logoUrl: 'https://x.test/logo.png', settings: { segment: 'unhas' } });
     expect(await onboardingService.resumo('b1')).toMatchObject({
       onboarding: { pendente: true, bloqueante: true, etapa: 2 }, vocabulario: { profissional: { singular: 'nail designer' } },
+      logoUrl: 'https://x.test/logo.png',
     });
   });
 });

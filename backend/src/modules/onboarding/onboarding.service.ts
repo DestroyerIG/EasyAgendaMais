@@ -110,9 +110,9 @@ export const onboardingService = {
 
   /** Para o /auth/me: onboarding e vocabulário do negócio. */
   async resumo(businessId: string | null) {
-    if (!businessId) return { onboarding: null, vocabulario: vocabularioDe(null) };
+    if (!businessId) return { onboarding: null, vocabulario: vocabularioDe(null), logoUrl: null };
     const b = await repo.resumo(businessId);
-    if (!b) return { onboarding: null, vocabulario: vocabularioDe(null) };
-    return { onboarding: estadoOnboarding(b), vocabulario: vocabularioDe(b.settings?.segment) };
+    if (!b) return { onboarding: null, vocabulario: vocabularioDe(null), logoUrl: null };
+    return { onboarding: estadoOnboarding(b), vocabulario: vocabularioDe(b.settings?.segment), logoUrl: b.logoUrl ?? null };
   },
 };

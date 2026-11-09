@@ -10,15 +10,16 @@ import api from '@/lib/api';
 import { getApiErrorCode, getApiErrorMessage } from '@/utils/handleApiError';
 import { formatCpfCnpj, isValidCpfCnpj, normalizeCpfCnpjDigits } from '@/utils/cpfCnpj';
 import { BusinessProfileSection } from '@/components/settings/BusinessProfileSection';
+import { LogoNegocioCard } from '@/components/settings/LogoNegocioCard';
 import { AccountSection } from '@/components/settings/AccountSection';
 import { ScheduleSection } from '@/components/settings/ScheduleSection';
-import { AppearanceSection } from '@/components/settings/AppearanceSection';
 import { ComissaoPadraoSection } from '@/components/settings/ComissaoPadraoSection';
 import { AppProfissionalSection } from '@/components/settings/AppProfissionalSection';
 import { GoogleAgendaSection } from '@/components/settings/GoogleAgendaSection';
 import { RecebimentosSection } from '@/components/settings/RecebimentosSection';
 import { CrmSettingsSection } from '@/components/settings/CrmSettingsSection';
 import { EtiquetasSection } from '@/components/settings/EtiquetasSection';
+import type { SecaoConfiguracao } from '@/lib/configuracoes';
 import {
   DIAS_SEMANA,
   normalizePhoneDigits,
@@ -35,6 +36,7 @@ const SETTINGS_STORAGE_KEY = 'easyagenda.settings.v1';
 
 interface SettingsModuleProps {
   initialBusinessName: string;
+  secao: SecaoConfiguracao;
 }
 
 const buildDefaultSettings = (): SettingsState => ({
@@ -169,7 +171,7 @@ const getAccountProfileSaveErrorMessage = (error: unknown) => {
   return 'Não foi possível atualizar os dados cadastrais.';
 };
 
-export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
+export function SettingsModule({ initialBusinessName, secao }: SettingsModuleProps) {
   const { user, refreshMe } = useAuth();
   const defaults = useMemo(() => buildDefaultSettings(), []);
   const isTenantAdmin = user?.role === 'tenant_admin';
@@ -184,7 +186,9 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [usingLocalFallback, setUsingLocalFallback] = useState(false);
 
-  const [accountLoading, setAccountLoading] = useState(isTenantAdmin);
+  const precisaHorarios = secao === 'horarios';
+
+  const [accountLoading, setAccountLoading] = useState(isTenantAdmin && secao === 'perfil');
   const [accountSaving, setAccountSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
 
@@ -202,6 +206,11 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
   }, [initialBusinessName, user?.email]);
 
   useEffect(() => {
+    if (!precisaHorarios) {
+      setSettingsLoading(false);
+      return;
+    }
+
     const loadSettings = async () => {
       setSettingsLoading(true);
 
@@ -236,10 +245,10 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
     };
 
     loadSettings();
-  }, [defaults, showToast]);
+  }, [defaults, precisaHorarios, showToast]);
 
   useEffect(() => {
-    if (!isTenantAdmin) {
+    if (!isTenantAdmin || secao !== 'perfil') {
       setAccountLoading(false);
       return;
     }
@@ -267,7 +276,7 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
     };
 
     loadAccountProfile();
-  }, [initialBusinessName, isTenantAdmin, showToast, user?.email]);
+  }, [initialBusinessName, isTenantAdmin, secao, showToast, user?.email]);
 
   const updateSettingsField = <K extends keyof SettingsState>(field: K, value: SettingsState[K]) => {
     setSettings((prev) => ({
@@ -463,13 +472,15 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
 
   return (
     <div className="flex flex-col gap-6 pb-6">
-      {usingLocalFallback && (
+      {precisaHorarios && usingLocalFallback && (
         <Banner tone="warning">
           Algumas preferências operacionais estão em modo local por indisponibilidade temporária do servidor.
         </Banner>
       )}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      {secao === 'perfil' && isTenantAdmin && <LogoNegocioCard />}
+
+      {secao === 'perfil' && (
         <BusinessProfileSection
           isTenantAdmin={isTenantAdmin}
           accountLoading={accountLoading}
@@ -479,7 +490,9 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
           onFieldChange={updateAccountField}
           onSave={saveAccountProfile}
         />
+      )}
 
+      {secao === 'conta' && (
         <AccountSection
           isTenantAdmin={isTenantAdmin}
           passwordForm={passwordForm}
@@ -488,56 +501,57 @@ export function SettingsModule({ initialBusinessName }: SettingsModuleProps) {
           onFieldChange={updatePasswordField}
           onSave={savePassword}
         />
-      </div>
+      )}
 
-      <ScheduleSection
-        settingsLoading={settingsLoading}
-        diasAbertos={settings.diasAbertos}
-        openingTime={settings.openingTime}
-        closingTime={settings.closingTime}
-        slotIntervalMinutes={settings.slotIntervalMinutes}
-        allowWalkins={settings.allowWalkins}
-        autoConfirmAppointments={settings.autoConfirmAppointments}
-        onFieldChange={updateSettingsField}
-      />
+      {secao === 'horarios' && (
+        <>
+          <ScheduleSection
+            settingsLoading={settingsLoading}
+            diasAbertos={settings.diasAbertos}
+            openingTime={settings.openingTime}
+            closingTime={settings.closingTime}
+            slotIntervalMinutes={settings.slotIntervalMinutes}
+            allowWalkins={settings.allowWalkins}
+            autoConfirmAppointments={settings.autoConfirmAppointments}
+            onFieldChange={updateSettingsField}
+          />
 
-      <GoogleAgendaSection />
+          <Card className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-ink">
+                <Store className="h-[18px] w-[18px] text-brand-text" aria-hidden="true" />
+                <span className="font-semibold">Preferências operacionais</span>
+              </div>
+              <p className="text-[15px] text-muted">
+                Horários e preferências da agenda são salvos separadamente dos dados cadastrais
+                da conta.
+              </p>
+            </div>
 
-      <RecebimentosSection />
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button variant="secondary" onClick={resetSettings}>
+                <RotateCcw className="h-4 w-4" aria-hidden="true" /> Restaurar padrões
+              </Button>
+              <Button onClick={saveSettings} loading={settingsSaving} disabled={settingsLoading}>
+                {!settingsSaving && <Save className="h-[18px] w-[18px]" aria-hidden="true" />}
+                {settingsSaving ? 'Salvando...' : 'Salvar preferências'}
+              </Button>
+            </div>
+          </Card>
+        </>
+      )}
 
-      <ComissaoPadraoSection />
+      {secao === 'google-agenda' && <GoogleAgendaSection />}
+      {secao === 'recebimentos' && <RecebimentosSection />}
+      {secao === 'comissao' && <ComissaoPadraoSection />}
+      {secao === 'app-profissional' && <AppProfissionalSection />}
 
-      <AppProfissionalSection />
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <CrmSettingsSection />
-        <EtiquetasSection />
-      </div>
-
-      <AppearanceSection />
-
-      <Card className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-ink">
-            <Store className="h-[18px] w-[18px] text-brand-text" aria-hidden="true" />
-            <span className="font-semibold">Preferências operacionais</span>
-          </div>
-          <p className="text-[15px] text-muted">
-            Horários e preferências da agenda são salvos separadamente dos dados cadastrais
-            da conta.
-          </p>
+      {secao === 'crm' && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <CrmSettingsSection />
+          <EtiquetasSection />
         </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button variant="secondary" onClick={resetSettings}>
-            <RotateCcw className="h-4 w-4" aria-hidden="true" /> Restaurar padrões
-          </Button>
-          <Button onClick={saveSettings} loading={settingsSaving} disabled={settingsLoading}>
-            {!settingsSaving && <Save className="h-[18px] w-[18px]" aria-hidden="true" />}
-            {settingsSaving ? 'Salvando...' : 'Salvar preferências'}
-          </Button>
-        </div>
-      </Card>
+      )}
     </div>
   );
 }

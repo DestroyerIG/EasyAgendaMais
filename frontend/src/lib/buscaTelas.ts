@@ -1,14 +1,13 @@
-import { NAV_ITEMS, NEW_APPOINTMENT_HREF, SETTINGS_TABS } from '@/lib/navigation';
+import { NAV_ITEMS, NEW_APPOINTMENT_HREF } from '@/lib/navigation';
+import { CARTOES_CONFIGURACAO } from '@/lib/configuracoes';
 import type { ItemBusca } from '@/lib/busca';
 
 const SINONIMOS: Record<string, string[]> = {
   '/clientes': ['clientes'],
   '/financeiro': ['financeiro', 'dinheiro', 'pagamentos'],
-  '/configuracoes': ['configurações', 'negócio'],
+  '/configuracoes': ['ajustes', 'configurações'],
   '/agendamentos': ['calendário', 'horários'],
   '/relatorios': ['comissões'],
-  '/planos': ['assinatura', 'cobrança'],
-  '/servicos': ['serviços', 'equipe', 'preços'],
   '/minha-pagina': ['link', 'vitrine'],
 };
 
@@ -24,10 +23,8 @@ function todasAsTelas(rotuloClientes: string): ItemBusca[] {
     icone: n.icon,
     href: n.href,
   }));
-  // "Negócio" fica de fora: /configuracoes já é Ajustes.
-  for (const tab of SETTINGS_TABS) {
-    if (telas.some((t) => t.href === tab.href)) continue;
-    telas.push({ chave: `tela-${tab.href}`, grupo: 'telas', titulo: tab.label, icone: 'settings', href: tab.href });
+  for (const cartao of CARTOES_CONFIGURACAO) {
+    telas.push({ chave: `tela-${cartao.href}`, grupo: 'telas', titulo: cartao.titulo, icone: cartao.icone, href: cartao.href });
   }
   telas.push({ chave: 'tela-novo-agendamento', grupo: 'telas', titulo: 'Novo agendamento', icone: 'add', href: NEW_APPOINTMENT_HREF });
   return telas;
@@ -38,7 +35,8 @@ export function filtrarTelas(termo: string, rotuloClientes: string): ItemBusca[]
   if (!t) return [];
   const achados: { item: ItemBusca; comeca: boolean }[] = [];
   for (const item of todasAsTelas(rotuloClientes)) {
-    const nomes = [item.titulo, ...(SINONIMOS[item.href] ?? [])].map(semAcento);
+    const extras = CARTOES_CONFIGURACAO.find((c) => c.href === item.href)?.sinonimos ?? [];
+    const nomes = [item.titulo, ...(SINONIMOS[item.href] ?? []), ...extras].map(semAcento);
     if (!nomes.some((n) => n.includes(t))) continue;
     achados.push({ item, comeca: nomes.some((n) => n.startsWith(t)) });
   }

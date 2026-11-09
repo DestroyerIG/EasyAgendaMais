@@ -1689,7 +1689,7 @@ export const authService = {
     const normalizedRole = normalizeRole(user.role as string);
     const negocioId = businessId || (user.business_id as string) || null;
     // Onboarding guiado e vocabulário do segmento (fase 6). Nunca derruba o /me.
-    const { onboarding, vocabulario } = await onboardingService.resumo(negocioId).catch(() => ({ onboarding: null, vocabulario: vocabularioDe(null) }));
+    const { onboarding, vocabulario, logoUrl } = await onboardingService.resumo(negocioId).catch(() => ({ onboarding: null, vocabulario: vocabularioDe(null), logoUrl: null }));
 
     return {
       user: {
@@ -1704,6 +1704,7 @@ export const authService = {
         subscriptionCurrentPeriodEnd: (user.subscription_current_period_end as string) || null,
         onboarding,
         vocabulario,
+        logoUrl,
       },
     };
   },

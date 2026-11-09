@@ -4,7 +4,6 @@ import {
   MORE_MENU_IDS,
   NAV_ITEMS,
   NEW_APPOINTMENT_HREF,
-  SETTINGS_TABS,
   getActiveNavItem,
   normalizePath,
 } from '../navigation';
@@ -20,7 +19,7 @@ describe('navegação', () => {
       'WhatsApp',
       'Relatórios',
       'Minha página',
-      'Ajustes',
+      'Configurações',
     ]);
   });
 
@@ -58,14 +57,6 @@ describe('navegação', () => {
     expect(NEW_APPOINTMENT_HREF).toBe('/agendamentos?novo=1');
   });
 
-  it('abas de Ajustes', () => {
-    expect(SETTINGS_TABS).toEqual([
-      { label: 'Negócio', href: '/configuracoes' },
-      { label: 'Serviços e equipe', href: '/servicos' },
-      { label: 'Plano e cobrança', href: '/planos' },
-    ]);
-  });
-
   it.each([
     ['/dashboard', 'hoje'],
     ['/dashboard/', 'hoje'],
@@ -79,6 +70,7 @@ describe('navegação', () => {
     ['/minha-pagina', 'minha-pagina'],
     ['/configuracoes', 'ajustes'],
     ['/servicos', 'ajustes'],
+    ['/configuracoes/horarios', 'ajustes'],
     ['/planos', 'ajustes'],
     ['/dashboard/planos', 'ajustes'],
     ['/pagamento', null],

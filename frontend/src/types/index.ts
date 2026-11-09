@@ -119,6 +119,8 @@ export interface User {
     onboarding?: { pendente: boolean; bloqueante: boolean; etapa: number } | null;
     /** Termos do segmento do negócio (fase 6). */
     vocabulario?: Vocabulario;
+    /** Logo do negócio (a mesma da página pública); `null` se ainda não enviou. */
+    logoUrl?: string | null;
 }
 
 export interface Expense {

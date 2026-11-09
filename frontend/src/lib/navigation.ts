@@ -29,19 +29,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { id: 'whatsapp', label: 'WhatsApp', href: '/whatsapp', icon: 'chat', matches: ['/whatsapp'] },
   { id: 'relatorios', label: 'Relatórios', href: '/relatorios', icon: 'bar_chart', matches: ['/relatorios'] },
   { id: 'minha-pagina', label: 'Minha página', href: '/minha-pagina', icon: 'storefront', matches: ['/minha-pagina'] },
-  { id: 'ajustes', label: 'Ajustes', href: '/configuracoes', icon: 'settings', matches: ['/configuracoes', '/servicos', '/planos'] },
+  { id: 'ajustes', label: 'Configurações', href: '/configuracoes', icon: 'settings', matches: ['/configuracoes', '/servicos', '/planos'] },
 ];
 
 // Barra inferior do celular: Hoje, Agenda, [+], Clientes, [Mais] — hoje-mobile.html.
 export const BOTTOM_NAV_IDS: readonly NavItemId[] = ['hoje', 'agenda', 'clientes'];
 export const MORE_MENU_IDS: readonly NavItemId[] = ['caixa', 'clube', 'whatsapp', 'relatorios', 'minha-pagina', 'ajustes'];
 export const NEW_APPOINTMENT_HREF = '/agendamentos?novo=1';
-
-export const SETTINGS_TABS: readonly { label: string; href: string }[] = [
-  { label: 'Negócio', href: '/configuracoes' },
-  { label: 'Serviços e equipe', href: '/servicos' },
-  { label: 'Plano e cobrança', href: '/planos' },
-];
 
 export function normalizePath(pathname: string): string {
   const trimmed = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;

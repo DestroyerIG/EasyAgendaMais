@@ -35,8 +35,8 @@ vi.mock('@/lib/conta', () => ({
 
 const { AppShell } = await import('../AppShell');
 
-const LABELS = ['Hoje', 'Agenda', 'Clientes', 'Caixa', 'Clube e pacotes', 'WhatsApp', 'Relatórios', 'Minha página', 'Ajustes'];
-const MORE_LABELS = ['Caixa', 'Clube e pacotes', 'WhatsApp', 'Relatórios', 'Minha página', 'Ajustes'];
+const LABELS = ['Hoje', 'Agenda', 'Clientes', 'Caixa', 'Clube e pacotes', 'WhatsApp', 'Relatórios', 'Minha página', 'Configurações'];
+const MORE_LABELS = ['Caixa', 'Clube e pacotes', 'WhatsApp', 'Relatórios', 'Minha página', 'Configurações'];
 
 const renderShell = () =>
   render(
@@ -80,11 +80,11 @@ describe('AppShell', () => {
     expect(screen.queryByText(/\bPro\b/)).not.toBeInTheDocument();
   });
 
-  it('Ajustes fica ativo em /servicos', () => {
+  it('Configurações fica ativo em /servicos', () => {
     mockPathname.value = '/servicos';
     renderShell();
     const sidebar = screen.getByRole('navigation', { name: 'Navegação principal' });
-    expect(within(sidebar).getByRole('link', { name: 'Ajustes' })).toHaveAttribute('aria-current', 'page');
+    expect(within(sidebar).getByRole('link', { name: 'Configurações' })).toHaveAttribute('aria-current', 'page');
     expect(within(sidebar).getByRole('link', { name: 'Hoje' })).not.toHaveAttribute('aria-current');
   });
 
@@ -101,7 +101,7 @@ describe('AppShell', () => {
     expect(within(bottom).getByRole('button', { name: 'Mais' })).toBeInTheDocument();
   });
 
-  it('menu Mais tem Caixa, Clube e pacotes, WhatsApp, Relatórios, Minha página, Ajustes, tema e Sair', async () => {
+  it('menu Mais tem Caixa, Clube e pacotes, WhatsApp, Relatórios, Minha página, Configurações, tema e Sair', async () => {
     renderShell();
     const bottom = screen.getByRole('navigation', { name: 'Navegação inferior' });
     await userEvent.click(within(bottom).getByRole('button', { name: 'Mais' }));

@@ -4,17 +4,16 @@ import Link from 'next/link';
 import { NAV_ITEMS, type NavItemId } from '@/lib/navigation';
 import { cn } from '@/lib/cn';
 import { BrandLogo, Icon } from '@/components/ui';
-import { AccountMenu } from './AccountMenu';
+import { BusinessCard } from './AccountMenu';
 
 export interface SidebarProps {
   activeId: NavItemId | null;
   businessName: string;
   planLabel: string;
-  onLogout: () => void;
-  onAvaliar?: () => void;
+  logoUrl?: string | null;
 }
 
-export function Sidebar({ activeId, businessName, planLabel, onLogout, onAvaliar }: SidebarProps) {
+export function Sidebar({ activeId, businessName, planLabel, logoUrl }: SidebarProps) {
   return (
     <aside className="fixed inset-y-0 left-0 z-50 hidden w-[248px] flex-col justify-between border-r border-line bg-surface lg:flex">
       <div className="flex flex-col">
@@ -52,7 +51,7 @@ export function Sidebar({ activeId, businessName, planLabel, onLogout, onAvaliar
         </nav>
       </div>
       <div className="border-t border-line p-3">
-        <AccountMenu businessName={businessName} planLabel={planLabel} onLogout={onLogout} onAvaliar={onAvaliar} />
+        <BusinessCard businessName={businessName} planLabel={planLabel} logoUrl={logoUrl} />
       </div>
     </aside>
   );
