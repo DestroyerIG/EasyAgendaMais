@@ -115,6 +115,10 @@ export const conexaoService = {
     const u = await repo.usuario(user.userId);
     if (!u) throw new NotFoundError('Usuário');
     if (u.role !== 'tenant_admin') throw new ForbiddenError('Só quem administra o negócio conecta os recebimentos');
+    const atual = await repo.conexaoDoNegocio(u.businessId);
+    if (atual && atual.gateway === 'infinitepay' && atual.situacao === 'ativa') {
+      throw new ConflictError('Desconecte a InfinitePay antes de conectar o Mercado Pago.');
+    }
 
     // O id da conta vem de /users/me: o webhook roteia por ele, e o `user_id` do OAuth pode faltar.
     const conta = await gatewayDe(gateway).conta(p.tokens.accessToken);
@@ -352,7 +356,8 @@ export const conexaoService = {
 
   /** Renova os tokens a menos de 30 dias do vencimento. Roda uma vez por dia; nunca lança. */
   async renovarVencendo(agora: Date = new Date()): Promise<void> {
-    if (!recebimentosConfigurado()) return;
+    // Só o Mercado Pago tem token que vence.
+    if (!gatewayDisponivel('mercadopago')) return;
     try {
       for (const lida of await repo.conexoesAtivas()) {
         if (lida.gateway !== 'mercadopago' || !tokenPertoDeVencer(lida.tokenExpiraEm, agora)) continue;
