@@ -62,3 +62,21 @@ export const webhookMercadoPago = (req: Request, res: Response): void => {
   if (!SO_DIGITOS.test(contaId) || !(tipo === 'payment' ? SO_DIGITOS : ALFANUMERICO).test(recursoId)) return;
   void pagamentosService.processarAviso({ contaId, tipo, recursoId });
 };
+
+const NSU = /^[A-Za-z0-9_-]{1,100}$/;
+
+/** Espera a conferência: 400 faz a InfinitePay tentar de novo quando ela mesma não respondeu. Fora do formato, 200 sem chamar nada. */
+export const webhookInfinitePay: H = async (req, res, next) => {
+  try {
+    const corpo = (req.body ?? {}) as Record<string, unknown>;
+    const orderNsu = corpo['order_nsu'], transactionNsu = corpo['transaction_nsu'], fatura = corpo['invoice_slug'];
+    if (![orderNsu, transactionNsu, fatura].every((v) => typeof v === 'string' && NSU.test(v))) {
+      res.sendStatus(200);
+      return;
+    }
+    const r = await pagamentosService.confirmarInfinitePay({
+      cobrancaId: String(req.params['cobrancaId']), orderNsu: orderNsu as string, transactionNsu: transactionNsu as string, fatura: fatura as string,
+    });
+    res.sendStatus(r === 'tentar_de_novo' ? 400 : 200);
+  } catch (e) { next(e); }
+};

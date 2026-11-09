@@ -199,6 +199,11 @@ export const recebimentosRepository = {
     return prisma.cobrancaSinal.findFirst({ where: { id: cobrancaId, businessId }, select: { id: true } });
   },
 
+  /** A cobrança da InfinitePay que pertence a esta reserva, para a volta do cliente. */
+  cobrancaDaReserva(cobrancaId: string, appointmentId: string, gateway: GatewayId) {
+    return prisma.cobrancaSinal.findFirst({ where: { id: cobrancaId, appointmentId, gateway }, select: { id: true } });
+  },
+
   /** A reserva completa, com cliente e serviço, para os avisos. */
   async reservaDaCobranca(cobrancaId: string) {
     const c = await prisma.cobrancaSinal.findUnique({

@@ -9,7 +9,9 @@ import { infinitePay } from '../modules/recebimentos/gateways/infinitePay.js';
 import { gateways, GatewayIndisponivel, GatewayRecusou, GatewayTokenInvalido } from '../modules/recebimentos/gateways/index.js';
 import { CreatePublicAppointmentSchema } from '../modules/publicBooking/publicBooking.types.js';
 import { generateAvailableTimeSlots, getBusinessScheduleSettings } from '../services/scheduleSettingsService.js';
-import { ConflictError, ValidationError } from '../utils/errors.js';
+import { pagamentosService } from '../modules/recebimentos/pagamentos.service.js';
+import { ConfirmarInfinitePaySchema } from '../modules/publicBooking/publicBooking.types.js';
+import { ConflictError, NotFoundError, ValidationError } from '../utils/errors.js';
 
 vi.mock('../modules/conta/estadoConta.service.js', () => ({ estadoContaService: { doNegocio: vi.fn().mockResolvedValue({ tipo: 'ativa' }) } }));
 vi.mock('../modules/whatsappAutomacoes/gatilhos.service.js', () => ({
@@ -34,7 +36,7 @@ vi.mock('../services/scheduleSettingsService.js', () => ({
 }));
 vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({
   recebimentosRepository: {
-    criarCobranca: vi.fn(), completarCobranca: vi.fn(), apagarCobranca: vi.fn(), cobrancasDaReserva: vi.fn(),
+    criarCobranca: vi.fn(), completarCobranca: vi.fn(), apagarCobranca: vi.fn(), cobrancasDaReserva: vi.fn(), cobrancaDaReserva: vi.fn(),
   },
 }));
 vi.mock('../modules/recebimentos/conexao.service.js', () => ({
@@ -45,6 +47,7 @@ vi.mock('../modules/recebimentos/gateways/index.js', async (original) => ({
   gateways: { mercadopago: { criarPix: vi.fn(), criarCheckoutCartao: vi.fn() } },
 }));
 
+vi.mock('../modules/recebimentos/pagamentos.service.js', () => ({ pagamentosService: { confirmarInfinitePay: vi.fn() } }));
 vi.mock('../modules/recebimentos/gateways/infinitePay.js', () => ({ infinitePay: { criarLink: vi.fn() } }));
 
 const fn = (x: unknown) => x as ReturnType<typeof vi.fn>;
@@ -453,5 +456,47 @@ describe('gateway da reserva', () => {
     expect((await publicBookingService.getAppointmentStatus('studio', 'appt-1')).reserva.gateway).toBe('mercadopago');
     recRepo.cobrancasDaReserva.mockResolvedValue([]);
     expect((await publicBookingService.getAppointmentStatus('studio', 'appt-1')).reserva.gateway).toBeNull();
+  });
+});
+
+describe('volta da InfinitePay', () => {
+  const COB = '11111111-1111-4111-8111-111111111111';
+  const volta = { orderNsu: COB, transactionNsu: 'tx-1', fatura: 'fat-1' };
+
+  it('cobrança de outra reserva: 404 e não confirma', async () => {
+    pubRepo.findPublicAppointment.mockResolvedValue(reserva());
+    recRepo.cobrancaDaReserva.mockResolvedValue(null);
+    await expect(publicBookingService.confirmarInfinitePay('studio', 'appt-1', volta)).rejects.toBeInstanceOf(NotFoundError);
+    expect(recRepo.cobrancaDaReserva).toHaveBeenCalledWith(COB, 'appt-1', 'infinitepay');
+    expect(pagamentosService.confirmarInfinitePay).not.toHaveBeenCalled();
+  });
+
+  it('orderNsu que não é id de cobrança: 404 sem consultar o banco', async () => {
+    pubRepo.findPublicAppointment.mockResolvedValue(reserva());
+    await expect(publicBookingService.confirmarInfinitePay('studio', 'appt-1', { ...volta, orderNsu: 'outro' })).rejects.toBeInstanceOf(NotFoundError);
+    expect(recRepo.cobrancaDaReserva).not.toHaveBeenCalled();
+    expect(pagamentosService.confirmarInfinitePay).not.toHaveBeenCalled();
+  });
+
+  it('reserva de outro negócio: 404', async () => {
+    pubRepo.findPublicAppointment.mockResolvedValue(null);
+    await expect(publicBookingService.confirmarInfinitePay('studio', 'appt-1', volta)).rejects.toBeInstanceOf(NotFoundError);
+    expect(pagamentosService.confirmarInfinitePay).not.toHaveBeenCalled();
+  });
+
+  it('confere o pagamento e devolve o status, mesmo com tentar_de_novo', async () => {
+    pubRepo.findPublicAppointment.mockResolvedValue(reserva());
+    recRepo.cobrancaDaReserva.mockResolvedValue({ id: COB });
+    recRepo.cobrancasDaReserva.mockResolvedValue([]);
+    fn(pagamentosService.confirmarInfinitePay).mockResolvedValue('tentar_de_novo');
+    const r = await publicBookingService.confirmarInfinitePay('studio', 'appt-1', volta);
+    expect(pagamentosService.confirmarInfinitePay).toHaveBeenCalledWith({ cobrancaId: COB, orderNsu: COB, transactionNsu: 'tx-1', fatura: 'fat-1' });
+    expect(r).toEqual(await publicBookingService.getAppointmentStatus('studio', 'appt-1'));
+  });
+
+  it('o corpo precisa ter o formato dos códigos', () => {
+    expect(ConfirmarInfinitePaySchema.safeParse(volta).success).toBe(true);
+    expect(ConfirmarInfinitePaySchema.safeParse({ ...volta, fatura: 'a b' }).success).toBe(false);
+    expect(ConfirmarInfinitePaySchema.safeParse({ ...volta, transactionNsu: 'x'.repeat(101) }).success).toBe(false);
   });
 });

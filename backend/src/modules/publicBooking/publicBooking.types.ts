@@ -11,6 +11,10 @@ export const GetPublicDaysSchema = GetPublicAvailabilitySchema.omit({ date: true
 
 export const PublicAppointmentParamsSchema = z.object({ slug: z.string(), id: z.string().uuid() });
 
+const NsuSchema = z.string().regex(/^[A-Za-z0-9_-]{1,100}$/);
+export const ConfirmarInfinitePaySchema = z.object({ orderNsu: NsuSchema, transactionNsu: NsuSchema, fatura: NsuSchema });
+export type ConfirmarInfinitePayInput = z.infer<typeof ConfirmarInfinitePaySchema>;
+
 export const CreatePublicAppointmentSchema = z.object({
   serviceId: z.string().uuid(),
   professionalId: z.string().uuid(),

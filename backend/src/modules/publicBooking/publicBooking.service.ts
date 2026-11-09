@@ -7,7 +7,8 @@ import { notificationsService } from '../notifications/notifications.service.js'
 import logger from '../../utils/logger.js';
 import { vocabularioDe } from '../../config/vocabulario.js';
 import { automacoesGatilhos } from '../whatsappAutomacoes/gatilhos.service.js';
-import type { CreatePublicAppointmentInput, GetPublicAvailabilityQuery, GetPublicDaysQuery, Storefront } from './publicBooking.types.js';
+import { pagamentosService } from '../recebimentos/pagamentos.service.js';
+import type { ConfirmarInfinitePayInput, CreatePublicAppointmentInput, GetPublicAvailabilityQuery, GetPublicDaysQuery, Storefront } from './publicBooking.types.js';
 import { DIAS_NA_FAIXA, diasAPartirDe, notaPublica, situacaoDaReserva } from './publicBooking.rules.js';
 import { estadoContaService } from '../conta/estadoConta.service.js';
 import { textoAgendaPausada } from '../conta/estadoConta.rules.js';
@@ -16,6 +17,8 @@ import { conexaoService } from '../recebimentos/conexao.service.js';
 import { cobrancasService } from '../recebimentos/cobrancas.service.js';
 import { recebimentosRepository } from '../recebimentos/recebimentos.repository.js';
 import type { FormaSinal, GatewayId } from '../recebimentos/recebimentos.types.js';
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type PixKeyType = Parameters<typeof buildPixPayload>[0]['pixKeyType'];
 
@@ -223,6 +226,18 @@ export const publicBookingService = {
    * Código Pix da reserva. Repete o da cobrança Pix pendente; sem ela, tenta criar uma no gateway
    * e, se não der, devolve o código manual (sem cobrança).
    */
+  /** Volta do cliente da InfinitePay: confere o pagamento e devolve o status da reserva já atualizado. */
+  async confirmarInfinitePay(slug: string, id: string, d: ConfirmarInfinitePayInput) {
+    const business = await publicBookingRepository.findBusinessBySlug(slug);
+    if (!business) throw new NotFoundError('Página');
+    const reserva = await publicBookingRepository.findPublicAppointment(business.id, id);
+    if (!reserva) throw new NotFoundError('Reserva');
+    const cobranca = UUID.test(d.orderNsu) ? await recebimentosRepository.cobrancaDaReserva(d.orderNsu, reserva.id, 'infinitepay') : null;
+    if (!cobranca) throw new NotFoundError('Cobrança');
+    await pagamentosService.confirmarInfinitePay({ cobrancaId: cobranca.id, orderNsu: d.orderNsu, transactionNsu: d.transactionNsu, fatura: d.fatura });
+    return publicBookingService.getAppointmentStatus(slug, id);
+  },
+
   async getPixDaReserva(slug: string, id: string) {
     const business = await publicBookingRepository.findBusinessBySlug(slug);
     if (!business) throw new NotFoundError('Página');

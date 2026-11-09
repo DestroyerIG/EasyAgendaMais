@@ -73,3 +73,12 @@ export const getPixDaReserva = async (req: Request, res: Response, next: NextFun
     next(error);
   }
 };
+
+export const confirmarInfinitePay = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await publicBookingService.confirmarInfinitePay(String(req.params['slug']), String(req.params['id']), req.body);
+    sendSuccess(res, data);
+  } catch (error) {
+    next(error);
+  }
+};

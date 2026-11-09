@@ -5,9 +5,10 @@ import { avisarSinalConfirmado } from '../appointments/sinalConfirmado.js';
 import { notificationsService } from '../notifications/notifications.service.js';
 import { conexaoService } from './conexao.service.js';
 import { GatewayIndisponivel, GatewayRecusou, GatewayTokenInvalido } from './gateways/index.js';
+import { infinitePay } from './gateways/infinitePay.js';
 import { gatewayDe } from './gateways/porId.js';
 import { recebimentosRepository as repo } from './recebimentos.repository.js';
-import { centavos, decidirPagamento, gatewayDisponivel, reais, recebimentosConfigurado, type Decisao } from './recebimentos.rules.js';
+import { centavos, decidirPagamento, gatewayDisponivel, nomeDoGateway, reais, recebimentosConfigurado, type Decisao } from './recebimentos.rules.js';
 import type { GatewayId, PagamentoGateway } from './recebimentos.types.js';
 
 // Pagamentos do sinal. O aviso do gateway só diz onde olhar: a prova é sempre a busca feita com o
@@ -68,7 +69,7 @@ async function avisarPagoSemReserva(c: Cobranca): Promise<void> {
   await alertarNegocio(
     c.businessId,
     'Sinal pago, mas a reserva não foi confirmada',
-    `${reserva.client.name} pagou ${reais(c.valor)}, mas o horário não está mais reservado. Fale com a pessoa, confira no Mercado Pago e devolva se for o caso.`,
+    `${reserva.client.name} pagou ${reais(c.valor)}, mas o horário não está mais reservado. Fale com a pessoa, confira no ${nomeDoGateway(c.gateway as GatewayId)} e devolva se for o caso.`,
   );
   try {
     await sendWhatsAppMessage(reserva.client.phone, MENSAGEM_AO_CLIENTE, { businessId: c.businessId, origin: 'pix_recibo' });
@@ -83,7 +84,7 @@ async function avisarDuplicado(c: Cobranca): Promise<void> {
   await alertarNegocio(
     c.businessId,
     'Possível sinal pago em dobro',
-    `${reserva.client.name} pode ter pago ${reais(c.valor)} a mais nesta reserva. Confira no Mercado Pago e devolva se for o caso.`,
+    `${reserva.client.name} pode ter pago ${reais(c.valor)} a mais nesta reserva. Confira no ${nomeDoGateway(c.gateway as GatewayId)} e devolva se for o caso.`,
   );
 }
 
@@ -94,7 +95,7 @@ async function avisarEstorno(c: Cobranca, situacao: 'devolvida' | 'contestada'):
   await alertarNegocio(
     c.businessId,
     titulo,
-    `O sinal de ${reais(c.valor)} de ${reserva.client.name} ${fato}. Confira no Mercado Pago. A reserva não mudou: você decide se ela continua.`,
+    `O sinal de ${reais(c.valor)} de ${reserva.client.name} ${fato}. Confira no ${nomeDoGateway(c.gateway as GatewayId)}. A reserva não mudou: você decide se ela continua.`,
   );
 }
 
@@ -173,6 +174,43 @@ async function conferirCobranca(cobrancaId: string): Promise<void> {
 }
 
 export const pagamentosService = {
+  /**
+   * Confirmação da InfinitePay (webhook ou volta do cliente): a prova é a conferência feita com a chave do negócio.
+   * Nunca lança. 'tentar_de_novo' só quando a InfinitePay não respondeu.
+   */
+  async confirmarInfinitePay(d: { cobrancaId: string; transactionNsu: string; fatura: string; orderNsu: string }): Promise<'ok' | 'tentar_de_novo'> {
+    try {
+      if (d.orderNsu !== d.cobrancaId) return 'ok';
+      const c = await repo.cobrancaComReserva(d.cobrancaId);
+      if (!c || c.gateway !== 'infinitepay') return 'ok';
+      const conta = await conexaoService.credencial(c.businessId);
+      if (!conta) {
+        logger.warn({ cobrancaId: d.cobrancaId, businessId: c.businessId }, 'Recebimentos: negócio sem conexão ativa da InfinitePay para conferir a cobrança');
+        return 'ok';
+      }
+      let pagamento: PagamentoGateway | null;
+      try {
+        pagamento = await infinitePay.conferirPagamento(conta.cred, { cobrancaId: c.id, transactionNsu: d.transactionNsu, fatura: d.fatura });
+      } catch (e) {
+        if (e instanceof GatewayIndisponivel) return 'tentar_de_novo';
+        if (e instanceof GatewayTokenInvalido) {
+          if (await conexaoService.acessoRevogado(c.businessId, 'infinitepay')) await conexaoService.marcarReconectar(c.businessId, e.message);
+          return 'ok';
+        }
+        if (e instanceof GatewayRecusou) {
+          logger.warn({ cobrancaId: c.id, erro: e.name }, 'Recebimentos: InfinitePay recusou a conferência');
+          return 'ok';
+        }
+        throw e;
+      }
+      if (pagamento) await avaliar(c.id, pagamento);
+      return 'ok';
+    } catch (e) {
+      logger.error({ err: e, cobrancaId: d.cobrancaId }, 'Recebimentos: falha ao confirmar o pagamento da InfinitePay');
+      return 'ok';
+    }
+  },
+
   /** Aviso do gateway. Nunca lança: quem chama já respondeu 200. */
   async processarAviso(aviso: { contaId: string; tipo: 'order' | 'payment'; recursoId: string }): Promise<void> {
     if (!gatewayDisponivel('mercadopago')) return;
