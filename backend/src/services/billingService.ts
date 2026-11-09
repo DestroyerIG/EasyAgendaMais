@@ -1299,7 +1299,9 @@ export const billingService = {
     )) as NormalizedWebhookPayload;
 
     const lockKey = `billing:asaas:${normalizedPayload.eventId}`;
-    await prisma.$queryRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`);
+    // $executeRaw (e não $queryRaw): pg_advisory_xact_lock retorna `void`, que o Prisma não
+    // consegue desserializar como coluna de resultado (P2010 → 500 em todo webhook).
+    await prisma.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${lockKey}::text))`);
 
     try {
       const alreadyProcessed =

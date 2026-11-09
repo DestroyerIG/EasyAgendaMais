@@ -29,7 +29,7 @@ vi.mock('../integrations/asaas/service.js', () => ({ asaasService: asaas }));
 vi.mock('../modules/conta/estadoConta.service.js', () => ({ estadoContaService: { invalidar: vi.fn() } }));
 vi.mock('../modules/billing/planChange.service.js', () => ({ planChangeService: { webhookUpgradePix: vi.fn() } }));
 vi.mock('../utils/logger.js', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
-vi.mock('../config/prisma.js', () => ({ prisma: { $queryRaw: vi.fn().mockResolvedValue([]) } }));
+vi.mock('../config/prisma.js', () => ({ prisma: { $queryRaw: vi.fn().mockResolvedValue([]), $executeRaw: vi.fn().mockResolvedValue(0) } }));
 
 const { billingService } = await import('../services/billingService.js');
 
