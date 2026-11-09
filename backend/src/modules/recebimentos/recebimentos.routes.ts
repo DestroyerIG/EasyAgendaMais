@@ -3,7 +3,6 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { authMiddleware } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
-import { z } from 'zod';
 import { CallbackQuerySchema, ChaveSchema, ConfirmarSchema, FormasSchema, GatewayOAuthParamSchema, GatewayParamSchema } from './recebimentos.types.js';
 import { callback, conectar, conectarChave, confirmar, definirFormas, desconectar, verConexao, webhookInfinitePay, webhookMercadoPago } from './recebimentos.controller.js';
 
@@ -33,7 +32,7 @@ const webhookLimiter = rateLimit({
 
 // Público: o aviso não prova nada; o pagamento é conferido no gateway com o token do negócio.
 router.post('/webhook/mercadopago', webhookLimiter, webhookMercadoPago);
-router.post('/webhook/infinitepay/:cobrancaId', webhookLimiter, validate({ params: z.object({ cobrancaId: z.string().uuid() }) }), webhookInfinitePay);
+router.post('/webhook/infinitepay/:cobrancaId', webhookLimiter, webhookInfinitePay);
 router.get('/conexoes', ...dono, verConexao);
 // Público: o Mercado Pago volta para cá; quem é a pessoa vem do estado assinado.
 router.get('/:gateway/callback', callbackLimiter, gatewayOAuth, validate({ query: CallbackQuerySchema }), callback);

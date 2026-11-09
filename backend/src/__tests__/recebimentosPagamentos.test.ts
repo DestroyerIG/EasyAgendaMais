@@ -885,10 +885,10 @@ describe('POST /webhook/infinitepay/:cobrancaId', () => {
     expect(e).not.toHaveBeenCalled();
   });
 
-  it('cobrancaId que não é UUID não chega ao serviço', async () => {
+  it('cobrancaId que não é UUID responde 200 sem chamar o serviço', async () => {
     const e = espiao();
     const r = await request.post('/api/v1/recebimentos/webhook/infinitepay/xyz').send(corpo);
-    expect(r.status).not.toBe(200);
+    expect(r.status).toBe(200);
     expect(e).not.toHaveBeenCalled();
   });
 });
