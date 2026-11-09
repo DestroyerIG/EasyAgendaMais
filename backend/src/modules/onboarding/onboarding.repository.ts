@@ -123,7 +123,7 @@ export const onboardingRepository = {
   resumo(businessId: string) {
     return prisma.business.findUnique({
       where: { id: businessId },
-      select: { onboardingEtapa: true, onboardingConcluidoEm: true, settings: { select: { segment: true } } },
+      select: { onboardingEtapa: true, onboardingConcluidoEm: true, logoUrl: true, settings: { select: { segment: true } } },
     });
   },
 };
