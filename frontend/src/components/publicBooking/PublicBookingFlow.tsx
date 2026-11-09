@@ -722,11 +722,9 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                             {retorno === 'falha' ? 'Tentar de novo' : 'Ir para o pagamento'}
                           </Button>
                         )}
-                        {!ehInfinitePay && (
-                          <Button type="button" variant="ghost" loading={trocandoParaPix} onClick={pagarComPix}>
-                            Pagar com Pix
-                          </Button>
-                        )}
+                        <Button type="button" variant="ghost" loading={trocandoParaPix} onClick={pagarComPix}>
+                          {ehInfinitePay ? 'Pagar com Pix direto ao estabelecimento' : 'Pagar com Pix'}
+                        </Button>
                       </>
                     )}
                   </>

@@ -390,6 +390,25 @@ describe('InfinitePay', () => {
     expect(api.getAppointmentStatus).toHaveBeenCalledWith('studio-aurora', 'appt-1');
   });
 
+  it('na volta ainda aguardando oferece o Pix direto ao estabelecimento e chama o fluxo de Pix', async () => {
+    abrirEm('?reserva=appt-1&retorno=infinitepay');
+    api.getAppointmentStatus.mockResolvedValue({ situacao: 'aguardando', reserva: RESERVA_IP });
+    api.trocarParaPix.mockResolvedValue({ pixPayload: '000201pix', forma: 'pix', expiresAt: FUTURO });
+    render(<PublicBookingFlow slug="studio-aurora" />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Pagar com Pix direto ao estabelecimento' }));
+    await waitFor(() => expect(api.trocarParaPix).toHaveBeenCalledWith('studio-aurora', 'appt-1'));
+  });
+
+  it('sem checkoutUrl ainda mostra o Pix direto ao estabelecimento', async () => {
+    abrirEm('?reserva=appt-1&retorno=infinitepay');
+    api.getAppointmentStatus.mockResolvedValue({ situacao: 'aguardando', reserva: { ...RESERVA_IP, checkoutUrl: null } });
+    render(<PublicBookingFlow slug="studio-aurora" />);
+
+    expect(await screen.findByRole('button', { name: 'Pagar com Pix direto ao estabelecimento' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ir para o pagamento' })).not.toBeInTheDocument();
+  });
+
   it('Mercado Pago segue com os rótulos de hoje', async () => {
     api.getStorefront.mockResolvedValue({ ...STOREFRONT, formasPagamento: ['cartao'], gatewayPagamento: 'mercadopago' });
     const user = userEvent.setup();
