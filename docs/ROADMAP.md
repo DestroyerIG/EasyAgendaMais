@@ -48,14 +48,13 @@ Atualizado em 06/11/2026.
 Spec: `docs/superpowers/specs/2026-10-26-google-login-agenda-design.md`. Guia de configuração: `docs/google-configuracao.md`.
 
 - PR #20 juntado em 26/10, com a migração `20261029120000_google_agenda` aplicada em produção no mesmo dia.
-- O login com Google e a conexão do Google Agenda funcionaram em produção (https://www.easybarber.tech).
-- Falta publicar e verificar o app no Google. Em modo Teste, só os usuários de teste conectam a agenda, e o acesso expira em 7 dias.
-- Para a verificação, o domínio próprio precisa estar verificado no Search Console. O dono vai trocar o domínio `easybarber.tech` e só depois faz os ajustes de domínio (`FRONTEND_URL`, backend em subdomínio próprio, domínio autorizado na marca do app).
+- O login com Google e a conexão do Google Agenda funcionaram em produção.
+- **Domínio novo (09/11):** o sistema passou para https://www.easyagendamais.com.br, com o backend em `api.easyagendamais.com.br`. O `easybarber.tech` foi abandonado.
+- **Google em produção (09/11):** marca verificada (o login mostra "EasyAgenda+") e app publicado. Os escopos de agenda são não confidenciais, então não houve verificação de escopos. Testado: o agendamento aparece na agenda "EasyAgenda+" do Google Calendar.
 
 ## Próximos passos
 
 - **H:** SuperAdmin, modo de contingência e textos de venda. Spec em `docs/superpowers/specs/2026-10-28-item-h-superadmin-contingencia-venda-design.md`, dividida em H1 (concluída), H2 (SuperAdmin) e H3 (textos de venda). A H2 está implementada no branch `feat/h2-superadmin` e aguarda o dono pedir o PR; a próxima é a H3.
-- Verificação do app no Google, depois da troca de domínio.
 - Conferência das telas com dado real e pendências abertas em `docs/design/SEGUIMENTO.md`.
 
 ## Fase 5 (concluída)

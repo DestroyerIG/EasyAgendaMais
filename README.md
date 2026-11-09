@@ -9,7 +9,7 @@
 
 > **SaaS multi-tenant para negócios de beleza e bem-estar (barbearias, estúdios de unhas e cílios, salões e clínicas de estética): agenda, comanda e caixa, CRM, WhatsApp com automações, clube e pacotes, comissões, app da profissional e Google Agenda.**
 
-Em produção em https://www.easybarber.tech.
+Em produção em https://www.easyagendamais.com.br.
 
 ---
 

@@ -11,10 +11,10 @@ São três lugares: Google Cloud, Supabase e as variáveis do backend e do front
 3. **APIs e serviços › Tela de consentimento OAuth** (em alguns painéis, "Google Auth Platform › Branding"):
    - Tipo de usuário: **Externo**.
    - Nome do app: `EasyAgenda+`, e-mail de suporte, logo.
-   - Domínios autorizados: o domínio do site (ex.: `easyagenda.com.br`) e o do backend.
+   - Domínios autorizados: o domínio do site (ex.: `easyagendamais.com.br`) e o do backend.
    - Links da página inicial, da política de privacidade (`/privacidade`) e dos termos (`/termos`).
    - Escopos ("Acesso a dados"): `openid`, `email`, `profile`, `https://www.googleapis.com/auth/calendar.app.created` e `https://www.googleapis.com/auth/calendar.freebusy`.
-   - **Usuários de teste:** enquanto o app não for verificado, só os e-mails desta lista (até 100) conseguem conectar o Google Agenda. Coloque o seu e o das primeiras clientes.
+   - **Usuários de teste:** só valem enquanto o app está em modo Teste (até 100 e-mails, com o acesso expirando em 7 dias). Para abrir a todos, publique o app (passo 4).
 4. **APIs e serviços › Credenciais › Criar credenciais › ID do cliente OAuth:**
    - Tipo: **Aplicativo da Web**.
    - **URIs de redirecionamento autorizados**, os dois:
@@ -46,11 +46,10 @@ Frontend (Vercel):
 
 O banco precisa da migração `20261029120000_google_agenda` aplicada **antes** do deploy do backend.
 
-## 4. Verificação do Google
+## 4. Publicar o app no Google
 
-- O **login** (`openid email profile`) não precisa de verificação; basta a marca configurada no passo 1.3.
-- Os escopos de **agenda** precisam da verificação do app. Em "Tela de consentimento › Publicar app", o Google pede:
-  - a política de privacidade publicada, que já explica os dados do Google (seção 8);
-  - um vídeo curto (YouTube não listado) mostrando o login, a tela de consentimento e o uso: conectar em Ajustes, o agendamento aparecendo no Google e o horário bloqueado na página pública;
-  - a justificativa de cada escopo, por exemplo: `calendar.app.created` cria a agenda "EasyAgenda+" com os agendamentos; `calendar.freebusy` lê só ocupado/livre para não oferecer horário em que a profissional tem compromisso.
-- A análise costuma levar de alguns dias a algumas semanas. Até a aprovação, só os usuários de teste conectam a agenda.
+Os escopos de agenda (`calendar.app.created` e `calendar.freebusy`) e os de login são **não confidenciais** no Google Cloud. Por isso **não há verificação de escopos, vídeo nem justificativa**: basta a **marca verificada** e publicar o app.
+
+1. **Marca:** em "Google Auth Platform › Branding", preencha nome (`EasyAgenda+`), logotipo (quadrado, até 1 MB), página inicial, privacidade (`/privacidade`) e termos (`/termos`), com o domínio do site e o do backend em "Domínios autorizados". Verifique o domínio no Search Console (registro TXT no DNS). Com a marca verificada, o login mostra "EasyAgenda+" no lugar do endereço do Supabase.
+2. **Publicar:** em "Google Auth Platform › Público-alvo", clique em **Publicar app**. O status passa a **Em produção**. O contador "1 / 100 usuários" é só informativo e não é aplicado a escopos não confidenciais.
+3. **Testar:** em janela anônima, com uma conta que não esteja na lista de teste, conecte em Ajustes › Google Agenda, crie um agendamento e confira a agenda "EasyAgenda+" no Google Calendar.

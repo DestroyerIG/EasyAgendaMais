@@ -138,13 +138,13 @@ Sub-projeto 6 (Onboarding guiado, segmentos e vocabulário), pendências conheci
 Sub-projeto 7 (Login com Google e Google Agenda), pendências conhecidas:
 - **Migração `20261029120000_google_agenda` aplicada em produção em 26/10.** Cria as três tabelas do Google Agenda.
 - **Configuração externa:** Google Cloud, Supabase e variáveis, no passo a passo `docs/google-configuracao.md`. Sem ela, nada aparece.
-- **Verificação do Google** para os escopos de agenda: até aprovar, só os usuários de teste (até 100) conectam a agenda. O login não depende dela.
+- **Google em produção (09/11):** os escopos de agenda são não confidenciais, então não exigem verificação; basta a marca verificada e o app publicado, e qualquer conta Google conecta.
 - **Conferir no primeiro teste real:** o retorno do login (`/auth/callback`) trata o fluxo implícito (`#access_token`) e o PKCE (`?code=`) do Supabase; confirmar qual deles o projeto usa.
 - **Ocupado na grade:** o "Ocupado (Google)" aparece só na visão de dia e nas colunas de quem tem agendamento no dia; o aviso no modal vale para qualquer profissional.
 - **Bot do WhatsApp:** remarcações e cancelamentos pelo bot chegam ao Google pelo cron, em até 1 minuto.
 - **Uma instância:** o `state` do OAuth é de uso único em memória. Com mais de uma instância do backend, mover para o banco.
-- **Testado em produção em 26/10:** o login com Google e a conexão do Google Agenda funcionaram em https://www.easybarber.tech. O app continua em modo Teste no Google, e o acesso dos usuários de teste expira em 7 dias.
-- **Domínio:** o dono vai trocar o domínio `easybarber.tech`. Depois da troca, faltam: `FRONTEND_URL` do Render no domínio novo, o backend num subdomínio próprio, o domínio autorizado na marca do app no Google e a verificação do app.
+- **Testado em produção:** o login com Google e a conexão do Google Agenda funcionaram. Em 09/11, já no domínio novo (https://www.easyagendamais.com.br), o agendamento criado apareceu na agenda "EasyAgenda+" do Google Calendar.
+- **Domínio novo (09/11):** o sistema migrou de `easybarber.tech` para `easyagendamais.com.br`, com o backend em `api.easyagendamais.com.br`. Ficam para limpar depois de alguns dias sem erro: a URI antiga do `onrender.com` nas credenciais do Google e o `easybarber.tech` nos domínios autorizados da marca.
 
 ## Item H1 (modo de contingência), pendências conhecidas
 
