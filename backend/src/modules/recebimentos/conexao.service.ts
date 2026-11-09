@@ -188,7 +188,7 @@ export const conexaoService = {
   /** Chave e InfiniteTag da conexão ativa da InfinitePay. Outro gateway ou sem conexão: null. */
   async credencial(businessId: string): Promise<{ gateway: 'infinitepay'; cred: CredencialInfinitePay } | null> {
     const c = await repo.conexaoDoNegocio(businessId);
-    if (!c || c.situacao !== 'ativa' || c.gateway !== 'infinitepay') return null;
+    if (!c || c.situacao !== 'ativa' || c.gateway !== 'infinitepay' || !gatewayDisponivel('infinitepay')) return null;
     return { gateway: 'infinitepay', cred: { handle: c.contaExternaId, chave: decifrar(c.accessTokenCifrado) } };
   },
 

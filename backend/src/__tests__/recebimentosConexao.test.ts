@@ -610,6 +610,14 @@ describe('Recebimentos: conexão', () => {
       await expect(conexaoService.credencial('b1')).resolves.toEqual({ gateway: 'infinitepay', cred: { handle: 'ana', chave: CHAVE } });
     });
 
+    it('credencial é null sem BACKEND_URL (gateway indisponível)', async () => {
+      await enviar();
+      const cifrada = repo.salvarConexao.mock.calls[0][0].accessTokenCifrado;
+      repo.conexaoDoNegocio.mockResolvedValue(ipConexao({ accessTokenCifrado: cifrada }));
+      delete process.env.BACKEND_URL;
+      await expect(conexaoService.credencial('b1')).resolves.toBeNull();
+    });
+
     it('credencial é null para o Mercado Pago e sem conexão', async () => {
       repo.conexaoDoNegocio.mockResolvedValue(conexao());
       await expect(conexaoService.credencial('b1')).resolves.toBeNull();

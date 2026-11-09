@@ -52,7 +52,7 @@ export const cobrancasService = {
         gatewayDaCobranca = 'infinitepay';
         cobrancaId = (await repo.criarCobranca({
           businessId: e.businessId, appointmentId: e.appointmentId, gateway: 'infinitepay',
-          forma: e.forma, valor: e.valor, venceEm: e.venceEm,
+          forma: 'cartao', valor: e.valor, venceEm: e.venceEm,
         })).id;
         const c = { cobrancaId, valor: e.valor, descricao: e.descricao, venceEm: e.venceEm, pagadorEmail: `reserva-${cobrancaId}@${dominio()}` };
         const r = await infinitePay.criarLink(ip.cred, c, {

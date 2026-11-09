@@ -409,6 +409,11 @@ describe('InfinitePay: link na reserva', () => {
     expect(automacoesGatilhos.aoCriarReservaComSinal).not.toHaveBeenCalled();
   });
 
+  it('pedido de Pix com credencial: a linha nasce como cartão (caminho do link)', async () => {
+    await publicBookingService.createPendingAppointment('studio', INPUT);
+    expect(recRepo.criarCobranca).toHaveBeenCalledWith(expect.objectContaining({ gateway: 'infinitepay', forma: 'cartao' }));
+  });
+
   it('GatewayTokenInvalido com acesso revogado marca reconectar e apaga a cobrança', async () => {
     fn(infinitePay.criarLink).mockRejectedValue(new GatewayTokenInvalido());
     vi.mocked(conexaoService.acessoRevogado).mockResolvedValue(true);
