@@ -335,7 +335,7 @@ Spec: `docs/superpowers/specs/2026-11-05-robo-atendimento-design.md`. Entregue e
 
 ## Recebimentos pelo Mercado Pago, pendências conhecidas
 
-Spec em `docs/superpowers/specs/2026-11-05-recebimentos-mercado-pago-design.md`, conferências em `docs/design/mercado-pago-verificacoes.md` e guia em `docs/mercado-pago-configuracao.md`. Migração `20261108120000_recebimentos`: aplicar antes do deploy do backend, com autorização do dono.
+Spec em `docs/superpowers/specs/2026-11-05-recebimentos-mercado-pago-design.md`, conferências em `docs/design/mercado-pago-verificacoes.md` e guia em `docs/mercado-pago-configuracao.md`. PR #49 juntado em 07/11/2026; migração `20261108120000_recebimentos` aplicada em produção em 07/11. Aplicação do Mercado Pago criada e variáveis no Render em 09/11; pagamento real de ativação feito, aguardando o Mercado Pago liberar a aplicação (até 24 horas) para o teste real do passo 5 do guia.
 
 - **Teste real e autorização com PKCE:** falta testar a autorização com PKCE, que precisa do Client Secret. A troca em `/oauth/token` foi escrita com corpo JSON e não foi testada. Fazer o teste real com valor baixo em Pix e cartão.
 - **Avisos de contas conectadas:** confirmar se a aplicação recebe avisos das contas autorizadas. Sem isso, a rotina de cada minuto confirma em até um minuto.
