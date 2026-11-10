@@ -3,12 +3,13 @@ import logger from '../../utils/logger.js';
 import { sendWhatsAppMessage } from '../../services/whatsapp/index.js';
 import { avisarSinalConfirmado } from '../appointments/sinalConfirmado.js';
 import { notificationsService } from '../notifications/notifications.service.js';
+import { comandasService } from '../comandas/comandas.service.js';
 import { conexaoService } from './conexao.service.js';
 import { GatewayIndisponivel, GatewayRecusou, GatewayTokenInvalido } from './gateways/index.js';
 import { infinitePay } from './gateways/infinitePay.js';
 import { gatewayDe } from './gateways/porId.js';
 import { recebimentosRepository as repo } from './recebimentos.repository.js';
-import { centavos, decidirPagamento, gatewayDisponivel, nomeDoGateway, reais, type Decisao } from './recebimentos.rules.js';
+import { centavos, decidirPagamento, decidirSaldo, gatewayDisponivel, nomeDoGateway, reais, type Decisao } from './recebimentos.rules.js';
 import type { GatewayId, PagamentoGateway } from './recebimentos.types.js';
 
 // Pagamentos do sinal. O aviso do gateway só diz onde olhar: a prova é sempre a busca feita com o
@@ -134,10 +135,76 @@ async function aplicar(decisao: Decisao, c: Cobranca, p: PagamentoGateway): Prom
   }
 }
 
+/** Pagamento do saldo da comanda: quita a cobrança e fecha a comanda; qualquer falha vira aviso ao dono. */
+async function avaliarSaldo(c: Cobranca, p: PagamentoGateway): Promise<void> {
+  const decisao = decidirSaldo({ cobranca: c, pagamento: p });
+  if (decisao === 'ignorar') return;
+  logger.info({ cobrancaId: c.id, pagamentoId: p.id, decisao }, 'Recebimentos: decisão sobre pagamento do saldo');
+  const cliente = (await repo.reservaDaCobranca(c.id))?.client.name ?? 'O cliente';
+  const gateway = nomeDoGateway(c.gateway as GatewayId);
+  switch (decisao) {
+    case 'quitar': {
+      // Quem não conseguiu marcar (aviso repetido, outro processo na frente) não fecha nem avisa de novo.
+      if (!(await repo.marcarPaga(c.id, p))) return;
+      const r = await comandasService.fecharPorPagamento({
+        appointmentId: c.appointmentId, businessId: c.businessId, userId: c.usuarioId, valor: p.valor, forma: p.formaPaga,
+      });
+      const aviso = avisoDoFechamento(r, cliente, p.valor, gateway);
+      if (aviso) await alertarNegocio(c.businessId, aviso.titulo, aviso.texto);
+      return;
+    }
+    case 'marcar_recusada':
+      await repo.marcarRecusada(c.id);
+      return;
+    case 'marcar_devolvida':
+    case 'marcar_contestada': {
+      const situacao = decisao === 'marcar_devolvida' ? 'devolvida' : 'contestada';
+      if (await repo.marcarEstorno(c, p, situacao)) {
+        await alertarNegocio(
+          c.businessId, situacao === 'devolvida' ? 'Pagamento devolvido' : 'Pagamento contestado',
+          `O pagamento de ${reais(p.valor)} de ${cliente} ${situacao === 'devolvida' ? 'foi devolvido' : 'foi contestado'}. Confira no ${gateway}.`,
+        );
+      }
+      return;
+    }
+    case 'alertar_duplicado':
+      if (await repo.registrarPagamentoRepetido(c, p)) {
+        await alertarNegocio(
+          c.businessId, 'Possível pagamento em dobro',
+          `${cliente} pode ter pago ${reais(p.valor)} a mais nesta comanda. Confira no ${gateway} e devolva se for o caso.`,
+        );
+      }
+      return;
+    case 'alertar_valor_diferente':
+      await alertarNegocio(
+        c.businessId, 'Pagamento de valor diferente',
+        `${cliente} pagou ${reais(p.valor)}, mas a cobrança era de ${reais(c.valor)}. A comanda não foi fechada: confira no ${gateway}.`,
+      );
+  }
+}
+
+function avisoDoFechamento(
+  r: Awaited<ReturnType<typeof comandasService.fecharPorPagamento>>, cliente: string, valor: number, gateway: string,
+): { titulo: string; texto: string } | null {
+  switch (r) {
+    case 'fechada':
+      return null;
+    case 'caixa_fechado':
+      return { titulo: 'Pagamento recebido, falta fechar a comanda', texto: `${cliente} pagou ${reais(valor)} pelo ${gateway}. Abra o caixa de hoje e feche a comanda.` };
+    case 'ja_fechada':
+      return { titulo: 'Pagamento recebido de comanda já fechada', texto: `${cliente} pagou ${reais(valor)} pelo ${gateway}, mas a comanda já estava fechada. Confira e devolva se for o caso.` };
+    case 'valor_diferente':
+      return { titulo: 'Pagamento não bate com a comanda', texto: `${cliente} pagou ${reais(valor)} pelo ${gateway}, mas o saldo da comanda mudou. A comanda não foi fechada: confira no ${gateway}.` };
+    default:
+      return { titulo: 'Não conseguimos fechar a comanda sozinhos', texto: `${cliente} pagou ${reais(valor)} pelo ${gateway}. Feche a comanda manualmente.` };
+  }
+}
+
 /** Relê a cobrança a cada pagamento: o anterior pode ter acabado de mudar a situação. */
 async function avaliar(cobrancaId: string, pagamento: PagamentoGateway): Promise<void> {
   const c = await repo.cobrancaComReserva(cobrancaId);
   if (!c) return;
+  if (c.tipo === 'saldo') return avaliarSaldo(c, pagamento);
   const decisao = decidirPagamento({
     cobranca: c,
     pagamento,
@@ -269,6 +336,8 @@ export const pagamentosService = {
       const limite = new Date(agora.getTime() - JANELA_APOS_VENCER_MS);
       const limiteCartao = agora.getMinutes() % PASSO_CARTAO_MIN === 0 ? new Date(agora.getTime() - JANELA_CARTAO_MS) : undefined;
       for (const { id } of await repo.cobrancasParaConferir(limite, limiteCartao)) await pagamentosService.processarCobranca(id);
+      // Saldo do balcão que passou do prazo sem pagamento: a conferência acima já teve a chance de achá-lo.
+      await repo.expirarSaldosVencidos(new Date(agora.getTime() - 2 * 60 * 1000));
     } catch (e) {
       logger.error({ err: e }, 'Recebimentos: falha ao conferir as cobranças pendentes');
     }
