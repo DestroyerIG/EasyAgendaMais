@@ -52,16 +52,17 @@ O negócio escolhe um segmento no onboarding (e pode trocar em Ajustes › CRM).
 - Configuração do Google Cloud e do Supabase: `docs/google-configuracao.md`.
 
 ### Onboarding guiado (fase 6)
-Abre sozinho no primeiro acesso de uma conta nova (`/onboarding`). São 5 etapas, e quem fecha o navegador volta para a etapa em que parou:
+Abre sozinho no primeiro acesso de uma conta nova (`/onboarding`). São 6 etapas, e quem fecha o navegador volta para a etapa em que parou:
 
 1. **Seu negócio:** segmento em cartões e "Atendo sozinha" ou "Tenho equipe". "Atendo sozinha" já cria o cadastro de profissional com o nome da responsável.
-2. **Horários:** dias abertos, abertura e fechamento, intervalo da agenda e pausa de almoço.
-3. **Serviços:** lista sugerida do segmento, com nome, duração, preço e sinal (%) editáveis. Se algum serviço tem sinal, pede a chave Pix.
-4. **Sua página:** endereço (slug), logo, cor e até 6 fotos.
-5. **WhatsApp e link:** QR da conexão e o link da página para compartilhar.
+2. **Horários:** dias abertos, abertura e fechamento, intervalo da agenda e pausa de almoço. Traz o card opcional "Já usa o Google Agenda?" (só a dona, em qualquer plano).
+3. **Serviços:** lista sugerida do segmento, com nome, duração, preço e sinal (%) editáveis. O sinal dos serviços é definido na etapa Recebimentos.
+4. **Recebimentos:** explica o sinal e a dona escolhe como recebe: Mercado Pago, InfinitePay (conexão de verdade), Asaas ou PagBank ("Em breve"), chave Pix manual ou "Não vou cobrar sinal agora". Depois escolhe quais serviços pedem sinal e a porcentagem de cada um (padrão 30%). Pode ser pulada com "Configurar depois". A volta da autorização do Mercado Pago cai de novo em `/onboarding`.
+5. **Sua página:** endereço (slug), logo, cor e até 6 fotos.
+6. **WhatsApp e link:** QR da conexão e o link da página para compartilhar.
 
 - As etapas 1 a 3 são obrigatórias. O painel só abre depois delas.
-- As etapas 4 e 5 podem ser puladas. O que ficou pulado aparece no cartão **"Termine de configurar"** da tela Hoje, que pode ser dispensado.
+- As etapas 4 a 6 podem ser puladas. O que ficou pulado aparece no cartão **"Termine de configurar"** da tela Hoje, que pode ser dispensado.
 - Contas que já existiam antes da fase 6 não passam pelo onboarding.
 
 ### Assinatura do sistema
@@ -234,7 +235,7 @@ Abas: Negócio · Serviços e equipe · Plano e cobrança.
   - upgrade na hora com a diferença proporcional e downgrade na renovação, que pode ser cancelado.
 
 ### Google Agenda (fase 7)
-- **Conectar:** a dona conecta em Ajustes › Integrações (todos os planos). Cada profissional conecta no app (Equipe e Salão).
+- **Conectar:** a dona conecta em Ajustes › Integrações ou no card opcional da etapa Horários do onboarding (todos os planos; a volta da autorização cai em `/onboarding`). Cada profissional conecta no app (Equipe e Salão).
 - O sistema cria uma agenda separada, "EasyAgenda+", na conta Google da pessoa.
 - A dona vê os agendamentos de todas as profissionais, e cada profissional vê só os dela.
 - **Ida:** criar, remarcar e cancelar um agendamento se reflete no Google. A rotina roda a cada minuto.

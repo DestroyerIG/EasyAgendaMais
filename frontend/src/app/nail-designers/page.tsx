@@ -306,7 +306,7 @@ export default function NailDesignersPage() {
             </div>
             <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted">
               <Icon name="bolt" size={16} className="text-whatsapp" />
-              Configuração guiada em 5 etapas, direto no painel. Sem dados de cartão.
+              Configuração guiada em 6 etapas, direto no painel. Sem dados de cartão.
             </div>
           </div>
         </section>

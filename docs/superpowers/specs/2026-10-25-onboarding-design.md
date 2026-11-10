@@ -1,5 +1,7 @@
 # Onboarding guiado, segmentos e vocabulário — fase 6
 
+> Atualizado em 2026-11-10: etapa Recebimentos e Google Agenda em Horários (ver 2026-11-10-onboarding-recebimentos-design.md)
+
 ## Contexto
 O sub-projeto C da Fundação ("segmentos, vocabulário e onboarding") nunca ganhou fase própria. Hoje:
 - O cadastro pede nome do negócio, responsável, WhatsApp, CPF/CNPJ, e-mail e senha. Depois de confirmar o e-mail, `AuthConfirmView` manda para `/login?confirmed=1` (ou `/pagamento`) e o login leva direto ao painel vazio.
