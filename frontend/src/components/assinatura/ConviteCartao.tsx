@@ -6,7 +6,8 @@ import { CATALOGO_PLANOS } from '@/lib/planCatalog';
 import { TESTE_COM_CARTAO_DIAS, TESTE_SEM_CARTAO_DIAS } from '@/lib/constants';
 import { useToast } from '@/components/Toast';
 import { getApiErrorMessage } from '@/utils/handleApiError';
-import { Button, Icon } from '@/components/ui';
+import { Button, Icon, IconButton } from '@/components/ui';
+import { X } from 'lucide-react';
 import type { PlanId } from '@/lib/plans';
 
 const diaMes = (iso: string | null | undefined): string | null => {
@@ -27,11 +28,35 @@ const emTesteSemCartao = (s: SubscriptionStatusResponse | null): boolean => {
  * Convite do teste sem cartão: cadastrar o cartão no Asaas leva o teste a 14 dias do cadastro.
  * A cobrança só acontece no fim do teste; cancelando antes, nada é cobrado.
  */
-export function ConviteCartao() {
+const CHAVE_DISPENSADO = 'convite-cartao-dispensado';
+
+const lerDispensado = (): boolean => {
+  try {
+    return window.localStorage.getItem(CHAVE_DISPENSADO) === '1';
+  } catch {
+    return false;
+  }
+};
+
+export function ConviteCartao({ dispensavel = false }: { dispensavel?: boolean } = {}) {
   const { showToast } = useToast();
   const [status, setStatus] = useState<SubscriptionStatusResponse | null>(null);
   const [plano, setPlano] = useState<PlanId>('profissional');
   const [enviando, setEnviando] = useState(false);
+  const [dispensado, setDispensado] = useState(false);
+
+  useEffect(() => {
+    if (dispensavel) setDispensado(lerDispensado());
+  }, [dispensavel]);
+
+  const dispensar = () => {
+    setDispensado(true);
+    try {
+      window.localStorage.setItem(CHAVE_DISPENSADO, '1');
+    } catch {
+      /* sem armazenamento: some só nesta visita */
+    }
+  };
 
   useEffect(() => {
     let ativo = true;
@@ -44,7 +69,7 @@ export function ConviteCartao() {
     };
   }, []);
 
-  if (!emTesteSemCartao(status)) return null;
+  if (dispensado || !emTesteSemCartao(status)) return null;
 
   const cobrancaEm = diaMes(status?.cobrancaComCartaoEm);
 
@@ -80,6 +105,7 @@ export function ConviteCartao() {
             cancele antes e nada é cobrado.
           </p>
         </div>
+        {dispensavel && <IconButton icon={X} label="Dispensar" onClick={dispensar} />}
       </div>
       <fieldset className="mt-4">
         <legend className="mb-2 text-[13px] font-semibold text-ink">Plano depois do teste</legend>

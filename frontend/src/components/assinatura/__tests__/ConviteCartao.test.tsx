@@ -66,6 +66,26 @@ describe('convite do cartão', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it('no dashboard dá para dispensar e continua dispensado', async () => {
+    window.localStorage.clear();
+    api.getStatus.mockResolvedValue(emTeste());
+    const { unmount } = render(<ConviteCartao dispensavel />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Dispensar' }));
+    expect(screen.queryByRole('button', { name: 'Cadastrar cartão e ganhar mais 7 dias' })).not.toBeInTheDocument();
+    unmount();
+    const { container } = render(<ConviteCartao dispensavel />);
+    await waitFor(() => expect(api.getStatus).toHaveBeenCalledTimes(2));
+    expect(container).toBeEmptyDOMElement();
+    window.localStorage.clear();
+  });
+
+  it('fora do dashboard não tem botão de dispensar', async () => {
+    api.getStatus.mockResolvedValue(emTeste());
+    render(<ConviteCartao />);
+    await screen.findByRole('button', { name: 'Cadastrar cartão e ganhar mais 7 dias' });
+    expect(screen.queryByRole('button', { name: 'Dispensar' })).not.toBeInTheDocument();
+  });
+
   it('o Salão só aparece com valor combinado', async () => {
     api.getStatus.mockResolvedValue(emTeste());
     const { unmount } = render(<ConviteCartao />);
