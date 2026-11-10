@@ -289,6 +289,17 @@ describe('processarAviso', () => {
     expect(alertas()).toHaveLength(0);
   });
 
+  it('webhook repetido do mesmo pagamento envia a confirmação uma única vez', async () => {
+    reserva({ source: 'whatsapp' }); cobranca();
+    await pagamentosService.processarAviso(aviso);
+    await pagamentosService.processarAviso(aviso);
+    await pagamentosService.processarAviso(aviso);
+
+    expect(lerCobranca()).toMatchObject({ situacao: 'paga', pagamentoExternoId: '555' });
+    expect(sinal.avisarSinalConfirmado).toHaveBeenCalledTimes(1);
+    expect(sinal.avisarSinalConfirmado.mock.calls[0]![0]).toMatchObject({ id: 'a1', source: 'whatsapp' });
+  });
+
   it('dois avisos simultâneos avisam uma vez só', async () => {
     reserva(); cobranca();
     const espiao = vi.spyOn(recebimentosRepository, 'marcarPagaEConfirmar');
@@ -560,6 +571,19 @@ describe('reativar', () => {
     expect(lerReserva()).toMatchObject({ status: 'confirmado', expiresAt: null });
     expect(lerCobranca().situacao).toBe('paga');
     expect(sinal.avisarSinalConfirmado).toHaveBeenCalledTimes(1);
+  });
+
+  it('pagamento depois da expiração não envia a mensagem de agendamento confirmado', async () => {
+    reserva({ source: 'whatsapp', status: 'cancelado', expiresAt: emMinutos(-20) }); cobranca({ situacao: 'expirada' });
+    apptRepo.hasConflict.mockResolvedValue(true);
+    await pagamentosService.processarCobranca(COB);
+
+    expect(lerReserva().status).toBe('cancelado');
+    expect(sinal.avisarSinalConfirmado).not.toHaveBeenCalled();
+    expect(alertas()).toHaveLength(1);
+    const enviados = whats.sendWhatsAppMessage.mock.calls.map((c) => String(c[1]));
+    expect(enviados).toHaveLength(1);
+    expect(enviados[0]).toContain(AVISO_CLIENTE);
   });
 
   it('horário ocupado: cobrança paga, reserva mantida, alerta com nome e valor e mensagem ao cliente', async () => {
