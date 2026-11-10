@@ -118,6 +118,21 @@ export const fecharComanda = async (id: string, input: SalvarComandaInput) =>
 export interface PixComanda { pixPayload: string; valor: number }
 export const gerarPixComanda = async (id: string, input: SalvarComandaInput) =>
   (await api.post<PixComanda>(`/comandas/${id}/pix`, input)).data;
+/** Cobrança do saldo da comanda pelo gateway do negócio (Pix do Mercado Pago). */
+export type SituacaoCobrancaSaldo =
+  'pendente' | 'paga' | 'recusada' | 'expirada' | 'cancelada' | 'substituida' | 'devolvida' | 'contestada';
+export interface CobrancaSaldo {
+  id: string; via: 'pix'; situacao: SituacaoCobrancaSaldo; valor: number;
+  codigoPix: string | null; venceEm: string | null; pagoEm: string | null;
+}
+export interface EstadoCobranca { gateway: 'mercadopago' | null; cobranca: CobrancaSaldo | null }
+export type CobrarComandaInput = Omit<SalvarComandaInput, 'paymentMethod'>;
+export const buscarCobranca = async (id: string) =>
+  (await api.get<EstadoCobranca>(`/comandas/${id}/cobranca`)).data;
+export const cobrarComanda = async (id: string, input: CobrarComandaInput) =>
+  (await api.post<CobrancaSaldo>(`/comandas/${id}/cobranca`, { ...input, via: 'pix' })).data;
+export const cancelarCobranca = async (id: string) =>
+  (await api.post<EstadoCobranca>(`/comandas/${id}/cobranca/cancelar`)).data;
 export const reenviarComprovante = async (id: string) =>
   (await api.post<{ sent: boolean }>(`/comandas/${id}/receipt`)).data;
 export const buscarAtalhos = async () => (await api.get<ComandaShortcut[]>('/comandas/shortcuts')).data;
@@ -138,3 +153,5 @@ export const ehCaixaFechado = (error: unknown): boolean => codigoConflito(error)
 export const ehCaixaJaFechado = (error: unknown): boolean => codigoConflito(error) === 'CASH_ALREADY_CLOSED';
 /** O negócio ainda não cadastrou a chave Pix. */
 export const ehChavePixAusente = (error: unknown): boolean => codigoConflito(error) === 'PIX_KEY_MISSING';
+/** Há uma cobrança pendente: a comanda não pode ser alterada nem fechada até cancelar. */
+export const ehCobrancaEmAndamento = (error: unknown): boolean => codigoConflito(error) === 'COBRANCA_EM_ANDAMENTO';
