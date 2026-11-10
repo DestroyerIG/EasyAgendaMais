@@ -172,6 +172,52 @@ export const recebimentosRepository = {
     });
   },
 
+  // ─── Cobranças do saldo da comanda ─────────────────────────────────────────────
+
+  /** Linha `pendente` do saldo, criada antes da chamada ao gateway para ter o id que vai como referência. */
+  criarCobrancaSaldo(d: { businessId: string; appointmentId: string; usuarioId: string; gateway: GatewayId; valor: number; venceEm: Date }) {
+    return prisma.cobrancaSinal.create({
+      data: { ...d, tipo: 'saldo', forma: 'pix', valor: d.valor.toFixed(2), situacao: 'pendente' }, select: { id: true },
+    });
+  },
+
+  /** Cobrança de saldo ainda esperando o pagamento e dentro do prazo: a vencida não trava a comanda. */
+  async cobrancaSaldoPendente(appointmentId: string, agora: Date): Promise<boolean> {
+    const n = await prisma.cobrancaSinal.count({
+      where: { appointmentId, tipo: 'saldo', situacao: 'pendente', venceEm: { gt: agora } },
+    });
+    return n > 0;
+  },
+
+  ultimaCobrancaSaldo(appointmentId: string) {
+    return prisma.cobrancaSinal.findFirst({
+      where: { appointmentId, tipo: 'saldo' }, orderBy: { criadoEm: 'desc' },
+      select: { id: true, gateway: true, forma: true, situacao: true, valor: true, codigoPix: true, venceEm: true, pagoEm: true, criadoEm: true },
+    });
+  },
+
+  /** Uma nova cobrança substitui a anterior em aberto (que o cliente ainda pode pagar: o pagamento tardio quita igual). */
+  async substituirSaldoPendente(appointmentId: string): Promise<void> {
+    await prisma.cobrancaSinal.updateMany({
+      where: { appointmentId, tipo: 'saldo', situacao: 'pendente' }, data: { situacao: 'substituida' },
+    });
+  },
+
+  async cancelarSaldoPendente(appointmentId: string): Promise<number> {
+    const { count } = await prisma.cobrancaSinal.updateMany({
+      where: { appointmentId, tipo: 'saldo', situacao: 'pendente' }, data: { situacao: 'cancelada' },
+    });
+    return count;
+  },
+
+  /** Saldo pendente que passou do prazo: sai de `pendente`, e um pagamento tardio ainda quita. */
+  async expirarSaldosVencidos(limite: Date): Promise<number> {
+    const { count } = await prisma.cobrancaSinal.updateMany({
+      where: { tipo: 'saldo', situacao: 'pendente', venceEm: { lt: limite } }, data: { situacao: 'expirada' },
+    });
+    return count;
+  },
+
   async completarCobranca(id: string, d: { idExterno: string; codigoPix?: string; checkoutUrl?: string }): Promise<void> {
     await prisma.cobrancaSinal.update({ where: { id }, data: d });
   },

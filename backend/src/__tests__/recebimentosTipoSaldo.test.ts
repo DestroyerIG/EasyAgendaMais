@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const db = vi.hoisted(() => {
   const d: Record<string, unknown> = {
     cobrancaSinal: {
-      findMany: vi.fn(), updateMany: vi.fn(), count: vi.fn(), create: vi.fn(), findUnique: vi.fn(), aggregate: vi.fn(), update: vi.fn(),
+      findMany: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn(), count: vi.fn(), create: vi.fn(), findUnique: vi.fn(), aggregate: vi.fn(), update: vi.fn(),
     },
     appointment: { updateMany: vi.fn() },
   };
@@ -99,5 +99,56 @@ describe('pagamento repetido de saldo', () => {
       { id: 'p2', status: 'approved', valor: 80, referencia: 'c1', formaPaga: 'pix' },
     );
     expect(cs.create.mock.calls[0]![0].data).toMatchObject({ tipo: 'saldo' });
+  });
+});
+
+describe('cobranças de saldo no repositório', () => {
+  it('criarCobrancaSaldo grava a linha pendente do tipo saldo, com quem iniciou', async () => {
+    cs.create.mockResolvedValue({ id: 'c1' });
+    const venceEm = new Date('2030-01-01T10:15:00Z');
+    const r = await repo.criarCobrancaSaldo({ businessId: 'b1', appointmentId: 'a1', usuarioId: 'u1', gateway: 'mercadopago', valor: 80, venceEm });
+    expect(r).toEqual({ id: 'c1' });
+    expect(cs.create.mock.calls[0]![0].data).toEqual({
+      businessId: 'b1', appointmentId: 'a1', usuarioId: 'u1', gateway: 'mercadopago', tipo: 'saldo', forma: 'pix',
+      valor: '80.00', situacao: 'pendente', venceEm,
+    });
+  });
+
+  it('cobrancaSaldoPendente só vale para pendente ainda dentro do prazo', async () => {
+    const agora = new Date('2030-01-01T10:00:00Z');
+    cs.count.mockResolvedValueOnce(1);
+    expect(await repo.cobrancaSaldoPendente('a1', agora)).toBe(true);
+    expect(onde(cs.count)).toEqual({ appointmentId: 'a1', tipo: 'saldo', situacao: 'pendente', venceEm: { gt: agora } });
+    cs.count.mockResolvedValueOnce(0);
+    expect(await repo.cobrancaSaldoPendente('a1', agora)).toBe(false);
+  });
+
+  it('ultimaCobrancaSaldo pega a mais nova do tipo saldo', async () => {
+    cs.findFirst.mockResolvedValue({ id: 'c9' });
+    expect(await repo.ultimaCobrancaSaldo('a1')).toEqual({ id: 'c9' });
+    const arg = cs.findFirst.mock.calls[0]![0] as { where: unknown; orderBy: unknown };
+    expect(arg.where).toEqual({ appointmentId: 'a1', tipo: 'saldo' });
+    expect(arg.orderBy).toEqual({ criadoEm: 'desc' });
+  });
+
+  it('substituirSaldoPendente e cancelarSaldoPendente só mexem em saldo pendente', async () => {
+    await repo.substituirSaldoPendente('a1');
+    expect(cs.updateMany.mock.calls[0]![0]).toEqual({
+      where: { appointmentId: 'a1', tipo: 'saldo', situacao: 'pendente' }, data: { situacao: 'substituida' },
+    });
+    cs.updateMany.mockResolvedValueOnce({ count: 2 });
+    expect(await repo.cancelarSaldoPendente('a1')).toBe(2);
+    expect(cs.updateMany.mock.calls[1]![0]).toEqual({
+      where: { appointmentId: 'a1', tipo: 'saldo', situacao: 'pendente' }, data: { situacao: 'cancelada' },
+    });
+  });
+
+  it('expirarSaldosVencidos marca só saldo pendente vencido antes do limite', async () => {
+    const limite = new Date('2030-01-01T10:00:00Z');
+    cs.updateMany.mockResolvedValueOnce({ count: 3 });
+    expect(await repo.expirarSaldosVencidos(limite)).toBe(3);
+    expect(cs.updateMany.mock.calls[0]![0]).toEqual({
+      where: { tipo: 'saldo', situacao: 'pendente', venceEm: { lt: limite } }, data: { situacao: 'expirada' },
+    });
   });
 });
