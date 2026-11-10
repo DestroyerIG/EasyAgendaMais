@@ -25,7 +25,8 @@ export interface FormasRecebimento { aceitaPix: boolean; aceitaCartao: boolean; 
 
 export const recebimentosApi = {
   conexoes: async () => (await api.get<EstadoRecebimentos>('/recebimentos/conexoes')).data,
-  conectar: async () => (await api.get<{ url: string }>('/recebimentos/mercadopago/conectar')).data,
+  conectar: async (origem?: 'onboarding') =>
+    (await api.get<{ url: string }>('/recebimentos/mercadopago/conectar', origem ? { params: { origem } } : undefined)).data,
   confirmar: async (t: string) => (await api.post<EstadoRecebimentos>('/recebimentos/mercadopago/confirmar', { t })).data,
   definirFormas: async (formas: FormasRecebimento) =>
     (await api.put<EstadoRecebimentos>('/recebimentos/mercadopago/formas', formas)).data,

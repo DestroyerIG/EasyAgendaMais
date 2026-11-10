@@ -1,6 +1,7 @@
 import api from '@/lib/api';
 import type { Segmento } from '@/lib/technicalSheetTemplates';
 import type { Vocabulario } from '@/lib/vocabulario';
+import type { GatewayId } from '@/lib/recebimentos';
 
 // Onboarding guiado (fase 6). Espelha backend/src/modules/onboarding.
 
@@ -30,6 +31,10 @@ export interface Onboarding {
   pagina: { slug: string | null; slugSugerido: string; logoUrl: string | null; brandColor: string | null; fotos: number };
   whatsappConectado: boolean;
   temChavePix: boolean;
+  recebimentos: {
+    conexao: { gateway: GatewayId; contaNome: string; situacao: 'ativa' | 'precisa_reconectar' } | null;
+    temChavePix: boolean;
+  };
   vocabulario: Vocabulario;
 }
 
@@ -43,6 +48,8 @@ export const onboardingApi = {
   salvarHorarios: async (h: Horarios) => (await api.put<Onboarding>('/onboarding/horarios', h)).data,
   salvarServicos: async (servicos: ServicoOnboarding[], chavePix?: { chave: string; tipo: TipoChavePix }) =>
     (await api.put<Onboarding>('/onboarding/servicos', chavePix ? { servicos, chavePix } : { servicos })).data,
+  salvarRecebimentos: async (d: { chavePix?: { chave: string; tipo: TipoChavePix }; servicos: Array<{ id: string; sinalPct: number | null }> }) =>
+    (await api.put<Onboarding>('/onboarding/recebimentos', d)).data,
   concluir: async () => (await api.post<Onboarding>('/onboarding/concluir')).data,
   primeirosPassos: async () => (await api.get<PrimeiroPasso[]>('/onboarding/primeiros-passos')).data,
   dispensarPrimeirosPassos: async () => { await api.post('/onboarding/primeiros-passos/dispensar'); },

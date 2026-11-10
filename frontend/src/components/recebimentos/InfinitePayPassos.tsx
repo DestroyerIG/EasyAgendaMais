@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
-import { Banner, Button, Card, Input, Modal, Skeleton } from '@/components/ui';
+import { Banner, Button, Card, Modal, Skeleton } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { recebimentosApi, type EstadoRecebimentos } from '@/lib/recebimentos';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { GATEWAYS, URL_TAXAS_INFINITEPAY } from './catalogo';
 import { GatewayLogo } from './GatewayLogo';
+import { InfinitePayFormulario } from './InfinitePayFormulario';
 
 // Tela de passos para conectar a InfinitePay: o profissional cola a InfiniteTag e uma chave de API.
 
@@ -16,17 +17,11 @@ const quando = (iso: string) =>
   new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
 const linkExterno = 'inline-flex items-center gap-1 font-semibold text-brand-text underline underline-offset-2';
-const rotulo = 'block text-[14px] font-semibold text-ink';
 
 export function InfinitePayPassos() {
   const { showToast } = useToast();
   const gateway = GATEWAYS.find((g) => g.id === 'infinitepay')!;
   const [estado, setEstado] = useState<EstadoRecebimentos | null>(null);
-  const [handle, setHandle] = useState('');
-  const [chave, setChave] = useState('');
-  const [aceite, setAceite] = useState(false);
-  const [conectando, setConectando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState(false);
   const [desconectando, setDesconectando] = useState(false);
 
@@ -66,24 +61,6 @@ export function InfinitePayPassos() {
     );
   }
 
-  const conectar = async (e: FormEvent) => {
-    e.preventDefault();
-    setConectando(true);
-    setErro(null);
-    try {
-      const novo = await recebimentosApi.conectarChave({ handle: handle.trim(), chave: chave.trim(), aceite: true });
-      setEstado(novo);
-      setChave('');
-      setHandle('');
-      setAceite(false);
-      showToast('InfinitePay conectada.', 'success');
-    } catch (err) {
-      setErro(getApiErrorMessage(err, 'Não foi possível conectar a InfinitePay. Tente de novo.'));
-    } finally {
-      setConectando(false);
-    }
-  };
-
   const desconectar = async () => {
     setDesconectando(true);
     try {
@@ -99,37 +76,12 @@ export function InfinitePayPassos() {
   };
 
   const formulario = (
-    <form onSubmit={conectar} className="space-y-3">
-      <div className="space-y-1">
-        <label htmlFor="infinitepay-handle" className={rotulo}>InfiniteTag</label>
-        <Input
-          id="infinitepay-handle"
-          value={handle}
-          onChange={(e) => setHandle(e.target.value)}
-          placeholder="$sua-infinitetag"
-          autoComplete="off"
-          autoCapitalize="none"
-          spellCheck={false}
-        />
-      </div>
-      <div className="space-y-1">
-        <label htmlFor="infinitepay-chave" className={rotulo}>Chave de API</label>
-        <Input
-          id="infinitepay-chave"
-          type="password"
-          value={chave}
-          onChange={(e) => setChave(e.target.value)}
-          autoComplete="off"
-          spellCheck={false}
-        />
-      </div>
-      <label className="flex min-h-11 items-start gap-2 text-[14px] text-ink">
-        <input type="checkbox" checked={aceite} onChange={(e) => setAceite(e.target.checked)} className="mt-1 h-4 w-4 shrink-0" />
-        <span>Li os avisos acima e entendo as taxas, o parcelamento e que o cliente pode contestar a compra no cartão.</span>
-      </label>
-      {erro ? <Banner tone="danger" variant="inline">{erro}</Banner> : null}
-      <Button type="submit" disabled={!aceite || !handle.trim() || !chave.trim()} loading={conectando}>Conectar</Button>
-    </form>
+    <InfinitePayFormulario
+      onConectado={(novo) => {
+        setEstado(novo);
+        showToast('InfinitePay conectada.', 'success');
+      }}
+    />
   );
 
   return (

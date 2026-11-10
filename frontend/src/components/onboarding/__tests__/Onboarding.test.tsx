@@ -47,6 +47,7 @@ const dados = (etapa: number, pendente = true): Onboarding => ({
   pagina: { slug: null, slugSugerido: 'studio', logoUrl: null, brandColor: null, fotos: 0 },
   whatsappConectado: false,
   temChavePix: false,
+  recebimentos: { conexao: null, temChavePix: false },
   vocabulario: VOCABULARIO_PADRAO,
 });
 
