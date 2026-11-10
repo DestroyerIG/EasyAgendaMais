@@ -114,6 +114,10 @@ export const salvarComanda = async (id: string, input: SalvarComandaInput) =>
   (await api.put<ComandaDetail>(`/comandas/${id}`, input)).data;
 export const fecharComanda = async (id: string, input: SalvarComandaInput) =>
   (await api.post<ComandaDetail>(`/comandas/${id}/close`, input)).data;
+/** Código Pix (copia-e-cola) do saldo da comanda, na chave do negócio. Grava o rascunho antes. */
+export interface PixComanda { pixPayload: string; valor: number }
+export const gerarPixComanda = async (id: string, input: SalvarComandaInput) =>
+  (await api.post<PixComanda>(`/comandas/${id}/pix`, input)).data;
 export const reenviarComprovante = async (id: string) =>
   (await api.post<{ sent: boolean }>(`/comandas/${id}/receipt`)).data;
 export const buscarAtalhos = async () => (await api.get<ComandaShortcut[]>('/comandas/shortcuts')).data;
@@ -132,3 +136,5 @@ const codigoConflito = (error: unknown): string | undefined =>
 export const ehCaixaFechado = (error: unknown): boolean => codigoConflito(error) === 'CASH_CLOSED';
 /** O caixa de hoje já foi aberto e fechado. */
 export const ehCaixaJaFechado = (error: unknown): boolean => codigoConflito(error) === 'CASH_ALREADY_CLOSED';
+/** O negócio ainda não cadastrou a chave Pix. */
+export const ehChavePixAusente = (error: unknown): boolean => codigoConflito(error) === 'PIX_KEY_MISSING';

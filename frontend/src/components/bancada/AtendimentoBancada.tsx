@@ -12,6 +12,7 @@ import { formatCurrency } from '@/lib/formatters';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { cn } from '@/lib/cn';
 import { ErroBancada } from './ErroBancada';
+import { PainelCobrarPix } from '@/components/comanda/PainelCobrarPix';
 import { useVocabulario } from '@/hooks/useVocabulario';
 
 // Fechar atendimento pela bancada. Sem a chave "a profissional cobra", ela monta a comanda e manda
@@ -296,6 +297,10 @@ export function AtendimentoBancada() {
             </label>
           </div>
         </section>
+      )}
+
+      {cobra && !fechada && forma === 'pix' && c.totalCharged > 0 && (
+        <PainelCobrarPix total={c.totalCharged} gerar={() => bancadaApi.gerarPix(dto.id, entrada())} />
       )}
 
       <section className="flex flex-col gap-1.5 rounded-card border border-line bg-surface p-4">

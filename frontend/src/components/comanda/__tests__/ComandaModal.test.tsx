@@ -14,10 +14,11 @@ vi.mock('@/lib/api', () => ({ default: { get: vi.fn().mockResolvedValue({ data: 
 vi.mock('@/lib/produtos', () => ({ listarProdutos: vi.fn().mockResolvedValue([
   { id: 'pr1', name: 'Óleo Hidratante de Cutícula 10ml', description: 'Produto Home Care', price: 25, active: true },
 ]) }));
+vi.mock('qrcode', () => ({ default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,QR') } }));
 vi.mock('@/lib/caixa', async (orig) => ({ ...(await orig<typeof import('@/lib/caixa')>()), abrirCaixa: vi.fn(), reabrirCaixa: vi.fn() }));
 vi.mock('@/lib/comanda', async (orig) => ({
   ...(await orig<typeof import('@/lib/comanda')>()),
-  abrirComanda: vi.fn(), salvarComanda: vi.fn(), fecharComanda: vi.fn(), buscarAtalhos: vi.fn(),
+  abrirComanda: vi.fn(), salvarComanda: vi.fn(), fecharComanda: vi.fn(), buscarAtalhos: vi.fn(), gerarPixComanda: vi.fn(),
 }));
 
 const dto = (over: Partial<comanda.ComandaDetail> = {}): comanda.ComandaDetail => ({
@@ -248,5 +249,39 @@ describe('ComandaModal', () => {
     await waitFor(() => expect(comanda.salvarComanda).toHaveBeenCalledWith('k1', {
       extras: [{ kind: 'servico', id: 's9', quantity: 1 }], discount: 0, tip: 10, paymentMethod: null,
     }));
+  });
+
+  describe('cobrar por Pix', () => {
+    it('só aparece com Pix escolhido e saldo a cobrar', async () => {
+      const user = userEvent.setup();
+      abrir();
+      await screen.findByText('Comanda #1042');
+      expect(screen.queryByRole('region', { name: /cobrar por pix/i })).not.toBeInTheDocument();
+      await user.click(within(screen.getByRole('radiogroup')).getByLabelText(/Pix/));
+      expect(screen.getByRole('region', { name: /cobrar por pix/i })).toBeInTheDocument();
+    });
+
+    it('gera o QR Code do saldo salvando a comanda como Pix', async () => {
+      const user = userEvent.setup();
+      vi.mocked(comanda.gerarPixComanda).mockResolvedValue({ pixPayload: '000201PIX', valor: 80 });
+      abrir();
+      await screen.findByText('Comanda #1042');
+      await user.click(within(screen.getByRole('radiogroup')).getByLabelText(/Pix/));
+      await user.click(screen.getByRole('button', { name: /gerar qr code/i }));
+      expect(comanda.gerarPixComanda).toHaveBeenCalledWith('k1', { extras: [], discount: 0, tip: 0, paymentMethod: 'pix' });
+      expect(await screen.findByRole('img', { name: /qr code do pix/i })).toBeInTheDocument();
+    });
+
+    it('sinal cobre tudo (total zero): não oferece o QR Code', async () => {
+      const user = userEvent.setup();
+      vi.mocked(comanda.abrirComanda).mockResolvedValue(dto({
+        depositAvailable: 110,
+        calc: comanda.calcularComanda({ items: [{ kind: 'servico', unitPrice: 110, quantity: 1 }], depositAvailable: 110, discount: 0, tip: 0, serviceCommissionPct: 50, productCommissionPct: 20 }),
+      }));
+      abrir();
+      await screen.findByText('Comanda #1042');
+      await user.click(within(screen.getByRole('radiogroup')).getByLabelText(/Pix/));
+      expect(screen.queryByRole('region', { name: /cobrar por pix/i })).not.toBeInTheDocument();
+    });
   });
 });

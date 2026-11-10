@@ -230,6 +230,19 @@ export const bancadaService = {
     return dto;
   },
 
+  /** Pix do saldo, sempre na chave do negócio (nunca numa chave dela). Só quando é ela quem cobra. */
+  async gerarPix(businessId: string, p: Profissional, id: string, input: BancadaComandaInput) {
+    await exigirComanda(businessId, p, id);
+    if (!(await repo.profissionalCobra(businessId))) {
+      throw new ForbiddenError('Quem cobra é a recepção. Use "Enviar para a recepção"');
+    }
+    const atual = await comandasService.get(id, businessId);
+    return comandasService.gerarPix(id, businessId, {
+      extras: input.extras, discount: input.discount ?? atual.discount, tip: input.tip ?? atual.tip,
+      ...(input.usarCobertura !== undefined ? { usarCobertura: input.usarCobertura } : {}),
+    });
+  },
+
   async fecharComanda(businessId: string, userId: string, p: Profissional, id: string, input: BancadaComandaInput) {
     await exigirComanda(businessId, p, id);
     if (!(await repo.profissionalCobra(businessId))) {

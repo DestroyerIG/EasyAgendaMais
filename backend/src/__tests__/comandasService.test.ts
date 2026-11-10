@@ -31,6 +31,7 @@ vi.mock('../modules/clube/clube.service.js', () => ({ clubeService: clube }));
 vi.mock('../config/prisma.js', () => ({ prisma: { business: { findUnique: vi.fn().mockResolvedValue({ name: 'Studio Aurora' }) } } }));
 
 const { comandasService, RECEIPT_TIMEOUT_MS } = await import('../modules/comandas/comandas.service.js');
+const { prisma } = await import('../config/prisma.js');
 
 const appt = (status = 'confirmado', deposit: number | null = null) => ({
   id: 'a1', businessId: 'b1', status, date: new Date('2026-10-13'), time: new Date('1970-01-01T10:00:00Z'), source: 'painel',
@@ -316,5 +317,38 @@ describe('comanda com clube/pacote', () => {
       calc: expect.objectContaining({ totalCharged: 0, revenue: 0, commissionService: 42.5, coveredTotal: 85 }),
       cobertura: { contratoId: 'ct1', comandaItemId: 'i1', clientId: 'c1', serviceId: 's1', professionalId: 'p1', data: '2026-10-13' },
     }));
+  });
+});
+
+describe('Pix da comanda (saldo a cobrar no balcão)', () => {
+  const entrada = { extras: [], discount: 0, tip: 0, paymentMethod: 'pix' as const };
+  const comChave = { name: 'Studio Aurora', pixKey: '83999990000', pixKeyType: 'telefone' };
+
+  it('grava o rascunho e devolve o código Pix do saldo (serviço menos o sinal)', async () => {
+    repo.findComandaById.mockResolvedValue(comanda());
+    vi.mocked(prisma.business.findUnique).mockResolvedValueOnce(comChave as never);
+    const r = await comandasService.gerarPix('k1', 'b1', entrada);
+    expect(repo.saveDraft).toHaveBeenCalledWith('k1', 'b1', [], expect.objectContaining({ totalCharged: 80, paymentMethod: 'pix' }), expect.anything());
+    expect(r.valor).toBe(80);
+    expect(r.pixPayload).toContain('540580.00');
+    expect(r.pixPayload).toContain('br.gov.bcb.pix');
+    expect(r.pixPayload).toContain('+5583999990000');
+  });
+
+  it('negócio sem chave Pix: erro 409 PIX_KEY_MISSING para a tela mandar ao Recebimentos', async () => {
+    repo.findComandaById.mockResolvedValue(comanda());
+    vi.mocked(prisma.business.findUnique).mockResolvedValueOnce({ name: 'Studio Aurora', pixKey: null, pixKeyType: null } as never);
+    await expect(comandasService.gerarPix('k1', 'b1', entrada)).rejects.toMatchObject({ statusCode: 409, code: 'PIX_KEY_MISSING' });
+  });
+
+  it('nada a cobrar (sinal cobre tudo): não gera código', async () => {
+    repo.findComandaById.mockResolvedValue(comanda({ appointment: appt('em_atendimento', 110) }));
+    vi.mocked(prisma.business.findUnique).mockResolvedValueOnce(comChave as never);
+    await expect(comandasService.gerarPix('k1', 'b1', entrada)).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  it('comanda fechada: não gera código', async () => {
+    repo.findComandaById.mockResolvedValue(comanda({ status: 'fechada' }));
+    await expect(comandasService.gerarPix('k1', 'b1', entrada)).rejects.toMatchObject({ statusCode: 409 });
   });
 });

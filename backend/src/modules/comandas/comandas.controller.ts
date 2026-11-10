@@ -18,6 +18,9 @@ export const saveComanda: H = async (req, res, next) => {
 export const closeComanda: H = async (req, res, next) => {
   try { sendSuccess(res, await comandasService.close(id(req), req.user.businessId!, req.user.userId, req.body)); } catch (e) { next(e); }
 };
+export const comandaPix: H = async (req, res, next) => {
+  try { sendSuccess(res, await comandasService.gerarPix(id(req), req.user.businessId!, req.body)); } catch (e) { next(e); }
+};
 export const resendReceipt: H = async (req, res, next) => {
   try { sendSuccess(res, await comandasService.resendReceipt(id(req), req.user.businessId!)); } catch (e) { next(e); }
 };

@@ -13,6 +13,7 @@ import { automacoesGatilhos } from '../whatsappAutomacoes/gatilhos.service.js';
 import { clubeService } from '../clube/clube.service.js';
 import type { CoberturaComandaDto, ComandaDetailDto, NewExtraItem, SaveComandaInput, PaymentMethod } from './comandas.types.js';
 import { avaliacoesService } from '../avaliacoes/avaliacoes.service.js';
+import { buildPixPayload, type PixKeyType } from '../../utils/pixPayload.js';
 
 type ComandaRow = NonNullable<Awaited<ReturnType<typeof comandasRepository.findComandaById>>>;
 
@@ -256,6 +257,25 @@ export const comandasService = {
       if (r === 'prazo') logger.warn({ comandaId: id }, 'Comprovante da comanda ainda enviando; fechamento respondido sem esperar');
     }
     return montarDto(await carregar(id, businessId));
+  },
+
+  /**
+   * Código Pix (copia-e-cola) do saldo da comanda, na chave do negócio. Grava o rascunho antes, para o
+   * valor sair do que está salvo no servidor (itens, desconto, gorjeta e sinal), nunca de um número da tela.
+   */
+  async gerarPix(id: string, businessId: string, input: Omit<SaveComandaInput, 'paymentMethod'>): Promise<{ pixPayload: string; valor: number }> {
+    const dto = await comandasService.save(id, businessId, { ...input, paymentMethod: 'pix' });
+    const valor = dto.calc.totalCharged;
+    if (valor <= 0) throw new ConflictError('Não há saldo a cobrar nesta comanda');
+    const negocio = await prisma.business.findUnique({ where: { id: businessId }, select: { name: true, pixKey: true, pixKeyType: true } });
+    if (!negocio?.pixKey || !negocio.pixKeyType) {
+      throw new AppError('Cadastre a chave Pix do negócio em Ajustes › Recebimentos', 409, 'PIX_KEY_MISSING');
+    }
+    const pixPayload = buildPixPayload({
+      pixKey: negocio.pixKey, pixKeyType: negocio.pixKeyType as PixKeyType, merchantName: negocio.name,
+      merchantCity: 'BRASIL', amount: valor, description: `Comanda ${dto.number}`, txId: `CMD${dto.number}`,
+    });
+    return { pixPayload, valor };
   },
 
   async resendReceipt(id: string, businessId: string): Promise<{ sent: boolean }> {
