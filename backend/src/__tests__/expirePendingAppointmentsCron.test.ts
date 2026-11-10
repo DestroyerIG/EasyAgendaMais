@@ -4,7 +4,7 @@ import { expirePendingAppointments } from '../services/cronService.js';
 import { notificationsService } from '../modules/notifications/notifications.service.js';
 // @ts-ignore — sendWhatsAppMessage é um serviço JS legado ainda não tipado
 import { sendWhatsAppMessage } from '../services/whatsapp/index.js';
-import { deleteSession } from '../services/whatsapp/whatsappSessionService.js';
+import { deleteSessaoDoSinal } from '../services/whatsapp/whatsappSessionService.js';
 
 const { TO_EXPIRE } = vi.hoisted(() => ({
   TO_EXPIRE: [
@@ -40,7 +40,7 @@ vi.mock('../services/whatsapp/index.js', () => ({
 }));
 
 vi.mock('../services/whatsapp/whatsappSessionService.js', () => ({
-  deleteSession: vi.fn().mockResolvedValue(undefined),
+  deleteSessaoDoSinal: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../services/whatsapp/whatsappConfigService.js', () => ({
@@ -71,7 +71,7 @@ describe('expirePendingAppointments: aviso à cliente do robô', () => {
     expect(sendWhatsAppMessage).toHaveBeenCalledWith(
       '(11) 91234-5678', 'Prazo do sinal acabou em Barbearia Z.', { businessId: 'biz-1', origin: 'pix_recibo' },
     );
-    expect(deleteSession).toHaveBeenCalledWith('5511912345678', 'biz-1');
+    expect(deleteSessaoDoSinal).toHaveBeenCalledWith('5511912345678', 'biz-1', 'apt-1');
   });
 
   it('reserva da página pública expirada não manda WhatsApp', async () => {
@@ -82,7 +82,7 @@ describe('expirePendingAppointments: aviso à cliente do robô', () => {
     await expect(expirePendingAppointments(AGORA)).resolves.toBe(1);
 
     expect(sendWhatsAppMessage).not.toHaveBeenCalled();
-    expect(deleteSession).not.toHaveBeenCalled();
+    expect(deleteSessaoDoSinal).not.toHaveBeenCalled();
     expect(notificationsService.notify).toHaveBeenCalledTimes(1);
   });
 
@@ -93,7 +93,7 @@ describe('expirePendingAppointments: aviso à cliente do robô', () => {
     await expect(expirePendingAppointments(AGORA)).resolves.toBe(0);
 
     expect(sendWhatsAppMessage).not.toHaveBeenCalled();
-    expect(deleteSession).not.toHaveBeenCalled();
+    expect(deleteSessaoDoSinal).not.toHaveBeenCalled();
   });
 
   it('falha no envio não impede as outras reservas nem a notificação do negócio', async () => {
@@ -106,7 +106,7 @@ describe('expirePendingAppointments: aviso à cliente do robô', () => {
     await expect(expirePendingAppointments(AGORA)).resolves.toBe(2);
 
     expect(sendWhatsAppMessage).toHaveBeenCalledTimes(2);
-    expect(deleteSession).toHaveBeenCalledWith('5511922222222', 'biz-2');
+    expect(deleteSessaoDoSinal).toHaveBeenCalledWith('5511922222222', 'biz-2', 'apt-2');
     expect(notificationsService.notify).toHaveBeenCalledTimes(2);
   });
 });

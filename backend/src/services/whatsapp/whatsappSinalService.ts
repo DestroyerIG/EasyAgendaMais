@@ -51,11 +51,24 @@ const lerSeCobra = async (businessId: string, serviceId: string) => {
   return { negocio: { ...negocio, pixKey: negocio.pixKey, pixKeyType: negocio.pixKeyType }, servico: { name: servico.name, price, depositPercentage: depositPercentage! } };
 };
 
+/**
+ * Leitura tolerante: se falhar (ex.: coluna botCobraSinal ainda sem a migração em produção), vale "não cobra"
+ * e o agendamento segue como antes do recurso, em vez de virar booking_failed_message para todo negócio.
+ */
+const lerSeCobraSemFalhar = async (businessId: string, serviceId: string) => {
+  try {
+    return await lerSeCobra(businessId, serviceId);
+  } catch (err) {
+    logger.warn({ err, businessId }, 'Não foi possível ler a opção de cobrar o sinal no robô: agendando sem sinal');
+    return null;
+  }
+};
+
 /** null = não se aplica: agendar como hoje. ConflictError sobe para o chamador. */
 export async function reservarComSinalSeAtivo(i: {
   businessId: string; clientId: string; professionalId: string; serviceId: string; date: string; time: string;
 }): Promise<SinalDoRobo | null> {
-  const cobra = await lerSeCobra(i.businessId, i.serviceId);
+  const cobra = await lerSeCobraSemFalhar(i.businessId, i.serviceId);
   if (!cobra) return null;
   const { negocio, servico } = cobra;
   const reserva = await reservaComSinalService.criar({
@@ -118,7 +131,7 @@ export async function simularPedidoDoSinal(
   i: { businessId: string; serviceId: string },
   e: EnvioDoSinal,
 ): Promise<boolean | null> {
-  const cobra = await lerSeCobra(i.businessId, i.serviceId);
+  const cobra = await lerSeCobraSemFalhar(i.businessId, i.serviceId);
   if (!cobra) return null;
   const prazo = await automacoesGatilhos.toleranciaSinal(i.businessId);
   const texto = formatMessage(e.config.deposit_request_message, {

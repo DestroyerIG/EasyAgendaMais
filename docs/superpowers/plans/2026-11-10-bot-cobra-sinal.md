@@ -34,7 +34,7 @@
 
 **Files:**
 - Modify: `backend/prisma/schema.prisma` (model `Business`, junto de `pixKey`, linha ~54)
-- Create: `backend/prisma/migrations/20261110120000_bot_cobra_sinal/migration.sql`
+- Create: `backend/prisma/migrations/20261110130000_bot_cobra_sinal/migration.sql`
 - Modify: `backend/src/modules/businessPublicPage/businessPublicPage.types.ts` (schema de atualização e tipo `PublicPageSettings`)
 - Modify: `backend/src/modules/businessPublicPage/businessPublicPage.repository.ts` (os dois `select` com `pixKey`, linhas ~9 e ~29, e o update)
 - Modify: `backend/src/modules/businessPublicPage/businessPublicPage.service.ts` (regra de ligar)

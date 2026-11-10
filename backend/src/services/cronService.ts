@@ -22,7 +22,7 @@ import { pagamentosService } from '../modules/recebimentos/pagamentos.service.js
 import { recebimentosRepository } from '../modules/recebimentos/recebimentos.repository.js';
 import { envioAutomaticoLiberado } from '../modules/conta/envioAutomatico.js';
 import { textoReservaExpirada } from './whatsapp/whatsappConfirmacao.js';
-import { deleteSession } from './whatsapp/whatsappSessionService.js';
+import { deleteSessaoDoSinal } from './whatsapp/whatsappSessionService.js';
 import { normalizeWhatsAppNumber } from '../utils/whatsapp.js';
 
 // Agendamentos gravam `time`/`date` no relógio local do negócio (BR), não UTC.
@@ -206,7 +206,7 @@ export const expirePendingAppointments = async (now: Date = new Date()): Promise
       logger.warn({ err, appointmentId: a.id }, 'WhatsApp de reserva expirada não enviado');
     }
     try {
-      await deleteSession(normalizeWhatsAppNumber(a.client.phone) || a.client.phone, a.businessId);
+      await deleteSessaoDoSinal(normalizeWhatsAppNumber(a.client.phone) || a.client.phone, a.businessId, a.id);
     } catch (err) {
       logger.warn({ err, appointmentId: a.id }, 'Sessão do robô não apagada após a expiração');
     }

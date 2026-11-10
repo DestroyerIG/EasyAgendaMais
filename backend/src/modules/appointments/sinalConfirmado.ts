@@ -5,7 +5,7 @@ import { notificationsService } from '../notifications/notifications.service.js'
 import { pushService } from '../push/push.service.js';
 import { googleAgendaService } from '../googleAgenda/googleAgenda.service.js';
 import { textoAgendamentoConfirmado } from '../../services/whatsapp/whatsappConfirmacao.js';
-import { deleteSession } from '../../services/whatsapp/whatsappSessionService.js';
+import { deleteSessaoDoSinal } from '../../services/whatsapp/whatsappSessionService.js';
 import { normalizeWhatsAppNumber } from '../../utils/whatsapp.js';
 import type { AppointmentWithRelations } from './appointments.types.js';
 
@@ -48,7 +48,7 @@ export async function avisarSinalConfirmado(
   if (doRobo) {
     // O robô esperava o pagamento: encerra a conversa (a sessão fica sob o telefone normalizado, como o fluxo a criou).
     try {
-      await deleteSession(normalizeWhatsAppNumber(a.client.phone) || a.client.phone, a.businessId);
+      await deleteSessaoDoSinal(normalizeWhatsAppNumber(a.client.phone) || a.client.phone, a.businessId, a.id);
     } catch (err) {
       logger.warn({ err, appointmentId: a.id }, 'Sessão do robô não apagada após o sinal');
     }

@@ -270,6 +270,30 @@ describe('robô cobra o sinal ao agendar', () => {
     expect(mockUpdateSession).toHaveBeenCalledWith(NUMERO, NEGOCIO, STEPS.CHOOSE_TIME, expect.objectContaining({ availableSlots: ['10:00', '10:30'] }));
   });
 
+  it('falha ao ler a opção (coluna ainda sem migração) agenda como antes, avisa no log e não manda booking_failed_message', async () => {
+    sessaoEscolhendoHorario();
+    vi.mocked(prisma.business.findFirst).mockRejectedValue(new Error('P2022 coluna bot_cobra_sinal não existe'));
+
+    await enviar('1');
+
+    expect(mockCriarReserva).not.toHaveBeenCalled();
+    expect(mockAppointmentCreate).toHaveBeenCalled();
+    expect(enviadas()).toEqual(['Agendamento confirmado']);
+    expect(enviadas().some((m) => m === DEFAULT_BOT_CONFIG.booking_failed_message)).toBe(false);
+    expect(mockLoggerWarn).toHaveBeenCalled();
+  });
+
+  it('no simulador, falha ao ler a opção cai na confirmação simulada normal', async () => {
+    sessaoEscolhendoHorario({ clientId: 'simulador' });
+    vi.mocked(prisma.business.findFirst).mockRejectedValue(new Error('P2022'));
+
+    await enviar('1', { simulationMode: true });
+
+    expect(mockCriarReserva).not.toHaveBeenCalled();
+    expect(enviadas().some((m) => m === DEFAULT_BOT_CONFIG.booking_failed_message)).toBe(false);
+    expect(enviadas().some((m) => m.includes('Agendamento confirmado'))).toBe(true);
+  });
+
   it('remarcação nunca cobra o sinal', async () => {
     sessaoEscolhendoHorario({ rescheduleAppointmentId: 'apt-orig' });
     mockAppointmentUpdate.mockResolvedValue({ id: 'apt-orig', status: 'confirmado' });
@@ -429,5 +453,18 @@ describe('awaiting_deposit', () => {
       expect(enviadas()).toHaveLength(1);
       expect(enviadas()[0]).not.toContain('aguardando o pagamento');
     }
+  });
+});
+
+describe('textos padrão do sinal orientam quem já pagou', () => {
+  it('prazo esgotado: quem já pagou responde e o negócio confere', () => {
+    expect(DEFAULT_BOT_CONFIG.deposit_expired_message).toContain('Se você já fez o pagamento, responda aqui que {nome_negocio} confere para você.');
+  });
+
+  it('espera: quem já pagou só aguarda a confirmação, mantendo prazo e cancelamento', () => {
+    const t = DEFAULT_BOT_CONFIG.deposit_waiting_message;
+    expect(t).toContain('Se você já pagou, é só aguardar a confirmação, que chega por aqui.');
+    expect(t).toContain('{prazo}');
+    expect(t).toContain('0️⃣ Cancelar a pré-reserva');
   });
 });

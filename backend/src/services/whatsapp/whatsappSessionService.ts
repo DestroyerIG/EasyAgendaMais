@@ -91,3 +91,18 @@ export const deleteSession = async (phone: string, businessId: string): Promise<
     where: { phone, businessId },
   });
 };
+
+/**
+ * Remove só a sessão que está esperando o sinal DESTA reserva. Uma conversa nova da cliente (outro
+ * passo ou outra reserva) nunca é apagada pelo aviso de expiração ou de pagamento de uma reserva antiga.
+ */
+export const deleteSessaoDoSinal = async (phone: string, businessId: string, appointmentId: string): Promise<void> => {
+  await prisma.whatsappSession.deleteMany({
+    where: {
+      phone,
+      businessId,
+      step: STEPS.AWAITING_DEPOSIT,
+      data: { path: ['appointmentId'], equals: appointmentId },
+    },
+  });
+};

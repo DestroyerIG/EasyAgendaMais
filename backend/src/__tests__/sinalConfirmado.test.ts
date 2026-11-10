@@ -13,7 +13,7 @@ vi.mock('../modules/googleAgenda/googleAgenda.service.js', () => ({ googleAgenda
 
 const cfg = vi.hoisted(() => ({ getBotConfig: vi.fn() }));
 vi.mock('../services/whatsapp/whatsappConfigService.js', () => cfg);
-const sessao = vi.hoisted(() => ({ deleteSession: vi.fn() }));
+const sessao = vi.hoisted(() => ({ deleteSessaoDoSinal: vi.fn() }));
 vi.mock('../services/whatsapp/whatsappSessionService.js', () => sessao);
 
 const { avisarSinalConfirmado } = await import('../modules/appointments/sinalConfirmado.js');
@@ -33,7 +33,7 @@ beforeEach(() => {
   cfg.getBotConfig.mockResolvedValue({
     confirmation_message: 'Pronto {nome_cliente}! {servico} com {profissional} em {data} às {horario} por R$ {valor} na {nome_negocio}.',
   });
-  sessao.deleteSession.mockResolvedValue(undefined);
+  sessao.deleteSessaoDoSinal.mockResolvedValue(undefined);
   db.business.findFirst.mockResolvedValue({ name: 'Studio Bela' });
 });
 
@@ -90,13 +90,13 @@ describe('avisarSinalConfirmado', () => {
 
     it('reserva do robô apaga a sessão do telefone', async () => {
       await avisarSinalConfirmado(robo);
-      expect(sessao.deleteSession).toHaveBeenCalledWith('5511999999999', 'b1');
+      expect(sessao.deleteSessaoDoSinal).toHaveBeenCalledWith('5511999999999', 'b1', robo.id);
     });
 
     it("reserva da página pública continua com 'Seu sinal foi confirmado e seu horário está garantido'", async () => {
       await avisarSinalConfirmado({ ...robo, source: 'publico' });
       expect(whats.sendWhatsAppMessage.mock.calls[0]![1]).toContain('Seu sinal foi confirmado e seu horário está garantido');
-      expect(sessao.deleteSession).not.toHaveBeenCalled();
+      expect(sessao.deleteSessaoDoSinal).not.toHaveBeenCalled();
       expect(cfg.getBotConfig).not.toHaveBeenCalled();
     });
 
@@ -109,7 +109,7 @@ describe('avisarSinalConfirmado', () => {
     });
 
     it('falha ao apagar a sessão não lança nem impede o restante', async () => {
-      sessao.deleteSession.mockRejectedValue(new Error('banco'));
+      sessao.deleteSessaoDoSinal.mockRejectedValue(new Error('banco'));
       await expect(avisarSinalConfirmado(robo)).resolves.toBeUndefined();
       expect(notif.notify).toHaveBeenCalled();
       expect(agenda.sincronizarSaida).toHaveBeenCalled();

@@ -172,8 +172,8 @@ export const DEFAULT_BOT_CONFIG: BotConfig = {
   cancel_failed_message: 'Desculpe, ocorreu um erro ao cancelar o agendamento. Tente novamente.',
   deposit_request_message: '⏳ Sua vaga para {servico} está pré-reservada por {prazo} min! Para garantir, pague o sinal de R$ {valor_sinal} pelo Pix. O código vem na próxima mensagem 👇',
   deposit_checkout_message: '⏳ Sua vaga para {servico} está pré-reservada por {prazo} min! Para garantir, pague o sinal de R$ {valor_sinal} neste link: {link_pagamento}',
-  deposit_waiting_message: 'Ainda estamos aguardando o pagamento do sinal. Sua vaga fica reservada por até {prazo} min.\n\n0️⃣ Cancelar a pré-reserva',
-  deposit_expired_message: '⏰ O prazo para pagar o sinal acabou e o horário foi liberado. Quer agendar de novo? É só mandar um oi.',
+  deposit_waiting_message: 'Ainda estamos aguardando o pagamento do sinal. Sua vaga fica reservada por até {prazo} min. Se você já pagou, é só aguardar a confirmação, que chega por aqui.\n\n0️⃣ Cancelar a pré-reserva',
+  deposit_expired_message: '⏰ O prazo para pagar o sinal acabou e o horário foi liberado. Se você já fez o pagamento, responda aqui que {nome_negocio} confere para você. Quer agendar de novo? É só mandar um oi.',
   deposit_cancelled_message: 'Pré-reserva cancelada. Quando quiser, é só mandar um oi.',
 };
 
