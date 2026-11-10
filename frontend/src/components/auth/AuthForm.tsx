@@ -447,7 +447,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
             {!isLogin && (
               <p className="text-xs text-muted">
-                O teste é no plano Equipe. Com o cartão, você o cadastra logo depois de verificar o e-mail.
+                O teste é no plano que você escolheu. Com o cartão, você o cadastra logo depois de verificar o e-mail.
               </p>
             )}
           </form>
