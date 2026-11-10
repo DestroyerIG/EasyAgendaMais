@@ -7,7 +7,7 @@
  * é o kanban do CRM (FasesClientes).
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToast } from './Toast';
 import { Icon } from '@/components/ui';
@@ -22,6 +22,7 @@ import type { ClienteInsight } from '@/lib/crm';
 import type { Client } from '@/types';
 import { useVocabulario } from '@/hooks/useVocabulario';
 import { useBloqueadoNaCarencia } from '@/hooks/useBloqueadoNaCarencia';
+import { useNewClientParam } from '@/hooks/useNewClientParam';
 
 type Visao = 'lista' | 'fases';
 
@@ -41,6 +42,16 @@ export const ClientModule = () => {
     setEditingClient(null);
     setIsModalOpen(true);
   };
+
+  // Vindo do balão "Novo cliente" da barra inferior (?novo=1): abre o cadastro uma vez.
+  const { open: abrirNovo, clear: limparNovo } = useNewClientParam();
+  useEffect(() => {
+    if (!abrirNovo) return;
+    limparNovo();
+    if (bloqueado) return;
+    setEditingClient(null);
+    setIsModalOpen(true);
+  }, [abrirNovo, limparNovo, bloqueado]);
 
   // O DTO do CRM não traz endereço nem observações: edita a partir do cadastro completo
   // (GET /clients) para não apagar esses campos ao salvar.

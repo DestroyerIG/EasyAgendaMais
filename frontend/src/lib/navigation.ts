@@ -36,6 +36,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
 export const BOTTOM_NAV_IDS: readonly NavItemId[] = ['hoje', 'agenda', 'clientes'];
 export const MORE_MENU_IDS: readonly NavItemId[] = ['caixa', 'clube', 'whatsapp', 'relatorios', 'minha-pagina', 'ajustes'];
 export const NEW_APPOINTMENT_HREF = '/agendamentos?novo=1';
+export const NEW_CLIENT_HREF = '/clientes?novo=1';
 
 export function normalizePath(pathname: string): string {
   const trimmed = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;

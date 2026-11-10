@@ -4,10 +4,12 @@ import type { Client } from '@/types';
 import type { ClienteInsight } from '@/lib/crm';
 
 const mockPush = vi.hoisted(() => vi.fn());
+const mockReplace = vi.hoisted(() => vi.fn());
+const mockQuery = vi.hoisted(() => ({ value: '' }));
 vi.mock('next/navigation', async (importOriginal) => ({
   ...(await importOriginal<typeof import('next/navigation')>()),
-  useRouter: () => ({ push: mockPush, replace: vi.fn(), prefetch: vi.fn(), back: vi.fn(), forward: vi.fn(), refresh: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(''),
+  useRouter: () => ({ push: mockPush, replace: mockReplace, prefetch: vi.fn(), back: vi.fn(), forward: vi.fn(), refresh: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(mockQuery.value),
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({
@@ -64,6 +66,8 @@ describe('ClientModule', () => {
   beforeEach(() => {
     carencia.ativa = false;
     mockPush.mockReset();
+    mockReplace.mockReset();
+    mockQuery.value = '';
     mockApiGet.mockReset();
     mockApiGet.mockImplementation((url: string) =>
       Promise.resolve({ data: url === '/clients' ? [completo] : [] }),
@@ -103,6 +107,22 @@ describe('ClientModule', () => {
     await screen.findByRole('row', { name: 'Ver ficha de Maria Silva' });
     fireEvent.click(screen.getByRole('button', { name: 'Nova cliente' }));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('?novo=1 (balão "Novo cliente" do +) abre o cadastro e limpa o parâmetro', async () => {
+    mockQuery.value = 'novo=1';
+    render(<ClientModule />);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(mockReplace).toHaveBeenCalledWith('/clientes', { scroll: false });
+  });
+
+  it('?novo=1 em carência não abre o cadastro, mas limpa o parâmetro', async () => {
+    carencia.ativa = true;
+    mockQuery.value = 'novo=1';
+    render(<ClientModule />);
+    await screen.findByRole('button', { name: /Nova cliente/ });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(mockReplace).toHaveBeenCalledWith('/clientes', { scroll: false });
   });
 
   it('"Editar" no menu abre o cadastro completo (com endereço e observações)', async () => {
