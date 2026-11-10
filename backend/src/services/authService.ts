@@ -172,7 +172,16 @@ const COMMON_PASSWORDS = new Set([
 ]);
 
 const DEFAULT_PLAN = 'basico';
-const TRIAL_PLAN = 'profissional';
+/** Salão é sob consulta (o valor é combinado), então o teste dele roda no Equipe. */
+const SALAO_TRIAL_PLAN = 'profissional';
+
+/** O teste roda no plano que a pessoa escolheu: quem escolhe Solo testa o Solo. */
+const planoDoTeste = (desiredPlan?: string | null): string => {
+  const escolhido = String(desiredPlan || '').trim().toLowerCase();
+  if (escolhido === 'basico' || escolhido === 'profissional') return escolhido;
+  if (escolhido === 'premium') return SALAO_TRIAL_PLAN;
+  return DEFAULT_PLAN;
+};
 const PASSWORD_HASH_PLACEHOLDER_PREFIX = 'supabase:';
 
 const PLATFORM_ADMIN_EMAILS = new Set(['contato@easyconnectcg.com.br']);
@@ -402,8 +411,8 @@ const registerWithSupabasePrimaryFlow = async ({
   emailRedirectTo,
 }: RegisterParams): Promise<RegisterResponse> => {
   const normalizedEmail = normalizeEmail(email);
-  const plan = TRIAL_PLAN;
   const onboardingDesiredPlan = desiredPlan || DEFAULT_PLAN;
+  const plan = planoDoTeste(onboardingDesiredPlan);
   const registerStartedAt = Date.now();
   let currentStage = 'checking_existing_user';
 
@@ -695,7 +704,7 @@ const reconcileSupabaseConfirmedUser = async ({
           email: pendingReg.email as string,
           whatsapp: pendingReg.whatsapp as string,
           cpfCnpj: (pendingReg.cpf_cnpj as string) || null,
-          plan: TRIAL_PLAN,
+          plan: planoDoTeste(pendingReg.desired_plan as string),
           desiredPlan: (pendingReg.desired_plan as string) || DEFAULT_PLAN,
         });
         businessId = (createdBusiness as Record<string, unknown>).id as string;
@@ -713,7 +722,7 @@ const reconcileSupabaseConfirmedUser = async ({
           email: normalizedEmail,
           whatsapp: '',
           cpfCnpj: null,
-          plan: TRIAL_PLAN,
+          plan: planoDoTeste(DEFAULT_PLAN),
           desiredPlan: DEFAULT_PLAN,
         });
         businessId = (createdBusiness as Record<string, unknown>).id as string;

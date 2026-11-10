@@ -133,7 +133,7 @@ interface PricingPlansSectionProps {
 export function PricingPlansSection({
   sectionId = 'planos',
   title = 'Planos para cada fase do seu negócio',
-  subtitle = 'Teste grátis no plano Equipe: 7 dias sem cartão, ou 14 com o cartão cadastrado. Sem compromisso.',
+  subtitle = 'Teste grátis no plano que você escolher: 7 dias sem cartão, ou 14 com o cartão cadastrado. Sem compromisso.',
   currentPlan,
   subscriptionStatus,
   showHeader = true,

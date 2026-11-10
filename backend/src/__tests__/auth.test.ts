@@ -195,6 +195,22 @@ describe('Auth API — Supabase only', () => {
       desiredPlan: 'premium',
     };
 
+    it.each([
+      ['basico', 'basico'],
+      ['profissional', 'profissional'],
+    ])('o teste roda no plano escolhido (%s)', async (escolhido, esperado) => {
+      mockAuthRepository.findAnyUserByEmail.mockResolvedValue(null);
+      mockAuthRepository.upsertPendingRegistration.mockResolvedValue({
+        id: 'pending-uuid', email: 'joao@teste.com', supabase_user_id: 'supabase-user-uuid',
+      });
+
+      const res = await request.post('/api/v1/auth/register').send({ ...validBody, desiredPlan: escolhido });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.business.plan).toBe(esperado);
+      expect(res.body.data.business.desiredPlan).toBe(escolhido);
+    });
+
     it('inicia cadastro no Supabase Auth e salva pendência local', async () => {
       mockAuthRepository.findAnyUserByEmail.mockResolvedValue(null);
       mockAuthRepository.upsertPendingRegistration.mockResolvedValue({
@@ -208,6 +224,7 @@ describe('Auth API — Supabase only', () => {
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
       expect(res.body.data.verificationRequired).toBe(true);
+      // Salão é sob consulta: o teste dele roda no Equipe.
       expect(res.body.data.business.plan).toBe('profissional');
       expect(res.body.data.business.desiredPlan).toBe('premium');
       expect(mockSupabaseAuthService.signUpForEmailVerification).toHaveBeenCalledWith(

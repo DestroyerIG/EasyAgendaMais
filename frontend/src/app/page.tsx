@@ -111,7 +111,7 @@ const faqItems = [
   {
     question: 'Como funciona o teste grátis?',
     answer:
-      'Você escolhe no cadastro: 7 dias sem cartão, ou 14 dias com o cartão cadastrado no Asaas. Com cartão, a primeira cobrança só acontece no fim do teste; cancele antes e nada é cobrado. Quem começa sem cartão pode cadastrar depois e ganhar mais 7 dias. O teste é no plano Equipe.',
+      'Você escolhe no cadastro: 7 dias sem cartão, ou 14 dias com o cartão cadastrado no Asaas. Com cartão, a primeira cobrança só acontece no fim do teste; cancele antes e nada é cobrado. Quem começa sem cartão pode cadastrar depois e ganhar mais 7 dias. O teste é no plano que você escolher (o Salão testa no Equipe).',
   },
   {
     question: 'Minha equipe consegue ver o faturamento total do meu negócio?',
