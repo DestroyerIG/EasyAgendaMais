@@ -21,6 +21,9 @@ export interface Horarios {
 
 export interface ServicoOnboarding { nome: string; duracaoMinutos: number; preco: number; sinalPct: number | null }
 
+/** O que a etapa Serviços envia: sinal e Pix ficam para a etapa Recebimentos. */
+export type ServicoEntrada = Omit<ServicoOnboarding, 'sinalPct'>;
+
 export interface ServicoSugerido extends ServicoOnboarding { descricao: string; marcado: boolean }
 
 export interface Onboarding {
@@ -46,8 +49,8 @@ export const onboardingApi = {
   salvarNegocio: async (segmento: Segmento, modoEquipe: ModoEquipe) =>
     (await api.put<Onboarding>('/onboarding/negocio', { segmento, modoEquipe })).data,
   salvarHorarios: async (h: Horarios) => (await api.put<Onboarding>('/onboarding/horarios', h)).data,
-  salvarServicos: async (servicos: ServicoOnboarding[], chavePix?: { chave: string; tipo: TipoChavePix }) =>
-    (await api.put<Onboarding>('/onboarding/servicos', chavePix ? { servicos, chavePix } : { servicos })).data,
+  salvarServicos: async (servicos: ServicoEntrada[]) =>
+    (await api.put<Onboarding>('/onboarding/servicos', { servicos })).data,
   salvarRecebimentos: async (d: { chavePix?: { chave: string; tipo: TipoChavePix }; servicos: Array<{ id: string; sinalPct: number | null }> }) =>
     (await api.put<Onboarding>('/onboarding/recebimentos', d)).data,
   concluir: async () => (await api.post<Onboarding>('/onboarding/concluir')).data,

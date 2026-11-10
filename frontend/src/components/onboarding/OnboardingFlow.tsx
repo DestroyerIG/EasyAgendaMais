@@ -8,7 +8,7 @@ import { Button, Skeleton } from '@/components/ui';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import {
   esquecerSegmentoDoCadastro, onboardingApi, segmentoDoCadastro,
-  type Horarios, type ModoEquipe, type Onboarding, type ServicoOnboarding, type TipoChavePix,
+  type Horarios, type ModoEquipe, type Onboarding, type ServicoOnboarding,
 } from '@/lib/onboarding';
 import type { Segmento } from '@/lib/technicalSheetTemplates';
 import { EtapaNegocio } from './EtapaNegocio';
@@ -123,11 +123,9 @@ export function OnboardingFlow() {
       <EtapaServicos
         segmento={dados.negocio.segmento ?? 'outro'}
         jaSalvos={jaSalvos}
-        temChavePix={dados.temChavePix}
         salvando={salvando}
         onVoltar={() => setEtapa(2)}
-        onSalvar={(servicos: ServicoOnboarding[], pix?: { chave: string; tipo: TipoChavePix }) =>
-          void executar(() => onboardingApi.salvarServicos(servicos, pix), 4, true)}
+        onSalvar={(servicos) => void executar(() => onboardingApi.salvarServicos(servicos), 4, true)}
       />
     );
   }

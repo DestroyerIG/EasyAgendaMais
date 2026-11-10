@@ -15,6 +15,8 @@ const mocks = vi.hoisted(() => ({
   ver: vi.fn(),
   salvarNegocio: vi.fn(),
   salvarHorarios: vi.fn(),
+  catalogo: vi.fn(),
+  salvarServicos: vi.fn(),
 }));
 
 vi.mock('next/navigation', async (orig) => ({
@@ -29,7 +31,9 @@ vi.mock('@/lib/onboarding', async (orig) => {
   const real = await orig<typeof import('@/lib/onboarding')>();
   return {
     ...real,
-    onboardingApi: { ...real.onboardingApi, ver: mocks.ver, salvarNegocio: mocks.salvarNegocio, salvarHorarios: mocks.salvarHorarios },
+    onboardingApi: { ...real.onboardingApi, ver: mocks.ver, salvarNegocio: mocks.salvarNegocio, salvarHorarios: mocks.salvarHorarios,
+      catalogo: mocks.catalogo, salvarServicos: mocks.salvarServicos,
+    },
   };
 });
 
@@ -146,5 +150,30 @@ describe('OnboardingFlow', () => {
     await user.click(await screen.findByRole('button', { name: /Continuar/ }));
     await waitFor(() => expect(mocks.salvarHorarios).toHaveBeenCalled());
     expect(screen.getByText(TITULO_HORARIOS)).toBeInTheDocument();
+  });
+
+  it('etapa Serviços não pede sinal nem chave Pix', async () => {
+    mocks.ver.mockResolvedValue(dados(3));
+    mocks.catalogo.mockResolvedValue([
+      { nome: 'Manicure', duracaoMinutos: 45, preco: 40, sinalPct: null, descricao: 'Mãos', marcado: true },
+    ]);
+    renderFluxo();
+    expect(await screen.findByLabelText('Oferecer Manicure')).toBeInTheDocument();
+    expect(screen.queryByText(/Exigir sinal via Pix/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Chave Pix para receber o sinal/)).not.toBeInTheDocument();
+  });
+
+  it('etapa Serviços salva só nome, duração e preço', async () => {
+    const user = userEvent.setup();
+    mocks.ver.mockResolvedValue(dados(3));
+    mocks.catalogo.mockResolvedValue([
+      { nome: 'Manicure', duracaoMinutos: 45, preco: 40, sinalPct: 30, descricao: 'Mãos', marcado: true },
+    ]);
+    mocks.salvarServicos.mockResolvedValue(dados(4));
+    renderFluxo();
+    await screen.findByLabelText('Oferecer Manicure');
+    await user.click(screen.getByRole('button', { name: /Continuar/ }));
+    await waitFor(() => expect(mocks.salvarServicos).toHaveBeenCalledTimes(1));
+    expect(mocks.salvarServicos).toHaveBeenCalledWith([{ nome: 'Manicure', duracaoMinutos: 45, preco: 40 }]);
   });
 });
