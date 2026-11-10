@@ -60,4 +60,16 @@ describe('PixManualCard', () => {
     await user.click(screen.getByRole('button', { name: /salvar chave pix/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent('E-mail inválido');
   });
+
+  it('sem conta conectada deixa claro que a confirmação é manual', async () => {
+    render(<PixManualCard />);
+    expect(await screen.findByText('Confirmação manual')).toBeInTheDocument();
+    expect(screen.getByText(/só com a chave pix, a confirmação é manual/i)).toBeInTheDocument();
+  });
+
+  it('com conta conectada a chave aparece como reserva', async () => {
+    render(<PixManualCard confirmacaoAutomatica />);
+    expect(await screen.findByText('Reserva')).toBeInTheDocument();
+    expect(screen.getByText(/sua conta conectada confirma o sinal sozinha/i)).toBeInTheDocument();
+  });
 });
