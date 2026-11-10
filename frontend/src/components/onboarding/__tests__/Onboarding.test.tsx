@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { StrictMode } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
@@ -17,6 +18,8 @@ const mocks = vi.hoisted(() => ({
   salvarHorarios: vi.fn(),
   catalogo: vi.fn(),
   salvarServicos: vi.fn(),
+  salvarRecebimentos: vi.fn(),
+  confirmar: vi.fn(),
 }));
 
 vi.mock('next/navigation', async (orig) => ({
@@ -32,9 +35,13 @@ vi.mock('@/lib/onboarding', async (orig) => {
   return {
     ...real,
     onboardingApi: { ...real.onboardingApi, ver: mocks.ver, salvarNegocio: mocks.salvarNegocio, salvarHorarios: mocks.salvarHorarios,
-      catalogo: mocks.catalogo, salvarServicos: mocks.salvarServicos,
+      catalogo: mocks.catalogo, salvarServicos: mocks.salvarServicos, salvarRecebimentos: mocks.salvarRecebimentos,
     },
   };
+});
+vi.mock('@/lib/recebimentos', async (orig) => {
+  const real = await orig<typeof import('@/lib/recebimentos')>();
+  return { ...real, recebimentosApi: { ...real.recebimentosApi, confirmar: mocks.confirmar } };
 });
 
 mocks.router = { push: vi.fn(), replace: mocks.replace, prefetch: vi.fn(), back: vi.fn(), forward: vi.fn(), refresh: vi.fn() };
@@ -86,6 +93,7 @@ describe('OnboardingFlow', () => {
     vi.clearAllMocks();
     mocks.refreshMe.mockResolvedValue(undefined);
     mocks.user.value = { role: 'tenant_admin' };
+    window.history.replaceState({}, '', '/');
     try { localStorage.clear(); } catch { /* sem storage */ }
   });
 
@@ -175,5 +183,72 @@ describe('OnboardingFlow', () => {
     await user.click(screen.getByRole('button', { name: /Continuar/ }));
     await waitFor(() => expect(mocks.salvarServicos).toHaveBeenCalledTimes(1));
     expect(mocks.salvarServicos).toHaveBeenCalledWith([{ nome: 'Manicure', duracaoMinutos: 45, preco: 40 }]);
+  });
+
+  describe('etapa Recebimentos', () => {
+    const TITULO = 'Como você quer receber o sinal?';
+
+    it('abre na etapa 4 com o título e "Etapa 4 de 6"', async () => {
+      mocks.ver.mockResolvedValue(dados(4));
+      renderFluxo();
+      expect(await screen.findByText(TITULO)).toBeInTheDocument();
+      expect(screen.getByText('Etapa 4 de 6')).toBeInTheDocument();
+    });
+
+    it('"Configurar depois" leva a Sua página (etapa 5)', async () => {
+      const user = userEvent.setup();
+      mocks.ver.mockResolvedValue(dados(4));
+      renderFluxo();
+      await user.click(await screen.findByRole('button', { name: 'Configurar depois' }));
+      expect(await screen.findByText('Etapa 5 de 6')).toBeInTheDocument();
+      expect(screen.queryByText(TITULO)).not.toBeInTheDocument();
+    });
+
+    it('salvar chama salvarRecebimentos e avança para Sua página', async () => {
+      const user = userEvent.setup();
+      mocks.ver.mockResolvedValue(dados(4));
+      mocks.salvarRecebimentos.mockResolvedValue(dados(5));
+      renderFluxo();
+      await user.click(await screen.findByText('Não vou cobrar sinal agora'));
+      const continuar = screen.getByRole('button', { name: /Continuar/ });
+      await waitFor(() => expect(continuar).toBeEnabled());
+      await user.click(continuar);
+      await waitFor(() => expect(mocks.salvarRecebimentos).toHaveBeenCalledTimes(1));
+      expect(await screen.findByText('Etapa 5 de 6')).toBeInTheDocument();
+    });
+
+    it.each([
+      ['direto', (ui: React.ReactElement) => ui],
+      ['em StrictMode', (ui: React.ReactElement) => <StrictMode>{ui}</StrictMode>],
+    ])('retorno do Mercado Pago confirma uma única vez (%s), avisa e limpa a URL', async (_n, envolver) => {
+      window.history.pushState({}, '', '/onboarding?recebimento=confirmar&t=abc');
+      mocks.ver.mockResolvedValue(dados(4));
+      mocks.confirmar.mockResolvedValue({});
+      render(envolver(<ToastProvider><OnboardingFlow /></ToastProvider>));
+      expect(await screen.findByText('Mercado Pago conectado.')).toBeInTheDocument();
+      expect(mocks.confirmar).toHaveBeenCalledTimes(1);
+      expect(mocks.confirmar).toHaveBeenCalledWith('abc');
+      expect(window.location.search).toBe('');
+      expect(screen.getByText('Etapa 4 de 6')).toBeInTheDocument();
+    });
+
+    it('retorno com erro mostra o aviso e fica na etapa 4', async () => {
+      window.history.pushState({}, '', '/onboarding?recebimento=erro');
+      mocks.ver.mockResolvedValue(dados(4));
+      renderFluxo();
+      expect(await screen.findByText('Não foi possível conectar o Mercado Pago. Tente de novo.')).toBeInTheDocument();
+      expect(mocks.confirmar).not.toHaveBeenCalled();
+      expect(screen.getByText('Etapa 4 de 6')).toBeInTheDocument();
+      expect(window.location.search).toBe('');
+    });
+
+    it('falha ao confirmar mostra o aviso e fica na etapa 4', async () => {
+      window.history.pushState({}, '', '/onboarding?recebimento=confirmar&t=abc');
+      mocks.ver.mockResolvedValue(dados(4));
+      mocks.confirmar.mockRejectedValue('falhou');
+      renderFluxo();
+      expect(await screen.findByText('Não foi possível conectar o Mercado Pago. Tente de novo.')).toBeInTheDocument();
+      expect(screen.getByText('Etapa 4 de 6')).toBeInTheDocument();
+    });
   });
 });

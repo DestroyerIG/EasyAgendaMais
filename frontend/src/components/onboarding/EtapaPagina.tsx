@@ -89,7 +89,7 @@ export function EtapaPagina({ slugInicial, onVoltar, onContinuar }: {
 
   return (
     <CascaOnboarding
-      etapa={4}
+      etapa={5}
       titulo={`Personalize a página que ${cli.g('suas', 'seus')} ${cli.p} vão ver`}
       descricao={`É por esse link que ${cli.osP} escolhem o horário, pagam o sinal e recebem a confirmação no WhatsApp.`}
       rodape={(

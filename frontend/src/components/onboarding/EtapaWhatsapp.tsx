@@ -7,7 +7,7 @@ import { CascaOnboarding } from './CascaOnboarding';
 import { useToast } from '@/components/Toast';
 import { useVocabulario } from '@/hooks/useVocabulario';
 
-// Etapa 5: o QR da conexão (as mesmas rotas de WhatsApp › Conexão) e o link da página para divulgar.
+// Etapa 6: o QR da conexão (as mesmas rotas de WhatsApp › Conexão) e o link da página para divulgar.
 
 type Estado = 'carregando' | 'desconectado' | 'sem_instancia' | 'pareando' | 'conectado' | 'indisponivel';
 
@@ -87,7 +87,7 @@ export function EtapaWhatsapp({ jaConectado, slug, concluindo, onVoltar, onConcl
 
   return (
     <CascaOnboarding
-      etapa={5}
+      etapa={6}
       titulo="Conecte seu WhatsApp e receba seu link"
       descricao={`O assistente envia as confirmações, cobra o sinal via Pix e lembra ${cli.osP} na véspera, sem você mover um dedo.`}
       rodape={(
