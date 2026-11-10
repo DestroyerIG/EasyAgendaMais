@@ -507,6 +507,38 @@ describe('expirarReserva', () => {
   });
 });
 
+describe('cancelarReservaPendente', () => {
+  it('cancela a reserva ainda aguardando o sinal e deixa a cobrança como está', async () => {
+    reserva(); cobranca();
+    await expect(recebimentosRepository.cancelarReservaPendente('a1', 'b1')).resolves.toBe(true);
+    expect(lerReserva().status).toBe('cancelado');
+    expect(lerCobranca().situacao).toBe('pendente');
+  });
+
+  it.each([
+    ['confirmada (sinal acabou de ser pago)', { status: 'confirmado', expiresAt: null }],
+    ['já cancelada pela rotina', { status: 'cancelado' }],
+  ])('reserva %s: não mexe e devolve false', async (_n, r) => {
+    reserva(r);
+    await expect(recebimentosRepository.cancelarReservaPendente('a1', 'b1')).resolves.toBe(false);
+    expect(lerReserva().status).toBe(r.status);
+  });
+
+  it('não cancela reserva de outro negócio', async () => {
+    reserva();
+    await expect(recebimentosRepository.cancelarReservaPendente('a1', 'outro')).resolves.toBe(false);
+    expect(lerReserva().status).toBe('aguardando_pagamento');
+  });
+
+  it('pagamento que chega depois de a cliente cancelar não reativa: alerta o negócio', async () => {
+    reserva(); cobranca();
+    await recebimentosRepository.cancelarReservaPendente('a1', 'b1');
+    await pagamentosService.processarCobranca(COB);
+    expect(lerReserva().status).toBe('cancelado');
+    expect(alertas()).toHaveLength(1);
+  });
+});
+
 describe('reativar', () => {
   it('reserva vencida ainda aguardando, horário livre: confirma, zera expiresAt e avisa', async () => {
     reserva({ expiresAt: emMinutos(-5) }); cobranca();

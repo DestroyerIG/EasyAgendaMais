@@ -8,7 +8,8 @@ import { prisma } from '../../config/prisma.js';
 import { reservaComSinalService, type ReservaComSinal } from '../../modules/recebimentos/reservaComSinal.service.js';
 import { calcDeposit } from '../../modules/recebimentos/reservaComSinal.rules.js';
 import { automacoesGatilhos } from '../../modules/whatsappAutomacoes/gatilhos.service.js';
-import { appointmentService } from '../appointmentService.js';
+import { recebimentosRepository } from '../../modules/recebimentos/recebimentos.repository.js';
+import { googleAgendaService } from '../../modules/googleAgenda/googleAgenda.service.js';
 import { sendWhatsAppMessage, formatMessage, type SendWhatsAppMessageContext } from './whatsappMessageService.js';
 import { updateSession } from './whatsappSessionService.js';
 import { STEPS, AVISO_TESTE, type BotConfig } from './whatsappConstants.js';
@@ -98,7 +99,7 @@ export async function enviarPedidoDoSinal(sinal: SinalDoRobo, e: EnvioDoSinal): 
 
   if (!enviado) {
     logger.error({ businessId: e.businessId, appointmentId: reserva.appointment.id }, 'Pedido do sinal não foi enviado: cancelando a pré-reserva');
-    await appointmentService.updateStatus(reserva.appointment.id, e.businessId, 'cancelado').catch((err: unknown) =>
+    await cancelarSePendente(reserva.appointment.id, e.businessId).catch((err: unknown) =>
       logger.error({ err, appointmentId: reserva.appointment.id }, 'Falha ao cancelar a pré-reserva sem Pix enviado'));
     return false;
   }
@@ -127,6 +128,26 @@ export async function simularPedidoDoSinal(
   });
   if (!await sendWhatsAppMessage(e.phone, texto, e.sendContext)) return false;
   return sendWhatsAppMessage(e.phone, `${PIX_DE_TESTE}\n\n${AVISO_TESTE}`, e.sendContext);
+}
+
+/**
+ * Cancela só se a reserva ainda estiver aguardando o sinal (nunca uma já paga). Sem os efeitos de
+ * updateStatus (aviso à profissional, lista de espera): a pré-reserva nunca chegou a ser confirmada.
+ */
+const cancelarSePendente = async (appointmentId: string, businessId: string): Promise<boolean> => {
+  const cancelou = await recebimentosRepository.cancelarReservaPendente(appointmentId, businessId);
+  if (cancelou) void googleAgendaService.sincronizarSaida({ appointmentId });
+  return cancelou;
+};
+
+/**
+ * A cliente pediu para cancelar a pré-reserva. 'paga' = o sinal foi pago nesse meio-tempo (a confirmação
+ * sai pelo pagamento); 'encerrada' = já tinha vencido ou sido cancelada.
+ */
+export async function cancelarEsperaDoSinal(appointmentId: string, businessId: string): Promise<'cancelada' | 'paga' | 'encerrada'> {
+  if (await cancelarSePendente(appointmentId, businessId)) return 'cancelada';
+  const a = await prisma.appointment.findFirst({ where: { id: appointmentId, businessId }, select: { status: true } });
+  return a && ['confirmado', 'em_atendimento', 'concluido'].includes(a.status) ? 'paga' : 'encerrada';
 }
 
 /** Reserva ainda à espera do sinal e dentro do prazo? Devolve o prazo; null se expirou, foi paga ou cancelada. */

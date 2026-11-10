@@ -68,6 +68,7 @@ import {
   enviarPedidoDoSinal,
   simularPedidoDoSinal,
   reservaEmEspera,
+  cancelarEsperaDoSinal,
   minutosRestantes,
   type SinalDoRobo,
 } from './whatsappSinalService.js';
@@ -1835,22 +1836,28 @@ const handleAwaitingDepositStep = async (
   const appointmentId = sessionData.appointmentId as string | undefined;
   const espera = appointmentId ? await reservaEmEspera(appointmentId, businessId) : null;
 
-  if (!espera || !appointmentId) {
+  const reabrirMenu = async (): Promise<{ ok: boolean }> => {
     await deleteSession(phone, businessId);
     await createSession(phone, businessId);
     return { ok: await sendWhatsAppMessage(phone, await buildContextualMenuMessage(businessId, businessSettings, config), sendContext) };
-  }
+  };
+
+  if (!espera || !appointmentId) return reabrirMenu();
 
   if (text === '0') {
+    let resultado: Awaited<ReturnType<typeof cancelarEsperaDoSinal>>;
     try {
-      await appointmentService.updateStatus(appointmentId, businessId, 'cancelado');
+      resultado = await cancelarEsperaDoSinal(appointmentId, businessId);
     } catch (error) {
-      // Conflito = expirou ou foi paga entre a leitura e o cancelamento; nos dois casos a espera acabou.
-      if (!(error instanceof ConflictError) && !(error instanceof NotFoundError)) {
-        logger.error({ err: error, phone, businessId, appointmentId }, 'Falha ao cancelar a pré-reserva do sinal via WhatsApp bot');
-        return { ok: await sendWhatsAppMessage(phone, config.cancel_failed_message, sendContext) };
-      }
+      logger.error({ err: error, phone, businessId, appointmentId }, 'Falha ao cancelar a pré-reserva do sinal via WhatsApp bot');
+      return { ok: await sendWhatsAppMessage(phone, config.cancel_failed_message, sendContext) };
     }
+    if (resultado === 'paga') {
+      // Pago entre a leitura e o pedido de cancelar: a confirmação sai pelo pagamento, nada a cancelar.
+      await deleteSession(phone, businessId);
+      return { ok: true };
+    }
+    if (resultado === 'encerrada') return reabrirMenu();
     await deleteSession(phone, businessId);
     return { ok: await sendWhatsAppMessage(phone, await formatarTexto(config.deposit_cancelled_message, businessId), sendContext) };
   }

@@ -12,6 +12,7 @@ const mockAppointmentUpdate = vi.hoisted(() => vi.fn());
 const mockAppointmentUpdateStatus = vi.hoisted(() => vi.fn());
 const mockCriarReserva = vi.hoisted(() => vi.fn());
 const mockLoggerWarn = vi.hoisted(() => vi.fn());
+const mockCancelarPendente = vi.hoisted(() => vi.fn());
 
 vi.mock('../modules/conta/estadoConta.service.js', () => ({ estadoContaService: { doNegocio: vi.fn().mockResolvedValue({ tipo: 'ativa' }) } }));
 vi.mock('../config/prisma.js', () => {
@@ -47,9 +48,10 @@ vi.mock('../services/whatsappClient.js', () => ({
   getWhatsAppStatusByInstance: vi.fn(() => ({ connectedNumber: null })),
   getConnectedNumberCached: vi.fn(() => null),
 }));
-vi.mock('../services/whatsapp/whatsappSessionService.js', () => ({
+// isSessionExpired é o real: a espera do sinal não pode cair no tempo limite da sessão.
+vi.mock('../services/whatsapp/whatsappSessionService.js', async (orig) => ({
+  ...(await orig<typeof import('../services/whatsapp/whatsappSessionService.js')>()),
   getSession: mockGetSession,
-  isSessionExpired: vi.fn(() => false),
   createSession: mockCreateSession,
   updateSession: mockUpdateSession,
   deleteSession: mockDeleteSession,
@@ -70,6 +72,9 @@ vi.mock('../services/appointmentService.js', () => ({
 }));
 vi.mock('../modules/recebimentos/reservaComSinal.service.js', () => ({
   reservaComSinalService: { criar: mockCriarReserva },
+}));
+vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({
+  recebimentosRepository: { cancelarReservaPendente: mockCancelarPendente },
 }));
 
 const { handleIncomingMessage } = await import('../services/whatsapp/whatsappFlowService.js');
@@ -111,12 +116,12 @@ beforeEach(() => {
   mockPoolQuery.mockResolvedValue([]);
   mockSendWhatsAppMessage.mockReset().mockResolvedValue(true);
   mockAppointmentCreate.mockResolvedValue({ id: 'apt-1', status: 'confirmado' });
-  mockAppointmentUpdateStatus.mockResolvedValue({ id: 'apt-9', status: 'cancelado' });
+  mockCancelarPendente.mockReset().mockResolvedValue(true);
   mockCriarReserva.mockResolvedValue(reserva());
   mockGetBotConfig.mockResolvedValue({ ...DEFAULT_BOT_CONFIG, confirmation_message: 'Agendamento confirmado' });
   vi.mocked(prisma.business.findFirst).mockResolvedValue(negocio() as never);
   vi.mocked(prisma.service.findFirst).mockResolvedValue(servico() as never);
-  vi.mocked(prisma.appointment.findFirst).mockResolvedValue(null as never);
+  vi.mocked(prisma.appointment.findFirst).mockReset().mockResolvedValue(null as never);
 });
 
 describe('deveCobrarNoRobo', () => {
@@ -197,8 +202,21 @@ describe('robô cobra o sinal ao agendar', () => {
     const r = await enviar('1');
 
     expect(r).toEqual(expect.objectContaining({ ok: false }));
-    expect(mockAppointmentUpdateStatus).toHaveBeenCalledWith('apt-9', NEGOCIO, 'cancelado');
+    expect(mockCancelarPendente).toHaveBeenCalledWith('apt-9', NEGOCIO);
+    expect(mockAppointmentUpdateStatus).not.toHaveBeenCalled();
     expect(mockUpdateSession).not.toHaveBeenCalledWith(NUMERO, NEGOCIO, STEPS.AWAITING_DEPOSIT, expect.anything());
+  });
+
+  it('cancelamento por falha no envio não mexe numa reserva já confirmada', async () => {
+    sessaoEscolhendoHorario();
+    mockSendWhatsAppMessage.mockResolvedValueOnce(false);
+    mockCancelarPendente.mockResolvedValue(false); // já saiu de aguardando_pagamento
+
+    const r = await enviar('1');
+
+    expect(r).toEqual(expect.objectContaining({ ok: false }));
+    expect(mockCancelarPendente).toHaveBeenCalledWith('apt-9', NEGOCIO);
+    expect(mockAppointmentUpdateStatus).not.toHaveBeenCalled();
   });
 
   it('serviço sem sinal confirma direto, como hoje', async () => {
@@ -269,7 +287,7 @@ describe('robô cobra o sinal ao agendar', () => {
 
     expect(mockCriarReserva).not.toHaveBeenCalled();
     expect(mockAppointmentCreate).not.toHaveBeenCalled();
-    expect(mockAppointmentUpdateStatus).not.toHaveBeenCalled();
+    expect(mockCancelarPendente).not.toHaveBeenCalled();
     const msgs = enviadas();
     expect(msgs[0]).toContain('R$ 20,00');
     expect(msgs.at(-1)).toContain(AVISO_TESTE);
@@ -302,7 +320,7 @@ describe('awaiting_deposit', () => {
     expect(mockDeleteSession).not.toHaveBeenCalled();
     expect(mockCriarReserva).not.toHaveBeenCalled();
     expect(mockAppointmentCreate).not.toHaveBeenCalled();
-    expect(mockAppointmentUpdateStatus).not.toHaveBeenCalled();
+    expect(mockCancelarPendente).not.toHaveBeenCalled();
   });
 
   it('awaiting_deposit: 0 cancela a reserva, responde deposit_cancelled_message e apaga a sessão', async () => {
@@ -311,9 +329,84 @@ describe('awaiting_deposit', () => {
 
     await enviar('0');
 
-    expect(mockAppointmentUpdateStatus).toHaveBeenCalledWith('apt-9', NEGOCIO, 'cancelado');
+    expect(mockCancelarPendente).toHaveBeenCalledWith('apt-9', NEGOCIO);
+    expect(mockAppointmentUpdateStatus).not.toHaveBeenCalled();
     expect(enviadas()).toEqual([DEFAULT_BOT_CONFIG.deposit_cancelled_message]);
     expect(mockDeleteSession).toHaveBeenCalledWith(NUMERO, NEGOCIO);
+  });
+
+  it('awaiting_deposit: 0 logo depois de o sinal ser pago não cancela nem manda deposit_cancelled_message', async () => {
+    emEspera();
+    vi.mocked(prisma.appointment.findFirst)
+      .mockResolvedValueOnce({ status: 'aguardando_pagamento', expiresAt: new Date(Date.now() + 20 * 60_000) } as never)
+      .mockResolvedValueOnce({ status: 'confirmado', expiresAt: null } as never);
+    mockCancelarPendente.mockResolvedValue(false);
+
+    await enviar('0');
+
+    expect(mockAppointmentUpdateStatus).not.toHaveBeenCalled();
+    expect(enviadas()).not.toContain(DEFAULT_BOT_CONFIG.deposit_cancelled_message);
+    expect(enviadas()).not.toContain(DEFAULT_BOT_CONFIG.cancel_failed_message);
+    expect(mockDeleteSession).toHaveBeenCalledWith(NUMERO, NEGOCIO);
+  });
+
+  it('awaiting_deposit: 0 quando a rotina já cancelou a reserva reabre o menu, sem cancel_failed_message', async () => {
+    emEspera();
+    vi.mocked(prisma.appointment.findFirst)
+      .mockResolvedValueOnce({ status: 'aguardando_pagamento', expiresAt: new Date(Date.now() + 20 * 60_000) } as never)
+      .mockResolvedValueOnce({ status: 'cancelado', expiresAt: null } as never);
+    mockCancelarPendente.mockResolvedValue(false);
+
+    await enviar('0');
+
+    expect(enviadas()).toHaveLength(1);
+    expect(enviadas()[0]).not.toBe(DEFAULT_BOT_CONFIG.cancel_failed_message);
+    expect(enviadas()[0]).not.toBe(DEFAULT_BOT_CONFIG.deposit_cancelled_message);
+    expect(mockDeleteSession).toHaveBeenCalledWith(NUMERO, NEGOCIO);
+    expect(mockCreateSession).toHaveBeenCalledWith(NUMERO, NEGOCIO);
+  });
+
+  describe('tempo limite da sessão', () => {
+    const haMinutos = (m: number) => new Date(Date.now() - m * 60_000);
+
+    it('espera do sinal com a sessão parada há 45 min e prazo no futuro continua respondendo', async () => {
+      mockGetSession.mockResolvedValue({
+        step: STEPS.AWAITING_DEPOSIT, updatedAt: haMinutos(45),
+        data: { appointmentId: 'apt-9', expiresAt: new Date(Date.now() + 15 * 60_000).toISOString() },
+      });
+      vi.mocked(prisma.appointment.findFirst).mockResolvedValue({ status: 'aguardando_pagamento', expiresAt: new Date(Date.now() + 15 * 60_000) } as never);
+
+      const r = await enviar('paguei');
+      expect(r).toEqual(expect.objectContaining({ ok: true, ignored: false }));
+      expect(enviadas()[0]).toContain('Ainda estamos aguardando o pagamento do sinal');
+
+      await enviar('0');
+      expect(mockCancelarPendente).toHaveBeenCalledWith('apt-9', NEGOCIO);
+      expect(enviadas()).toContain(DEFAULT_BOT_CONFIG.deposit_cancelled_message);
+    });
+
+    it('outro step com a sessão parada há 45 min expira como antes', async () => {
+      mockGetSession.mockResolvedValue({ step: 'choose_time', updatedAt: haMinutos(45), data: { availableSlots: ['10:00'] } });
+
+      const r = await enviar('1');
+
+      expect(r).toEqual(expect.objectContaining({ ignored: true, reason: 'no_greeting_no_session' }));
+      expect(mockDeleteSession).toHaveBeenCalledWith(NUMERO, NEGOCIO);
+      expect(mockSendWhatsAppMessage).not.toHaveBeenCalled();
+    });
+
+    it('espera do sinal com o prazo vencido e a sessão parada expira', async () => {
+      mockGetSession.mockResolvedValue({
+        step: STEPS.AWAITING_DEPOSIT, updatedAt: haMinutos(45),
+        data: { appointmentId: 'apt-9', expiresAt: haMinutos(5).toISOString() },
+      });
+
+      const r = await enviar('paguei');
+
+      expect(r).toEqual(expect.objectContaining({ ignored: true, reason: 'no_greeting_no_session' }));
+      expect(mockCancelarPendente).not.toHaveBeenCalled();
+      expect(mockSendWhatsAppMessage).not.toHaveBeenCalled();
+    });
   });
 
   it('awaiting_deposit: reserva já expirada ou confirmada apaga a sessão e reabre o menu', async () => {
@@ -332,7 +425,7 @@ describe('awaiting_deposit', () => {
 
       expect(mockDeleteSession).toHaveBeenCalledWith(NUMERO, NEGOCIO);
       expect(mockCreateSession).toHaveBeenCalledWith(NUMERO, NEGOCIO);
-      expect(mockAppointmentUpdateStatus).not.toHaveBeenCalled();
+      expect(mockCancelarPendente).not.toHaveBeenCalled();
       expect(enviadas()).toHaveLength(1);
       expect(enviadas()[0]).not.toContain('aguardando o pagamento');
     }
