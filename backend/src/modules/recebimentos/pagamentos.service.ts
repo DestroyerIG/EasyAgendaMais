@@ -146,6 +146,8 @@ async function avaliarSaldo(c: Cobranca, p: PagamentoGateway): Promise<void> {
     case 'quitar': {
       // Quem não conseguiu marcar (aviso repetido, outro processo na frente) não fecha nem avisa de novo.
       if (!(await repo.marcarPaga(c.id, p))) return;
+      // A comanda está paga: outra cobrança pendente dela a manteria travada e impediria o fechamento.
+      await repo.cancelarSaldoPendente(c.appointmentId);
       const r = await comandasService.fecharPorPagamento({
         appointmentId: c.appointmentId, businessId: c.businessId, userId: c.usuarioId, valor: p.valor, forma: p.formaPaga,
       });

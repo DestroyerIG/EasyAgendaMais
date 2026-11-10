@@ -1250,6 +1250,17 @@ describe('saldo da comanda', () => {
     expect(alertas()[0]![1].description).toContain('79,99');
   });
 
+  it('pagou uma cobrança com outra pendente na comanda: cancela a outra, senão a trava impediria o fechamento', async () => {
+    reserva({ status: 'em_atendimento' });
+    saldo();
+    saldo({ id: COB2, venceEm: emMinutos(5) });
+    await pagamentosService.processarCobranca(COB);
+
+    expect(lerCobranca(COB).situacao).toBe('paga');
+    expect(lerCobranca(COB2).situacao).toBe('cancelada');
+    expect(comandaSrv.fecharPorPagamento).toHaveBeenCalledTimes(1);
+  });
+
   it('pagamento tardio de cobrança substituída ainda quita', async () => {
     reserva({ status: 'em_atendimento' }); saldo({ situacao: 'substituida' });
     await pagamentosService.processarCobranca(COB);
