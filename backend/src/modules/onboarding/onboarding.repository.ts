@@ -1,5 +1,5 @@
 import { prisma } from '../../config/prisma.js';
-import type { HorariosInput, NegocioInput, ServicosInput } from './onboarding.types.js';
+import type { HorariosInput, NegocioInput, RecebimentosInput, ServicosInput } from './onboarding.types.js';
 import { ETAPA_CONCLUIDA, etapaDepoisDe } from './onboarding.rules.js';
 
 // Onboarding guiado (fase 6): cada etapa grava os campos que Ajustes, Serviços e a Minha página já usam.
@@ -76,7 +76,7 @@ export const onboardingRepository = {
 
   /**
    * Etapa 3. Atualiza pelo nome o que já existe (voltar e avançar de novo não duplica) e desativa os
-   * serviços sem agendamento que saíram da lista. Com sinal, grava a chave Pix.
+   * serviços sem agendamento que saíram da lista. Nunca mexe no sinal (etapa Recebimentos).
    */
   salvarServicos(businessId: string, d: ServicosInput) {
     return prisma.$transaction(async (tx) => {
@@ -84,7 +84,7 @@ export const onboardingRepository = {
       const porNome = new Map(atuais.map((s) => [s.name.trim().toLowerCase(), s.id]));
       const mantidos = new Set<string>();
       for (const s of d.servicos) {
-        const data = { name: s.nome.trim(), price: s.preco, durationMinutes: s.duracaoMinutos, depositPercentage: s.sinalPct || null };
+        const data = { name: s.nome.trim(), price: s.preco, durationMinutes: s.duracaoMinutos };
         const id = porNome.get(s.nome.trim().toLowerCase());
         if (id) {
           await tx.service.update({ where: { id }, data });
@@ -97,11 +97,29 @@ export const onboardingRepository = {
       if (fora.length) {
         await tx.service.updateMany({ where: { id: { in: fora }, appointments: { none: {} } }, data: { active: false } });
       }
+      await avancar(tx, businessId, 3);
+    });
+  },
+
+  /** Etapa 4. Sinal por serviço (só do próprio negócio) e, se vier, a chave Pix manual. */
+  salvarRecebimentos(businessId: string, d: RecebimentosInput) {
+    return prisma.$transaction(async (tx) => {
       if (d.chavePix) {
         await tx.business.update({ where: { id: businessId }, data: { pixKey: d.chavePix.chave, pixKeyType: d.chavePix.tipo } });
       }
-      await avancar(tx, businessId, 3);
+      for (const s of d.servicos) {
+        await tx.service.updateMany({ where: { id: s.id, businessId }, data: { depositPercentage: s.sinalPct } });
+      }
+      await avancar(tx, businessId, 4);
     });
+  },
+
+  conexao(businessId: string) {
+    return prisma.conexaoRecebimento.findUnique({ where: { businessId }, select: { gateway: true, contaNome: true, situacao: true } });
+  },
+
+  async conexaoAtiva(businessId: string) {
+    return (await prisma.conexaoRecebimento.count({ where: { businessId, situacao: 'ativa' } })) > 0;
   },
 
   concluir(businessId: string) {

@@ -6,6 +6,7 @@ vi.mock('../config/prisma.js', () => ({ prisma: {} }));
 const repo = vi.hoisted(() => ({
   estado: vi.fn(), salvarNegocio: vi.fn(), salvarHorarios: vi.fn(), salvarServicos: vi.fn(), concluir: vi.fn(),
   dispensarPrimeirosPassos: vi.fn(), slugEmUso: vi.fn(), resumo: vi.fn(),
+  salvarRecebimentos: vi.fn(), conexaoAtiva: vi.fn(), conexao: vi.fn(),
 }));
 vi.mock('../modules/onboarding/onboarding.repository.js', () => ({ onboardingRepository: repo }));
 vi.mock('../middleware/auth.js', () => ({
@@ -42,6 +43,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   repo.estado.mockResolvedValue(negocio());
   repo.slugEmUso.mockResolvedValue(false);
+  repo.conexao.mockResolvedValue(null);
+  repo.conexaoAtiva.mockResolvedValue(false);
 });
 
 describe('regras do onboarding', () => {
@@ -115,11 +118,63 @@ describe('serviço do onboarding', () => {
     expect(repo.salvarHorarios).not.toHaveBeenCalled();
   });
 
-  it('serviço com sinal sem chave Pix é recusado', async () => {
+  it('serviços não pedem chave Pix nem gravam sinal', async () => {
     repo.estado.mockResolvedValue(negocio({ onboardingEtapa: 3 }));
-    await expect(onboardingService.salvarServicos('b1', { servicos: [servico({ sinalPct: 30 })] } as never)).rejects.toThrow('Informe a chave Pix');
-    await onboardingService.salvarServicos('b1', { servicos: [servico({ sinalPct: 30 })], chavePix: { chave: 'a@b.com', tipo: 'email' } } as never);
-    expect(repo.salvarServicos).toHaveBeenCalledTimes(1);
+    const d = { servicos: [servico()] };
+    await onboardingService.salvarServicos('b1', d as never);
+    expect(repo.salvarServicos).toHaveBeenCalledWith('b1', d);
+  });
+
+  it('ServicosSchema ignora sinalPct e chavePix extras', async () => {
+    const { ServicosSchema } = await import('../modules/onboarding/onboarding.types.js');
+    const r = ServicosSchema.safeParse({ servicos: [servico({ sinalPct: 30 })], chavePix: { chave: 'a@b.com', tipo: 'email' } });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data).not.toHaveProperty('chavePix');
+      expect(r.data.servicos[0]).not.toHaveProperty('sinalPct');
+    }
+  });
+
+  it('recebimentos: sinal sem chave e sem conexão é recusado', async () => {
+    repo.estado.mockResolvedValue(negocio({ onboardingEtapa: 4 }));
+    const d = { servicos: [{ id: '3b1f5d6e-1111-4222-8333-444455556666', sinalPct: 30 }] };
+    await expect(onboardingService.salvarRecebimentos('b1', d)).rejects.toThrow('Escolha como receber o sinal');
+    expect(repo.salvarRecebimentos).not.toHaveBeenCalled();
+  });
+
+  it('recebimentos: com chave Pix grava', async () => {
+    repo.estado.mockResolvedValue(negocio({ onboardingEtapa: 4 }));
+    const d = { servicos: [{ id: '3b1f5d6e-1111-4222-8333-444455556666', sinalPct: 30 }], chavePix: { chave: 'a@b.com', tipo: 'email' as const } };
+    await onboardingService.salvarRecebimentos('b1', d);
+    expect(repo.salvarRecebimentos).toHaveBeenCalledWith('b1', d);
+  });
+
+  it('recebimentos: conexão ativa dispensa a chave; chave já salva também', async () => {
+    repo.estado.mockResolvedValue(negocio({ onboardingEtapa: 4 }));
+    repo.conexaoAtiva.mockResolvedValue(true);
+    const d = { servicos: [{ id: '3b1f5d6e-1111-4222-8333-444455556666', sinalPct: 30 }] };
+    await onboardingService.salvarRecebimentos('b1', d);
+    expect(repo.salvarRecebimentos).toHaveBeenCalledTimes(1);
+    repo.conexaoAtiva.mockResolvedValue(false);
+    repo.estado.mockResolvedValue(negocio({ onboardingEtapa: 4, pixKey: 'x@y.com' }));
+    await onboardingService.salvarRecebimentos('b1', d);
+    expect(repo.salvarRecebimentos).toHaveBeenCalledTimes(2);
+  });
+
+  it('recebimentos: sem sinal não exige nada; etapa 3 é recusada', async () => {
+    repo.estado.mockResolvedValue(negocio({ onboardingEtapa: 4 }));
+    await onboardingService.salvarRecebimentos('b1', { servicos: [{ id: '3b1f5d6e-1111-4222-8333-444455556666', sinalPct: null }] });
+    expect(repo.salvarRecebimentos).toHaveBeenCalledTimes(1);
+    repo.estado.mockResolvedValue(negocio({ onboardingEtapa: 3 }));
+    await expect(onboardingService.salvarRecebimentos('b1', { servicos: [] })).rejects.toThrow('Conclua a etapa "Serviços" antes');
+  });
+
+  it('ver devolve recebimentos com a conexão e temChavePix', async () => {
+    repo.estado.mockResolvedValue(negocio({ pixKey: 'a@b.com' }));
+    repo.conexao.mockResolvedValue({ gateway: 'mercadopago', contaNome: 'Studio', situacao: 'ativa' });
+    const dto = await onboardingService.ver('b1');
+    expect(dto.temChavePix).toBe(true);
+    expect(dto.recebimentos).toEqual({ conexao: { gateway: 'mercadopago', contaNome: 'Studio', situacao: 'ativa' }, temChavePix: true });
   });
 
   it('concluir exige as etapas obrigatórias', async () => {
@@ -166,7 +221,8 @@ describe('rotas do onboarding', () => {
     expect((await request.put('/api/v1/onboarding/horarios').send({ ...horarios, intervaloMinutos: 25 })).status).toBe(400);
     expect((await request.put('/api/v1/onboarding/servicos').send({ servicos: [] })).status).toBe(400);
     expect((await request.put('/api/v1/onboarding/servicos').send({ servicos: [servico(), servico()] })).status).toBe(400);
-    expect((await request.put('/api/v1/onboarding/servicos').send({ servicos: [servico()], chavePix: { chave: 'nao-e-email', tipo: 'email' } })).status).toBe(400);
+    expect((await request.put('/api/v1/onboarding/recebimentos').send({ servicos: [], chavePix: { chave: 'nao-e-email', tipo: 'email' } })).status).toBe(400);
+    expect((await request.put('/api/v1/onboarding/recebimentos').send({ servicos: [{ id: 'x', sinalPct: 30 }] })).status).toBe(400);
   });
 
   it('catálogo por segmento', async () => {

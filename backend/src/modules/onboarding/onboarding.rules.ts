@@ -37,7 +37,7 @@ export function errosDosHorarios(h: HorariosInput): string[] {
   return erros;
 }
 
-export const precisaDePix = (servicos: Array<{ sinalPct?: number | null }>) => servicos.some((s) => (s.sinalPct ?? 0) > 0);
+export const precisaDeFormaDeReceber = (servicos: Array<{ sinalPct?: number | null }>) => servicos.some((s) => (s.sinalPct ?? 0) > 0);
 
 /** Endereço da página a partir do nome: minúsculas, sem acento, só letras, números e hífen. */
 export function slugDoNome(nome: string): string {
