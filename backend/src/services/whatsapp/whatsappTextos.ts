@@ -28,6 +28,7 @@ export type TextoDto = TextoDef & { valor: string; padrao: string; personalizado
 const MAX_PADRAO = 2000;
 const NEGOCIO = ['nome_negocio'];
 const AGENDAMENTO = ['nome_negocio', 'servico', 'profissional', 'data', 'horario', 'valor', 'nome_cliente'];
+const DEPOSITO = ['nome_negocio', 'servico', 'valor_sinal', 'prazo', 'data', 'horario'];
 
 /** Na ordem da conversa. */
 export const CATALOGO_TEXTOS: TextoDef[] = [
@@ -56,6 +57,11 @@ export const CATALOGO_TEXTOS: TextoDef[] = [
   { chave: 'slot_taken_message', caminho: 'schedule', rotulo: 'Horário recém-reservado', variaveis: [] },
   { chave: 'booking_failed_message', caminho: 'schedule', rotulo: 'Falha ao confirmar o agendamento', variaveis: [] },
   { chave: 'confirmation_message', caminho: 'schedule', rotulo: 'Agendamento confirmado', variaveis: AGENDAMENTO, importantes: ['horario', 'data'] },
+  { chave: 'deposit_request_message', caminho: 'schedule', rotulo: 'Pedido do sinal (Pix)', variaveis: DEPOSITO, importantes: ['valor_sinal'] },
+  { chave: 'deposit_checkout_message', caminho: 'schedule', rotulo: 'Pedido do sinal (link de pagamento)', variaveis: [...DEPOSITO, 'link_pagamento'], importantes: ['valor_sinal', 'link_pagamento'] },
+  { chave: 'deposit_waiting_message', caminho: 'schedule', rotulo: 'Aguardando o pagamento do sinal', variaveis: ['prazo'] },
+  { chave: 'deposit_expired_message', caminho: 'schedule', rotulo: 'Prazo do sinal esgotado', variaveis: NEGOCIO },
+  { chave: 'deposit_cancelled_message', caminho: 'schedule', rotulo: 'Pré-reserva cancelada', variaveis: [] },
   { chave: 'manage_list_message', caminho: 'manage', rotulo: 'Título da lista de agendamentos', variaveis: NEGOCIO },
   { chave: 'manage_no_appointments_message', caminho: 'manage', rotulo: 'Sem agendamentos próximos', variaveis: NEGOCIO },
   { chave: 'manage_action_message', caminho: 'manage', rotulo: 'Escolha entre remarcar e cancelar', variaveis: ['nome_negocio', 'data', 'horario'] },
