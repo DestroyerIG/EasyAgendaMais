@@ -56,26 +56,32 @@ function limparNonces(agora: number) {
 const hmac = (carga: string) => createHmac('sha256', chaveRecebimentos()).update(carga).digest('base64url');
 
 /** Estado do OAuth: quem conectou e com qual gateway, assinado, válido por 10 minutos e de uso único. */
-export function assinarEstado(userId: string, gateway: GatewayId, agora: number = Date.now()): string {
+export type OrigemConexao = 'ajustes' | 'onboarding';
+
+export function assinarEstado(
+  userId: string, gateway: GatewayId, agora: number = Date.now(), origem: OrigemConexao = 'ajustes',
+): string {
   const carga = Buffer.from(JSON.stringify({
-    u: userId, g: gateway, n: randomBytes(12).toString('base64url'), e: agora + VALIDADE_ESTADO_MS,
+    u: userId, g: gateway, n: randomBytes(12).toString('base64url'), e: agora + VALIDADE_ESTADO_MS, o: origem,
   })).toString('base64url');
   return `${carga}.${hmac(carga)}`;
 }
 
-export function lerEstado(estado: string, agora: number = Date.now()): { userId: string; gateway: GatewayId; nonce: string } | null {
+export function lerEstado(
+  estado: string, agora: number = Date.now(),
+): { userId: string; gateway: GatewayId; nonce: string; origem: OrigemConexao } | null {
   const [carga, assinatura] = estado.split('.');
   if (!carga || !assinatura) return null;
   const esperada = Buffer.from(hmac(carga));
   const recebida = Buffer.from(assinatura);
   if (esperada.length !== recebida.length || !timingSafeEqual(esperada, recebida)) return null;
   try {
-    const d = JSON.parse(Buffer.from(carga, 'base64url').toString('utf8')) as { u: string; g: GatewayId; n: string; e: number };
+    const d = JSON.parse(Buffer.from(carga, 'base64url').toString('utf8')) as { u: string; g: GatewayId; n: string; e: number; o?: string };
     limparNonces(agora);
     if (d.e < agora || noncesUsados.has(d.n)) return null;
     if (d.g !== 'mercadopago') return null;
     noncesUsados.set(d.n, d.e);
-    return { userId: d.u, gateway: d.g, nonce: d.n };
+    return { userId: d.u, gateway: d.g, nonce: d.n, origem: d.o === 'onboarding' ? 'onboarding' : 'ajustes' };
   } catch {
     return null;
   }

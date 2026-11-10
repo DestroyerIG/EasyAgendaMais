@@ -9,7 +9,7 @@ import { gatewayDe } from './gateways/porId.js';
 import { recebimentosRepository as repo } from './recebimentos.repository.js';
 import {
   assinarEstado, chaveRecebimentos, desafioPkce, lerEstado, gatewayDisponivel, gatewaysDisponiveis, nonceDoEstado, recebimentosConfigurado,
-  tokenPertoDeVencer, verificadorPkce,
+  tokenPertoDeVencer, verificadorPkce, type OrigemConexao,
 } from './recebimentos.rules.js';
 import type { EstadoRecebimentos, FormaSinal, GatewayId, UsuarioLogado } from './recebimentos.types.js';
 
@@ -23,7 +23,8 @@ const COM_ARTIGO: Record<GatewayId, { o: string; O: string }> = {
 };
 
 const frontend = () => (process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000').replace(/\/+$/, '');
-const telaDe = (gateway: GatewayId) => `${frontend()}/dashboard/configuracoes/recebimentos/${gateway}`;
+const telaDe = (gateway: GatewayId, origem: OrigemConexao) =>
+  origem === 'onboarding' ? `${frontend()}/onboarding` : `${frontend()}/dashboard/configuracoes/recebimentos/${gateway}`;
 
 const VALIDADE_PENDENTE_MS = 10 * 60 * 1000;
 const INTERVALO_ALERTA_MS = 24 * 60 * 60 * 1000;
@@ -78,9 +79,9 @@ function renovarConexao(c: ConexaoComTokens): Promise<string> {
 }
 
 export const conexaoService = {
-  conectarUrl(user: UsuarioLogado, gateway: GatewayId): { url: string } {
+  conectarUrl(user: UsuarioLogado, gateway: GatewayId, origem: OrigemConexao = 'ajustes'): { url: string } {
     if (!gatewayDisponivel('mercadopago')) throw new NotFoundError('Recebimentos');
-    const estado = assinarEstado(user.userId, gateway);
+    const estado = assinarEstado(user.userId, gateway, Date.now(), origem);
     const desafio = desafioPkce(verificadorPkce(nonceDoEstado(estado)));
     return { url: gatewayDe(gateway).urlAutorizacao(estado, desafio) };
   },
@@ -91,9 +92,11 @@ export const conexaoService = {
    * redirecionar. Nunca lança.
    */
   async callback(gateway: GatewayId, code: string | undefined, state: string | undefined): Promise<string> {
-    const tela = telaDe(gateway);
+    // A origem só é conhecida se o estado for lido; do contrário, a tela de Ajustes.
+    let tela = telaDe(gateway, 'ajustes');
     try {
       const lido = gatewayDisponivel('mercadopago') && state ? lerEstado(state) : null;
+      if (lido) tela = telaDe(gateway, lido.origem);
       if (!lido || lido.gateway !== gateway || !code) return `${tela}?recebimento=erro`;
       const tokens = await gatewayDe(gateway).trocarCodigo(code, verificadorPkce(lido.nonce));
       limparPendentes();

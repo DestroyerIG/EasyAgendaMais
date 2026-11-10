@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { randomBytes } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import {
   assinarEstado, centavos, decidirPagamento, backendUrl, desafioPkce, gatewayDisponivel, horarioJaPassou, lerEstado, recebimentosConfigurado,
@@ -117,6 +117,21 @@ describe('regras dos recebimentos', () => {
     expect(lido?.userId).toBe('u1');
     expect(lido?.gateway).toBe('mercadopago');
     expect(lerEstado(estado, AGORA)).toBeNull();
+  });
+  it('estado carrega a origem assinada; sem origem vale Ajustes', () => {
+    expect(lerEstado(assinarEstado('u1', 'mercadopago', AGORA, 'onboarding'), AGORA)?.origem).toBe('onboarding');
+    expect(lerEstado(assinarEstado('u1', 'mercadopago', AGORA), AGORA)?.origem).toBe('ajustes');
+  });
+  it('estado antigo, sem origem, vale Ajustes', () => {
+    const carga = Buffer.from(JSON.stringify({ u: 'u1', g: 'mercadopago', n: 'nonce-antigo', e: AGORA + 60_000 })).toString('base64url');
+    const estado = `${carga}.${createHmac('sha256', Buffer.from(process.env.RECEBIMENTOS_TOKEN_KEY!, 'base64')).update(carga).digest('base64url')}`;
+    expect(lerEstado(estado, AGORA)?.origem).toBe('ajustes');
+  });
+  it('adulterar a origem invalida o estado', () => {
+    const [carga, assin] = assinarEstado('u1', 'mercadopago', AGORA).split('.');
+    const d = JSON.parse(Buffer.from(carga!, 'base64url').toString('utf8'));
+    const falsa = Buffer.from(JSON.stringify({ ...d, o: 'onboarding' })).toString('base64url');
+    expect(lerEstado(`${falsa}.${assin}`, AGORA)).toBeNull();
   });
   it('estado vencido é recusado', () => {
     const estado = assinarEstado('u1', 'mercadopago', AGORA);

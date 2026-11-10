@@ -150,6 +150,31 @@ describe('Recebimentos: conexão', () => {
       expect(url).not.toContain(tokens.refreshToken);
     });
 
+    it('estado de origem onboarding volta para /onboarding', async () => {
+      gw.trocarCodigo.mockResolvedValue(tokens);
+      const estado = rules.assinarEstado('u1', 'mercadopago', Date.now(), 'onboarding');
+      const url = await conexaoService.callback('mercadopago', 'codigo', estado);
+      expect(url.startsWith('https://app.test/onboarding?recebimento=confirmar&t=')).toBe(true);
+    });
+
+    it('falha na troca com origem onboarding volta para /onboarding com erro', async () => {
+      gw.trocarCodigo.mockRejectedValue(new Error('invalid_grant'));
+      const estado = rules.assinarEstado('u1', 'mercadopago', Date.now(), 'onboarding');
+      await expect(conexaoService.callback('mercadopago', 'codigo', estado)).resolves.toBe('https://app.test/onboarding?recebimento=erro');
+    });
+
+    it('conectar com origem=onboarding assina o estado com essa origem', async () => {
+      const r = await request.get('/api/v1/recebimentos/mercadopago/conectar?origem=onboarding');
+      expect(r.status).toBe(200);
+      const estado = new URL(r.body.data.url).searchParams.get('state')!;
+      expect(rules.lerEstado(estado)?.origem).toBe('onboarding');
+    });
+
+    it('conectar recusa origem desconhecida', async () => {
+      const r = await request.get('/api/v1/recebimentos/mercadopago/conectar?origem=outra');
+      expect(r.status).toBe(400);
+    });
+
     it('rota pública redireciona com 302', async () => {
       const r = await request.get('/api/v1/recebimentos/mercadopago/callback?code=a&state=lixo');
       expect(r.status).toBe(302);

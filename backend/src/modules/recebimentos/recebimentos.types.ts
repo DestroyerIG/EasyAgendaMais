@@ -30,6 +30,8 @@ export const GatewayParamSchema = z.object({ gateway: z.enum(['mercadopago', 'in
 /** Rotas do fluxo OAuth: só o Mercado Pago usa. */
 export const GatewayOAuthParamSchema = z.object({ gateway: z.literal('mercadopago') });
 
+export const ConectarQuerySchema = z.object({ origem: z.literal('onboarding').optional() });
+
 export const CallbackQuerySchema = z.object({
   code: z.string().max(2048).optional(),
   state: z.string().max(1024).optional(),
