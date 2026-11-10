@@ -5,7 +5,11 @@ const api = vi.hoisted(() => ({ conexoes: vi.fn() }));
 vi.mock('@/lib/recebimentos', async (orig) => ({ ...(await orig<typeof import('@/lib/recebimentos')>()), recebimentosApi: api }));
 const usuario = vi.hoisted(() => ({ atual: { role: 'tenant_admin' } }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: usuario.atual }) }));
-vi.mock('@/components/recebimentos/PixManualCard', () => ({ PixManualCard: () => <p>Cartão do Pix manual</p> }));
+vi.mock('@/components/recebimentos/PixManualCard', () => ({
+  PixManualCard: ({ confirmacaoAutomatica }: { confirmacaoAutomatica?: boolean }) => (
+    <p>Cartão do Pix manual{confirmacaoAutomatica ? ' (reserva)' : ''}</p>
+  ),
+}));
 
 const { RecebimentosSection } = await import('../RecebimentosSection');
 
@@ -86,5 +90,31 @@ describe('RecebimentosSection', () => {
     const links = screen.getAllByRole('link');
     expect(links).toHaveLength(1);
     expect(links[0]).toHaveAttribute('href', '/dashboard/configuracoes/recebimentos/infinitepay');
+  });
+
+  it('a chave Pix vira reserva só com conexão ativa', async () => {
+    api.conexoes.mockResolvedValue({ configurado: true, disponiveis: ['mercadopago'], conexao });
+    render(<RecebimentosSection />);
+    expect(await screen.findByText('Cartão do Pix manual (reserva)')).toBeInTheDocument();
+  });
+
+  it('conexão que precisa reconectar mantém a confirmação manual', async () => {
+    api.conexoes.mockResolvedValue({ configurado: true, disponiveis: ['mercadopago'], conexao: { ...conexao, situacao: 'precisa_reconectar' } });
+    render(<RecebimentosSection />);
+    expect(await screen.findByText('Precisa reconectar')).toBeInTheDocument();
+    expect(screen.getByText('Cartão do Pix manual')).toBeInTheDocument();
+  });
+
+  it('Mercado Pago só no cartão mantém o Pix manual', async () => {
+    api.conexoes.mockResolvedValue({ configurado: true, disponiveis: ['mercadopago'], conexao: { ...conexao, aceitaPix: false, aceitaCartao: true } });
+    render(<RecebimentosSection />);
+    expect(await screen.findByText('Conectado')).toBeInTheDocument();
+    expect(screen.getByText('Cartão do Pix manual')).toBeInTheDocument();
+  });
+
+  it('InfinitePay ativa deixa a chave como reserva', async () => {
+    api.conexoes.mockResolvedValue({ configurado: true, disponiveis: ['infinitepay'], conexao: { ...conexao, gateway: 'infinitepay', aceitaPix: false, aceitaCartao: true } });
+    render(<RecebimentosSection />);
+    expect(await screen.findByText('Cartão do Pix manual (reserva)')).toBeInTheDocument();
   });
 });

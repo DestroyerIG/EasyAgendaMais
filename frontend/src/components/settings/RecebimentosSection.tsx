@@ -29,11 +29,18 @@ export function RecebimentosSection() {
 
   return (
     <div className="space-y-4">
-      <PixManualCard />
+      <PixManualCard confirmacaoAutomatica={pixAutomatico(estado)} />
       {estado === null && <Skeleton className="h-28 w-full" label="Carregando recebimentos..." />}
       {estado?.configurado && <Gateways estado={estado} />}
     </div>
   );
+}
+
+// O Pix só sai do manual com a conexão ativa e cobrando Pix: o link da InfinitePay já oferece Pix;
+// o Mercado Pago só se a dona ligou o Pix.
+function pixAutomatico(estado: EstadoRecebimentos | null): boolean {
+  const c = estado?.conexao;
+  return !!c && c.situacao === 'ativa' && (c.gateway === 'infinitepay' || c.aceitaPix);
 }
 
 function Gateways({ estado }: { estado: EstadoRecebimentos }) {
