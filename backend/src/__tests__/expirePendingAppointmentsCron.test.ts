@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { prisma } from '../config/prisma.js';
 import { expirePendingAppointments } from '../services/cronService.js';
 import { notificationsService } from '../modules/notifications/notifications.service.js';
+// @ts-ignore — sendWhatsAppMessage é um serviço JS legado ainda não tipado
+import { sendWhatsAppMessage } from '../services/whatsapp/index.js';
+import { deleteSession } from '../services/whatsapp/whatsappSessionService.js';
 
 const { TO_EXPIRE } = vi.hoisted(() => ({
   TO_EXPIRE: [
@@ -32,6 +35,82 @@ vi.mock('../modules/notifications/notifications.service.js', () => ({
   notificationsService: { notify: vi.fn().mockResolvedValue(undefined) },
 }));
 
+vi.mock('../services/whatsapp/index.js', () => ({
+  sendWhatsAppMessage: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../services/whatsapp/whatsappSessionService.js', () => ({
+  deleteSession: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../services/whatsapp/whatsappConfigService.js', () => ({
+  getBotConfig: vi.fn().mockResolvedValue({
+    deposit_expired_message: 'Prazo do sinal acabou em {nome_negocio}.',
+  }),
+}));
+
+describe('expirePendingAppointments: aviso à cliente do robô', () => {
+  const AGORA = new Date('2026-10-24T15:00:00Z');
+  const findMany = prisma.appointment.findMany as ReturnType<typeof vi.fn>;
+  const robo = (id: string, businessId: string, phone: string) => ({
+    id, businessId, source: 'whatsapp', client: { name: 'Cliente', phone }, service: { name: 'Corte' },
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    tx.appointment.updateMany.mockResolvedValue({ count: 1 });
+    tx.cobrancaSinal.updateMany.mockResolvedValue({ count: 1 });
+    (prisma as any).business = { findFirst: vi.fn().mockResolvedValue({ name: 'Barbearia Z' }) };
+  });
+
+  it('reserva do robô expirada avisa a cliente e apaga a sessão', async () => {
+    findMany.mockResolvedValueOnce([robo('apt-1', 'biz-1', '(11) 91234-5678')]);
+
+    await expirePendingAppointments(AGORA);
+
+    expect(sendWhatsAppMessage).toHaveBeenCalledWith(
+      '(11) 91234-5678', 'Prazo do sinal acabou em Barbearia Z.', { businessId: 'biz-1', origin: 'pix_recibo' },
+    );
+    expect(deleteSession).toHaveBeenCalledWith('5511912345678', 'biz-1');
+  });
+
+  it('reserva da página pública expirada não manda WhatsApp', async () => {
+    findMany.mockResolvedValueOnce([
+      { ...robo('apt-1', 'biz-1', '11912345678'), source: 'public' },
+    ]);
+
+    await expect(expirePendingAppointments(AGORA)).resolves.toBe(1);
+
+    expect(sendWhatsAppMessage).not.toHaveBeenCalled();
+    expect(deleteSession).not.toHaveBeenCalled();
+    expect(notificationsService.notify).toHaveBeenCalledTimes(1);
+  });
+
+  it('reserva paga entre a leitura e a expiração (expirarReserva falso) não avisa', async () => {
+    findMany.mockResolvedValueOnce([robo('apt-1', 'biz-1', '11912345678')]);
+    tx.appointment.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    await expect(expirePendingAppointments(AGORA)).resolves.toBe(0);
+
+    expect(sendWhatsAppMessage).not.toHaveBeenCalled();
+    expect(deleteSession).not.toHaveBeenCalled();
+  });
+
+  it('falha no envio não impede as outras reservas nem a notificação do negócio', async () => {
+    findMany.mockResolvedValueOnce([
+      robo('apt-1', 'biz-1', '11911111111'),
+      robo('apt-2', 'biz-2', '11922222222'),
+    ]);
+    (sendWhatsAppMessage as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('whatsapp fora'));
+
+    await expect(expirePendingAppointments(AGORA)).resolves.toBe(2);
+
+    expect(sendWhatsAppMessage).toHaveBeenCalledTimes(2);
+    expect(deleteSession).toHaveBeenCalledWith('5511922222222', 'biz-2');
+    expect(notificationsService.notify).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe('expirePendingAppointments', () => {
   const AGORA = new Date('2026-10-24T15:00:00Z');
 
@@ -53,7 +132,8 @@ describe('expirePendingAppointments', () => {
       select: {
         id: true,
         businessId: true,
-        client: { select: { name: true } },
+        source: true,
+        client: { select: { name: true, phone: true } },
         service: { select: { name: true } },
       },
     });

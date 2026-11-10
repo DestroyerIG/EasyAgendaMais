@@ -21,6 +21,9 @@ import { conexaoService } from '../modules/recebimentos/conexao.service.js';
 import { pagamentosService } from '../modules/recebimentos/pagamentos.service.js';
 import { recebimentosRepository } from '../modules/recebimentos/recebimentos.repository.js';
 import { envioAutomaticoLiberado } from '../modules/conta/envioAutomatico.js';
+import { textoReservaExpirada } from './whatsapp/whatsappConfirmacao.js';
+import { deleteSession } from './whatsapp/whatsappSessionService.js';
+import { normalizeWhatsAppNumber } from '../utils/whatsapp.js';
 
 // Agendamentos gravam `time`/`date` no relógio local do negócio (BR), não UTC.
 // Render roda em UTC, então o alvo precisa ser calculado no fuso de negócio.
@@ -175,7 +178,8 @@ export const expirePendingAppointments = async (now: Date = new Date()): Promise
     select: {
       id: true,
       businessId: true,
-      client: { select: { name: true } },
+      source: true,
+      client: { select: { name: true, phone: true } },
       service: { select: { name: true } },
     },
   });
@@ -189,6 +193,22 @@ export const expirePendingAppointments = async (now: Date = new Date()): Promise
       if (await recebimentosRepository.expirarReserva(a.id, now)) canceladas.push(a);
     } catch (err) {
       logger.warn({ err, appointmentId: a.id }, 'Falha ao expirar a reserva; fica para a próxima rodada');
+    }
+  }
+
+  // Só quem reservou pelo robô recebe WhatsApp: a conversa esperava o sinal. Cada envio falha sozinho.
+  for (const a of canceladas) {
+    if (a.source !== 'whatsapp') continue;
+    try {
+      const texto = await textoReservaExpirada(a.businessId);
+      await sendWhatsAppMessage(a.client.phone, texto, { businessId: a.businessId, origin: 'pix_recibo' });
+    } catch (err) {
+      logger.warn({ err, appointmentId: a.id }, 'WhatsApp de reserva expirada não enviado');
+    }
+    try {
+      await deleteSession(normalizeWhatsAppNumber(a.client.phone) || a.client.phone, a.businessId);
+    } catch (err) {
+      logger.warn({ err, appointmentId: a.id }, 'Sessão do robô não apagada após a expiração');
     }
   }
 

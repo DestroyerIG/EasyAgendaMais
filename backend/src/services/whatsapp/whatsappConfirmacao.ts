@@ -32,3 +32,11 @@ export async function textoAgendamentoConfirmado(a: AppointmentWithRelations): P
     businessName: config.confirmation_message?.includes('{nome_negocio}') ? await nomeDoNegocio(a.businessId) : undefined,
   });
 }
+
+/** Aviso à cliente do robô quando a pré-reserva do sinal expira (deposit_expired_message). */
+export async function textoReservaExpirada(businessId: string): Promise<string> {
+  const config = await getBotConfig(businessId);
+  return formatMessage(config.deposit_expired_message, {
+    businessName: config.deposit_expired_message?.includes('{nome_negocio}') ? await nomeDoNegocio(businessId) : undefined,
+  });
+}
