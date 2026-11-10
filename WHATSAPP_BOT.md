@@ -95,7 +95,7 @@ A aba também mostra a saúde da conexão, os limites e o histórico de envios (
 | `deposit_cancelled_message` | Cliente digitou `0` | nenhuma |
 
 - **Pagamento** (webhook, verificação de cada minuto ou confirmação manual): a cliente recebe a `confirmation_message` do robô (e não o "sinal confirmado" genérico) e a sessão é encerrada. As reservas que não vieram do robô seguem com a mensagem genérica.
-- **Expiração:** a rotina de cada minuto expira a reserva, envia `deposit_expired_message` e encerra a sessão. O horário volta para a agenda.
+- **Expiração:** a rotina de expiração (`expirePendingAppointments`, a cada 5 minutos) expira a reserva, envia `deposit_expired_message` e encerra a sessão. O horário volta para a agenda. Por isso o aviso e a liberação do horário podem chegar até cerca de 5 minutos depois do prazo; se a cliente escrever nesse intervalo, o robô já trata a reserva vencida como encerrada e reabre o menu. Só a conferência do pagamento (`conferirPendentes`) roda a cada minuto.
 - **Simulador:** mostra o texto do sinal com um código Pix de teste e o `AVISO_TESTE`, sem criar reserva nem cobrança.
 - **Limites:**
   - A forma de pagamento é sempre a padrão do negócio (`formas()[0]`, Pix se não houver outra); a cliente não escolhe no chat.
