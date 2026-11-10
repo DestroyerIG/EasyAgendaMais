@@ -12,7 +12,7 @@ import { formatCurrency } from '@/lib/formatters';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { cn } from '@/lib/cn';
 import { ErroBancada } from './ErroBancada';
-import { PainelCobrarPix } from '@/components/comanda/PainelCobrarPix';
+import { PainelCobrar } from '@/components/comanda/PainelCobrar';
 import { useVocabulario } from '@/hooks/useVocabulario';
 
 // Fechar atendimento pela bancada. Sem a chave "a profissional cobra", ela monta a comanda e manda
@@ -20,6 +20,9 @@ import { useVocabulario } from '@/hooks/useVocabulario';
 
 const semAcento = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const FORMAS: PaymentMethod[] = ['pix', 'debito', 'credito', 'dinheiro'];
+const TENTATIVAS_APOS_PAGAMENTO = 3;
+const ESPERA_APOS_PAGAMENTO_MS = 1000;
+const esperar = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const numero = (t: string) => {
   const v = Number(t.replace(/\./g, '').replace(',', '.'));
   return Number.isFinite(v) && v > 0 ? Math.round(v * 100) / 100 : 0;
@@ -47,6 +50,8 @@ export function AtendimentoBancada() {
   const [busca, setBusca] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [enviandoFoto, setEnviandoFoto] = useState(false);
+  // Cobrança do saldo pendente no gateway: a comanda não muda até pagar ou cancelar.
+  const [bloqueada, setBloqueada] = useState(false);
   const [forma, setForma] = useState<PaymentMethod | null>(null);
   const [gorjeta, setGorjeta] = useState('');
   const [desconto, setDesconto] = useState('');
@@ -148,6 +153,24 @@ export function AtendimentoBancada() {
     }
   };
 
+  // Pagamento do saldo confirmado: o servidor fecha a comanda sozinho; relê até ver o fechamento.
+  const aoPagar = async () => {
+    for (let n = 0; n < TENTATIVAS_APOS_PAGAMENTO; n++) {
+      try {
+        const r = await bancadaApi.comanda(dto.id);
+        setDto(r);
+        if (r.status === 'fechada') {
+          showToast(`Pagamento recebido. Comanda #${r.number} fechada`, 'success');
+          return;
+        }
+      } catch {
+        // Tenta de novo: o fechamento pode estar terminando.
+      }
+      if (n < TENTATIVAS_APOS_PAGAMENTO - 1) await esperar(ESPERA_APOS_PAGAMENTO_MS);
+    }
+    showToast('Pagamento recebido. Peça para a recepção abrir o caixa e fechar a comanda.', 'info');
+  };
+
   const enviarRecepcao = async () => {
     setSalvando(true);
     try {
@@ -218,16 +241,16 @@ export function AtendimentoBancada() {
               </span>
               {!fechada && (
                 <span className="flex items-center gap-1">
-                  <button type="button" aria-label={`Diminuir ${e.name}`} disabled={salvando || e.quantity <= 1} onClick={() => mudarQtd(k, -1)}
+                  <button type="button" aria-label={`Diminuir ${e.name}`} disabled={salvando || bloqueada || e.quantity <= 1} onClick={() => mudarQtd(k, -1)}
                     className="flex h-9 w-9 items-center justify-center rounded-control border border-line text-ink disabled:opacity-40">
                     <Minus className="h-4 w-4" aria-hidden="true" />
                   </button>
                   <span className="w-6 text-center tabular-nums text-ink">{e.quantity}</span>
-                  <button type="button" aria-label={`Aumentar ${e.name}`} disabled={salvando} onClick={() => mudarQtd(k, 1)}
+                  <button type="button" aria-label={`Aumentar ${e.name}`} disabled={salvando || bloqueada} onClick={() => mudarQtd(k, 1)}
                     className="flex h-9 w-9 items-center justify-center rounded-control border border-line text-ink disabled:opacity-40">
                     <Plus className="h-4 w-4" aria-hidden="true" />
                   </button>
-                  <button type="button" aria-label={`Remover ${e.name}`} disabled={salvando} onClick={() => remover(k)}
+                  <button type="button" aria-label={`Remover ${e.name}`} disabled={salvando || bloqueada} onClick={() => remover(k)}
                     className="flex h-9 w-9 items-center justify-center rounded-control text-danger disabled:opacity-40">
                     <Trash2 className="h-4 w-4" aria-hidden="true" />
                   </button>
@@ -243,7 +266,7 @@ export function AtendimentoBancada() {
             <label className="relative block">
               <span className="sr-only">Adicionar serviço ou produto</span>
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
-              <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Adicionar serviço ou produto"
+              <input value={busca} disabled={bloqueada} onChange={(e) => setBusca(e.target.value)} placeholder="Adicionar serviço ou produto"
                 className="h-11 w-full rounded-control border border-line bg-surface pl-9 pr-3 text-[15px] text-ink" />
             </label>
             {resultados.length > 0 && (
@@ -277,7 +300,7 @@ export function AtendimentoBancada() {
           <h2 className="text-[15px] font-bold text-ink">Pagamento</h2>
           <div className="grid grid-cols-2 gap-2">
             {FORMAS.map((f) => (
-              <button key={f} type="button" aria-pressed={forma === f} onClick={() => setForma(f)}
+              <button key={f} type="button" aria-pressed={forma === f} disabled={bloqueada} onClick={() => setForma(f)}
                 className={cn('h-11 rounded-control border text-[14px] font-semibold',
                   forma === f ? 'border-brand bg-brand/12 text-brand-text' : 'border-line bg-surface text-ink')}>
                 {ROTULO_PAGAMENTO[f]}
@@ -287,20 +310,35 @@ export function AtendimentoBancada() {
           <div className="grid grid-cols-2 gap-2">
             <label className="flex flex-col gap-1 text-[13px] font-semibold text-ink">
               Desconto (R$)
-              <input inputMode="decimal" value={desconto} onChange={(e) => setDesconto(e.target.value)} onBlur={() => void salvarItens(extras)}
+              <input inputMode="decimal" value={desconto} disabled={bloqueada} onChange={(e) => setDesconto(e.target.value)} onBlur={() => void salvarItens(extras)}
                 className="h-11 rounded-control border border-line bg-surface px-3 text-[15px] tabular-nums text-ink" />
             </label>
             <label className="flex flex-col gap-1 text-[13px] font-semibold text-ink">
               Gorjeta (R$)
-              <input inputMode="decimal" value={gorjeta} onChange={(e) => setGorjeta(e.target.value)} onBlur={() => void salvarItens(extras)}
+              <input inputMode="decimal" value={gorjeta} disabled={bloqueada} onChange={(e) => setGorjeta(e.target.value)} onBlur={() => void salvarItens(extras)}
                 className="h-11 rounded-control border border-line bg-surface px-3 text-[15px] tabular-nums text-ink" />
             </label>
           </div>
         </section>
       )}
 
-      {cobra && !fechada && forma === 'pix' && c.totalCharged > 0 && (
-        <PainelCobrarPix total={c.totalCharged} gerar={() => bancadaApi.gerarPix(dto.id, entrada())} />
+      {cobra && !fechada && forma && c.totalCharged > 0 && (
+        <PainelCobrar
+          forma={forma}
+          total={c.totalCharged}
+          gerarPixManual={() => bancadaApi.gerarPix(dto.id, entrada())}
+          api={{
+            estado: () => bancadaApi.cobranca(dto.id),
+            cobrar: () => {
+              const { paymentMethod: forma, ...semForma } = entrada();
+              void forma;
+              return bancadaApi.cobrar(dto.id, semForma);
+            },
+            cancelar: () => bancadaApi.cancelarCobranca(dto.id),
+          }}
+          onPendente={setBloqueada}
+          onPaga={aoPagar}
+        />
       )}
 
       <section className="flex flex-col gap-1.5 rounded-card border border-line bg-surface p-4">
@@ -319,7 +357,7 @@ export function AtendimentoBancada() {
       {!fechada && (
         cobra ? (
           <div className="flex flex-col gap-2">
-            <Button size="lg" fullWidth onClick={fechar} loading={salvando} disabled={precisaForma}>
+            <Button size="lg" fullWidth onClick={fechar} loading={salvando} disabled={precisaForma || bloqueada}>
               <CheckCircle2 className="h-5 w-5" aria-hidden="true" /> Fechar e cobrar {formatCurrency(c.totalCharged)}
             </Button>
             {precisaForma && <p className="text-center text-[12px] text-muted">Escolha a forma de pagamento.</p>}

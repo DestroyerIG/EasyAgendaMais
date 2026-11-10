@@ -13,18 +13,21 @@ import { getApiErrorMessage } from '@/utils/handleApiError';
 import { listarProdutos, type Produto } from '@/lib/produtos';
 import { abrirCaixa, reabrirCaixa } from '@/lib/caixa';
 import {
-  abrirComanda, salvarComanda, fecharComanda, gerarPixComanda, buscarAtalhos, calcularComanda, ehCaixaFechado, ehCaixaJaFechado, ROTULO_PAGAMENTO,
+  abrirComanda, salvarComanda, fecharComanda, gerarPixComanda, buscarCobranca, cobrarComanda, cancelarCobranca, buscarAtalhos, calcularComanda, ehCaixaFechado, ehCaixaJaFechado, ROTULO_PAGAMENTO,
   type ComandaDetail, type ComandaShortcut, type PaymentMethod, type SalvarComandaInput,
 } from '@/lib/comanda';
 import type { Service } from '@/types';
 import { AbrirCaixaInline, ReabrirCaixaInline } from './AbrirCaixaInline';
-import { PainelCobrarPix } from './PainelCobrarPix';
+import { PainelCobrar } from './PainelCobrar';
 import { useVocabulario } from '@/hooks/useVocabulario';
 
 interface Extra { kind: 'servico' | 'produto'; refId: string; name: string; legenda: string | null; unitPrice: number; quantity: number }
 interface Opcao { kind: 'servico' | 'produto'; id: string; name: string; price: number; legenda?: string | null }
 
 const GORJETAS = [5, 10, 15] as const;
+const TENTATIVAS_APOS_PAGAMENTO = 3;
+const ESPERA_APOS_PAGAMENTO_MS = 1000;
+const esperar = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const semAcento = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const round2 = (v: number) => Math.round(v * 100) / 100;
 const numero = (s: string) => { const v = parseValorBR(s); return v !== null && v > 0 ? v : 0; };
@@ -66,6 +69,8 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
   const [gorjetaTexto, setGorjetaTexto] = useState('');
   const [forma, setForma] = useState<PaymentMethod | null>(null);
   const [enviando, setEnviando] = useState(false);
+  // Cobrança do saldo pendente no gateway: a comanda não pode mudar até pagar ou cancelar.
+  const [bloqueada, setBloqueada] = useState(false);
   // Por que o fechamento parou no caixa: ainda não aberto hoje, ou já fechado hoje.
   const [pedirCaixa, setPedirCaixa] = useState<'abrir' | 'reabrir' | null>(null);
   // Sessão de clube/pacote: a dona pode desligar quando a cliente prefere pagar.
@@ -74,7 +79,7 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
   useEffect(() => {
     if (!appointmentId) return;
     let ativo = true;
-    setDto(null); setPedirCaixa(null); setBusca('');
+    setDto(null); setPedirCaixa(null); setBusca(''); setBloqueada(false);
     setMostrarDesconto(false); setDescontoModo('reais'); setDescontoTexto('');
     setGorjeta(0); setGorjetaOutro(false); setGorjetaTexto('');
     Promise.all([
@@ -167,6 +172,27 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
     discount: descontoManual, tip: calc?.tip ?? 0, paymentMethod: forma,
     ...(cobertura?.disponivel ? { usarCobertura } : {}),
   });
+
+  // Pagamento do saldo confirmado: o servidor fecha a comanda sozinho; relê até ver o fechamento.
+  const aoPagar = async () => {
+    if (!appointmentId) return;
+    for (let n = 0; n < TENTATIVAS_APOS_PAGAMENTO; n++) {
+      try {
+        const c = await abrirComanda(appointmentId);
+        setDto(c);
+        if (c.status === 'fechada') {
+          showToast(`Pagamento recebido. Comanda #${c.number} fechada`, 'success');
+          onAtualizada();
+          return;
+        }
+      } catch {
+        // Tenta de novo: o fechamento pode estar terminando.
+      }
+      if (n < TENTATIVAS_APOS_PAGAMENTO - 1) await esperar(ESPERA_APOS_PAGAMENTO_MS);
+    }
+    showToast('Pagamento recebido. Abra o caixa e feche a comanda.', 'info');
+    onAtualizada();
+  };
 
   const salvarRascunho = async () => {
     if (!dto) return;
@@ -289,7 +315,7 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
               </div>
             </div>
 
-            <fieldset disabled={somenteLeitura} className="m-0 grid min-w-0 grid-cols-1 gap-8 border-0 p-6 lg:grid-cols-12 lg:p-8">
+            <fieldset disabled={somenteLeitura || bloqueada} className="m-0 grid min-w-0 grid-cols-1 gap-8 border-0 p-6 lg:grid-cols-12 lg:p-8">
               {/* Coluna esquerda: itens, extras e forma de pagamento */}
               <div className="flex min-w-0 flex-col gap-6 lg:col-span-7">
                 <div>
@@ -506,11 +532,6 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
                       );
                     })}
                   </div>
-                  {forma === 'pix' && calc.totalCharged > 0 && !somenteLeitura ? (
-                    <div className="mt-3">
-                      <PainelCobrarPix total={calc.totalCharged} gerar={() => gerarPixComanda(dto.id, entrada())} />
-                    </div>
-                  ) : null}
                 </div>
               </div>
 
@@ -701,6 +722,28 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
               </div>
             </fieldset>
 
+            {/* Fora do fieldset: com a comanda travada, "Cancelar cobrança" precisa continuar clicável. */}
+            {forma && calc.totalCharged > 0 && !somenteLeitura ? (
+              <div className="px-6 pb-6 lg:px-8">
+                <PainelCobrar
+                  forma={forma}
+                  total={calc.totalCharged}
+                  gerarPixManual={() => gerarPixComanda(dto.id, entrada())}
+                  api={{
+                    estado: () => buscarCobranca(dto.id),
+                    cobrar: () => {
+                      const { paymentMethod: forma, ...semForma } = entrada();
+                      void forma;
+                      return cobrarComanda(dto.id, semForma);
+                    },
+                    cancelar: () => cancelarCobranca(dto.id),
+                  }}
+                  onPendente={setBloqueada}
+                  onPaga={aoPagar}
+                />
+              </div>
+            ) : null}
+
             {/* Cartões informativos */}
             {mostrarComprovante || mostrarLancamento ? (
               <div className="grid grid-cols-1 gap-4 px-6 pb-6 md:grid-cols-2 lg:px-8">
@@ -735,7 +778,7 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
                 <Button
                   variant="secondary"
                   onClick={salvarRascunho}
-                  disabled={enviando}
+                  disabled={enviando || bloqueada}
                   className="w-full rounded-xl border-0 bg-surface px-5 shadow-sm sm:w-auto"
                 >
                   <Icon name="bookmark" size={18} />
@@ -746,7 +789,7 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
                     size="lg"
                     onClick={fechar}
                     loading={enviando}
-                    disabled={faltaForma}
+                    disabled={faltaForma || bloqueada}
                     aria-describedby={faltaForma ? 'dica-forma-pagamento' : undefined}
                     className="w-full whitespace-normal rounded-xl px-8 text-[15px] shadow-md sm:w-auto"
                   >
