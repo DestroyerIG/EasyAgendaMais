@@ -102,10 +102,10 @@ export const GRUPOS_CONFIGURACAO: readonly GrupoConfiguracao[] = [
       {
         id: 'recebimentos',
         titulo: 'Recebimentos',
-        descricao: 'Conecte uma conta para o sinal ser confirmado sozinho.',
+        descricao: 'Chave Pix do sinal e confirmação automática do pagamento.',
         icone: 'account_balance_wallet',
         href: '/configuracoes/recebimentos',
-        sinonimos: ['mercado pago', 'pix', 'sinal'],
+        sinonimos: ['mercado pago', 'infinitepay', 'pix', 'chave pix', 'sinal'],
       },
       {
         id: 'crm',

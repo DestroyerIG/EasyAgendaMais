@@ -6,19 +6,11 @@ import { Check, Loader2, Plus, X } from 'lucide-react';
 import { businessPublicPageApi, type PublicPageSettings } from '@/lib/businessPublicPage';
 import { getApiErrorMessage } from '@/utils/handleApiError';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, Field, Input, Select, Switch, Textarea, Button } from '@/components/ui';
+import { Card, Field, Input, Switch, Textarea, Button } from '@/components/ui';
 import { COMODIDADES } from '@/lib/comodidades';
 
 const MAX_GALLERY_PHOTOS = 6;
 const SLUG_CHECK_DEBOUNCE_MS = 500;
-
-const PIX_KEY_TYPES: { value: NonNullable<PublicPageSettings['pixKeyType']>; label: string }[] = [
-  { value: 'cpf', label: 'CPF' },
-  { value: 'cnpj', label: 'CNPJ' },
-  { value: 'email', label: 'E-mail' },
-  { value: 'telefone', label: 'Telefone' },
-  { value: 'aleatoria', label: 'Chave aleatória' },
-];
 
 const BRAND_COLOR_SWATCHES = ['#FF7A00', '#DC2626', '#16A34A', '#2563EB', '#9333EA', '#111827'];
 
@@ -36,8 +28,6 @@ export function PublicPageSettingsForm() {
   const { user } = useAuth();
   const [settings, setSettings] = useState<PublicPageSettings | null>(null);
   const [slug, setSlug] = useState('');
-  const [pixKey, setPixKey] = useState('');
-  const [pixKeyType, setPixKeyType] = useState<PublicPageSettings['pixKeyType']>('telefone');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);
   const [galleryPhotos, setGalleryPhotos] = useState<string[]>([]);
@@ -67,8 +57,6 @@ export function PublicPageSettingsForm() {
         setSettings(data);
         setSlug(data.slug ?? '');
         originalSlugRef.current = data.slug ?? '';
-        setPixKey(data.pixKey ?? '');
-        setPixKeyType(data.pixKeyType ?? 'telefone');
         setLogoUrl(data.logoUrl);
         setBrandColor(data.brandColor ?? DEFAULT_BRAND_COLOR);
         setGalleryPhotos(data.galleryPhotos ?? []);
@@ -171,8 +159,6 @@ export function PublicPageSettingsForm() {
     try {
       const updated = await businessPublicPageApi.updateSettings({
         slug,
-        pixKey,
-        pixKeyType: pixKeyType ?? undefined,
         logoUrl: logoUrl ?? undefined,
         brandColor,
         galleryPhotos,
@@ -187,7 +173,7 @@ export function PublicPageSettingsForm() {
       setSlugStatus('idle');
       setSavedMessage('Configurações salvas.');
     } catch (err) {
-      // Ex.: link já usado por outro negócio (409) ou chave Pix em formato inválido (400).
+      // Ex.: link já usado por outro negócio (409).
       setErrorMessage(getApiErrorMessage(err, 'Não foi possível salvar as configurações. Tente novamente.'));
     } finally {
       setSaving(false);
@@ -207,7 +193,7 @@ export function PublicPageSettingsForm() {
         <div>
           <h1 className="text-2xl font-bold text-ink">Personalize a página pública que seus clientes verão</h1>
           <p className="mt-1 text-[15px] text-muted">
-            Essas informações aparecem na sua vitrine de agendamento online — pagamento do sinal incluído.
+            Essas informações aparecem na sua vitrine de agendamento online. A chave Pix do sinal fica em Ajustes › Recebimentos.
           </p>
         </div>
 
@@ -412,24 +398,6 @@ export function PublicPageSettingsForm() {
           {slugStatus === 'invalid' && (
             <p className="text-[13px] font-semibold text-danger">Use apenas letras minúsculas, números e hífen (mín. 3 caracteres)</p>
           )}
-        </Card>
-
-        <Card className="flex flex-col gap-3">
-          <h2 className="text-[15px] font-bold text-ink">Recebimento do sinal via Pix</h2>
-          <Field id="pix-key-type" label="Tipo de chave">
-            <Select
-              id="pix-key-type"
-              value={pixKeyType ?? 'telefone'}
-              onChange={(e) => setPixKeyType(e.target.value as PublicPageSettings['pixKeyType'])}
-            >
-              {PIX_KEY_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </Select>
-          </Field>
-          <Field id="pix-key" label="Chave Pix">
-            <Input id="pix-key" value={pixKey} onChange={(e) => setPixKey(e.target.value)} />
-          </Field>
         </Card>
 
         {savedMessage && <p className="text-sm text-whatsapp">{savedMessage}</p>}
