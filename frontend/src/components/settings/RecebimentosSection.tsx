@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { GATEWAYS } from '@/components/recebimentos/catalogo';
 import { GatewayLogo } from '@/components/recebimentos/GatewayLogo';
 import { PixManualCard } from '@/components/recebimentos/PixManualCard';
+import { SinalNoRoboCard } from '@/components/recebimentos/SinalNoRoboCard';
 import { recebimentosApi, type EstadoRecebimentos } from '@/lib/recebimentos';
 
 // Ajustes › Recebimentos: a chave Pix do sinal e, com a integração configurada, um cartão por gateway.
@@ -30,6 +31,7 @@ export function RecebimentosSection() {
   return (
     <div className="space-y-4">
       <PixManualCard confirmacaoAutomatica={pixAutomatico(estado)} />
+      <SinalNoRoboCard />
       {estado === null && <Skeleton className="h-28 w-full" label="Carregando recebimentos..." />}
       {estado?.configurado && <Gateways estado={estado} />}
     </div>

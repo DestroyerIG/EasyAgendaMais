@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CampoMensagem } from '../robo/CampoMensagem';
-import { previaTexto, textosDaOpcao, type TextoDto } from '@/lib/roboTextos';
+import { previaTexto, rotuloVariavel, textosDaOpcao, type TextoDto } from '@/lib/roboTextos';
 
 const texto = (parcial: Partial<TextoDto> = {}): TextoDto => ({
   chave: 'confirmation_message', caminho: 'schedule', rotulo: 'Agendamento confirmado',
@@ -82,6 +82,14 @@ describe('roboTextos', () => {
     const previa = previaTexto('Valor: R$ {valor}');
     expect(previa).toBe('Valor: R$ 60,00');
     expect(previa.match(/R\$/g)).toHaveLength(1);
+  });
+
+  it('as variáveis do sinal têm rótulo amigável e valor de exemplo', () => {
+    expect(rotuloVariavel('valor_sinal')).toBe('Valor do sinal');
+    expect(rotuloVariavel('prazo')).toBe('Prazo para pagar (minutos)');
+    expect(rotuloVariavel('link_pagamento')).toBe('Link de pagamento');
+    expect(previaTexto('Pague R$ {valor_sinal} em {prazo} min: {link_pagamento}'))
+      .toBe('Pague R$ 15,00 em 15 min: https://pagamento.exemplo/abc');
   });
 
   it('textosDaOpcao: cancelar e remarcar incluem o texto de sucesso, que fica em manage', () => {

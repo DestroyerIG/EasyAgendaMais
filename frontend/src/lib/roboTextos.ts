@@ -58,6 +58,9 @@ export const ROTULO_VARIAVEL: Record<string, string> = {
   horario_atendimento: 'Horário de atendimento',
   hora_fechamento: 'Hora de fechamento',
   instagram_handle: 'Perfil do Instagram',
+  valor_sinal: 'Valor do sinal',
+  prazo: 'Prazo para pagar (minutos)',
+  link_pagamento: 'Link de pagamento',
 };
 
 export const rotuloVariavel = (nome: string): string => ROTULO_VARIAVEL[nome] ?? nome;
@@ -73,6 +76,9 @@ const EXEMPLO: Record<string, string> = {
   horario_atendimento: '09:00 às 18:00',
   hora_fechamento: '18:00',
   instagram_handle: '@studioaurora',
+  valor_sinal: '15,00',
+  prazo: '15',
+  link_pagamento: 'https://pagamento.exemplo/abc',
 };
 
 /** Texto com os dados de exemplo no lugar das variáveis. Variável desconhecida fica como está. */

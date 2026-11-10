@@ -12,6 +12,7 @@ export interface PublicPageSettings {
   description: string | null;
   comodidades: string[];
   mostrarNota: boolean;
+  botCobraSinal: boolean;
 }
 
 export const businessPublicPageApi = {
