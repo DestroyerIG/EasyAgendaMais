@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { sendSuccess } from '../../utils/response.js';
 import { googleAgendaService } from './googleAgenda.service.js';
-import type { UsuarioLogado } from './googleAgenda.types.js';
+import type { OrigemGoogle, UsuarioLogado } from './googleAgenda.types.js';
 
 type H = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 
@@ -10,7 +10,7 @@ const usuario = (req: Request): UsuarioLogado => ({
 });
 
 export const conectar: H = async (req, res, next) => {
-  try { sendSuccess(res, googleAgendaService.conectarUrl(usuario(req), req.query['para'] as 'negocio' | 'profissional')); } catch (e) { next(e); }
+  try { sendSuccess(res, googleAgendaService.conectarUrl(usuario(req), req.query['para'] as 'negocio' | 'profissional', req.query['origem'] as OrigemGoogle | undefined)); } catch (e) { next(e); }
 };
 export const callback: H = async (req, res, next) => {
   try {

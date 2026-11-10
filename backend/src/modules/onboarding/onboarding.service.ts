@@ -2,8 +2,8 @@ import { NotFoundError, ValidationError, ConflictError } from '../../utils/error
 import { vocabularioDe } from '../../config/vocabulario.js';
 import { onboardingRepository as repo } from './onboarding.repository.js';
 import { catalogoDe } from './onboarding.catalogo.js';
-import { errosDosHorarios, estadoOnboarding, podeConcluir, precisaDePix, primeirosPassos, slugDoNome } from './onboarding.rules.js';
-import type { HorariosInput, NegocioInput, OnboardingDto, PrimeiroPasso, Segmento, ServicosInput } from './onboarding.types.js';
+import { errosDosHorarios, estadoOnboarding, podeConcluir, precisaDeFormaDeReceber, primeirosPassos, slugDoNome } from './onboarding.rules.js';
+import type { HorariosInput, NegocioInput, OnboardingDto, PrimeiroPasso, RecebimentosInput, Segmento, ServicosInput } from './onboarding.types.js';
 
 const hhmm = (d: Date | null | undefined) => (d ? d.toISOString().substring(11, 16) : null);
 const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
@@ -29,6 +29,7 @@ export const onboardingService = {
     const b = await carregar(businessId);
     const s = b.settings;
     const p = b.professionals[0];
+    const conexao = await repo.conexao(businessId);
     return {
       estado: estadoOnboarding(b),
       negocio: {
@@ -53,6 +54,12 @@ export const onboardingService = {
       },
       whatsappConectado: b.whatsappConnectedAt !== null,
       temChavePix: !!b.pixKey,
+      recebimentos: {
+        conexao: conexao
+          ? { gateway: conexao.gateway as 'mercadopago' | 'infinitepay', contaNome: conexao.contaNome ?? '', situacao: conexao.situacao as 'ativa' | 'precisa_reconectar' }
+          : null,
+        temChavePix: !!b.pixKey,
+      },
       vocabulario: vocabularioDe(s?.segment),
     };
   },
@@ -76,10 +83,18 @@ export const onboardingService = {
   async salvarServicos(businessId: string, d: ServicosInput) {
     const b = await carregar(businessId);
     if (b.onboardingEtapa < 3) throw new ConflictError('Conclua a etapa "Horários" antes');
-    if (precisaDePix(d.servicos) && !b.pixKey && !d.chavePix) {
-      throw new ValidationError('Informe a chave Pix para cobrar o sinal', ['Cadastre a chave Pix ou tire o sinal dos serviços.']);
-    }
     await repo.salvarServicos(businessId, d);
+    return this.ver(businessId);
+  },
+
+  async salvarRecebimentos(businessId: string, d: RecebimentosInput) {
+    const b = await carregar(businessId);
+    if (b.onboardingEtapa < 4) throw new ConflictError('Conclua a etapa "Serviços" antes');
+    // A página pública sempre monta o Pix do sinal pela chave; com uma conta conectada, ela é a reserva.
+    if (precisaDeFormaDeReceber(d.servicos) && !b.pixKey && !d.chavePix) {
+      throw new ValidationError('Cadastre a chave Pix para cobrar o sinal', ['O sinal usa a chave Pix; com uma conta conectada, ela serve de reserva.']);
+    }
+    await repo.salvarRecebimentos(businessId, d);
     return this.ver(businessId);
   },
 

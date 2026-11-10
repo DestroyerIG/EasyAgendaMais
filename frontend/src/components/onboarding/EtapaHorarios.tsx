@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button, Field, Icon, Input, Select, Switch } from '@/components/ui';
+import { GoogleAgendaCard } from '@/components/googleAgenda/GoogleAgendaCard';
 import { CascaOnboarding } from './CascaOnboarding';
 import { DIAS, INTERVALOS, type DiaSemana, type Horarios, type ModoEquipe } from '@/lib/onboarding';
 import { cn } from '@/lib/cn';
@@ -114,6 +115,8 @@ export function EtapaHorarios({ inicial, modoEquipe, salvando, onVoltar, onSalva
       ) : (
         <p className="text-[14px] text-muted">{`A pausa de cada ${prof.s} fica no cadastro ${prof.dele}, em Serviços › Equipe.`}</p>
       )}
+
+      <GoogleAgendaCard para="negocio" origem="onboarding" />
 
       {erro && <p role="alert" className="text-[14px] font-semibold text-danger">{erro}</p>}
     </CascaOnboarding>

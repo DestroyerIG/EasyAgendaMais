@@ -30,25 +30,32 @@ export const ServicosSchema = z
         nome: z.string().trim().min(2, 'Nome do serviço muito curto').max(255),
         duracaoMinutos: z.number().int().min(10, 'Duração mínima de 10 minutos').max(300, 'Duração máxima de 300 minutos'),
         preco: z.number().positive('O preço precisa ser maior que zero').multipleOf(0.01),
-        sinalPct: z.number().min(0).max(100).nullable().optional(),
       }))
       .min(1, 'Escolha pelo menos um serviço')
       .max(40),
+  })
+  .superRefine((d, ctx) => {
+    const nomes = d.servicos.map((s) => s.nome.toLowerCase());
+    if (new Set(nomes).size !== nomes.length) ctx.addIssue({ code: 'custom', path: ['servicos'], message: 'Há serviços com o mesmo nome' });
+  });
+
+export const RecebimentosSchema = z
+  .object({
     chavePix: z.object({ chave: z.string().trim().min(1).max(255), tipo: PixKeyTypeSchema }).optional(),
+    servicos: z.array(z.object({ id: z.string().uuid(), sinalPct: z.number().min(1).max(100).nullable() })).max(40),
   })
   .superRefine((d, ctx) => {
     if (d.chavePix) {
       const erro = validatePixKeyFormat(d.chavePix.chave, d.chavePix.tipo);
       if (erro) ctx.addIssue({ code: 'custom', path: ['chavePix', 'chave'], message: erro });
     }
-    const nomes = d.servicos.map((s) => s.nome.toLowerCase());
-    if (new Set(nomes).size !== nomes.length) ctx.addIssue({ code: 'custom', path: ['servicos'], message: 'Há serviços com o mesmo nome' });
   });
 
 export type Segmento = z.infer<typeof SegmentoSchema>;
 export type NegocioInput = z.infer<typeof NegocioSchema>;
 export type HorariosInput = z.infer<typeof HorariosSchema>;
 export type ServicosInput = z.infer<typeof ServicosSchema>;
+export type RecebimentosInput = z.infer<typeof RecebimentosSchema>;
 
 export interface EstadoOnboarding { pendente: boolean; bloqueante: boolean; etapa: number }
 
@@ -62,6 +69,10 @@ export interface OnboardingDto {
   pagina: { slug: string | null; slugSugerido: string; logoUrl: string | null; brandColor: string | null; fotos: number };
   whatsappConectado: boolean;
   temChavePix: boolean;
+  recebimentos: {
+    conexao: { gateway: 'mercadopago' | 'infinitepay'; contaNome: string; situacao: 'ativa' | 'precisa_reconectar' } | null;
+    temChavePix: boolean;
+  };
   vocabulario: Vocabulario;
 }
 

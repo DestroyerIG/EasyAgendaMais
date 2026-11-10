@@ -1,21 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Button, Field, Icon, Input, Select, Skeleton } from '@/components/ui';
+import { Button, Field, Icon, Input, Skeleton } from '@/components/ui';
 import { CascaOnboarding } from './CascaOnboarding';
-import { onboardingApi, SEGMENTOS_ONBOARDING, type ServicoOnboarding, type TipoChavePix } from '@/lib/onboarding';
+import { onboardingApi, SEGMENTOS_ONBOARDING, type ServicoEntrada, type ServicoOnboarding } from '@/lib/onboarding';
 import type { Segmento } from '@/lib/technicalSheetTemplates';
 import { cn } from '@/lib/cn';
-import { useVocabulario } from '@/hooks/useVocabulario';
 
-interface Linha extends ServicoOnboarding { chave: string; descricao: string; marcado: boolean; comSinal: boolean }
-
-const TIPOS_PIX: Array<{ id: TipoChavePix; rotulo: string }> = [
-  { id: 'telefone', rotulo: 'Telefone' }, { id: 'cpf', rotulo: 'CPF' }, { id: 'cnpj', rotulo: 'CNPJ' },
-  { id: 'email', rotulo: 'E-mail' }, { id: 'aleatoria', rotulo: 'Chave aleatória' },
-];
-
-const SINAL_PADRAO = 30;
+interface Linha extends ServicoEntrada { chave: string; descricao: string; marcado: boolean }
 
 /** Mensagem do primeiro problema da lista marcada (vazio = pode salvar). */
 export function erroDosServicos(linhas: Array<Pick<Linha, 'nome' | 'duracaoMinutos' | 'preco' | 'marcado'>>): string | null {
@@ -29,19 +21,15 @@ export function erroDosServicos(linhas: Array<Pick<Linha, 'nome' | 'duracaoMinut
   return null;
 }
 
-export function EtapaServicos({ segmento, jaSalvos, temChavePix, salvando, onVoltar, onSalvar }: {
+export function EtapaServicos({ segmento, jaSalvos, salvando, onVoltar, onSalvar }: {
   segmento: Segmento;
   jaSalvos: ServicoOnboarding[];
-  temChavePix: boolean;
   salvando: boolean;
   onVoltar: () => void;
-  onSalvar: (servicos: ServicoOnboarding[], chavePix?: { chave: string; tipo: TipoChavePix }) => void;
+  onSalvar: (servicos: ServicoEntrada[]) => void;
 }) {
-  const { cli } = useVocabulario();
   const [linhas, setLinhas] = useState<Linha[] | null>(null);
   const [erroCarga, setErroCarga] = useState(false);
-  const [chave, setChave] = useState('');
-  const [tipo, setTipo] = useState<TipoChavePix>('telefone');
 
   useEffect(() => {
     let vivo = true;
@@ -55,13 +43,13 @@ export function EtapaServicos({ segmento, jaSalvos, temChavePix, salvando, onVol
           const base = s ?? c;
           return {
             chave: `c${i}`, descricao: c.descricao, nome: base.nome, duracaoMinutos: base.duracaoMinutos, preco: base.preco,
-            sinalPct: base.sinalPct, comSinal: (base.sinalPct ?? 0) > 0, marcado: jaSalvos.length ? !!s : c.marcado,
+            marcado: jaSalvos.length ? !!s : c.marcado,
           };
         });
         const nomesCat = new Set(cat.map((c) => c.nome.toLowerCase()));
         const proprios: Linha[] = jaSalvos
           .filter((s) => !nomesCat.has(s.nome.trim().toLowerCase()))
-          .map((s, i) => ({ ...s, chave: `p${i}`, descricao: '', marcado: true, comSinal: (s.sinalPct ?? 0) > 0 }));
+          .map((s, i) => ({ nome: s.nome, duracaoMinutos: s.duracaoMinutos, preco: s.preco, chave: `p${i}`, descricao: '', marcado: true }));
         setLinhas([...doCatalogo, ...proprios]);
       })
       .catch(() => { if (vivo) setErroCarga(true); });
@@ -70,19 +58,15 @@ export function EtapaServicos({ segmento, jaSalvos, temChavePix, salvando, onVol
 
   const mudar = (k: string, patch: Partial<Linha>) => setLinhas((ls) => ls && ls.map((l) => (l.chave === k ? { ...l, ...patch } : l)));
   const incluir = () => setLinhas((ls) => [...(ls ?? []), {
-    chave: `n${Date.now()}`, nome: '', descricao: '', duracaoMinutos: 60, preco: 0, sinalPct: null, comSinal: false, marcado: true,
+    chave: `n${Date.now()}`, nome: '', descricao: '', duracaoMinutos: 60, preco: 0, marcado: true,
   }]);
 
   const marcados = (linhas ?? []).filter((l) => l.marcado);
-  const precisaPix = marcados.some((l) => l.comSinal) && !temChavePix;
-  const erro = linhas ? erroDosServicos(linhas) ?? (precisaPix && !chave.trim() ? 'Informe a chave Pix para cobrar o sinal.' : null) : null;
+  const erro = linhas ? erroDosServicos(linhas) : null;
   const nomeSegmento = SEGMENTOS_ONBOARDING.find((s) => s.id === segmento)?.titulo ?? 'seu negócio';
 
   const salvar = () => {
-    const servicos = marcados.map((l) => ({
-      nome: l.nome.trim(), duracaoMinutos: l.duracaoMinutos, preco: l.preco, sinalPct: l.comSinal ? (l.sinalPct || SINAL_PADRAO) : null,
-    }));
-    onSalvar(servicos, precisaPix ? { chave: chave.trim(), tipo } : undefined);
+    onSalvar(marcados.map((l) => ({ nome: l.nome.trim(), duracaoMinutos: l.duracaoMinutos, preco: l.preco })));
   };
 
   return (
@@ -138,23 +122,6 @@ export function EtapaServicos({ segmento, jaSalvos, temChavePix, salvando, onVol
                     value={l.preco || ''} onChange={(e) => mudar(l.chave, { preco: Math.round(Number(e.target.value) * 100) / 100 })}
                   />
                 </Field>
-                <label className="flex items-center gap-2 text-[14px] text-ink sm:col-span-3">
-                  <input
-                    type="checkbox" className="h-4 w-4 accent-brand" checked={l.comSinal}
-                    onChange={(e) => mudar(l.chave, { comSinal: e.target.checked, sinalPct: e.target.checked ? (l.sinalPct || SINAL_PADRAO) : null })}
-                  />
-                  Exigir sinal via Pix
-                  {l.comSinal && (
-                    <span className="flex items-center gap-1 text-muted">
-                      ·
-                      <Input
-                        aria-label={`Sinal de ${l.nome} em %`} type="number" min={1} max={100} className="h-8 w-20"
-                        value={l.sinalPct ?? SINAL_PADRAO} onChange={(e) => mudar(l.chave, { sinalPct: Number(e.target.value) })}
-                      />
-                      % do valor
-                    </span>
-                  )}
-                </label>
               </div>
             )}
           </li>
@@ -163,25 +130,6 @@ export function EtapaServicos({ segmento, jaSalvos, temChavePix, salvando, onVol
 
       {linhas && (
         <Button variant="secondary" onClick={incluir}><Icon name="add" size={18} /> Incluir outro serviço</Button>
-      )}
-
-      {precisaPix && (
-        <section className="space-y-3 rounded-card border border-line bg-surface p-4">
-          <div>
-            <h2 className="font-bold text-ink">Chave Pix para receber o sinal</h2>
-            <p className="text-[14px] text-muted">O sinal confirma o compromisso {cli.doS} e protege o seu horário. Ele cai direto na sua conta.</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-[1fr_2fr]">
-            <Field id="onb-pix-tipo" label="Tipo">
-              <Select id="onb-pix-tipo" value={tipo} onChange={(e) => setTipo(e.target.value as TipoChavePix)}>
-                {TIPOS_PIX.map((t) => <option key={t.id} value={t.id}>{t.rotulo}</option>)}
-              </Select>
-            </Field>
-            <Field id="onb-pix-chave" label="Chave Pix">
-              <Input id="onb-pix-chave" value={chave} onChange={(e) => setChave(e.target.value)} />
-            </Field>
-          </div>
-        </section>
       )}
 
       {erro && linhas && <p role="alert" className="text-[14px] font-semibold text-danger">{erro}</p>}

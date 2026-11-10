@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { StrictMode } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
@@ -15,6 +16,12 @@ const mocks = vi.hoisted(() => ({
   ver: vi.fn(),
   salvarNegocio: vi.fn(),
   salvarHorarios: vi.fn(),
+  catalogo: vi.fn(),
+  salvarServicos: vi.fn(),
+  salvarRecebimentos: vi.fn(),
+  confirmar: vi.fn(),
+  googleConexao: vi.fn(),
+  googleConfirmar: vi.fn(),
 }));
 
 vi.mock('next/navigation', async (orig) => ({
@@ -29,8 +36,19 @@ vi.mock('@/lib/onboarding', async (orig) => {
   const real = await orig<typeof import('@/lib/onboarding')>();
   return {
     ...real,
-    onboardingApi: { ...real.onboardingApi, ver: mocks.ver, salvarNegocio: mocks.salvarNegocio, salvarHorarios: mocks.salvarHorarios },
+    onboardingApi: { ...real.onboardingApi, ver: mocks.ver, salvarNegocio: mocks.salvarNegocio, salvarHorarios: mocks.salvarHorarios,
+      catalogo: mocks.catalogo, salvarServicos: mocks.salvarServicos, salvarRecebimentos: mocks.salvarRecebimentos,
+    },
   };
+});
+vi.mock('@/lib/recebimentos', async (orig) => {
+  const real = await orig<typeof import('@/lib/recebimentos')>();
+  return { ...real, recebimentosApi: { ...real.recebimentosApi, confirmar: mocks.confirmar } };
+});
+
+vi.mock('@/lib/googleAgenda', async (orig) => {
+  const real = await orig<typeof import('@/lib/googleAgenda')>();
+  return { ...real, googleAgendaApi: { ...real.googleAgendaApi, conexao: mocks.googleConexao, conectar: vi.fn(), confirmar: mocks.googleConfirmar } };
 });
 
 mocks.router = { push: vi.fn(), replace: mocks.replace, prefetch: vi.fn(), back: vi.fn(), forward: vi.fn(), refresh: vi.fn() };
@@ -47,6 +65,7 @@ const dados = (etapa: number, pendente = true): Onboarding => ({
   pagina: { slug: null, slugSugerido: 'studio', logoUrl: null, brandColor: null, fotos: 0 },
   whatsappConectado: false,
   temChavePix: false,
+  recebimentos: { conexao: null, temChavePix: false },
   vocabulario: VOCABULARIO_PADRAO,
 });
 
@@ -80,7 +99,9 @@ describe('OnboardingFlow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.refreshMe.mockResolvedValue(undefined);
+    mocks.googleConexao.mockResolvedValue({ configurado: false, conexao: null });
     mocks.user.value = { role: 'tenant_admin' };
+    window.history.replaceState({}, '', '/');
     try { localStorage.clear(); } catch { /* sem storage */ }
   });
 
@@ -137,6 +158,40 @@ describe('OnboardingFlow', () => {
     expect(mocks.salvarHorarios).not.toHaveBeenCalled();
   });
 
+  it('Horários mostra o Google Agenda opcional quando o ambiente tem Google, e Continuar segue sem conectar', async () => {
+    const user = userEvent.setup();
+    mocks.googleConexao.mockResolvedValue({ configurado: true, conexao: null });
+    mocks.ver.mockResolvedValue(dados(2));
+    mocks.salvarHorarios.mockResolvedValue(dados(3));
+    mocks.catalogo.mockResolvedValue([]);
+    renderFluxo();
+    expect(await screen.findByText('Já usa o Google Agenda?')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Conectar Google Agenda' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Continuar/ }));
+    await waitFor(() => expect(mocks.salvarHorarios).toHaveBeenCalled());
+  });
+
+  it('Horários não mostra título nem botão do Google quando não está configurado', async () => {
+    mocks.ver.mockResolvedValue(dados(2));
+    renderFluxo();
+    await screen.findByText(TITULO_HORARIOS);
+    await waitFor(() => expect(mocks.googleConexao).toHaveBeenCalled());
+    expect(screen.queryByText('Já usa o Google Agenda?')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Conectar Google Agenda' })).not.toBeInTheDocument();
+  });
+
+  it('volta do Google com etapa salva 3 abre Horários e entrega ?google=&t= ao cartão', async () => {
+    window.history.pushState({}, '', '/onboarding?google=confirmar&t=abc');
+    mocks.googleConfirmar.mockResolvedValue({ configurado: true, conexao: null });
+    mocks.ver.mockResolvedValue(dados(3));
+    mocks.catalogo.mockResolvedValue([]);
+    renderFluxo();
+    expect(await screen.findByText(TITULO_HORARIOS)).toBeInTheDocument();
+    // O fluxo não mexe nos parâmetros: o cartão do Google Agenda recebe o t, confirma e limpa a URL.
+    await waitFor(() => expect(mocks.googleConfirmar).toHaveBeenCalledWith('abc'));
+    expect(mocks.salvarHorarios).not.toHaveBeenCalled();
+  });
+
   it('erro ao salvar mantém a etapa', async () => {
     const user = userEvent.setup();
     mocks.ver.mockResolvedValue(dados(2));
@@ -145,5 +200,117 @@ describe('OnboardingFlow', () => {
     await user.click(await screen.findByRole('button', { name: /Continuar/ }));
     await waitFor(() => expect(mocks.salvarHorarios).toHaveBeenCalled());
     expect(screen.getByText(TITULO_HORARIOS)).toBeInTheDocument();
+  });
+
+  it('etapa Serviços não pede sinal nem chave Pix', async () => {
+    mocks.ver.mockResolvedValue(dados(3));
+    mocks.catalogo.mockResolvedValue([
+      { nome: 'Manicure', duracaoMinutos: 45, preco: 40, sinalPct: null, descricao: 'Mãos', marcado: true },
+    ]);
+    renderFluxo();
+    expect(await screen.findByLabelText('Oferecer Manicure')).toBeInTheDocument();
+    expect(screen.queryByText(/Exigir sinal via Pix/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Chave Pix para receber o sinal/)).not.toBeInTheDocument();
+  });
+
+  it('etapa Serviços salva só nome, duração e preço', async () => {
+    const user = userEvent.setup();
+    mocks.ver.mockResolvedValue(dados(3));
+    mocks.catalogo.mockResolvedValue([
+      { nome: 'Manicure', duracaoMinutos: 45, preco: 40, sinalPct: 30, descricao: 'Mãos', marcado: true },
+    ]);
+    mocks.salvarServicos.mockResolvedValue(dados(4));
+    renderFluxo();
+    await screen.findByLabelText('Oferecer Manicure');
+    await user.click(screen.getByRole('button', { name: /Continuar/ }));
+    await waitFor(() => expect(mocks.salvarServicos).toHaveBeenCalledTimes(1));
+    expect(mocks.salvarServicos).toHaveBeenCalledWith([{ nome: 'Manicure', duracaoMinutos: 45, preco: 40 }]);
+  });
+
+  describe('etapa Recebimentos', () => {
+    const TITULO = 'Como você quer receber o sinal?';
+
+    it('abre na etapa 4 com o título e "Etapa 4 de 6"', async () => {
+      mocks.ver.mockResolvedValue(dados(4));
+      renderFluxo();
+      expect(await screen.findByText(TITULO)).toBeInTheDocument();
+      expect(screen.getByText('Etapa 4 de 6')).toBeInTheDocument();
+    });
+
+    it('"Configurar depois" leva a Sua página (etapa 5)', async () => {
+      const user = userEvent.setup();
+      mocks.ver.mockResolvedValue(dados(4));
+      renderFluxo();
+      await user.click(await screen.findByRole('button', { name: 'Configurar depois' }));
+      expect(await screen.findByText('Etapa 5 de 6')).toBeInTheDocument();
+      expect(screen.queryByText(TITULO)).not.toBeInTheDocument();
+    });
+
+    it('salvar chama salvarRecebimentos e avança para Sua página', async () => {
+      const user = userEvent.setup();
+      mocks.ver.mockResolvedValue(dados(4));
+      mocks.salvarRecebimentos.mockResolvedValue(dados(5));
+      renderFluxo();
+      await user.click(await screen.findByText('Não vou cobrar sinal agora'));
+      const continuar = screen.getByRole('button', { name: /Continuar/ });
+      await waitFor(() => expect(continuar).toBeEnabled());
+      await user.click(continuar);
+      await waitFor(() => expect(mocks.salvarRecebimentos).toHaveBeenCalledTimes(1));
+      expect(await screen.findByText('Etapa 5 de 6')).toBeInTheDocument();
+    });
+
+    it.each([
+      ['direto', (ui: React.ReactElement) => ui],
+      ['em StrictMode', (ui: React.ReactElement) => <StrictMode>{ui}</StrictMode>],
+    ])('retorno do Mercado Pago confirma uma única vez (%s), avisa e limpa a URL', async (_n, envolver) => {
+      window.history.pushState({}, '', '/onboarding?recebimento=confirmar&t=abc');
+      const servicos = [{ id: 's1', nome: 'Corte', duracaoMinutos: 30, preco: 50, sinalPct: null }];
+      const antes = { ...dados(4), servicos };
+      const conectado = { ...dados(4), servicos };
+      conectado.recebimentos = { temChavePix: false, conexao: { gateway: 'mercadopago', contaNome: 'Conta Teste', situacao: 'ativa' } as never };
+      mocks.ver.mockResolvedValueOnce(antes).mockResolvedValue(conectado);
+      mocks.confirmar.mockResolvedValue({});
+      render(envolver(<ToastProvider><OnboardingFlow /></ToastProvider>));
+      expect(await screen.findByText('Mercado Pago conectado.')).toBeInTheDocument();
+      expect((await screen.findAllByText('Conectado')).length).toBeGreaterThan(0);
+      // A conexão chega depois da primeira carga: o Mercado Pago fica marcado e a lista de sinal aparece.
+      expect(screen.getByRole('button', { name: /^Mercado Pago/ })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByText('Quais serviços exigem sinal?')).toBeInTheDocument();
+      expect(mocks.ver.mock.calls.length).toBeGreaterThanOrEqual(2);
+      expect(mocks.confirmar).toHaveBeenCalledTimes(1);
+      expect(mocks.confirmar).toHaveBeenCalledWith('abc');
+      expect(window.location.search).toBe('');
+      expect(screen.getByText('Etapa 4 de 6')).toBeInTheDocument();
+    });
+
+    it('retorno do Mercado Pago não pula etapas obrigatórias: etapa salva 2 continua em Horários', async () => {
+      window.history.pushState({}, '', '/onboarding?recebimento=confirmar&t=abc');
+      mocks.ver.mockResolvedValue(dados(2));
+      mocks.confirmar.mockResolvedValue({});
+      renderFluxo();
+      expect(await screen.findByText('Mercado Pago conectado.')).toBeInTheDocument();
+      expect(screen.getByText(TITULO_HORARIOS)).toBeInTheDocument();
+      expect(mocks.confirmar).toHaveBeenCalledTimes(1);
+      expect(window.location.search).toBe('');
+    });
+
+    it('retorno com erro mostra o aviso e fica na etapa 4', async () => {
+      window.history.pushState({}, '', '/onboarding?recebimento=erro');
+      mocks.ver.mockResolvedValue(dados(4));
+      renderFluxo();
+      expect(await screen.findByText('Não foi possível conectar o Mercado Pago. Tente de novo.')).toBeInTheDocument();
+      expect(mocks.confirmar).not.toHaveBeenCalled();
+      expect(screen.getByText('Etapa 4 de 6')).toBeInTheDocument();
+      expect(window.location.search).toBe('');
+    });
+
+    it('falha ao confirmar mostra o aviso e fica na etapa 4', async () => {
+      window.history.pushState({}, '', '/onboarding?recebimento=confirmar&t=abc');
+      mocks.ver.mockResolvedValue(dados(4));
+      mocks.confirmar.mockRejectedValue('falhou');
+      renderFluxo();
+      expect(await screen.findByText('Não foi possível conectar o Mercado Pago. Tente de novo.')).toBeInTheDocument();
+      expect(screen.getByText('Etapa 4 de 6')).toBeInTheDocument();
+    });
   });
 });

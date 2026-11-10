@@ -7,7 +7,7 @@ import { cn } from '@/lib/cn';
 import { lerEscolhaTeste } from '@/lib/escolhaTeste';
 import { ConviteCartao } from '@/components/assinatura/ConviteCartao';
 
-// Casca do onboarding (Stitch: docs/design/stitch/onboarding/): marca, teste grátis, as 5 etapas e o progresso.
+// Casca do onboarding (Stitch: docs/design/stitch/onboarding/): marca, teste grátis, as 6 etapas e o progresso.
 
 export function CascaOnboarding({ etapa, titulo, descricao, children, rodape }: {
   etapa: number; titulo: string; descricao?: string; children: ReactNode; rodape: ReactNode;

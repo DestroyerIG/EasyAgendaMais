@@ -5,6 +5,8 @@ export interface GatewayCatalogo {
   nome: string;
   logo: string;
   situacao: 'disponivel' | 'em_breve';
+  /** Uma linha para o cartão de escolha do onboarding. */
+  descricaoCurta?: string;
   conexao: 'autorizacao' | 'chave' | 'usuario';
   passos: Array<{ titulo: string; texto: string; links?: Array<{ rotulo: string; url: string }> }>;
   avisos: string[];
@@ -36,6 +38,7 @@ export const GATEWAYS: GatewayCatalogo[] = [
     nome: 'Mercado Pago',
     logo: '/images/gateways/mercadopago.svg',
     situacao: 'disponivel',
+    descricaoCurta: 'Confirma o sinal sozinho. Pix e cartão.',
     conexao: 'autorizacao',
     passos: [
       {
@@ -66,12 +69,13 @@ export const GATEWAYS: GatewayCatalogo[] = [
     ],
     avisos: AVISOS_MERCADO_PAGO,
   },
-  { id: 'asaas', nome: 'Asaas', logo: '/images/gateways/asaas.svg', situacao: 'em_breve', conexao: 'chave', passos: [], avisos: [] },
+  { id: 'asaas', nome: 'Asaas', logo: '/images/gateways/asaas.svg', situacao: 'em_breve', descricaoCurta: 'Em breve', conexao: 'chave', passos: [], avisos: [] },
   {
     id: 'infinitepay',
     nome: 'InfinitePay',
     logo: '/images/gateways/infinitepay.png',
     situacao: 'disponivel',
+    descricaoCurta: 'Confirma o sinal sozinho. Pix e cartão em até 12x.',
     conexao: 'chave',
     passos: [
       {
@@ -101,6 +105,6 @@ export const GATEWAYS: GatewayCatalogo[] = [
     ],
     avisos: AVISOS_INFINITEPAY,
   },
-  { id: 'pagbank', nome: 'PagBank', logo: '/images/gateways/pagbank.svg', situacao: 'em_breve', conexao: 'chave', passos: [], avisos: [] },
+  { id: 'pagbank', nome: 'PagBank', logo: '/images/gateways/pagbank.svg', situacao: 'em_breve', descricaoCurta: 'Em breve', conexao: 'chave', passos: [], avisos: [] },
 ];
 

@@ -18,7 +18,10 @@ export const verConexao: H = async (req, res, next) => {
   try { sendSuccess(res, await conexaoService.verConexao(usuario(req))); } catch (e) { next(e); }
 };
 export const conectar: H = async (req, res, next) => {
-  try { sendSuccess(res, conexaoService.conectarUrl(usuario(req), gatewayDe(req))); } catch (e) { next(e); }
+  try {
+    const origem = req.query['origem'] === 'onboarding' ? 'onboarding' : 'ajustes';
+    sendSuccess(res, conexaoService.conectarUrl(usuario(req), gatewayDe(req), origem));
+  } catch (e) { next(e); }
 };
 export const callback: H = async (req, res, next) => {
   try {

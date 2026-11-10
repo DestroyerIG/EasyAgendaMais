@@ -1,6 +1,7 @@
 import api from '@/lib/api';
 import type { Segmento } from '@/lib/technicalSheetTemplates';
 import type { Vocabulario } from '@/lib/vocabulario';
+import type { GatewayId } from '@/lib/recebimentos';
 
 // Onboarding guiado (fase 6). Espelha backend/src/modules/onboarding.
 
@@ -20,6 +21,9 @@ export interface Horarios {
 
 export interface ServicoOnboarding { nome: string; duracaoMinutos: number; preco: number; sinalPct: number | null }
 
+/** O que a etapa Serviços envia: sinal e Pix ficam para a etapa Recebimentos. */
+export type ServicoEntrada = Omit<ServicoOnboarding, 'sinalPct'>;
+
 export interface ServicoSugerido extends ServicoOnboarding { descricao: string; marcado: boolean }
 
 export interface Onboarding {
@@ -30,6 +34,10 @@ export interface Onboarding {
   pagina: { slug: string | null; slugSugerido: string; logoUrl: string | null; brandColor: string | null; fotos: number };
   whatsappConectado: boolean;
   temChavePix: boolean;
+  recebimentos: {
+    conexao: { gateway: GatewayId; contaNome: string; situacao: 'ativa' | 'precisa_reconectar' } | null;
+    temChavePix: boolean;
+  };
   vocabulario: Vocabulario;
 }
 
@@ -41,15 +49,17 @@ export const onboardingApi = {
   salvarNegocio: async (segmento: Segmento, modoEquipe: ModoEquipe) =>
     (await api.put<Onboarding>('/onboarding/negocio', { segmento, modoEquipe })).data,
   salvarHorarios: async (h: Horarios) => (await api.put<Onboarding>('/onboarding/horarios', h)).data,
-  salvarServicos: async (servicos: ServicoOnboarding[], chavePix?: { chave: string; tipo: TipoChavePix }) =>
-    (await api.put<Onboarding>('/onboarding/servicos', chavePix ? { servicos, chavePix } : { servicos })).data,
+  salvarServicos: async (servicos: ServicoEntrada[]) =>
+    (await api.put<Onboarding>('/onboarding/servicos', { servicos })).data,
+  salvarRecebimentos: async (d: { chavePix?: { chave: string; tipo: TipoChavePix }; servicos: Array<{ id: string; sinalPct: number | null }> }) =>
+    (await api.put<Onboarding>('/onboarding/recebimentos', d)).data,
   concluir: async () => (await api.post<Onboarding>('/onboarding/concluir')).data,
   primeirosPassos: async () => (await api.get<PrimeiroPasso[]>('/onboarding/primeiros-passos')).data,
   dispensarPrimeirosPassos: async () => { await api.post('/onboarding/primeiros-passos/dispensar'); },
 };
 
-/** As 5 etapas do DESIGN.md, sempre com estes nomes e nesta ordem. */
-export const ETAPAS = ['Seu negócio', 'Horários', 'Serviços', 'Sua página', 'WhatsApp e link'] as const;
+/** As 6 etapas do onboarding, sempre com estes nomes e nesta ordem. */
+export const ETAPAS = ['Seu negócio', 'Horários', 'Serviços', 'Recebimentos', 'Sua página', 'WhatsApp e link'] as const;
 
 export const SEGMENTOS_ONBOARDING: Array<{ id: Segmento; titulo: string; descricao: string; icone: string }> = [
   { id: 'barbearia', titulo: 'Barbearia', descricao: 'Cortes masculinos, barba, pigmentação e estética facial.', icone: 'content_cut' },

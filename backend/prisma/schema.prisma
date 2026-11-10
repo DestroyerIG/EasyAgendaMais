@@ -66,7 +66,7 @@ model Business {
   suspendedAt                  DateTime? @map("suspended_at")
   suspendedReason              String?   @map("suspended_reason") @db.VarChar(255)
 
-  // Onboarding guiado (fase 6): próxima etapa (1 a 5; 6 = concluído)
+  // Onboarding guiado (fase 6): próxima etapa (1 a 6; 7 = concluído)
   onboardingEtapa              Int       @default(1) @map("onboarding_etapa") @db.SmallInt
   onboardingConcluidoEm        DateTime? @map("onboarding_concluido_em")
   primeirosPassosDispensadoEm  DateTime? @map("primeiros_passos_dispensado_em")

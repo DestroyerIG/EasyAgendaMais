@@ -1,6 +1,6 @@
 import { vi, describe, it, beforeEach, afterEach, expect } from 'vitest';
 import express from 'express';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, createHmac } from 'node:crypto';
 
 vi.mock('../config/prisma.js', () => ({ prisma: {} }));
 vi.mock('../utils/logger.js', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
@@ -40,6 +40,7 @@ vi.mock('../middleware/auth.js', () => ({
 const rules = await import('../modules/googleAgenda/googleAgenda.rules.js');
 const { googleAgendaService } = await import('../modules/googleAgenda/googleAgenda.service.js');
 const { decifrar } = await import('../modules/googleAgenda/googleAgenda.crypto.js');
+const { chaveDoToken } = await import('../modules/googleAgenda/googleAgenda.crypto.js');
 const routes = (await import('../modules/googleAgenda/googleAgenda.routes.js')).default;
 const { errorHandler } = await import('../middleware/errorHandler.js');
 const supertest = (await import('supertest')).default;
@@ -78,7 +79,7 @@ describe('Google Agenda: conexão', () => {
   it('state repetido ou vencido é recusado', () => {
     const agora = Date.now();
     const s = rules.assinarState('u1', 'negocio', agora);
-    expect(rules.lerState(s, agora)).toEqual({ userId: 'u1', para: 'negocio' });
+    expect(rules.lerState(s, agora)).toEqual({ userId: 'u1', para: 'negocio', origem: 'ajustes' });
     expect(rules.lerState(s, agora)).toBeNull();
 
     const velho = rules.assinarState('u1', 'negocio', agora);
@@ -187,6 +188,56 @@ describe('Google Agenda: conexão', () => {
     expect(res.status).toBe(302);
     expect(res.headers.location).toBe('https://app.test/configuracoes?google=erro');
     expect(api.trocarCodigo).not.toHaveBeenCalled();
+  });
+
+  it('state leva a origem; sem origem, legado ou adulterado, vale Ajustes ou é recusado', () => {
+    const agora = Date.now();
+    expect(rules.lerState(rules.assinarState('u1', 'negocio', agora, 'onboarding'), agora))
+      .toEqual({ userId: 'u1', para: 'negocio', origem: 'onboarding' });
+
+    // Carga legada, assinada sem `o`.
+    const legada = Buffer.from(JSON.stringify({ u: 'u1', p: 'negocio', n: 'legado1', e: agora + 60_000 })).toString('base64url');
+    const assinada = `${legada}.${createHmac('sha256', chaveDoToken()).update(legada).digest('base64url')}`;
+    expect(rules.lerState(assinada, agora)).toEqual({ userId: 'u1', para: 'negocio', origem: 'ajustes' });
+
+    // `o` desconhecido, mesmo assinado: cai em Ajustes.
+    const estranha = Buffer.from(JSON.stringify({ u: 'u1', p: 'negocio', o: 'x', n: 'estranho1', e: agora + 60_000 })).toString('base64url');
+    const assinada2 = `${estranha}.${createHmac('sha256', chaveDoToken()).update(estranha).digest('base64url')}`;
+    expect(rules.lerState(assinada2, agora)?.origem).toBe('ajustes');
+
+    // `o` trocado sem reassinar: assinatura não confere.
+    const original = rules.assinarState('u1', 'negocio', agora, 'ajustes');
+    const [carga, assinatura] = original.split('.');
+    const d = JSON.parse(Buffer.from(carga, 'base64url').toString('utf8'));
+    const adulterada = Buffer.from(JSON.stringify({ ...d, o: 'onboarding' })).toString('base64url');
+    expect(rules.lerState(`${adulterada}.${assinatura}`, agora)).toBeNull();
+  });
+
+  it('callback de origem onboarding volta para /onboarding; profissional e estado inválido não', async () => {
+    const ok = await request.get('/api/v1/google-agenda/callback')
+      .query({ code: 'cod', state: rules.assinarState('u1', 'negocio', Date.now(), 'onboarding') });
+    expect(ok.headers.location).toMatch(/^https:\/\/app\.test\/onboarding\?google=confirmar&t=[\w-]{20,}$/);
+
+    api.trocarCodigo.mockRejectedValueOnce(new Error('x'));
+    const falha = await request.get('/api/v1/google-agenda/callback')
+      .query({ code: 'cod', state: rules.assinarState('u1', 'negocio', Date.now(), 'onboarding') });
+    expect(falha.headers.location).toBe('https://app.test/onboarding?google=erro');
+
+    const prof = await request.get('/api/v1/google-agenda/callback')
+      .query({ code: 'cod', state: rules.assinarState('u2', 'profissional', Date.now(), 'onboarding') });
+    expect(prof.headers.location).toMatch(/^https:\/\/app\.test\/bancada\?google=confirmar/);
+  });
+
+  it('conectar leva a origem no state e recusa origem desconhecida', async () => {
+    const res = await request.get('/api/v1/google-agenda/conectar').set('x-user', 'u1').set('x-role', 'tenant_admin')
+      .query({ para: 'negocio', origem: 'onboarding' });
+    expect(res.status).toBe(200);
+    const state = new URL(res.body.data.url).searchParams.get('state') ?? '';
+    expect(rules.lerState(state)?.origem).toBe('onboarding');
+
+    const ruim = await request.get('/api/v1/google-agenda/conectar').set('x-user', 'u1').set('x-role', 'tenant_admin')
+      .query({ para: 'negocio', origem: 'xis' });
+    expect(ruim.status).toBe(400);
   });
 
   it('profissional em plano sem app fica pausada', () => {

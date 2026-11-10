@@ -22,6 +22,9 @@ export const saveHours: H = async (req, res, next) => {
 export const saveServices: H = async (req, res, next) => {
   try { sendSuccess(res, await onboardingService.salvarServicos(negocio(req), req.body)); } catch (e) { next(e); }
 };
+export const saveReceipts: H = async (req, res, next) => {
+  try { sendSuccess(res, await onboardingService.salvarRecebimentos(negocio(req), req.body)); } catch (e) { next(e); }
+};
 export const finish: H = async (req, res, next) => {
   try { sendSuccess(res, await onboardingService.concluir(negocio(req))); } catch (e) { next(e); }
 };
