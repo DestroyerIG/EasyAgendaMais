@@ -14,6 +14,7 @@ import { clubeService } from '../clube/clube.service.js';
 import type { CoberturaComandaDto, ComandaDetailDto, NewExtraItem, SaveComandaInput, PaymentMethod } from './comandas.types.js';
 import { avaliacoesService } from '../avaliacoes/avaliacoes.service.js';
 import { buildPixPayload, type PixKeyType } from '../../utils/pixPayload.js';
+import { recebimentosRepository } from '../recebimentos/recebimentos.repository.js';
 
 type ComandaRow = NonNullable<Awaited<ReturnType<typeof comandasRepository.findComandaById>>>;
 
@@ -181,6 +182,10 @@ export const comandasService = {
   async save(id: string, businessId: string, input: SaveComandaInput): Promise<ComandaDetailDto> {
     const c = await carregar(id, businessId);
     if (c.status !== 'rascunho') throw new ConflictError('Esta comanda já foi fechada');
+    // O valor cobrado no gateway tem que continuar igual ao saldo: com cobrança em aberto, nada muda.
+    if (await recebimentosRepository.cobrancaSaldoPendente(c.appointment.id, new Date())) {
+      throw new AppError('Há uma cobrança em andamento nesta comanda. Cancele a cobrança para alterar.', 409, 'COBRANCA_EM_ANDAMENTO');
+    }
     const extras = await resolverExtras(businessId, input.extras);
     const negocio = await commissionSettings.get(businessId);
     const commission = resolveCommission(c.appointment.professional, negocio);
@@ -276,6 +281,34 @@ export const comandasService = {
       merchantCity: 'BRASIL', amount: valor, description: `Comanda ${dto.number}`, txId: `CMD${dto.number}`,
     });
     return { pixPayload, valor };
+  },
+
+  /**
+   * Fecha a comanda quando o pagamento do saldo foi confirmado pelo gateway. Nunca lança: o pagamento já
+   * está gravado, e quem chama avisa o dono quando a comanda não pôde fechar (caixa fechado, valor
+   * diferente, falha). Sempre pelo mesmo `close` do fechamento manual.
+   */
+  async fecharPorPagamento(a: {
+    appointmentId: string; businessId: string; userId: string | null; valor: number; forma: PaymentMethod | null;
+  }): Promise<'fechada' | 'ja_fechada' | 'sem_comanda' | 'valor_diferente' | 'caixa_fechado' | 'erro'> {
+    try {
+      const existente = await comandasRepository.findComandaByAppointment(a.appointmentId, a.businessId);
+      if (!existente) return 'sem_comanda';
+      const dto = await comandasService.get(existente.id, a.businessId);
+      if (dto.status === 'fechada') return 'ja_fechada';
+      if (Math.round(a.valor * 100) !== Math.round(dto.calc.totalCharged * 100)) return 'valor_diferente';
+      if (!a.userId) return 'erro';
+      await comandasService.close(existente.id, a.businessId, a.userId, {
+        extras: dto.items.filter((i) => !i.isMain && i.refId).map((i) => ({ kind: i.kind, id: i.refId as string, quantity: i.quantity })),
+        discount: dto.discount, tip: dto.tip, paymentMethod: a.forma ?? dto.paymentMethod,
+        ...(dto.cobertura.disponivel ? { usarCobertura: dto.cobertura.usando } : {}),
+      });
+      return 'fechada';
+    } catch (e) {
+      if (e instanceof AppError && (e.code === 'CASH_CLOSED' || e.code === 'CASH_ALREADY_CLOSED')) return 'caixa_fechado';
+      logger.warn({ err: e, appointmentId: a.appointmentId }, 'Comanda: falha ao fechar por pagamento confirmado');
+      return 'erro';
+    }
   },
 
   async resendReceipt(id: string, businessId: string): Promise<{ sent: boolean }> {

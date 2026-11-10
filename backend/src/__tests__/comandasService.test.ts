@@ -28,6 +28,8 @@ vi.mock('../modules/whatsapp/whatsapp.service.js', () => ({ whatsappService: { g
 vi.mock('../services/scheduleSettingsService.js', () => ({ getBusinessScheduleSettings: vi.fn().mockResolvedValue({ timezone: 'America/Sao_Paulo' }) }));
 const clube = vi.hoisted(() => ({ cobertura: vi.fn() }));
 vi.mock('../modules/clube/clube.service.js', () => ({ clubeService: clube }));
+const rec = vi.hoisted(() => ({ cobrancaSaldoPendente: vi.fn() }));
+vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({ recebimentosRepository: rec }));
 vi.mock('../config/prisma.js', () => ({ prisma: { business: { findUnique: vi.fn().mockResolvedValue({ name: 'Studio Aurora' }) } } }));
 
 const { comandasService, RECEIPT_TIMEOUT_MS } = await import('../modules/comandas/comandas.service.js');
@@ -55,6 +57,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.useRealTimers();
   repo.saveDraft.mockResolvedValue(true);
+  rec.cobrancaSaldoPendente.mockResolvedValue(false);
   settings.get.mockResolvedValue({ serviceCommissionPct: 50, productCommissionPct: 20 });
   repo.findActiveServicesByIds.mockResolvedValue([]);
   products.findActiveByIds.mockResolvedValue([]);
@@ -350,5 +353,63 @@ describe('Pix da comanda (saldo a cobrar no balcão)', () => {
   it('comanda fechada: não gera código', async () => {
     repo.findComandaById.mockResolvedValue(comanda({ status: 'fechada' }));
     await expect(comandasService.gerarPix('k1', 'b1', entrada)).rejects.toMatchObject({ statusCode: 409 });
+  });
+});
+
+describe('cobrança do saldo na comanda', () => {
+  const entrada = { extras: [], discount: 0, tip: 0, paymentMethod: 'pix' as const };
+
+  it('com cobrança pendente a comanda não pode ser alterada nem fechada', async () => {
+    repo.findComandaById.mockResolvedValue(comanda());
+    rec.cobrancaSaldoPendente.mockResolvedValue(true);
+    await expect(comandasService.save('k1', 'b1', entrada)).rejects.toMatchObject({ statusCode: 409, code: 'COBRANCA_EM_ANDAMENTO' });
+    await expect(comandasService.close('k1', 'b1', 'u1', entrada)).rejects.toMatchObject({ code: 'COBRANCA_EM_ANDAMENTO' });
+    expect(repo.saveDraft).not.toHaveBeenCalled();
+    expect(repo.closeComandaTx).not.toHaveBeenCalled();
+    expect(rec.cobrancaSaldoPendente).toHaveBeenCalledWith('a1', expect.any(Date));
+  });
+
+  describe('fecharPorPagamento', () => {
+    const args = { appointmentId: 'a1', businessId: 'b1', userId: 'u1', valor: 80, forma: 'pix' as const };
+    beforeEach(() => {
+      repo.findComandaByAppointment.mockResolvedValue({ id: 'k1' });
+      repo.findComandaById.mockResolvedValue(comanda());
+      repo.findCashSession.mockResolvedValue({ id: 'cx1', closedAt: null });
+      repo.closeComandaTx.mockResolvedValue(true);
+    });
+
+    it('fecha a comanda com a forma paga e quem iniciou a cobrança', async () => {
+      expect(await comandasService.fecharPorPagamento(args)).toBe('fechada');
+      expect(repo.closeComandaTx).toHaveBeenCalledWith(expect.objectContaining({ paymentMethod: 'pix', userId: 'u1', appointmentId: 'a1' }));
+    });
+
+    it('comanda já fechada: não fecha de novo', async () => {
+      repo.findComandaById.mockResolvedValue(comanda({ status: 'fechada' }));
+      expect(await comandasService.fecharPorPagamento(args)).toBe('ja_fechada');
+      expect(repo.closeComandaTx).not.toHaveBeenCalled();
+    });
+
+    it('valor pago diferente do saldo (em centavos): não fecha', async () => {
+      expect(await comandasService.fecharPorPagamento({ ...args, valor: 79.99 })).toBe('valor_diferente');
+      expect(repo.closeComandaTx).not.toHaveBeenCalled();
+    });
+
+    it('caixa não aberto ou já fechado: não lança, devolve caixa_fechado', async () => {
+      repo.findCashSession.mockResolvedValue(null);
+      expect(await comandasService.fecharPorPagamento(args)).toBe('caixa_fechado');
+      repo.findCashSession.mockResolvedValue({ id: 'cx1', closedAt: new Date() });
+      expect(await comandasService.fecharPorPagamento(args)).toBe('caixa_fechado');
+      expect(repo.closeComandaTx).not.toHaveBeenCalled();
+    });
+
+    it('sem quem iniciou a cobrança: erro, sem fechar', async () => {
+      expect(await comandasService.fecharPorPagamento({ ...args, userId: null })).toBe('erro');
+      expect(repo.closeComandaTx).not.toHaveBeenCalled();
+    });
+
+    it('sem comanda para o agendamento', async () => {
+      repo.findComandaByAppointment.mockResolvedValue(null);
+      expect(await comandasService.fecharPorPagamento(args)).toBe('sem_comanda');
+    });
   });
 });
