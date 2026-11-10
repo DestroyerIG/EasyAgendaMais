@@ -48,7 +48,7 @@ export const GATEWAYS: GatewayCatalogo[] = [
       },
       {
         titulo: 'Cadastre uma chave Pix na conta',
-        texto: 'No app ou no site do Mercado Pago, cadastre uma chave Pix na conta. Essa é a chave da conta do Mercado Pago, não a de "Minha página".',
+        texto: 'No app ou no site do Mercado Pago, cadastre uma chave Pix na conta. Essa é a chave da conta do Mercado Pago, não a do Pix do sinal em Recebimentos.',
         links: [{ rotulo: 'Abrir o Mercado Pago', url: URL_MERCADO_PAGO }],
       },
       {

@@ -59,6 +59,6 @@ export function primeirosPassos(b: {
   const passos: PrimeiroPasso[] = [];
   if (!b.slug) passos.push({ id: 'pagina', titulo: 'Publicar sua página de agendamento', href: '/minha-pagina' });
   if (!b.whatsappConectado) passos.push({ id: 'whatsapp', titulo: 'Conectar o WhatsApp', href: '/whatsapp' });
-  if (b.temSinal && !b.temChavePix) passos.push({ id: 'pix', titulo: 'Cadastrar a chave Pix para receber o sinal', href: '/minha-pagina' });
+  if (b.temSinal && !b.temChavePix) passos.push({ id: 'pix', titulo: 'Cadastrar a chave Pix para receber o sinal', href: '/configuracoes/recebimentos' });
   return passos;
 }

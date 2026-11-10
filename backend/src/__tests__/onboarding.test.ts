@@ -74,6 +74,7 @@ describe('regras do onboarding', () => {
   it('primeiros passos: página, WhatsApp e Pix só quando há sinal', () => {
     expect(rules.primeirosPassos({ slug: null, whatsappConectado: false, temChavePix: false, temSinal: false }).map((p) => p.id)).toEqual(['pagina', 'whatsapp']);
     expect(rules.primeirosPassos({ slug: 'x', whatsappConectado: true, temChavePix: false, temSinal: true }).map((p) => p.id)).toEqual(['pix']);
+    expect(rules.primeirosPassos({ slug: 'x', whatsappConectado: true, temChavePix: false, temSinal: true })[0]!.href).toBe('/configuracoes/recebimentos');
     expect(rules.primeirosPassos({ slug: 'x', whatsappConectado: true, temChavePix: true, temSinal: true })).toEqual([]);
   });
 

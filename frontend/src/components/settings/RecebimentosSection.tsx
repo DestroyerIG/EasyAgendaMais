@@ -6,9 +6,11 @@ import { Skeleton, Card } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { GATEWAYS } from '@/components/recebimentos/catalogo';
 import { GatewayLogo } from '@/components/recebimentos/GatewayLogo';
+import { PixManualCard } from '@/components/recebimentos/PixManualCard';
 import { recebimentosApi, type EstadoRecebimentos } from '@/lib/recebimentos';
 
-// Ajustes › Recebimentos: um cartão por gateway. Só a dona vê, e só com a integração configurada.
+// Ajustes › Recebimentos: a chave Pix do sinal e, com a integração configurada, um cartão por gateway.
+// Só a dona vê.
 export function RecebimentosSection() {
   const { user } = useAuth();
   const ehDona = user?.role === 'tenant_admin';
@@ -24,13 +26,21 @@ export function RecebimentosSection() {
   }, [ehDona]);
 
   if (!ehDona) return null;
-  if (estado === null) return <Skeleton className="h-28 w-full" label="Carregando recebimentos..." />;
-  if (!estado.configurado) return null;
 
+  return (
+    <div className="space-y-4">
+      <PixManualCard />
+      {estado === null && <Skeleton className="h-28 w-full" label="Carregando recebimentos..." />}
+      {estado?.configurado && <Gateways estado={estado} />}
+    </div>
+  );
+}
+
+function Gateways({ estado }: { estado: EstadoRecebimentos }) {
   return (
     <Card className="space-y-4">
       <div>
-        <h2 className="text-lg font-bold text-ink">Recebimentos</h2>
+        <h2 className="text-lg font-bold text-ink">Confirmação automática</h2>
         <p className="mt-1 text-[15px] text-muted">Conecte uma conta para o sinal ser confirmado sozinho, sem você conferir o Pix.</p>
       </div>
       <ul className="grid gap-3 sm:grid-cols-2">

@@ -23,21 +23,24 @@ vi.mock('@/contexts/AuthContext', () => ({
 }));
 
 describe('PublicPageSettingsForm', () => {
-  it('salva o slug e a chave Pix ao enviar o formulário', async () => {
+  it('salva o slug ao enviar o formulário, sem mexer na chave Pix', async () => {
     const user = userEvent.setup();
     render(<PublicPageSettingsForm />);
 
     await waitFor(() => expect(businessPublicPageApi.getSettings).toHaveBeenCalled());
 
     await user.type(screen.getByLabelText(/link da sua página/i), 'studio-aurora');
-    await user.type(screen.getByLabelText(/^chave pix$/i), '83999990000');
     await user.click(screen.getByRole('button', { name: /salvar alterações/i }));
 
     await waitFor(() => {
       expect(businessPublicPageApi.updateSettings).toHaveBeenCalledWith(
-        expect.objectContaining({ slug: 'studio-aurora', pixKey: '83999990000' })
+        expect.objectContaining({ slug: 'studio-aurora' })
       );
     });
+    expect(screen.queryByLabelText(/^chave pix$/i)).not.toBeInTheDocument();
+    const enviado = (businessPublicPageApi.updateSettings as unknown as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0];
+    expect(enviado).not.toHaveProperty('pixKey');
+    expect(enviado).not.toHaveProperty('pixKeyType');
   });
 
   it('mostra "Disponível" quando o slug digitado não está em uso', async () => {

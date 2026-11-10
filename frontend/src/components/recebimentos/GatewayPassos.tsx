@@ -289,7 +289,7 @@ export function GatewayPassos({ gatewayId }: { gatewayId: string }) {
               ? `Você tem ${c.reservasPendentes} ${c.reservasPendentes === 1 ? 'reserva pendente' : 'reservas pendentes'}. Elas ficam na aba Aguardando Pix, para você confirmar manualmente.`
               : 'Você não tem reservas pendentes.'}
           </p>
-          <p className="text-muted">Os novos agendamentos voltam a usar a chave Pix de &quot;Minha página&quot;, com confirmação manual.</p>
+          <p className="text-muted">Os novos agendamentos voltam a usar a chave Pix do sinal, de Ajustes › Recebimentos, com confirmação manual.</p>
         </div>
       </Modal>
     </div>
