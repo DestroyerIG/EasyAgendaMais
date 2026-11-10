@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createHmac, randomBytes } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import {
-  assinarEstado, centavos, decidirPagamento, backendUrl, desafioPkce, gatewayDisponivel, horarioJaPassou, lerEstado, recebimentosConfigurado,
+  assinarEstado, centavos, decidirPagamento, decidirSaldo, backendUrl, desafioPkce, gatewayDisponivel, horarioJaPassou, lerEstado, recebimentosConfigurado,
   tokenPertoDeVencer, verificadorPkce,
 } from '../modules/recebimentos/recebimentos.rules.js';
 import { cifrarCom, decifrarCom } from '../utils/cifra.js';
@@ -178,5 +178,50 @@ describe('regras dos recebimentos', () => {
     expect(c).not.toContain('APP_USR');
     expect(decifrarCom(chave, c)).toBe('APP_USR-token');
     expect(() => decifrarCom(randomBytes(32), c)).toThrow();
+  });
+});
+
+describe('decidirSaldo', () => {
+  const cob = (over: Record<string, unknown> = {}) => ({ id: 'c1', situacao: 'pendente', valor: '80.00', pagamentoExternoId: null, ...over });
+  const pag = (over: Record<string, unknown> = {}) => ({
+    id: 'p1', status: 'approved', valor: 80, referencia: 'c1', formaPaga: 'pix' as const, ...over,
+  });
+
+  it('pagamento de outra referência é ignorado', () => {
+    expect(decidirSaldo({ cobranca: cob(), pagamento: pag({ referencia: 'outra' }) })).toBe('ignorar');
+  });
+
+  it('aprovado com o valor do saldo quita, mesmo em cobrança já vencida ou substituída', () => {
+    for (const situacao of ['pendente', 'expirada', 'substituida', 'recusada']) {
+      expect(decidirSaldo({ cobranca: cob({ situacao }), pagamento: pag() }), situacao).toBe('quitar');
+    }
+  });
+
+  it('compara o valor em centavos (80 contra "80.00")', () => {
+    expect(decidirSaldo({ cobranca: cob({ valor: '80.00' }), pagamento: pag({ valor: 80 }) })).toBe('quitar');
+    expect(decidirSaldo({ cobranca: cob({ valor: '80.10' }), pagamento: pag({ valor: 80 }) })).toBe('alertar_valor_diferente');
+  });
+
+  it('aprovado de valor diferente do saldo alerta em vez de ignorar', () => {
+    expect(decidirSaldo({ cobranca: cob(), pagamento: pag({ valor: 79.99 }) })).toBe('alertar_valor_diferente');
+  });
+
+  it('cobrança já paga: o mesmo pagamento é ignorado, outro vira duplicado', () => {
+    expect(decidirSaldo({ cobranca: cob({ situacao: 'paga', pagamentoExternoId: 'p1' }), pagamento: pag() })).toBe('ignorar');
+    expect(decidirSaldo({ cobranca: cob({ situacao: 'paga', pagamentoExternoId: 'p0' }), pagamento: pag() })).toBe('alertar_duplicado');
+  });
+
+  it('recusado só marca cobrança pendente', () => {
+    expect(decidirSaldo({ cobranca: cob(), pagamento: pag({ status: 'rejected' }) })).toBe('marcar_recusada');
+    expect(decidirSaldo({ cobranca: cob({ situacao: 'paga' }), pagamento: pag({ status: 'rejected' }) })).toBe('ignorar');
+  });
+
+  it('devolvido e contestado viram marcas de estorno, qualquer que seja a situação', () => {
+    expect(decidirSaldo({ cobranca: cob({ situacao: 'paga' }), pagamento: pag({ status: 'refunded' }) })).toBe('marcar_devolvida');
+    expect(decidirSaldo({ cobranca: cob({ situacao: 'paga' }), pagamento: pag({ status: 'charged_back' }) })).toBe('marcar_contestada');
+  });
+
+  it('pagamento ainda pendente no gateway não muda nada', () => {
+    expect(decidirSaldo({ cobranca: cob(), pagamento: pag({ status: 'pending' }) })).toBe('ignorar');
   });
 });
