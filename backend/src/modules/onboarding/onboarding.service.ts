@@ -90,8 +90,9 @@ export const onboardingService = {
   async salvarRecebimentos(businessId: string, d: RecebimentosInput) {
     const b = await carregar(businessId);
     if (b.onboardingEtapa < 4) throw new ConflictError('Conclua a etapa "Serviços" antes');
-    if (precisaDeFormaDeReceber(d.servicos) && !b.pixKey && !d.chavePix && !(await repo.conexaoAtiva(businessId))) {
-      throw new ValidationError('Escolha como receber o sinal', ['Conecte uma conta ou informe a chave Pix, ou tire o sinal dos serviços.']);
+    // A página pública sempre monta o Pix do sinal pela chave; com uma conta conectada, ela é a reserva.
+    if (precisaDeFormaDeReceber(d.servicos) && !b.pixKey && !d.chavePix) {
+      throw new ValidationError('Cadastre a chave Pix para cobrar o sinal', ['O sinal usa a chave Pix; com uma conta conectada, ela serve de reserva.']);
     }
     await repo.salvarRecebimentos(businessId, d);
     return this.ver(businessId);

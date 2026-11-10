@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
   salvarRecebimentos: vi.fn(),
   confirmar: vi.fn(),
   googleConexao: vi.fn(),
+  googleConfirmar: vi.fn(),
 }));
 
 vi.mock('next/navigation', async (orig) => ({
@@ -47,7 +48,7 @@ vi.mock('@/lib/recebimentos', async (orig) => {
 
 vi.mock('@/lib/googleAgenda', async (orig) => {
   const real = await orig<typeof import('@/lib/googleAgenda')>();
-  return { ...real, googleAgendaApi: { ...real.googleAgendaApi, conexao: mocks.googleConexao, conectar: vi.fn(), confirmar: vi.fn() } };
+  return { ...real, googleAgendaApi: { ...real.googleAgendaApi, conexao: mocks.googleConexao, conectar: vi.fn(), confirmar: mocks.googleConfirmar } };
 });
 
 mocks.router = { push: vi.fn(), replace: mocks.replace, prefetch: vi.fn(), back: vi.fn(), forward: vi.fn(), refresh: vi.fn() };
@@ -179,6 +180,18 @@ describe('OnboardingFlow', () => {
     expect(screen.queryByRole('button', { name: 'Conectar Google Agenda' })).not.toBeInTheDocument();
   });
 
+  it('volta do Google com etapa salva 3 abre Horários e entrega ?google=&t= ao cartão', async () => {
+    window.history.pushState({}, '', '/onboarding?google=confirmar&t=abc');
+    mocks.googleConfirmar.mockResolvedValue({ configurado: true, conexao: null });
+    mocks.ver.mockResolvedValue(dados(3));
+    mocks.catalogo.mockResolvedValue([]);
+    renderFluxo();
+    expect(await screen.findByText(TITULO_HORARIOS)).toBeInTheDocument();
+    // O fluxo não mexe nos parâmetros: o cartão do Google Agenda recebe o t, confirma e limpa a URL.
+    await waitFor(() => expect(mocks.googleConfirmar).toHaveBeenCalledWith('abc'));
+    expect(mocks.salvarHorarios).not.toHaveBeenCalled();
+  });
+
   it('erro ao salvar mantém a etapa', async () => {
     const user = userEvent.setup();
     mocks.ver.mockResolvedValue(dados(2));
@@ -251,13 +264,18 @@ describe('OnboardingFlow', () => {
       ['em StrictMode', (ui: React.ReactElement) => <StrictMode>{ui}</StrictMode>],
     ])('retorno do Mercado Pago confirma uma única vez (%s), avisa e limpa a URL', async (_n, envolver) => {
       window.history.pushState({}, '', '/onboarding?recebimento=confirmar&t=abc');
-      const conectado = dados(4);
+      const servicos = [{ id: 's1', nome: 'Corte', duracaoMinutos: 30, preco: 50, sinalPct: null }];
+      const antes = { ...dados(4), servicos };
+      const conectado = { ...dados(4), servicos };
       conectado.recebimentos = { temChavePix: false, conexao: { gateway: 'mercadopago', contaNome: 'Conta Teste', situacao: 'ativa' } as never };
-      mocks.ver.mockResolvedValueOnce(dados(4)).mockResolvedValue(conectado);
+      mocks.ver.mockResolvedValueOnce(antes).mockResolvedValue(conectado);
       mocks.confirmar.mockResolvedValue({});
       render(envolver(<ToastProvider><OnboardingFlow /></ToastProvider>));
       expect(await screen.findByText('Mercado Pago conectado.')).toBeInTheDocument();
       expect((await screen.findAllByText('Conectado')).length).toBeGreaterThan(0);
+      // A conexão chega depois da primeira carga: o Mercado Pago fica marcado e a lista de sinal aparece.
+      expect(screen.getByRole('button', { name: /^Mercado Pago/ })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByText('Quais serviços exigem sinal?')).toBeInTheDocument();
       expect(mocks.ver.mock.calls.length).toBeGreaterThanOrEqual(2);
       expect(mocks.confirmar).toHaveBeenCalledTimes(1);
       expect(mocks.confirmar).toHaveBeenCalledWith('abc');

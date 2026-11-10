@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { Banner, Button, Field, Icon, Input, Select } from '@/components/ui';
 import { CascaOnboarding } from './CascaOnboarding';
@@ -16,15 +16,21 @@ import { cn } from '@/lib/cn';
 
 export type EscolhaRecebimento = 'mercadopago' | 'infinitepay' | 'pix' | 'nenhum';
 
-/** Mensagem do problema que impede seguir (null = pode continuar). */
+/**
+ * Mensagem do problema que impede seguir (null = pode continuar). O sinal sempre precisa de uma chave Pix
+ * (digitada agora ou já salva): a página pública monta o Pix por ela, e com uma conta conectada ela é a reserva.
+ */
 export function erroDosRecebimentos(a: {
-  escolha: EscolhaRecebimento | null; conectado: boolean; chave: string; servicosComSinal: number;
+  escolha: EscolhaRecebimento | null; conectado: boolean; chave: string; servicosComSinal: number; temChavePix?: boolean;
 }): string | null {
+  const temChave = !!a.chave.trim() || !!a.temChavePix;
   if (!a.escolha) return 'Escolha como receber ou toque em Configurar depois.';
-  if (a.escolha === 'pix' && !a.chave.trim()) return 'Informe a chave Pix.';
+  if (a.escolha === 'nenhum') return null;
+  if (a.escolha === 'pix' && !temChave) return 'Informe a chave Pix.';
   if ((a.escolha === 'mercadopago' || a.escolha === 'infinitepay') && !a.conectado && a.servicosComSinal > 0) {
     return 'Conecte a conta para cobrar o sinal.';
   }
+  if (a.servicosComSinal > 0 && !temChave) return 'Informe a chave Pix para cobrar o sinal.';
   return null;
 }
 
@@ -65,12 +71,23 @@ export function EtapaRecebimentos({ servicos, recebimentos, salvando, onVoltar, 
   const [indo, setIndo] = useState(false);
   const [erroConectar, setErroConectar] = useState<string | null>(null);
 
+  // Na volta do Mercado Pago a conexão chega depois da primeira carga: marca o gateway que acabou de conectar,
+  // sem apagar o que já foi digitado.
+  const gatewayConectado = conexao?.gateway ?? null;
+  const gatewayAnterior = useRef(gatewayConectado);
+  useEffect(() => {
+    if (gatewayConectado && gatewayConectado !== gatewayAnterior.current) setEscolha(gatewayConectado);
+    gatewayAnterior.current = gatewayConectado;
+  }, [gatewayConectado]);
+
   const conectado = ehGateway(escolha) && conexao?.gateway === escolha && conexao.situacao === 'ativa';
   // Quem já tem chave Pix salva pode seguir sem digitar de novo; a chave só vai se for preenchida.
-  const chaveEfetiva = chave.trim() || (recebimentos.temChavePix ? 'salva' : '');
-  const temFormaDeReceber = conectado || (escolha === 'pix' && !!chaveEfetiva);
+  const temChave = !!chave.trim() || recebimentos.temChavePix;
+  const temFormaDeReceber = conectado || (escolha === 'pix' && temChave);
   const comSinal = escolha === 'nenhum' ? 0 : servicos.filter((s) => sinais[s.id]?.marcado).length;
-  const erro = erroDosRecebimentos({ escolha, conectado, chave: chaveEfetiva, servicosComSinal: comSinal });
+  // Sinais já salvos ficam à vista mesmo sem forma de receber, para poderem ser desmarcados.
+  const mostrarSinais = !!escolha && escolha !== 'nenhum' && servicos.length > 0 && (temFormaDeReceber || comSinal > 0);
+  const erro = erroDosRecebimentos({ escolha, conectado, chave, servicosComSinal: comSinal, temChavePix: recebimentos.temChavePix });
 
   const mudarSinal = (id: string, patch: Partial<Sinal>) =>
     setSinais((atual) => ({ ...atual, [id]: { ...atual[id], ...patch } }));
@@ -89,7 +106,7 @@ export function EtapaRecebimentos({ servicos, recebimentos, salvando, onVoltar, 
 
   const salvar = () => {
     onSalvar({
-      ...(escolha === 'pix' && chave.trim() ? { chavePix: { chave: chave.trim(), tipo } } : {}),
+      ...(escolha !== 'nenhum' && chave.trim() ? { chavePix: { chave: chave.trim(), tipo } } : {}),
       servicos: servicos.map((s) => {
         const sinal = sinais[s.id];
         return { id: s.id, sinalPct: escolha !== 'nenhum' && sinal?.marcado ? pctValido(sinal.pct) : null };
@@ -151,7 +168,7 @@ export function EtapaRecebimentos({ servicos, recebimentos, salvando, onVoltar, 
           onEscolher={() => setEscolha('nenhum')}
           visual={<IconeOpcao nome="money_off" />}
           titulo="Não vou cobrar sinal agora"
-          texto="Os horários são reservados sem pagamento antecipado."
+          texto="Você pode configurar o sinal depois, em Ajustes › Recebimentos."
         />
       </div>
 
@@ -182,9 +199,14 @@ export function EtapaRecebimentos({ servicos, recebimentos, salvando, onVoltar, 
         />
       )}
 
-      {escolha === 'pix' && (
+      {escolha && escolha !== 'nenhum' && (
         <section className="space-y-3 rounded-card border border-line bg-surface p-4">
-          <h2 className="text-[15px] font-bold text-ink">Sua chave Pix</h2>
+          <div>
+            <h2 className="text-[15px] font-bold text-ink">{escolha === 'pix' ? 'Sua chave Pix' : 'Chave Pix (reserva)'}</h2>
+            {escolha !== 'pix' && (
+              <p className="text-[14px] text-muted">Sua página usa a chave Pix como reserva e para o cliente que prefere pagar direto.</p>
+            )}
+          </div>
           {recebimentos.temChavePix && (
             <p className="text-[14px] text-muted">Você já tem uma chave Pix salva. Preencha só se quiser trocar.</p>
           )}
@@ -194,7 +216,7 @@ export function EtapaRecebimentos({ servicos, recebimentos, salvando, onVoltar, 
                 {TIPOS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
               </Select>
             </Field>
-            <Field id="onb-pix-chave" label="Chave Pix">
+            <Field id="onb-pix-chave" label={escolha === 'pix' ? 'Chave Pix' : 'Chave Pix (reserva)'}>
               <Input
                 id="onb-pix-chave" value={chave} onChange={(e) => setChave(e.target.value)}
                 autoComplete="off" autoCapitalize="none" spellCheck={false}
@@ -204,7 +226,7 @@ export function EtapaRecebimentos({ servicos, recebimentos, salvando, onVoltar, 
         </section>
       )}
 
-      {temFormaDeReceber && servicos.length > 0 && (
+      {mostrarSinais && (
         <section className="space-y-3">
           <div>
             <h2 className="text-lg font-bold text-ink">Quais serviços exigem sinal?</h2>

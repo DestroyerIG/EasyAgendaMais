@@ -118,10 +118,6 @@ export const onboardingRepository = {
     return prisma.conexaoRecebimento.findUnique({ where: { businessId }, select: { gateway: true, contaNome: true, situacao: true } });
   },
 
-  async conexaoAtiva(businessId: string) {
-    return (await prisma.conexaoRecebimento.count({ where: { businessId, situacao: 'ativa' } })) > 0;
-  },
-
   concluir(businessId: string) {
     return prisma.business.updateMany({
       where: { id: businessId, onboardingConcluidoEm: null },

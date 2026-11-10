@@ -57,7 +57,7 @@ Abre sozinho no primeiro acesso de uma conta nova (`/onboarding`). São 6 etapas
 1. **Seu negócio:** segmento em cartões e "Atendo sozinha" ou "Tenho equipe". "Atendo sozinha" já cria o cadastro de profissional com o nome da responsável.
 2. **Horários:** dias abertos, abertura e fechamento, intervalo da agenda e pausa de almoço. Traz o card opcional "Já usa o Google Agenda?" (só a dona, em qualquer plano).
 3. **Serviços:** lista sugerida do segmento, com nome, duração, preço e sinal (%) editáveis. O sinal dos serviços é definido na etapa Recebimentos.
-4. **Recebimentos:** explica o sinal e a dona escolhe como recebe: Mercado Pago, InfinitePay (conexão de verdade), Asaas ou PagBank ("Em breve"), chave Pix manual ou "Não vou cobrar sinal agora". Depois escolhe quais serviços pedem sinal e a porcentagem de cada um (padrão 30%). Pode ser pulada com "Configurar depois". A volta da autorização do Mercado Pago cai de novo em `/onboarding`.
+4. **Recebimentos:** explica o sinal e a dona escolhe como recebe: Mercado Pago, InfinitePay (conexão de verdade), Asaas ou PagBank ("Em breve"), chave Pix manual ou "Não vou cobrar sinal agora". Depois escolhe quais serviços pedem sinal e a porcentagem de cada um (padrão 30%). O sinal sempre exige a chave Pix: com Mercado Pago ou InfinitePay conectado, ela fica como reserva e para o cliente que prefere pagar direto. Pode ser pulada com "Configurar depois". A volta da autorização do Mercado Pago cai de novo em `/onboarding`.
 5. **Sua página:** endereço (slug), logo, cor e até 6 fotos.
 6. **WhatsApp e link:** QR da conexão e o link da página para compartilhar.
 

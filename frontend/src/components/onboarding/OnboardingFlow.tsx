@@ -51,6 +51,8 @@ export function OnboardingFlow() {
         setSlugPublicado(d.pagina.slug);
 
         const params = new URLSearchParams(window.location.search);
+        // A volta do Google cai na etapa 2, onde o cartão da agenda confirma e limpa ?google=&t=.
+        if (params.get('google') && d.estado.etapa >= 2) setEtapa(2);
         const retorno = params.get('recebimento');
         if (!retorno || retornoTratado.current) return;
         retornoTratado.current = true;

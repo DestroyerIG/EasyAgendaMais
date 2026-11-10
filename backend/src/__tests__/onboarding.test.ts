@@ -6,7 +6,7 @@ vi.mock('../config/prisma.js', () => ({ prisma: {} }));
 const repo = vi.hoisted(() => ({
   estado: vi.fn(), salvarNegocio: vi.fn(), salvarHorarios: vi.fn(), salvarServicos: vi.fn(), concluir: vi.fn(),
   dispensarPrimeirosPassos: vi.fn(), slugEmUso: vi.fn(), resumo: vi.fn(),
-  salvarRecebimentos: vi.fn(), conexaoAtiva: vi.fn(), conexao: vi.fn(),
+  salvarRecebimentos: vi.fn(), conexao: vi.fn(),
 }));
 vi.mock('../modules/onboarding/onboarding.repository.js', () => ({ onboardingRepository: repo }));
 vi.mock('../middleware/auth.js', () => ({
@@ -44,7 +44,6 @@ beforeEach(() => {
   repo.estado.mockResolvedValue(negocio());
   repo.slugEmUso.mockResolvedValue(false);
   repo.conexao.mockResolvedValue(null);
-  repo.conexaoAtiva.mockResolvedValue(false);
 });
 
 describe('regras do onboarding', () => {
@@ -138,7 +137,7 @@ describe('serviço do onboarding', () => {
   it('recebimentos: sinal sem chave e sem conexão é recusado', async () => {
     repo.estado.mockResolvedValue(negocio({ onboardingEtapa: 4 }));
     const d = { servicos: [{ id: '3b1f5d6e-1111-4222-8333-444455556666', sinalPct: 30 }] };
-    await expect(onboardingService.salvarRecebimentos('b1', d)).rejects.toThrow('Escolha como receber o sinal');
+    await expect(onboardingService.salvarRecebimentos('b1', d)).rejects.toThrow('Cadastre a chave Pix para cobrar o sinal');
     expect(repo.salvarRecebimentos).not.toHaveBeenCalled();
   });
 
@@ -149,15 +148,23 @@ describe('serviço do onboarding', () => {
     expect(repo.salvarRecebimentos).toHaveBeenCalledWith('b1', d);
   });
 
-  it('recebimentos: conexão ativa dispensa a chave; chave já salva também', async () => {
+  it('recebimentos: conexão ativa sem chave Pix é recusada (a chave é a reserva)', async () => {
     repo.estado.mockResolvedValue(negocio({ onboardingEtapa: 4 }));
-    repo.conexaoAtiva.mockResolvedValue(true);
+    repo.conexao.mockResolvedValue({ gateway: 'mercadopago', contaNome: 'Studio', situacao: 'ativa' });
     const d = { servicos: [{ id: '3b1f5d6e-1111-4222-8333-444455556666', sinalPct: 30 }] };
-    await onboardingService.salvarRecebimentos('b1', d);
-    expect(repo.salvarRecebimentos).toHaveBeenCalledTimes(1);
-    repo.conexaoAtiva.mockResolvedValue(false);
+    await expect(onboardingService.salvarRecebimentos('b1', d)).rejects.toThrow('Cadastre a chave Pix para cobrar o sinal');
+    expect(repo.salvarRecebimentos).not.toHaveBeenCalled();
+  });
+
+  it('recebimentos: conexão ativa com chave enviada agora ou já salva grava', async () => {
+    repo.estado.mockResolvedValue(negocio({ onboardingEtapa: 4 }));
+    repo.conexao.mockResolvedValue({ gateway: 'mercadopago', contaNome: 'Studio', situacao: 'ativa' });
+    const servicos = [{ id: '3b1f5d6e-1111-4222-8333-444455556666', sinalPct: 30 }];
+    const comChave = { servicos, chavePix: { chave: 'a@b.com', tipo: 'email' as const } };
+    await onboardingService.salvarRecebimentos('b1', comChave);
+    expect(repo.salvarRecebimentos).toHaveBeenCalledWith('b1', comChave);
     repo.estado.mockResolvedValue(negocio({ onboardingEtapa: 4, pixKey: 'x@y.com' }));
-    await onboardingService.salvarRecebimentos('b1', d);
+    await onboardingService.salvarRecebimentos('b1', { servicos });
     expect(repo.salvarRecebimentos).toHaveBeenCalledTimes(2);
   });
 
