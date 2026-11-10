@@ -92,13 +92,41 @@ describe('AppShell', () => {
     renderShell();
     const bottom = screen.getByRole('navigation', { name: 'Navegação inferior' });
     const links = within(bottom).getAllByRole('link');
-    expect(links).toHaveLength(4);
+    expect(links).toHaveLength(3);
     expect(links[0]).toHaveTextContent('Hoje');
     expect(links[1]).toHaveTextContent('Agenda');
-    expect(links[2]).toHaveAttribute('aria-label', 'Novo agendamento');
-    expect(links[2]).toHaveAttribute('href', '/agendamentos?novo=1');
-    expect(links[3]).toHaveTextContent('Clientes');
+    expect(links[2]).toHaveTextContent('Clientes');
+    expect(within(bottom).getByRole('button', { name: 'Criar novo' })).toHaveAttribute('aria-expanded', 'false');
     expect(within(bottom).getByRole('button', { name: 'Mais' })).toBeInTheDocument();
+  });
+
+  it('o + abre dois balões: novo agendamento e novo cliente', async () => {
+    renderShell();
+    expect(screen.queryByRole('link', { name: 'Novo agendamento' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Novo cliente' })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Criar novo' }));
+
+    expect(screen.getByRole('button', { name: 'Criar novo' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: 'Novo agendamento' })).toHaveAttribute('href', '/agendamentos?novo=1');
+    expect(screen.getByRole('link', { name: 'Novo cliente' })).toHaveAttribute('href', '/clientes?novo=1');
+  });
+
+  it('os balões fecham com Esc, com toque no fundo e ao escolher uma opção', async () => {
+    renderShell();
+    const abrir = screen.getByRole('button', { name: 'Criar novo' });
+
+    await userEvent.click(abrir);
+    await userEvent.keyboard('{Escape}');
+    expect(abrir).toHaveAttribute('aria-expanded', 'false');
+
+    await userEvent.click(abrir);
+    await userEvent.click(screen.getByTestId('fundo-baloes'));
+    expect(abrir).toHaveAttribute('aria-expanded', 'false');
+
+    await userEvent.click(abrir);
+    await userEvent.click(screen.getByRole('link', { name: 'Novo cliente' }));
+    expect(abrir).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('menu Mais tem Caixa, Clube e pacotes, WhatsApp, Relatórios, Minha página, Configurações, tema e Sair', async () => {
