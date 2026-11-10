@@ -11,7 +11,7 @@ import {
   assinarState, conexaoEfetiva, conexoesQueVeem, deveTerEvento, faixasDoDia, lerState, montarEvento,
   type AgendamentoSync, type ConexaoSync, type Para,
 } from './googleAgenda.rules.js';
-import type { UsuarioLogado } from './googleAgenda.types.js';
+import type { OrigemGoogle, UsuarioLogado } from './googleAgenda.types.js';
 
 // Google Agenda (fase 7): a dona conecta a agenda do negócio, cada profissional conecta a dela.
 
@@ -82,14 +82,14 @@ async function sincronizarConexao(c: ConexaoComToken, agendamentos: AgendamentoS
 }
 
 export const googleAgendaService = {
-  conectarUrl(user: UsuarioLogado, para: Para): { url: string } {
+  conectarUrl(user: UsuarioLogado, para: Para, origem: OrigemGoogle = 'ajustes'): { url: string } {
     if (!googleConfigurado()) throw new NotFoundError('Google Agenda');
     if (para === 'negocio' && user.role !== 'tenant_admin') throw new ForbiddenError('Só a dona conecta a agenda do negócio');
     if (para === 'profissional' && user.role !== 'professional') throw new ForbiddenError('Conecte pelo app da profissional');
     if (para === 'profissional' && conexaoEfetiva({ tipo: 'profissional', status: 'ativa' }, user.plan) === 'pausada_plano') {
       throw new ForbiddenError('O app da profissional faz parte dos planos Equipe e Salão');
     }
-    return { url: googleApi.urlConsentimento(assinarState(user.userId, para)) };
+    return { url: googleApi.urlConsentimento(assinarState(user.userId, para, Date.now(), origem)) };
   },
 
   /**
@@ -100,7 +100,7 @@ export const googleAgendaService = {
   async callback(code: string | undefined, state: string | undefined): Promise<string> {
     const lido = state ? lerState(state) : null;
     const para: Para = lido?.para ?? 'negocio';
-    const tela = `${frontend()}${telaDe(para)}`;
+    const tela = `${frontend()}${lido?.origem === 'onboarding' && para === 'negocio' ? '/onboarding' : telaDe(para)}`;
     if (!lido || !code || !googleConfigurado()) return `${tela}?google=erro`;
     try {
       const { refreshToken, email } = await googleApi.trocarCodigo(code);

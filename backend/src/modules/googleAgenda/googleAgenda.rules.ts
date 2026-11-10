@@ -2,6 +2,7 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { FEATURE_REQUIREMENTS, PLAN_LEVELS, normalizePlan } from '../../config/planPermissions.js';
 import { chaveDoToken } from './googleAgenda.crypto.js';
 import type { EventoGoogle } from './googleAgenda.api.js';
+import type { OrigemGoogle } from './googleAgenda.types.js';
 
 // Regras puras do Google Agenda (fase 7).
 
@@ -21,26 +22,30 @@ function limparNonces(agora: number) {
 const assinar = (carga: string) => createHmac('sha256', chaveDoToken()).update(carga).digest('base64url');
 
 /** State do OAuth: quem conectou e para quê, assinado, válido por 10 minutos e de uso único. */
-export function assinarState(userId: string, para: Para, agora: number = Date.now()): string {
+export function assinarState(
+  userId: string, para: Para, agora: number = Date.now(), origem: OrigemGoogle = 'ajustes',
+): string {
   const carga = Buffer.from(JSON.stringify({
-    u: userId, p: para, n: randomBytes(12).toString('base64url'), e: agora + VALIDADE_STATE_MS,
+    u: userId, p: para, o: origem, n: randomBytes(12).toString('base64url'), e: agora + VALIDADE_STATE_MS,
   })).toString('base64url');
   return `${carga}.${assinar(carga)}`;
 }
 
-export function lerState(state: string, agora: number = Date.now()): { userId: string; para: Para } | null {
+export function lerState(
+  state: string, agora: number = Date.now(),
+): { userId: string; para: Para; origem: OrigemGoogle } | null {
   const [carga, assinatura] = state.split('.');
   if (!carga || !assinatura) return null;
   const esperada = Buffer.from(assinar(carga));
   const recebida = Buffer.from(assinatura);
   if (esperada.length !== recebida.length || !timingSafeEqual(esperada, recebida)) return null;
   try {
-    const d = JSON.parse(Buffer.from(carga, 'base64url').toString('utf8')) as { u: string; p: Para; n: string; e: number };
+    const d = JSON.parse(Buffer.from(carga, 'base64url').toString('utf8')) as { u: string; p: Para; o?: string; n: string; e: number };
     limparNonces(agora);
     if (d.e < agora || noncesUsados.has(d.n)) return null;
     if (d.p !== 'negocio' && d.p !== 'profissional') return null;
     noncesUsados.set(d.n, d.e);
-    return { userId: d.u, para: d.p };
+    return { userId: d.u, para: d.p, origem: d.o === 'onboarding' ? 'onboarding' : 'ajustes' };
   } catch {
     return null;
   }

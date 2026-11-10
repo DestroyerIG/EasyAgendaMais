@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   salvarServicos: vi.fn(),
   salvarRecebimentos: vi.fn(),
   confirmar: vi.fn(),
+  googleConexao: vi.fn(),
 }));
 
 vi.mock('next/navigation', async (orig) => ({
@@ -42,6 +43,11 @@ vi.mock('@/lib/onboarding', async (orig) => {
 vi.mock('@/lib/recebimentos', async (orig) => {
   const real = await orig<typeof import('@/lib/recebimentos')>();
   return { ...real, recebimentosApi: { ...real.recebimentosApi, confirmar: mocks.confirmar } };
+});
+
+vi.mock('@/lib/googleAgenda', async (orig) => {
+  const real = await orig<typeof import('@/lib/googleAgenda')>();
+  return { ...real, googleAgendaApi: { ...real.googleAgendaApi, conexao: mocks.googleConexao, conectar: vi.fn(), confirmar: vi.fn() } };
 });
 
 mocks.router = { push: vi.fn(), replace: mocks.replace, prefetch: vi.fn(), back: vi.fn(), forward: vi.fn(), refresh: vi.fn() };
@@ -92,6 +98,7 @@ describe('OnboardingFlow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.refreshMe.mockResolvedValue(undefined);
+    mocks.googleConexao.mockResolvedValue({ configurado: false, conexao: null });
     mocks.user.value = { role: 'tenant_admin' };
     window.history.replaceState({}, '', '/');
     try { localStorage.clear(); } catch { /* sem storage */ }
@@ -148,6 +155,28 @@ describe('OnboardingFlow', () => {
     await user.click(await screen.findByRole('button', { name: /Voltar/ }));
     expect(screen.getByText('Qual é o foco principal do seu negócio?')).toBeInTheDocument();
     expect(mocks.salvarHorarios).not.toHaveBeenCalled();
+  });
+
+  it('Horários mostra o Google Agenda opcional quando o ambiente tem Google, e Continuar segue sem conectar', async () => {
+    const user = userEvent.setup();
+    mocks.googleConexao.mockResolvedValue({ configurado: true, conexao: null });
+    mocks.ver.mockResolvedValue(dados(2));
+    mocks.salvarHorarios.mockResolvedValue(dados(3));
+    mocks.catalogo.mockResolvedValue([]);
+    renderFluxo();
+    expect(await screen.findByText('Já usa o Google Agenda?')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Conectar Google Agenda' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Continuar/ }));
+    await waitFor(() => expect(mocks.salvarHorarios).toHaveBeenCalled());
+  });
+
+  it('Horários não mostra título nem botão do Google quando não está configurado', async () => {
+    mocks.ver.mockResolvedValue(dados(2));
+    renderFluxo();
+    await screen.findByText(TITULO_HORARIOS);
+    await waitFor(() => expect(mocks.googleConexao).toHaveBeenCalled());
+    expect(screen.queryByText('Já usa o Google Agenda?')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Conectar Google Agenda' })).not.toBeInTheDocument();
   });
 
   it('erro ao salvar mantém a etapa', async () => {

@@ -57,6 +57,15 @@ describe('GoogleAgendaCard', () => {
     expect(api.conectar).toHaveBeenCalledWith('negocio');
   });
 
+  it('com origem onboarding repassa a origem ao conectar e traz o título da etapa', async () => {
+    api.conexao.mockResolvedValue({ configurado: true, conexao: null, profissionais: [] });
+    api.conectar.mockResolvedValue({ url: 'https://accounts.google.com/x' });
+    render(<GoogleAgendaCard para="negocio" origem="onboarding" />);
+    expect(await screen.findByText('Já usa o Google Agenda?')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Conectar Google Agenda' }));
+    await waitFor(() => expect(api.conectar).toHaveBeenCalledWith('negocio', 'onboarding'));
+  });
+
   it('conectado mostra e-mail, última sincronização e Desconectar', async () => {
     api.conexao.mockResolvedValueOnce(conectada).mockResolvedValue({ configurado: true, conexao: null, profissionais: [] });
     api.desconectar.mockResolvedValue({ desconectado: true });

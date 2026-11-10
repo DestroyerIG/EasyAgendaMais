@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
-export const ConectarQuerySchema = z.object({ para: z.enum(['negocio', 'profissional']) });
+export type OrigemGoogle = 'ajustes' | 'onboarding';
+
+export const ConectarQuerySchema = z.object({
+  para: z.enum(['negocio', 'profissional']),
+  origem: z.enum(['ajustes', 'onboarding']).optional(),
+});
 
 export const CallbackQuerySchema = z.object({
   code: z.string().max(2048).optional(),
