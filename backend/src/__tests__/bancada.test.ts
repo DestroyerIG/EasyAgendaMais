@@ -18,6 +18,8 @@ const fotos = vi.hoisted(() => ({ list: vi.fn(), upload: vi.fn() }));
 vi.mock('../modules/clientPhotos/clientPhotos.service.js', () => ({ clientPhotosService: fotos }));
 const comandas = vi.hoisted(() => ({ open: vi.fn(), get: vi.fn(), save: vi.fn(), close: vi.fn(), shortcuts: vi.fn(), gerarPix: vi.fn() }));
 vi.mock('../modules/comandas/comandas.service.js', () => ({ comandasService: comandas }));
+const cobrancaSaldo = vi.hoisted(() => ({ criar: vi.fn(), estado: vi.fn(), cancelar: vi.fn() }));
+vi.mock('../modules/recebimentos/cobrancaSaldo.service.js', () => ({ cobrancaSaldoService: cobrancaSaldo }));
 const appts = vi.hoisted(() => ({ updateStatus: vi.fn(), getAvailableSlots: vi.fn() }));
 vi.mock('../modules/appointments/appointments.service.js', () => ({ appointmentsService: appts }));
 const apptRepo = vi.hoisted(() => ({ hasConflict: vi.fn() }));
@@ -313,5 +315,85 @@ describe('agenda de outro dia e lista de clientes', () => {
     expect((await request.get('/api/v1/bancada/clientes?busca=mari')).status).toBe(200);
     expect(repo.clientesDela).toHaveBeenCalledWith('b1', 'p1', 'mari');
     expect((await request.get('/api/v1/bancada/hoje?data=amanha')).status).toBe(400);
+  });
+});
+
+describe('cobrança do saldo na bancada', () => {
+  beforeEach(() => {
+    repo.usuarioProfissional.mockResolvedValue(usuarioOk);
+    repo.comandaDela.mockResolvedValue({ id: 'k1' });
+    comandas.get.mockResolvedValue(comandaDto({ discount: 5, tip: 2 }));
+    cobrancaSaldo.criar.mockResolvedValue({ id: 'c1', via: 'pix', situacao: 'pendente', valor: 75 });
+    cobrancaSaldo.estado.mockResolvedValue({ gateway: 'mercadopago', cobranca: null });
+    cobrancaSaldo.cancelar.mockResolvedValue({ gateway: 'mercadopago', cobranca: null });
+  });
+
+  it('só com a chave "a profissional cobra": sem ela, 403 e nada é cobrado', async () => {
+    await expect(bancadaService.cobrar('b1', 'u9', P, 'k1', { extras: [], via: 'pix' })).rejects.toMatchObject({ statusCode: 403 });
+    await expect(bancadaService.cobranca('b1', P, 'k1')).rejects.toMatchObject({ statusCode: 403 });
+    await expect(bancadaService.cancelarCobranca('b1', P, 'k1')).rejects.toMatchObject({ statusCode: 403 });
+    expect(cobrancaSaldo.criar).not.toHaveBeenCalled();
+    expect(cobrancaSaldo.cancelar).not.toHaveBeenCalled();
+  });
+
+  it('com a chave: cobra no gateway do negócio, mesclando desconto e gorjeta como no Pix da Fase 1', async () => {
+    repo.profissionalCobra.mockResolvedValue(true);
+    const r = await bancadaService.cobrar('b1', 'u9', P, 'k1', { extras: [], discount: 10, via: 'pix' });
+    expect(r).toMatchObject({ id: 'c1' });
+    expect(cobrancaSaldo.criar).toHaveBeenCalledWith('k1', 'b1', 'u9', { extras: [], discount: 10, tip: 2 });
+  });
+
+  it('comanda de outra profissional: 404 em todas as três', async () => {
+    repo.profissionalCobra.mockResolvedValue(true);
+    repo.comandaDela.mockResolvedValue(null);
+    await expect(bancadaService.cobrar('b1', 'u9', P, 'k9', { extras: [], via: 'pix' })).rejects.toMatchObject({ statusCode: 404 });
+    await expect(bancadaService.cobranca('b1', P, 'k9')).rejects.toMatchObject({ statusCode: 404 });
+    await expect(bancadaService.cancelarCobranca('b1', P, 'k9')).rejects.toMatchObject({ statusCode: 404 });
+    expect(cobrancaSaldo.criar).not.toHaveBeenCalled();
+  });
+
+  it('com a chave: consulta e cancela pela comanda dela', async () => {
+    repo.profissionalCobra.mockResolvedValue(true);
+    expect(await bancadaService.cobranca('b1', P, 'k1')).toEqual({ gateway: 'mercadopago', cobranca: null });
+    await bancadaService.cancelarCobranca('b1', P, 'k1');
+    expect(cobrancaSaldo.cancelar).toHaveBeenCalledWith('k1', 'b1');
+  });
+
+  it('rota da profissional: aceita via pix e recusa outra via', async () => {
+    repo.profissionalCobra.mockResolvedValue(true);
+    const ok = await request.post(`/api/v1/bancada/comandas/${ID}/cobranca`).send({ extras: [], via: 'pix' });
+    expect(ok.status).toBe(200);
+    const ruim = await request.post(`/api/v1/bancada/comandas/${ID}/cobranca`).send({ extras: [], via: 'link' });
+    expect(ruim.status).toBe(400);
+  });
+});
+
+describe('cobrança do saldo no painel', () => {
+  beforeEach(() => {
+    cobrancaSaldo.criar.mockResolvedValue({ id: 'c1', via: 'pix', situacao: 'pendente', valor: 80 });
+    cobrancaSaldo.estado.mockResolvedValue({ gateway: null, cobranca: null });
+    cobrancaSaldo.cancelar.mockResolvedValue({ gateway: null, cobranca: null });
+  });
+
+  it('as três rotas usam o negócio e o usuário do login', async () => {
+    const corpo = { extras: [], discount: 0, tip: 0, via: 'pix' };
+    const criar = await request.post(`/api/v1/comandas/${ID}/cobranca`).set('x-role', 'tenant_admin').send(corpo);
+    expect(criar.status).toBe(200);
+    expect(cobrancaSaldo.criar).toHaveBeenCalledWith(ID, 'b1', 'u9', { extras: [], discount: 0, tip: 0 });
+    expect((await request.get(`/api/v1/comandas/${ID}/cobranca`).set('x-role', 'tenant_admin')).status).toBe(200);
+    expect(cobrancaSaldo.estado).toHaveBeenCalledWith(ID, 'b1');
+    expect((await request.post(`/api/v1/comandas/${ID}/cobranca/cancelar`).set('x-role', 'tenant_admin')).status).toBe(200);
+    expect(cobrancaSaldo.cancelar).toHaveBeenCalledWith(ID, 'b1');
+  });
+
+  it('via diferente de pix: 400', async () => {
+    const r = await request.post(`/api/v1/comandas/${ID}/cobranca`).set('x-role', 'tenant_admin').send({ extras: [], discount: 0, tip: 0, via: 'link' });
+    expect(r.status).toBe(400);
+    expect(cobrancaSaldo.criar).not.toHaveBeenCalled();
+  });
+
+  it('a profissional não entra nas rotas do painel', async () => {
+    expect((await request.post(`/api/v1/comandas/${ID}/cobranca`).send({ extras: [], discount: 0, tip: 0, via: 'pix' })).status).toBe(403);
+    expect((await request.get(`/api/v1/comandas/${ID}/cobranca`)).status).toBe(403);
   });
 });

@@ -5,10 +5,10 @@ import { validate } from '../../middleware/validate.js';
 import { requireProfissional } from './bancada.middleware.js';
 import { comandaDeHojeNaCarencia, somenteHojeNaCarencia } from '../conta/somenteHoje.middleware.js';
 import {
-  BancadaComandaSchema, CancelarSchema, ClientesQuerySchema, HojeQuerySchema, HorariosQuerySchema, NotaSchema, ReagendarSchema,
+  BancadaCobrarSchema, BancadaComandaSchema, CancelarSchema, ClientesQuerySchema, HojeQuerySchema, HorariosQuerySchema, NotaSchema, ReagendarSchema,
 } from './bancada.types.js';
 import {
-  cancel, clientCard, closeComanda, comandaPix, freeSlots, getComanda, myClients, numbers, ratings, reschedule, saveComanda, saveNote,
+  cancel, clientCard, closeComanda, comandaCancelarCobranca, comandaCobranca, comandaCobrar, comandaPix, freeSlots, getComanda, myClients, numbers, ratings, reschedule, saveComanda, saveNote,
   sendToFrontDesk, shortcuts, start, today, uploadPhoto,
 } from './bancada.controller.js';
 
@@ -31,6 +31,9 @@ router.get('/comandas/:id', ...ela, ParamsId, getComanda);
 router.put('/comandas/:id', ...ela, ParamsId, comandaDeHojeNaCarencia, validate({ body: BancadaComandaSchema }), saveComanda);
 router.post('/comandas/:id/enviar', ...ela, ParamsId, comandaDeHojeNaCarencia, validate({ body: BancadaComandaSchema }), sendToFrontDesk);
 router.post('/comandas/:id/pix', ...ela, ParamsId, comandaDeHojeNaCarencia, validate({ body: BancadaComandaSchema }), comandaPix);
+router.get('/comandas/:id/cobranca', ...ela, ParamsId, comandaCobranca);
+router.post('/comandas/:id/cobranca', ...ela, ParamsId, comandaDeHojeNaCarencia, validate({ body: BancadaCobrarSchema }), comandaCobrar);
+router.post('/comandas/:id/cobranca/cancelar', ...ela, ParamsId, comandaDeHojeNaCarencia, comandaCancelarCobranca);
 router.post('/comandas/:id/fechar', ...ela, ParamsId, comandaDeHojeNaCarencia, validate({ body: BancadaComandaSchema }), closeComanda);
 router.get('/numeros', ...ela, numbers);
 router.get('/avaliacoes', ...ela, ratings);
