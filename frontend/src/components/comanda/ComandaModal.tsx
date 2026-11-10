@@ -13,11 +13,12 @@ import { getApiErrorMessage } from '@/utils/handleApiError';
 import { listarProdutos, type Produto } from '@/lib/produtos';
 import { abrirCaixa, reabrirCaixa } from '@/lib/caixa';
 import {
-  abrirComanda, salvarComanda, fecharComanda, buscarAtalhos, calcularComanda, ehCaixaFechado, ehCaixaJaFechado, ROTULO_PAGAMENTO,
+  abrirComanda, salvarComanda, fecharComanda, gerarPixComanda, buscarAtalhos, calcularComanda, ehCaixaFechado, ehCaixaJaFechado, ROTULO_PAGAMENTO,
   type ComandaDetail, type ComandaShortcut, type PaymentMethod, type SalvarComandaInput,
 } from '@/lib/comanda';
 import type { Service } from '@/types';
 import { AbrirCaixaInline, ReabrirCaixaInline } from './AbrirCaixaInline';
+import { PainelCobrarPix } from './PainelCobrarPix';
 import { useVocabulario } from '@/hooks/useVocabulario';
 
 interface Extra { kind: 'servico' | 'produto'; refId: string; name: string; legenda: string | null; unitPrice: number; quantity: number }
@@ -505,6 +506,11 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
                       );
                     })}
                   </div>
+                  {forma === 'pix' && calc.totalCharged > 0 && !somenteLeitura ? (
+                    <div className="mt-3">
+                      <PainelCobrarPix total={calc.totalCharged} gerar={() => gerarPixComanda(dto.id, entrada())} />
+                    </div>
+                  ) : null}
                 </div>
               </div>
 

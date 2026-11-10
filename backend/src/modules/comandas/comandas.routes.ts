@@ -7,7 +7,7 @@ import { SaveComandaSchema } from './comandas.types.js';
 import { CommissionSettingsSchema } from './commissionSettings.js';
 import { comandaDeHojeNaCarencia } from '../conta/somenteHoje.middleware.js';
 import {
-  getComanda, saveComanda, closeComanda, resendReceipt, getShortcuts,
+  getComanda, saveComanda, closeComanda, comandaPix, resendReceipt, getShortcuts,
   getCommissionSettings, updateCommissionSettings,
 } from './comandas.controller.js';
 
@@ -21,6 +21,7 @@ router.get('/shortcuts', ...guard, getShortcuts);
 router.get('/:id', ...guard, getComanda);
 router.put('/:id', ...guard, comandaDeHojeNaCarencia, validate({ body: SaveComandaSchema }), saveComanda);
 router.post('/:id/close', ...guard, comandaDeHojeNaCarencia, validate({ body: SaveComandaSchema }), closeComanda);
+router.post('/:id/pix', ...guard, comandaDeHojeNaCarencia, validate({ body: SaveComandaSchema }), comandaPix);
 router.post('/:id/receipt', ...guard, comandaDeHojeNaCarencia, resendReceipt);
 
 export default router;

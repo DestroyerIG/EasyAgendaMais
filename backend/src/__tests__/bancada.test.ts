@@ -16,7 +16,7 @@ const crm = vi.hoisted(() => ({ profile: vi.fn() }));
 vi.mock('../modules/crm/crm.service.js', () => ({ crmService: crm }));
 const fotos = vi.hoisted(() => ({ list: vi.fn(), upload: vi.fn() }));
 vi.mock('../modules/clientPhotos/clientPhotos.service.js', () => ({ clientPhotosService: fotos }));
-const comandas = vi.hoisted(() => ({ open: vi.fn(), get: vi.fn(), save: vi.fn(), close: vi.fn(), shortcuts: vi.fn() }));
+const comandas = vi.hoisted(() => ({ open: vi.fn(), get: vi.fn(), save: vi.fn(), close: vi.fn(), shortcuts: vi.fn(), gerarPix: vi.fn() }));
 vi.mock('../modules/comandas/comandas.service.js', () => ({ comandasService: comandas }));
 const appts = vi.hoisted(() => ({ updateStatus: vi.fn(), getAvailableSlots: vi.fn() }));
 vi.mock('../modules/appointments/appointments.service.js', () => ({ appointmentsService: appts }));
@@ -197,6 +197,25 @@ describe('bancadaService', () => {
     comandas.close.mockRejectedValue(new AppError('Abra o caixa', 409, 'CASH_CLOSED'));
     await expect(bancadaService.fecharComanda('b1', 'u9', P, 'k1', { extras: [], paymentMethod: 'pix' }))
       .rejects.toMatchObject({ statusCode: 409, code: 'CASH_CLOSED', message: expect.stringContaining('Peça para a recepção abrir') });
+  });
+
+  it('Pix do saldo: só com a chave "a profissional cobra", na chave e nos recebimentos do negócio', async () => {
+    repo.comandaDela.mockResolvedValue({ id: 'k1' });
+    await expect(bancadaService.gerarPix('b1', P, 'k1', { extras: [] })).rejects.toMatchObject({ statusCode: 403 });
+    expect(comandas.gerarPix).not.toHaveBeenCalled();
+
+    repo.profissionalCobra.mockResolvedValue(true);
+    comandas.get.mockResolvedValue(comandaDto({ discount: 5, tip: 2 }));
+    comandas.gerarPix.mockResolvedValue({ pixPayload: 'PIX', valor: 75 });
+    const r = await bancadaService.gerarPix('b1', P, 'k1', { extras: [], discount: 10 });
+    expect(r).toEqual({ pixPayload: 'PIX', valor: 75 });
+    expect(comandas.gerarPix).toHaveBeenCalledWith('k1', 'b1', { extras: [], discount: 10, tip: 2 });
+  });
+
+  it('Pix do saldo de comanda de outra profissional: 404', async () => {
+    repo.comandaDela.mockResolvedValue(null);
+    await expect(bancadaService.gerarPix('b1', P, 'k9', { extras: [] })).rejects.toMatchObject({ statusCode: 404 });
+    expect(comandas.gerarPix).not.toHaveBeenCalled();
   });
 
   it('ficha de outra profissional: 404; a dela esconde e-mail e nascimento', async () => {

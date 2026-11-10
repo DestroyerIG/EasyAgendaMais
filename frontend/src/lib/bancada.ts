@@ -1,5 +1,5 @@
 import api from '@/lib/api';
-import type { ComandaDetail, ComandaExtraInput, ComandaShortcut, PaymentMethod } from '@/lib/comanda';
+import type { ComandaDetail, ComandaExtraInput, ComandaShortcut, PaymentMethod, PixComanda } from '@/lib/comanda';
 import { corpoDaFoto, type EnvioFotoExtra, type FotoCliente } from '@/lib/clientPhotos';
 import type { Periodo, ModeloRepasse, StatusRepasse, FormaRepasse } from '@/lib/relatorios';
 
@@ -110,6 +110,8 @@ export const bancadaApi = {
   salvarComanda: async (id: string, body: BancadaComandaInput) => (await api.put<ComandaBancada>(`/bancada/comandas/${id}`, body)).data,
   enviarParaRecepcao: async (id: string, body: BancadaComandaInput) =>
     (await api.post<ComandaBancada>(`/bancada/comandas/${id}/enviar`, body)).data,
+  gerarPix: async (id: string, body: BancadaComandaInput) =>
+    (await api.post<PixComanda>(`/bancada/comandas/${id}/pix`, body)).data,
   fecharComanda: async (id: string, body: BancadaComandaInput) =>
     (await api.post<ComandaBancada>(`/bancada/comandas/${id}/fechar`, body)).data,
   numeros: async (p?: Periodo) => (await api.get<MeusNumeros>('/bancada/numeros', { params: p ?? {} })).data,

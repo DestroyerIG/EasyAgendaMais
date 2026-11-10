@@ -8,7 +8,7 @@ import {
   BancadaComandaSchema, CancelarSchema, ClientesQuerySchema, HojeQuerySchema, HorariosQuerySchema, NotaSchema, ReagendarSchema,
 } from './bancada.types.js';
 import {
-  cancel, clientCard, closeComanda, freeSlots, getComanda, myClients, numbers, ratings, reschedule, saveComanda, saveNote,
+  cancel, clientCard, closeComanda, comandaPix, freeSlots, getComanda, myClients, numbers, ratings, reschedule, saveComanda, saveNote,
   sendToFrontDesk, shortcuts, start, today, uploadPhoto,
 } from './bancada.controller.js';
 
@@ -30,6 +30,7 @@ router.get('/atalhos', ...ela, shortcuts);
 router.get('/comandas/:id', ...ela, ParamsId, getComanda);
 router.put('/comandas/:id', ...ela, ParamsId, comandaDeHojeNaCarencia, validate({ body: BancadaComandaSchema }), saveComanda);
 router.post('/comandas/:id/enviar', ...ela, ParamsId, comandaDeHojeNaCarencia, validate({ body: BancadaComandaSchema }), sendToFrontDesk);
+router.post('/comandas/:id/pix', ...ela, ParamsId, comandaDeHojeNaCarencia, validate({ body: BancadaComandaSchema }), comandaPix);
 router.post('/comandas/:id/fechar', ...ela, ParamsId, comandaDeHojeNaCarencia, validate({ body: BancadaComandaSchema }), closeComanda);
 router.get('/numeros', ...ela, numbers);
 router.get('/avaliacoes', ...ela, ratings);

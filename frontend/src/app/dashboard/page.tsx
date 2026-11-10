@@ -211,7 +211,7 @@ export default function DashboardPage() {
             </div>
             <ProximasDuasHoras agendamentos={hoje.proximas} className="order-2 lg:col-span-5" />
           </div>
-          <BotaoCobrarPix />
+          <BotaoCobrarPix agendamentos={hoje.proximas} onAtualizada={loadDashboard} />
         </div>
       ) : (
         <Card className="text-center">

@@ -19,6 +19,7 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => busca.atual,
   usePathname: () => '/bancada',
 }));
+vi.mock('qrcode', () => ({ default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,QR') } }));
 vi.mock('@/lib/bancada', async (orig) => {
   const real = await orig<typeof import('@/lib/bancada')>();
   return {
@@ -26,7 +27,7 @@ vi.mock('@/lib/bancada', async (orig) => {
     bancadaApi: {
       hoje: vi.fn(), iniciar: vi.fn(), horarios: vi.fn(), reagendar: vi.fn(), cancelar: vi.fn(),
       atalhos: vi.fn(), comanda: vi.fn(), salvarComanda: vi.fn(), enviarParaRecepcao: vi.fn(), fecharComanda: vi.fn(),
-      enviarFoto: vi.fn(),
+      enviarFoto: vi.fn(), gerarPix: vi.fn(),
     },
   };
 });
@@ -179,6 +180,27 @@ describe('Fechar atendimento', () => {
     await userEvent.click(fechar);
     expect(api.fecharComanda).toHaveBeenCalledWith('k1', { extras: [], discount: 0, tip: 0, paymentMethod: 'pix' });
     expect(await screen.findByText(/Comanda fechada/)).toBeInTheDocument();
+  });
+
+  it('com a chave e Pix escolhido: gera o QR Code do negócio pela rota da profissional', async () => {
+    busca.atual = new URLSearchParams('comanda=k1');
+    api.comanda.mockResolvedValue(comanda({ profissionalCobra: true }));
+    api.gerarPix.mockResolvedValue({ pixPayload: '000201PIX', valor: 50 });
+    render(<AtendimentoBancada />);
+    await screen.findByRole('button', { name: /Fechar e cobrar/ });
+    expect(screen.queryByRole('region', { name: /cobrar por pix/i })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Pix' }));
+    await userEvent.click(screen.getByRole('button', { name: /gerar qr code/i }));
+    expect(api.gerarPix).toHaveBeenCalledWith('k1', { extras: [], discount: 0, tip: 0, paymentMethod: 'pix' });
+    expect(await screen.findByRole('img', { name: /qr code do pix/i })).toBeInTheDocument();
+  });
+
+  it('sem a chave "a profissional cobra": não há QR Code (quem cobra é a recepção)', async () => {
+    busca.atual = new URLSearchParams('comanda=k1');
+    api.comanda.mockResolvedValue(comanda());
+    render(<AtendimentoBancada />);
+    await screen.findByRole('button', { name: /Enviar para a recepção/ });
+    expect(screen.queryByRole('region', { name: /cobrar por pix/i })).not.toBeInTheDocument();
   });
 
   it('sem atendimento em andamento: convida a iniciar pela agenda', async () => {
