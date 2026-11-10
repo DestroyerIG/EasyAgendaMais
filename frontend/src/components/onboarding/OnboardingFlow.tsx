@@ -59,7 +59,8 @@ export function OnboardingFlow() {
         params.delete('t');
         const resto = params.toString();
         window.history.replaceState(null, '', `${window.location.pathname}${resto ? `?${resto}` : ''}${window.location.hash}`);
-        setEtapa(4);
+        // Só reabre a etapa 4 quem já chegou nela: o retorno não pula as etapas obrigatórias.
+        if (d.estado.etapa >= 4) setEtapa(4);
         const falhou = () => avisar.current('Não foi possível conectar o Mercado Pago. Tente de novo.', 'error');
         if (retorno !== 'confirmar' || !t) { falhou(); return; }
         recebimentosApi.confirmar(t)

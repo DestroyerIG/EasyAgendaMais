@@ -222,14 +222,29 @@ describe('OnboardingFlow', () => {
       ['em StrictMode', (ui: React.ReactElement) => <StrictMode>{ui}</StrictMode>],
     ])('retorno do Mercado Pago confirma uma única vez (%s), avisa e limpa a URL', async (_n, envolver) => {
       window.history.pushState({}, '', '/onboarding?recebimento=confirmar&t=abc');
-      mocks.ver.mockResolvedValue(dados(4));
+      const conectado = dados(4);
+      conectado.recebimentos = { temChavePix: false, conexao: { gateway: 'mercadopago', contaNome: 'Conta Teste', situacao: 'ativa' } as never };
+      mocks.ver.mockResolvedValueOnce(dados(4)).mockResolvedValue(conectado);
       mocks.confirmar.mockResolvedValue({});
       render(envolver(<ToastProvider><OnboardingFlow /></ToastProvider>));
       expect(await screen.findByText('Mercado Pago conectado.')).toBeInTheDocument();
+      expect((await screen.findAllByText('Conectado')).length).toBeGreaterThan(0);
+      expect(mocks.ver.mock.calls.length).toBeGreaterThanOrEqual(2);
       expect(mocks.confirmar).toHaveBeenCalledTimes(1);
       expect(mocks.confirmar).toHaveBeenCalledWith('abc');
       expect(window.location.search).toBe('');
       expect(screen.getByText('Etapa 4 de 6')).toBeInTheDocument();
+    });
+
+    it('retorno do Mercado Pago não pula etapas obrigatórias: etapa salva 2 continua em Horários', async () => {
+      window.history.pushState({}, '', '/onboarding?recebimento=confirmar&t=abc');
+      mocks.ver.mockResolvedValue(dados(2));
+      mocks.confirmar.mockResolvedValue({});
+      renderFluxo();
+      expect(await screen.findByText('Mercado Pago conectado.')).toBeInTheDocument();
+      expect(screen.getByText(TITULO_HORARIOS)).toBeInTheDocument();
+      expect(mocks.confirmar).toHaveBeenCalledTimes(1);
+      expect(window.location.search).toBe('');
     });
 
     it('retorno com erro mostra o aviso e fica na etapa 4', async () => {
