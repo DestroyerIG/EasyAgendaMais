@@ -50,9 +50,9 @@ export function SinalNoRoboCard() {
         description="O robô passa a cobrar o sinal dos serviços que têm sinal configurado, usando a forma de pagamento padrão do negócio, e confirma o horário depois do pagamento."
         checked={ligado}
         onCheckedChange={alternar}
-        disabled={!temChave || salvando}
+        disabled={salvando || (!temChave && !ligado)}
       />
-      {!temChave && <p className="text-[13px] text-muted">Cadastre a chave Pix acima para ativar.</p>}
+      {!temChave && !ligado && <p className="text-[13px] text-muted">Cadastre a chave Pix acima para ativar.</p>}
       {erro && <Banner tone="danger" variant="inline">{erro}</Banner>}
     </Card>
   );

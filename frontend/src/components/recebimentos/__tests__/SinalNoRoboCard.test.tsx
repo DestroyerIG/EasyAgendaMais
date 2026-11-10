@@ -48,4 +48,17 @@ describe('SinalNoRoboCard', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Cadastre a chave Pix antes de ligar a cobrança do sinal pelo robô');
     expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false');
   });
+
+  it('com o robô ligado e sem chave Pix, o interruptor continua ativo e dá para desligar', async () => {
+    api.getSettings.mockResolvedValue({ pixKey: null, botCobraSinal: true });
+    api.updateSettings.mockResolvedValue({ pixKey: null, botCobraSinal: false });
+    const user = userEvent.setup();
+    render(<SinalNoRoboCard />);
+    const interruptor = await screen.findByRole('switch', { name: 'Cobrar o sinal pelo WhatsApp' });
+    expect(interruptor).toBeEnabled();
+    expect(screen.queryByText('Cadastre a chave Pix acima para ativar.')).not.toBeInTheDocument();
+    await user.click(interruptor);
+    await waitFor(() => expect(api.updateSettings).toHaveBeenCalledWith({ botCobraSinal: false }));
+    await waitFor(() => expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false'));
+  });
 });

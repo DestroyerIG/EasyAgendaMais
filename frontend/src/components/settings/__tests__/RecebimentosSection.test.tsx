@@ -1,13 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 const api = vi.hoisted(() => ({ conexoes: vi.fn() }));
+const pagina = vi.hoisted(() => ({ getSettings: vi.fn(), updateSettings: vi.fn() }));
+vi.mock('@/lib/businessPublicPage', () => ({ businessPublicPageApi: pagina }));
 vi.mock('@/lib/recebimentos', async (orig) => ({ ...(await orig<typeof import('@/lib/recebimentos')>()), recebimentosApi: api }));
 const usuario = vi.hoisted(() => ({ atual: { role: 'tenant_admin' } }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: usuario.atual }) }));
 vi.mock('@/components/recebimentos/PixManualCard', () => ({
-  PixManualCard: ({ confirmacaoAutomatica }: { confirmacaoAutomatica?: boolean }) => (
-    <p>Cartão do Pix manual{confirmacaoAutomatica ? ' (reserva)' : ''}</p>
+  PixManualCard: ({ confirmacaoAutomatica, onSalvo }: { confirmacaoAutomatica?: boolean; onSalvo?: () => void }) => (
+    <div>
+      <p>Cartão do Pix manual{confirmacaoAutomatica ? ' (reserva)' : ''}</p>
+      <button type="button" onClick={onSalvo}>Simular chave salva</button>
+    </div>
   ),
 }));
 
@@ -22,6 +28,7 @@ describe('RecebimentosSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     usuario.atual = { role: 'tenant_admin' };
+    pagina.getSettings.mockResolvedValue({ pixKey: null, botCobraSinal: false });
   });
 
   it('não renderiza para quem não é tenant_admin', () => {
@@ -116,5 +123,21 @@ describe('RecebimentosSection', () => {
     api.conexoes.mockResolvedValue({ configurado: true, disponiveis: ['infinitepay'], conexao: { ...conexao, gateway: 'infinitepay', aceitaPix: false, aceitaCartao: true } });
     render(<RecebimentosSection />);
     expect(await screen.findByText('Cartão do Pix manual (reserva)')).toBeInTheDocument();
+  });
+
+  it('ao salvar a chave Pix, o interruptor do robô é liberado sem recarregar a página', async () => {
+    api.conexoes.mockResolvedValue({ configurado: false, conexao: null });
+    pagina.getSettings
+      .mockResolvedValueOnce({ pixKey: null, botCobraSinal: false })
+      .mockResolvedValue({ pixKey: 'pix@aurora.com', botCobraSinal: false });
+    const user = userEvent.setup();
+    render(<RecebimentosSection />);
+    expect(await screen.findByRole('switch', { name: 'Cobrar o sinal pelo WhatsApp' })).toBeDisabled();
+    expect(screen.getByText('Cadastre a chave Pix acima para ativar.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Simular chave salva' }));
+
+    await waitFor(() => expect(screen.getByRole('switch')).toBeEnabled());
+    expect(screen.queryByText('Cadastre a chave Pix acima para ativar.')).not.toBeInTheDocument();
   });
 });

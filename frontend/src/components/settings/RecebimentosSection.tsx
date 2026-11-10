@@ -16,6 +16,8 @@ export function RecebimentosSection() {
   const { user } = useAuth();
   const ehDona = user?.role === 'tenant_admin';
   const [estado, setEstado] = useState<EstadoRecebimentos | null>(null);
+  // Sobe quando a chave Pix é salva, para o interruptor do robô reler as configurações.
+  const [versaoChave, setVersaoChave] = useState(0);
 
   useEffect(() => {
     if (!ehDona) return;
@@ -30,8 +32,8 @@ export function RecebimentosSection() {
 
   return (
     <div className="space-y-4">
-      <PixManualCard confirmacaoAutomatica={pixAutomatico(estado)} />
-      <SinalNoRoboCard />
+      <PixManualCard confirmacaoAutomatica={pixAutomatico(estado)} onSalvo={() => setVersaoChave((v) => v + 1)} />
+      <SinalNoRoboCard key={versaoChave} />
       {estado === null && <Skeleton className="h-28 w-full" label="Carregando recebimentos..." />}
       {estado?.configurado && <Gateways estado={estado} />}
     </div>
