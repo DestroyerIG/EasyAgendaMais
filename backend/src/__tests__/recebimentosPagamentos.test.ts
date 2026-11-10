@@ -41,7 +41,7 @@ const banco = vi.hoisted(() => {
       },
       create: async ({ data }: Linha) => {
         checarUnico(null, data);
-        const nova = { id: `extra-${estado.cobrancas.length}`, ...data };
+        const nova = { id: `extra-${estado.cobrancas.length}`, tipo: 'sinal', ...data };
         estado.cobrancas.push(nova);
         return nova;
       },
@@ -158,7 +158,7 @@ function reserva(extra: Record<string, unknown> = {}) {
 
 function cobranca(extra: Record<string, unknown> = {}) {
   const c = {
-    id: COB, businessId: 'b1', appointmentId: 'a1', gateway: 'mercadopago', forma: 'pix', valor: '30.00', situacao: 'pendente',
+    id: COB, businessId: 'b1', appointmentId: 'a1', gateway: 'mercadopago', forma: 'pix', valor: '30.00', situacao: 'pendente', tipo: 'sinal',
     pagamentoExternoId: null, formaPaga: null, pagoEm: null, venceEm: emMinutos(10), idExterno: 'ext-1', ...extra,
   };
   banco.estado.cobrancas.push(c);
