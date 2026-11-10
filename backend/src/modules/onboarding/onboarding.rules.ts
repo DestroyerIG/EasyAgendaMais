@@ -1,20 +1,20 @@
 import type { EstadoOnboarding, HorariosInput, PrimeiroPasso } from './onboarding.types.js';
 
-// Regras puras do onboarding guiado (fase 6). Etapas 1 a 3 obrigatórias; 6 = concluído.
+// Regras puras do onboarding guiado (fase 6). Etapas 1 a 3 obrigatórias; 7 = concluído.
 
-export const ETAPA_CONCLUIDA = 6;
+export const ETAPA_CONCLUIDA = 7;
 export const ULTIMA_OBRIGATORIA = 3;
 
 export function estadoOnboarding(b: { onboardingEtapa: number; onboardingConcluidoEm: Date | null }): EstadoOnboarding {
   const pendente = b.onboardingConcluidoEm === null;
-  const etapa = pendente ? Math.min(Math.max(b.onboardingEtapa, 1), 5) : ETAPA_CONCLUIDA;
+  const etapa = pendente ? Math.min(Math.max(b.onboardingEtapa, 1), 6) : ETAPA_CONCLUIDA;
   return { pendente, bloqueante: pendente && etapa <= ULTIMA_OBRIGATORIA, etapa };
 }
 
 /** Salvar uma etapa leva à seguinte, sem voltar o progresso de quem já foi além. */
-export const etapaDepoisDe = (atual: number, salva: number) => Math.min(Math.max(atual, salva + 1), 5);
+export const etapaDepoisDe = (atual: number, salva: number) => Math.min(Math.max(atual, salva + 1), 6);
 
-/** Pode concluir (pular 4 e 5) só depois das obrigatórias. */
+/** Pode concluir (pular 4 a 6) só depois das obrigatórias. */
 export const podeConcluir = (etapa: number) => etapa > ULTIMA_OBRIGATORIA;
 
 const minutos = (hhmm: string) => {

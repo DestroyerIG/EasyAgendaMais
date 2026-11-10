@@ -48,8 +48,8 @@ export const onboardingApi = {
   dispensarPrimeirosPassos: async () => { await api.post('/onboarding/primeiros-passos/dispensar'); },
 };
 
-/** As 5 etapas do DESIGN.md, sempre com estes nomes e nesta ordem. */
-export const ETAPAS = ['Seu negócio', 'Horários', 'Serviços', 'Sua página', 'WhatsApp e link'] as const;
+/** As 6 etapas do onboarding, sempre com estes nomes e nesta ordem. */
+export const ETAPAS = ['Seu negócio', 'Horários', 'Serviços', 'Recebimentos', 'Sua página', 'WhatsApp e link'] as const;
 
 export const SEGMENTOS_ONBOARDING: Array<{ id: Segmento; titulo: string; descricao: string; icone: string }> = [
   { id: 'barbearia', titulo: 'Barbearia', descricao: 'Cortes masculinos, barba, pigmentação e estética facial.', icone: 'content_cut' },

@@ -45,17 +45,20 @@ beforeEach(() => {
 });
 
 describe('regras do onboarding', () => {
-  it('etapas 1 a 3 bloqueiam o painel; 4 e 5 não', () => {
+  it('etapas 1 a 3 bloqueiam o painel; 4 a 6 não', () => {
     expect(rules.estadoOnboarding({ onboardingEtapa: 1, onboardingConcluidoEm: null })).toEqual({ pendente: true, bloqueante: true, etapa: 1 });
     expect(rules.estadoOnboarding({ onboardingEtapa: 3, onboardingConcluidoEm: null }).bloqueante).toBe(true);
     expect(rules.estadoOnboarding({ onboardingEtapa: 4, onboardingConcluidoEm: null })).toEqual({ pendente: true, bloqueante: false, etapa: 4 });
-    expect(rules.estadoOnboarding({ onboardingEtapa: 6, onboardingConcluidoEm: new Date() })).toEqual({ pendente: false, bloqueante: false, etapa: 6 });
+    expect(rules.estadoOnboarding({ onboardingEtapa: 6, onboardingConcluidoEm: null })).toEqual({ pendente: true, bloqueante: false, etapa: 6 });
+    expect(rules.estadoOnboarding({ onboardingEtapa: 7, onboardingConcluidoEm: new Date() })).toEqual({ pendente: false, bloqueante: false, etapa: 7 });
   });
 
   it('salvar avança sem voltar o progresso', () => {
     expect(rules.etapaDepoisDe(1, 1)).toBe(2);
     expect(rules.etapaDepoisDe(4, 1)).toBe(4);
     expect(rules.etapaDepoisDe(3, 3)).toBe(4);
+    expect(rules.etapaDepoisDe(4, 4)).toBe(5);
+    expect(rules.etapaDepoisDe(6, 3)).toBe(6);
   });
 
   it('horários: fechamento depois da abertura e pausa dentro do expediente', () => {
