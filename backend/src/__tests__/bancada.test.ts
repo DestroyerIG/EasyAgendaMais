@@ -372,6 +372,19 @@ describe('cobrança do saldo na bancada', () => {
     expect(formaRuim.status).toBe(400);
   });
 
+  it('link: a forma escolhida vai junto ao serviço; sem a forma, ou com via errada de forma, a rota recusa', async () => {
+    repo.profissionalCobra.mockResolvedValue(true);
+    await bancadaService.cobrar('b1', 'u9', P, 'k1', { extras: [], via: 'link', forma: 'pix' });
+    expect(cobrancaSaldo.criar).toHaveBeenCalledWith('k1', 'b1', 'u9', { extras: [], discount: 5, tip: 2 }, { via: 'link', forma: 'pix' });
+
+    const ok = await request.post(`/api/v1/bancada/comandas/${ID}/cobranca`).send({ extras: [], via: 'link', forma: 'credito' });
+    expect(ok.status).toBe(200);
+    const semForma = await request.post(`/api/v1/bancada/comandas/${ID}/cobranca`).send({ extras: [], via: 'link' });
+    expect(semForma.status).toBe(400);
+    const maquininhaComPix = await request.post(`/api/v1/bancada/comandas/${ID}/cobranca`).send({ extras: [], via: 'maquininha', forma: 'pix' });
+    expect(maquininhaComPix.status).toBe(400);
+  });
+
   it('rota da profissional: aceita via pix e recusa outra via', async () => {
     repo.profissionalCobra.mockResolvedValue(true);
     const ok = await request.post(`/api/v1/bancada/comandas/${ID}/cobranca`).send({ extras: [], via: 'pix' });
@@ -406,6 +419,17 @@ describe('cobrança do saldo no painel', () => {
     expect(cobrancaSaldo.criar).toHaveBeenCalledWith(ID, 'b1', 'u9', corpo, { via: 'maquininha', forma: 'credito' });
     const sem = await request.post(`/api/v1/comandas/${ID}/cobranca`).set('x-role', 'tenant_admin').send({ ...corpo, via: 'maquininha' });
     expect(sem.status).toBe(400);
+  });
+
+  it('link: repassa a forma escolhida; sem a forma, 400', async () => {
+    const corpo = { extras: [], discount: 0, tip: 0 };
+    const ok = await request.post(`/api/v1/comandas/${ID}/cobranca`).set('x-role', 'tenant_admin').send({ ...corpo, via: 'link', forma: 'pix' });
+    expect(ok.status).toBe(200);
+    expect(cobrancaSaldo.criar).toHaveBeenCalledWith(ID, 'b1', 'u9', corpo, { via: 'link', forma: 'pix' });
+    const sem = await request.post(`/api/v1/comandas/${ID}/cobranca`).set('x-role', 'tenant_admin').send({ ...corpo, via: 'link' });
+    expect(sem.status).toBe(400);
+    const maquininhaComPix = await request.post(`/api/v1/comandas/${ID}/cobranca`).set('x-role', 'tenant_admin').send({ ...corpo, via: 'maquininha', forma: 'pix' });
+    expect(maquininhaComPix.status).toBe(400);
   });
 
   it('via desconhecida: 400', async () => {

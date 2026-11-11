@@ -18,12 +18,15 @@ export const SaveComandaSchema = z.object({
 });
 export type SaveComandaInput = z.infer<typeof SaveComandaSchema>;
 
-/** Cobrança do saldo: o mesmo corpo da comanda mais a via. `maquininha` exige a forma de cartão (débito ou crédito). */
+/** Cobrança do saldo: o mesmo corpo da comanda mais a via. `maquininha` exige débito ou crédito; `link` exige a forma escolhida. */
 export const CobrarSchema = SaveComandaSchema.omit({ paymentMethod: true }).extend({
-  via: z.enum(['pix', 'maquininha']),
-  forma: z.enum(['debito', 'credito']).optional(),
+  via: z.enum(['pix', 'maquininha', 'link']),
+  forma: z.enum(['pix', 'debito', 'credito']).optional(),
 }).superRefine((v, ctx) => {
-  if (v.via === 'maquininha' && !v.forma) ctx.addIssue({ code: 'custom', path: ['forma'], message: 'Escolha débito ou crédito' });
+  if (v.via === 'maquininha' && v.forma !== 'debito' && v.forma !== 'credito') {
+    ctx.addIssue({ code: 'custom', path: ['forma'], message: 'Escolha débito ou crédito' });
+  }
+  if (v.via === 'link' && !v.forma) ctx.addIssue({ code: 'custom', path: ['forma'], message: 'Escolha a forma de pagamento' });
 });
 export type CobrarInput = z.infer<typeof CobrarSchema>;
 

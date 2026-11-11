@@ -9,7 +9,7 @@ import { gatewayDe } from './gateways/porId.js';
 import { infinitePay } from './gateways/infinitePay.js';
 import { recebimentosRepository as repo } from './recebimentos.repository.js';
 import { backendUrl, nomeDoTerminal } from './recebimentos.rules.js';
-import type { GatewayId, SituacaoCobranca } from './recebimentos.types.js';
+import type { ComoCobrar, GatewayId, SituacaoCobranca } from './recebimentos.types.js';
 
 // Cobrança do saldo da comanda no balcão. A comanda só é alterada pela cobrança enquanto ela está pendente
 // (ver `comandasService.save`); o pagamento confirmado fecha a comanda em `pagamentos.service`.
@@ -18,14 +18,7 @@ const PRAZO_MS = 15 * 60 * 1000;
 /** O link é pago no celular do cliente, sem pressa de balcão: prazo maior. */
 const PRAZO_LINK_MS = 60 * 60 * 1000;
 
-/**
- * Como cobrar: Pix do Mercado Pago, débito/crédito na maquininha Point, ou link da InfinitePay (o cliente
- * escolhe Pix ou cartão na página; `forma` é a que o dono marcou na comanda, que vale se o pagamento não disser).
- */
-export type ComoCobrar =
-  | { via: 'pix' }
-  | { via: 'maquininha'; forma: 'debito' | 'credito' }
-  | { via: 'link'; forma: 'pix' | 'debito' | 'credito' };
+export type { ComoCobrar };
 
 export interface CobrancaSaldoDto {
   id: string;

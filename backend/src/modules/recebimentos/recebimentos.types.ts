@@ -3,6 +3,15 @@ import { z } from 'zod';
 export type GatewayId = 'mercadopago' | 'infinitepay';
 export type FormaSinal = 'pix' | 'cartao';
 export type TipoCobranca = 'sinal' | 'saldo';
+
+/**
+ * Como cobrar o saldo: Pix do Mercado Pago, débito/crédito na maquininha Point, ou link da InfinitePay (o
+ * cliente escolhe Pix ou cartão na página; `forma` é a que o dono marcou na comanda, que vale se o pagamento não disser).
+ */
+export type ComoCobrar =
+  | { via: 'pix' }
+  | { via: 'maquininha'; forma: 'debito' | 'credito' }
+  | { via: 'link'; forma: 'pix' | 'debito' | 'credito' };
 export type SituacaoCobranca = 'pendente' | 'paga' | 'expirada' | 'recusada' | 'devolvida' | 'contestada' | 'substituida' | 'cancelada';
 
 /** Pagamento já buscado no gateway. `status` é o do Mercado Pago (approved, pending, rejected, refunded, charged_back...). */

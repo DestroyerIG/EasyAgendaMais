@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { sendSuccess, sendCreated } from '../../utils/response.js';
 import { comandasService } from './comandas.service.js';
 import { cobrancaSaldoService } from '../recebimentos/cobrancaSaldo.service.js';
+import { comoCobrar } from '../recebimentos/recebimentos.rules.js';
 import { commissionSettings } from './commissionSettings.js';
 
 type H = (req: Request, res: Response, next: NextFunction) => Promise<void>;
@@ -28,8 +29,7 @@ export const cobrancaDaComanda: H = async (req, res, next) => {
 export const cobrarComanda: H = async (req, res, next) => {
   try {
     const { via, forma, ...input } = req.body;
-    const como = via === 'maquininha' ? { via, forma } : { via: 'pix' as const };
-    sendSuccess(res, await cobrancaSaldoService.criar(id(req), req.user.businessId!, req.user.userId, input, como));
+    sendSuccess(res, await cobrancaSaldoService.criar(id(req), req.user.businessId!, req.user.userId, input, comoCobrar(via, forma)));
   } catch (e) { next(e); }
 };
 export const cancelarCobrancaDaComanda: H = async (req, res, next) => {

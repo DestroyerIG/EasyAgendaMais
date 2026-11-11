@@ -1,5 +1,5 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
-import type { GatewayId, PagamentoGateway, SituacaoCobranca } from './recebimentos.types.js';
+import type { ComoCobrar, GatewayId, PagamentoGateway, SituacaoCobranca } from './recebimentos.types.js';
 
 // Regras puras dos recebimentos automáticos (Mercado Pago).
 
@@ -104,6 +104,16 @@ export const desafioPkce = (verificador: string): string =>
 /** Valor em centavos inteiros. Aceita Decimal do Prisma, texto e número. */
 export function centavos(v: unknown): number {
   return Math.round(Number(String(v)) * 100);
+}
+
+/**
+ * Monta o `ComoCobrar` a partir do corpo já validado (`via` e `forma`). Combinação sem a forma que a via exige
+ * (o esquema já recusa) cai no Pix.
+ */
+export function comoCobrar(via: 'pix' | 'maquininha' | 'link', forma?: 'pix' | 'debito' | 'credito'): ComoCobrar {
+  if (via === 'link' && forma) return { via, forma };
+  if (via === 'maquininha' && (forma === 'debito' || forma === 'credito')) return { via, forma };
+  return { via: 'pix' };
 }
 
 /** Nome curto da maquininha Point para a tela: o id é `TIPO__SERIAL`, e o fim do serial está na etiqueta dela. */
