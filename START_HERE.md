@@ -23,6 +23,8 @@ Guia de entrada para quem acabou de clonar o EasyAgenda+.
 | Entender planos e permissões | `PLANOS.md` |
 | Mexer no WhatsApp | `WHATSAPP_BOT.md` |
 | Configurar o Google | `docs/google-configuracao.md` |
+| Ligar os recebimentos (Mercado Pago, InfinitePay) | `docs/mercado-pago-configuracao.md` e `docs/infinitepay-configuracao.md` |
+| Trocar de domínio | `docs/RUNBOOK-DOMINIO.md` |
 | Mudar uma tela | `docs/design/DESIGN.md` e `docs/design/stitch/` |
 | Ver o que ficou pendente | `docs/design/SEGUIMENTO.md` |
 | Publicar | `DEPLOY.md` |
@@ -37,6 +39,7 @@ Guia de entrada para quem acabou de clonar o EasyAgenda+.
 - Preparar o banco com o Prisma (`npm run db:sync` no backend). Os SQL antigos não são mais usados.
 - Subir backend e frontend.
 - Validar `GET /health`, cadastro, confirmação de e-mail, login, onboarding e a tela Hoje.
+- Opcional: ligar os recebimentos (`MERCADOPAGO_*`, `RECEBIMENTOS_TOKEN_KEY`, `BACKEND_URL`), o e-mail do convite (`RESEND_*`) e o push (`VAPID_*`). Sem eles, os recursos só não aparecem.
 
 ## Como o trabalho é organizado
 
@@ -50,5 +53,6 @@ Guia de entrada para quem acabou de clonar o EasyAgenda+.
 - A API canônica é `/api/v1`. Chamadas para `/api/*` são redirecionadas com HTTP 301.
 - O frontend chama o backend pelo BFF (`frontend/src/app/api/*`), nunca direto.
 - O Supabase Auth é obrigatório para cadastro, confirmação de e-mail e login.
+- A assinatura do sistema é cobrada só pelo Asaas (o Stripe foi removido). Os recebimentos do negócio (sinal e saldo) vão direto para a conta dele.
 - `AUTH_PROVIDER_MODE` é obsoleto.
 - Ambiente local com Docker: `docker compose up --build` (Postgres, migrações do Prisma, backend e frontend).

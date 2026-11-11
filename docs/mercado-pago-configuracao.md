@@ -7,7 +7,7 @@ Passo a passo para ligar os recebimentos automáticos do sinal. Sem esta configu
 - **EasyAgenda+ (uma vez só):** cria uma aplicação no Mercado Pago, na conta da EasyAgenda+, e coloca as credenciais dela no Render (passos 1 a 4). A aplicação só pede autorização em nome dos negócios. O dinheiro dos negócios não passa por ela.
 - **Cada negócio:** em Ajustes › Recebimentos › Mercado Pago, clica em **Conectar**, entra na própria conta do Mercado Pago e autoriza. Não digita chave, token nem código. O sinal cai direto na conta do negócio, e as taxas do Mercado Pago saem do valor do sinal.
 
-Neste guia, `<backend>` é o endereço do backend, sem barra no final. Hoje é `https://easybarber-backend.onrender.com`.
+Neste guia, `<backend>` é o endereço do backend, sem barra no final. Hoje é `https://api.easyagendamais.com.br`.
 
 Os nomes dos menus podem mudar no painel do Mercado Pago. Procure pelo equivalente.
 

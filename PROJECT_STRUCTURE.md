@@ -1,6 +1,6 @@
 # Estrutura do projeto — EasyAgenda+
 
-Stack: Node.js 20 + Express 4 + TypeScript + Prisma 5 + PostgreSQL (Supabase) no backend, e Next.js 15 (App Router) + React 18 + Tailwind no frontend. Atualizado em 27/10/2026.
+Stack: Node.js 20 + Express 4 + TypeScript + Prisma 5 + PostgreSQL (Supabase) no backend, e Next.js 15 (App Router) + React 18 + Tailwind no frontend. Atualizado em 11/11/2026.
 
 ```
 EasyAgendaMais/
@@ -29,18 +29,20 @@ backend/
 │   ├── config/
 │   │   ├── planCatalog.ts         # Planos: preço, limite, matriz (fonte única)
 │   │   ├── planPermissions.ts     # Plano mínimo por recurso e efeito do status
-│   │   ├── trial.ts               # TRIAL_DAYS
+│   │   ├── trial.ts               # Teste de 7 dias sem cartão ou 14 com cartão
+│   │   ├── valorPlano.ts          # Valor mensal do negócio (Salão sob consulta)
+│   │   ├── contingencia.ts        # Carência de 7 dias e conta bloqueada
 │   │   ├── vocabulario.ts         # Termos por segmento
 │   │   ├── scheduleDefaults.ts    # Horário padrão do negócio
 │   │   ├── appointmentStatus.ts   # Status e transições do agendamento
-│   │   ├── prisma.ts / stripe.ts
+│   │   ├── prisma.ts
 │   ├── middleware/                # auth, rbac (requireRole), subscriptionGuard (requireFeature), validate, errorHandler
 │   ├── modules/                   # Um diretório por domínio (abaixo)
-│   ├── routes/                    # Rotas antigas: auth, business, clients, dashboard, finance, subscriptions, whatsapp, admin
+│   ├── routes/                    # Rotas antigas: auth, business, clients, dashboard, finance, whatsapp, admin
 │   ├── controllers/ services/ repositories/   # Camadas das rotas antigas
 │   ├── services/
 │   │   ├── cronService.ts         # Todas as rotinas agendadas (node-cron)
-│   │   ├── billing/               # Provedores Stripe e Asaas
+│   │   ├── billing/               # Provedor Asaas (único) e mapeamento de status
 │   │   └── whatsapp/              # Robô, cliente Evolution, handlers do webhook, tenant, vocabulário
 │   ├── integrations/asaas/        # Cliente HTTP do Asaas
 │   ├── bot/botOrchestrator.ts     # Orquestrador do robô do WhatsApp
@@ -85,9 +87,14 @@ Cada módulo novo segue o padrão `<nome>.routes.ts`, `.controller.ts`, `.servic
 | `googleAgenda` | `/google-agenda` | 7 | OAuth, envio de eventos e ocupado/livre (token cifrado) |
 | `notifications` | `/notifications` | — | Sino |
 | `businessPublicPage` | `/business-public-page` | — | Configuração da Minha página |
-| `publicBooking` | `/public` | — | Página pública e reserva com sinal Pix |
+| `publicBooking` | `/public` | — | Página pública e reserva com sinal (Pix, Mercado Pago ou InfinitePay) |
+| `busca` | `/busca` | — | Busca geral do painel |
+| `conta` | `/conta` | H1 | Estado da conta (contingência), carência e backup |
+| `depoimentos` | `/depoimentos`, `/admin/depoimentos` | — | Depoimentos das donas e moderação no SuperAdmin |
+| `recebimentos` | `/recebimentos` | — | Gateways (Mercado Pago, InfinitePay), cobrança do sinal e do saldo, maquininha Point |
+| `admin` | `/admin` | H2 | Painel do SuperAdmin (`painel.*`) e rotas antigas |
 | `core` | — | — | requestId, log HTTP, sanitização, Helmet e limite por negócio |
-| `auth`, `business`, `clients`, `finance`, `subscriptions`, `admin` | — | — | Reexportam as rotas antigas de `src/routes/` |
+| `auth`, `business`, `clients`, `finance` | — | — | Reexportam as rotas antigas de `src/routes/` |
 
 ### Fluxo de uma requisição
 
@@ -120,8 +127,9 @@ frontend/
 │   │   ├── nail-designers/        # Landing por segmento
 │   │   ├── login/, cadastro/, cadastro/completar/, esqueci-senha/, verificar-email/
 │   │   ├── auth/confirm/, auth/callback/ (Google), auth/redefinir-senha/
-│   │   ├── onboarding/            # 5 etapas
+│   │   ├── onboarding/            # 6 etapas
 │   │   ├── pagamento/             # Checkout da assinatura
+│   │   ├── pagamento-recebido/    # Retorno do link de pagamento da InfinitePay
 │   │   ├── dashboard/             # Painel da dona (Hoje, agenda, clientes, financeiro, clube, whatsapp, relatórios, minha página, ajustes, planos)
 │   │   ├── bancada/               # App da profissional (PWA)
 │   │   ├── convite/[token]/       # Aceite do convite
@@ -163,6 +171,8 @@ As páginas nunca chamam o backend direto. Elas chamam `/api/...` no próprio Ne
 | `docs/FUNCIONALIDADES.md` | O que o sistema faz, tela por tela |
 | `docs/ROADMAP.md` | Fases e estado |
 | `docs/google-configuracao.md` | Google Cloud, Supabase e variáveis do Google |
+| `docs/mercado-pago-configuracao.md`, `docs/infinitepay-configuracao.md` | Configuração dos recebimentos |
+| `docs/images/` | Logo usada no README |
 | `docs/design/DESIGN.md` | Design system |
 | `docs/design/SEGUIMENTO.md` | Pendências de cada fase |
 | `docs/design/stitch/` | Telas de referência do Google Stitch |
@@ -177,15 +187,17 @@ As páginas nunca chamam o backend direto. Elas chamam `/api/...` no próprio Ne
 | Serviço | Uso |
 |---|---|
 | Supabase | Auth (senha e Google), Postgres e Storage (fotos, logo e galeria) |
-| Stripe | Assinatura por cartão |
-| Asaas | Assinatura por Pix |
+| Asaas | Assinatura do sistema, por cartão (Checkout) e Pix |
+| Mercado Pago | Recebimentos do negócio: Pix, cartão e maquininha Point |
+| InfinitePay | Recebimentos do negócio: link de Pix ou cartão |
+| Resend (ou SMTP) | E-mail do convite da profissional |
 | Evolution API v2 | WhatsApp |
 | Google Calendar API | Google Agenda |
 | Web Push (VAPID) | Notificações no navegador |
 | Render | Backend |
 | Vercel | Frontend |
 
-O sinal Pix da página pública e a mensalidade do clube não passam por gateway: o BR Code é gerado com a chave Pix do próprio negócio (`utils/pixPayload.ts`).
+Sem gateway conectado, o sinal Pix da página pública e a cobrança Pix da comanda usam o BR Code gerado com a chave Pix do próprio negócio (`utils/pixPayload.ts`), com confirmação manual. A mensalidade do clube segue sempre assim.
 
 ---
 

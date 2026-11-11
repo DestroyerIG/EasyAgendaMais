@@ -7,7 +7,7 @@ Passo a passo para ligar o sinal pela InfinitePay (Pix ou cartão). Sem a config
 - **EasyAgenda+ (uma vez só):** cria a variável `BACKEND_URL` no Render. Não existe aplicação para cadastrar na InfinitePay: cada negócio usa a própria chave.
 - **Cada negócio:** liga o Checkout integrado na InfinitePay, cria uma chave de API e cola a InfiniteTag e a chave em Ajustes › Recebimentos › InfinitePay. O sinal cai direto na conta do negócio, e as taxas da InfinitePay saem do valor recebido.
 
-Neste guia, `<backend>` é o endereço do backend, sem barra no final. Hoje é `https://easybarber-backend.onrender.com`.
+Neste guia, `<backend>` é o endereço do backend, sem barra no final. Hoje é `https://api.easyagendamais.com.br`.
 
 Os nomes dos menus podem mudar no app da InfinitePay. Procure pelo equivalente.
 
@@ -20,7 +20,7 @@ No serviço do backend, em **Environment**, confira que existem as duas variáve
 | Variável | Valor |
 |---|---|
 | `RECEBIMENTOS_TOKEN_KEY` | Já criada para o Mercado Pago. Não troque |
-| `BACKEND_URL` | `<backend>`, sem barra no final. Ex.: `https://easybarber-backend.onrender.com` |
+| `BACKEND_URL` | `<backend>`, sem barra no final. Ex.: `https://api.easyagendamais.com.br` |
 
 A `BACKEND_URL` serve para montar o endereço do aviso de pagamento (webhook) de cada cobrança. Salve e espere o Render reiniciar. A InfinitePay passa a aparecer em Ajustes › Recebimentos para quem é administrador do negócio.
 

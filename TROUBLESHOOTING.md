@@ -25,7 +25,6 @@ Checklist:
 - `JWT_SECRET` existe.
 - PostgreSQL está ativo.
 - Se `ASAAS_BASE_URL` está definido, `ASAAS_API_KEY` também precisa estar.
-- Se qualquer variável Stripe está configurada, as obrigatórias precisam estar completas.
 
 ## PostgreSQL
 
@@ -90,24 +89,25 @@ Checklist:
 
 ## Billing
 
-### Stripe
+### Asaas (cartão e Pix)
 
-Verifique:
-
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- Price IDs recorrentes.
-- Endpoint `/api/v1/billing/webhooks/stripe` ou compatíveis.
-
-### Asaas Pix
-
-Verifique:
+O Asaas é o único meio de cobrança da assinatura. Verifique:
 
 - `ASAAS_API_KEY`
 - `ASAAS_BASE_URL`
 - `ASAAS_WEBHOOK_TOKEN`
 - Endpoint `/api/v1/billing/webhooks/asaas`.
-- CPF/CNPJ válido no checkout.
+- CPF/CNPJ válido no checkout (a tela de pagamento pede quando falta).
+- Tokenização habilitada na conta de produção: sem ela, reativar no cartão, estender o teste com cartão e mudar o valor numa troca de plano falham.
+
+## Recebimentos (Mercado Pago e InfinitePay)
+
+- A seção "Recebimentos" não aparece em Ajustes: faltam `MERCADOPAGO_CLIENT_ID`, `MERCADOPAGO_CLIENT_SECRET`, `MERCADOPAGO_REDIRECT_URI` e `RECEBIMENTOS_TOKEN_KEY` no backend.
+- Mercado Pago pede "Reconectar": a autorização venceu ou foi revogada. A rotina das 04:00 renova as que vencem em menos de 30 dias.
+- InfinitePay conecta mas o pagamento não confirma: confira `BACKEND_URL` (sem barra final) no backend. A rotina de cada minuto confirma por consulta, mas só se o gateway estiver disponível.
+- Sinal pago e a reserva não confirmou: a rotina de cada minuto (`conferirPendentes`) cobre o aviso perdido. Se persistir, confira o alerta no sino (pagamento fora do prazo, em dobro ou devolvido).
+- Cobrança do saldo na comanda não fecha: com a cobrança pendente a comanda fica travada; cancele a cobrança no painel para voltar a editar. A maquininha Point precisa estar em modo PDV (Recebimentos › Maquininhas).
+- Guias: `docs/mercado-pago-configuracao.md` e `docs/infinitepay-configuracao.md`.
 
 ## WhatsApp
 

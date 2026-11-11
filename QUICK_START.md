@@ -87,7 +87,7 @@ Depois:
 
 1. Cadastre uma conta em `/cadastro` e confirme o e-mail.
 2. Faça login em `/login`.
-3. Passe pelas 5 etapas do onboarding.
+3. Passe pelas 6 etapas do onboarding.
 4. Chegue à tela Hoje.
 
 ## Testes

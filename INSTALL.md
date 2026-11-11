@@ -10,7 +10,8 @@ Guia detalhado do ambiente de desenvolvimento. Para o caminho curto, veja `QUICK
 - Projeto Supabase (Auth, e também Storage para fotos, logo e galeria)
 - Opcionais, conforme o que for testar:
   - servidor Evolution API v2 (WhatsApp);
-  - contas de teste no Stripe e no Asaas (assinatura);
+  - conta de teste no Asaas (assinatura, cartão e Pix);
+  - aplicação no Mercado Pago e chave da InfinitePay (recebimentos do sinal e do saldo);
   - projeto no Google Cloud (login com Google e Google Agenda).
 
 ## 2. Clonar
@@ -51,12 +52,12 @@ Os dois arquivos de exemplo estão comentados. Por grupo:
 | Sessão e URLs | `JWT_SECRET`, `FRONTEND_URL`, `APP_URL` | Sim |
 | Supabase Auth | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `AUTH_SUPABASE_REDIRECT_TO` | Sim |
 | Fuso | `BUSINESS_TIMEZONE` (padrão `America/Sao_Paulo`) | Não |
-| Stripe | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID_*` | Para cartão |
-| Asaas | `ASAAS_API_KEY`, `ASAAS_BASE_URL`, `ASAAS_WEBHOOK_TOKEN` | Para Pix da assinatura |
+| Asaas | `ASAAS_API_KEY`, `ASAAS_BASE_URL`, `ASAAS_WEBHOOK_TOKEN` | Para a assinatura (cartão e Pix) |
+| Recebimentos | `MERCADOPAGO_CLIENT_ID`, `MERCADOPAGO_CLIENT_SECRET`, `MERCADOPAGO_REDIRECT_URI`, `RECEBIMENTOS_TOKEN_KEY`, `BACKEND_URL` | Para Mercado Pago e InfinitePay |
 | WhatsApp | `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `BACKEND_WEBHOOK_BASE_URL` | Para WhatsApp |
 | Push | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Para notificações push |
 | Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_AGENDA_REDIRECT_URI`, `GOOGLE_TOKEN_KEY` | Para Google Agenda |
-| SMTP | `SMTP_*` | Não (convite da profissional e e-mails do sistema) |
+| E-mail | `RESEND_API_KEY` e `RESEND_FROM`, ou `SMTP_*` | Não (convite da profissional; sem e-mail a dona copia o link) |
 
 Gerar as chaves VAPID uma vez:
 
