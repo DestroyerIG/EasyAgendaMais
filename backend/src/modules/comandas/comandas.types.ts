@@ -18,8 +18,13 @@ export const SaveComandaSchema = z.object({
 });
 export type SaveComandaInput = z.infer<typeof SaveComandaSchema>;
 
-/** Cobrança do saldo: o mesmo corpo da comanda (a forma é sempre Pix) mais a via de cobrança. Só `pix` nesta fase. */
-export const CobrarSchema = SaveComandaSchema.omit({ paymentMethod: true }).extend({ via: z.literal('pix') });
+/** Cobrança do saldo: o mesmo corpo da comanda mais a via. `maquininha` exige a forma de cartão (débito ou crédito). */
+export const CobrarSchema = SaveComandaSchema.omit({ paymentMethod: true }).extend({
+  via: z.enum(['pix', 'maquininha']),
+  forma: z.enum(['debito', 'credito']).optional(),
+}).superRefine((v, ctx) => {
+  if (v.via === 'maquininha' && !v.forma) ctx.addIssue({ code: 'custom', path: ['forma'], message: 'Escolha débito ou crédito' });
+});
 export type CobrarInput = z.infer<typeof CobrarSchema>;
 
 export interface ComandaItemDto {

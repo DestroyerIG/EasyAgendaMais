@@ -27,8 +27,9 @@ export const cobrancaDaComanda: H = async (req, res, next) => {
 };
 export const cobrarComanda: H = async (req, res, next) => {
   try {
-    const { via: _via, ...input } = req.body;
-    sendSuccess(res, await cobrancaSaldoService.criar(id(req), req.user.businessId!, req.user.userId, input, { via: 'pix' }));
+    const { via, forma, ...input } = req.body;
+    const como = via === 'maquininha' ? { via, forma } : { via: 'pix' as const };
+    sendSuccess(res, await cobrancaSaldoService.criar(id(req), req.user.businessId!, req.user.userId, input, como));
   } catch (e) { next(e); }
 };
 export const cancelarCobrancaDaComanda: H = async (req, res, next) => {

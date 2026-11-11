@@ -83,8 +83,7 @@ export const comandaPix: H = async (req, res, next) => {
 };
 export const comandaCobrar: H = async (req, res, next) => {
   try {
-    const { via: _via, ...input } = req.body;
-    sendSuccess(res, await bancadaService.cobrar(negocio(req), req.user.userId, profissionalDe(res), id(req), { ...input, via: 'pix' }));
+    sendSuccess(res, await bancadaService.cobrar(negocio(req), req.user.userId, profissionalDe(res), id(req), req.body));
   } catch (e) { next(e); }
 };
 export const comandaCobranca: H = async (req, res, next) => {
