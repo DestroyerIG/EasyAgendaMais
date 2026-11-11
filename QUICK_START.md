@@ -12,7 +12,7 @@ Caminho curto para subir o projeto em desenvolvimento.
 
 ```bash
 git clone <url-do-repositorio>
-cd EasyBarber
+cd EasyAgendaMais
 npm run install:all
 ```
 
