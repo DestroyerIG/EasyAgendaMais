@@ -182,3 +182,21 @@ describe('maquininha Point no repositório', () => {
     expect(await repo.terminalPadrao('b1')).toBeNull();
   });
 });
+
+describe('link da InfinitePay no repositório', () => {
+  it('criarCobrancaSaldo grava gateway infinitepay e forma link', async () => {
+    cs.create.mockResolvedValue({ id: 'c1' });
+    await repo.criarCobrancaSaldo({
+      businessId: 'b1', appointmentId: 'a1', usuarioId: 'u1', gateway: 'infinitepay', valor: 80,
+      venceEm: new Date('2030-01-01T11:00:00Z'), forma: 'link',
+    });
+    expect(cs.create.mock.calls[0]![0].data).toMatchObject({ tipo: 'saldo', gateway: 'infinitepay', forma: 'link', situacao: 'pendente' });
+  });
+
+  it('ultimaCobrancaSaldo traz o endereço do link', async () => {
+    cs.findFirst.mockResolvedValue(null);
+    await repo.ultimaCobrancaSaldo('a1');
+    const select = (cs.findFirst.mock.calls[0]![0] as { select: Record<string, boolean> }).select;
+    expect(select['checkoutUrl']).toBe(true);
+  });
+});

@@ -177,8 +177,8 @@ export const recebimentosRepository = {
   /** Linha `pendente` do saldo, criada antes da chamada ao gateway para ter o id que vai como referência. */
   criarCobrancaSaldo(d: {
     businessId: string; appointmentId: string; usuarioId: string; gateway: GatewayId; valor: number; venceEm: Date;
-    /** `point`: ordem na maquininha escolhida (`terminalId`). Padrão: Pix. */
-    forma?: 'pix' | 'point'; terminalId?: string;
+    /** `point`: ordem na maquininha escolhida (`terminalId`); `link`: link da InfinitePay. Padrão: Pix. */
+    forma?: 'pix' | 'point' | 'link'; terminalId?: string;
   }) {
     const { forma, terminalId, ...resto } = d;
     return prisma.cobrancaSinal.create({
@@ -209,7 +209,7 @@ export const recebimentosRepository = {
     return prisma.cobrancaSinal.findFirst({
       where: { appointmentId, tipo: 'saldo' }, orderBy: { criadoEm: 'desc' },
       select: {
-        id: true, gateway: true, forma: true, situacao: true, valor: true, codigoPix: true, terminalId: true, idExterno: true,
+        id: true, gateway: true, forma: true, situacao: true, valor: true, codigoPix: true, checkoutUrl: true, terminalId: true, idExterno: true,
         venceEm: true, pagoEm: true, criadoEm: true,
       },
     });

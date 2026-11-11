@@ -5,7 +5,7 @@ import QRCode from 'qrcode';
 import { Button, Icon } from '@/components/ui';
 import { formatCurrency } from '@/lib/formatters';
 import {
-  ehCobrancaEmAndamento, ehMaquininhaOcupada, type CobrancaSaldo, type ComoCobrar, type EstadoCobranca, type PaymentMethod, type PixComanda,
+  ehCobrancaEmAndamento, ehLinkDesligado, ehMaquininhaOcupada, type CobrancaSaldo, type ComoCobrar, type EstadoCobranca, type PaymentMethod, type PixComanda,
 } from '@/lib/comanda';
 import { GuiaMaquininha } from './GuiaMaquininha';
 import { PainelCobrarPix } from './PainelCobrarPix';
@@ -15,11 +15,13 @@ import { PainelCobrarPix } from './PainelCobrarPix';
 //  - Pix com Mercado Pago: Pix do gateway, confirmado sozinho (a comanda fecha sozinha);
 //  - Pix sem gateway (ou "usar minha chave"): QR na chave Pix do negócio, confirmação manual;
 //  - Débito/Crédito com Mercado Pago e uma maquininha Point escolhida: cobrança enviada à maquininha,
-//    confirmada sozinha; sem isso (ou "digitar manualmente"), só o guia do valor para digitar.
+//    confirmada sozinha; sem isso (ou "digitar manualmente"), só o guia do valor para digitar;
+//  - InfinitePay (Pix, débito ou crédito): link de pagamento com QR, o cliente paga no celular e a confirmação
+//    vem por webhook; "usar minha chave Pix" / "digitar manualmente" seguem como alternativa.
 
 const INTERVALO_MS = 3000;
 
-type Erro = 'andamento' | 'ocupada' | 'geral' | null;
+type Erro = 'andamento' | 'ocupada' | 'link_desligado' | 'geral' | null;
 
 interface Props {
   forma: PaymentMethod | null;
@@ -89,14 +91,16 @@ export function PainelCobrar({ forma, total, gerarPixManual, api, onPendente, on
   }, [paga]);
 
   const codigo = pendente && cobranca?.via === 'pix' ? cobranca.codigoPix : null;
+  const enderecoDoLink = pendente && cobranca?.via === 'link' ? cobranca.checkoutUrl ?? null : null;
+  const fonteDoQr = codigo ?? enderecoDoLink;
   useEffect(() => {
-    if (!codigo) { setQr(null); return; }
+    if (!fonteDoQr) { setQr(null); return; }
     let cancelado = false;
-    QRCode.toDataURL(codigo, { margin: 1, width: 220 })
+    QRCode.toDataURL(fonteDoQr, { margin: 1, width: 220 })
       .then((url) => { if (!cancelado) setQr(url); })
       .catch(() => { if (!cancelado) setQr(null); });
     return () => { cancelado = true; };
-  }, [codigo]);
+  }, [fonteDoQr]);
 
   const gerar = async (como: ComoCobrar) => {
     setGerando(true);
@@ -106,7 +110,7 @@ export function PainelCobrar({ forma, total, gerarPixManual, api, onPendente, on
       pagaAvisada.current = false;
       setEstado((e) => ({ gateway: e?.gateway ?? 'mercadopago', terminal: e?.terminal ?? null, cobranca: nova, avisoMaquininha: false }));
     } catch (e) {
-      setErro(ehCobrancaEmAndamento(e) ? 'andamento' : ehMaquininhaOcupada(e) ? 'ocupada' : 'geral');
+      setErro(ehCobrancaEmAndamento(e) ? 'andamento' : ehMaquininhaOcupada(e) ? 'ocupada' : ehLinkDesligado(e) ? 'link_desligado' : 'geral');
     } finally {
       setGerando(false);
     }
@@ -122,9 +126,9 @@ export function PainelCobrar({ forma, total, gerarPixManual, api, onPendente, on
   };
 
   const copiar = async () => {
-    if (!codigo) return;
+    if (!fonteDoQr) return;
     try {
-      await navigator.clipboard.writeText(codigo);
+      await navigator.clipboard.writeText(fonteDoQr);
       setCopiado(true);
     } catch {
       setErro('geral');
@@ -135,6 +139,79 @@ export function PainelCobrar({ forma, total, gerarPixManual, api, onPendente, on
   if (estado === null && !falhaEstado) return <p className="text-[13px] text-muted">Carregando a cobrança...</p>;
 
   const semGateway = falhaEstado || estado?.gateway === null;
+
+  // ─── Link da InfinitePay (Pix, débito e crédito) ─────────────────────────────
+  if (estado?.gateway === 'infinitepay') {
+    const voltar = (
+      <Button type="button" variant="ghost" size="sm" onClick={() => setManual(false)}>Usar o link da InfinitePay</Button>
+    );
+    if (manual) {
+      return (
+        <div className="flex flex-col gap-2">
+          {forma === 'pix' ? <PainelCobrarPix total={total} gerar={gerarPixManual} /> : <GuiaMaquininha total={total} />}
+          {voltar}
+        </div>
+      );
+    }
+    const doLink = cobranca?.via === 'link' ? cobranca : null;
+    const refazerLink = doLink?.situacao === 'expirada';
+    return (
+      <section aria-label="Cobrar por link de pagamento" className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
+        <div className="flex items-center justify-between gap-3">
+          <span className="flex items-center gap-2 text-[15px] font-bold text-ink">
+            <Icon name="link" size={20} className="text-brand-text" />
+            Link de pagamento
+          </span>
+          <span className="text-[18px] font-extrabold tabular-nums text-brand-text">{formatCurrency(doLink && pendente ? doLink.valor : total)}</span>
+        </div>
+
+        {paga && doLink ? (
+          <p role="status" className="text-[14px] font-semibold text-success-text">Pagamento recebido. Fechando a comanda...</p>
+        ) : pendente && doLink ? (
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-[13px] text-muted">O cliente aponta a câmera para o QR Code e paga no celular, em Pix ou cartão.</p>
+            {qr ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={qr} alt="QR Code do link de pagamento" width={220} height={220} className="rounded-lg border border-line bg-surface p-2" />
+            ) : null}
+            <p className="w-full break-all rounded-lg bg-surface-2 p-3 text-[12px] text-muted">{enderecoDoLink}</p>
+            <Button type="button" variant="secondary" fullWidth onClick={copiar}>
+              <Icon name="content_copy" size={18} />
+              Copiar link
+            </Button>
+            {copiado && <p role="status" className="text-[13px] font-semibold text-success-text">Link copiado.</p>}
+            <p role="status" className="text-[13px] text-muted">Aguardando o pagamento...</p>
+            <Button type="button" variant="ghost" size="sm" onClick={cancelar}>Cancelar cobrança</Button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {refazerLink && <p className="text-[13px] text-warning-text">O link venceu. Gere de novo.</p>}
+            {doLink?.situacao === 'cancelada' && (
+              <p role="status" className="text-[13px] text-warning-text">
+                O link já enviado ainda pode ser pago pelo cliente. Se isso acontecer, avisamos você.
+              </p>
+            )}
+            <Button
+              type="button" fullWidth loading={gerando}
+              onClick={() => gerar({ via: 'link', forma: forma === 'debito' ? 'debito' : forma === 'credito' ? 'credito' : 'pix' })}
+            >
+              <Icon name="link" size={18} />
+              {refazerLink ? 'Tentar de novo' : 'Gerar link de pagamento'}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setManual(true)}>
+              {forma === 'pix' ? 'Usar minha chave Pix' : 'Digitar manualmente'}
+            </Button>
+          </div>
+        )}
+
+        {erro === 'andamento' && <p role="alert" className="text-[13px] text-danger">Cancele a cobrança para alterar a comanda.</p>}
+        {erro === 'link_desligado' && (
+          <p role="alert" className="text-[13px] text-danger">O link de pagamento não está liberado na sua conta InfinitePay. Peça a liberação à InfinitePay.</p>
+        )}
+        {erro === 'geral' && <p role="alert" className="text-[13px] text-danger">Não foi possível gerar o link agora. Tente de novo.</p>}
+      </section>
+    );
+  }
 
   // ─── Débito e crédito ────────────────────────────────────────────────────────
   if (ehCartao) {
