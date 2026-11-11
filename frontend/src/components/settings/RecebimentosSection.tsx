@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { GATEWAYS } from '@/components/recebimentos/catalogo';
 import { GatewayLogo } from '@/components/recebimentos/GatewayLogo';
 import { PixManualCard } from '@/components/recebimentos/PixManualCard';
+import { PointCard } from '@/components/recebimentos/PointCard';
 import { SinalNoRoboCard } from '@/components/recebimentos/SinalNoRoboCard';
 import { recebimentosApi, type EstadoRecebimentos } from '@/lib/recebimentos';
 
@@ -36,6 +37,7 @@ export function RecebimentosSection() {
       <SinalNoRoboCard key={versaoChave} />
       {estado === null && <Skeleton className="h-28 w-full" label="Carregando recebimentos..." />}
       {estado?.configurado && <Gateways estado={estado} />}
+      {estado?.conexao?.gateway === 'mercadopago' && estado.conexao.situacao === 'ativa' && <PointCard />}
     </div>
   );
 }
