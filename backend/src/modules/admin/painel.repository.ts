@@ -95,7 +95,11 @@ function paraLinha(r: LinhaCrua): LinhaNegocio {
 }
 
 async function consultar(id?: string): Promise<LinhaNegocio[]> {
-  const filtro = id === undefined ? Prisma.empty : Prisma.sql`WHERE b.id = ${id}::uuid`;
+  // A lista (telas, cartões e MRR) não conta o negócio ligado a um platform_admin: é o da própria
+  // plataforma, não um cliente. O detalhe por id continua abrindo qualquer negócio.
+  const filtro = id === undefined
+    ? Prisma.sql`WHERE NOT EXISTS (SELECT 1 FROM users ua WHERE ua.business_id = b.id AND ua.role = 'platform_admin')`
+    : Prisma.sql`WHERE b.id = ${id}::uuid`;
   const rows = await prisma.$queryRaw<LinhaCrua[]>(Prisma.sql`
     WITH ${SQL_PAGAMENTOS_CONFIRMADOS}
     SELECT b.id, b.name, b.owner_name, b.email, b.whatsapp, b.cpf_cnpj, b.address,

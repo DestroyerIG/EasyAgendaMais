@@ -37,6 +37,18 @@ describe('painelRepository', () => {
     expect(l.criadoEm).toEqual(criado);
   });
 
+  it('a lista deixa de fora o negócio ligado a um platform_admin; o detalhe por id não filtra', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([linhaCrua()]);
+    await painelRepository.linhasNegocios();
+    const sqlLista = String(prismaMock.$queryRaw.mock.calls[0][0].sql);
+    expect(sqlLista).toMatch(/NOT EXISTS[\s\S]*ua\.role = 'platform_admin'/);
+
+    prismaMock.$queryRaw.mockClear();
+    await painelRepository.linhaNegocio('11111111-1111-1111-1111-111111111111');
+    const sqlDetalhe = String(prismaMock.$queryRaw.mock.calls[0][0].sql);
+    expect(sqlDetalhe).not.toContain('platform_admin');
+  });
+
   it('agendamentos30d aceita string vinda do banco', async () => {
     prismaMock.$queryRaw.mockResolvedValue([linhaCrua({ agendamentos_30d: '12' })]);
     const [l] = await painelRepository.linhasNegocios();
