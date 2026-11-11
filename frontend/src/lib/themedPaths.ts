@@ -90,6 +90,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/app/convite',
   'src/components/convite',
   'src/app/avaliar',
+  'src/app/pagamento-recebido',
   'src/components/avaliacao',
   // H2: SuperAdmin.
   'src/components/admin',

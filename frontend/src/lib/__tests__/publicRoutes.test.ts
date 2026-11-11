@@ -14,3 +14,10 @@ describe('isPublicAuthPath — /agendar', () => {
     expect(isPublicAuthPath('/agendar')).toBe(true);
   });
 });
+
+describe('isPublicAuthPath: retorno do link de pagamento', () => {
+  it('a página de pagamento recebido é pública, e a de assinatura (/pagamento) continua protegida', () => {
+    expect(isPublicAuthPath('/pagamento-recebido')).toBe(true);
+    expect(isPublicAuthPath('/pagamento')).toBe(false);
+  });
+});
