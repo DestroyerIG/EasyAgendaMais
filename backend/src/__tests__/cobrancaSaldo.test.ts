@@ -7,7 +7,7 @@ const comandas = vi.hoisted(() => ({ get: vi.fn(), save: vi.fn() }));
 vi.mock('../modules/comandas/comandas.service.js', () => ({ comandasService: comandas }));
 
 const conexao = vi.hoisted(() => ({
-  tokenAtivo: vi.fn(), alertarRecusa: vi.fn(), acessoRevogado: vi.fn(), marcarReconectar: vi.fn(),
+  tokenAtivo: vi.fn(), alertarRecusa: vi.fn(), acessoRevogado: vi.fn(), marcarReconectar: vi.fn(), credencial: vi.fn(), gatewayAtivo: vi.fn(),
 }));
 vi.mock('../modules/recebimentos/conexao.service.js', () => ({ conexaoService: conexao }));
 
@@ -19,10 +19,11 @@ vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({ recebimen
 
 const gw = vi.hoisted(() => ({ criarPix: vi.fn(), criarOrdemPoint: vi.fn(), cancelarOrdem: vi.fn() }));
 vi.mock('../modules/recebimentos/gateways/porId.js', () => ({ gatewayDe: () => gw }));
-vi.mock('../modules/recebimentos/gateways/infinitePay.js', () => ({ infinitePay: {} }));
+const ip = vi.hoisted(() => ({ criarLink: vi.fn() }));
+vi.mock('../modules/recebimentos/gateways/infinitePay.js', () => ({ infinitePay: ip }));
 
 const { cobrancaSaldoService } = await import('../modules/recebimentos/cobrancaSaldo.service.js');
-const { GatewayRecusou, GatewayTerminalOcupado, GatewayIndisponivel } = await import('../modules/recebimentos/gateways/index.js');
+const { GatewayRecusou, GatewayTerminalOcupado, GatewayIndisponivel, GatewayCheckoutDesligado } = await import('../modules/recebimentos/gateways/index.js');
 
 const dto = (over: Record<string, unknown> = {}) => ({
   id: 'k1', number: 1042, status: 'rascunho', appointment: { id: 'a1' }, calc: { totalCharged: 80 }, ...over,
@@ -40,6 +41,11 @@ beforeEach(() => {
   repo.ultimaCobrancaSaldo.mockResolvedValue(null);
   repo.terminalPadrao.mockResolvedValue(null);
   gw.criarOrdemPoint.mockResolvedValue({ idExterno: 'ORDPOINT1' });
+  conexao.credencial.mockResolvedValue(null);
+  conexao.gatewayAtivo.mockResolvedValue(null);
+  process.env.FRONTEND_URL = 'https://www.easybarber.tech';
+  process.env.BACKEND_URL = 'https://api.easybarber.tech';
+  process.env.RECEBIMENTOS_TOKEN_KEY = 'x';
 });
 
 describe('cobrancaSaldoService.criar', () => {
@@ -219,5 +225,89 @@ describe('cobrança do saldo na maquininha Point', () => {
       expect(gw.cancelarOrdem).not.toHaveBeenCalled();
       expect(repo.cancelarSaldoPendente).toHaveBeenCalledWith('a1');
     });
+  });
+});
+
+describe('cobrança do saldo por link da InfinitePay', () => {
+  const CRED = { handle: 'barbearia', chave: 'chave-ip' };
+  const link = { via: 'link' as const, forma: 'debito' as const };
+  beforeEach(() => {
+    conexao.tokenAtivo.mockResolvedValue(null);
+    conexao.credencial.mockResolvedValue({ gateway: 'infinitepay', cred: CRED });
+    conexao.gatewayAtivo.mockResolvedValue('infinitepay');
+    ip.criarLink.mockResolvedValue({ checkoutUrl: 'https://checkout.infinitepay.io/barbearia/abc' });
+  });
+
+  it('salva o rascunho com a forma escolhida, cria o link com prazo de 60 min e devolve o endereço', async () => {
+    const antes = Date.now();
+    const r = await cobrancaSaldoService.criar('k1', 'b1', 'u1', entrada, link);
+
+    expect(comandas.save).toHaveBeenCalledWith('k1', 'b1', { ...entrada, paymentMethod: 'debito' });
+    const criada = repo.criarCobrancaSaldo.mock.calls[0]![0];
+    expect(criada).toMatchObject({ businessId: 'b1', appointmentId: 'a1', usuarioId: 'u1', gateway: 'infinitepay', forma: 'link', valor: 80 });
+    expect(criada.venceEm.getTime() - antes).toBeGreaterThanOrEqual(60 * 60_000 - 1000);
+    expect(criada.venceEm.getTime() - antes).toBeLessThanOrEqual(60 * 60_000 + 5000);
+    const [cred, nova, urls] = ip.criarLink.mock.calls[0]!;
+    expect(cred).toEqual(CRED);
+    expect(nova).toMatchObject({ cobrancaId: 'c1', valor: 80, descricao: 'Comanda 1042' });
+    expect(urls.volta).toBe('https://www.easybarber.tech/pagamento-recebido');
+    expect(urls.webhook).toBe('https://api.easybarber.tech/api/v1/recebimentos/webhook/infinitepay/c1');
+    expect(repo.completarCobranca).toHaveBeenCalledWith('c1', { idExterno: 'c1', checkoutUrl: 'https://checkout.infinitepay.io/barbearia/abc' });
+    expect(gw.criarPix).not.toHaveBeenCalled();
+    expect(r).toMatchObject({ id: 'c1', via: 'link', situacao: 'pendente', valor: 80, codigoPix: null, checkoutUrl: 'https://checkout.infinitepay.io/barbearia/abc' });
+  });
+
+  it('sem InfinitePay conectada: 409 SEM_GATEWAY, sem mexer na comanda nem criar linha', async () => {
+    conexao.credencial.mockResolvedValue(null);
+    await expect(cobrancaSaldoService.criar('k1', 'b1', 'u1', entrada, link)).rejects.toMatchObject({ statusCode: 409, code: 'SEM_GATEWAY' });
+    expect(comandas.save).not.toHaveBeenCalled();
+    expect(repo.criarCobrancaSaldo).not.toHaveBeenCalled();
+  });
+
+  it('conta sem checkout por link liberado: apaga a linha e explica (409 LINK_DESLIGADO)', async () => {
+    ip.criarLink.mockRejectedValue(new GatewayCheckoutDesligado());
+    await expect(cobrancaSaldoService.criar('k1', 'b1', 'u1', entrada, link)).rejects.toMatchObject({ statusCode: 409, code: 'LINK_DESLIGADO' });
+    expect(repo.apagarCobranca).toHaveBeenCalledWith('c1');
+  });
+
+  it('outra falha da InfinitePay: apaga a linha e devolve 502; conta recusada alerta o dono', async () => {
+    ip.criarLink.mockRejectedValue(new GatewayRecusou());
+    await expect(cobrancaSaldoService.criar('k1', 'b1', 'u1', entrada, link)).rejects.toMatchObject({ statusCode: 502, code: 'GATEWAY_INDISPONIVEL' });
+    expect(repo.apagarCobranca).toHaveBeenCalledWith('c1');
+    expect(conexao.alertarRecusa).toHaveBeenCalledWith('b1');
+  });
+
+  it('com a InfinitePay ativa, Pix e maquininha do Mercado Pago não são oferecidos', async () => {
+    await expect(cobrancaSaldoService.criar('k1', 'b1', 'u1', entrada, { via: 'pix' })).rejects.toMatchObject({ code: 'SEM_GATEWAY' });
+    await expect(cobrancaSaldoService.criar('k1', 'b1', 'u1', entrada, { via: 'maquininha', forma: 'debito' })).rejects.toMatchObject({ code: 'SEM_GATEWAY' });
+  });
+
+  it('com o Mercado Pago ativo, o link não é oferecido', async () => {
+    conexao.credencial.mockResolvedValue(null);
+    conexao.tokenAtivo.mockResolvedValue({ gateway: 'mercadopago', accessToken: 'APP_USR-segredo' });
+    await expect(cobrancaSaldoService.criar('k1', 'b1', 'u1', entrada, link)).rejects.toMatchObject({ code: 'SEM_GATEWAY' });
+  });
+
+  it('estado informa a InfinitePay como gateway, sem terminal, com a cobrança em formato de link', async () => {
+    repo.ultimaCobrancaSaldo.mockResolvedValue({
+      id: 'c1', gateway: 'infinitepay', forma: 'link', situacao: 'pendente', valor: '80.00', codigoPix: null, terminalId: null,
+      idExterno: 'c1', checkoutUrl: 'https://checkout.infinitepay.io/barbearia/abc', venceEm: new Date(Date.now() + 30 * 60_000), pagoEm: null, criadoEm: new Date(),
+    });
+    const e = await cobrancaSaldoService.estado('k1', 'b1');
+    expect(e.gateway).toBe('infinitepay');
+    expect(e.terminal).toBeNull();
+    expect(e.cobranca).toMatchObject({ via: 'link', checkoutUrl: 'https://checkout.infinitepay.io/barbearia/abc', codigoPix: null });
+  });
+
+  it('cancelar o link não chama gateway nenhum e não promete cancelamento na maquininha', async () => {
+    repo.ultimaCobrancaSaldo.mockResolvedValue({
+      id: 'c1', gateway: 'infinitepay', forma: 'link', situacao: 'pendente', valor: '80.00', codigoPix: null, terminalId: null,
+      idExterno: 'c1', checkoutUrl: 'https://x', venceEm: new Date(Date.now() + 30 * 60_000), pagoEm: null, criadoEm: new Date(),
+    });
+    repo.cancelarSaldoPendente.mockResolvedValue(1);
+    const e = await cobrancaSaldoService.cancelar('k1', 'b1');
+    expect(repo.cancelarSaldoPendente).toHaveBeenCalledWith('a1');
+    expect(gw.cancelarOrdem).not.toHaveBeenCalled();
+    expect(e.avisoMaquininha).toBe(false);
   });
 });

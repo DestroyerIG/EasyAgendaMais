@@ -11,6 +11,9 @@ import type { FormaSinal, GatewayId } from './recebimentos.types.js';
 
 const frontend = () => (process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000').replace(/\/+$/, '');
 
+/** Endereço do site (sem barra final), para as URLs de volta dos links de pagamento. */
+export const urlDoSite = (): string => frontend();
+
 /** Domínio do e-mail de pagador: o do site, sem `www.`; `localhost` se a URL não tiver domínio. */
 function dominio(): string {
   try {
