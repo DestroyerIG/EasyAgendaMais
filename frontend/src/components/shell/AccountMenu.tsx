@@ -10,7 +10,7 @@ import {
 
 // Conteúdo do menu da conta (tema, avaliar e sair): vive só na barra superior
 // (pílula da pessoa no desktop e ícone no celular).
-export function AccountMenuContent({ onLogout, onAvaliar }: { onLogout: () => void; onAvaliar?: () => void }) {
+export function AccountMenuContent({ onLogout, onAvaliar, onTour }: { onLogout: () => void; onAvaliar?: () => void; onTour?: () => void }) {
   return (
     <>
       <DropdownMenuLabel>Tema</DropdownMenuLabel>
@@ -18,6 +18,12 @@ export function AccountMenuContent({ onLogout, onAvaliar }: { onLogout: () => vo
         <ThemeSelect compacto className="w-full" />
       </div>
       <DropdownMenuSeparator />
+      {onTour && (
+        <DropdownMenuItem onSelect={() => onTour()}>
+          <Icon name="explore" size={16} />
+          Rever o tour
+        </DropdownMenuItem>
+      )}
       {onAvaliar && (
         <DropdownMenuItem onSelect={() => onAvaliar()}>
           <Icon name="star" size={16} />

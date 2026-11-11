@@ -2,7 +2,7 @@ import { NotFoundError, ValidationError, ConflictError } from '../../utils/error
 import { vocabularioDe } from '../../config/vocabulario.js';
 import { onboardingRepository as repo } from './onboarding.repository.js';
 import { catalogoDe } from './onboarding.catalogo.js';
-import { errosDosHorarios, estadoOnboarding, podeConcluir, precisaDeFormaDeReceber, primeirosPassos, slugDoNome } from './onboarding.rules.js';
+import { errosDosHorarios, estadoOnboarding, podeConcluir, precisaDeFormaDeReceber, primeirosPassos, slugDoNome, tourPendente } from './onboarding.rules.js';
 import type { HorariosInput, NegocioInput, OnboardingDto, PrimeiroPasso, RecebimentosInput, Segmento, ServicosInput } from './onboarding.types.js';
 
 const hhmm = (d: Date | null | undefined) => (d ? d.toISOString().substring(11, 16) : null);
@@ -123,11 +123,15 @@ export const onboardingService = {
     await repo.dispensarPrimeirosPassos(businessId);
   },
 
+  async concluirTour(businessId: string) {
+    await repo.concluirTour(businessId);
+  },
+
   /** Para o /auth/me: onboarding e vocabulário do negócio. */
   async resumo(businessId: string | null) {
     if (!businessId) return { onboarding: null, vocabulario: vocabularioDe(null), logoUrl: null };
     const b = await repo.resumo(businessId);
     if (!b) return { onboarding: null, vocabulario: vocabularioDe(null), logoUrl: null };
-    return { onboarding: estadoOnboarding(b), vocabulario: vocabularioDe(b.settings?.segment), logoUrl: b.logoUrl ?? null };
+    return { onboarding: { ...estadoOnboarding(b), tourPendente: tourPendente(b) }, vocabulario: vocabularioDe(b.settings?.segment), logoUrl: b.logoUrl ?? null };
   },
 };

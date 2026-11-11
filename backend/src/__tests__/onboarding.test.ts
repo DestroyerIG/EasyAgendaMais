@@ -5,7 +5,7 @@ vi.mock('../config/prisma.js', () => ({ prisma: {} }));
 
 const repo = vi.hoisted(() => ({
   estado: vi.fn(), salvarNegocio: vi.fn(), salvarHorarios: vi.fn(), salvarServicos: vi.fn(), concluir: vi.fn(),
-  dispensarPrimeirosPassos: vi.fn(), slugEmUso: vi.fn(), resumo: vi.fn(),
+  dispensarPrimeirosPassos: vi.fn(), concluirTour: vi.fn(), slugEmUso: vi.fn(), resumo: vi.fn(),
   salvarRecebimentos: vi.fn(), conexao: vi.fn(),
 }));
 vi.mock('../modules/onboarding/onboarding.repository.js', () => ({ onboardingRepository: repo }));
@@ -200,11 +200,18 @@ describe('serviço do onboarding', () => {
     expect((await onboardingService.primeirosPassos('b1')).map((p) => p.id)).toEqual(['pagina', 'whatsapp', 'pix']);
   });
 
+  it('o tour só fica pendente depois do onboarding e uma única vez', () => {
+    const feito = new Date();
+    expect(rules.tourPendente({ onboardingConcluidoEm: null, tourConcluidoEm: null })).toBe(false);
+    expect(rules.tourPendente({ onboardingConcluidoEm: feito, tourConcluidoEm: null })).toBe(true);
+    expect(rules.tourPendente({ onboardingConcluidoEm: feito, tourConcluidoEm: feito })).toBe(false);
+  });
+
   it('resumo para o /me: sem negócio usa o vocabulário padrão', async () => {
     expect(await onboardingService.resumo(null)).toMatchObject({ onboarding: null, vocabulario: { segmento: 'outro' }, logoUrl: null });
-    repo.resumo.mockResolvedValue({ onboardingEtapa: 2, onboardingConcluidoEm: null, logoUrl: 'https://x.test/logo.png', settings: { segment: 'unhas' } });
+    repo.resumo.mockResolvedValue({ onboardingEtapa: 2, onboardingConcluidoEm: null, tourConcluidoEm: null, logoUrl: 'https://x.test/logo.png', settings: { segment: 'unhas' } });
     expect(await onboardingService.resumo('b1')).toMatchObject({
-      onboarding: { pendente: true, bloqueante: true, etapa: 2 }, vocabulario: { profissional: { singular: 'nail designer' } },
+      onboarding: { pendente: true, bloqueante: true, etapa: 2, tourPendente: false }, vocabulario: { profissional: { singular: 'nail designer' } },
       logoUrl: 'https://x.test/logo.png',
     });
   });
@@ -236,6 +243,13 @@ describe('rotas do onboarding', () => {
     const r = await request.get('/api/v1/onboarding/catalogo?segmento=barbearia');
     expect(r.status).toBe(200);
     expect(r.body.data[0].nome).toBe('Corte de cabelo');
+  });
+
+  it('conclui o tour guiado (só a dona)', async () => {
+    expect((await request.post('/api/v1/onboarding/tour/concluir').set('x-role', 'employee')).status).toBe(403);
+    const r = await request.post('/api/v1/onboarding/tour/concluir');
+    expect(r.status).toBe(200);
+    expect(repo.concluirTour).toHaveBeenCalledWith('b1');
   });
 
   it('dispensa os primeiros passos', async () => {

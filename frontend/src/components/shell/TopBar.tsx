@@ -10,6 +10,7 @@ import {
 import type { NavItemId } from '@/lib/navigation';
 import { notificationsApi } from '@/lib/notifications';
 import { AccountMenuContent } from './AccountMenu';
+import { useTour } from '@/components/tour/TourProvider';
 import { NotificationsPanel } from './NotificationsPanel';
 import { BuscaGeral } from './BuscaGeral';
 import { BuscaCelular } from './BuscaCelular';
@@ -51,6 +52,8 @@ export interface TopBarProps {
 }
 
 export function TopBar({ activeId, pageTitle, businessName, logoUrl, roleLabel, onLogout, onAvaliar }: TopBarProps) {
+  const tour = useTour();
+  const onTour = tour.disponivel ? tour.iniciar : undefined;
   const [desktopAccountOpen, setDesktopAccountOpen] = useState(false);
   const [mobileAccountOpen, setMobileAccountOpen] = useState(false);
   const [desktopNotificationsOpen, setDesktopNotificationsOpen] = useState(false);
@@ -89,7 +92,7 @@ export function TopBar({ activeId, pageTitle, businessName, logoUrl, roleLabel, 
               <span className="sr-only">Menu da conta</span>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="bottom" align="end" className="w-[232px]">
-              <AccountMenuContent onLogout={onLogout} onAvaliar={onAvaliar} />
+              <AccountMenuContent onLogout={onLogout} onAvaliar={onAvaliar} onTour={onTour} />
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -128,7 +131,7 @@ export function TopBar({ activeId, pageTitle, businessName, logoUrl, roleLabel, 
               <Icon name="person" size={18} />
             </DropdownMenuTrigger>
             <DropdownMenuContent side="bottom" align="end" className="w-[232px]">
-              <AccountMenuContent onLogout={onLogout} onAvaliar={onAvaliar} />
+              <AccountMenuContent onLogout={onLogout} onAvaliar={onAvaliar} onTour={onTour} />
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

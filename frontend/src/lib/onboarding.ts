@@ -56,6 +56,7 @@ export const onboardingApi = {
   concluir: async () => (await api.post<Onboarding>('/onboarding/concluir')).data,
   primeirosPassos: async () => (await api.get<PrimeiroPasso[]>('/onboarding/primeiros-passos')).data,
   dispensarPrimeirosPassos: async () => { await api.post('/onboarding/primeiros-passos/dispensar'); },
+  concluirTour: async () => { await api.post('/onboarding/tour/concluir'); },
 };
 
 /** As 6 etapas do onboarding, sempre com estes nomes e nesta ordem. */

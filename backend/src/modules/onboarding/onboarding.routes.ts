@@ -3,7 +3,7 @@ import { authMiddleware } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
 import { CatalogoQuerySchema, HorariosSchema, NegocioSchema, RecebimentosSchema, ServicosSchema } from './onboarding.types.js';
-import { catalog, dismissFirstSteps, finish, firstSteps, saveBusiness, saveHours, saveReceipts, saveServices, show } from './onboarding.controller.js';
+import { catalog, dismissFirstSteps, finish, finishTour, firstSteps, saveBusiness, saveHours, saveReceipts, saveServices, show } from './onboarding.controller.js';
 
 // Onboarding guiado (fase 6): só a dona. Sem requireFeature: vale em qualquer plano e no teste grátis.
 const router = express.Router();
@@ -18,5 +18,6 @@ router.put('/recebimentos', ...dona, validate({ body: RecebimentosSchema }), sav
 router.post('/concluir', ...dona, finish);
 router.get('/primeiros-passos', ...dona, firstSteps);
 router.post('/primeiros-passos/dispensar', ...dona, dismissFirstSteps);
+router.post('/tour/concluir', ...dona, finishTour);
 
 export default router;
