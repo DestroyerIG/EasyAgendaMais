@@ -92,6 +92,9 @@ describe('regras de tela', () => {
   it('rótulo do tempo até a próxima', () => {
     expect(rotuloEmMinutos(null)).toBeNull();
     expect(rotuloEmMinutos(0)).toBe('Agora');
+    expect(rotuloEmMinutos(-10)).toBe('Agora');
+    expect(rotuloEmMinutos(-25)).toBe('Atrasado há 25 min');
+    expect(rotuloEmMinutos(-65)).toBe('Atrasado há 1h05');
     expect(rotuloEmMinutos(20)).toBe('Em 20 min');
     expect(rotuloEmMinutos(65)).toBe('Em 1h05');
     expect(rotuloEmMinutos(120)).toBe('Em 2h');

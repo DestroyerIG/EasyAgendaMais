@@ -20,6 +20,7 @@ const ICON_BY_TYPE: Record<NotificationType, typeof CalendarPlus> = {
   avaliacao_baixa: Star,
   google_agenda: CalendarX,
   recebimento_alerta: AlertTriangle,
+  hora_atendimento: Bell,
 };
 
 const formatRelativo = (iso: string) =>

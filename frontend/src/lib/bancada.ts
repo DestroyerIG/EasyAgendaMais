@@ -130,6 +130,8 @@ export const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] || nom
 /** "Agora", "Em 20 min", "Em 1h05". */
 export function rotuloEmMinutos(min: number | null): string | null {
   if (min === null) return null;
+  // Até 10 min depois do horário ainda é "agora"; depois disso, a cliente está esperando.
+  if (min < -10) return `Atrasado há ${-min < 60 ? `${-min} min` : `${Math.floor(-min / 60)}h${-min % 60 ? String(-min % 60).padStart(2, '0') : ''}`}`;
   if (min <= 0) return 'Agora';
   if (min < 60) return `Em ${min} min`;
   const h = Math.floor(min / 60);

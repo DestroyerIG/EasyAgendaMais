@@ -98,6 +98,19 @@ describe('regras da bancada', () => {
     expect(rules.minutosAte('11:00', '10:40')).toBe(20);
   });
 
+  it('destaque: quem chegou na hora e não começou continua em destaque por até 1 hora', () => {
+    const agenda = [
+      { id: 'c', time: '11:00', status: 'confirmado' },
+      { id: 'e', time: '12:00', status: 'confirmado' },
+    ];
+    expect(rules.escolherProxima(agenda, '11:00')?.id).toBe('c');
+    expect(rules.escolherProxima(agenda, '11:25')?.id).toBe('c');
+    expect(rules.escolherProxima(agenda, '11:59')?.id).toBe('c');
+    // Passou de 1 hora: já virou falta provável, o destaque vai para a próxima.
+    expect(rules.escolherProxima(agenda, '12:00')?.id).toBe('e');
+    expect(rules.minutosAte('11:00', '11:25')).toBe(-25);
+  });
+
   it('reagendar só confirmado e que não passou; cancelar também aguardando sinal', () => {
     expect(rules.motivoParaNaoReagendar({ status: 'confirmado', date: '2026-10-26', time: '10:00' }, '2026-10-25', '12:00')).toBeNull();
     expect(rules.motivoParaNaoReagendar({ status: 'aguardando_pagamento', date: '2026-10-26', time: '10:00' }, '2026-10-25', '12:00')).not.toBeNull();

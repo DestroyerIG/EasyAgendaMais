@@ -9,13 +9,20 @@ export const horaNoFuso = (agora: Date, timezone: string): string =>
 
 export interface ItemAgenda { id: string; time: string; status: string }
 
+/** Até quando uma cliente confirmada que não começou ainda aparece em destaque (depois disso, é falta provável). */
+export const LIMITE_ATRASO_DESTAQUE_MIN = 60;
+
+const emMinutos = (h: string) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
+
 /**
- * A cliente em destaque na bancada: quem está em atendimento; senão a próxima confirmada
- * (ou aguardando o sinal) a partir de agora; senão nenhuma.
+ * A cliente em destaque na bancada: quem está em atendimento; senão quem já chegou na hora
+ * e não começou (confirmada, até 1 hora de atraso, a mais antiga primeiro); senão a próxima
+ * confirmada (ou aguardando o sinal) a partir de agora; senão nenhuma.
  */
 export function escolherProxima<T extends ItemAgenda>(agenda: T[], agora: string): T | null {
   const ordenada = [...agenda].sort((a, b) => a.time.localeCompare(b.time));
   return ordenada.find((a) => a.status === 'em_atendimento')
+    ?? ordenada.find((a) => a.status === 'confirmado' && a.time < agora && emMinutos(agora) - emMinutos(a.time) < LIMITE_ATRASO_DESTAQUE_MIN)
     ?? ordenada.find((a) => ['confirmado', 'aguardando_pagamento'].includes(a.status) && a.time >= agora)
     ?? null;
 }

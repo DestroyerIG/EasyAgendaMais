@@ -59,6 +59,7 @@ import {
   type ProfissionalChip,
 } from '@/components/appointments/DateNavigationBar';
 import { AppointmentCard } from '@/components/appointments/AppointmentCard';
+import { FaixaHoraDeAtender } from '@/components/appointments/FaixaHoraDeAtender';
 import {
   LinhaDoTempo,
   agruparPorProfissional,
@@ -614,6 +615,15 @@ export function AppointmentModule() {
             onStatusFilterChange={setStatusFilter}
             onProfissionalFiltroChange={setProfissionalFiltro}
             onNovoAgendamento={() => openModal()}
+          />
+        )}
+
+        {!loading && (
+          <FaixaHoraDeAtender
+            agendamentos={appointments}
+            actionLoading={actionLoading}
+            onAcao={handleAcao}
+            onAbrirDetalhes={a => setDetalhesId(a.id)}
           />
         )}
 

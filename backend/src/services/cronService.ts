@@ -24,6 +24,7 @@ import { envioAutomaticoLiberado } from '../modules/conta/envioAutomatico.js';
 import { textoReservaExpirada } from './whatsapp/whatsappConfirmacao.js';
 import { deleteSessaoDoSinal } from './whatsapp/whatsappSessionService.js';
 import { normalizeWhatsAppNumber } from '../utils/whatsapp.js';
+import { avisarHoraDoAtendimento } from '../modules/appointments/horaDoAtendimento.js';
 
 // Agendamentos gravam `time`/`date` no relógio local do negócio (BR), não UTC.
 // Render roda em UTC, então o alvo precisa ser calculado no fuso de negócio.
@@ -226,6 +227,11 @@ export const expirePendingAppointments = async (now: Date = new Date()): Promise
 };
 
 export const startReminderCron = (): void => {
+  // Hora de atender: avisa quando chega o horário de um agendamento confirmado (nunca lança).
+  cron.schedule('* * * * *', async () => {
+    await avisarHoraDoAtendimento();
+  }, { noOverlap: true });
+
   // Google Agenda (fase 7): agendamentos para o Google a cada minuto (os dois nunca lançam).
   cron.schedule('* * * * *', async () => {
     await googleAgendaService.sincronizarSaida();

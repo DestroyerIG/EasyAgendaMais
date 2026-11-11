@@ -48,12 +48,14 @@ export const notificationsService = {
    * derrubar o fluxo que está notificando (criação de reserva, confirmação de
    * pagamento, expiração), igual ao envio de WhatsApp.
    */
-  async notify(businessId: string, input: NotifyInput): Promise<void> {
+  async notify(businessId: string, input: NotifyInput, opts: { semPush?: boolean } = {}): Promise<void> {
     try {
       await notificationsRepository.create(businessId, input);
     } catch (error) {
       logger.error({ err: error, businessId, type: input.type }, 'Falha ao criar notificação');
     }
+    // `semPush`: avisos que só a profissional recebe no celular (o chamador manda o push dela).
+    if (opts.semPush) return;
     // O sino também vai por push para quem ativou no aparelho (nunca lança).
     void pushService.paraEquipe(businessId, { titulo: input.title, corpo: input.description, link: input.link ?? '/', tag: input.type });
   },
