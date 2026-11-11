@@ -67,6 +67,38 @@ export const bancadaRepository = {
     });
   },
 
+  /** Busca no negócio todo (a cliente é do negócio) para ela marcar um horário. */
+  buscarClientes(businessId: string, busca: string) {
+    const termo = busca.trim();
+    const digitos = termo.replace(/\D/g, '');
+    return prisma.client.findMany({
+      where: {
+        businessId,
+        OR: [
+          { name: { contains: termo, mode: 'insensitive' as const } },
+          ...(digitos.length >= 3 ? [{ phone: { contains: digitos } }] : []),
+        ],
+      },
+      orderBy: { name: 'asc' }, take: 20,
+      select: { id: true, name: true, phone: true },
+    });
+  },
+
+  clientePorTelefone(businessId: string, phone: string) {
+    return prisma.client.findFirst({ where: { businessId, phone }, select: { id: true, name: true, phone: true } });
+  },
+
+  servicosAtivos(businessId: string) {
+    return prisma.service.findMany({
+      where: { businessId, active: true }, orderBy: { name: 'asc' },
+      select: { id: true, name: true, durationMinutes: true, price: true },
+    });
+  },
+
+  async servicoAtivo(businessId: string, id: string): Promise<boolean> {
+    return (await prisma.service.count({ where: { id, businessId, active: true } })) > 0;
+  },
+
   async visitasConcluidas(businessId: string, clientId: string): Promise<number> {
     return prisma.appointment.count({ where: { businessId, clientId, status: 'concluido' } });
   },

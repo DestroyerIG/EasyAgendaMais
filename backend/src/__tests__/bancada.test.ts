@@ -6,6 +6,7 @@ vi.mock('../config/prisma.js', () => ({ prisma: {} }));
 const repo = vi.hoisted(() => ({
   usuarioProfissional: vi.fn(), profissionalCobra: vi.fn(), agendaDoDia: vi.fn(), clienteDaProfissional: vi.fn(), clientesDela: vi.fn(),
   visitasConcluidas: vi.fn(), visitasComEla: vi.fn(), agendamentoDela: vi.fn(), comandaDela: vi.fn(), reagendar: vi.fn(),
+  buscarClientes: vi.fn(), clientePorTelefone: vi.fn(), servicosAtivos: vi.fn(), servicoAtivo: vi.fn(),
   marcarEnviadaRecepcao: vi.fn(), salvarNota: vi.fn(), extrato: vi.fn(), avaliacoes: vi.fn(), nomeDoNegocio: vi.fn(),
 }));
 vi.mock('../modules/bancada/bancada.repository.js', () => ({ bancadaRepository: repo }));
@@ -20,7 +21,9 @@ const comandas = vi.hoisted(() => ({ open: vi.fn(), get: vi.fn(), save: vi.fn(),
 vi.mock('../modules/comandas/comandas.service.js', () => ({ comandasService: comandas }));
 const cobrancaSaldo = vi.hoisted(() => ({ criar: vi.fn(), estado: vi.fn(), cancelar: vi.fn() }));
 vi.mock('../modules/recebimentos/cobrancaSaldo.service.js', () => ({ cobrancaSaldoService: cobrancaSaldo }));
-const appts = vi.hoisted(() => ({ updateStatus: vi.fn(), getAvailableSlots: vi.fn() }));
+const appts = vi.hoisted(() => ({ updateStatus: vi.fn(), getAvailableSlots: vi.fn(), create: vi.fn() }));
+const clientes = vi.hoisted(() => ({ create: vi.fn() }));
+vi.mock('../services/clientService.js', () => ({ clientService: clientes }));
 vi.mock('../modules/appointments/appointments.service.js', () => ({ appointmentsService: appts }));
 const apptRepo = vi.hoisted(() => ({ hasConflict: vi.fn() }));
 vi.mock('../modules/appointments/appointments.repository.js', () => ({ appointmentsPrismaRepository: apptRepo }));
@@ -454,5 +457,68 @@ describe('cobrança do saldo no painel', () => {
   it('a profissional não entra nas rotas do painel', async () => {
     expect((await request.post(`/api/v1/comandas/${ID}/cobranca`).send({ extras: [], discount: 0, tip: 0, via: 'pix' })).status).toBe(403);
     expect((await request.get(`/api/v1/comandas/${ID}/cobranca`)).status).toBe(403);
+  });
+});
+
+describe('profissional cria agendamento e cliente', () => {
+  const corpo = { clienteId: ID, servicoId: ID, data: '2026-10-27', hora: '15:00' };
+
+  beforeEach(() => {
+    repo.servicoAtivo.mockResolvedValue(true);
+    appts.getAvailableSlots.mockResolvedValue(['14:00', '15:00']);
+    appts.create.mockResolvedValue({ id: 'a9', client: { name: 'Mariana Souza' }, service: { name: 'Manicure' } });
+  });
+
+  it('agenda sempre na agenda dela, com a profissional do login, e avisa a recepção', async () => {
+    const r = await request.post('/api/v1/bancada/agendamentos').send({ ...corpo, profissionalId: 'outra' });
+    expect(r.status).toBe(201);
+    expect(appts.create).toHaveBeenCalledWith('b1', { clientId: ID, professionalId: 'p1', serviceId: ID, date: '2026-10-27', time: '15:00' });
+    expect(appts.getAvailableSlots).toHaveBeenCalledWith('b1', { professionalId: 'p1', date: '2026-10-27', serviceId: ID });
+    expect(notif.notify).toHaveBeenCalledTimes(1);
+  });
+
+  it('recusa horário que não está livre ou que já passou, e serviço inativo', async () => {
+    expect((await request.post('/api/v1/bancada/agendamentos').send({ ...corpo, hora: '16:00' })).status).toBe(409);
+    expect((await request.post('/api/v1/bancada/agendamentos').send({ ...corpo, data: '2026-10-24' })).status).toBe(409);
+    repo.servicoAtivo.mockResolvedValue(false);
+    expect((await request.post('/api/v1/bancada/agendamentos').send(corpo)).status).toBe(404);
+    expect(appts.create).not.toHaveBeenCalled();
+  });
+
+  it('valida o corpo e só aceita o papel profissional', async () => {
+    expect((await request.post('/api/v1/bancada/agendamentos').send({ ...corpo, hora: '3pm' })).status).toBe(400);
+    expect((await request.post('/api/v1/bancada/agendamentos').set('x-role', 'tenant_admin').send(corpo)).status).toBe(403);
+    expect((await request.post('/api/v1/bancada/clientes').set('x-role', 'employee').send({ name: 'Ana', phone: '83999990000' })).status).toBe(403);
+  });
+
+  it('horários para um serviço: só dela e de agora em diante', async () => {
+    const r = await request.get(`/api/v1/bancada/horarios-novo?servico=${ID}&data=2026-10-27`);
+    expect(r.status).toBe(200);
+    expect(r.body.data).toEqual(['14:00', '15:00']);
+    expect((await request.get(`/api/v1/bancada/horarios-novo?servico=${ID}&data=2026-10-24`)).body.data).toEqual([]);
+  });
+
+  it('cadastra a cliente no negócio; telefone repetido devolve a que já existe', async () => {
+    repo.clientePorTelefone.mockResolvedValueOnce(null);
+    clientes.create.mockResolvedValue({ id: 'c9', name: 'Ana Paula', phone: '83999990000' });
+    const nova = await request.post('/api/v1/bancada/clientes').send({ name: 'Ana Paula', phone: '83999990000' });
+    expect(nova.status).toBe(201);
+    expect(nova.body.data).toEqual({ cliente: { id: 'c9', name: 'Ana Paula', phone: '83999990000' }, jaExistia: false });
+    expect(clientes.create).toHaveBeenCalledWith('b1', { name: 'Ana Paula', phone: '83999990000' });
+
+    repo.clientePorTelefone.mockResolvedValueOnce({ id: 'c1', name: 'Ana P.', phone: '83999990000' });
+    const repetida = await request.post('/api/v1/bancada/clientes').send({ name: 'Ana Paula', phone: '83999990000' });
+    expect(repetida.body.data).toMatchObject({ jaExistia: true, cliente: { id: 'c1' } });
+    expect(clientes.create).toHaveBeenCalledTimes(1);
+    expect((await request.post('/api/v1/bancada/clientes').send({ name: 'A', phone: '1' })).status).toBe(400);
+  });
+
+  it('busca clientes do negócio (mínimo 2 letras) e lista os serviços', async () => {
+    repo.buscarClientes.mockResolvedValue([{ id: 'c1', name: 'Mariana', phone: '1' }]);
+    expect((await request.get('/api/v1/bancada/clientes/buscar?busca=m')).status).toBe(400);
+    expect((await request.get('/api/v1/bancada/clientes/buscar?busca=mari')).status).toBe(200);
+    expect(repo.buscarClientes).toHaveBeenCalledWith('b1', 'mari');
+    repo.servicosAtivos.mockResolvedValue([{ id: 's1', name: 'Corte', durationMinutes: 30, price: '45.00' }]);
+    expect((await request.get('/api/v1/bancada/servicos')).body.data).toEqual([{ id: 's1', nome: 'Corte', duracao: 30, preco: 45 }]);
   });
 });

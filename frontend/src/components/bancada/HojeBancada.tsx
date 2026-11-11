@@ -9,7 +9,7 @@ import { AtivarNotificacoes } from '@/components/push/AtivarNotificacoes';
 import { GoogleAgendaCard } from '@/components/googleAgenda/GoogleAgendaCard';
 import { useToast } from '@/components/Toast';
 import {
-  bancadaApi, horaAgora, podeCancelar, podeReagendar, rotuloEmMinutos,
+  bancadaApi, EVENTO_ATUALIZAR_BANCADA, horaAgora, podeCancelar, podeReagendar, rotuloEmMinutos,
   type Hoje, type ItemAgenda,
 } from '@/lib/bancada';
 import { somarDias } from '@/lib/relatorios';
@@ -42,6 +42,11 @@ export function HojeBancada() {
   }, [dia]);
 
   useEffect(() => { carregar(); }, [carregar]);
+  // O atalho + (novo agendamento) avisa para recarregar o dia.
+  useEffect(() => {
+    window.addEventListener(EVENTO_ATUALIZAR_BANCADA, carregar);
+    return () => window.removeEventListener(EVENTO_ATUALIZAR_BANCADA, carregar);
+  }, [carregar]);
 
   if (erro) return <ErroBancada erro={erro} onRetry={carregar} />;
   if (!dados) {

@@ -66,6 +66,24 @@ export const reschedule: H = async (req, res, next) => {
 export const cancel: H = async (req, res, next) => {
   try { sendSuccess(res, await bancadaService.cancelar(negocio(req), profissionalDe(res), id(req), req.body)); } catch (e) { next(e); }
 };
+export const servicesList: H = async (req, res, next) => {
+  try { sendSuccess(res, await bancadaService.servicos(negocio(req))); } catch (e) { next(e); }
+};
+export const searchClients: H = async (req, res, next) => {
+  try { sendSuccess(res, await bancadaService.buscarClientes(negocio(req), (req.query as { busca: string }).busca)); } catch (e) { next(e); }
+};
+export const newSlots: H = async (req, res, next) => {
+  try {
+    const q = req.query as { servico: string; data: string };
+    sendSuccess(res, await bancadaService.horariosParaNovo(negocio(req), profissionalDe(res), q.servico, q.data));
+  } catch (e) { next(e); }
+};
+export const createClient: H = async (req, res, next) => {
+  try { sendSuccess(res, await bancadaService.criarCliente(negocio(req), req.body), 201); } catch (e) { next(e); }
+};
+export const createAppointment: H = async (req, res, next) => {
+  try { sendSuccess(res, await bancadaService.criarAgendamento(negocio(req), profissionalDe(res), req.body), 201); } catch (e) { next(e); }
+};
 export const shortcuts: H = async (req, res, next) => {
   try { sendSuccess(res, await bancadaService.atalhos(negocio(req))); } catch (e) { next(e); }
 };

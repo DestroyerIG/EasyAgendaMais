@@ -19,6 +19,19 @@ export const HojeQuerySchema = z.object({ data: DATA.optional() });
 export const ClientesQuerySchema = z.object({ busca: z.string().trim().max(80).optional() });
 
 export const HorariosQuerySchema = z.object({ agendamento: z.string().uuid(), data: DATA });
+/** Horários livres dela para um serviço, antes de existir o agendamento. */
+export const HorariosNovoQuerySchema = z.object({ servico: z.string().uuid(), data: DATA });
+export const BuscaClienteQuerySchema = z.object({ busca: z.string().trim().min(2, 'Digite ao menos 2 letras').max(80) });
+
+/** Novo agendamento: a profissional é sempre a do login, nunca vem do corpo. */
+export const NovoAgendamentoSchema = z.object({ clienteId: z.string().uuid(), servicoId: z.string().uuid(), data: DATA, hora: HORA });
+export type NovoAgendamentoInput = z.infer<typeof NovoAgendamentoSchema>;
+
+export const NovoClienteSchema = z.object({
+  name: z.string().trim().min(2, 'Nome é obrigatório').max(255),
+  phone: z.string().trim().min(8, 'Telefone é obrigatório').max(20),
+});
+export type NovoClienteInput = z.infer<typeof NovoClienteSchema>;
 
 export const NotaSchema = z.object({ notas: z.string().max(2000).nullable() });
 

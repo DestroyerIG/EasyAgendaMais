@@ -20,7 +20,10 @@ import {
   escolherProxima, horaNoFuso, minutosAte, motivoParaNaoCancelar, motivoParaNaoReagendar, novoHorarioValido,
   parteDaProfissional, resumoAvaliacoes, textoCancelado, textoReagendado,
 } from './bancada.rules.js';
-import type { BancadaCobrarInput, BancadaComandaInput, CancelarInput, Profissional, ReagendarInput } from './bancada.types.js';
+import { clientService } from '../../services/clientService.js';
+import type {
+  BancadaCobrarInput, BancadaComandaInput, CancelarInput, NovoAgendamentoInput, NovoClienteInput, Profissional, ReagendarInput,
+} from './bancada.types.js';
 
 // App da profissional (fase 5). Toda função recebe a profissional do login (middleware), nunca do corpo.
 
@@ -157,6 +160,51 @@ export const bancadaService = {
     if (data < hoje) return [];
     const slots = await appointmentsService.getAvailableSlots(businessId, { professionalId: p.id, date: data, serviceId: a.serviceId }) as string[];
     return (Array.isArray(slots) ? slots : []).filter((h) => data > hoje || h > agora);
+  },
+
+  async servicos(businessId: string) {
+    const lista = await repo.servicosAtivos(businessId);
+    return lista.map((s) => ({ id: s.id, nome: s.name, duracao: s.durationMinutes, preco: Number(s.price) }));
+  },
+
+  buscarClientes(businessId: string, busca: string) {
+    return repo.buscarClientes(businessId, busca);
+  },
+
+  /** Horários livres dela para o serviço escolhido, de agora em diante. */
+  async horariosParaNovo(businessId: string, p: Profissional, servicoId: string, data: string) {
+    if (!(await repo.servicoAtivo(businessId, servicoId))) throw new NotFoundError('Serviço');
+    const { hoje, agora } = await relogio(businessId);
+    if (data < hoje) return [];
+    const slots = await appointmentsService.getAvailableSlots(businessId, { professionalId: p.id, date: data, serviceId: servicoId }) as string[];
+    return (Array.isArray(slots) ? slots : []).filter((h) => data > hoje || h > agora);
+  },
+
+  /** Cadastra a cliente do negócio. Se o telefone já existe, devolve a que já está lá (sem duplicar). */
+  async criarCliente(businessId: string, input: NovoClienteInput) {
+    const existente = await repo.clientePorTelefone(businessId, input.phone);
+    if (existente) return { cliente: existente, jaExistia: true };
+    const criada = await clientService.create(businessId, { name: input.name, phone: input.phone }) as { id: string; name: string; phone: string };
+    return { cliente: { id: criada.id, name: criada.name, phone: criada.phone }, jaExistia: false };
+  },
+
+  /** Agendamento criado por ela: sempre na agenda dela, em horário livre e a partir de agora. */
+  async criarAgendamento(businessId: string, p: Profissional, input: NovoAgendamentoInput) {
+    const { hoje, agora } = await relogio(businessId);
+    const bloqueio = novoHorarioValido(input.data, input.hora, hoje, agora);
+    if (bloqueio) throw new ConflictError(bloqueio);
+    const livres = await bancadaService.horariosParaNovo(businessId, p, input.servicoId, input.data);
+    if (!livres.includes(input.hora)) throw new ConflictError('Este horário não está livre na sua agenda');
+    const criado = await appointmentsService.create(businessId, {
+      clientId: input.clienteId, professionalId: p.id, serviceId: input.servicoId, date: input.data, time: input.hora,
+    });
+    await notificationsService.notify(businessId, {
+      type: 'agenda_profissional',
+      title: `${primeiro(p.nome)} marcou ${primeiro(criado.client.name)}`,
+      description: `${criado.service.name} · ${dataBr(input.data)} às ${input.hora}`,
+      link: `/agendamentos?data=${input.data}`,
+    });
+    return { id: criado.id, data: input.data, hora: input.hora };
   },
 
   async reagendar(businessId: string, p: Profissional, id: string, input: ReagendarInput) {

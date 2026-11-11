@@ -37,6 +37,7 @@ export interface Hoje {
 }
 
 export interface ClienteDela { id: string; name: string; phone: string }
+export interface ServicoBancada { id: string; nome: string; duracao: number; preco: number }
 
 export interface FichaRapida {
   cliente: { id: string; name: string; phone: string; notes: string | null; [k: string]: unknown };
@@ -103,6 +104,14 @@ export const bancadaApi = {
     (await api.get<string[]>('/bancada/horarios', { params: { agendamento, data } })).data,
   reagendar: async (id: string, body: { data: string; hora: string; avisarCliente: boolean }) =>
     (await api.post<{ data: string; hora: string; avisoEnviado: boolean }>(`/bancada/agendamentos/${id}/reagendar`, body)).data,
+  servicos: async () => (await api.get<ServicoBancada[]>('/bancada/servicos')).data,
+  buscarClientes: async (busca: string) => (await api.get<ClienteDela[]>('/bancada/clientes/buscar', { params: { busca } })).data,
+  horariosNovo: async (servico: string, data: string) =>
+    (await api.get<string[]>('/bancada/horarios-novo', { params: { servico, data } })).data,
+  criarCliente: async (body: { name: string; phone: string }) =>
+    (await api.post<{ cliente: ClienteDela; jaExistia: boolean }>('/bancada/clientes', body)).data,
+  criarAgendamento: async (body: { clienteId: string; servicoId: string; data: string; hora: string }) =>
+    (await api.post<{ id: string; data: string; hora: string }>('/bancada/agendamentos', body)).data,
   cancelar: async (id: string, body: { motivo: string; avisarCliente: boolean }) =>
     (await api.post<{ cancelado: true; avisoEnviado: boolean }>(`/bancada/agendamentos/${id}/cancelar`, body)).data,
   atalhos: async () => (await api.get<ComandaShortcut[]>('/bancada/atalhos')).data,
@@ -158,3 +167,6 @@ export const ROTULO_STATUS: Record<StatusAgendamento, string> = {
   cancelado: 'Cancelado',
   faltou: 'Faltou',
 };
+
+/** Avisa as telas abertas (agenda, clientes) que algo novo foi criado pelo atalho +. */
+export const EVENTO_ATUALIZAR_BANCADA = 'bancada:atualizar';
