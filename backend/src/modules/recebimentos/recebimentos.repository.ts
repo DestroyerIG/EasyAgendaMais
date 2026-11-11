@@ -44,7 +44,7 @@ export const recebimentosRepository = {
     if (appointmentIds.length === 0) return new Set();
     try {
       const rows = await prisma.cobrancaSinal.findMany({
-        where: { businessId, appointmentId: { in: appointmentIds }, situacao: 'paga', forma: 'cartao', idExterno: { not: null },
+        where: { businessId, appointmentId: { in: appointmentIds }, tipo: 'sinal', situacao: 'paga', forma: 'cartao', idExterno: { not: null },
           // Cartão da InfinitePay pago no Pix não é cartão: não ganha selo nem rótulo de cartão.
           OR: [{ formaPaga: null }, { formaPaga: { not: 'pix' } }],
         },
@@ -63,7 +63,7 @@ export const recebimentosRepository = {
     if (appointmentIds.length === 0) return new Set();
     try {
       const rows = await prisma.cobrancaSinal.findMany({
-        where: { businessId, appointmentId: { in: appointmentIds }, situacao: 'pendente' },
+        where: { businessId, appointmentId: { in: appointmentIds }, tipo: 'sinal', situacao: 'pendente' },
         select: { appointmentId: true },
       });
       return new Set(rows.map((r) => r.appointmentId));
@@ -159,7 +159,7 @@ export const recebimentosRepository = {
 
   reservasPendentes(businessId: string) {
     return prisma.cobrancaSinal.count({
-      where: { businessId, situacao: 'pendente', appointment: { status: 'aguardando_pagamento' } },
+      where: { businessId, tipo: 'sinal', situacao: 'pendente', appointment: { status: 'aguardando_pagamento' } },
     });
   },
 
@@ -170,6 +170,52 @@ export const recebimentosRepository = {
     return prisma.cobrancaSinal.create({
       data: { ...d, valor: d.valor.toFixed(2), situacao: 'pendente' }, select: { id: true },
     });
+  },
+
+  // ─── Cobranças do saldo da comanda ─────────────────────────────────────────────
+
+  /** Linha `pendente` do saldo, criada antes da chamada ao gateway para ter o id que vai como referência. */
+  criarCobrancaSaldo(d: { businessId: string; appointmentId: string; usuarioId: string; gateway: GatewayId; valor: number; venceEm: Date }) {
+    return prisma.cobrancaSinal.create({
+      data: { ...d, tipo: 'saldo', forma: 'pix', valor: d.valor.toFixed(2), situacao: 'pendente' }, select: { id: true },
+    });
+  },
+
+  /** Cobrança de saldo ainda esperando o pagamento e dentro do prazo: a vencida não trava a comanda. */
+  async cobrancaSaldoPendente(appointmentId: string, agora: Date): Promise<boolean> {
+    const n = await prisma.cobrancaSinal.count({
+      where: { appointmentId, tipo: 'saldo', situacao: 'pendente', venceEm: { gt: agora } },
+    });
+    return n > 0;
+  },
+
+  ultimaCobrancaSaldo(appointmentId: string) {
+    return prisma.cobrancaSinal.findFirst({
+      where: { appointmentId, tipo: 'saldo' }, orderBy: { criadoEm: 'desc' },
+      select: { id: true, gateway: true, forma: true, situacao: true, valor: true, codigoPix: true, venceEm: true, pagoEm: true, criadoEm: true },
+    });
+  },
+
+  /** Uma nova cobrança substitui a anterior em aberto (que o cliente ainda pode pagar: o pagamento tardio quita igual). */
+  async substituirSaldoPendente(appointmentId: string): Promise<void> {
+    await prisma.cobrancaSinal.updateMany({
+      where: { appointmentId, tipo: 'saldo', situacao: 'pendente' }, data: { situacao: 'substituida' },
+    });
+  },
+
+  async cancelarSaldoPendente(appointmentId: string): Promise<number> {
+    const { count } = await prisma.cobrancaSinal.updateMany({
+      where: { appointmentId, tipo: 'saldo', situacao: 'pendente' }, data: { situacao: 'cancelada' },
+    });
+    return count;
+  },
+
+  /** Saldo pendente que passou do prazo: sai de `pendente`, e um pagamento tardio ainda quita. */
+  async expirarSaldosVencidos(limite: Date): Promise<number> {
+    const { count } = await prisma.cobrancaSinal.updateMany({
+      where: { tipo: 'saldo', situacao: 'pendente', venceEm: { lt: limite } }, data: { situacao: 'expirada' },
+    });
+    return count;
   },
 
   async completarCobranca(id: string, d: { idExterno: string; codigoPix?: string; checkoutUrl?: string }): Promise<void> {
@@ -186,14 +232,14 @@ export const recebimentosRepository = {
    */
   async marcarSubstituidas(appointmentId: string, gateway: GatewayId): Promise<void> {
     await prisma.cobrancaSinal.updateMany({
-      where: { appointmentId, gateway, situacao: { in: ['pendente', 'recusada'] } }, data: { situacao: 'substituida' },
+      where: { appointmentId, gateway, tipo: 'sinal', situacao: { in: ['pendente', 'recusada'] } }, data: { situacao: 'substituida' },
     });
   },
 
   /** Cobranças da reserva, da mais nova para a mais antiga, para a página pública escolher o que mostrar. */
   cobrancasDaReserva(appointmentId: string) {
     return prisma.cobrancaSinal.findMany({
-      where: { appointmentId }, orderBy: { criadoEm: 'desc' },
+      where: { appointmentId, tipo: 'sinal' }, orderBy: { criadoEm: 'desc' },
       select: { gateway: true, forma: true, situacao: true, idExterno: true, codigoPix: true, checkoutUrl: true, pagoEm: true },
     });
   },
@@ -223,7 +269,7 @@ export const recebimentosRepository = {
   },
 
   async outraCobrancaPaga(appointmentId: string, cobrancaId: string): Promise<boolean> {
-    const n = await prisma.cobrancaSinal.count({ where: { appointmentId, situacao: 'paga', id: { not: cobrancaId } } });
+    const n = await prisma.cobrancaSinal.count({ where: { appointmentId, tipo: 'sinal', situacao: 'paga', id: { not: cobrancaId } } });
     return n > 0;
   },
 
@@ -325,7 +371,7 @@ export const recebimentosRepository = {
         if (ocupado) return 'ocupado';
 
         await tx.cobrancaSinal.updateMany({
-          where: { appointmentId: reserva.id, situacao: 'expirada', id: { not: cobrancaId } }, data: { situacao: 'recusada' },
+          where: { appointmentId: reserva.id, tipo: 'sinal', situacao: 'expirada', id: { not: cobrancaId } }, data: { situacao: 'recusada' },
         });
         const mudou = await tx.appointment.updateMany({
           where: { id: reserva.id, status: reserva.status }, data: { status: 'confirmado', expiresAt: null },
@@ -357,13 +403,13 @@ export const recebimentosRepository = {
    * Ganha linha própria na reserva: o índice único garante que seja registrado, e alertado, uma vez só.
    */
   async registrarPagamentoRepetido(
-    c: { businessId: string; appointmentId: string; gateway: string; forma: string; valor: unknown },
+    c: { businessId: string; appointmentId: string; gateway: string; forma: string; valor: unknown; tipo: string },
     pagamento: PagamentoGateway,
   ): Promise<boolean> {
     try {
       await prisma.cobrancaSinal.create({
         data: {
-          businessId: c.businessId, appointmentId: c.appointmentId, gateway: c.gateway, forma: c.forma,
+          businessId: c.businessId, appointmentId: c.appointmentId, gateway: c.gateway, forma: c.forma, tipo: c.tipo,
           valor: String(c.valor), ...dadosDePaga(pagamento),
         },
       });
@@ -404,7 +450,7 @@ export const recebimentosRepository = {
     try {
       await prisma.$transaction(async (tx) => {
         await tx.cobrancaSinal.updateMany({
-          where: { appointmentId, situacao: { in: ['pendente', 'recusada'] } }, data: { situacao: 'expirada' },
+          where: { appointmentId, tipo: 'sinal', situacao: { in: ['pendente', 'recusada'] } }, data: { situacao: 'expirada' },
         });
         const { count } = await tx.appointment.updateMany({
           where: { id: appointmentId, status: 'aguardando_pagamento', expiresAt: { lt: agora } },
@@ -436,7 +482,7 @@ export const recebimentosRepository = {
   /** Cancelar não devolve nada sozinho: quem administra recebe o lembrete, se havia sinal pago. */
   async lembrarDevolucaoAoCancelar(businessId: string, appointmentId: string): Promise<void> {
     const pagas = await prisma.cobrancaSinal.findMany({
-      where: { businessId, appointmentId, situacao: 'paga' },
+      where: { businessId, appointmentId, tipo: 'sinal', situacao: 'paga' },
       select: { valor: true, appointment: { select: { client: { select: { name: true } } } } },
     });
     const [primeira] = pagas;

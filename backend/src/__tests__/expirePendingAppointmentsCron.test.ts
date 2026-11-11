@@ -151,7 +151,7 @@ describe('expirePendingAppointments', () => {
     expect(prisma.$transaction).toHaveBeenCalledTimes(2);
     for (const appointmentId of ['apt-1', 'apt-2']) {
       expect(tx.cobrancaSinal.updateMany).toHaveBeenCalledWith({
-        where: { appointmentId, situacao: { in: ['pendente', 'recusada'] } },
+        where: { appointmentId, tipo: 'sinal', situacao: { in: ['pendente', 'recusada'] } },
         data: { situacao: 'expirada' },
       });
     }

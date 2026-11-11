@@ -81,6 +81,18 @@ export const sendToFrontDesk: H = async (req, res, next) => {
 export const comandaPix: H = async (req, res, next) => {
   try { sendSuccess(res, await bancadaService.gerarPix(negocio(req), profissionalDe(res), id(req), req.body)); } catch (e) { next(e); }
 };
+export const comandaCobrar: H = async (req, res, next) => {
+  try {
+    const { via: _via, ...input } = req.body;
+    sendSuccess(res, await bancadaService.cobrar(negocio(req), req.user.userId, profissionalDe(res), id(req), { ...input, via: 'pix' }));
+  } catch (e) { next(e); }
+};
+export const comandaCobranca: H = async (req, res, next) => {
+  try { sendSuccess(res, await bancadaService.cobranca(negocio(req), profissionalDe(res), id(req))); } catch (e) { next(e); }
+};
+export const comandaCancelarCobranca: H = async (req, res, next) => {
+  try { sendSuccess(res, await bancadaService.cancelarCobranca(negocio(req), profissionalDe(res), id(req))); } catch (e) { next(e); }
+};
 export const closeComanda: H = async (req, res, next) => {
   try { sendSuccess(res, await bancadaService.fecharComanda(negocio(req), req.user.userId, profissionalDe(res), id(req), req.body)); } catch (e) { next(e); }
 };

@@ -19,7 +19,7 @@ describe('recebimentosRepository.reservasComSinalNoCartao', () => {
     expect(r).toEqual(new Set(['a1']));
     expect(findMany).toHaveBeenCalledTimes(1);
     expect(findMany.mock.calls[0][0].where).toEqual({
-      businessId: 'b1', appointmentId: { in: ['a1', 'a2'] }, situacao: 'paga', forma: 'cartao', idExterno: { not: null },
+      businessId: 'b1', appointmentId: { in: ['a1', 'a2'] }, tipo: 'sinal', situacao: 'paga', forma: 'cartao', idExterno: { not: null },
       OR: [{ formaPaga: null }, { formaPaga: { not: 'pix' } }],
     });
   });

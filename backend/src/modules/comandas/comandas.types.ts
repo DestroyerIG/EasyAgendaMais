@@ -18,6 +18,10 @@ export const SaveComandaSchema = z.object({
 });
 export type SaveComandaInput = z.infer<typeof SaveComandaSchema>;
 
+/** Cobrança do saldo: o mesmo corpo da comanda (a forma é sempre Pix) mais a via de cobrança. Só `pix` nesta fase. */
+export const CobrarSchema = SaveComandaSchema.omit({ paymentMethod: true }).extend({ via: z.literal('pix') });
+export type CobrarInput = z.infer<typeof CobrarSchema>;
+
 export interface ComandaItemDto {
   id: string | null; kind: 'servico' | 'produto'; refId: string | null; name: string;
   unitPrice: number; quantity: number; durationMinutes: number | null; isMain: boolean;

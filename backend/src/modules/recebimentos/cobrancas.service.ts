@@ -20,6 +20,22 @@ function dominio(): string {
   }
 }
 
+/** E-mail de pagador sintético, único por cobrança, no domínio do site. */
+export const emailDoPagador = (prefixo: string, cobrancaId: string): string => `${prefixo}-${cobrancaId}@${dominio()}`;
+
+/** Depois de uma falha ao criar a cobrança: conta recusada alerta o dono; acesso revogado pede reconexão. Nunca lança. */
+export async function avisarFalhaDoGateway(err: unknown, businessId: string, gateway: GatewayId, accessToken?: string): Promise<void> {
+  try {
+    if (err instanceof GatewayRecusou) await conexaoService.alertarRecusa(businessId);
+    else if (err instanceof GatewayTokenInvalido && await conexaoService.acessoRevogado(businessId, gateway, accessToken)) {
+      // Um 401 na criação não prova token vencido: só a conta do gateway prova.
+      await conexaoService.marcarReconectar(businessId, err.message);
+    }
+  } catch (e2) {
+    logger.warn({ err: e2, businessId }, 'Recebimentos: falha ao avisar sobre a cobrança');
+  }
+}
+
 export interface EntradaCobranca {
   businessId: string;
   slug: string;
@@ -56,7 +72,7 @@ export const cobrancasService = {
           businessId: e.businessId, appointmentId: e.appointmentId, gateway: 'infinitepay',
           forma: 'cartao', valor: e.valor, venceEm: e.venceEm,
         })).id;
-        const c = { cobrancaId, valor: e.valor, descricao: e.descricao, venceEm: e.venceEm, pagadorEmail: `reserva-${cobrancaId}@${dominio()}` };
+        const c = { cobrancaId, valor: e.valor, descricao: e.descricao, venceEm: e.venceEm, pagadorEmail: emailDoPagador('reserva', cobrancaId) };
         const r = await infinitePay.criarLink(ip.cred, c, {
           volta: `${frontend()}/agendar/${e.slug}?reserva=${e.appointmentId}&retorno=infinitepay`,
           webhook: `${backendUrl()}/api/v1/recebimentos/webhook/infinitepay/${cobrancaId}`,
@@ -75,7 +91,7 @@ export const cobrancasService = {
       })).id;
 
       const gateway = gatewayDe(conexao.gateway);
-      const c = { cobrancaId, valor: e.valor, descricao: e.descricao, venceEm: e.venceEm, pagadorEmail: `reserva-${cobrancaId}@${dominio()}` };
+      const c = { cobrancaId, valor: e.valor, descricao: e.descricao, venceEm: e.venceEm, pagadorEmail: emailDoPagador('reserva', cobrancaId) };
 
       if (e.forma === 'pix') {
         const r = await gateway.criarPix(conexao.accessToken, c);
@@ -99,15 +115,7 @@ export const cobrancasService = {
           logger.warn({ err: e2, cobrancaId }, 'Recebimentos: falha ao apagar a cobrança');
         }
       }
-      try {
-        if (err instanceof GatewayRecusou) await conexaoService.alertarRecusa(e.businessId);
-        else if (err instanceof GatewayTokenInvalido && await conexaoService.acessoRevogado(e.businessId, gatewayDaCobranca, conexao?.accessToken)) {
-          // Um 401 na criação não prova token vencido: só a conta do gateway prova.
-          await conexaoService.marcarReconectar(e.businessId, err.message);
-        }
-      } catch (e2) {
-        logger.warn({ err: e2, businessId: e.businessId }, 'Recebimentos: falha ao avisar sobre a cobrança');
-      }
+      await avisarFalhaDoGateway(err, e.businessId, gatewayDaCobranca, conexao?.accessToken);
       return null;
     }
   },

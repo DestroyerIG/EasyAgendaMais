@@ -13,12 +13,13 @@ import { notificationsService } from '../notifications/notifications.service.js'
 import { filaEnvios } from '../whatsappFila/fila.service.js';
 import { comissoesService } from '../reports/comissoes.service.js';
 import { intervaloUtc, type Periodo } from '../reports/periodo.js';
+import { cobrancaSaldoService } from '../recebimentos/cobrancaSaldo.service.js';
 import { bancadaRepository as repo } from './bancada.repository.js';
 import {
   escolherProxima, horaNoFuso, minutosAte, motivoParaNaoCancelar, motivoParaNaoReagendar, novoHorarioValido,
   parteDaProfissional, resumoAvaliacoes, textoCancelado, textoReagendado,
 } from './bancada.rules.js';
-import type { BancadaComandaInput, CancelarInput, Profissional, ReagendarInput } from './bancada.types.js';
+import type { BancadaCobrarInput, BancadaComandaInput, CancelarInput, Profissional, ReagendarInput } from './bancada.types.js';
 
 // App da profissional (fase 5). Toda função recebe a profissional do login (middleware), nunca do corpo.
 
@@ -56,6 +57,12 @@ async function avisarCliente(businessId: string, a: { clientId: string; client: 
     logger.warn({ err: e, appointmentId }, 'Aviso à cliente não entrou na fila');
     return false;
   }
+}
+
+/** A comanda é dela e a chave "a profissional cobra" está ligada. */
+async function exigirQuemCobra(businessId: string, p: Profissional, id: string) {
+  await exigirComanda(businessId, p, id);
+  if (!(await repo.profissionalCobra(businessId))) throw new ForbiddenError('Quem cobra é a recepção. Use "Enviar para a recepção"');
 }
 
 const comCobranca = async (businessId: string, dto: ComandaDetailDto) => ({ ...dto, profissionalCobra: await repo.profissionalCobra(businessId) });
@@ -241,6 +248,26 @@ export const bancadaService = {
       extras: input.extras, discount: input.discount ?? atual.discount, tip: input.tip ?? atual.tip,
       ...(input.usarCobertura !== undefined ? { usarCobertura: input.usarCobertura } : {}),
     });
+  },
+
+  /** Cobrança do saldo no gateway do negócio (nunca numa conta dela). Só quando é ela quem cobra. */
+  async cobrar(businessId: string, userId: string, p: Profissional, id: string, input: BancadaCobrarInput) {
+    await exigirQuemCobra(businessId, p, id);
+    const atual = await comandasService.get(id, businessId);
+    return cobrancaSaldoService.criar(id, businessId, userId, {
+      extras: input.extras, discount: input.discount ?? atual.discount, tip: input.tip ?? atual.tip,
+      ...(input.usarCobertura !== undefined ? { usarCobertura: input.usarCobertura } : {}),
+    });
+  },
+
+  async cobranca(businessId: string, p: Profissional, id: string) {
+    await exigirQuemCobra(businessId, p, id);
+    return cobrancaSaldoService.estado(id, businessId);
+  },
+
+  async cancelarCobranca(businessId: string, p: Profissional, id: string) {
+    await exigirQuemCobra(businessId, p, id);
+    return cobrancaSaldoService.cancelar(id, businessId);
   },
 
   async fecharComanda(businessId: string, userId: string, p: Profissional, id: string, input: BancadaComandaInput) {

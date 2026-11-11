@@ -14,11 +14,27 @@ vi.mock('@/lib/api', () => ({ default: { get: vi.fn().mockResolvedValue({ data: 
 vi.mock('@/lib/produtos', () => ({ listarProdutos: vi.fn().mockResolvedValue([
   { id: 'pr1', name: 'Óleo Hidratante de Cutícula 10ml', description: 'Produto Home Care', price: 25, active: true },
 ]) }));
+// O painel de cobrança (com polling) tem testes próprios: aqui só se confere como o modal reage a ele.
+vi.mock('../PainelCobrar', () => ({
+  PainelCobrar: (p: {
+    forma: string | null; total: number; onPendente: (v: boolean) => void; onPaga: () => void;
+    api: { cobrar: () => Promise<unknown> }; gerarPixManual: () => Promise<unknown>;
+  }) => (
+    <div data-testid="painel-cobrar" data-forma={p.forma ?? ''} data-total={p.total}>
+      <button type="button" onClick={() => p.onPendente(true)}>stub pendente</button>
+      <button type="button" onClick={() => p.onPendente(false)}>stub livre</button>
+      <button type="button" onClick={() => { p.onPendente(false); p.onPaga(); }}>stub paga</button>
+      <button type="button" onClick={() => void p.api.cobrar()}>stub cobrar</button>
+      <button type="button" onClick={() => void p.gerarPixManual()}>stub manual</button>
+    </div>
+  ),
+}));
 vi.mock('qrcode', () => ({ default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,QR') } }));
 vi.mock('@/lib/caixa', async (orig) => ({ ...(await orig<typeof import('@/lib/caixa')>()), abrirCaixa: vi.fn(), reabrirCaixa: vi.fn() }));
 vi.mock('@/lib/comanda', async (orig) => ({
   ...(await orig<typeof import('@/lib/comanda')>()),
   abrirComanda: vi.fn(), salvarComanda: vi.fn(), fecharComanda: vi.fn(), buscarAtalhos: vi.fn(), gerarPixComanda: vi.fn(),
+  buscarCobranca: vi.fn(), cobrarComanda: vi.fn(), cancelarCobranca: vi.fn(),
 }));
 
 const dto = (over: Partial<comanda.ComandaDetail> = {}): comanda.ComandaDetail => ({
@@ -251,37 +267,85 @@ describe('ComandaModal', () => {
     }));
   });
 
-  describe('cobrar por Pix', () => {
-    it('só aparece com Pix escolhido e saldo a cobrar', async () => {
+  describe('cobrança do saldo', () => {
+    const escolher = async (user: ReturnType<typeof userEvent.setup>, forma: RegExp) => {
+      await screen.findByText('Comanda #1042');
+      await user.click(within(screen.getByRole('radiogroup')).getByLabelText(forma));
+    };
+    const fechada = () => dto({ status: 'fechada', closedAt: '2026-11-10T15:00:00.000Z' });
+
+    it('o painel de cobrança aparece com a forma escolhida e saldo a cobrar', async () => {
       const user = userEvent.setup();
       abrir();
       await screen.findByText('Comanda #1042');
-      expect(screen.queryByRole('region', { name: /cobrar por pix/i })).not.toBeInTheDocument();
-      await user.click(within(screen.getByRole('radiogroup')).getByLabelText(/Pix/));
-      expect(screen.getByRole('region', { name: /cobrar por pix/i })).toBeInTheDocument();
+      expect(screen.queryByTestId('painel-cobrar')).not.toBeInTheDocument();
+      await escolher(user, /Pix/);
+      expect(screen.getByTestId('painel-cobrar')).toHaveAttribute('data-forma', 'pix');
+      expect(screen.getByTestId('painel-cobrar')).toHaveAttribute('data-total', '80');
     });
 
-    it('gera o QR Code do saldo salvando a comanda como Pix', async () => {
-      const user = userEvent.setup();
-      vi.mocked(comanda.gerarPixComanda).mockResolvedValue({ pixPayload: '000201PIX', valor: 80 });
-      abrir();
-      await screen.findByText('Comanda #1042');
-      await user.click(within(screen.getByRole('radiogroup')).getByLabelText(/Pix/));
-      await user.click(screen.getByRole('button', { name: /gerar qr code/i }));
-      expect(comanda.gerarPixComanda).toHaveBeenCalledWith('k1', { extras: [], discount: 0, tip: 0, paymentMethod: 'pix' });
-      expect(await screen.findByRole('img', { name: /qr code do pix/i })).toBeInTheDocument();
-    });
-
-    it('sinal cobre tudo (total zero): não oferece o QR Code', async () => {
+    it('sinal cobre tudo (total zero): não oferece a cobrança', async () => {
       const user = userEvent.setup();
       vi.mocked(comanda.abrirComanda).mockResolvedValue(dto({
         depositAvailable: 110,
         calc: comanda.calcularComanda({ items: [{ kind: 'servico', unitPrice: 110, quantity: 1 }], depositAvailable: 110, discount: 0, tip: 0, serviceCommissionPct: 50, productCommissionPct: 20 }),
       }));
       abrir();
-      await screen.findByText('Comanda #1042');
-      await user.click(within(screen.getByRole('radiogroup')).getByLabelText(/Pix/));
-      expect(screen.queryByRole('region', { name: /cobrar por pix/i })).not.toBeInTheDocument();
+      await escolher(user, /Pix/);
+      expect(screen.queryByTestId('painel-cobrar')).not.toBeInTheDocument();
+    });
+
+    it('cobrar manda a comanda sem a forma; o Pix manual manda a forma Pix', async () => {
+      const user = userEvent.setup();
+      vi.mocked(comanda.cobrarComanda).mockResolvedValue({ id: 'c1', via: 'pix', situacao: 'pendente', valor: 80, codigoPix: 'X', venceEm: null, pagoEm: null });
+      vi.mocked(comanda.gerarPixComanda).mockResolvedValue({ pixPayload: 'MANUAL', valor: 80 });
+      abrir();
+      await escolher(user, /Pix/);
+      await user.click(screen.getByRole('button', { name: 'stub cobrar' }));
+      expect(comanda.cobrarComanda).toHaveBeenCalledWith('k1', { extras: [], discount: 0, tip: 0 });
+      await user.click(screen.getByRole('button', { name: 'stub manual' }));
+      expect(comanda.gerarPixComanda).toHaveBeenCalledWith('k1', { extras: [], discount: 0, tip: 0, paymentMethod: 'pix' });
+    });
+
+    it('com cobrança pendente a comanda fica travada; ao liberar, volta a editar', async () => {
+      const user = userEvent.setup();
+      abrir();
+      await escolher(user, /Pix/);
+      const busca = screen.getByPlaceholderText('Buscar serviço ou produto');
+      const fechar = screen.getByRole('button', { name: /^fechar comanda e enviar whatsapp/i });
+      expect(busca).toBeEnabled();
+
+      await user.click(screen.getByRole('button', { name: 'stub pendente' }));
+      expect(busca).toBeDisabled();
+      expect(fechar).toBeDisabled();
+      expect(screen.getByRole('button', { name: /salvar como rascunho/i })).toBeDisabled();
+
+      await user.click(screen.getByRole('button', { name: 'stub livre' }));
+      expect(busca).toBeEnabled();
+      expect(fechar).toBeEnabled();
+    });
+
+    it('pagamento confirmado: recarrega a comanda, que o servidor fechou, e avisa a agenda', async () => {
+      const user = userEvent.setup();
+      const { onAtualizada } = abrir();
+      await escolher(user, /Pix/);
+      vi.mocked(comanda.abrirComanda).mockResolvedValue(fechada());
+      await user.click(screen.getByRole('button', { name: 'stub paga' }));
+
+      expect(await screen.findByText('Comanda fechada')).toBeInTheDocument();
+      expect(onAtualizada).toHaveBeenCalled();
+      expect(screen.queryByTestId('painel-cobrar')).not.toBeInTheDocument();
+    });
+
+    it('pagamento confirmado com a comanda ainda aberta (caixa fechado): avisa e deixa fechar à mão', async () => {
+      const user = userEvent.setup();
+      abrir();
+      await escolher(user, /Pix/);
+      await user.click(screen.getByRole('button', { name: 'stub pendente' }));
+      await user.click(screen.getByRole('button', { name: 'stub paga' }));
+
+      expect(await screen.findByText(/pagamento recebido\. abra o caixa/i, undefined, { timeout: 10000 })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^fechar comanda e enviar whatsapp/i })).toBeEnabled();
     });
   });
 });

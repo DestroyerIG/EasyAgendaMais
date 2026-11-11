@@ -41,7 +41,7 @@ const banco = vi.hoisted(() => {
       },
       create: async ({ data }: Linha) => {
         checarUnico(null, data);
-        const nova = { id: `extra-${estado.cobrancas.length}`, ...data };
+        const nova = { id: `extra-${estado.cobrancas.length}`, tipo: 'sinal', ...data };
         estado.cobrancas.push(nova);
         return nova;
       },
@@ -119,6 +119,9 @@ vi.mock('../modules/clube/clube.service.js', () => ({ clubeService: { aoFaltar: 
 const agenda = vi.hoisted(() => ({ generateAvailableTimeSlots: vi.fn(), getBusinessScheduleSettings: vi.fn() }));
 vi.mock('../services/scheduleSettingsService.js', () => agenda);
 
+const comandaSrv = vi.hoisted(() => ({ fecharPorPagamento: vi.fn() }));
+vi.mock('../modules/comandas/comandas.service.js', () => ({ comandasService: comandaSrv }));
+
 const { pagamentosService } = await import('../modules/recebimentos/pagamentos.service.js');
 const { recebimentosRepository } = await import('../modules/recebimentos/recebimentos.repository.js');
 const { publicBookingRepository } = await import('../modules/publicBooking/publicBooking.repository.js');
@@ -158,7 +161,7 @@ function reserva(extra: Record<string, unknown> = {}) {
 
 function cobranca(extra: Record<string, unknown> = {}) {
   const c = {
-    id: COB, businessId: 'b1', appointmentId: 'a1', gateway: 'mercadopago', forma: 'pix', valor: '30.00', situacao: 'pendente',
+    id: COB, businessId: 'b1', appointmentId: 'a1', gateway: 'mercadopago', forma: 'pix', valor: '30.00', situacao: 'pendente', tipo: 'sinal',
     pagamentoExternoId: null, formaPaga: null, pagoEm: null, venceEm: emMinutos(10), idExterno: 'ext-1', ...extra,
   };
   banco.estado.cobrancas.push(c);
@@ -194,6 +197,7 @@ beforeEach(() => {
   notif.notify.mockResolvedValue(undefined);
   whats.sendWhatsAppMessage.mockResolvedValue(true);
   sinal.avisarSinalConfirmado.mockResolvedValue(undefined);
+  comandaSrv.fecharPorPagamento.mockResolvedValue('fechada');
 });
 afterEach(() => { for (const v of ENVS) delete process.env[v]; vi.restoreAllMocks(); });
 
@@ -1244,5 +1248,128 @@ describe('confirmarInfinitePay', () => {
     expect(ip.conferirPagamento).not.toHaveBeenCalled();
     expect(gw.buscarPorReferencia).not.toHaveBeenCalled();
     expect(lerReserva().status).toBe('aguardando_pagamento');
+  });
+});
+
+describe('saldo da comanda', () => {
+  const saldo = (extra: Record<string, unknown> = {}) =>
+    cobranca({ tipo: 'saldo', usuarioId: 'u1', valor: '80.00', ...extra });
+  const pago = (extra: Record<string, unknown> = {}) => pagamento({ valor: 80, ...extra });
+
+  beforeEach(() => { gw.buscarPorReferencia.mockResolvedValue([pago()]); });
+
+  it('pagamento aprovado quita a cobrança e fecha a comanda com quem iniciou e a forma paga', async () => {
+    reserva({ status: 'em_atendimento' }); saldo();
+    await pagamentosService.processarCobranca(COB);
+
+    expect(lerCobranca()).toMatchObject({ situacao: 'paga', pagamentoExternoId: '555', formaPaga: 'pix' });
+    expect(comandaSrv.fecharPorPagamento).toHaveBeenCalledWith({ appointmentId: 'a1', businessId: 'b1', userId: 'u1', valor: 80, forma: 'pix' });
+    expect(lerReserva().status).toBe('em_atendimento');
+    expect(sinal.avisarSinalConfirmado).not.toHaveBeenCalled();
+    expect(alertas()).toHaveLength(0);
+  });
+
+  it('aviso repetido não fecha duas vezes', async () => {
+    reserva({ status: 'em_atendimento' }); saldo();
+    await pagamentosService.processarCobranca(COB);
+    await pagamentosService.processarCobranca(COB);
+    expect(comandaSrv.fecharPorPagamento).toHaveBeenCalledTimes(1);
+    expect(alertas()).toHaveLength(0);
+  });
+
+  it.each([
+    ['caixa_fechado', /abra o caixa/i],
+    ['ja_fechada', /já estava fechada/i],
+    ['valor_diferente', /saldo da comanda mudou/i],
+    ['erro', /feche a comanda manualmente/i],
+    ['sem_comanda', /feche a comanda manualmente/i],
+  ])('fechamento %s: a cobrança fica paga e o dono é avisado', async (resultado, texto) => {
+    reserva({ status: 'em_atendimento' }); saldo();
+    comandaSrv.fecharPorPagamento.mockResolvedValue(resultado);
+    await pagamentosService.processarCobranca(COB);
+
+    expect(lerCobranca().situacao).toBe('paga');
+    expect(alertas()).toHaveLength(1);
+    expect(alertas()[0]![1].description).toContain('Mariana Souza');
+    expect(alertas()[0]![1].description).toContain('80,00');
+    expect(alertas()[0]![1].description).toMatch(texto);
+  });
+
+  it('pagamento aprovado de valor diferente da cobrança: não quita, não fecha, alerta', async () => {
+    reserva({ status: 'em_atendimento' }); saldo();
+    gw.buscarPorReferencia.mockResolvedValue([pago({ valor: 79.99 })]);
+    await pagamentosService.processarCobranca(COB);
+
+    expect(lerCobranca().situacao).toBe('pendente');
+    expect(comandaSrv.fecharPorPagamento).not.toHaveBeenCalled();
+    expect(alertas()).toHaveLength(1);
+    expect(alertas()[0]![1].description).toContain('79,99');
+  });
+
+  it('pagou uma cobrança com outra pendente na comanda: cancela a outra, senão a trava impediria o fechamento', async () => {
+    reserva({ status: 'em_atendimento' });
+    saldo();
+    saldo({ id: COB2, venceEm: emMinutos(5) });
+    await pagamentosService.processarCobranca(COB);
+
+    expect(lerCobranca(COB).situacao).toBe('paga');
+    expect(lerCobranca(COB2).situacao).toBe('cancelada');
+    expect(comandaSrv.fecharPorPagamento).toHaveBeenCalledTimes(1);
+  });
+
+  it('pagamento tardio de cobrança substituída ainda quita', async () => {
+    reserva({ status: 'em_atendimento' }); saldo({ situacao: 'substituida' });
+    await pagamentosService.processarCobranca(COB);
+    expect(lerCobranca().situacao).toBe('paga');
+    expect(comandaSrv.fecharPorPagamento).toHaveBeenCalledTimes(1);
+  });
+
+  it('pagamento recusado marca a cobrança como recusada', async () => {
+    reserva({ status: 'em_atendimento' }); saldo();
+    gw.buscarPorReferencia.mockResolvedValue([pago({ status: 'rejected' })]);
+    await pagamentosService.processarCobranca(COB);
+    expect(lerCobranca().situacao).toBe('recusada');
+    expect(comandaSrv.fecharPorPagamento).not.toHaveBeenCalled();
+  });
+
+  it('pagamento devolvido: marca a cobrança paga como devolvida e alerta', async () => {
+    reserva({ status: 'concluido' }); saldo({ situacao: 'paga', pagamentoExternoId: '555' });
+    gw.buscarPorReferencia.mockResolvedValue([pago({ status: 'refunded' })]);
+    await pagamentosService.processarCobranca(COB);
+    expect(lerCobranca().situacao).toBe('devolvida');
+    expect(alertas()).toHaveLength(1);
+    expect(alertas()[0]![1].description).toContain('Mariana Souza');
+  });
+
+  it('segundo pagamento aprovado da mesma cobrança: grava a linha repetida como saldo e alerta', async () => {
+    reserva({ status: 'concluido' }); saldo({ situacao: 'paga', pagamentoExternoId: '111' });
+    await pagamentosService.processarCobranca(COB);
+
+    const repetida = banco.estado.cobrancas.find((c) => c.pagamentoExternoId === '555');
+    expect(repetida).toMatchObject({ tipo: 'saldo' });
+    expect(alertas()).toHaveLength(1);
+    expect(comandaSrv.fecharPorPagamento).not.toHaveBeenCalled();
+  });
+
+  it('sinal já pago na mesma reserva não faz o saldo parecer pagamento em dobro', async () => {
+    reserva({ status: 'em_atendimento' });
+    cobranca({ id: COB2, tipo: 'sinal', situacao: 'paga', pagamentoExternoId: '111', valor: '30.00' });
+    saldo();
+    await pagamentosService.processarCobranca(COB);
+
+    expect(lerCobranca().situacao).toBe('paga');
+    expect(comandaSrv.fecharPorPagamento).toHaveBeenCalledTimes(1);
+    expect(alertas()).toHaveLength(0);
+  });
+
+  it('a rotina de cada minuto expira o saldo vencido e deixa o que ainda está no prazo', async () => {
+    reserva({ status: 'em_atendimento' });
+    saldo({ venceEm: emMinutos(-10) });
+    saldo({ id: COB2, venceEm: emMinutos(5) });
+    gw.buscarPorReferencia.mockResolvedValue([]);
+    await pagamentosService.conferirPendentes();
+
+    expect(lerCobranca(COB).situacao).toBe('expirada');
+    expect(lerCobranca(COB2).situacao).toBe('pendente');
   });
 });

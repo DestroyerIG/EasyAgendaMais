@@ -170,3 +170,31 @@ export function decidirPagamento(e: EntradaDecisao): Decisao {
   if (reserva.status === 'cancelado' && cobranca.situacao === 'expirada') return 'reativar';
   return 'alertar_atrasado';
 }
+
+// ─── Decisão sobre um pagamento do saldo da comanda ─────────────────────────────
+
+export type DecisaoSaldo =
+  | 'ignorar' | 'quitar' | 'marcar_recusada' | 'marcar_devolvida' | 'marcar_contestada'
+  | 'alertar_duplicado' | 'alertar_valor_diferente';
+
+/**
+ * Saldo do balcão: não há reserva a confirmar, então a regra é mais curta que a do sinal. Pagamento
+ * aprovado quita mesmo numa cobrança vencida ou substituída (o dinheiro entrou); valor diferente do
+ * saldo não quita e alerta, em vez de ser ignorado como no sinal.
+ */
+export function decidirSaldo(e: {
+  cobranca: { id: string; situacao: string; valor: unknown; pagamentoExternoId: string | null };
+  pagamento: PagamentoGateway;
+}): DecisaoSaldo {
+  const { cobranca, pagamento } = e;
+  if (pagamento.referencia !== cobranca.id) return 'ignorar';
+
+  if (pagamento.status === 'refunded') return 'marcar_devolvida';
+  if (pagamento.status === 'charged_back') return 'marcar_contestada';
+  if (pagamento.status === 'rejected') return cobranca.situacao === 'pendente' ? 'marcar_recusada' : 'ignorar';
+  if (pagamento.status !== 'approved') return 'ignorar';
+
+  if (cobranca.situacao === 'paga') return cobranca.pagamentoExternoId === pagamento.id ? 'ignorar' : 'alertar_duplicado';
+  if (centavos(pagamento.valor) !== centavos(cobranca.valor)) return 'alertar_valor_diferente';
+  return 'quitar';
+}

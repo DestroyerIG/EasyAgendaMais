@@ -19,6 +19,20 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => busca.atual,
   usePathname: () => '/bancada',
 }));
+// O painel de cobrança (com polling) tem testes próprios: aqui só se confere como a tela reage a ele.
+vi.mock('@/components/comanda/PainelCobrar', () => ({
+  PainelCobrar: (p: {
+    forma: string | null; total: number; onPendente: (v: boolean) => void; onPaga: () => void;
+    api: { cobrar: () => Promise<unknown> }; gerarPixManual: () => Promise<unknown>;
+  }) => (
+    <div data-testid="painel-cobrar" data-forma={p.forma ?? ''}>
+      <button type="button" onClick={() => p.onPendente(true)}>stub pendente</button>
+      <button type="button" onClick={() => { p.onPendente(false); p.onPaga(); }}>stub paga</button>
+      <button type="button" onClick={() => void p.api.cobrar()}>stub cobrar</button>
+      <button type="button" onClick={() => void p.gerarPixManual()}>stub manual</button>
+    </div>
+  ),
+}));
 vi.mock('qrcode', () => ({ default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,QR') } }));
 vi.mock('@/lib/bancada', async (orig) => {
   const real = await orig<typeof import('@/lib/bancada')>();
@@ -27,7 +41,7 @@ vi.mock('@/lib/bancada', async (orig) => {
     bancadaApi: {
       hoje: vi.fn(), iniciar: vi.fn(), horarios: vi.fn(), reagendar: vi.fn(), cancelar: vi.fn(),
       atalhos: vi.fn(), comanda: vi.fn(), salvarComanda: vi.fn(), enviarParaRecepcao: vi.fn(), fecharComanda: vi.fn(),
-      enviarFoto: vi.fn(), gerarPix: vi.fn(),
+      enviarFoto: vi.fn(), gerarPix: vi.fn(), cobranca: vi.fn(), cobrar: vi.fn(), cancelarCobranca: vi.fn(),
     },
   };
 });
@@ -182,25 +196,59 @@ describe('Fechar atendimento', () => {
     expect(await screen.findByText(/Comanda fechada/)).toBeInTheDocument();
   });
 
-  it('com a chave e Pix escolhido: gera o QR Code do negócio pela rota da profissional', async () => {
-    busca.atual = new URLSearchParams('comanda=k1');
-    api.comanda.mockResolvedValue(comanda({ profissionalCobra: true }));
-    api.gerarPix.mockResolvedValue({ pixPayload: '000201PIX', valor: 50 });
-    render(<AtendimentoBancada />);
-    await screen.findByRole('button', { name: /Fechar e cobrar/ });
-    expect(screen.queryByRole('region', { name: /cobrar por pix/i })).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Pix' }));
-    await userEvent.click(screen.getByRole('button', { name: /gerar qr code/i }));
-    expect(api.gerarPix).toHaveBeenCalledWith('k1', { extras: [], discount: 0, tip: 0, paymentMethod: 'pix' });
-    expect(await screen.findByRole('img', { name: /qr code do pix/i })).toBeInTheDocument();
-  });
+  describe('cobrança do saldo', () => {
+    beforeEach(() => {
+      busca.atual = new URLSearchParams('comanda=k1');
+      api.comanda.mockResolvedValue(comanda({ profissionalCobra: true }));
+    });
 
-  it('sem a chave "a profissional cobra": não há QR Code (quem cobra é a recepção)', async () => {
-    busca.atual = new URLSearchParams('comanda=k1');
-    api.comanda.mockResolvedValue(comanda());
-    render(<AtendimentoBancada />);
-    await screen.findByRole('button', { name: /Enviar para a recepção/ });
-    expect(screen.queryByRole('region', { name: /cobrar por pix/i })).not.toBeInTheDocument();
+    it('com a chave e uma forma escolhida: mostra o painel de cobrança do negócio', async () => {
+      render(<AtendimentoBancada />);
+      await screen.findByRole('button', { name: /Fechar e cobrar/ });
+      expect(screen.queryByTestId('painel-cobrar')).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Pix' }));
+      expect(screen.getByTestId('painel-cobrar')).toHaveAttribute('data-forma', 'pix');
+    });
+
+    it('cobrar usa a rota da profissional sem a forma; o Pix manual manda a forma Pix', async () => {
+      api.cobrar.mockResolvedValue({ id: 'c1', via: 'pix', situacao: 'pendente', valor: 50, codigoPix: 'X', venceEm: null, pagoEm: null });
+      api.gerarPix.mockResolvedValue({ pixPayload: 'MANUAL', valor: 50 });
+      render(<AtendimentoBancada />);
+      await screen.findByRole('button', { name: /Fechar e cobrar/ });
+      await userEvent.click(screen.getByRole('button', { name: 'Pix' }));
+      await userEvent.click(screen.getByRole('button', { name: 'stub cobrar' }));
+      expect(api.cobrar).toHaveBeenCalledWith('k1', { extras: [], discount: 0, tip: 0 });
+      await userEvent.click(screen.getByRole('button', { name: 'stub manual' }));
+      expect(api.gerarPix).toHaveBeenCalledWith('k1', { extras: [], discount: 0, tip: 0, paymentMethod: 'pix' });
+    });
+
+    it('sem a chave "a profissional cobra": não há painel (quem cobra é a recepção)', async () => {
+      api.comanda.mockResolvedValue(comanda());
+      render(<AtendimentoBancada />);
+      await screen.findByRole('button', { name: /Enviar para a recepção/ });
+      expect(screen.queryByTestId('painel-cobrar')).not.toBeInTheDocument();
+    });
+
+    it('com cobrança pendente, a forma e o fechamento ficam travados; ao liberar, voltam', async () => {
+      render(<AtendimentoBancada />);
+      const fechar = await screen.findByRole('button', { name: /Fechar e cobrar/ });
+      await userEvent.click(screen.getByRole('button', { name: 'Pix' }));
+      await userEvent.click(screen.getByRole('button', { name: 'stub pendente' }));
+      expect(screen.getByRole('button', { name: 'Cartão débito' })).toBeDisabled();
+      expect(screen.getByLabelText(/Desconto/)).toBeDisabled();
+      expect(fechar).toBeDisabled();
+    });
+
+    it('pagamento confirmado: recarrega a comanda, que o servidor fechou', async () => {
+      render(<AtendimentoBancada />);
+      await screen.findByRole('button', { name: /Fechar e cobrar/ });
+      await userEvent.click(screen.getByRole('button', { name: 'Pix' }));
+      const chamadas = api.comanda.mock.calls.length;
+      api.comanda.mockResolvedValue(comanda({ profissionalCobra: true, status: 'fechada', receiptSentAt: 'x' }));
+      await userEvent.click(screen.getByRole('button', { name: 'stub paga' }));
+      expect(await screen.findByText(/Comanda fechada/)).toBeInTheDocument();
+      expect(api.comanda.mock.calls.length).toBeGreaterThan(chamadas);
+    });
   });
 
   it('sem atendimento em andamento: convida a iniciar pela agenda', async () => {

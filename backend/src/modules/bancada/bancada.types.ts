@@ -31,3 +31,7 @@ export const BancadaComandaSchema = z.object({
   usarCobertura: z.boolean().optional(),
 });
 export type BancadaComandaInput = z.infer<typeof BancadaComandaSchema>;
+
+/** Cobrança do saldo pela profissional: a forma é sempre Pix e a via só pode ser `pix` nesta fase. */
+export const BancadaCobrarSchema = BancadaComandaSchema.omit({ paymentMethod: true }).extend({ via: z.literal('pix') });
+export type BancadaCobrarInput = z.infer<typeof BancadaCobrarSchema>;
