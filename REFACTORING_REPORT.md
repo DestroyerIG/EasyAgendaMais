@@ -23,7 +23,7 @@ Para onboarding, execução e deploy, priorize:
 - Modularização do domínio WhatsApp.
 - Evolução do schema por migrations SQL.
 - Adoção de Supabase Auth como provedor obrigatório de identidade.
-- Billing híbrido com Stripe e Asaas.
+- Billing híbrido com Stripe e Asaas (histórico: em 04/11/2026 o Stripe foi removido e o Asaas passou a cobrar também o cartão).
 - Controle de acesso por plano e status de assinatura.
 - Painel administrativo de plataforma com auditoria.
 

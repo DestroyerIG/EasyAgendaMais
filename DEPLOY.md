@@ -1,6 +1,6 @@
 # Deploy — EasyAgenda+
 
-Guia de produção. Stack: Node.js 20 + Express + Prisma + PostgreSQL (Supabase) + Vercel (frontend) + Render (backend). Atualizado em 27/10/2026.
+Guia de produção. Stack: Node.js 20 + Express + Prisma + PostgreSQL (Supabase) + Vercel (frontend) + Render (backend). Atualizado em 11/11/2026. Produção: frontend em https://www.easyagendamais.com.br e API em `api.easyagendamais.com.br`.
 
 > **Regra de ouro:** a migração do banco vai **antes** do deploy do código que depende dela, e só com autorização do dono. Rode `npm run db:migrate:status` antes e depois.
 
@@ -32,23 +32,29 @@ SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 AUTH_SUPABASE_REDIRECT_TO=https://seu-frontend.vercel.app/auth/confirm
 ```
 
-### Stripe
+### Asaas (assinatura do sistema, cartão e Pix)
 
-```env
-STRIPE_SECRET_KEY=sk_live_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
-STRIPE_PRICE_ID_BASICO=price_xxx
-STRIPE_PRICE_ID_PROFISSIONAL=price_xxx
-STRIPE_PRICE_ID_PREMIUM=price_xxx
-```
-
-### Asaas (opcional)
+O Asaas é o único meio de cobrança da assinatura (o Stripe foi removido). Habilite a **tokenização** na conta de produção (cartão cadastrado no teste, reativar e trocar de plano no cartão dependem dela). Roteiro e conferência: `docs/design/deploy-asaas-unico.md` e `docs/design/asaas-sandbox-conferencia.md`.
 
 ```env
 ASAAS_API_KEY=<api-key>
 ASAAS_BASE_URL=https://api.asaas.com/v3
 ASAAS_WEBHOOK_TOKEN=<token>
 ```
+
+### Recebimentos do negócio (Mercado Pago e InfinitePay)
+
+Opcionais. Sem as variáveis, "Recebimentos" não aparece e o sinal segue pela chave Pix do negócio com confirmação manual.
+
+```env
+MERCADOPAGO_CLIENT_ID=<id-da-aplicacao>
+MERCADOPAGO_CLIENT_SECRET=<chave-secreta>
+MERCADOPAGO_REDIRECT_URI=https://sua-api.render.com/api/v1/recebimentos/mercadopago/callback
+RECEBIMENTOS_TOKEN_KEY=<32 bytes em base64>
+BACKEND_URL=https://sua-api.render.com
+```
+
+`RECEBIMENTOS_TOKEN_KEY` cifra os acessos dos negócios e não pode ser trocada depois. `BACKEND_URL` (sem barra final) é obrigatória para a InfinitePay, que avisa os pagamentos nele. Passo a passo em `docs/mercado-pago-configuracao.md` e `docs/infinitepay-configuracao.md`.
 
 ### WhatsApp Evolution API (opcional)
 
@@ -80,6 +86,8 @@ GOOGLE_TOKEN_KEY=<32 bytes em base64>
 `GOOGLE_TOKEN_KEY` cifra o acesso guardado. Não troque depois, porque trocar invalida as conexões. Passo a passo completo em `docs/google-configuracao.md`.
 
 ### E-mail (convite da profissional)
+
+Opcional: sem e-mail configurado, a dona copia o link do convite.
 
 No Render, use o Resend pela API (as portas SMTP de saída são bloqueadas):
 
@@ -220,21 +228,21 @@ O Prisma requer `?pgbouncer=true&connection_limit=1` quando usa pgBouncer em mod
 
 ## Webhooks
 
-### Stripe
-
-Endpoints aceitos:
-```
-POST https://sua-api.render.com/api/v1/billing/webhooks/stripe
-POST https://sua-api.render.com/api/v1/billing/webhook/stripe
-```
-Signing secret: `STRIPE_WEBHOOK_SECRET`
-
 ### Asaas
 
 ```
 POST https://sua-api.render.com/api/v1/billing/webhooks/asaas
 ```
 Token: `ASAAS_WEBHOOK_TOKEN`
+
+### Mercado Pago e InfinitePay (recebimentos)
+
+```
+POST https://sua-api.render.com/api/v1/recebimentos/webhook/mercadopago
+POST https://sua-api.render.com/api/v1/recebimentos/webhook/infinitepay/:cobrancaId
+GET  https://sua-api.render.com/api/v1/recebimentos/mercadopago/callback   (retorno da autorização)
+```
+O webhook do Mercado Pago é configurado na aplicação dele; o da InfinitePay é montado sozinho em cada cobrança a partir de `BACKEND_URL`. O aviso só diz onde olhar: a prova do pagamento é a consulta ao gateway com o token do negócio, e uma rotina a cada minuto cobre os avisos perdidos.
 
 ### Evolution API (WhatsApp)
 
@@ -256,7 +264,7 @@ Cadastre essa URL nos URIs de redirecionamento do cliente OAuth no Google Cloud,
 
 ## Rotinas agendadas
 
-O backend roda as rotinas no próprio processo (node-cron): fila do WhatsApp, lembretes, automações, clube, troca de plano, Google Agenda e limpezas. A tabela está em `docs/FUNCIONALIDADES.md` › Rotinas automáticas. Rode **uma instância só** do backend, para a mesma rotina não rodar duas vezes, e mantenha o processo acordado.
+O backend roda as rotinas no próprio processo (node-cron): fila do WhatsApp, lembretes, automações, hora de atender, conferência de cobranças, clube, troca de plano, Google Agenda e limpezas. A tabela está em `docs/FUNCIONALIDADES.md` › Rotinas automáticas. Rode **uma instância só** do backend, para a mesma rotina não rodar duas vezes, e mantenha o processo acordado.
 Evite `MESSAGES_SET` — payload pesado, bloqueado automaticamente.
 
 ---
@@ -288,13 +296,15 @@ curl https://sua-api.render.com/api/v1/auth/me
 Validação manual:
 - [ ] Cadastro + confirmação e-mail
 - [ ] Login por senha e com Google
-- [ ] Onboarding das 5 etapas numa conta nova
+- [ ] Onboarding das 6 etapas numa conta nova
 - [ ] Dashboard carrega dados
-- [ ] Checkout cartão (Stripe sandbox)
-- [ ] Checkout PIX (Asaas sandbox)
-- [ ] Webhook Stripe recebido (stripe listen)
+- [ ] Checkout cartão (Asaas sandbox, com o teste de 14 dias)
+- [ ] Checkout Pix (Asaas sandbox)
+- [ ] Webhook do Asaas recebido
 - [ ] Status de assinatura atualiza
 - [ ] Página pública `/agendar/<slug>` reserva com sinal Pix
+- [ ] Recebimentos: conectar o Mercado Pago ou a InfinitePay e pagar um sinal de teste
+- [ ] Comanda: cobrar o saldo (Pix, Point ou link) e ver a comanda fechar sozinha
 - [ ] WhatsApp conecta pelo QR e o robô responde
 - [ ] Google Agenda conecta em Ajustes › Integrações
 - [ ] "Ativar notificações" aparece e o push chega
@@ -320,7 +330,9 @@ Validação manual:
 | `prisma migrate deploy` em banco inconsistente | Rodar `db:sync` primeiro |
 | CORS sem `FRONTEND_URL` | Configurar env var no Render |
 | Supabase redirect diferente de `AUTH_SUPABASE_REDIRECT_TO` | Sincronizar URLs |
-| Webhook Stripe com secret errado | Verificar `STRIPE_WEBHOOK_SECRET` |
+| Webhook do Asaas recusado | Conferir `ASAAS_WEBHOOK_TOKEN` |
+| InfinitePay não confirma pagamentos | `BACKEND_URL` ausente ou errada no backend |
+| Troca da `RECEBIMENTOS_TOKEN_KEY` | Os negócios precisam reconectar os gateways: não troque |
 | Código publicado antes da migração | Consultas quebram por coluna inexistente: aplicar a migração |
 | Duas instâncias do backend | Rotinas duplicadas (envios em dobro): manter uma instância |
 | `redirect_uri_mismatch` no Google | `GOOGLE_AGENDA_REDIRECT_URI` diferente do cadastrado no Google Cloud |

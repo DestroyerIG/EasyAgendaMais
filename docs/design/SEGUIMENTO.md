@@ -217,7 +217,7 @@ Sub-projeto 7 (Login com Google e Google Agenda), pendências conhecidas:
   - plano: `docs/superpowers/plans/2026-11-03-asaas-unico.md`;
   - roteiro de deploy: `docs/design/deploy-asaas-unico.md`;
   - conferência no sandbox: `docs/design/asaas-sandbox-conferencia.md`.
-- **Migração `20261104120000_remove_stripe`:** ainda não rodou. Ela vai **depois** do deploy do código e da conferência do roteiro, com autorização do dono.
+- **Migração `20261104120000_remove_stripe`:** aplicada em produção em 04/11/2026, depois do deploy do código (ROADMAP: "juntada e migrada em 04/11"). O Stripe não existe mais no código nem no banco; as menções a ele nas seções anteriores (2D, H1, H2) são históricas.
 - **Tokenização:** precisa estar habilitada na conta Asaas de produção. Sem ela, três coisas podem falhar: reativar no cartão, estender o teste com cartão pelo SuperAdmin e mudar o valor da assinatura numa troca de plano no cartão.
 - **Comportamentos do Asaas descobertos no sandbox:**
   - o `externalReference` do checkout não chega na assinatura nem nas cobranças; o negócio é ligado pelo id do checkout (`checkoutSession`), guardado em `businesses.metadata.checkoutCartao`;
@@ -341,7 +341,7 @@ Spec em `docs/superpowers/specs/2026-11-05-recebimentos-mercado-pago-design.md`,
 - **Avisos de contas conectadas:** confirmar se a aplicação recebe avisos das contas autorizadas. Sem isso, a rotina de cada minuto confirma em até um minuto.
 - **Endereço técnico do pagador:** confirmar no teste real que o Mercado Pago aceita `reserva-<id>@<domínio>`. Se recusar, a decisão de pedir e-mail volta ao dono.
 - **Logos:** Mercado Pago em https://www.mercadopago.com.br/mp/logo-oficial e InfinitePay em https://www.infinitepay.io/noticias-media. Falta ler as regras de uso das duas. Faltam as logos do Asaas e do PagBank.
-- **Outros gateways:** Asaas, InfinitePay e PagBank aparecem como "Em breve" e ainda não funcionam.
+- **Outros gateways:** Asaas e PagBank aparecem como "Em breve" e ainda não funcionam. A InfinitePay já funciona (seção seguinte).
 - **Devolução automática:** não existe. Devolver o sinal é feito no Mercado Pago, pelo dono do negócio.
 - **Clube:** segue com confirmação manual do Pix.
 - **Uma conta, um negócio:** nesta versão, uma conta do Mercado Pago conecta um negócio só.
@@ -349,7 +349,7 @@ Spec em `docs/superpowers/specs/2026-11-05-recebimentos-mercado-pago-design.md`,
 
 ## Recebimentos pela InfinitePay, pendências conhecidas
 
-Spec em `docs/superpowers/specs/2026-11-09-recebimentos-infinitepay-design.md` e guia em `docs/infinitepay-configuracao.md`. Em PR (feat/recebimentos-infinitepay); falta criar `BACKEND_URL` no Render e o teste real.
+Spec em `docs/superpowers/specs/2026-11-09-recebimentos-infinitepay-design.md` e guia em `docs/infinitepay-configuracao.md`. PR #58 juntado em 09/11/2026, sem migração. Falta o teste real, e o backend precisa de `BACKEND_URL` (sem ela a InfinitePay não confirma pagamentos).
 
 - **`payment_check` com pedido inexistente:** confirmar que responde 200. A conferência da chave ao conectar depende disso. Se responder 4xx, chaves válidas são recusadas.
 - **`payment_check` exige a chave?** Confirmar se precisa do `X-Api-Key`. Se não exigir, a prova de chave revogada passa a ser o 401/403 ao criar o link.
@@ -357,9 +357,50 @@ Spec em `docs/superpowers/specs/2026-11-09-recebimentos-infinitepay-design.md` e
 - **`/links`:** conferir a resposta completa.
 - **Devolução:** só pelo app da InfinitePay.
 
+## Onboarding com Recebimentos, pendências conhecidas
+
+Spec e plano: `docs/superpowers/specs/2026-11-10-onboarding-recebimentos-design.md` e `docs/superpowers/plans/2026-11-10-onboarding-recebimentos.md`. PR #66 (migração `20261110120000_onboarding_recebimentos`), com #62 (Pix manual em Recebimentos), #64 (cartão do Pix compacto) e #63 (o teste grátis roda no plano que a pessoa escolheu).
+
+- **O que mudou:** o onboarding passou a ter 6 etapas (Recebimentos é a 4ª). A chave Pix e o sinal saíram da etapa de serviços e de Minha página e foram para Recebimentos. O sinal sempre exige a chave Pix, mesmo com Mercado Pago ou InfinitePay conectado.
+- **Etapas obrigatórias:** continuam sendo 1 a 3. Recebimentos pode ser pulada ("Configurar depois") e entra no cartão "Termine de configurar".
+- **Retorno do Mercado Pago:** a volta da autorização cai em `/onboarding` e não pula as etapas obrigatórias. O Google Agenda também cai de volta na etapa Horários.
+
+## Robô cobra o sinal, pendências conhecidas
+
+Spec: `docs/superpowers/specs/2026-11-10-bot-cobra-sinal-design.md`. PR #68, migração `20261110130000_bot_cobra_sinal` (`businesses.bot_cobra_sinal`), com a documentação do fluxo em `WHATSAPP_BOT.md`.
+
+- **Desligado por padrão.** A dona liga em Ajustes › Recebimentos › "Sinal no robô" e só com a chave Pix salva.
+- **Forma de pagamento:** sempre a padrão do negócio (`conexaoService.formas()[0] ?? 'pix'`), sem perguntar à cliente.
+- **Não cobra sinal na remarcação:** remarcar mantém o que já foi pago.
+- **Prazo de expiração de até cerca de 5 minutos:** o aviso e a liberação do horário saem pela rotina de 5 minutos; só a conferência do pagamento roda a cada minuto.
+- **Simulador:** mostra o texto do sinal com um código Pix de teste e não cria reserva nem cobrança.
+- **Cancelamento pelo robô:** continua sem lembrar de devolver o sinal (pendência do Mercado Pago acima).
+- **Menus sem emoji de número (PR #74):** o menu do robô usa o número em negrito mais o emoji da opção, em vez do emoji keycap.
+
+## Cobrança do saldo da comanda, pendências conhecidas
+
+Spec: `docs/superpowers/specs/2026-11-10-cobranca-do-saldo-design.md`. Planos em `docs/superpowers/plans/` (PR 1: `2026-11-10-cobranca-do-saldo-pr1.md`; PR 2, Point: `2026-11-11-cobranca-do-saldo-pr2-point.md`; PR 3, link: `2026-11-11-cobranca-do-saldo-pr3-link.md`). Entregue em PR #67 (Pix manual na comanda), #69 (Pix do Mercado Pago, migração `20261111120000_cobranca_saldo`), #70 (maquininha Point, migração `20261111130000_cobranca_point`) e #71 (link da InfinitePay).
+
+- **Migração em produção:** `cobranca_saldo` e `cobranca_point` entram antes do deploy do código; conferir `migrate status` depois do merge (a spec registra que o deploy do Render não deve ser a garantia de que a migração rodou).
+- **Teste real pendente nos três caminhos:** Pix do Mercado Pago, maquininha Point (o `POST /v1/orders` com `type: "point"` e os eventos `order.*` foram escritos pela documentação) e link da InfinitePay.
+- **Point:** exige o terminal em modo PDV (a tela tem o botão "Ativar modo PDV"). Cancelar uma ordem que já está no terminal só funciona nos modelos Smart 1 e 2; nos outros a tela manda cancelar também na maquininha. O evento `action_required` não muda o estado e só avisa o dono.
+- **Link da InfinitePay:** prazo de 60 minutos, contra 15 do Pix e da Point. Se a InfinitePay não informar a forma paga, vale a que a dona escolheu na comanda.
+- **Interruptores de Recebimentos:** "aceita Pix" e "aceita cartão" valem só para o sinal da reserva online. A cobrança do saldo no balcão depende só de haver gateway ativo.
+- **Caixa fechado ou nunca aberto:** o pagamento fica registrado como `paga`, a comanda continua em rascunho e o sino avisa "abra o caixa para fechar a comanda".
+- **Valor diferente do saldo:** não fecha a comanda; registra e alerta.
+- **Fora do escopo (próximas fases):** Stone Connect (2b) e Pagar.me; pagamento dividido; devolução pela nossa tela (a dona devolve no app do Mercado Pago ou da InfinitePay); guardar NSU, final do cartão ou nome da maquininha no fluxo manual; criar loja e caixa do Mercado Pago pela API; validar a assinatura `x-signature` do webhook.
+
+## Hora de atender, equipe e bancada, pendências conhecidas
+
+- **Hora de atender (PR #72, migração `20261111140000_aviso_hora_atendimento`):** a rotina de cada minuto avisa uma vez por agendamento (`appointments.hora_avisada_em`). O sino recebe o aviso sem push, e o push vai só para a profissional do agendamento. A bancada mantém em destaque quem passou da hora por até 1 hora.
+- **Convite no cadastro da profissional (PR #76, #77, #78):** o e-mail do app é opcional no cadastro. O e-mail sai pelo Resend pela API HTTPS (as portas SMTP são bloqueadas no Render) ou por SMTP, com prazo para o SMTP. Quando o e-mail não sai, a tela avisa e deixa copiar o link do convite.
+- **Foto da profissional (PR #73):** o upload passa pelo backend, que grava no Storage com a chave de serviço.
+- **Bancada cria agendamento e cliente (PR #79):** a profissional agenda só na própria agenda e cadastra cliente na carteira dela. Não há migração.
+
 ## Infraestrutura
 
-- **Resolvido em 05/11:** o RLS foi ligado nas 14 tabelas que ficaram sem ele (comissões, clube, app do profissional e Google Agenda), pela migração `20261106120000_rls_tabelas_restantes` (PR #37). Só a `_prisma_migrations` segue sem RLS, de propósito. Roteiro em `docs/design/rls-tabelas-restantes.md`.
+- **Resolvido em 05/11:** o RLS foi ligado nas 14 tabelas que ficaram sem ele (comissões, clube, app do profissional e Google Agenda), pela migração `20261106120000_rls_tabelas_restantes` (PR #37).
+- **Resolvido em 11/11 (PR #75):** o RLS também foi ligado na `_prisma_migrations` (`20261111150000_rls_prisma_migrations`; o Prisma conecta como dono da tabela, então o migrate continua funcionando). E as policies de escrita das fotos de profissional no Storage saíram (`20261111150100_storage_fotos_so_backend`): o upload agora passa pelo backend com a chave de serviço, e só a leitura pública do bucket continua. Antes, qualquer usuário logado podia sobrescrever ou apagar a foto de outro negócio. Roteiro em `docs/design/rls-tabelas-restantes.md`.
 - **Resolvido em 27/10:** o `docker-compose.yml` e o `setup.ps1` passaram a usar o Prisma (`supabase-stub.sql` + `prisma migrate deploy`), sem os SQL antigos e sem `AUTH_PROVIDER_MODE`. Os Dockerfiles foram corrigidos: no backend, o `npm ci` de produção falhava no `prisma generate`; no frontend, faltavam o caminho do standalone, a pasta `public` e as `NEXT_PUBLIC_*` no build. Falta subir o compose do zero numa máquina com o Docker rodando, porque a validação foi só de sintaxe.
 
 ## Melhorias técnicas pequenas

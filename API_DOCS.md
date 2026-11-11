@@ -1,6 +1,6 @@
 # Documentação da API
 
-Atualizado em 27/10/2026. A fonte de verdade são os arquivos `*.routes.ts` em `backend/src/modules/` e `backend/src/routes/`, montados em `backend/src/server.ts`.
+Atualizado em 11/11/2026. A fonte de verdade são os arquivos `*.routes.ts` em `backend/src/modules/` e `backend/src/routes/`, montados em `backend/src/server.ts`.
 
 Base URL canônica:
 
@@ -93,7 +93,8 @@ Limites: login 20 por 15 min, cadastro 50 por 15 min, reenvio 10 por 15 min.
 | GET | `/catalogo` | Serviços sugeridos do segmento |
 | PUT | `/negocio` | Etapa 1: segmento e "sozinha ou com equipe" |
 | PUT | `/horarios` | Etapa 2: dias, horários, intervalo e pausa |
-| PUT | `/servicos` | Etapa 3: serviços (e chave Pix quando há sinal) |
+| PUT | `/servicos` | Etapa 3: serviços (nome, duração e preço) |
+| PUT | `/recebimentos` | Etapa 4: forma de receber, sinal por serviço e chave Pix |
 | POST | `/concluir` | Conclui o onboarding |
 | GET | `/primeiros-passos` | Itens do cartão "Termine de configurar" |
 | POST | `/primeiros-passos/dispensar` | Dispensa o cartão |
@@ -129,6 +130,10 @@ Limites: login 20 por 15 min, cadastro 50 por 15 min, reenvio 10 por 15 min.
 | GET | `/:id` | Comanda com itens, cobertura do clube e totais |
 | PUT | `/:id` | Salva itens, desconto, gorjeta e uso do clube |
 | POST | `/:id/close` | Fecha: grava comissões, conclui o atendimento e lança no caixa (idempotente) |
+| GET | `/:id/cobranca` | Estado da cobrança do saldo (gateway ativo, cobrança em andamento e maquininha escolhida) |
+| POST | `/:id/cobranca` | Cobra o saldo: `como` = Pix do gateway, maquininha Point ou link da InfinitePay. A comanda fecha sozinha quando o pagamento é confirmado |
+| POST | `/:id/cobranca/cancelar` | Cancela a cobrança pendente e destrava a comanda |
+| POST | `/:id/pix` | QR Pix manual na chave do negócio (sem gateway) |
 | POST | `/:id/receipt` | Reenvia o comprovante no WhatsApp |
 
 ## Produtos (`/products`), recurso `services`
@@ -269,7 +274,12 @@ Exemplo de `PUT /business/settings`:
 | GET | `/:slug` | Vitrine: negócio, serviços, galeria e vocabulário |
 | GET | `/:slug/professionals` | Profissionais do serviço |
 | GET | `/:slug/availability` | Horários livres |
-| POST | `/:slug/appointments` | Reserva com sinal Pix (15 min para pagar) |
+| GET | `/:slug/availability/grade` | Grade de horários do dia (livres e ocupados) |
+| GET | `/:slug/availability/dias` | Vagas por dia do mês |
+| GET | `/:slug/appointments/:id/status` | Situação da reserva (a página acompanha o pagamento) |
+| POST | `/:slug/appointments/:id/pix` | Pix do sinal pelo gateway conectado |
+| POST | `/:slug/appointments/:id/infinitepay` | Link de pagamento da InfinitePay para o sinal |
+| POST | `/:slug/appointments` | Reserva com sinal (15 min para pagar) |
 | GET | `/:slug/clube` | Clubes públicos |
 | GET | `/:slug/clube/:ofertaId` | Detalhe do clube |
 | POST | `/:slug/clube/:ofertaId/adesao` | Adesão: gera o Pix da primeira mensalidade |
@@ -312,6 +322,11 @@ Todas as rotas filtram pela profissional do login e exigem o recurso `app_profis
 | GET | `/clientes/:id` | Ficha rápida |
 | PUT | `/clientes/:id/nota` | Anotação |
 | POST | `/clientes/:id/fotos` | Foto do trabalho |
+| POST | `/clientes` | Cadastra uma cliente na carteira dela |
+| GET | `/clientes/buscar` | Busca clientes para um agendamento novo |
+| GET | `/servicos` | Serviços que ela atende |
+| GET | `/horarios-novo` | Horários livres para um agendamento novo |
+| POST | `/agendamentos` | Cria um agendamento na própria agenda |
 | POST | `/agendamentos/:id/iniciar` | Inicia o atendimento |
 | GET | `/horarios` | Horários livres para reagendar |
 | POST | `/agendamentos/:id/reagendar` | Reagenda (avisa a dona e, se marcado, a cliente) |
@@ -319,9 +334,55 @@ Todas as rotas filtram pela profissional do login e exigem o recurso `app_profis
 | GET | `/atalhos` | Atalhos de produtos |
 | GET / PUT | `/comandas/:id` | Comanda do atendimento |
 | POST | `/comandas/:id/enviar` | Envia para a recepção |
+| POST | `/comandas/:id/pix` | QR Pix manual na chave do negócio |
+| GET | `/comandas/:id/cobranca` | Estado da cobrança do saldo |
+| POST | `/comandas/:id/cobranca` | Cobra o saldo (Pix, maquininha ou link) |
+| POST | `/comandas/:id/cobranca/cancelar` | Cancela a cobrança pendente |
 | POST | `/comandas/:id/fechar` | Fecha (só com "A profissional cobra no app") |
 | GET | `/numeros` | Meus números do período |
 | GET | `/avaliacoes` | Avaliações dela |
+
+## Busca geral (`/busca`), recurso `clients`
+
+| Método | Rota | Descrição |
+|---|---|---|
+| POST | `/` | Busca clientes, agendamentos e telas. O termo vai no corpo (nunca na URL nem no log), a resposta não fica em cache e há limite próprio de 600 pedidos a cada 15 minutos por negócio |
+
+## Recebimentos (`/recebimentos`), papel `tenant_admin`
+
+Mercado Pago e InfinitePay. Detalhes em `docs/FUNCIONALIDADES.md` › Recebimentos e nos guias `docs/mercado-pago-configuracao.md` e `docs/infinitepay-configuracao.md`.
+
+| Método | Rota | Acesso | Descrição |
+|---|---|---|---|
+| POST | `/webhook/mercadopago` | Público | Aviso do Mercado Pago (só diz onde olhar; a prova é a consulta ao gateway) |
+| POST | `/webhook/infinitepay/:cobrancaId` | Público | Aviso da InfinitePay |
+| GET | `/:gateway/callback` | Público | Retorno da autorização (OAuth) |
+| GET | `/conexoes` | Dona | Situação de cada gateway |
+| GET | `/:gateway/conectar` | Dona | Endereço de autorização |
+| POST | `/:gateway/confirmar` | Dona | Conclui a conexão |
+| POST | `/infinitepay/chave` | Dona | Conecta a InfinitePay pela chave |
+| PUT | `/:gateway/formas` | Dona | Escolhe Pix e cartão |
+| DELETE | `/:gateway/conexao` | Dona | Desconecta (devolve as reservas pendentes à confirmação manual) |
+| GET | `/maquininhas` | Dona | Terminais Point da conta do Mercado Pago |
+| PUT | `/maquininhas/padrao` | Dona | Escolhe a maquininha padrão |
+| POST | `/maquininhas/:id/pdv` | Dona | Ativa o modo PDV do terminal |
+
+## Conta (`/conta`)
+
+| Método | Rota | Papel | Descrição |
+|---|---|---|---|
+| GET | `/estado` | Dona, recepção ou profissional | Estado da conta: normal, carência (dias restantes) ou bloqueada |
+| GET | `/backup` | Dona | Backup dos dados (clientes e agendamentos em CSV) |
+
+## Depoimentos (`/depoimentos`)
+
+| Método | Rota | Acesso | Descrição |
+|---|---|---|---|
+| GET | `/publicos` | Público | Depoimentos publicados, para a landing |
+| GET | `/meu` | Dona | O depoimento dela e a situação do pedido |
+| POST | `/` | Dona | Envia o depoimento (com a autorização de publicação) |
+| POST | `/adiar`, `/dispensar` | Dona | Adia ou dispensa o pedido |
+| POST | `/retirar` | Dona | Retira o depoimento publicado |
 
 ## Google Agenda (`/google-agenda`)
 
@@ -423,30 +484,36 @@ Campanhas (`/whatsapp/campanhas`):
 |---|---|---|---|
 | GET | `/plans` | Público | Catálogo dos planos e matriz de recursos |
 | POST | `/validate-coupon` | Sessão | Valida cupom |
-| POST | `/checkout/session` | Sessão | Checkout (cartão no Stripe ou Pix no Asaas) |
+| POST | `/checkout/session` | Sessão | Checkout da assinatura (cartão no Checkout do Asaas ou Pix), com o teste de 7 ou 14 dias |
 | GET | `/status` | Sessão | Situação da assinatura |
 | POST | `/cancel` | Sessão | Cancela (acesso até o fim do período) |
 | POST | `/reactivate` | Sessão | Reativa |
 | GET | `/pix/:paymentId` | Sessão | Consulta o Pix |
-| GET | `/invoices` | Sessão | Faturas reais (Pix do banco e cartão do Stripe) |
+| GET | `/invoices` | Sessão | Faturas reais do Asaas |
 | GET | `/payment-method` | Sessão | Forma de pagamento |
 | POST | `/change-plan/preview` | Sessão | Prévia da troca com o proporcional |
 | POST | `/change-plan` | Sessão | Upgrade na hora ou downgrade na renovação |
 | DELETE | `/change-plan` | Sessão | Cancela o downgrade agendado |
-| POST | `/webhooks/stripe` e `/webhook/stripe` | Assinatura do Stripe | Webhook Stripe |
 | POST | `/webhooks/asaas` e `/webhook/asaas` | Token do Asaas | Webhook Asaas |
 
-`/subscriptions` (legado do Stripe): `POST /checkout-session`, `GET /status`, `POST /portal`.
+O Stripe foi removido (migração `20261104120000_remove_stripe`): não há rotas `/subscriptions` nem webhook do Stripe. O Salão devolve "sob consulta" no checkout até o SuperAdmin definir o valor combinado.
 
 ## SuperAdmin (`/admin`), papel `platform_admin`
 
 | Método | Rota |
 |---|---|
-| GET | `/metrics`, `/tenants`, `/tenants/:id`, `/subscriptions`, `/logs`, `/coupons` |
-| PATCH | `/tenants/:id/block`, `/tenants/:id/unblock`, `/users/:id/block`, `/users/:id/unblock` |
+| GET | `/metrics`, `/tenants`, `/tenants/export.csv`, `/tenants/:id`, `/tenants/:id/auditoria`, `/tenants/:id/auditoria.csv`, `/subscriptions`, `/logs`, `/coupons` |
+| PATCH | `/tenants/:id/block`, `/tenants/:id/unblock`, `/tenants/:id/trial` (estende o teste), `/users/:id/block`, `/users/:id/unblock` |
 | DELETE | `/tenants/:id`, `/coupons/:id` |
 | POST | `/subscriptions/:id/resync`, `/subscriptions/:id/cancel`, `/coupons` |
-| PATCH | `/subscriptions/:id/plan`, `/subscriptions/:id/status`, `/coupons/:id` |
+| PATCH | `/subscriptions/:id/plan`, `/subscriptions/:id/valor-salao` (valor mensal combinado do Salão), `/subscriptions/:id/status`, `/coupons/:id` |
+
+Depoimentos (`/admin/depoimentos`, também `platform_admin`):
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/` | Fila de moderação |
+| POST | `/:id/publicar`, `/:id/recusar`, `/:id/corrigir` | Modera o depoimento |
 
 ## Autorização por plano
 
