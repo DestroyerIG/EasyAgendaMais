@@ -3,7 +3,7 @@
 Stack: Node.js 20 + Express 4 + TypeScript + Prisma 5 + PostgreSQL (Supabase) no backend, e Next.js 15 (App Router) + React 18 + Tailwind no frontend. Atualizado em 27/10/2026.
 
 ```
-EasyBarber/
+EasyAgendaMais/
 ├── backend/            # API Express (/api/v1)
 ├── frontend/           # Next.js: painel, bancada, páginas públicas e BFF
 ├── docs/               # Funcionalidades, roadmap, design, specs e planos

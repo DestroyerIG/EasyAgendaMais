@@ -17,7 +17,7 @@ Guia detalhado do ambiente de desenvolvimento. Para o caminho curto, veja `QUICK
 
 ```bash
 git clone <url-do-repositorio>
-cd EasyBarber
+cd EasyAgendaMais
 ```
 
 ## 3. Instalar dependências
