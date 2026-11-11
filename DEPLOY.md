@@ -79,7 +79,16 @@ GOOGLE_TOKEN_KEY=<32 bytes em base64>
 
 `GOOGLE_TOKEN_KEY` cifra o acesso guardado. Não troque depois, porque trocar invalida as conexões. Passo a passo completo em `docs/google-configuracao.md`.
 
-### SMTP (convite da profissional)
+### E-mail (convite da profissional)
+
+No Render, use o Resend pela API (as portas SMTP de saída são bloqueadas):
+
+```env
+RESEND_API_KEY=re_...
+RESEND_FROM="EasyAgenda+ <no-reply@seudominio.com>"
+```
+
+Ou, em outra hospedagem, SMTP:
 
 ```env
 SMTP_HOST=smtp.seuprovedor.com
