@@ -88,6 +88,10 @@ const getTransporter = (): Mail | null => {
     host: config.host,
     port: config.port,
     secure: config.port === 465,
+    // Sem prazo, uma porta bloqueada deixa a requisição pendurada por minutos.
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 15_000,
     ...(config.hasAuth
       ? {
           auth: {
@@ -99,6 +103,24 @@ const getTransporter = (): Mail | null => {
   });
 
   return transporter;
+};
+
+interface MensagemEmail { to: string; subject: string; html: string; text: string }
+
+// Resend pela API HTTPS (porta 443). Hospedagens como o Render bloqueiam as portas SMTP de saída,
+// então esta é a via preferida quando há RESEND_API_KEY.
+const resendConfigurado = (): boolean => Boolean(process.env.RESEND_API_KEY && (process.env.RESEND_FROM || process.env.SMTP_FROM));
+
+const enviarPeloResend = async ({ to, subject, html, text }: MensagemEmail): Promise<void> => {
+  const resposta = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: process.env.RESEND_FROM || process.env.SMTP_FROM, to: [to], subject, html, text }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!resposta.ok) {
+    throw new Error(`Resend respondeu ${resposta.status}: ${(await resposta.text()).slice(0, 300)}`);
+  }
 };
 
 const buildVerificationUrl = ({ token, email }: VerificationUrlParams): string => {
@@ -157,6 +179,17 @@ export const emailService = {
   async sendAccountVerificationEmail({ to, token, businessName, ownerName }: SendVerificationEmailParams): Promise<EmailDeliveryResult> {
     const verificationUrl = buildVerificationUrl({ token, email: to });
     const config = getSmtpConfig();
+
+    if (resendConfigurado()) {
+      const { html, text } = buildEmailTemplate({ verificationUrl, businessName, ownerName });
+      try {
+        await enviarPeloResend({ to, subject: 'Confirme seu e-mail no EasyAgenda+', html, text });
+        return { delivered: true, mode: 'smtp' };
+      } catch (error) {
+        logger.error({ err: error, email: maskEmail(to) }, 'Falha ao enviar e-mail de verificação via Resend');
+        throw new AppError('Não foi possível enviar o e-mail de verificação no momento.', 502, 'EMAIL_DELIVERY_FAILED');
+      }
+    }
 
     if (!config.isConfigured) {
       if (process.env.NODE_ENV === 'production') {
@@ -220,8 +253,9 @@ export const emailService = {
    */
   async sendConviteProfissional({ to, url, negocio, nome }: { to: string; url: string; negocio: string; nome: string }): Promise<EmailDeliveryResult> {
     const config = getSmtpConfig();
-    const mailTransport = config.isConfigured ? getTransporter() : null;
-    if (!mailTransport) {
+    const viaResend = resendConfigurado();
+    const mailTransport = viaResend || !config.isConfigured ? null : getTransporter();
+    if (!viaResend && !mailTransport) {
       logger.warn({ email: maskEmail(to) }, 'SMTP não configurado: convite da profissional não enviado por e-mail');
       return { delivered: false, mode: 'log' };
     }
@@ -246,8 +280,10 @@ export const emailService = {
       `${negocio} te convidou para o EasyAgenda+`, '', `Olá, ${nome.split(' ')[0] || nome}.`, '',
       'Crie sua senha no link abaixo para usar o app da profissional:', url, '', 'O link vale por 7 dias.',
     ].join('\n');
+    const subject = `${negocio} te convidou para o EasyAgenda+`;
     try {
-      await mailTransport.sendMail({ from: config.from, to, subject: `${negocio} te convidou para o EasyAgenda+`, html, text });
+      if (viaResend) await enviarPeloResend({ to, subject, html, text });
+      else await mailTransport!.sendMail({ from: config.from, to, subject, html, text });
       return { delivered: true, mode: 'smtp' };
     } catch (error) {
       logger.error({ err: error, email: maskEmail(to) }, 'Falha ao enviar o convite da profissional');
