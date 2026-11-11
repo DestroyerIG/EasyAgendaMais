@@ -110,7 +110,7 @@ export const handleCancelAppointment = async (
     let message = await formatarTexto(config.cancel_list_message, businessId) + '\n\n';
     appointments.forEach((appointment, index) => {
       const date = new Date(appointment.date).toLocaleDateString('pt-BR');
-      message += `${index + 1}️⃣ ${date} às ${formatTimeHm(appointment.time)}\n`;
+      message += `*${index + 1}* • 📅 ${date} às ${formatTimeHm(appointment.time)}\n`;
     });
     message += '\n' + await formatarTexto(config.cancel_list_hint, businessId);
 
@@ -208,7 +208,7 @@ export const handleRescheduleAppointment = async (
     let message = await formatarTexto(config.reschedule_list_message, businessId) + '\n\n';
     appointments.forEach((appointment, index) => {
       const date = new Date(appointment.date).toLocaleDateString('pt-BR');
-      message += `${index + 1}️⃣ ${date} às ${formatTimeHm(appointment.time)}\n`;
+      message += `*${index + 1}* • 📅 ${date} às ${formatTimeHm(appointment.time)}\n`;
     });
     message += '\n' + await formatarTexto(config.reschedule_list_hint, businessId);
 
@@ -287,7 +287,7 @@ const iniciarRemarcacao = async (
   let message = await formatarTexto(config.new_date_title, businessId) + '\n\n';
   dates.forEach((dateStr, index) => {
     const day = formatDateBR(dateStr, { weekday: 'short', day: '2-digit', month: '2-digit' });
-    message += `${index + 1}️⃣ ${day}\n`;
+    message += `*${index + 1}* • 📅 ${day}\n`;
   });
 
   // Persiste availableDates para que handleChooseDateStep encontre as datas corretas
@@ -305,9 +305,9 @@ const montarListaManage = async (appointments: AppointmentListRow[], config: Bot
   let message = await formatarTexto(config.manage_list_message, businessId) + '\n\n';
   appointments.forEach((appointment, index) => {
     const date = new Date(appointment.date).toLocaleDateString('pt-BR');
-    message += `${index + 1}️⃣ ${date} às ${formatTimeHm(appointment.time)}\n`;
+    message += `*${index + 1}* • 📅 ${date} às ${formatTimeHm(appointment.time)}\n`;
   });
-  message += '\n0️⃣ Voltar ao menu';
+  message += '\n*0* • ↩️ Voltar ao menu';
   return message;
 };
 

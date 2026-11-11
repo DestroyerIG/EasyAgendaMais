@@ -19,7 +19,7 @@ export function formatarEncaixe(data: string, hhmm: string, tz: string): Encaixe
 
 export const primeiroNome = (nome: string): string => nome.trim().split(/\s+/)[0] ?? '';
 
-const NUMEROS = ['1️⃣', '2️⃣'];
+const NUMEROS = ['*1* • 📅', '*2* • 📅'];
 
 export function montarMensagemRetorno(d: {
   nome: string; negocio: string; servico: string; profissional: string; dias: number; encaixes: Encaixe[]; link: string | null;

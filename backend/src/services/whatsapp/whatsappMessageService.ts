@@ -181,13 +181,11 @@ export const buildWelcomeMessage = (
 ): string => {
   const header = formatMessage(welcomeHeader || 'Olá 👋 Que bom ter você aqui!', { businessName });
 
-  const numberEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
-
+  // Número em negrito (sem keycap, que quebra em alguns aparelhos) + emoji da opção na frente.
   let menuText = '';
   menuOptions.forEach((opt, index) => {
-    const num = index < 10 ? numberEmojis[index] : `${index + 1}.`;
-    const emoji = opt.emoji ? ` ${opt.emoji}` : '';
-    menuText += `\n${num} *${opt.label}*${emoji}`;
+    const emoji = opt.emoji ? `${opt.emoji} ` : '';
+    menuText += `\n*${index + 1}* • ${emoji}*${opt.label}*`;
   });
 
   const cabecalho = contexto ? `${header}\n\n${contexto}` : header;
