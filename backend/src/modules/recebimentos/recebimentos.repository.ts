@@ -175,10 +175,22 @@ export const recebimentosRepository = {
   // ─── Cobranças do saldo da comanda ─────────────────────────────────────────────
 
   /** Linha `pendente` do saldo, criada antes da chamada ao gateway para ter o id que vai como referência. */
-  criarCobrancaSaldo(d: { businessId: string; appointmentId: string; usuarioId: string; gateway: GatewayId; valor: number; venceEm: Date }) {
+  criarCobrancaSaldo(d: {
+    businessId: string; appointmentId: string; usuarioId: string; gateway: GatewayId; valor: number; venceEm: Date;
+    /** `point`: ordem na maquininha escolhida (`terminalId`). Padrão: Pix. */
+    forma?: 'pix' | 'point'; terminalId?: string;
+  }) {
+    const { forma, terminalId, ...resto } = d;
     return prisma.cobrancaSinal.create({
-      data: { ...d, tipo: 'saldo', forma: 'pix', valor: d.valor.toFixed(2), situacao: 'pendente' }, select: { id: true },
+      data: { ...resto, tipo: 'saldo', forma: forma ?? 'pix', ...(terminalId ? { terminalId } : {}), valor: d.valor.toFixed(2), situacao: 'pendente' },
+      select: { id: true },
     });
+  },
+
+  /** Maquininha Point escolhida pelo negócio em Recebimentos. */
+  async terminalPadrao(businessId: string): Promise<string | null> {
+    const c = await prisma.conexaoRecebimento.findUnique({ where: { businessId }, select: { terminalPadraoId: true } });
+    return c?.terminalPadraoId ?? null;
   },
 
   /** Cobrança de saldo ainda esperando o pagamento e dentro do prazo: a vencida não trava a comanda. */
@@ -192,7 +204,10 @@ export const recebimentosRepository = {
   ultimaCobrancaSaldo(appointmentId: string) {
     return prisma.cobrancaSinal.findFirst({
       where: { appointmentId, tipo: 'saldo' }, orderBy: { criadoEm: 'desc' },
-      select: { id: true, gateway: true, forma: true, situacao: true, valor: true, codigoPix: true, venceEm: true, pagoEm: true, criadoEm: true },
+      select: {
+        id: true, gateway: true, forma: true, situacao: true, valor: true, codigoPix: true, terminalId: true, idExterno: true,
+        venceEm: true, pagoEm: true, criadoEm: true,
+      },
     });
   },
 

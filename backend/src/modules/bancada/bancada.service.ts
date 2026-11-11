@@ -257,7 +257,7 @@ export const bancadaService = {
     return cobrancaSaldoService.criar(id, businessId, userId, {
       extras: input.extras, discount: input.discount ?? atual.discount, tip: input.tip ?? atual.tip,
       ...(input.usarCobertura !== undefined ? { usarCobertura: input.usarCobertura } : {}),
-    });
+    }, { via: 'pix' });
   },
 
   async cobranca(businessId: string, p: Profissional, id: string) {

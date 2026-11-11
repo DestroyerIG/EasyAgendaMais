@@ -106,6 +106,12 @@ export function centavos(v: unknown): number {
   return Math.round(Number(String(v)) * 100);
 }
 
+/** Nome curto da maquininha Point para a tela: o id é `TIPO__SERIAL`, e o fim do serial está na etiqueta dela. */
+export function nomeDoTerminal(id: string): string {
+  const serial = id.includes('__') ? id.split('__').slice(1).join('__') : id;
+  return `Point final ${serial.slice(-4)}`;
+}
+
 /** Valor em reais para mostrar em alertas. */
 export function reais(v: unknown): string {
   return (centavos(v) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });

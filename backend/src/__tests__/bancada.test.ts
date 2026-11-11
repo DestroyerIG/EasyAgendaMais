@@ -340,7 +340,7 @@ describe('cobrança do saldo na bancada', () => {
     repo.profissionalCobra.mockResolvedValue(true);
     const r = await bancadaService.cobrar('b1', 'u9', P, 'k1', { extras: [], discount: 10, via: 'pix' });
     expect(r).toMatchObject({ id: 'c1' });
-    expect(cobrancaSaldo.criar).toHaveBeenCalledWith('k1', 'b1', 'u9', { extras: [], discount: 10, tip: 2 });
+    expect(cobrancaSaldo.criar).toHaveBeenCalledWith('k1', 'b1', 'u9', { extras: [], discount: 10, tip: 2 }, { via: 'pix' });
   });
 
   it('comanda de outra profissional: 404 em todas as três', async () => {
@@ -379,7 +379,7 @@ describe('cobrança do saldo no painel', () => {
     const corpo = { extras: [], discount: 0, tip: 0, via: 'pix' };
     const criar = await request.post(`/api/v1/comandas/${ID}/cobranca`).set('x-role', 'tenant_admin').send(corpo);
     expect(criar.status).toBe(200);
-    expect(cobrancaSaldo.criar).toHaveBeenCalledWith(ID, 'b1', 'u9', { extras: [], discount: 0, tip: 0 });
+    expect(cobrancaSaldo.criar).toHaveBeenCalledWith(ID, 'b1', 'u9', { extras: [], discount: 0, tip: 0 }, { via: 'pix' });
     expect((await request.get(`/api/v1/comandas/${ID}/cobranca`).set('x-role', 'tenant_admin')).status).toBe(200);
     expect(cobrancaSaldo.estado).toHaveBeenCalledWith(ID, 'b1');
     expect((await request.post(`/api/v1/comandas/${ID}/cobranca/cancelar`).set('x-role', 'tenant_admin')).status).toBe(200);

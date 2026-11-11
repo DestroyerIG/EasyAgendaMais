@@ -1,6 +1,6 @@
 import logger from '../../utils/logger.js';
 import { conexaoService } from './conexao.service.js';
-import { GatewayRecusou, GatewayTokenInvalido } from './gateways/index.js';
+import { GatewayRecusou, GatewayTerminalOcupado, GatewayTokenInvalido } from './gateways/index.js';
 import { infinitePay } from './gateways/infinitePay.js';
 import { gatewayDe } from './gateways/porId.js';
 import { recebimentosRepository as repo } from './recebimentos.repository.js';
@@ -25,6 +25,8 @@ export const emailDoPagador = (prefixo: string, cobrancaId: string): string => `
 
 /** Depois de uma falha ao criar a cobrança: conta recusada alerta o dono; acesso revogado pede reconexão. Nunca lança. */
 export async function avisarFalhaDoGateway(err: unknown, businessId: string, gateway: GatewayId, accessToken?: string): Promise<void> {
+  // Maquininha ocupada não é problema da conta: quem chama avisa a pessoa, sem alertar o dono.
+  if (err instanceof GatewayTerminalOcupado) return;
   try {
     if (err instanceof GatewayRecusou) await conexaoService.alertarRecusa(businessId);
     else if (err instanceof GatewayTokenInvalido && await conexaoService.acessoRevogado(businessId, gateway, accessToken)) {
