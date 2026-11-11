@@ -313,7 +313,7 @@ Para a equipe da plataforma (`platform_admin`), em três telas do Stitch:
 - **Depoimentos:** fila de moderação (publicar, recusar, corrigir).
 - **Logs de auditoria** e **cupons** da assinatura do sistema.
 
-O MRR usa o preço do plano atual e a paginação é em memória (ver `docs/design/SEGUIMENTO.md`).
+O negócio da própria plataforma fica fora da lista, dos cartões e do MRR. O MRR usa o preço do plano atual e a paginação é em memória (ver `docs/design/SEGUIMENTO.md`).
 
 ## Rotinas automáticas
 

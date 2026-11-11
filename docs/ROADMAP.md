@@ -56,6 +56,7 @@ Atualizado em 11/11/2026.
 | Agenda | Aviso "Chegou a hora de atender" (faixa na Agenda, sino e push só para a profissional) | ✅ Concluída (juntada em 11/11; migração `20261111140000_aviso_hora_atendimento`) | PR #72 |
 | Equipe | E-mail opcional do app no cadastro da profissional, envio pelo Resend (API HTTPS) e link do convite para copiar quando o e-mail não sai; foto da profissional enviada pelo backend | ✅ Concluída (juntada em 11/11, sem migração) | PR #73, #76, #77, #78 |
 | Bancada | A profissional cria agendamento e cadastra cliente na própria agenda | ✅ Concluída (juntada em 11/11, sem migração) | PR #79 |
+| SuperAdmin | O negócio da própria plataforma sai da lista, dos cartões e do MRR | ✅ Concluída (juntada em 11/11, sem migração) | PR #81 |
 | Segurança | RLS na `_prisma_migrations` e fotos no storage só pelo backend (migrações `20261111150000` e `20261111150100`) | ✅ Concluída (juntada em 11/11) | PR #75 |
 
 ## Fase 7 (concluída)
