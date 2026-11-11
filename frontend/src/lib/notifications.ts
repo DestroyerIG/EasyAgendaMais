@@ -2,7 +2,8 @@ import api from '@/lib/api';
 
 export type NotificationType =
   | 'nova_reserva' | 'reserva_expirada' | 'pagamento_confirmado' | 'clube_adesao' | 'clube_atraso'
-  | 'agenda_profissional' | 'comanda_pronta' | 'avaliacao_baixa' | 'google_agenda' | 'recebimento_alerta';
+  | 'agenda_profissional' | 'comanda_pronta' | 'avaliacao_baixa' | 'google_agenda' | 'recebimento_alerta'
+  | 'hora_atendimento';
 
 export interface AppNotification {
   id: string;
