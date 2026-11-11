@@ -731,10 +731,10 @@ export function ComandaModal({ appointmentId, onClose, onAtualizada }: ComandaMo
                   gerarPixManual={() => gerarPixComanda(dto.id, entrada())}
                   api={{
                     estado: () => buscarCobranca(dto.id),
-                    cobrar: () => {
+                    cobrar: (como) => {
                       const { paymentMethod: forma, ...semForma } = entrada();
                       void forma;
-                      return cobrarComanda(dto.id, semForma);
+                      return cobrarComanda(dto.id, semForma, como);
                     },
                     cancelar: () => cancelarCobranca(dto.id),
                   }}

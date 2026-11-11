@@ -18,13 +18,14 @@ vi.mock('@/lib/produtos', () => ({ listarProdutos: vi.fn().mockResolvedValue([
 vi.mock('../PainelCobrar', () => ({
   PainelCobrar: (p: {
     forma: string | null; total: number; onPendente: (v: boolean) => void; onPaga: () => void;
-    api: { cobrar: () => Promise<unknown> }; gerarPixManual: () => Promise<unknown>;
+    api: { cobrar: (como: unknown) => Promise<unknown> }; gerarPixManual: () => Promise<unknown>;
   }) => (
     <div data-testid="painel-cobrar" data-forma={p.forma ?? ''} data-total={p.total}>
       <button type="button" onClick={() => p.onPendente(true)}>stub pendente</button>
       <button type="button" onClick={() => p.onPendente(false)}>stub livre</button>
       <button type="button" onClick={() => { p.onPendente(false); p.onPaga(); }}>stub paga</button>
-      <button type="button" onClick={() => void p.api.cobrar()}>stub cobrar</button>
+      <button type="button" onClick={() => void p.api.cobrar({ via: 'pix' })}>stub cobrar</button>
+      <button type="button" onClick={() => void p.api.cobrar({ via: 'maquininha', forma: 'debito' })}>stub maquininha</button>
       <button type="button" onClick={() => void p.gerarPixManual()}>stub manual</button>
     </div>
   ),
@@ -302,7 +303,9 @@ describe('ComandaModal', () => {
       abrir();
       await escolher(user, /Pix/);
       await user.click(screen.getByRole('button', { name: 'stub cobrar' }));
-      expect(comanda.cobrarComanda).toHaveBeenCalledWith('k1', { extras: [], discount: 0, tip: 0 });
+      expect(comanda.cobrarComanda).toHaveBeenCalledWith('k1', { extras: [], discount: 0, tip: 0 }, { via: 'pix' });
+      await user.click(screen.getByRole('button', { name: 'stub maquininha' }));
+      expect(comanda.cobrarComanda).toHaveBeenLastCalledWith('k1', { extras: [], discount: 0, tip: 0 }, { via: 'maquininha', forma: 'debito' });
       await user.click(screen.getByRole('button', { name: 'stub manual' }));
       expect(comanda.gerarPixComanda).toHaveBeenCalledWith('k1', { extras: [], discount: 0, tip: 0, paymentMethod: 'pix' });
     });

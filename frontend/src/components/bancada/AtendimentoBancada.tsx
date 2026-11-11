@@ -329,10 +329,10 @@ export function AtendimentoBancada() {
           gerarPixManual={() => bancadaApi.gerarPix(dto.id, entrada())}
           api={{
             estado: () => bancadaApi.cobranca(dto.id),
-            cobrar: () => {
+            cobrar: (como) => {
               const { paymentMethod: forma, ...semForma } = entrada();
               void forma;
-              return bancadaApi.cobrar(dto.id, semForma);
+              return bancadaApi.cobrar(dto.id, semForma, como);
             },
             cancelar: () => bancadaApi.cancelarCobranca(dto.id),
           }}
