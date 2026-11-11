@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { sendSuccess } from '../../utils/response.js';
 import { conexaoService } from './conexao.service.js';
 import { pagamentosService } from './pagamentos.service.js';
+import { maquininhasService } from './maquininhas.service.js';
 import type { GatewayId, UsuarioLogado } from './recebimentos.types.js';
 
 type H = (req: Request, res: Response, next: NextFunction) => Promise<void>;
@@ -48,6 +49,15 @@ export const conectarChave: H = async (req, res, next) => {
 };
 export const definirFormas: H = async (req, res, next) => {
   try { sendSuccess(res, await conexaoService.definirFormas(usuario(req), gatewayDe(req), req.body)); } catch (e) { next(e); }
+};
+export const listarMaquininhas: H = async (req, res, next) => {
+  try { sendSuccess(res, await maquininhasService.listar(usuario(req))); } catch (e) { next(e); }
+};
+export const ativarPdvDaMaquininha: H = async (req, res, next) => {
+  try { sendSuccess(res, await maquininhasService.ativarPdv(usuario(req), String(req.params['id']))); } catch (e) { next(e); }
+};
+export const definirMaquininhaPadrao: H = async (req, res, next) => {
+  try { sendSuccess(res, await maquininhasService.definirPadrao(usuario(req), req.body.terminalId)); } catch (e) { next(e); }
 };
 export const desconectar: H = async (req, res, next) => {
   try { sendSuccess(res, await conexaoService.desconectar(usuario(req), gatewayDe(req))); } catch (e) { next(e); }

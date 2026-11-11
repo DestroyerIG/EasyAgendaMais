@@ -45,6 +45,11 @@ export const ChaveSchema = z.object({
   aceite: z.literal(true),
 });
 
+/** Id de terminal Point como o Mercado Pago lista (`TIPO__SERIAL`). */
+export const TerminalIdSchema = z.string().regex(/^[A-Za-z0-9_-]{1,100}$/);
+export const TerminalParamSchema = z.object({ id: TerminalIdSchema });
+export const DefinirTerminalSchema = z.object({ terminalId: TerminalIdSchema.nullable() });
+
 export const ConfirmarSchema = z.object({ t: z.string().min(20).max(100) });
 
 export const FormasSchema = z.object({

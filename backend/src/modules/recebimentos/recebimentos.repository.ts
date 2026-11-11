@@ -187,6 +187,10 @@ export const recebimentosRepository = {
     });
   },
 
+  async definirTerminalPadrao(businessId: string, terminalId: string | null): Promise<void> {
+    await prisma.conexaoRecebimento.updateMany({ where: { businessId }, data: { terminalPadraoId: terminalId } });
+  },
+
   /** Maquininha Point escolhida pelo negócio em Recebimentos. */
   async terminalPadrao(businessId: string): Promise<string | null> {
     const c = await prisma.conexaoRecebimento.findUnique({ where: { businessId }, select: { terminalPadraoId: true } });

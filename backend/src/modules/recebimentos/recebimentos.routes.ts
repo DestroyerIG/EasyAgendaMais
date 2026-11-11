@@ -3,8 +3,14 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { authMiddleware } from '../../middleware/auth.js';
 import { requireRole } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
-import { CallbackQuerySchema, ChaveSchema, ConectarQuerySchema, ConfirmarSchema, FormasSchema, GatewayOAuthParamSchema, GatewayParamSchema } from './recebimentos.types.js';
-import { callback, conectar, conectarChave, confirmar, definirFormas, desconectar, verConexao, webhookInfinitePay, webhookMercadoPago } from './recebimentos.controller.js';
+import {
+  CallbackQuerySchema, ChaveSchema, ConectarQuerySchema, ConfirmarSchema, DefinirTerminalSchema, FormasSchema, GatewayOAuthParamSchema,
+  GatewayParamSchema, TerminalParamSchema,
+} from './recebimentos.types.js';
+import {
+  ativarPdvDaMaquininha, callback, conectar, conectarChave, confirmar, definirFormas, definirMaquininhaPadrao, desconectar,
+  listarMaquininhas, verConexao, webhookInfinitePay, webhookMercadoPago,
+} from './recebimentos.controller.js';
 
 // Recebimentos automáticos do sinal (Mercado Pago). Só quem administra o negócio mexe.
 const router = express.Router();
@@ -35,6 +41,10 @@ const limiteDeWebhook = () => rateLimit({
 router.post('/webhook/mercadopago', limiteDeWebhook(), webhookMercadoPago);
 router.post('/webhook/infinitepay/:cobrancaId', limiteDeWebhook(), webhookInfinitePay);
 router.get('/conexoes', ...dono, verConexao);
+// Maquininhas Point da conta do Mercado Pago (antes das rotas `/:gateway/...`).
+router.get('/maquininhas', ...dono, listarMaquininhas);
+router.put('/maquininhas/padrao', ...dono, validate({ body: DefinirTerminalSchema }), definirMaquininhaPadrao);
+router.post('/maquininhas/:id/pdv', ...dono, validate({ params: TerminalParamSchema }), ativarPdvDaMaquininha);
 // Público: o Mercado Pago volta para cá; quem é a pessoa vem do estado assinado.
 router.get('/:gateway/callback', callbackLimiter, gatewayOAuth, validate({ query: CallbackQuerySchema }), callback);
 router.get('/:gateway/conectar', ...dono, gatewayOAuth, validate({ query: ConectarQuerySchema }), conectar);
