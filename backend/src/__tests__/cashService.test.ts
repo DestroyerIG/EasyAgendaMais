@@ -13,6 +13,8 @@ vi.mock('../modules/recebimentos/recebimentos.repository.js', () => ({ recebimen
 vi.mock('../services/scheduleSettingsService.js', () => ({ getBusinessScheduleSettings: vi.fn().mockResolvedValue({ timezone: 'America/Sao_Paulo' }) }));
 
 const { cashService, calcularGaveta } = await import('../modules/cash/cash.service.js');
+// Carregado aqui (e não dentro do teste) para o import não contar nos 5 s do teste sob carga.
+const { addExpenseSchema } = await import('../validators/schemas/financeSchemas.js');
 
 const sessao = (over: Record<string, unknown> = {}) => ({
   id: 'cx1', openedAt: new Date('2026-10-13T07:45:00-03:00'), openingBalance: '150', closedAt: null,
@@ -233,8 +235,7 @@ describe('cashService.reopen', () => {
 });
 
 describe('addExpenseSchema', () => {
-  it('aceita forma de pagamento válida e recusa inválida', async () => {
-    const { addExpenseSchema } = await import('../validators/schemas/financeSchemas.js');
+  it('aceita forma de pagamento válida e recusa inválida', () => {
     const base = { description: 'Café', category: 'Copa', amount: 40, date: '2026-10-13' };
     expect(addExpenseSchema.safeParse({ ...base, paymentMethod: 'dinheiro' }).success).toBe(true);
     expect(addExpenseSchema.safeParse({ ...base, paymentMethod: 'cheque' }).success).toBe(false);
