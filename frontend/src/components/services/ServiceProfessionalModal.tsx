@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Modal, ModalFooter, Field, Input, Textarea, Button } from '@/components/ui';
 import { Scissors, Camera, Save, X, Loader2 } from 'lucide-react';
 import type { Service, Professional } from '@/types';
-import { getSupabaseClient } from '@/lib/supabase/client';
+import { businessPublicPageApi } from '@/lib/businessPublicPage';
 import { useToast } from '@/components/Toast';
 import { isValidCnpj } from '@/utils/cpfCnpj';
 import { AcessoAppProfissional } from './AcessoAppProfissional';
@@ -66,7 +66,6 @@ interface ServiceProfessionalModalProps {
   editingItem: Service | Professional | null;
 }
 
-const BUCKET = 'professional-photos';
 
 export const ServiceProfessionalModal = ({
   isOpen,
@@ -127,8 +126,8 @@ export const ServiceProfessionalModal = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('Foto deve ter no máximo 5 MB.', 'error');
+    if (file.size > 4 * 1024 * 1024) {
+      showToast('Foto deve ter no máximo 4 MB.', 'error');
       return;
     }
 
@@ -146,22 +145,11 @@ export const ServiceProfessionalModal = ({
   };
 
   const uploadPhoto = async (file: File): Promise<string> => {
-    const supabase = getSupabaseClient();
-    const ext = file.name.split('.').pop() ?? 'jpg';
-    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
     setUploading(true);
     try {
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, file, { upsert: true, contentType: file.type });
-
-      if (uploadError) {
-        throw new Error(uploadError.message);
-      }
-
-      const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      return data.publicUrl;
+      // O login guarda a sessão em cookie httpOnly, então o cliente Supabase do navegador
+      // sobe como "anon" e o RLS do Storage barra. O backend envia com a chave de serviço.
+      return await businessPublicPageApi.uploadImage(file);
     } finally {
       setUploading(false);
     }
@@ -380,7 +368,7 @@ export const ServiceProfessionalModal = ({
                 >
                   <Camera className="h-7 w-7" aria-hidden="true" />
                   <span className="text-[15px]">Clique para selecionar uma foto</span>
-                  <span className="text-[13px] text-muted">JPG, PNG ou WEBP · máx. 5 MB</span>
+                  <span className="text-[13px] text-muted">JPG, PNG ou WEBP · máx. 4 MB</span>
                 </button>
               )}
             </Field>
