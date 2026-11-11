@@ -122,15 +122,24 @@ export const gerarPixComanda = async (id: string, input: SalvarComandaInput) =>
 export type SituacaoCobrancaSaldo =
   'pendente' | 'paga' | 'recusada' | 'expirada' | 'cancelada' | 'substituida' | 'devolvida' | 'contestada';
 export interface CobrancaSaldo {
-  id: string; via: 'pix'; situacao: SituacaoCobrancaSaldo; valor: number;
+  id: string; via: 'pix' | 'maquininha'; situacao: SituacaoCobrancaSaldo; valor: number;
   codigoPix: string | null; venceEm: string | null; pagoEm: string | null;
 }
-export interface EstadoCobranca { gateway: 'mercadopago' | null; cobranca: CobrancaSaldo | null }
+export interface EstadoCobranca {
+  gateway: 'mercadopago' | null;
+  cobranca: CobrancaSaldo | null;
+  /** Maquininha Point escolhida em Recebimentos (só com o Mercado Pago ativo). */
+  terminal: { id: string; nome: string } | null;
+  /** A ordem já estava na maquininha e não pôde ser cancelada por aqui: cancelar lá também. */
+  avisoMaquininha?: boolean;
+}
+/** Como cobrar o saldo: Pix do gateway, ou débito/crédito na maquininha Point. */
+export type ComoCobrar = { via: 'pix' } | { via: 'maquininha'; forma: 'debito' | 'credito' };
 export type CobrarComandaInput = Omit<SalvarComandaInput, 'paymentMethod'>;
 export const buscarCobranca = async (id: string) =>
   (await api.get<EstadoCobranca>(`/comandas/${id}/cobranca`)).data;
-export const cobrarComanda = async (id: string, input: CobrarComandaInput) =>
-  (await api.post<CobrancaSaldo>(`/comandas/${id}/cobranca`, { ...input, via: 'pix' })).data;
+export const cobrarComanda = async (id: string, input: CobrarComandaInput, como: ComoCobrar) =>
+  (await api.post<CobrancaSaldo>(`/comandas/${id}/cobranca`, { ...input, ...como })).data;
 export const cancelarCobranca = async (id: string) =>
   (await api.post<EstadoCobranca>(`/comandas/${id}/cobranca/cancelar`)).data;
 export const reenviarComprovante = async (id: string) =>
@@ -155,3 +164,5 @@ export const ehCaixaJaFechado = (error: unknown): boolean => codigoConflito(erro
 export const ehChavePixAusente = (error: unknown): boolean => codigoConflito(error) === 'PIX_KEY_MISSING';
 /** Há uma cobrança pendente: a comanda não pode ser alterada nem fechada até cancelar. */
 export const ehCobrancaEmAndamento = (error: unknown): boolean => codigoConflito(error) === 'COBRANCA_EM_ANDAMENTO';
+/** A maquininha escolhida já tem uma cobrança aguardando. */
+export const ehMaquininhaOcupada = (error: unknown): boolean => codigoConflito(error) === 'MAQUININHA_OCUPADA';

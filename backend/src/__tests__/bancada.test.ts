@@ -340,7 +340,7 @@ describe('cobrança do saldo na bancada', () => {
     repo.profissionalCobra.mockResolvedValue(true);
     const r = await bancadaService.cobrar('b1', 'u9', P, 'k1', { extras: [], discount: 10, via: 'pix' });
     expect(r).toMatchObject({ id: 'c1' });
-    expect(cobrancaSaldo.criar).toHaveBeenCalledWith('k1', 'b1', 'u9', { extras: [], discount: 10, tip: 2 });
+    expect(cobrancaSaldo.criar).toHaveBeenCalledWith('k1', 'b1', 'u9', { extras: [], discount: 10, tip: 2 }, { via: 'pix' });
   });
 
   it('comanda de outra profissional: 404 em todas as três', async () => {
@@ -359,11 +359,24 @@ describe('cobrança do saldo na bancada', () => {
     expect(cobrancaSaldo.cancelar).toHaveBeenCalledWith('k1', 'b1');
   });
 
+  it('maquininha: a forma de cartão vai junto ao serviço, e sem a forma a rota recusa', async () => {
+    repo.profissionalCobra.mockResolvedValue(true);
+    await bancadaService.cobrar('b1', 'u9', P, 'k1', { extras: [], via: 'maquininha', forma: 'credito' });
+    expect(cobrancaSaldo.criar).toHaveBeenCalledWith('k1', 'b1', 'u9', { extras: [], discount: 5, tip: 2 }, { via: 'maquininha', forma: 'credito' });
+
+    const ok = await request.post(`/api/v1/bancada/comandas/${ID}/cobranca`).send({ extras: [], via: 'maquininha', forma: 'debito' });
+    expect(ok.status).toBe(200);
+    const semForma = await request.post(`/api/v1/bancada/comandas/${ID}/cobranca`).send({ extras: [], via: 'maquininha' });
+    expect(semForma.status).toBe(400);
+    const formaRuim = await request.post(`/api/v1/bancada/comandas/${ID}/cobranca`).send({ extras: [], via: 'maquininha', forma: 'dinheiro' });
+    expect(formaRuim.status).toBe(400);
+  });
+
   it('rota da profissional: aceita via pix e recusa outra via', async () => {
     repo.profissionalCobra.mockResolvedValue(true);
     const ok = await request.post(`/api/v1/bancada/comandas/${ID}/cobranca`).send({ extras: [], via: 'pix' });
     expect(ok.status).toBe(200);
-    const ruim = await request.post(`/api/v1/bancada/comandas/${ID}/cobranca`).send({ extras: [], via: 'link' });
+    const ruim = await request.post(`/api/v1/bancada/comandas/${ID}/cobranca`).send({ extras: [], via: 'boleto' });
     expect(ruim.status).toBe(400);
   });
 });
@@ -379,15 +392,24 @@ describe('cobrança do saldo no painel', () => {
     const corpo = { extras: [], discount: 0, tip: 0, via: 'pix' };
     const criar = await request.post(`/api/v1/comandas/${ID}/cobranca`).set('x-role', 'tenant_admin').send(corpo);
     expect(criar.status).toBe(200);
-    expect(cobrancaSaldo.criar).toHaveBeenCalledWith(ID, 'b1', 'u9', { extras: [], discount: 0, tip: 0 });
+    expect(cobrancaSaldo.criar).toHaveBeenCalledWith(ID, 'b1', 'u9', { extras: [], discount: 0, tip: 0 }, { via: 'pix' });
     expect((await request.get(`/api/v1/comandas/${ID}/cobranca`).set('x-role', 'tenant_admin')).status).toBe(200);
     expect(cobrancaSaldo.estado).toHaveBeenCalledWith(ID, 'b1');
     expect((await request.post(`/api/v1/comandas/${ID}/cobranca/cancelar`).set('x-role', 'tenant_admin')).status).toBe(200);
     expect(cobrancaSaldo.cancelar).toHaveBeenCalledWith(ID, 'b1');
   });
 
-  it('via diferente de pix: 400', async () => {
-    const r = await request.post(`/api/v1/comandas/${ID}/cobranca`).set('x-role', 'tenant_admin').send({ extras: [], discount: 0, tip: 0, via: 'link' });
+  it('maquininha: repassa a forma de cartão; sem a forma, 400', async () => {
+    const corpo = { extras: [], discount: 0, tip: 0 };
+    const ok = await request.post(`/api/v1/comandas/${ID}/cobranca`).set('x-role', 'tenant_admin').send({ ...corpo, via: 'maquininha', forma: 'credito' });
+    expect(ok.status).toBe(200);
+    expect(cobrancaSaldo.criar).toHaveBeenCalledWith(ID, 'b1', 'u9', corpo, { via: 'maquininha', forma: 'credito' });
+    const sem = await request.post(`/api/v1/comandas/${ID}/cobranca`).set('x-role', 'tenant_admin').send({ ...corpo, via: 'maquininha' });
+    expect(sem.status).toBe(400);
+  });
+
+  it('via desconhecida: 400', async () => {
+    const r = await request.post(`/api/v1/comandas/${ID}/cobranca`).set('x-role', 'tenant_admin').send({ extras: [], discount: 0, tip: 0, via: 'boleto' });
     expect(r.status).toBe(400);
     expect(cobrancaSaldo.criar).not.toHaveBeenCalled();
   });

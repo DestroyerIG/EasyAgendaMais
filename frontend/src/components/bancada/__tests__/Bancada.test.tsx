@@ -23,12 +23,13 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/components/comanda/PainelCobrar', () => ({
   PainelCobrar: (p: {
     forma: string | null; total: number; onPendente: (v: boolean) => void; onPaga: () => void;
-    api: { cobrar: () => Promise<unknown> }; gerarPixManual: () => Promise<unknown>;
+    api: { cobrar: (como: unknown) => Promise<unknown> }; gerarPixManual: () => Promise<unknown>;
   }) => (
     <div data-testid="painel-cobrar" data-forma={p.forma ?? ''}>
       <button type="button" onClick={() => p.onPendente(true)}>stub pendente</button>
       <button type="button" onClick={() => { p.onPendente(false); p.onPaga(); }}>stub paga</button>
-      <button type="button" onClick={() => void p.api.cobrar()}>stub cobrar</button>
+      <button type="button" onClick={() => void p.api.cobrar({ via: 'pix' })}>stub cobrar</button>
+      <button type="button" onClick={() => void p.api.cobrar({ via: 'maquininha', forma: 'credito' })}>stub maquininha</button>
       <button type="button" onClick={() => void p.gerarPixManual()}>stub manual</button>
     </div>
   ),
@@ -217,7 +218,9 @@ describe('Fechar atendimento', () => {
       await screen.findByRole('button', { name: /Fechar e cobrar/ });
       await userEvent.click(screen.getByRole('button', { name: 'Pix' }));
       await userEvent.click(screen.getByRole('button', { name: 'stub cobrar' }));
-      expect(api.cobrar).toHaveBeenCalledWith('k1', { extras: [], discount: 0, tip: 0 });
+      expect(api.cobrar).toHaveBeenCalledWith('k1', { extras: [], discount: 0, tip: 0 }, { via: 'pix' });
+      await userEvent.click(screen.getByRole('button', { name: 'stub maquininha' }));
+      expect(api.cobrar).toHaveBeenLastCalledWith('k1', { extras: [], discount: 0, tip: 0 }, { via: 'maquininha', forma: 'credito' });
       await userEvent.click(screen.getByRole('button', { name: 'stub manual' }));
       expect(api.gerarPix).toHaveBeenCalledWith('k1', { extras: [], discount: 0, tip: 0, paymentMethod: 'pix' });
     });

@@ -13,7 +13,7 @@ import { notificationsService } from '../notifications/notifications.service.js'
 import { filaEnvios } from '../whatsappFila/fila.service.js';
 import { comissoesService } from '../reports/comissoes.service.js';
 import { intervaloUtc, type Periodo } from '../reports/periodo.js';
-import { cobrancaSaldoService } from '../recebimentos/cobrancaSaldo.service.js';
+import { cobrancaSaldoService, type ComoCobrar } from '../recebimentos/cobrancaSaldo.service.js';
 import { bancadaRepository as repo } from './bancada.repository.js';
 import {
   escolherProxima, horaNoFuso, minutosAte, motivoParaNaoCancelar, motivoParaNaoReagendar, novoHorarioValido,
@@ -254,10 +254,11 @@ export const bancadaService = {
   async cobrar(businessId: string, userId: string, p: Profissional, id: string, input: BancadaCobrarInput) {
     await exigirQuemCobra(businessId, p, id);
     const atual = await comandasService.get(id, businessId);
+    const como: ComoCobrar = input.via === 'maquininha' && input.forma ? { via: 'maquininha', forma: input.forma } : { via: 'pix' };
     return cobrancaSaldoService.criar(id, businessId, userId, {
       extras: input.extras, discount: input.discount ?? atual.discount, tip: input.tip ?? atual.tip,
       ...(input.usarCobertura !== undefined ? { usarCobertura: input.usarCobertura } : {}),
-    });
+    }, como);
   },
 
   async cobranca(businessId: string, p: Profissional, id: string) {

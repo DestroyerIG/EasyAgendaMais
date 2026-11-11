@@ -3,8 +3,8 @@
 import { centavos } from '../recebimentos.rules.js';
 import type { PagamentoGateway } from '../recebimentos.types.js';
 import {
-  GatewayIndisponivel, GatewayRecusou, GatewayTokenInvalido,
-  type Gateway, type NovaCobranca, type Tokens,
+  GatewayIndisponivel, GatewayRecusou, GatewayTerminalOcupado, GatewayTokenInvalido,
+  type Gateway, type NovaCobranca, type Terminal, type Tokens,
 } from './tipos.js';
 
 const API = 'https://api.mercadopago.com';
@@ -27,6 +27,9 @@ async function lerJson(r: Response): Promise<unknown> {
 function erroDoStatus(status: number, corpo: unknown): Error {
   const codigo = (corpo as { error?: unknown } | null)?.error;
   if (codigo === 'invalid_grant') return new GatewayTokenInvalido(undefined, true);
+  // As ordens da Point devolvem os erros em `errors[].code`.
+  const codigoOrdem = ((corpo as { errors?: Array<{ code?: unknown }> } | null)?.errors ?? [])[0]?.code;
+  if (codigoOrdem === 'already_queued_order_for_terminal') return new GatewayTerminalOcupado();
   if (status === 401) return new GatewayTokenInvalido();
   if (status === 429 || status >= 500) return new GatewayIndisponivel();
   return new GatewayRecusou(`Mercado Pago recusou a chamada (${status})`);
@@ -101,6 +104,21 @@ function traduzirPagamento(p: Json): PagamentoGateway {
     formaPaga: FORMA[emTexto(p.payment_type_id)] ?? null,
   };
 }
+
+/** Prazo da ordem Point em ISO 8601: no mínimo PT30S, em minutos cheios, no máximo 3 horas. */
+function duracaoIso(venceEm: Date): string {
+  const segundos = Math.ceil((venceEm.getTime() - Date.now()) / 1000);
+  if (segundos <= 30) return 'PT30S';
+  return `PT${Math.min(180, Math.ceil(segundos / 60))}M`;
+}
+
+const MODOS_DO_TERMINAL = new Set(['PDV', 'STANDALONE']);
+
+const STATUS_DA_ORDEM: Record<string, string> = {
+  processed: 'approved', failed: 'rejected', canceled: 'cancelled', expired: 'expired', refunded: 'refunded',
+};
+
+const FORMA_DO_MEIO: Record<string, PagamentoGateway['formaPaga']> = { credit_card: 'credito', debit_card: 'debito' };
 
 export const mercadoPago: Gateway = {
   urlAutorizacao(estado, desafio) {
@@ -208,5 +226,75 @@ export const mercadoPago: Gateway = {
     );
     const lista = (corpo as { results?: unknown } | null)?.results;
     return Array.isArray(lista) ? lista.map((p) => traduzirPagamento(p as Json)) : [];
+  },
+  async listarTerminais(accessToken) {
+    const { corpo } = await chamar(`${API}/terminals/v1/list`, { headers: cabecalho(accessToken) });
+    const lista = (corpo as { data?: { terminals?: unknown } } | null)?.data?.terminals;
+    if (!Array.isArray(lista)) return [];
+    return lista.map((t): Terminal => {
+      const d = t as { id?: unknown; operating_mode?: unknown };
+      const modo = emTexto(d.operating_mode);
+      return { id: emTexto(d.id), modo: MODOS_DO_TERMINAL.has(modo) ? (modo as Terminal['modo']) : 'UNDEFINED' };
+    }).filter((t) => t.id !== '');
+  },
+
+  async ativarPdv(accessToken, terminalId) {
+    await chamar(`${API}/terminals/v1/setup`, {
+      method: 'PATCH',
+      headers: cabecalhoJson(accessToken),
+      body: JSON.stringify({ terminals: [{ id: terminalId, operating_mode: 'PDV' }] }),
+    });
+  },
+
+  async criarOrdemPoint(accessToken, c: NovaCobranca, p) {
+    const { corpo } = await chamar(`${API}/v1/orders`, {
+      method: 'POST',
+      headers: cabecalhoJson(accessToken, { 'X-Idempotency-Key': c.cobrancaId }),
+      body: JSON.stringify({
+        type: 'point',
+        external_reference: c.cobrancaId,
+        expiration_time: duracaoIso(c.venceEm),
+        description: c.descricao.slice(0, 150),
+        transactions: { payments: [{ amount: dinheiro(c.valor) }] },
+        // O terminal vai exatamente como a listagem devolveu; sem parcelas: a maquininha pergunta ao cliente.
+        config: { point: { terminal_id: p.terminalId }, payment_method: { default_type: p.tipo } },
+      }),
+    });
+    const id = (corpo as { id?: unknown } | null)?.id;
+    if (!id) throw new GatewayRecusou('Mercado Pago não criou a cobrança na maquininha');
+    return { idExterno: emTexto(id) };
+  },
+
+  async cancelarOrdem(accessToken, idExterno, cobrancaId) {
+    try {
+      const { status } = await chamar(`${API}/v1/orders/${encodeURIComponent(idExterno)}/cancel`, {
+        method: 'POST',
+        headers: cabecalhoJson(accessToken, { 'X-Idempotency-Key': `${cobrancaId}:cancel`, 'x-allow-cancelable-status': 'at_terminal' }),
+      });
+      return status === 202 ? 'pedir_no_terminal' : 'cancelada';
+    } catch (e) {
+      // 409 (`cannot_cancel_order`): o modelo da maquininha não deixa cancelar pela API.
+      if (e instanceof GatewayRecusou) return 'pedir_no_terminal';
+      throw e;
+    }
+  },
+
+  async consultarOrdem(accessToken, idExterno) {
+    const { status, corpo } = await chamar(
+      `${API}/v1/orders/${encodeURIComponent(idExterno)}`, { headers: cabecalho(accessToken) }, true,
+    );
+    if (status === 404) return null;
+    const d = (corpo ?? {}) as Json & { transactions?: { payments?: Json[] } };
+    const pagamento = d.transactions?.payments?.[0];
+    if (!pagamento) return null;
+    const ref = d.external_reference;
+    const meio = ((pagamento.payment_method ?? {}) as { type?: unknown }).type;
+    return {
+      id: emTexto(pagamento.id),
+      status: STATUS_DA_ORDEM[emTexto(d.status)] ?? 'pending',
+      valor: Number(pagamento.amount),
+      referencia: typeof ref === 'string' && ref ? ref : null,
+      formaPaga: FORMA_DO_MEIO[emTexto(meio)] ?? null,
+    };
   },
 };

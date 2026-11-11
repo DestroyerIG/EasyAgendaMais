@@ -19,6 +19,14 @@ export class GatewayRecusou extends Error {
   constructor(msg = 'Gateway de pagamento recusou a cobrança') { super(msg); this.name = 'GatewayRecusou'; }
 }
 
+/** Já há uma cobrança aguardando nesta maquininha (`already_queued_order_for_terminal`): não é problema da conta. */
+export class GatewayTerminalOcupado extends GatewayRecusou {
+  constructor(msg = 'A maquininha já tem uma cobrança aguardando') { super(msg); this.name = 'GatewayTerminalOcupado'; }
+}
+
+/** Maquininha Point da conta. `id` é `TIPO__SERIAL`, exatamente como o Mercado Pago lista. */
+export interface Terminal { id: string; modo: 'PDV' | 'STANDALONE' | 'UNDEFINED' }
+
 export interface Tokens { accessToken: string; refreshToken: string; expiraEm: Date; contaId: string }
 
 export interface NovaCobranca {
@@ -41,6 +49,14 @@ export interface Gateway {
     voltas: { sucesso: string; pendente: string; falha: string },
   ): Promise<{ idExterno: string; checkoutUrl: string }>;
   referenciaDoRecurso(accessToken: string, recurso: { tipo: 'order' | 'payment'; id: string }): Promise<string | null>;
+  listarTerminais(accessToken: string): Promise<Terminal[]>;
+  ativarPdv(accessToken: string, terminalId: string): Promise<void>;
+  criarOrdemPoint(
+    accessToken: string, c: NovaCobranca, p: { terminalId: string; tipo: 'debit_card' | 'credit_card' },
+  ): Promise<{ idExterno: string }>;
+  /** `pedir_no_terminal`: a ordem já está na maquininha e o cancelamento por aqui não vale; cancelar lá também. */
+  cancelarOrdem(accessToken: string, idExterno: string, cobrancaId: string): Promise<'cancelada' | 'pedir_no_terminal'>;
+  consultarOrdem(accessToken: string, idExterno: string): Promise<PagamentoGateway | null>;
   buscarPorReferencia(accessToken: string, cobrancaId: string): Promise<PagamentoGateway[]>;
 }
 

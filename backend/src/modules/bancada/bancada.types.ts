@@ -32,6 +32,11 @@ export const BancadaComandaSchema = z.object({
 });
 export type BancadaComandaInput = z.infer<typeof BancadaComandaSchema>;
 
-/** Cobrança do saldo pela profissional: a forma é sempre Pix e a via só pode ser `pix` nesta fase. */
-export const BancadaCobrarSchema = BancadaComandaSchema.omit({ paymentMethod: true }).extend({ via: z.literal('pix') });
+/** Cobrança do saldo pela profissional. `maquininha` exige a forma de cartão (débito ou crédito). */
+export const BancadaCobrarSchema = BancadaComandaSchema.omit({ paymentMethod: true }).extend({
+  via: z.enum(['pix', 'maquininha']),
+  forma: z.enum(['debito', 'credito']).optional(),
+}).superRefine((v, ctx) => {
+  if (v.via === 'maquininha' && !v.forma) ctx.addIssue({ code: 'custom', path: ['forma'], message: 'Escolha débito ou crédito' });
+});
 export type BancadaCobrarInput = z.infer<typeof BancadaCobrarSchema>;

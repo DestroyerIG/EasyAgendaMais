@@ -17,6 +17,8 @@ vi.mock('@/components/recebimentos/PixManualCard', () => ({
   ),
 }));
 
+vi.mock('@/components/recebimentos/PointCard', () => ({ PointCard: () => <p>Cartão da maquininha Point</p> }));
+
 const { RecebimentosSection } = await import('../RecebimentosSection');
 
 const conexao = {
@@ -139,5 +141,32 @@ describe('RecebimentosSection', () => {
 
     await waitFor(() => expect(screen.getByRole('switch')).toBeEnabled());
     expect(screen.queryByText('Cadastre a chave Pix acima para ativar.')).not.toBeInTheDocument();
+  });
+
+  describe('cartão da maquininha Point', () => {
+    it('aparece com o Mercado Pago conectado e ativo', async () => {
+      api.conexoes.mockResolvedValue({ configurado: true, disponiveis: ['mercadopago'], conexao });
+      render(<RecebimentosSection />);
+      expect(await screen.findByText('Cartão da maquininha Point')).toBeInTheDocument();
+    });
+
+    it('não aparece sem conexão, com a InfinitePay nem com o Mercado Pago pedindo reconexão', async () => {
+      api.conexoes.mockResolvedValue({ configurado: true, disponiveis: ['mercadopago'], conexao: null });
+      const { unmount } = render(<RecebimentosSection />);
+      await screen.findByText('Confirmação automática');
+      expect(screen.queryByText('Cartão da maquininha Point')).not.toBeInTheDocument();
+      unmount();
+
+      api.conexoes.mockResolvedValue({ configurado: true, disponiveis: ['infinitepay'], conexao: { ...conexao, gateway: 'infinitepay' } });
+      const segunda = render(<RecebimentosSection />);
+      await screen.findByText('Conectado');
+      expect(screen.queryByText('Cartão da maquininha Point')).not.toBeInTheDocument();
+      segunda.unmount();
+
+      api.conexoes.mockResolvedValue({ configurado: true, disponiveis: ['mercadopago'], conexao: { ...conexao, situacao: 'precisa_reconectar' } });
+      render(<RecebimentosSection />);
+      await screen.findByText('Precisa reconectar');
+      expect(screen.queryByText('Cartão da maquininha Point')).not.toBeInTheDocument();
+    });
   });
 });

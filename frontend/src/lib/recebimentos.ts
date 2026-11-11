@@ -23,6 +23,10 @@ export interface EstadoRecebimentos {
 
 export interface FormasRecebimento { aceitaPix: boolean; aceitaCartao: boolean; aceiteCartao?: boolean }
 
+/** Maquininha Point da conta do Mercado Pago (`modo` PDV = recebe cobranças do sistema). */
+export interface Maquininha { id: string; nome: string; modo: 'PDV' | 'STANDALONE' | 'UNDEFINED' }
+export interface EstadoMaquininhas { padrao: string | null; terminais: Maquininha[] }
+
 export const recebimentosApi = {
   conexoes: async () => (await api.get<EstadoRecebimentos>('/recebimentos/conexoes')).data,
   conectar: async (origem?: 'onboarding') =>
@@ -32,5 +36,10 @@ export const recebimentosApi = {
     (await api.put<EstadoRecebimentos>('/recebimentos/mercadopago/formas', formas)).data,
   conectarChave: async (d: { handle: string; chave: string; aceite: true }) =>
     (await api.post<EstadoRecebimentos>('/recebimentos/infinitepay/chave', d)).data,
+  maquininhas: async () => (await api.get<EstadoMaquininhas>('/recebimentos/maquininhas')).data,
+  ativarPdv: async (id: string) =>
+    (await api.post<EstadoMaquininhas>(`/recebimentos/maquininhas/${encodeURIComponent(id)}/pdv`)).data,
+  definirTerminalPadrao: async (terminalId: string | null) =>
+    (await api.put<EstadoMaquininhas>('/recebimentos/maquininhas/padrao', { terminalId })).data,
   desconectar: async (gateway: GatewayId) => (await api.delete<{ desconectado: boolean }>(`/recebimentos/${gateway}/conexao`)).data,
 };

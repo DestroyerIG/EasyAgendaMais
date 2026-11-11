@@ -38,6 +38,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/recebimentos/InfinitePayFormulario.tsx',
   'src/components/recebimentos/InfinitePayPassos.tsx',
   'src/components/recebimentos/PixManualCard.tsx',
+  'src/components/recebimentos/PointCard.tsx',
   'src/components/recebimentos/SinalNoRoboCard.tsx',
   'src/components/DashboardCards.tsx',
   'src/components/WeeklyChart.tsx',

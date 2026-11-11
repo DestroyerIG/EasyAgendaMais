@@ -225,3 +225,19 @@ describe('decidirSaldo', () => {
     expect(decidirSaldo({ cobranca: cob(), pagamento: pag({ status: 'pending' }) })).toBe('ignorar');
   });
 });
+
+describe('decidirSaldo: ordem cancelada ou vencida na maquininha', () => {
+  const cob = (situacao: string) => ({ id: 'c1', situacao, valor: '80.00', pagamentoExternoId: null });
+  const pag = (status: string) => ({ id: 'p1', status, valor: 80, referencia: 'c1', formaPaga: 'debito' as const });
+
+  it('cancelada ou expirada com a cobrança pendente: marca cancelada (destrava a comanda)', () => {
+    expect(decidirSaldo({ cobranca: cob('pendente'), pagamento: pag('cancelled') })).toBe('marcar_cancelada');
+    expect(decidirSaldo({ cobranca: cob('pendente'), pagamento: pag('expired') })).toBe('marcar_cancelada');
+  });
+
+  it('cobrança que já saiu de pendente não muda com cancelada ou expirada', () => {
+    for (const situacao of ['paga', 'cancelada', 'recusada', 'expirada', 'substituida']) {
+      expect(decidirSaldo({ cobranca: cob(situacao), pagamento: pag('cancelled') }), situacao).toBe('ignorar');
+    }
+  });
+});

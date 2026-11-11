@@ -9,9 +9,10 @@ const db = vi.hoisted(() => {
       findMany: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn(), count: vi.fn(), create: vi.fn(), findUnique: vi.fn(), aggregate: vi.fn(), update: vi.fn(),
     },
     appointment: { updateMany: vi.fn() },
+    conexaoRecebimento: { findUnique: vi.fn() },
   };
   d['$transaction'] = async (fn: (tx: unknown) => unknown) => fn(d);
-  return d as { cobrancaSinal: Record<string, ReturnType<typeof vi.fn>>; appointment: Record<string, ReturnType<typeof vi.fn>> };
+  return d as { cobrancaSinal: Record<string, ReturnType<typeof vi.fn>>; appointment: Record<string, ReturnType<typeof vi.fn>>; conexaoRecebimento: Record<string, ReturnType<typeof vi.fn>> };
 });
 vi.mock('../config/prisma.js', () => ({ prisma: db }));
 vi.mock('../utils/logger.js', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
@@ -150,5 +151,34 @@ describe('cobranças de saldo no repositório', () => {
     expect(cs.updateMany.mock.calls[0]![0]).toEqual({
       where: { tipo: 'saldo', situacao: 'pendente', venceEm: { lt: limite } }, data: { situacao: 'expirada' },
     });
+  });
+});
+
+describe('marcarCancelada', () => {
+  it('só tira de pendente uma cobrança de saldo', async () => {
+    await repo.marcarCancelada('c1');
+    expect(cs.updateMany.mock.calls[0]![0]).toEqual({
+      where: { id: 'c1', tipo: 'saldo', situacao: 'pendente' }, data: { situacao: 'cancelada' },
+    });
+  });
+});
+
+describe('maquininha Point no repositório', () => {
+  it('criarCobrancaSaldo com forma point grava o terminal; sem terminal não grava a coluna', async () => {
+    cs.create.mockResolvedValue({ id: 'c1' });
+    const venceEm = new Date('2030-01-01T10:15:00Z');
+    await repo.criarCobrancaSaldo({ businessId: 'b1', appointmentId: 'a1', usuarioId: 'u1', gateway: 'mercadopago', valor: 80, venceEm, forma: 'point', terminalId: 'NEWLAND_N950__ABC' });
+    expect(cs.create.mock.calls[0]![0].data).toMatchObject({ tipo: 'saldo', forma: 'point', terminalId: 'NEWLAND_N950__ABC', situacao: 'pendente' });
+    await repo.criarCobrancaSaldo({ businessId: 'b1', appointmentId: 'a1', usuarioId: 'u1', gateway: 'mercadopago', valor: 80, venceEm });
+    expect(cs.create.mock.calls[1]![0].data).not.toHaveProperty('terminalId');
+    expect(cs.create.mock.calls[1]![0].data).toMatchObject({ forma: 'pix' });
+  });
+
+  it('terminalPadrao devolve o terminal escolhido, ou null sem conexão', async () => {
+    db.conexaoRecebimento.findUnique.mockResolvedValueOnce({ terminalPadraoId: 'NEWLAND_N950__ABC' });
+    expect(await repo.terminalPadrao('b1')).toBe('NEWLAND_N950__ABC');
+    expect(db.conexaoRecebimento.findUnique.mock.calls[0]![0].where).toEqual({ businessId: 'b1' });
+    db.conexaoRecebimento.findUnique.mockResolvedValueOnce(null);
+    expect(await repo.terminalPadrao('b1')).toBeNull();
   });
 });

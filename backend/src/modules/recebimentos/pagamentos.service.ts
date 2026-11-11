@@ -158,6 +158,9 @@ async function avaliarSaldo(c: Cobranca, p: PagamentoGateway): Promise<void> {
     case 'marcar_recusada':
       await repo.marcarRecusada(c.id);
       return;
+    case 'marcar_cancelada':
+      await repo.marcarCancelada(c.id);
+      return;
     case 'marcar_devolvida':
     case 'marcar_contestada': {
       const situacao = decisao === 'marcar_devolvida' ? 'devolvida' : 'contestada';
@@ -236,9 +239,18 @@ async function conferirCobranca(cobrancaId: string): Promise<void> {
     logger.warn({ cobrancaId, businessId: c.businessId }, 'Recebimentos: negócio sem conexão ativa para conferir a cobrança');
     return;
   }
-  const pagamentos = await consultarGateway(
-    c.businessId, token, () => gatewayDe(token.gateway).buscarPorReferencia(token.accessToken, c.id),
-  );
+  let pagamentos: PagamentoGateway[] | null;
+  if (c.forma === 'point') {
+    // A ordem da maquininha não aparece na busca de pagamentos por referência: confere pela própria ordem.
+    const idOrdem = c.idExterno;
+    if (!idOrdem) return;
+    const p = await consultarGateway(c.businessId, token, () => gatewayDe(token.gateway).consultarOrdem(token.accessToken, idOrdem));
+    pagamentos = p ? [p] : [];
+  } else {
+    pagamentos = await consultarGateway(
+      c.businessId, token, () => gatewayDe(token.gateway).buscarPorReferencia(token.accessToken, c.id),
+    );
+  }
   for (const p of emOrdemDeAvaliacao(pagamentos ?? [])) await avaliar(c.id, p);
 }
 
