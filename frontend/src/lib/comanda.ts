@@ -122,19 +122,24 @@ export const gerarPixComanda = async (id: string, input: SalvarComandaInput) =>
 export type SituacaoCobrancaSaldo =
   'pendente' | 'paga' | 'recusada' | 'expirada' | 'cancelada' | 'substituida' | 'devolvida' | 'contestada';
 export interface CobrancaSaldo {
-  id: string; via: 'pix' | 'maquininha'; situacao: SituacaoCobrancaSaldo; valor: number;
-  codigoPix: string | null; venceEm: string | null; pagoEm: string | null;
+  id: string; via: 'pix' | 'maquininha' | 'link'; situacao: SituacaoCobrancaSaldo; valor: number;
+  codigoPix: string | null;
+  /** Endereço do link de pagamento da InfinitePay (só na via `link`). */
+  checkoutUrl?: string | null; venceEm: string | null; pagoEm: string | null;
 }
 export interface EstadoCobranca {
-  gateway: 'mercadopago' | null;
+  gateway: 'mercadopago' | 'infinitepay' | null;
   cobranca: CobrancaSaldo | null;
   /** Maquininha Point escolhida em Recebimentos (só com o Mercado Pago ativo). */
   terminal: { id: string; nome: string } | null;
   /** A ordem já estava na maquininha e não pôde ser cancelada por aqui: cancelar lá também. */
   avisoMaquininha?: boolean;
 }
-/** Como cobrar o saldo: Pix do gateway, ou débito/crédito na maquininha Point. */
-export type ComoCobrar = { via: 'pix' } | { via: 'maquininha'; forma: 'debito' | 'credito' };
+/** Como cobrar o saldo: Pix do Mercado Pago, débito/crédito na maquininha Point, ou link da InfinitePay. */
+export type ComoCobrar =
+  | { via: 'pix' }
+  | { via: 'maquininha'; forma: 'debito' | 'credito' }
+  | { via: 'link'; forma: 'pix' | 'debito' | 'credito' };
 export type CobrarComandaInput = Omit<SalvarComandaInput, 'paymentMethod'>;
 export const buscarCobranca = async (id: string) =>
   (await api.get<EstadoCobranca>(`/comandas/${id}/cobranca`)).data;
@@ -166,3 +171,5 @@ export const ehChavePixAusente = (error: unknown): boolean => codigoConflito(err
 export const ehCobrancaEmAndamento = (error: unknown): boolean => codigoConflito(error) === 'COBRANCA_EM_ANDAMENTO';
 /** A maquininha escolhida já tem uma cobrança aguardando. */
 export const ehMaquininhaOcupada = (error: unknown): boolean => codigoConflito(error) === 'MAQUININHA_OCUPADA';
+/** A conta da InfinitePay não tem o checkout por link liberado. */
+export const ehLinkDesligado = (error: unknown): boolean => codigoConflito(error) === 'LINK_DESLIGADO';

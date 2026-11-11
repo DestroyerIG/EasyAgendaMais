@@ -234,3 +234,101 @@ describe('PainelCobrar: maquininha Point', () => {
     expect(screen.getByText(/digite na maquininha/i)).toBeInTheDocument();
   });
 });
+
+describe('PainelCobrar: link de pagamento da InfinitePay', () => {
+  const URL_LINK = 'https://checkout.infinitepay.io/barbearia/abc';
+  const link = (over: Partial<CobrancaSaldo> = {}) => cobranca({ via: 'link', codigoPix: null, ...over, checkoutUrl: URL_LINK } as Partial<CobrancaSaldo>);
+  beforeEach(() => {
+    api.estado.mockResolvedValue(estado(null, 'infinitepay'));
+    api.cobrar.mockResolvedValue(link());
+    api.cancelar.mockResolvedValue(estado(link({ situacao: 'cancelada' }), 'infinitepay'));
+  });
+
+  it.each(['pix', 'debito', 'credito'] as const)('%s: gera o link com a forma marcada, mostra o QR do link e espera o pagamento', async (forma) => {
+    const user = userEvent.setup();
+    montar(forma);
+    await user.click(await screen.findByRole('button', { name: /gerar link de pagamento/i }));
+
+    expect(api.cobrar).toHaveBeenCalledWith({ via: 'link', forma });
+    expect(await screen.findByRole('img', { name: /qr code do link de pagamento/i })).toBeInTheDocument();
+    expect(screen.getByText(URL_LINK)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /copiar link/i })).toBeInTheDocument();
+    expect(screen.getByText(/aguardando o pagamento/i)).toBeInTheDocument();
+    expect(onPendente).toHaveBeenLastCalledWith(true);
+  });
+
+  it('copiar o link copia o endereço', async () => {
+    api.estado.mockResolvedValue(estado(link(), 'infinitepay'));
+    const user = userEvent.setup();
+    montar('pix');
+    await user.click(await screen.findByRole('button', { name: /copiar link/i }));
+    expect(await navigator.clipboard.readText()).toBe(URL_LINK);
+    expect(await screen.findByText(/link copiado/i)).toBeInTheDocument();
+  });
+
+  it('ao pagar, avisa uma vez e libera a comanda', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    api.estado.mockResolvedValue(estado(link(), 'infinitepay'));
+    montar('credito');
+    await screen.findByRole('button', { name: /cancelar cobrança/i });
+
+    api.estado.mockResolvedValue(estado(link({ situacao: 'paga', pagoEm: new Date().toISOString() }), 'infinitepay'));
+    await act(async () => { vi.advanceTimersByTime(3000); });
+
+    await waitFor(() => expect(onPaga).toHaveBeenCalledTimes(1));
+    expect(onPendente).toHaveBeenLastCalledWith(false);
+  });
+
+  it('cancelar não promete o que não pode: o link já enviado ainda pode ser pago', async () => {
+    api.estado.mockResolvedValue(estado(link(), 'infinitepay'));
+    const user = userEvent.setup();
+    montar('pix');
+    await user.click(await screen.findByRole('button', { name: /cancelar cobrança/i }));
+    expect(await screen.findByText(/o link já enviado ainda pode ser pago/i)).toBeInTheDocument();
+    expect(onPendente).toHaveBeenLastCalledWith(false);
+    expect(screen.getByRole('button', { name: /gerar link de pagamento/i })).toBeInTheDocument();
+  });
+
+  it('link vencido: explica e oferece tentar de novo', async () => {
+    api.estado.mockResolvedValue(estado(link({ situacao: 'expirada' }), 'infinitepay'));
+    montar('debito');
+    expect(await screen.findByText(/o link venceu/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /tentar de novo/i })).toBeInTheDocument();
+  });
+
+  it('conta sem checkout por link liberado (409 LINK_DESLIGADO): explica', async () => {
+    api.cobrar.mockRejectedValue(erro409('LINK_DESLIGADO'));
+    const user = userEvent.setup();
+    montar('pix');
+    await user.click(await screen.findByRole('button', { name: /gerar link de pagamento/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/não está liberado/i);
+  });
+
+  it('outro erro: recado e deixa tentar de novo', async () => {
+    api.cobrar.mockRejectedValueOnce(new Error('rede'));
+    const user = userEvent.setup();
+    montar('pix');
+    await user.click(await screen.findByRole('button', { name: /gerar link de pagamento/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/não foi possível gerar o link/i);
+    await user.click(screen.getByRole('button', { name: /gerar link de pagamento/i }));
+    expect(await screen.findByRole('img', { name: /qr code do link de pagamento/i })).toBeInTheDocument();
+  });
+
+  it('no Pix, "usar minha chave Pix" troca para o Pix manual e dá para voltar ao link', async () => {
+    const user = userEvent.setup();
+    montar('pix');
+    await user.click(await screen.findByRole('button', { name: /usar minha chave pix/i }));
+    expect(await screen.findByRole('button', { name: /gerar qr code/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /usar o link da infinitepay/i }));
+    expect(await screen.findByRole('button', { name: /gerar link de pagamento/i })).toBeInTheDocument();
+  });
+
+  it('no cartão, "digitar manualmente" mostra o guia e dá para voltar ao link', async () => {
+    const user = userEvent.setup();
+    montar('debito');
+    await user.click(await screen.findByRole('button', { name: /digitar manualmente/i }));
+    expect(screen.getByText(/digite na maquininha/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /usar o link da infinitepay/i }));
+    expect(await screen.findByRole('button', { name: /gerar link de pagamento/i })).toBeInTheDocument();
+  });
+});
