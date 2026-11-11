@@ -99,10 +99,18 @@ export const ServiceProfessionalModule = () => {
           // O cadastro já está salvo: se o convite falhar, avisa e a dona reenvia pela edição.
           try {
             const r = await equipeApi.convidar(criada.id, data.emailConvite);
-            showToast(
-              r.emailEnviado ? `Convite enviado para ${r.email}` : `Convite criado. Abra ${prof.oS} para copiar o link.`,
-              r.emailEnviado ? 'success' : 'info',
-            );
+            if (r.emailEnviado) {
+              showToast(`Convite enviado para ${r.email}`, 'success');
+            } else {
+              // O e-mail não saiu: copia o link na hora, porque ele não aparece de novo ao reabrir a edição.
+              const copiado = await navigator.clipboard.writeText(r.link).then(() => true, () => false);
+              showToast(
+                copiado
+                  ? `O e-mail não saiu, mas o link do convite foi copiado. Mande para ${prof.ele}.`
+                  : `O e-mail não saiu. Abra ${prof.oS} e use "Reenviar convite" para pegar o link.`,
+                'info',
+              );
+            }
           } catch (e) {
             showToast(getApiErrorMessage(e, 'Cadastro salvo, mas o convite não saiu. Reenvie pela edição.'), 'error');
           }
