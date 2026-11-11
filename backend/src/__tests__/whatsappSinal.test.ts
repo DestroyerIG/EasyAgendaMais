@@ -465,6 +465,6 @@ describe('textos padrão do sinal orientam quem já pagou', () => {
     const t = DEFAULT_BOT_CONFIG.deposit_waiting_message;
     expect(t).toContain('Se você já pagou, é só aguardar a confirmação, que chega por aqui.');
     expect(t).toContain('{prazo}');
-    expect(t).toContain('0️⃣ Cancelar a pré-reserva');
+    expect(t).toContain('*0* • ❌ Cancelar a pré-reserva');
   });
 });

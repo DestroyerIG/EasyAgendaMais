@@ -39,8 +39,8 @@ describe('montarMensagemRetorno', () => {
       'Notamos que já faz *39* dias desde o seu último atendimento de Manutenção Fibra de Vidro com *Camila* e você deve estar precisando daquele cuidado especial ✨',
       '',
       'Temos 2 opções para você nesta semana:',
-      '1️⃣ *Quarta-feira (21/out) às 14:30*',
-      '2️⃣ *Quinta-feira (22/out) às 10:00*',
+      '*1* • 📅 *Quarta-feira (21/out) às 14:30*',
+      '*2* • 📅 *Quinta-feira (22/out) às 10:00*',
       '',
       'Posso garantir seu horário em algum desses? Se preferir outro dia, é só me avisar!',
       '',
@@ -50,14 +50,14 @@ describe('montarMensagemRetorno', () => {
   it('1 encaixe, sem link', () => {
     const t = montarMensagemRetorno({ ...base, encaixes: [enc('2026-10-21', '14:30')], link: null });
     expect(t).toContain('Temos uma opção para você nesta semana:');
-    expect(t).toContain('1️⃣ *Quarta-feira (21/out) às 14:30*');
-    expect(t).not.toContain('2️⃣');
+    expect(t).toContain('*1* • 📅 *Quarta-feira (21/out) às 14:30*');
+    expect(t).not.toContain('*2* •');
     expect(t).not.toContain('Se preferir, agende');
   });
   it('0 encaixes', () => {
     const t = montarMensagemRetorno({ ...base, encaixes: [], link: null });
     expect(t).toContain('Me conta o melhor dia para você que eu encontro um horário!');
-    expect(t).not.toContain('1️⃣');
+    expect(t).not.toContain('*1* •');
     expect(t).not.toContain('Temos');
   });
 });

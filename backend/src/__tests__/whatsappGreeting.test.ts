@@ -66,7 +66,7 @@ describe('saudação única e tom neutro', () => {
     const { buildWelcomeMessage } = await import('../services/whatsapp/whatsappMessageService.js');
     const msg = buildWelcomeMessage('Olá 👋 Que bom ter você aqui!', [{ label: 'Agendar', emoji: '' }], 'Loja', 'Hoje atendemos até as 19:00.');
     expect(msg.match(/Olá/g)).toHaveLength(1);
-    expect(msg.indexOf('Hoje atendemos')).toBeLessThan(msg.indexOf('1️⃣'));
+    expect(msg.indexOf('Hoje atendemos')).toBeLessThan(msg.indexOf('*1* •'));
   });
 
   it('os textos padrão não têm gênero nem repetem a saudação', async () => {

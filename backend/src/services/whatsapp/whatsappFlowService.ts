@@ -1043,7 +1043,7 @@ const logGreetingEvaluation = (
 
 // ==================== HANDLERS DE STEPS ====================
 
-const BACK_TO_MENU_FOOTER = '\n\n0️⃣ Voltar ao menu';
+const BACK_TO_MENU_FOOTER = '\n\n*0* • ↩️ Voltar ao menu';
 
 const isBackToMenu = (text: string): boolean => text === '0' || text.toLowerCase() === 'menu';
 
@@ -1052,7 +1052,7 @@ const agendarVisivel = async (businessId: string, config: BotConfig): Promise<bo
   (await carregarMenuVisivel(businessId, config)).some((o) => o.handler === 'schedule');
 
 const viewServicesFooter = (podeAgendar: boolean): string =>
-  podeAgendar ? '\n\n1️⃣ Agendar um horário\n0️⃣ Voltar ao menu' : BACK_TO_MENU_FOOTER;
+  podeAgendar ? '\n\n*1* • 📅 Agendar um horário\n*0* • ↩️ Voltar ao menu' : BACK_TO_MENU_FOOTER;
 
 /**
  * Inicia o agendamento: cliente conhecida vai direto para a escolha do serviço,
@@ -1084,9 +1084,9 @@ const startScheduleFlow = async (
 
     let msg = `📋 *${tituloLista(config.choose_service_title)}:*\n\n`;
     services.forEach((s, i) => {
-      msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)\n`;
+      msg += `*${i + 1}* • 💈 *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)\n`;
     });
-    msg += '\n0️⃣ Voltar ao menu';
+    msg += '\n*0* • ↩️ Voltar ao menu';
 
     /**
      * FIX Bug 4 — um único updateSession com todos os dados necessários.
@@ -1320,9 +1320,9 @@ const handleAskNameStep = async (
 
   let msg = `${await formatarTexto(config.name_greeting_message, businessId, { clientName: name })}\n\n📋 *${tituloLista(config.choose_service_title)}:*\n\n`;
   services.forEach((s, i) => {
-    msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)\n`;
+    msg += `*${i + 1}* • 💈 *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.durationMinutes} min)\n`;
   });
-  msg += '\n0️⃣ Voltar ao menu';
+  msg += '\n*0* • ↩️ Voltar ao menu';
 
   await updateSession(phone, businessId, STEPS.CHOOSE_SERVICE, {
     clientId,
@@ -1358,9 +1358,9 @@ const handleChooseServiceStep = async (
   if (!choice || choice < 1 || choice > services.length) {
     let msg = `${config.invalid_option_message}\n\n📋 *${tituloLista(config.choose_service_title)}:*\n\n`;
     services.forEach((s, i) => {
-      msg += `${i + 1}️⃣ *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.duration_minutes} min)\n`;
+      msg += `*${i + 1}* • 💈 *${s.name}* — R$ ${Number(s.price).toFixed(2)} (${s.duration_minutes} min)\n`;
     });
-    msg += '\n0️⃣ Voltar ao menu';
+    msg += '\n*0* • ↩️ Voltar ao menu';
     await sendWhatsAppMessage(phone, msg, sendContext);
     return { ok: true };
   }
@@ -1393,8 +1393,8 @@ const handleChooseServiceStep = async (
   });
 
   let msg = `${await formatarTexto(config.service_selected_message, businessId, { serviceName: sel.name })}\n\n👤 *${tituloLista(config.choose_professional_title)}:*\n\n`;
-  professionals.forEach((b, i) => { msg += `${i + 1}️⃣ *${b.name}*\n`; });
-  msg += '\n0️⃣ Voltar ao menu';
+  professionals.forEach((b, i) => { msg += `*${i + 1}* • 👤 *${b.name}*\n`; });
+  msg += '\n*0* • ↩️ Voltar ao menu';
   await sendWhatsAppMessage(phone, msg, sendContext);
   return { ok: true };
 };
@@ -1418,8 +1418,8 @@ const handleChooseProfessionalStep = async (
 
   if (!choice || choice < 1 || choice > professionals.length) {
     let msg = `${config.invalid_option_message}\n\n👤 *${tituloLista(config.choose_professional_title)}:*\n\n`;
-    professionals.forEach((b, i) => { msg += `${i + 1}️⃣ *${b.name}*\n`; });
-    msg += '\n0️⃣ Voltar ao menu';
+    professionals.forEach((b, i) => { msg += `*${i + 1}* • 👤 *${b.name}*\n`; });
+    msg += '\n*0* • ↩️ Voltar ao menu';
     await sendWhatsAppMessage(phone, msg, sendContext);
     return { ok: true };
   }
@@ -1443,9 +1443,9 @@ const handleChooseProfessionalStep = async (
   let msg = `${await formatarTexto(config.professional_selected_message, businessId, { professionalName: sel.name })}\n\n📅 *${tituloLista(config.choose_date_title)}:*\n\n`;
   availableDates.forEach((dateStr, index) => {
     // FIX Bug 5: formatDateBR usa construtor local
-    msg += `${index + 1}️⃣ ${formatDateBR(dateStr, { weekday: 'long', day: '2-digit', month: '2-digit' })}\n`;
+    msg += `*${index + 1}* • 📅 ${formatDateBR(dateStr, { weekday: 'long', day: '2-digit', month: '2-digit' })}\n`;
   });
-  msg += '\n0️⃣ Voltar ao menu';
+  msg += '\n*0* • ↩️ Voltar ao menu';
   await sendWhatsAppMessage(phone, msg, sendContext);
   return { ok: true };
 };
@@ -1472,9 +1472,9 @@ const handleChooseDateStep = async (
   if (!choice || choice < 1 || choice > availableDates.length) {
     let msg = `${config.invalid_option_message}\n\n📅 *${tituloLista(config.choose_date_title)}:*\n\n`;
     availableDates.forEach((dateStr, index) => {
-      msg += `${index + 1}️⃣ ${formatDateBR(dateStr, { weekday: 'long', day: '2-digit', month: '2-digit' })}\n`;
+      msg += `*${index + 1}* • 📅 ${formatDateBR(dateStr, { weekday: 'long', day: '2-digit', month: '2-digit' })}\n`;
     });
-    msg += '\n0️⃣ Voltar ao menu';
+    msg += '\n*0* • ↩️ Voltar ao menu';
     await sendWhatsAppMessage(phone, msg, sendContext);
     return { ok: true };
   }
@@ -1548,13 +1548,13 @@ const handleChooseDateStep = async (
   const dateFormatted = formatDateBR(selectedDate, { weekday: 'long', day: '2-digit', month: '2-digit' });
 
   let msg = `📅 *${dateFormatted}*\n\n⏰ *${tituloLista(config.choose_time_title)}:*\n\n`;
-  availableSlots.forEach((slot: string, index: number) => { msg += `${index + 1}️⃣ ${slot}\n`; });
+  availableSlots.forEach((slot: string, index: number) => { msg += `*${index + 1}* • 🕐 ${slot}\n`; });
 
   if (businessSettings.allowWalkins) {
     msg += `\nℹ️ ${await formatarTexto(config.walkin_notice, businessId)}\n`;
   }
 
-  msg += '\n0️⃣ Voltar ao menu';
+  msg += '\n*0* • ↩️ Voltar ao menu';
   await sendWhatsAppMessage(phone, msg, sendContext);
   return { ok: true };
 };
@@ -1579,8 +1579,8 @@ const handleChooseTimeStep = async (
 
   if (!choice || choice < 1 || choice > availableSlots.length) {
     let msg = `${config.invalid_option_message}\n\n⏰ *${tituloLista(config.choose_time_title)}:*\n\n`;
-    availableSlots.forEach((slot, index) => { msg += `${index + 1}️⃣ ${slot}\n`; });
-    msg += '\n0️⃣ Voltar ao menu';
+    availableSlots.forEach((slot, index) => { msg += `*${index + 1}* • 🕐 ${slot}\n`; });
+    msg += '\n*0* • ↩️ Voltar ao menu';
     await sendWhatsAppMessage(phone, msg, sendContext);
     return { ok: true };
   }
@@ -1649,8 +1649,8 @@ const handleChooseTimeStep = async (
     });
 
     let msg = `⏰ *${tituloLista(config.choose_time_title)}:*\n\n`;
-    newSlots.forEach((slot, index) => { msg += `${index + 1}️⃣ ${slot}\n`; });
-    msg += '\n0️⃣ Voltar ao menu';
+    newSlots.forEach((slot, index) => { msg += `*${index + 1}* • 🕐 ${slot}\n`; });
+    msg += '\n*0* • ↩️ Voltar ao menu';
     await sendWhatsAppMessage(phone, msg, sendContext);
     return { ok: true };
   };

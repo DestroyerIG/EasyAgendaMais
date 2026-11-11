@@ -25,7 +25,7 @@ export const bubbles: Bubble[] = [
   { from: 'cliente', text: 'Oi! Tem horário pra sexta à tarde?', time: '14:15' },
   {
     from: 'bot',
-    text: 'Olá! Bem-vinda ao Studio Exemplo. Responda com o número:\n1️⃣ Agendar um horário\n2️⃣ Ver nossos serviços\n3️⃣ Cancelar agendamento',
+    text: 'Olá! Bem-vinda ao Studio Exemplo. Responda com o número:\n*1* • 📅 Agendar um horário\n2️⃣ Ver nossos serviços\n3️⃣ Cancelar agendamento',
     time: '14:15',
   },
   { from: 'cliente', text: '1', time: '14:16' },

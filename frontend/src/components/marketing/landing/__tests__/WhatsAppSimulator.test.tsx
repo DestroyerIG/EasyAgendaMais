@@ -10,7 +10,7 @@ describe('simulador do WhatsApp', () => {
   it('mostra o fluxo real do robô, por menu', () => {
     expect(bubbles.map((b) => [b.from, b.text])).toEqual([
       ['cliente', 'Oi! Tem horário pra sexta à tarde?'],
-      ['bot', 'Olá! Bem-vinda ao Studio Exemplo. Responda com o número:\n1️⃣ Agendar um horário\n2️⃣ Ver nossos serviços\n3️⃣ Cancelar agendamento'],
+      ['bot', 'Olá! Bem-vinda ao Studio Exemplo. Responda com o número:\n*1* • 📅 Agendar um horário\n2️⃣ Ver nossos serviços\n3️⃣ Cancelar agendamento'],
       ['cliente', '1'],
       ['bot', 'Horários livres na sexta, 24/10:\n1️⃣ 14:00\n2️⃣ 16:30'],
       ['cliente', '1'],

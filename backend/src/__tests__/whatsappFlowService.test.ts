@@ -1151,7 +1151,7 @@ describe('whatsappFlowService guards', () => {
     });
 
     const enviada = String(mockSendWhatsAppMessage.mock.calls.at(-1)?.[1]);
-    expect(enviada).not.toContain('1️⃣');
+    expect(enviada).not.toContain('*1* •');
     expect(enviada).toContain('attendant_message');
   });
 
@@ -1192,8 +1192,8 @@ describe('whatsappFlowService guards', () => {
       expect(mockDeleteSession).not.toHaveBeenCalled();
       expect(mockUpdateSession).toHaveBeenCalledWith(PHONE, 'tenant-1', 'view_services', {});
       expect(ultimaEnviada()).toContain('Corte');
-      expect(ultimaEnviada()).toContain('1️⃣ Agendar um horário');
-      expect(ultimaEnviada()).toContain('0️⃣ Voltar ao menu');
+      expect(ultimaEnviada()).toContain('*1* • 📅 Agendar um horário');
+      expect(ultimaEnviada()).toContain('*0* • ↩️ Voltar ao menu');
     });
 
     it('"Ver servicos" sem a opcao de agendar no menu so oferece voltar', async () => {
@@ -1203,7 +1203,7 @@ describe('whatsappFlowService guards', () => {
 
       await handleIncomingMessage(PHONE, '1', NOW);
 
-      expect(ultimaEnviada()).toContain('0️⃣ Voltar ao menu');
+      expect(ultimaEnviada()).toContain('*0* • ↩️ Voltar ao menu');
       expect(ultimaEnviada()).not.toContain('Agendar um horário');
     });
 
@@ -1242,7 +1242,7 @@ describe('whatsappFlowService guards', () => {
 
       expect(mockDeleteSession).not.toHaveBeenCalled();
       expect(ultimaEnviada()).toContain('Opcao invalida.');
-      expect(ultimaEnviada()).toContain('0️⃣ Voltar ao menu');
+      expect(ultimaEnviada()).toContain('*0* • ↩️ Voltar ao menu');
     });
 
     it('opcao personalizada mantem a sessao e oferece voltar', async () => {
@@ -1255,7 +1255,7 @@ describe('whatsappFlowService guards', () => {
 
       expect(mockDeleteSession).not.toHaveBeenCalled();
       expect(mockUpdateSession).toHaveBeenCalledWith(PHONE, 'tenant-1', 'info', {});
-      expect(ultimaEnviada()).toContain('0️⃣ Voltar ao menu');
+      expect(ultimaEnviada()).toContain('*0* • ↩️ Voltar ao menu');
     });
 
     it('no passo info, "menu" volta ao menu e outra resposta repete o voltar', async () => {
@@ -1263,7 +1263,7 @@ describe('whatsappFlowService guards', () => {
 
       await handleIncomingMessage(PHONE, 'qualquer coisa', NOW);
       expect(mockDeleteSession).not.toHaveBeenCalled();
-      expect(ultimaEnviada()).toContain('0️⃣ Voltar ao menu');
+      expect(ultimaEnviada()).toContain('*0* • ↩️ Voltar ao menu');
 
       const result = await handleIncomingMessage(PHONE, 'menu', NOW);
       expect(result).toEqual(expect.objectContaining({ ok: true, ignored: false }));
@@ -1286,7 +1286,7 @@ describe('whatsappFlowService guards', () => {
 
     await handleIncomingMessage('5511777777777', '1', { now: new Date('2026-04-18T10:00:00-03:00') });
 
-    expect(mockSendWhatsAppMessage.mock.calls.at(-1)?.[1]).toBe('Ofertas da Barbearia Alfa\n\n0️⃣ Voltar ao menu');
+    expect(mockSendWhatsAppMessage.mock.calls.at(-1)?.[1]).toBe('Ofertas da Barbearia Alfa\n\n*0* • ↩️ Voltar ao menu');
     vi.mocked(prisma.business.findFirst).mockResolvedValue(null as never);
   });
 
@@ -1306,7 +1306,7 @@ describe('whatsappFlowService guards', () => {
     await handleIncomingMessage('5511777777777', '1', { now: new Date('2026-04-18T10:00:00-03:00') });
 
     const enviadas = mockSendWhatsAppMessage.mock.calls.map((c) => String(c[1]));
-    expect(enviadas.at(-1)).toBe('Barbearia Alfa: @alfa\n\n0️⃣ Voltar ao menu');
+    expect(enviadas.at(-1)).toBe('Barbearia Alfa: @alfa\n\n*0* • ↩️ Voltar ao menu');
     expect(enviadas.some((m) => m.includes('@seunegocio'))).toBe(false);
     vi.mocked(prisma.business.findFirst).mockResolvedValue(null as never);
   });
@@ -1799,8 +1799,8 @@ describe('whatsappFlowService guards', () => {
 
       const msg = ultima();
       expect(msg).toContain('Seus agendamentos');
-      expect(msg).toContain('1️⃣');
-      expect(msg).toContain('2️⃣');
+      expect(msg).toContain('*1* •');
+      expect(msg).toContain('*2* •');
       expect(msg).toContain('15:30');
       expect(mockUpdateSession).toHaveBeenCalledWith(NUMERO, 'tenant-1', 'manage_choose', { appointments: [A1, A2] });
     });
@@ -1857,7 +1857,7 @@ describe('whatsappFlowService guards', () => {
 
       expect(ultima()).toContain('Opcao invalida.');
       expect(ultima()).toContain('Seus agendamentos');
-      expect(ultima()).toContain('2️⃣');
+      expect(ultima()).toContain('*2* •');
     });
 
     it('acao 1 inicia a remarcacao do agendamento escolhido', async () => {
