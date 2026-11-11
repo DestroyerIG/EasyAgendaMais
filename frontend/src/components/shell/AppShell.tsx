@@ -15,6 +15,7 @@ import { useVocabulario } from '@/hooks/useVocabulario';
 import { useEstadoConta } from '@/hooks/useEstadoConta';
 import { AvaliarSistemaModal } from '@/components/depoimentos/AvaliarSistemaModal';
 import { FaixaContingencia } from '@/components/assinatura/FaixaContingencia';
+import { TourProvider } from '@/components/tour/TourProvider';
 
 const MARCA_CONTINGENCIA = 'easyagenda:contingenciaVista';
 const PAGINAS_LIVRES_BLOQUEIO = ['/dashboard/assinatura', '/dashboard/planos'];
@@ -85,6 +86,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (ehProfissional || onboardingPendente) return <div className="app-theme min-h-screen" />;
 
   return (
+    <TourProvider>
     <div className="app-theme min-h-screen">
       <TopBarSearchProvider>
         <Sidebar activeId={activeId} businessName={businessName} planLabel={planLabel} logoUrl={user?.logoUrl} />
@@ -101,5 +103,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       <BottomNav activeId={activeId} onOpenMore={() => setMoreOpen(true)} />
       <MoreSheet open={moreOpen} onOpenChange={setMoreOpen} activeId={activeId} onLogout={handleLogout} />
     </div>
+    </TourProvider>
   );
 }

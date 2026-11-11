@@ -25,7 +25,7 @@ function NavLink({ id, activeId }: { id: NavItemId; activeId: NavItemId | null }
   const { label, href, icon } = getNavItem(id);
   const active = id === activeId;
   return (
-    <Link href={href} aria-current={active ? 'page' : undefined} className={cn(itemClass, active ? 'text-brand-text' : 'text-muted')}>
+    <Link href={href} aria-current={active ? 'page' : undefined} data-tour={`nav-${id}`} className={cn(itemClass, active ? 'text-brand-text' : 'text-muted')}>
       <Icon name={icon} size={20} filled={active} />
       {label}
     </Link>
@@ -127,7 +127,7 @@ export function BottomNav({ activeId, onOpenMore }: BottomNavProps) {
           </button>
         </div>
         <NavLink id={third} activeId={activeId} />
-        <button type="button" onClick={onOpenMore} className={cn(itemClass, moreActive ? 'text-brand-text' : 'text-muted')}>
+        <button type="button" onClick={onOpenMore} data-tour="nav-mais" className={cn(itemClass, moreActive ? 'text-brand-text' : 'text-muted')}>
           <Icon name="menu" size={20} filled={moreActive} />
           Mais
         </button>

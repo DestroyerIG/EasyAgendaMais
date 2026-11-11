@@ -34,3 +34,6 @@ export const firstSteps: H = async (req, res, next) => {
 export const dismissFirstSteps: H = async (req, res, next) => {
   try { await onboardingService.dispensarPrimeirosPassos(negocio(req)); sendSuccess(res, { dispensado: true }); } catch (e) { next(e); }
 };
+export const finishTour: H = async (req, res, next) => {
+  try { await onboardingService.concluirTour(negocio(req)); sendSuccess(res, { concluido: true }); } catch (e) { next(e); }
+};

@@ -14,6 +14,10 @@ export function estadoOnboarding(b: { onboardingEtapa: number; onboardingConclui
 /** Salvar uma etapa leva à seguinte, sem voltar o progresso de quem já foi além. */
 export const etapaDepoisDe = (atual: number, salva: number) => Math.min(Math.max(atual, salva + 1), 6);
 
+/** O tour guiado aparece uma vez, logo depois do onboarding de configuração. */
+export const tourPendente = (b: { onboardingConcluidoEm: Date | null; tourConcluidoEm?: Date | null }) =>
+  b.onboardingConcluidoEm !== null && b.tourConcluidoEm === null;
+
 /** Pode concluir (pular 4 a 6) só depois das obrigatórias. */
 export const podeConcluir = (etapa: number) => etapa > ULTIMA_OBRIGATORIA;
 

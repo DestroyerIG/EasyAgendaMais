@@ -125,6 +125,11 @@ export const onboardingRepository = {
     });
   },
 
+  /** Idempotente: refazer o tour depois não muda a data da primeira vez. */
+  concluirTour(businessId: string) {
+    return prisma.business.updateMany({ where: { id: businessId, tourConcluidoEm: null }, data: { tourConcluidoEm: new Date() } });
+  },
+
   dispensarPrimeirosPassos(businessId: string) {
     return prisma.business.update({ where: { id: businessId }, data: { primeirosPassosDispensadoEm: new Date() }, select: { id: true } });
   },
@@ -137,7 +142,7 @@ export const onboardingRepository = {
   resumo(businessId: string) {
     return prisma.business.findUnique({
       where: { id: businessId },
-      select: { onboardingEtapa: true, onboardingConcluidoEm: true, logoUrl: true, settings: { select: { segment: true } } },
+      select: { onboardingEtapa: true, onboardingConcluidoEm: true, tourConcluidoEm: true, logoUrl: true, settings: { select: { segment: true } } },
     });
   },
 };

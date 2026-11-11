@@ -36,6 +36,7 @@ export function Sidebar({ activeId, businessName, planLabel, logoUrl }: SidebarP
                 key={id}
                 href={href}
                 aria-current={active ? 'page' : undefined}
+                data-tour={`nav-${id}`}
                 className={cn(
                   'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
                   active
