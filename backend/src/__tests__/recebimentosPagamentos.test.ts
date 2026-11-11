@@ -1447,3 +1447,74 @@ describe('saldo na maquininha Point', () => {
     expect(gw.consultarOrdem).not.toHaveBeenCalled();
   });
 });
+
+describe('saldo no link da InfinitePay (webhook)', () => {
+  const link = (extra: Record<string, unknown> = {}) =>
+    cobranca({ tipo: 'saldo', usuarioId: 'u1', valor: '80.00', gateway: 'infinitepay', forma: 'link', idExterno: COB, ...extra });
+  const volta = { cobrancaId: COB, transactionNsu: 'tx-1', fatura: 'slug-1', orderNsu: COB };
+  const pago = (extra: Record<string, unknown> = {}) => ({ id: 'tx-1', status: 'approved', valor: 80, referencia: COB, formaPaga: 'credito' as const, ...extra });
+
+  beforeEach(() => { ip.conferirPagamento.mockResolvedValue(pago()); });
+
+  it('pago: quita a cobrança e fecha a comanda com a forma que o cliente usou na página', async () => {
+    reserva({ status: 'em_atendimento' }); link();
+    expect(await pagamentosService.confirmarInfinitePay(volta)).toBe('ok');
+
+    expect(lerCobranca()).toMatchObject({ situacao: 'paga', pagamentoExternoId: 'tx-1', formaPaga: 'credito' });
+    expect(comandaSrv.fecharPorPagamento).toHaveBeenCalledWith({ appointmentId: 'a1', businessId: 'b1', userId: 'u1', valor: 80, forma: 'credito' });
+    expect(sinal.avisarSinalConfirmado).not.toHaveBeenCalled();
+    expect(alertas()).toHaveLength(0);
+  });
+
+  it('o mesmo webhook repetido não fecha duas vezes', async () => {
+    reserva({ status: 'em_atendimento' }); link();
+    await pagamentosService.confirmarInfinitePay(volta);
+    await pagamentosService.confirmarInfinitePay(volta);
+    expect(comandaSrv.fecharPorPagamento).toHaveBeenCalledTimes(1);
+    expect(alertas()).toHaveLength(0);
+  });
+
+  it('valor diferente do saldo: não fecha e alerta o dono', async () => {
+    reserva({ status: 'em_atendimento' }); link();
+    ip.conferirPagamento.mockResolvedValue(pago({ valor: 79 }));
+    await pagamentosService.confirmarInfinitePay(volta);
+    expect(lerCobranca().situacao).toBe('pendente');
+    expect(comandaSrv.fecharPorPagamento).not.toHaveBeenCalled();
+    expect(alertas()).toHaveLength(1);
+  });
+
+  it('link pago depois de cancelado ou vencido ainda quita e fecha', async () => {
+    for (const situacao of ['cancelada', 'expirada', 'substituida']) {
+      banco.estado.cobrancas = []; banco.estado.reservas = []; comandaSrv.fecharPorPagamento.mockClear();
+      reserva({ status: 'em_atendimento' }); link({ situacao });
+      await pagamentosService.confirmarInfinitePay(volta);
+      expect(lerCobranca().situacao, situacao).toBe('paga');
+      expect(comandaSrv.fecharPorPagamento, situacao).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('pago com a comanda já fechada: alerta o dono, o pagamento fica registrado', async () => {
+    reserva({ status: 'concluido' }); link({ situacao: 'cancelada' });
+    comandaSrv.fecharPorPagamento.mockResolvedValue('ja_fechada');
+    await pagamentosService.confirmarInfinitePay(volta);
+    expect(lerCobranca().situacao).toBe('paga');
+    expect(alertas()).toHaveLength(1);
+    expect(alertas()[0]![1].description).toMatch(/já estava fechada/i);
+  });
+
+  it('a página não informa a forma: fecha com a forma que o dono marcou na comanda (forma nula)', async () => {
+    reserva({ status: 'em_atendimento' }); link();
+    ip.conferirPagamento.mockResolvedValue(pago({ formaPaga: null }));
+    await pagamentosService.confirmarInfinitePay(volta);
+    expect(comandaSrv.fecharPorPagamento).toHaveBeenCalledWith(expect.objectContaining({ forma: null }));
+  });
+
+  it('order_nsu trocado, ou id de uma cobrança do Mercado Pago: ignora sem conferir nada', async () => {
+    reserva({ status: 'em_atendimento' }); link();
+    expect(await pagamentosService.confirmarInfinitePay({ ...volta, orderNsu: 'outro' })).toBe('ok');
+    banco.estado.cobrancas = []; link({ gateway: 'mercadopago' });
+    expect(await pagamentosService.confirmarInfinitePay(volta)).toBe('ok');
+    expect(ip.conferirPagamento).not.toHaveBeenCalled();
+    expect(comandaSrv.fecharPorPagamento).not.toHaveBeenCalled();
+  });
+});
