@@ -182,6 +182,11 @@ describe('textos do fluxo', () => {
     today_hours_message: { caminho: 'geral', variaveis: ['nome_negocio', 'hora_fechamento'] },
     paused_message: { caminho: 'geral', variaveis: ['nome_negocio'] },
     invalid_list_choice_message: { caminho: 'geral', variaveis: [] },
+    deposit_request_message: { caminho: 'schedule', variaveis: ['nome_negocio', 'servico', 'valor_sinal', 'prazo', 'data', 'horario'] },
+    deposit_checkout_message: { caminho: 'schedule', variaveis: ['nome_negocio', 'servico', 'valor_sinal', 'prazo', 'data', 'horario', 'link_pagamento'] },
+    deposit_waiting_message: { caminho: 'schedule', variaveis: ['prazo'] },
+    deposit_expired_message: { caminho: 'schedule', variaveis: ['nome_negocio'] },
+    deposit_cancelled_message: { caminho: 'schedule', variaveis: [] },
   };
 
   it('toda chave do catálogo tem padrão e só lembrete e sessão expirada ficam fora dele', () => {

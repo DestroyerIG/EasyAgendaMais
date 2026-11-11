@@ -7,7 +7,7 @@ export const businessPublicPageRepository = {
       where: { id: businessId },
       select: {
         slug: true, pixKey: true, pixKeyType: true, logoUrl: true, brandColor: true, galleryPhotos: true, address: true,
-        coverUrl: true, description: true, comodidades: true, mostrarNota: true,
+        coverUrl: true, description: true, comodidades: true, mostrarNota: true, botCobraSinal: true,
       },
     });
     return business;
@@ -27,7 +27,7 @@ export const businessPublicPageRepository = {
       data,
       select: {
         slug: true, pixKey: true, pixKeyType: true, logoUrl: true, brandColor: true, galleryPhotos: true, address: true,
-        coverUrl: true, description: true, comodidades: true, mostrarNota: true,
+        coverUrl: true, description: true, comodidades: true, mostrarNota: true, botCobraSinal: true,
       },
     });
   },

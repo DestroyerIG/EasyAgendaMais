@@ -15,4 +15,9 @@ describe('formatMessage', () => {
   it('troca a mesma variável mais de uma vez e esvazia a que não tem dado', () => {
     expect(formatMessage('{nome_negocio} / {nome_negocio} / {valor}', { businessName: 'Studio' })).toBe('Studio / Studio / ');
   });
+
+  it('troca {valor_sinal}, {prazo} e {link_pagamento}', () => {
+    expect(formatMessage('Sinal de R$ {valor_sinal} em {prazo} min: {link_pagamento}', { depositAmount: '20,00', prazoMin: '15', paymentLink: 'https://pagar.me/x' }))
+      .toBe('Sinal de R$ 20,00 em 15 min: https://pagar.me/x');
+  });
 });

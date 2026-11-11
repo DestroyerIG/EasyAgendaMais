@@ -39,10 +39,15 @@ export const getSession = async (phone: string, businessId: string): Promise<Wha
 };
 
 /**
- * Verifica se a sessão expirou (30 min de inatividade por padrão).
+ * Verifica se a sessão expirou (30 min de inatividade por padrão). A espera do sinal vale até o
+ * prazo da pré-reserva (pode passar de 30 min), mesmo sem mensagem nesse meio-tempo.
  */
 export const isSessionExpired = (session: WhatsAppSession | null): boolean => {
   if (!session) return true;
+  if (session.step === STEPS.AWAITING_DEPOSIT) {
+    const prazo = new Date(String(session.data?.expiresAt ?? '')).getTime();
+    if (prazo > Date.now()) return false;
+  }
   return (Date.now() - new Date(session.updatedAt).getTime()) > SESSION_TIMEOUT_MS;
 };
 
@@ -84,5 +89,20 @@ export const updateSession = async (
 export const deleteSession = async (phone: string, businessId: string): Promise<void> => {
   await prisma.whatsappSession.deleteMany({
     where: { phone, businessId },
+  });
+};
+
+/**
+ * Remove só a sessão que está esperando o sinal DESTA reserva. Uma conversa nova da cliente (outro
+ * passo ou outra reserva) nunca é apagada pelo aviso de expiração ou de pagamento de uma reserva antiga.
+ */
+export const deleteSessaoDoSinal = async (phone: string, businessId: string, appointmentId: string): Promise<void> => {
+  await prisma.whatsappSession.deleteMany({
+    where: {
+      phone,
+      businessId,
+      step: STEPS.AWAITING_DEPOSIT,
+      data: { path: ['appointmentId'], equals: appointmentId },
+    },
   });
 };

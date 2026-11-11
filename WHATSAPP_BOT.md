@@ -75,6 +75,33 @@ A aba também mostra a saúde da conexão, os limites e o histórico de envios (
 - **Simulador:** `POST /whatsapp/simulator/message` testa o fluxo sem gravar nada, mostra todas as respostas e avisa "Teste: nada foi agendado". `POST /whatsapp/simulator/reset` zera a conversa de teste.
 - `POST /whatsapp/config/reset` segue no backend, sem uso na tela.
 
+## Cobrança de sinal pelo robô
+
+- **Opção:** `businesses.bot_cobra_sinal` (`botCobraSinal`, padrão desligado). A dona liga em Ajustes › Recebimentos, no cartão "Sinal no robô" (`SinalNoRoboCard`). Só liga com a chave Pix salva: sem ela, `PUT /business-public-page` devolve 400.
+- **Regra:** o robô cobra quando a opção está ligada, o negócio tem chave Pix e o serviço escolhido tem `depositPercentage > 0` com sinal calculado maior que zero. Fora disso agenda como sempre (sem sinal). Ligada, mas sem chave Pix, agenda sem sinal e registra um aviso no log.
+- **Conversa:**
+  1. Ao confirmar o horário, o robô cria a reserva `aguardando_pagamento` com `source = 'whatsapp'` (o mesmo `reservaComSinalService` da página pública).
+  2. Envia o texto do sinal e, em mensagem separada, o código Pix puro (copia e cola). Se a forma padrão for cartão ou link, envia só o texto com o link. Se algum envio falha, a reserva é cancelada na hora, para o horário não ficar preso.
+  3. A sessão vai para o passo `awaiting_deposit`. Qualquer texto da cliente recebe o lembrete com o prazo restante (sem criar outra reserva). `0` cancela a pré-reserva. Reserva já vencida, paga ou cancelada encerra a espera e reabre o menu.
+  4. A sessão não expira por inatividade (30 min) antes do prazo do sinal.
+- **Textos editáveis** (aba Robô, `GET/PUT /whatsapp/config/textos`):
+
+| Chave | Quando sai | Variáveis |
+|---|---|---|
+| `deposit_request_message` | Pedido do sinal por Pix | `{nome_negocio}`, `{servico}`, `{valor_sinal}`, `{prazo}`, `{data}`, `{horario}` |
+| `deposit_checkout_message` | Pedido do sinal por cartão ou link | as mesmas e `{link_pagamento}` |
+| `deposit_waiting_message` | Cliente escreve enquanto espera | `{prazo}` (minutos que faltam) |
+| `deposit_expired_message` | Prazo do sinal esgotado | `{nome_negocio}` |
+| `deposit_cancelled_message` | Cliente digitou `0` | nenhuma |
+
+- **Pagamento** (webhook, verificação de cada minuto ou confirmação manual): a cliente recebe a `confirmation_message` do robô (e não o "sinal confirmado" genérico) e a sessão é encerrada. As reservas que não vieram do robô seguem com a mensagem genérica.
+- **Expiração:** a rotina de expiração (`expirePendingAppointments`, a cada 5 minutos) expira a reserva, envia `deposit_expired_message` e encerra a sessão. O horário volta para a agenda. Por isso o aviso e a liberação do horário podem chegar até cerca de 5 minutos depois do prazo; se a cliente escrever nesse intervalo, o robô já trata a reserva vencida como encerrada e reabre o menu. Só a conferência do pagamento (`conferirPendentes`) roda a cada minuto.
+- **Simulador:** mostra o texto do sinal com um código Pix de teste e o `AVISO_TESTE`, sem criar reserva nem cobrança.
+- **Limites:**
+  - A forma de pagamento é sempre a padrão do negócio (`formas()[0]`, Pix se não houver outra); a cliente não escolhe no chat.
+  - Remarcar não cobra sinal: mantém o que já foi pago.
+  - O pagamento real pelo Mercado Pago e pela InfinitePay ainda não teve teste real; o Pix manual segue o fluxo já conhecido.
+
 ## Ponto único de envio
 
 Toda mensagem sai por `sendWhatsAppMessage(phone, message, context)`, com `businessId` e `origin`. Assim tudo fica gravado na central. Origens: `cliente` (entrada), `bot`, `lembrete`, `confirmacao`, `sinal_pix`, `pix_recibo`, `lista_espera`, `retorno`, `aniversario`, `avaliacao`, `campanha`, `clube`, `painel_evento`, `manual_painel`, `manual_celular` e `sistema`.

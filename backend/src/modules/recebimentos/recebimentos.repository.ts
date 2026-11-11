@@ -419,6 +419,20 @@ export const recebimentosRepository = {
     }
   },
 
+  /**
+   * Cancela a pré-reserva só se ela ainda estiver aguardando o sinal (compare-and-set): uma reserva
+   * paga ou já cancelada nesse meio-tempo fica como está e a resposta é false. As cobranças não mudam:
+   * cancelamento feito pela cliente não é vencimento, então um pagamento atrasado alerta o negócio
+   * em vez de reativar o horário.
+   */
+  async cancelarReservaPendente(appointmentId: string, businessId: string): Promise<boolean> {
+    const { count } = await prisma.appointment.updateMany({
+      where: { id: appointmentId, businessId, status: 'aguardando_pagamento' },
+      data: { status: 'cancelado' },
+    });
+    return count === 1;
+  },
+
   /** Cancelar não devolve nada sozinho: quem administra recebe o lembrete, se havia sinal pago. */
   async lembrarDevolucaoAoCancelar(businessId: string, appointmentId: string): Promise<void> {
     const pagas = await prisma.cobrancaSinal.findMany({

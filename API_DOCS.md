@@ -260,6 +260,8 @@ Exemplo de `PUT /business/settings`:
 | PUT | `/` | Salva slug, logo, cor, galeria, endereço e chave Pix |
 | POST | `/upload-image` | Envia logo ou foto da galeria |
 
+`botCobraSinal` (boolean, padrão `false`) liga a cobrança do sinal pelo robô do WhatsApp. Vem no `GET /` e é aceito no `PUT /`. Ligar sem chave Pix salva (nem no mesmo `PUT`) devolve 400 "Cadastre a chave Pix antes de ligar a cobrança do sinal pelo robô". Detalhes em `WHATSAPP_BOT.md`.
+
 ## Página pública (`/public`), público
 
 | Método | Rota | Descrição |

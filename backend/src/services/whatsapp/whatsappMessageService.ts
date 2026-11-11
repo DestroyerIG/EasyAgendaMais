@@ -36,6 +36,11 @@ export interface FormatMessageData {
   horarioAtendimento?: string;
   /** Hora em que o negócio fecha hoje. */
   horaFechamento?: string;
+  /** Valor do sinal já formatado, ex.: 20,00. */
+  depositAmount?: string;
+  /** Prazo para pagar o sinal, em minutos. */
+  prazoMin?: string;
+  paymentLink?: string;
 }
 
 export interface MenuOption {
@@ -153,6 +158,9 @@ export const formatMessage = (template: string, data: FormatMessageData = {}): s
     '{instagram_handle}': data.instagramHandle || '',
     '{horario_atendimento}': data.horarioAtendimento || '',
     '{hora_fechamento}': data.horaFechamento || '',
+    '{valor_sinal}': data.depositAmount || '',
+    '{prazo}': data.prazoMin || '',
+    '{link_pagamento}': data.paymentLink || '',
   };
 
   for (const [key, value] of Object.entries(placeholders)) {

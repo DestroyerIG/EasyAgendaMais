@@ -72,4 +72,24 @@ describe('PixManualCard', () => {
     expect(await screen.findByText('Reserva')).toBeInTheDocument();
     expect(screen.getByText(/sua conta conectada confirma o sinal sozinha/i)).toBeInTheDocument();
   });
+
+  it('avisa o pai (onSalvo) só depois de salvar a chave com sucesso', async () => {
+    const onSalvo = vi.fn();
+    const user = userEvent.setup();
+    render(<PixManualCard onSalvo={onSalvo} />);
+    await screen.findByLabelText(/^chave pix$/i);
+    await user.click(screen.getByRole('button', { name: /salvar chave pix/i }));
+    await waitFor(() => expect(onSalvo).toHaveBeenCalledTimes(1));
+  });
+
+  it('não chama onSalvo quando o salvamento falha', async () => {
+    const onSalvo = vi.fn();
+    api.updateSettings.mockRejectedValueOnce(new Error('falhou'));
+    const user = userEvent.setup();
+    render(<PixManualCard onSalvo={onSalvo} />);
+    await screen.findByLabelText(/^chave pix$/i);
+    await user.click(screen.getByRole('button', { name: /salvar chave pix/i }));
+    await screen.findByRole('alert');
+    expect(onSalvo).not.toHaveBeenCalled();
+  });
 });

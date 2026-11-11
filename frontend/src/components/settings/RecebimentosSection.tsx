@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { GATEWAYS } from '@/components/recebimentos/catalogo';
 import { GatewayLogo } from '@/components/recebimentos/GatewayLogo';
 import { PixManualCard } from '@/components/recebimentos/PixManualCard';
+import { SinalNoRoboCard } from '@/components/recebimentos/SinalNoRoboCard';
 import { recebimentosApi, type EstadoRecebimentos } from '@/lib/recebimentos';
 
 // Ajustes › Recebimentos: a chave Pix do sinal e, com a integração configurada, um cartão por gateway.
@@ -15,6 +16,8 @@ export function RecebimentosSection() {
   const { user } = useAuth();
   const ehDona = user?.role === 'tenant_admin';
   const [estado, setEstado] = useState<EstadoRecebimentos | null>(null);
+  // Sobe quando a chave Pix é salva, para o interruptor do robô reler as configurações.
+  const [versaoChave, setVersaoChave] = useState(0);
 
   useEffect(() => {
     if (!ehDona) return;
@@ -29,7 +32,8 @@ export function RecebimentosSection() {
 
   return (
     <div className="space-y-4">
-      <PixManualCard confirmacaoAutomatica={pixAutomatico(estado)} />
+      <PixManualCard confirmacaoAutomatica={pixAutomatico(estado)} onSalvo={() => setVersaoChave((v) => v + 1)} />
+      <SinalNoRoboCard key={versaoChave} />
       {estado === null && <Skeleton className="h-28 w-full" label="Carregando recebimentos..." />}
       {estado?.configurado && <Gateways estado={estado} />}
     </div>

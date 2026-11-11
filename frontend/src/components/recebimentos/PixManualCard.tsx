@@ -17,7 +17,7 @@ const TIPOS: { value: TipoChave; label: string }[] = [
 
 // Ajustes › Recebimentos: a chave Pix do sinal. Sem conta conectada, a confirmação é manual;
 // com conta conectada, a chave é a reserva quando a cobrança falha ou o cliente prefere o Pix direto.
-export function PixManualCard({ confirmacaoAutomatica = false }: { confirmacaoAutomatica?: boolean }) {
+export function PixManualCard({ confirmacaoAutomatica = false, onSalvo }: { confirmacaoAutomatica?: boolean; onSalvo?: () => void }) {
   const [carregado, setCarregado] = useState(false);
   const [salva, setSalva] = useState(false);
   const [chave, setChave] = useState('');
@@ -53,6 +53,7 @@ export function PixManualCard({ confirmacaoAutomatica = false }: { confirmacaoAu
       setChave(d.pixKey ?? chave.trim());
       setSalva(true);
       setOk('Chave Pix salva.');
+      onSalvo?.();
     } catch (err) {
       setErro(getApiErrorMessage(err, 'Não foi possível salvar a chave Pix. Tente novamente.'));
     } finally {

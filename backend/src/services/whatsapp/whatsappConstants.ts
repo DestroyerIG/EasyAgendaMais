@@ -21,6 +21,8 @@ export const STEPS = {
   INFO: 'info',
   MANAGE_CHOOSE: 'manage_choose',
   MANAGE_ACTION: 'manage_action',
+  /** Pré-reserva criada: espera o pagamento do sinal (Pix ou link). */
+  AWAITING_DEPOSIT: 'awaiting_deposit',
 } as const;
 
 export type StepKey = keyof typeof STEPS;
@@ -91,6 +93,11 @@ export interface BotConfig {
   cancel_list_hint: string;
   reschedule_list_hint: string;
   cancel_failed_message: string;
+  deposit_request_message: string;
+  deposit_checkout_message: string;
+  deposit_waiting_message: string;
+  deposit_expired_message: string;
+  deposit_cancelled_message: string;
 }
 
 /**
@@ -163,6 +170,11 @@ export const DEFAULT_BOT_CONFIG: BotConfig = {
   cancel_list_hint: '⚠️ Clique no número do agendamento para cancelar ou digite 0️⃣ para voltar ao menu de atendimento',
   reschedule_list_hint: '👉 Clique no número para reagendar ou digite 0️⃣ para voltar ao menu de atendimento',
   cancel_failed_message: 'Desculpe, ocorreu um erro ao cancelar o agendamento. Tente novamente.',
+  deposit_request_message: '⏳ Sua vaga para {servico} está pré-reservada por {prazo} min! Para garantir, pague o sinal de R$ {valor_sinal} pelo Pix. O código vem na próxima mensagem 👇',
+  deposit_checkout_message: '⏳ Sua vaga para {servico} está pré-reservada por {prazo} min! Para garantir, pague o sinal de R$ {valor_sinal} neste link: {link_pagamento}',
+  deposit_waiting_message: 'Ainda estamos aguardando o pagamento do sinal. Sua vaga fica reservada por até {prazo} min. Se você já pagou, é só aguardar a confirmação, que chega por aqui.\n\n0️⃣ Cancelar a pré-reserva',
+  deposit_expired_message: '⏰ O prazo para pagar o sinal acabou e o horário foi liberado. Se você já fez o pagamento, responda aqui que {nome_negocio} confere para você. Quer agendar de novo? É só mandar um oi.',
+  deposit_cancelled_message: 'Pré-reserva cancelada. Quando quiser, é só mandar um oi.',
 };
 
 /** Fecha as respostas de agendamento do simulador: nada foi gravado de verdade. */

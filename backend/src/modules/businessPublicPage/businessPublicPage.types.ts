@@ -18,6 +18,7 @@ export const UpdatePublicPageSchema = z
     description: z.string().trim().max(500).optional(),
     comodidades: z.array(z.enum(COMODIDADES)).max(COMODIDADES.length).optional(),
     mostrarNota: z.boolean().optional(),
+    botCobraSinal: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     // O formato da chave só pode ser validado conhecendo o tipo — por isso os dois
@@ -60,4 +61,5 @@ export interface PublicPageSettings {
   description: string | null;
   comodidades: string[];
   mostrarNota: boolean;
+  botCobraSinal: boolean;
 }

@@ -63,6 +63,15 @@ import { appointmentsPrismaRepository } from '../../modules/appointments/appoint
 import { businessSettingsRepository } from '../../repositories/businessSettingsRepository.js';
 import { estadoContaService } from '../../modules/conta/estadoConta.service.js';
 import { googleAgendaService } from '../../modules/googleAgenda/googleAgenda.service.js';
+import {
+  reservarComSinalSeAtivo,
+  enviarPedidoDoSinal,
+  simularPedidoDoSinal,
+  reservaEmEspera,
+  cancelarEsperaDoSinal,
+  minutosRestantes,
+  type SinalDoRobo,
+} from './whatsappSinalService.js';
 
 // ==================== LOCAL INTERFACES ====================
 
@@ -1718,6 +1727,30 @@ const handleChooseTimeStep = async (
     'Payload consolidado para criacao de agendamento via WhatsApp bot'
   );
 
+  // Sinal pelo robô (opção do proprietário): vira pré-reserva e a confirmação só sai depois do pagamento.
+  const envioDoSinal = {
+    phone, businessId, config, sendContext, time: selectedTime,
+    dateFormatted: formatDateBR(selectedDate, { day: '2-digit', month: '2-digit', year: 'numeric' }),
+  };
+  if (simulado) {
+    const simulou = await simularPedidoDoSinal({ businessId, serviceId: appointmentPayload.serviceId }, envioDoSinal);
+    if (simulou !== null) {
+      if (simulou) await deleteSession(phone, businessId);
+      return { ok: simulou };
+    }
+  } else {
+    let sinal: SinalDoRobo | null;
+    try {
+      sinal = await reservarComSinalSeAtivo({ businessId, ...appointmentPayload });
+    } catch (error) {
+      if (error instanceof ConflictError) return oferecerOutrosHorarios();
+      logger.error({ err: error, phone, businessId, appointmentPayload }, 'Falha ao criar a pré-reserva com sinal via WhatsApp bot');
+      await sendWhatsAppMessage(phone, config.booking_failed_message, sendContext);
+      return { ok: true };
+    }
+    if (sinal) return { ok: await enviarPedidoDoSinal(sinal, envioDoSinal) };
+  }
+
   let createdAppointment: { id: string; status: string };
   try {
     createdAppointment = simulado
@@ -1753,7 +1786,7 @@ const handleChooseTimeStep = async (
   );
 
   // FIX Bug 5
-  const dateFormatted = formatDateBR(selectedDate, { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const { dateFormatted } = envioDoSinal;
 
   const confirmationMsg = await formatarTexto(config.confirmation_message, businessId, {
     serviceName: (sessionData.serviceName as string) || '',
@@ -1785,6 +1818,54 @@ const handleChooseTimeStep = async (
   }
 
   return { ok: confirmationSent };
+};
+
+/**
+ * Pré-reserva à espera do sinal. Qualquer texto lembra o prazo (sem criar outra reserva); `0` cancela.
+ * Reserva que já expirou, foi paga ou cancelada encerra a espera e reabre o menu.
+ */
+const handleAwaitingDepositStep = async (
+  phone: string,
+  text: string,
+  businessId: string,
+  sessionData: Record<string, unknown>,
+  config: BotConfig,
+  sendContext: SendWhatsAppMessageContext,
+  businessSettings: BusinessSettings
+): Promise<{ ok: boolean }> => {
+  const appointmentId = sessionData.appointmentId as string | undefined;
+  const espera = appointmentId ? await reservaEmEspera(appointmentId, businessId) : null;
+
+  const reabrirMenu = async (): Promise<{ ok: boolean }> => {
+    await deleteSession(phone, businessId);
+    await createSession(phone, businessId);
+    return { ok: await sendWhatsAppMessage(phone, await buildContextualMenuMessage(businessId, businessSettings, config), sendContext) };
+  };
+
+  if (!espera || !appointmentId) return reabrirMenu();
+
+  if (text === '0') {
+    let resultado: Awaited<ReturnType<typeof cancelarEsperaDoSinal>>;
+    try {
+      resultado = await cancelarEsperaDoSinal(appointmentId, businessId);
+    } catch (error) {
+      logger.error({ err: error, phone, businessId, appointmentId }, 'Falha ao cancelar a pré-reserva do sinal via WhatsApp bot');
+      return { ok: await sendWhatsAppMessage(phone, config.cancel_failed_message, sendContext) };
+    }
+    if (resultado === 'paga') {
+      // Pago entre a leitura e o pedido de cancelar: a confirmação sai pelo pagamento, nada a cancelar.
+      await deleteSession(phone, businessId);
+      return { ok: true };
+    }
+    if (resultado === 'encerrada') return reabrirMenu();
+    await deleteSession(phone, businessId);
+    return { ok: await sendWhatsAppMessage(phone, await formatarTexto(config.deposit_cancelled_message, businessId), sendContext) };
+  }
+
+  const aguardando = await formatarTexto(config.deposit_waiting_message, businessId, {
+    prazoMin: String(minutosRestantes(espera.expiresAt)),
+  });
+  return { ok: await sendWhatsAppMessage(phone, aguardando, sendContext) };
 };
 
 // ==================== HANDLER PRINCIPAL ====================
@@ -2409,6 +2490,11 @@ export const handleIncomingMessage = async (
           config,
           sendContext,
           businessSettings
+        );
+        break;
+      case STEPS.AWAITING_DEPOSIT:
+        stepResult = await handleAwaitingDepositStep(
+          normalizedPhone!, normalizedText, businessId, sessionData, config, sendContext, businessSettings
         );
         break;
       case STEPS.CONFIRM_CANCEL: {
