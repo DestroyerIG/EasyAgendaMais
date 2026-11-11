@@ -203,6 +203,13 @@ export const recebimentosRepository = {
     });
   },
 
+  /** O gateway disse que a ordem foi cancelada ou venceu: só sai de `pendente`. */
+  async marcarCancelada(cobrancaId: string): Promise<void> {
+    await prisma.cobrancaSinal.updateMany({
+      where: { id: cobrancaId, tipo: 'saldo', situacao: 'pendente' }, data: { situacao: 'cancelada' },
+    });
+  },
+
   async cancelarSaldoPendente(appointmentId: string): Promise<number> {
     const { count } = await prisma.cobrancaSinal.updateMany({
       where: { appointmentId, tipo: 'saldo', situacao: 'pendente' }, data: { situacao: 'cancelada' },

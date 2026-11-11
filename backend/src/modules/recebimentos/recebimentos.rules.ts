@@ -174,7 +174,7 @@ export function decidirPagamento(e: EntradaDecisao): Decisao {
 // ─── Decisão sobre um pagamento do saldo da comanda ─────────────────────────────
 
 export type DecisaoSaldo =
-  | 'ignorar' | 'quitar' | 'marcar_recusada' | 'marcar_devolvida' | 'marcar_contestada'
+  | 'ignorar' | 'quitar' | 'marcar_recusada' | 'marcar_cancelada' | 'marcar_devolvida' | 'marcar_contestada'
   | 'alertar_duplicado' | 'alertar_valor_diferente';
 
 /**
@@ -192,6 +192,8 @@ export function decidirSaldo(e: {
   if (pagamento.status === 'refunded') return 'marcar_devolvida';
   if (pagamento.status === 'charged_back') return 'marcar_contestada';
   if (pagamento.status === 'rejected') return cobranca.situacao === 'pendente' ? 'marcar_recusada' : 'ignorar';
+  // Ordem cancelada ou vencida na maquininha: a cobrança pendente sai de cena e a comanda destrava na hora.
+  if (pagamento.status === 'cancelled' || pagamento.status === 'expired') return cobranca.situacao === 'pendente' ? 'marcar_cancelada' : 'ignorar';
   if (pagamento.status !== 'approved') return 'ignorar';
 
   if (cobranca.situacao === 'paga') return cobranca.pagamentoExternoId === pagamento.id ? 'ignorar' : 'alertar_duplicado';

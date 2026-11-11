@@ -152,3 +152,12 @@ describe('cobranças de saldo no repositório', () => {
     });
   });
 });
+
+describe('marcarCancelada', () => {
+  it('só tira de pendente uma cobrança de saldo', async () => {
+    await repo.marcarCancelada('c1');
+    expect(cs.updateMany.mock.calls[0]![0]).toEqual({
+      where: { id: 'c1', tipo: 'saldo', situacao: 'pendente' }, data: { situacao: 'cancelada' },
+    });
+  });
+});

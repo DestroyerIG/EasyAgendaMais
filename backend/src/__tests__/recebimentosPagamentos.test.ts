@@ -95,7 +95,7 @@ vi.mock('../modules/appointments/sinalConfirmado.js', async (orig) => ({
 const apptRepo = vi.hoisted(() => ({ hasConflict: vi.fn(), findById: vi.fn(), updateStatus: vi.fn(), softDelete: vi.fn() }));
 vi.mock('../modules/appointments/appointments.repository.js', () => ({ appointmentsPrismaRepository: apptRepo }));
 
-const gw = vi.hoisted(() => ({ referenciaDoRecurso: vi.fn(), buscarPorReferencia: vi.fn(), conta: vi.fn() }));
+const gw = vi.hoisted(() => ({ referenciaDoRecurso: vi.fn(), buscarPorReferencia: vi.fn(), consultarOrdem: vi.fn(), conta: vi.fn() }));
 const conexao = vi.hoisted(() => ({
   credencial: vi.fn(), tokenAtivo: vi.fn(), porContaExterna: vi.fn(), marcarReconectar: vi.fn(),
   // Mesma regra do serviço real: só a conta do gateway prova que o acesso caiu.
@@ -1371,5 +1371,79 @@ describe('saldo da comanda', () => {
 
     expect(lerCobranca(COB).situacao).toBe('expirada');
     expect(lerCobranca(COB2).situacao).toBe('pendente');
+  });
+});
+
+describe('saldo na maquininha Point', () => {
+  const point = (extra: Record<string, unknown> = {}) =>
+    cobranca({ tipo: 'saldo', usuarioId: 'u1', valor: '80.00', forma: 'point', idExterno: 'ORD1', ...extra });
+  const ordem = (extra: Record<string, unknown> = {}) => ({
+    id: 'PAY1', status: 'approved', valor: 80, referencia: COB, formaPaga: 'debito' as const, ...extra,
+  });
+
+  beforeEach(() => { gw.consultarOrdem.mockResolvedValue(ordem()); });
+
+  it('confere pela ordem (não pela busca de pagamentos) e fecha a comanda com a forma paga na maquininha', async () => {
+    reserva({ status: 'em_atendimento' }); point();
+    await pagamentosService.processarCobranca(COB);
+
+    expect(gw.consultarOrdem).toHaveBeenCalledWith('APP_USR-segredo', 'ORD1');
+    expect(gw.buscarPorReferencia).not.toHaveBeenCalled();
+    expect(lerCobranca()).toMatchObject({ situacao: 'paga', pagamentoExternoId: 'PAY1', formaPaga: 'debito' });
+    expect(comandaSrv.fecharPorPagamento).toHaveBeenCalledWith({ appointmentId: 'a1', businessId: 'b1', userId: 'u1', valor: 80, forma: 'debito' });
+  });
+
+  it('o aviso order.* do Mercado Pago leva à mesma conferência', async () => {
+    reserva({ status: 'em_atendimento' }); point();
+    await pagamentosService.processarAviso({ contaId: '999', tipo: 'order', recursoId: 'ORD1' });
+    expect(gw.referenciaDoRecurso).toHaveBeenCalledWith('APP_USR-segredo', { tipo: 'order', id: 'ORD1' });
+    expect(gw.consultarOrdem).toHaveBeenCalledTimes(1);
+    expect(comandaSrv.fecharPorPagamento).toHaveBeenCalledTimes(1);
+  });
+
+  it('processed repetido não fecha duas vezes', async () => {
+    reserva({ status: 'em_atendimento' }); point();
+    await pagamentosService.processarCobranca(COB);
+    await pagamentosService.processarCobranca(COB);
+    expect(comandaSrv.fecharPorPagamento).toHaveBeenCalledTimes(1);
+    expect(alertas()).toHaveLength(0);
+  });
+
+  it('processed de valor diferente da cobrança: não fecha e alerta', async () => {
+    reserva({ status: 'em_atendimento' }); point();
+    gw.consultarOrdem.mockResolvedValue(ordem({ valor: 79 }));
+    await pagamentosService.processarCobranca(COB);
+    expect(lerCobranca().situacao).toBe('pendente');
+    expect(comandaSrv.fecharPorPagamento).not.toHaveBeenCalled();
+    expect(alertas()).toHaveLength(1);
+  });
+
+  it('ordem cancelada ou vencida na maquininha destrava a comanda na hora', async () => {
+    reserva({ status: 'em_atendimento' }); point();
+    gw.consultarOrdem.mockResolvedValue(ordem({ status: 'cancelled' }));
+    await pagamentosService.processarCobranca(COB);
+    expect(lerCobranca().situacao).toBe('cancelada');
+    expect(comandaSrv.fecharPorPagamento).not.toHaveBeenCalled();
+  });
+
+  it('ordem recusada no terminal (cartão negado): cobrança recusada', async () => {
+    reserva({ status: 'em_atendimento' }); point();
+    gw.consultarOrdem.mockResolvedValue(ordem({ status: 'rejected' }));
+    await pagamentosService.processarCobranca(COB);
+    expect(lerCobranca().situacao).toBe('recusada');
+  });
+
+  it('ordem ainda no terminal (pending) não muda nada', async () => {
+    reserva({ status: 'em_atendimento' }); point();
+    gw.consultarOrdem.mockResolvedValue(ordem({ status: 'pending' }));
+    await pagamentosService.processarCobranca(COB);
+    expect(lerCobranca().situacao).toBe('pendente');
+    expect(comandaSrv.fecharPorPagamento).not.toHaveBeenCalled();
+  });
+
+  it('cobrança Point sem id da ordem não chama o gateway', async () => {
+    reserva({ status: 'em_atendimento' }); point({ idExterno: null });
+    await pagamentosService.processarCobranca(COB);
+    expect(gw.consultarOrdem).not.toHaveBeenCalled();
   });
 });
