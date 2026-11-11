@@ -9,6 +9,8 @@ import { useToast } from '@/components/Toast';
 import { isValidCnpj } from '@/utils/cpfCnpj';
 import { AcessoAppProfissional } from './AcessoAppProfissional';
 import { useVocabulario } from '@/hooks/useVocabulario';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSubscriptionAccess } from '@/hooks/useSubscriptionAccess';
 
 export interface ServiceFormData {
   name: string;
@@ -27,6 +29,8 @@ export interface ProfessionalFormData {
   commissionProductPct: number | null;
   especialidade: string | null;
   cnpj: string | null;
+  // Só no cadastro novo: se preenchido, o convite do app sai junto com o cadastro.
+  emailConvite?: string | null;
 }
 
 // Estado do formulário: os campos novos ficam como texto até o envio.
@@ -39,10 +43,11 @@ interface ProfessionalFormState {
   commissionProductPct: string;
   especialidade: string;
   cnpj: string;
+  emailConvite: string;
 }
 
 const EMPTY_PROFESSIONAL: ProfessionalFormState = {
-  name: '', photo: '', breakStart: '', breakEnd: '', commissionServicePct: '', commissionProductPct: '', especialidade: '', cnpj: '',
+  name: '', photo: '', breakStart: '', breakEnd: '', commissionServicePct: '', commissionProductPct: '', especialidade: '', cnpj: '', emailConvite: '',
 };
 
 // Máscara 00.000.000/0000-00 enquanto digita.
@@ -84,6 +89,10 @@ export const ServiceProfessionalModal = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
   const { prof } = useVocabulario();
+  const { user } = useAuth();
+  const { canAccess } = useSubscriptionAccess();
+  // Só a dona convida, e só nos planos que liberam o app. Na edição, o bloco "Acesso ao app" cuida disso.
+  const podeConvidarNoCadastro = !editingItem && user?.role === 'tenant_admin' && canAccess('app_profissional');
 
   useEffect(() => {
     if (!isOpen) return;
@@ -114,6 +123,7 @@ export const ServiceProfessionalModal = ({
           commissionProductPct: prof.commissionProductPct != null ? String(prof.commissionProductPct) : '',
           especialidade: prof.especialidade ?? '',
           cnpj: prof.cnpj ? mascaraCnpj(prof.cnpj) : '',
+          emailConvite: '',
         });
         setPhotoPreview(existingPhoto);
       } else {
@@ -178,6 +188,10 @@ export const ServiceProfessionalModal = ({
         showToast('CNPJ inválido', 'error');
         return;
       }
+      if (podeConvidarNoCadastro && professionalForm.emailConvite.trim() && !/^\S+@\S+\.\S+$/.test(professionalForm.emailConvite.trim())) {
+        showToast('E-mail inválido', 'error');
+        return;
+      }
     }
     setSubmitting(true);
     try {
@@ -205,6 +219,7 @@ export const ServiceProfessionalModal = ({
           commissionProductPct: pctOuNull(professionalForm.commissionProductPct),
           especialidade: professionalForm.especialidade.trim() || null,
           cnpj: professionalForm.cnpj.replace(/\D/g, '') || null,
+          emailConvite: podeConvidarNoCadastro ? professionalForm.emailConvite.trim() || null : null,
         });
       }
       onClose();
@@ -437,6 +452,22 @@ export const ServiceProfessionalModal = ({
                 placeholder="00.000.000/0000-00"
               />
             </Field>
+
+            {podeConvidarNoCadastro && (
+              <Field
+                id="professional-email-convite"
+                label="E-mail para o app (opcional)"
+                hint={`Se preencher, ${prof.ele} recebe o convite para entrar no app assim que você salvar.`}
+              >
+                <Input
+                  id="professional-email-convite"
+                  type="email"
+                  value={professionalForm.emailConvite}
+                  onChange={e => setProfessionalForm({ ...professionalForm, emailConvite: e.target.value })}
+                  placeholder={`E-mail ${prof.dele}`}
+                />
+              </Field>
+            )}
 
             {editingItem && 'photo' in editingItem && (
               <AcessoAppProfissional professionalId={editingItem.id} ativa={(editingItem as Professional).active !== false} />

@@ -15,6 +15,7 @@ import type { ServiceFormData, ProfessionalFormData } from '@/components/service
 import { getApiErrorCode, getApiErrorMessage } from '@/utils/handleApiError';
 import { useRouter } from 'next/navigation';
 import { useVocabulario } from '@/hooks/useVocabulario';
+import { equipeApi } from '@/lib/equipe';
 
 export const ServiceProfessionalModule = () => {
   const [activeTab, setActiveTab] = useState<'servicos' | 'profissionais' | 'produtos'>('servicos');
@@ -92,8 +93,20 @@ export const ServiceProfessionalModule = () => {
         await api.put(`/business/professionals/${editingItem.id}`, payload);
         showToast(`${prof.S} ${prof.g('atualizada', 'atualizado')}`, 'success');
       } else {
-        await api.post('/business/professionals', payload);
+        const { data: criada } = await api.post<{ id?: string }>('/business/professionals', payload);
         showToast(`${prof.S} ${prof.g('cadastrada', 'cadastrado')}`, 'success');
+        if (data.emailConvite && criada?.id) {
+          // O cadastro já está salvo: se o convite falhar, avisa e a dona reenvia pela edição.
+          try {
+            const r = await equipeApi.convidar(criada.id, data.emailConvite);
+            showToast(
+              r.emailEnviado ? `Convite enviado para ${r.email}` : `Convite criado. Abra ${prof.oS} para copiar o link.`,
+              r.emailEnviado ? 'success' : 'info',
+            );
+          } catch (e) {
+            showToast(getApiErrorMessage(e, 'Cadastro salvo, mas o convite não saiu. Reenvie pela edição.'), 'error');
+          }
+        }
       }
       loadData();
     } catch (error: unknown) {

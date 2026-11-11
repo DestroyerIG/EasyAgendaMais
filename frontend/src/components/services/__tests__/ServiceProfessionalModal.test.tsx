@@ -6,6 +6,11 @@ import { ServiceProfessionalModal, type ProfessionalFormData } from '../ServiceP
 
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: vi.fn() }));
 
+const usuario = vi.hoisted(() => ({ role: 'tenant_admin', plan: 'profissional' }));
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { role: usuario.role, plan: usuario.plan, subscriptionStatus: 'active' } }),
+}));
+
 const renderModal = (onSubmitProfessional: (d: ProfessionalFormData) => Promise<void>) =>
   render(
     <ToastProvider>
@@ -21,6 +26,25 @@ const renderModal = (onSubmitProfessional: (d: ProfessionalFormData) => Promise<
   );
 
 describe('ServiceProfessionalModal (profissional)', () => {
+  it('envia o e-mail do convite junto com o cadastro, opcional', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    renderModal(onSubmit);
+    await user.type(screen.getByLabelText('Nome da profissional'), 'Camila');
+    await user.type(screen.getByLabelText(/E-mail para o app/i), 'camila@exemplo.com');
+    await user.click(screen.getByRole('button', { name: /salvar/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ emailConvite: 'camila@exemplo.com' })));
+  });
+
+  it('salva sem e-mail quando o campo fica em branco', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    renderModal(onSubmit);
+    await user.type(screen.getByLabelText('Nome da profissional'), 'Camila');
+    await user.click(screen.getByRole('button', { name: /salvar/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ emailConvite: null })));
+  });
+
   it('bloqueia intervalo pela metade', async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
