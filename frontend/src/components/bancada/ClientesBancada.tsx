@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ChevronRight, Search, Users } from 'lucide-react';
 import { Avatar, EmptyState, Skeleton } from '@/components/ui';
-import { bancadaApi, type ClienteDela } from '@/lib/bancada';
+import { bancadaApi, EVENTO_ATUALIZAR_BANCADA, type ClienteDela } from '@/lib/bancada';
 import { formatPhone } from '@/lib/formatters';
 import { ErroBancada } from './ErroBancada';
 import { useVocabulario } from '@/hooks/useVocabulario';
@@ -16,6 +16,14 @@ export function ClientesBancada() {
   const [busca, setBusca] = useState('');
   const [lista, setLista] = useState<ClienteDela[] | null>(null);
   const [erro, setErro] = useState<unknown>(null);
+  const [versao, setVersao] = useState(0);
+
+  // O atalho + (novo cliente ou agendamento) avisa para recarregar a lista.
+  useEffect(() => {
+    const recarregar = () => setVersao((v) => v + 1);
+    window.addEventListener(EVENTO_ATUALIZAR_BANCADA, recarregar);
+    return () => window.removeEventListener(EVENTO_ATUALIZAR_BANCADA, recarregar);
+  }, []);
 
   useEffect(() => {
     let vivo = true;
@@ -25,7 +33,7 @@ export function ClientesBancada() {
         .catch((e) => { if (vivo) setErro(e); });
     }, busca ? 300 : 0);
     return () => { vivo = false; clearTimeout(t); };
-  }, [busca]);
+  }, [busca, versao]);
 
   return (
     <div className="flex flex-col gap-4">

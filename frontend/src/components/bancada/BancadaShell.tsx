@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, type ReactNode } from 'react';
+import { Fragment, useEffect, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BarChart3, CalendarDays, LogOut, Scissors, Users } from 'lucide-react';
@@ -11,6 +11,7 @@ import { cn } from '@/lib/cn';
 import { useVocabulario } from '@/hooks/useVocabulario';
 import { useEstadoConta } from '@/hooks/useEstadoConta';
 import { AvisoAgendaPausadaBancada, FaixaCarenciaBancada } from './FaixaCarenciaBancada';
+import { NovoNaBancada } from './NovoNaBancada';
 
 // Casca do app da profissional (fase 5): celular primeiro, coluna central no computador,
 // barra inferior Agenda · Clientes · Atendimento · Números.
@@ -73,11 +74,17 @@ export function BancadaShell({ children }: { children: ReactNode }) {
         aria-label="Navegação do app"
         className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]"
       >
-        <ul className="mx-auto grid max-w-xl grid-cols-4">
-          {ABAS_BANCADA.map(({ href, label, icon: Icone, ativa }) => {
+        <ul className="mx-auto grid max-w-xl grid-cols-5">
+          {ABAS_BANCADA.map(({ href, label, icon: Icone, ativa }, i) => {
             const atual = ativa(pathname);
             return (
-              <li key={href}>
+              <Fragment key={href}>
+              {i === 2 && (
+                <li className="flex items-center justify-center">
+                  {estado?.tipo !== 'bloqueada' && <NovoNaBancada />}
+                </li>
+              )}
+              <li>
                 <Link
                   href={href}
                   aria-current={atual ? 'page' : undefined}
@@ -90,6 +97,7 @@ export function BancadaShell({ children }: { children: ReactNode }) {
                   {label}
                 </Link>
               </li>
+              </Fragment>
             );
           })}
         </ul>
