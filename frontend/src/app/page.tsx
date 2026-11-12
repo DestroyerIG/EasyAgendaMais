@@ -125,6 +125,9 @@ const defaultContactUrl =
 
 export const revalidate = 300;
 
+// Na raiz, o canonical relativo do layout ('./') vira "/index"; aqui fica explícito.
+export const metadata = { alternates: { canonical: '/' } };
+
 export default async function HomePage() {
   const testimonials = await buscarDepoimentosPublicos();
 
