@@ -60,7 +60,8 @@ export const ServiceProfessionalModule = () => {
       name: data.name,
       price: parseFloat(data.price),
       duration_minutes: parseInt(data.duration_minutes),
-      ...(data.deposit_percentage !== '' && { depositPercentage: parseFloat(data.deposit_percentage) }),
+      // Vazio = sem porcentagem própria: vale o sinal geral do negócio.
+      depositPercentage: data.deposit_percentage !== '' ? parseFloat(data.deposit_percentage) : null,
       description: data.description,
     };
     try {

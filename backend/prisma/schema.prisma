@@ -54,6 +54,7 @@ model Business {
   pixKey                       String?   @map("pix_key") @db.VarChar(255)
   pixKeyType                   String?   @map("pix_key_type") @db.VarChar(20)
   botCobraSinal                Boolean   @default(false) @map("bot_cobra_sinal")
+  sinalPadraoPct               Decimal?  @map("sinal_padrao_pct") @db.Decimal(5, 2)
   logoUrl                      String?   @map("logo_url") @db.Text
   brandColor                   String?   @map("brand_color") @db.VarChar(7)
   galleryPhotos                String[]  @default([]) @map("gallery_photos")

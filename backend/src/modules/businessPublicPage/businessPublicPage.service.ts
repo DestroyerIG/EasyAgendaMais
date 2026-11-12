@@ -44,11 +44,13 @@ export const businessPublicPageService = {
       if (taken) throw new ConflictError('Este link já está em uso por outro negócio');
     }
 
-    if (data.botCobraSinal === true && !data.pixKey) {
+    if (data.botCobraSinal === true) {
       const current = await businessPublicPageRepository.findByBusinessId(businessId);
-      if (!current?.pixKey) {
+      if (!data.pixKey && !current?.pixKey) {
         throw new ValidationError('Cadastre a chave Pix antes de ligar a cobrança do sinal pelo robô');
       }
+      const pct = data.sinalPadraoPct ?? current?.sinalPadraoPct ?? null;
+      if (!pct || pct <= 0) throw new ValidationError('Informe a porcentagem do sinal geral');
     }
 
     return businessPublicPageRepository.update(businessId, data);

@@ -6,7 +6,7 @@
 import logger from '../../utils/logger.js';
 import { prisma } from '../../config/prisma.js';
 import { reservaComSinalService, type ReservaComSinal } from '../../modules/recebimentos/reservaComSinal.service.js';
-import { calcDeposit } from '../../modules/recebimentos/reservaComSinal.rules.js';
+import { calcDeposit, percentualDoSinal } from '../../modules/recebimentos/reservaComSinal.rules.js';
 import { automacoesGatilhos } from '../../modules/whatsappAutomacoes/gatilhos.service.js';
 import { recebimentosRepository } from '../../modules/recebimentos/recebimentos.repository.js';
 import { googleAgendaService } from '../../modules/googleAgenda/googleAgenda.service.js';
@@ -32,7 +32,7 @@ const lerSeCobra = async (businessId: string, serviceId: string) => {
   const [negocio, servico] = await Promise.all([
     prisma.business.findFirst({
       where: { id: businessId },
-      select: { id: true, name: true, slug: true, pixKey: true, pixKeyType: true, botCobraSinal: true },
+      select: { id: true, name: true, slug: true, pixKey: true, pixKeyType: true, botCobraSinal: true, sinalPadraoPct: true },
     }),
     prisma.service.findFirst({
       where: { id: serviceId, businessId },
@@ -42,7 +42,10 @@ const lerSeCobra = async (businessId: string, serviceId: string) => {
   if (!negocio?.botCobraSinal || !servico) return null;
 
   const price = Number(servico.price);
-  const depositPercentage = servico.depositPercentage === null ? null : Number(servico.depositPercentage);
+  const depositPercentage = percentualDoSinal(
+    servico.depositPercentage === null ? null : Number(servico.depositPercentage),
+    { ativo: negocio.botCobraSinal, pct: negocio.sinalPadraoPct === null ? null : Number(negocio.sinalPadraoPct) },
+  );
   if (!negocio.pixKey || !negocio.pixKeyType) {
     if (depositPercentage) logger.warn({ businessId }, 'Robô com cobrança do sinal ligada, mas o negócio está sem chave Pix: agendando sem sinal');
     return null;

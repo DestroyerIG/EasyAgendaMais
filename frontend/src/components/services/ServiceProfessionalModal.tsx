@@ -289,7 +289,7 @@ export const ServiceProfessionalModal = ({
                 />
               </Field>
             </div>
-            <Field id="service-deposit-percentage" label="Sinal (%)">
+            <Field id="service-deposit-percentage" label="Sinal (%)" hint="Vazio usa o sinal geral de Ajustes › Recebimentos. 0 = este serviço não pede sinal.">
               <Input
                 id="service-deposit-percentage"
                 type="number"
@@ -297,7 +297,7 @@ export const ServiceProfessionalModal = ({
                 max={100}
                 value={serviceForm.deposit_percentage}
                 onChange={e => setServiceForm({ ...serviceForm, deposit_percentage: e.target.value })}
-                placeholder="Opcional — ex: 30"
+                placeholder="Opcional — vazio usa o sinal geral"
               />
             </Field>
             <Field id="service-description" label="Descrição" hint="Aparece na sua página pública. Até 255 caracteres.">

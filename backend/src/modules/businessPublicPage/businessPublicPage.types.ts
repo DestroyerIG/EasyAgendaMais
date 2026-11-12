@@ -19,6 +19,7 @@ export const UpdatePublicPageSchema = z
     comodidades: z.array(z.enum(COMODIDADES)).max(COMODIDADES.length).optional(),
     mostrarNota: z.boolean().optional(),
     botCobraSinal: z.boolean().optional(),
+    sinalPadraoPct: z.number().min(1).max(100).nullable().optional(),
   })
   .superRefine((data, ctx) => {
     // O formato da chave só pode ser validado conhecendo o tipo — por isso os dois
@@ -62,4 +63,6 @@ export interface PublicPageSettings {
   comodidades: string[];
   mostrarNota: boolean;
   botCobraSinal: boolean;
+  /** Sinal geral: vale para o serviço sem porcentagem própria, com a cobrança do sinal ligada. */
+  sinalPadraoPct: number | null;
 }

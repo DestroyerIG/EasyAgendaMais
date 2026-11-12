@@ -13,6 +13,8 @@ export interface PublicPageSettings {
   comodidades: string[];
   mostrarNota: boolean;
   botCobraSinal: boolean;
+  /** Sinal geral: vale para o serviço sem porcentagem própria, com a cobrança do sinal ligada. */
+  sinalPadraoPct: number | null;
 }
 
 export const businessPublicPageApi = {
