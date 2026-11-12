@@ -12,6 +12,7 @@ import { useVocabulario } from '@/hooks/useVocabulario';
 import { useEstadoConta } from '@/hooks/useEstadoConta';
 import { AvisoAgendaPausadaBancada, FaixaCarenciaBancada } from './FaixaCarenciaBancada';
 import { NovoNaBancada } from './NovoNaBancada';
+import { ControleDisponibilidade, FaixaIndisponivel, useDisponibilidadeBancada } from './DisponibilidadeBancada';
 
 // Casca do app da profissional (fase 5): celular primeiro, coluna central no computador,
 // barra inferior Agenda · Clientes · Atendimento · Números.
@@ -38,6 +39,8 @@ export function BancadaShell({ children }: { children: ReactNode }) {
     if (isAuthorized) void registrarServiceWorker();
   }, [isAuthorized]);
 
+  const disponibilidade = useDisponibilidadeBancada(isAuthorized && estado?.tipo !== 'bloqueada');
+
   if (isChecking || !isAuthorized) {
     return <div className="app-theme min-h-screen" aria-busy="true" />;
   }
@@ -52,6 +55,7 @@ export function BancadaShell({ children }: { children: ReactNode }) {
             <p className="truncate text-[15px] font-bold text-ink">{user?.businessName || 'EasyAgenda+'}</p>
             <p className="text-[11px] font-medium text-muted">App {prof.doS}</p>
           </div>
+          <ControleDisponibilidade controle={disponibilidade} />
           <button
             type="button"
             onClick={() => void logout()}
@@ -63,6 +67,7 @@ export function BancadaShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
+      <FaixaIndisponivel controle={disponibilidade} />
       <FaixaCarenciaBancada estado={estado} />
 
       <main id="main-content" className="mx-auto max-w-xl px-4 pb-28 pt-4">

@@ -127,7 +127,7 @@ vi.mock('../config/prisma.js', () => ({
     },
     cobrancaSinal: { findMany: mockCobrancaFindMany },
     client: { findFirst: vi.fn().mockResolvedValue({ id: 'client-uuid' }) },
-    professional: { findFirst: vi.fn().mockResolvedValue({ id: 'professional-uuid' }) },
+    professional: { findFirst: vi.fn().mockResolvedValue({ id: 'professional-uuid', available: true }) },
     service: { findFirst: vi.fn().mockResolvedValue({ id: 'service-uuid', durationMinutes: 30, price: 30 }) },
     earning: { create: vi.fn().mockResolvedValue({ id: 'earning-uuid' }) },
   },

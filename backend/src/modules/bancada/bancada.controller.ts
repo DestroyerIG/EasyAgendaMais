@@ -54,6 +54,12 @@ export const uploadPhoto: H = async (req, res, next) => {
 export const start: H = async (req, res, next) => {
   try { sendSuccess(res, await bancadaService.iniciar(negocio(req), profissionalDe(res), id(req))); } catch (e) { next(e); }
 };
+export const availability: H = async (req, res, next) => {
+  try { sendSuccess(res, await bancadaService.disponibilidade(negocio(req), profissionalDe(res))); } catch (e) { next(e); }
+};
+export const setAvailability: H = async (req, res, next) => {
+  try { sendSuccess(res, await bancadaService.definirDisponibilidade(negocio(req), profissionalDe(res), req.body.disponivel)); } catch (e) { next(e); }
+};
 export const freeSlots: H = async (req, res, next) => {
   try {
     const q = req.query as { agendamento: string; data: string };

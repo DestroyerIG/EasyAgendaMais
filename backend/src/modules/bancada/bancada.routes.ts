@@ -5,11 +5,11 @@ import { validate } from '../../middleware/validate.js';
 import { requireProfissional } from './bancada.middleware.js';
 import { comandaDeHojeNaCarencia, somenteHojeNaCarencia } from '../conta/somenteHoje.middleware.js';
 import {
-  BancadaCobrarSchema, BancadaComandaSchema, BuscaClienteQuerySchema, CancelarSchema, ClientesQuerySchema, HojeQuerySchema, HorariosNovoQuerySchema,
+  BancadaCobrarSchema, BancadaComandaSchema, DisponibilidadeSchema, BuscaClienteQuerySchema, CancelarSchema, ClientesQuerySchema, HojeQuerySchema, HorariosNovoQuerySchema,
   HorariosQuerySchema, NotaSchema, NovoAgendamentoSchema, NovoClienteSchema, ReagendarSchema,
 } from './bancada.types.js';
 import {
-  cancel, clientCard, closeComanda, comandaCancelarCobranca, comandaCobranca, comandaCobrar, comandaPix, createAppointment, createClient, freeSlots,
+  availability, setAvailability, cancel, clientCard, closeComanda, comandaCancelarCobranca, comandaCobranca, comandaCobrar, comandaPix, createAppointment, createClient, freeSlots,
   getComanda, myClients, newSlots, numbers, ratings, reschedule, saveComanda, saveNote, searchClients, sendToFrontDesk, servicesList,
   shortcuts, start, today, uploadPhoto,
 } from './bancada.controller.js';
@@ -19,6 +19,8 @@ const router = express.Router();
 const ela = [authMiddleware, requireProfissional];
 const ParamsId = validate({ params: z.object({ id: z.string().uuid() }) });
 
+router.get('/disponibilidade', ...ela, availability);
+router.put('/disponibilidade', ...ela, validate({ body: DisponibilidadeSchema }), setAvailability);
 router.get('/hoje', ...ela, validate({ query: HojeQuerySchema }), today);
 router.get('/clientes', ...ela, validate({ query: ClientesQuerySchema }), myClients);
 router.post('/clientes', ...ela, validate({ body: NovoClienteSchema }), createClient);

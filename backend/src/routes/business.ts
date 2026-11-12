@@ -11,13 +11,14 @@ import { validate } from '../middleware/validate.js';
 // @ts-ignore
 import { getServices, createService, updateService, deleteService } from '../controllers/serviceController.js';
 // @ts-ignore
-import { getProfessionals, createProfessional, updateProfessional, deleteProfessional } from '../controllers/professionalController.js';
+import { getProfessionals, createProfessional, updateProfessional, deleteProfessional, setProfessionalAvailability } from '../controllers/professionalController.js';
 // @ts-ignore
 import {
 	createServiceSchema,
 	updateServiceSchema,
 	createProfessionalSchema,
 	updateProfessionalSchema,
+	setDisponibilidadeSchema,
 	updateBusinessSettingsSchema,
 	updateBusinessProfileSchema,
 	updateAccountProfileSchema,
@@ -44,6 +45,7 @@ router.delete('/services/:id', authMiddleware, requireTenantRoles, requireFeatur
 router.get('/professionals', authMiddleware, requireTenantRoles, requireFeature('services'), getProfessionals);
 router.post('/professionals', authMiddleware, requireTenantRoles, requireFeature('services'), validate({ body: createProfessionalSchema }), createProfessional);
 router.put('/professionals/:id', authMiddleware, requireTenantRoles, requireFeature('services'), validate({ body: updateProfessionalSchema }), updateProfessional);
+router.put('/professionals/:id/disponibilidade', authMiddleware, requireTenantRoles, requireFeature('services'), validate({ body: setDisponibilidadeSchema }), setProfessionalAvailability);
 router.delete('/professionals/:id', authMiddleware, requireTenantRoles, requireFeature('services'), deleteProfessional);
 
 router.get('/settings', authMiddleware, requireTenantRoles, requireFeature('advanced_admin'), getBusinessSettings);

@@ -191,11 +191,14 @@ model Professional {
   name         String   @db.VarChar(255)
   photo        String?  @db.Text
   active       Boolean  @default(true)
+  /// Liga/desliga a agenda (doença, assunto pessoal). Diferente de `active`, que é exclusão.
+  /// Desligada, não entram agendamentos novos; os que já existem continuam.
+  available    Boolean  @default(true)
   commissionServicePct Decimal? @map("commission_service_pct") @db.Decimal(5, 2)
   commissionProductPct Decimal? @map("commission_product_pct") @db.Decimal(5, 2)
   cnpj                 String?  @db.VarChar(20)
   especialidade        String?  @db.VarChar(80)
-  breakStart           DateTime? @map("break_start") @db.Time(6)
+  breakStart          DateTime? @map("break_start") @db.Time(6)
   breakEnd             DateTime? @map("break_end") @db.Time(6)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")

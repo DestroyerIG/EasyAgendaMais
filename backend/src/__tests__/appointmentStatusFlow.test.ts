@@ -100,7 +100,7 @@ describe('appointmentsService.create', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('grava a origem informada (bot do WhatsApp)', async () => {
-    repo.validateOwnership.mockResolvedValue({ clientOk: true, professionalOk: true, serviceOk: true });
+    repo.validateOwnership.mockResolvedValue({ clientOk: true, professionalOk: true, professionalDisponivel: true, serviceOk: true });
     repo.hasConflict.mockResolvedValue(false);
     repo.create.mockResolvedValue(agendamento('confirmado'));
     const dados = { clientId: 'c1', professionalId: 'p1', serviceId: 's1', date: '2026-10-13', time: '10:00' };
@@ -109,7 +109,7 @@ describe('appointmentsService.create', () => {
   });
 
   it('sem origem informada grava painel', async () => {
-    repo.validateOwnership.mockResolvedValue({ clientOk: true, professionalOk: true, serviceOk: true });
+    repo.validateOwnership.mockResolvedValue({ clientOk: true, professionalOk: true, professionalDisponivel: true, serviceOk: true });
     repo.hasConflict.mockResolvedValue(false);
     repo.create.mockResolvedValue(agendamento('confirmado'));
     const dados = { clientId: 'c1', professionalId: 'p1', serviceId: 's1', date: '2026-10-13', time: '10:00' };

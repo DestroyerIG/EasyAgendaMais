@@ -58,6 +58,8 @@ export const adminAuditLogQuerySchema = paginationQuerySchema.extend({
 });
 
 export const adminActionParamsSchema = idSchema;
+export const adminProfessionalParamsSchema = idSchema.extend({ professionalId: z.string().uuid('ID inválido') });
+export const adminProfessionalAvailabilityBodySchema = z.object({ available: z.boolean() });
 export const adminActionBodySchema = actionBodySchema;
 
 export const adminOverridePlanBodySchema = actionBodySchema.extend({

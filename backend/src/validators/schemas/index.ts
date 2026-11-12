@@ -16,7 +16,7 @@ export { createAppointmentSchema, updateAppointmentSchema, updateStatusSchema } 
 export { createClientSchema, updateClientSchema } from './clientSchemas.js';
 export { addExpenseSchema, updateExpenseSchema } from './financeSchemas.js';
 export { createServiceSchema, updateServiceSchema } from './serviceSchemas.js';
-export { createProfessionalSchema, updateProfessionalSchema } from './professionalSchemas.js';
+export { createProfessionalSchema, updateProfessionalSchema, setDisponibilidadeSchema } from './professionalSchemas.js';
 export {
 	updateBusinessSettingsSchema,
 	updateBusinessProfileSchema,
@@ -37,6 +37,8 @@ export {
 	adminSubscriptionListQuerySchema,
 	adminAuditLogQuerySchema,
 	adminActionParamsSchema,
+	adminProfessionalParamsSchema,
+	adminProfessionalAvailabilityBodySchema,
 	adminActionBodySchema,
 	adminOverridePlanBodySchema,
 	adminValorSalaoBodySchema,

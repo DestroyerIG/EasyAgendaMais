@@ -11,6 +11,7 @@ import { PainelPendencias } from '@/components/dashboard/PainelPendencias';
 import { ProximasDuasHoras } from '@/components/dashboard/ProximasDuasHoras';
 import { BotaoCobrarPix } from '@/components/dashboard/BotaoCobrarPix';
 import { PrimeirosPassos } from '@/components/dashboard/PrimeirosPassos';
+import { EquipePilula } from '@/components/dashboard/EquipePilula';
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Button } from '@/components/ui/Button';
@@ -186,6 +187,7 @@ export default function DashboardPage() {
             ownerName={hoje.saudacao.ownerName}
             data={hoje.saudacao.date}
             businessName={user?.businessName}
+            equipe={user?.role === 'tenant_admin' ? <EquipePilula /> : undefined}
           />
           <PrimeirosPassos ativo={user?.role === 'tenant_admin'} />
           {user?.role === 'tenant_admin' && <ConviteCartao dispensavel />}

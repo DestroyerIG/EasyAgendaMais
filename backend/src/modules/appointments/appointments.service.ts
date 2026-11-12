@@ -23,6 +23,8 @@ import { clubeService } from '../clube/clube.service.js';
 import { avisarProfissional, avisarSinalConfirmado, dataBr, horaDe, primeiroNome } from './sinalConfirmado.js';
 import { recebimentosRepository } from '../recebimentos/recebimentos.repository.js';
 
+const MSG_PROFISSIONAL_INDISPONIVEL = 'Esta profissional está indisponível no momento. Escolha outra ou ative a agenda dela.';
+
 /** Cancelar com sinal pago lembra de devolver. Nunca derruba o cancelamento. */
 function lembrarDevolucao(businessId: string, appointmentId: string): void {
   void recebimentosRepository.lembrarDevolucaoAoCancelar(businessId, appointmentId)
@@ -72,6 +74,7 @@ export const appointmentsService = {
     if (!ownership.professionalOk) errors.push('Profissional não pertence a este negócio ou está inativo');
     if (!ownership.serviceOk) errors.push('Serviço não pertence a este negócio ou está inativo');
     if (errors.length > 0) throw new ForbiddenError(errors.join('. '));
+    if (!ownership.professionalDisponivel) throw new ConflictError(MSG_PROFISSIONAL_INDISPONIVEL);
 
     const time = data.time.length === 5 ? `${data.time}:00` : data.time;
     const conflict = await appointmentsPrismaRepository.hasConflict(
@@ -163,6 +166,7 @@ export const appointmentsService = {
     businessId: string,
     data: UpdateAppointmentInput
   ): Promise<AppointmentWithRelations> {
+    const antes = await appointmentsPrismaRepository.findById(id, businessId);
     if (data.clientId || data.professionalId || data.serviceId) {
       const ownership = await appointmentsPrismaRepository.validateOwnership(businessId, {
         clientId: data.clientId ?? '',
@@ -174,6 +178,11 @@ export const appointmentsService = {
       if (data.professionalId && !ownership.professionalOk) errors.push('Profissional não pertence a este negócio ou está inativo');
       if (data.serviceId && !ownership.serviceOk) errors.push('Serviço não pertence a este negócio ou está inativo');
       if (errors.length > 0) throw new ForbiddenError(errors.join('. '));
+      // Só quem passa a ser atendido por outra profissional exige que ela esteja disponível.
+      // Remarcar dia ou horário com a mesma profissional continua permitido, mesmo desligada.
+      if (data.professionalId && data.professionalId !== antes?.professionalId && !ownership.professionalDisponivel) {
+        throw new ConflictError(MSG_PROFISSIONAL_INDISPONIVEL);
+      }
     }
 
     if (data.date && data.time && data.professionalId) {
@@ -184,7 +193,6 @@ export const appointmentsService = {
       if (conflict) throw new ConflictError('Horário já ocupado para este profissional');
     }
 
-    const antes = await appointmentsPrismaRepository.findById(id, businessId);
     const result = await appointmentsPrismaRepository.update(id, businessId, data);
     if (!result) throw new NotFoundError('Agendamento (ou não pode ser editado)');
     if (antes) {

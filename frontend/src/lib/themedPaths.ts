@@ -45,6 +45,8 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/dashboard',
   'src/components/onboarding',
   'src/components/tour',
+  'src/components/disponibilidade',
+  'src/lib/disponibilidade.ts',
   'src/components/googleAgenda',
   'src/app/onboarding',
   'src/hooks/useThemeColors.ts',

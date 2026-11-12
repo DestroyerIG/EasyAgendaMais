@@ -11,6 +11,10 @@ import {
   getAdminTenants,
   exportAdminTenants,
   getAdminTenantDetails,
+  getAdminTenantProfessionals,
+  setAdminProfessionalAvailability,
+  adminProfessionalParamsSchema,
+  adminProfessionalAvailabilityBodySchema,
   getAdminTenantAudit,
   exportAdminTenantAudit,
   blockTenant,
@@ -61,6 +65,8 @@ router.get('/tenants', validate({ query: adminTenantListQuerySchema }), getAdmin
 // Antes de /tenants/:id, senão "export.csv" seria lido como id.
 router.get('/tenants/export.csv', validate({ query: adminTenantFiltrosSchema }), exportAdminTenants);
 router.get('/tenants/:id', validate({ params: adminActionParamsSchema }), getAdminTenantDetails);
+router.get('/tenants/:id/profissionais', validate({ params: adminActionParamsSchema }), getAdminTenantProfessionals);
+router.patch('/tenants/:id/profissionais/:professionalId/disponibilidade', validate({ params: adminProfessionalParamsSchema, body: adminProfessionalAvailabilityBodySchema }), setAdminProfessionalAvailability);
 router.get('/tenants/:id/auditoria', validate({ params: adminActionParamsSchema, query: adminTenantAuditQuerySchema }), getAdminTenantAudit);
 router.get('/tenants/:id/auditoria.csv', validate({ params: adminActionParamsSchema, query: adminTenantAuditQuerySchema }), exportAdminTenantAudit);
 router.patch('/tenants/:id/block', validate({ params: adminActionParamsSchema, body: adminActionBodySchema }), blockTenant);

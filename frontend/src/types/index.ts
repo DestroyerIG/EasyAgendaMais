@@ -83,6 +83,10 @@ export interface Professional {
     name: string;
     photo: string | null;
     active: boolean;
+    /** Agenda aberta para novos agendamentos (liga/desliga); ausente em respostas antigas = disponível. */
+    available?: boolean;
+    /** Agendamentos futuros que continuam marcados (vem da lista de profissionais). */
+    agendamentosFuturos?: number;
     created_at: string;
     breakStart?: string | null;
     breakEnd?: string | null;

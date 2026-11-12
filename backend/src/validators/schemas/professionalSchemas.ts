@@ -17,6 +17,7 @@ const baseProfessional = z.object({
   commissionServicePct: percentual.nullable().optional(),
   commissionProductPct: percentual.nullable().optional(),
   cnpj,
+  available: z.boolean().optional(),
   especialidade: z.preprocess((v) => (typeof v === 'string' ? v.trim() || null : v), z.string().max(80).nullable().optional()),
 });
 
@@ -31,6 +32,9 @@ const mensagemIntervalo = { message: 'Informe início e fim do intervalo, com o 
 
 export const createProfessionalSchema = baseProfessional.refine(intervaloValido, mensagemIntervalo);
 export const updateProfessionalSchema = baseProfessional.partial().refine(intervaloValido, mensagemIntervalo);
+
+/** Liga/desliga a agenda: corpo da rota própria de disponibilidade. */
+export const setDisponibilidadeSchema = z.object({ available: z.boolean() });
 
 export type CreateProfessional = z.infer<typeof createProfessionalSchema>;
 export type UpdateProfessional = z.infer<typeof updateProfessionalSchema>;

@@ -4,6 +4,7 @@ import { getBusinessScheduleSettings } from './scheduleSettingsService.js';
 import { prisma } from '../config/prisma.js';
 import { normalizePlan } from '../config/planPermissions.js';
 import { PLAN_ORDER, professionalLimit } from '../config/planCatalog.js';
+import { todayInTimezone } from '../utils/businessDate.js';
 import { limiteProfissionaisEfetivo } from '../modules/billing/planChange.rules.js';
 
 type Plan = 'basico' | 'profissional' | 'premium';
@@ -17,6 +18,7 @@ interface ProfessionalData {
   commissionProductPct?: number | null;
   cnpj?: string | null;
   especialidade?: string | null;
+  available?: boolean;
 }
 
 const hhmm = (t: Date | null) => (t ? t.toISOString().substring(11, 16) : null);
@@ -33,10 +35,18 @@ async function validarIntervaloNoExpediente(businessId: string, data: Profession
   }
 }
 
+async function hojeDoNegocio(businessId: string): Promise<string> {
+  const { timezone } = await getBusinessScheduleSettings(businessId);
+  return todayInTimezone(timezone);
+}
+
 export const professionalService = {
   async getProfessionals(businessId: string) {
-    return (await professionalRepository.findAllActive(businessId)).map((p) => ({
+    const lista = await professionalRepository.findAllActive(businessId);
+    const futuros = await professionalRepository.countFuturosPorProfissional(businessId, await hojeDoNegocio(businessId));
+    return lista.map((p) => ({
       ...p,
+      agendamentosFuturos: futuros.get(p.id) ?? 0,
       breakStart: hhmm(p.breakStart),
       breakEnd: hhmm(p.breakEnd),
       commissionServicePct: pct(p.commissionServicePct),
@@ -86,6 +96,24 @@ export const professionalService = {
     const result = await professionalRepository.update(id, businessId, data);
     if (!result) throw new NotFoundError('Profissional');
     return result;
+  },
+
+  /**
+   * Liga ou desliga a agenda. Desligada, não entram agendamentos novos; os que já existem
+   * continuam, e a resposta traz quantos são para a tela avisar.
+   */
+  async setAvailability(id: string, businessId: string, available: boolean) {
+    const result = await professionalRepository.setAvailable(id, businessId, available);
+    if (!result) throw new NotFoundError('Profissional');
+    const futuros = await professionalRepository.countFuturosPorProfissional(businessId, await hojeDoNegocio(businessId), id);
+    return { id, available, agendamentosFuturos: futuros.get(id) ?? 0 };
+  },
+
+  async getDisponibilidade(id: string, businessId: string) {
+    const lista = await professionalService.getProfessionals(businessId);
+    const p = lista.find((x) => x.id === id);
+    if (!p) throw new NotFoundError('Profissional');
+    return { id, available: p.available, agendamentosFuturos: p.agendamentosFuturos };
   },
 
   async deleteProfessional(id: string, businessId: string): Promise<void> {
