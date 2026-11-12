@@ -21,5 +21,16 @@ export const pixManual = (
   }
 };
 
+export interface SinalPadrao { ativo: boolean; pct: number | null }
+
+/**
+ * Porcentagem de sinal que vale para o serviço: a do próprio serviço prevalece (inclusive 0, que é
+ * "este serviço não pede sinal"); sem porcentagem própria (null) vale a geral do negócio, se ligada.
+ */
+export const percentualDoSinal = (servicoPct: number | null | undefined, padrao: SinalPadrao): number => {
+  if (servicoPct !== null && servicoPct !== undefined) return servicoPct;
+  return padrao.ativo && padrao.pct && padrao.pct > 0 ? padrao.pct : 0;
+};
+
 export const calcDeposit = (price: number, depositPercentage: number): number =>
   Math.round(price * (depositPercentage / 100) * 100) / 100;

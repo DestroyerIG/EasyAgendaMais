@@ -14,7 +14,7 @@ import { textoAgendaPausada } from '../conta/estadoConta.rules.js';
 import { googleAgendaService } from '../googleAgenda/googleAgenda.service.js';
 import { conexaoService } from '../recebimentos/conexao.service.js';
 import { cobrancasService } from '../recebimentos/cobrancas.service.js';
-import { pixManual, calcDeposit } from '../recebimentos/reservaComSinal.rules.js';
+import { pixManual, calcDeposit, percentualDoSinal } from '../recebimentos/reservaComSinal.rules.js';
 import { reservaComSinalService } from '../recebimentos/reservaComSinal.service.js';
 import { recebimentosRepository } from '../recebimentos/recebimentos.repository.js';
 import type { FormaSinal, GatewayId } from '../recebimentos/recebimentos.types.js';
@@ -81,6 +81,10 @@ const consultaDeAgenda = async (slug: string, query: GetPublicDaysQuery) => {
   return { business, service };
 };
 
+const pctDoServico = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
+const padraoDoNegocio = (b: { botCobraSinal: boolean; sinalPadraoPct: unknown }) =>
+  ({ ativo: b.botCobraSinal, pct: pctDoServico(b.sinalPadraoPct) });
+
 export const publicBookingService = {
   async getStorefront(slug: string): Promise<Storefront> {
     const business = await publicBookingRepository.findBusinessBySlug(slug);
@@ -109,15 +113,18 @@ export const publicBookingService = {
       agendaPausada: estado.tipo !== 'ativa',
       formasPagamento,
       gatewayPagamento,
-      services: services.map((s) => ({
-        id: s.id,
-        name: s.name,
-        price: Number(s.price),
-        durationMinutes: s.durationMinutes,
-        depositPercentage: Number(s.depositPercentage),
-        depositAmount: calcDeposit(Number(s.price), Number(s.depositPercentage)),
-        descricao: s.description,
-      })),
+      services: services.map((s) => {
+        const pct = percentualDoSinal(pctDoServico(s.depositPercentage), padraoDoNegocio(business));
+        return {
+          id: s.id,
+          name: s.name,
+          price: Number(s.price),
+          durationMinutes: s.durationMinutes,
+          depositPercentage: pct,
+          depositAmount: calcDeposit(Number(s.price), pct),
+          descricao: s.description,
+        };
+      }),
       vocabulario: vocabularioDe(business.settings?.segment),
     };
   },
@@ -280,7 +287,8 @@ export const publicBookingService = {
     const service = await publicBookingRepository.findServiceForBusiness(business.id, data.serviceId);
     if (!service) throw new ValidationError('Serviço indisponível para este negócio');
 
-    const semSinal = calcDeposit(Number(service.price), Number(service.depositPercentage ?? 0)) <= 0;
+    const pctSinal = percentualDoSinal(pctDoServico(service.depositPercentage), padraoDoNegocio(business));
+    const semSinal = calcDeposit(Number(service.price), pctSinal) <= 0;
     if (!semSinal) {
       if (!business.pixKey || !business.pixKeyType) {
         throw new ValidationError('Este negócio ainda não configurou o recebimento de sinal via Pix');
@@ -318,7 +326,7 @@ export const publicBookingService = {
       await reservaComSinalService.criar({
         business: { id: business.id, name: business.name, slug, pixKey: business.pixKey!, pixKeyType: business.pixKeyType! },
         clientId: client.id, professionalId: data.professionalId, serviceId: data.serviceId,
-        serviceName: service.name, servicePrice: Number(service.price), depositPercentage: Number(service.depositPercentage),
+        serviceName: service.name, servicePrice: Number(service.price), depositPercentage: pctSinal,
         date: data.date, time: data.time, origem: 'publico', formaPedida: data.formaPagamento,
       });
 

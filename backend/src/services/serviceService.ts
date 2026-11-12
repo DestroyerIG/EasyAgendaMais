@@ -6,7 +6,7 @@ interface ServiceData {
   name: string;
   price: number;
   duration_minutes: number;
-  depositPercentage?: number;
+  depositPercentage?: number | null;
   description?: string;
 }
 
@@ -23,7 +23,7 @@ export const serviceService = {
         name: string;
         price: number;
         duration_minutes: number;
-        depositPercentage?: number;
+        depositPercentage?: number | null;
         description?: string;
       }): Promise<Parameters<typeof toServiceDto>[0]>;
     }).create({
@@ -42,7 +42,7 @@ export const serviceService = {
       update(
         id: string,
         businessId: string,
-        data: { name: string; price: number; duration_minutes: number; depositPercentage?: number; description?: string }
+        data: { name: string; price: number; duration_minutes: number; depositPercentage?: number | null; description?: string }
       ): Promise<Parameters<typeof toServiceDto>[0] | null>;
     }).update(id, businessId, {
       name: data.name,

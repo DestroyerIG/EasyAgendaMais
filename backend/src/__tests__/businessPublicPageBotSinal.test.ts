@@ -29,6 +29,7 @@ const settings = (over: Partial<PublicPageSettings> = {}): PublicPageSettings =>
   comodidades: [],
   mostrarNota: true,
   botCobraSinal: false,
+  sinalPadraoPct: null,
   ...over,
 });
 
@@ -45,7 +46,7 @@ describe('botCobraSinal na página pública', () => {
 
   it('liga quando há chave Pix salva e devolve botCobraSinal true', async () => {
     vi.mocked(businessPublicPageRepository.findByBusinessId).mockResolvedValue(
-      settings({ pixKey: '123.456.789-09', pixKeyType: 'cpf' }),
+      settings({ pixKey: '123.456.789-09', pixKeyType: 'cpf', sinalPadraoPct: 30 }),
     );
     vi.mocked(businessPublicPageRepository.update).mockResolvedValue(
       settings({ pixKey: '123.456.789-09', pixKeyType: 'cpf', botCobraSinal: true }),
@@ -58,13 +59,13 @@ describe('botCobraSinal na página pública', () => {
   it('liga quando a chave Pix vem no mesmo corpo', async () => {
     vi.mocked(businessPublicPageRepository.findByBusinessId).mockResolvedValue(settings());
     vi.mocked(businessPublicPageRepository.update).mockResolvedValue(settings({ botCobraSinal: true }));
-    await businessPublicPageService.update('b1', { pixKey: '123.456.789-09', pixKeyType: 'cpf', botCobraSinal: true });
+    await businessPublicPageService.update('b1', { pixKey: '123.456.789-09', pixKeyType: 'cpf', botCobraSinal: true, sinalPadraoPct: 30 });
     expect(businessPublicPageRepository.update).toHaveBeenCalled();
   });
 
   it('recusa ligar sem chave Pix', async () => {
     vi.mocked(businessPublicPageRepository.findByBusinessId).mockResolvedValue(settings());
-    const promise = businessPublicPageService.update('b1', { botCobraSinal: true });
+    const promise = businessPublicPageService.update('b1', { botCobraSinal: true, sinalPadraoPct: 30 });
     await expect(promise).rejects.toBeInstanceOf(ValidationError);
     await expect(promise).rejects.toThrow(MSG);
     expect(businessPublicPageRepository.update).not.toHaveBeenCalled();

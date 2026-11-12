@@ -11,7 +11,7 @@ export const publicBookingRepository = {
       where: { slug, active: true },
       select: {
         id: true, name: true, logoUrl: true, brandColor: true, galleryPhotos: true, address: true, whatsapp: true, pixKey: true, pixKeyType: true,
-        coverUrl: true, description: true, comodidades: true, mostrarNota: true,
+        coverUrl: true, description: true, comodidades: true, mostrarNota: true, botCobraSinal: true, sinalPadraoPct: true,
         settings: { select: { segment: true } },
       },
     });

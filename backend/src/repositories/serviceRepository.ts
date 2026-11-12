@@ -22,7 +22,7 @@ export const serviceRepository = {
     });
   },
 
-  async create(data: { business_id: string; name: string; price: number; duration_minutes: number; depositPercentage?: number; description?: string }) {
+  async create(data: { business_id: string; name: string; price: number; duration_minutes: number; depositPercentage?: number | null; description?: string }) {
     return prisma.service.create({
       data: {
         businessId: data.business_id,
@@ -35,7 +35,7 @@ export const serviceRepository = {
     });
   },
 
-  async update(id: string, businessId: string, data: { name: string; price: number; duration_minutes: number; depositPercentage?: number; description?: string }) {
+  async update(id: string, businessId: string, data: { name: string; price: number; duration_minutes: number; depositPercentage?: number | null; description?: string }) {
     const result = await prisma.service.updateMany({
       where: { id, businessId },
       data: {

@@ -134,7 +134,7 @@ describe('RecebimentosSection', () => {
       .mockResolvedValue({ pixKey: 'pix@aurora.com', botCobraSinal: false });
     const user = userEvent.setup();
     render(<RecebimentosSection />);
-    expect(await screen.findByRole('switch', { name: 'Cobrar o sinal pelo WhatsApp' })).toBeDisabled();
+    expect(await screen.findByRole('switch', { name: 'Cobrar sinal nas reservas' })).toBeDisabled();
     expect(screen.getByText('Cadastre a chave Pix acima para ativar.')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Simular chave salva' }));
