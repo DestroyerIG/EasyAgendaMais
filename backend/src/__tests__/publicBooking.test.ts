@@ -181,6 +181,7 @@ describe('publicBookingService.createPendingAppointment', () => {
       forma: 'pix',
       automatica: false,
       cartaoIndisponivel: false,
+      confirmada: false,
       expiresAt: expect.any(String),
     });
     // A reserva só deve ser criada DEPOIS que o payload Pix foi montado com sucesso —
@@ -192,6 +193,32 @@ describe('publicBookingService.createPendingAppointment', () => {
       title: 'Nova reserva online',
       description: 'Mariana · Corte · 24/10/2099 às 14:00',
     });
+  });
+
+  it.each([[null], [0]])('serviço sem sinal (%s) já nasce confirmado, sem prazo e sem Pix, mesmo sem chave Pix', async (sinal) => {
+    mockHappyPathDependencies();
+    (publicBookingRepository.findBusinessBySlug as ReturnType<typeof vi.fn>).mockResolvedValue({ ...BUSINESS, pixKey: null, pixKeyType: null });
+    (publicBookingRepository.findServiceForBusiness as ReturnType<typeof vi.fn>).mockResolvedValue({ ...SERVICE, depositPercentage: sinal });
+
+    const result = await publicBookingService.createPendingAppointment('studio-aurora', VALID_INPUT);
+
+    expect(result).toEqual({
+      appointmentId: 'appt-1', depositAmount: 0, pixPayload: null, checkoutUrl: null,
+      forma: 'pix', automatica: false, cartaoIndisponivel: false, confirmada: true, expiresAt: null,
+    });
+    expect(publicBookingRepository.createPendingAppointment).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'confirmado', expiresAt: null, depositAmount: 0 }), TX,
+    );
+    expect(appointmentsPrismaRepository.hasConflict).toHaveBeenCalledTimes(1);
+  });
+
+  it('serviço sem sinal recusa horário em conflito (409) como o com sinal', async () => {
+    mockHappyPathDependencies();
+    (publicBookingRepository.findServiceForBusiness as ReturnType<typeof vi.fn>).mockResolvedValue({ ...SERVICE, depositPercentage: null });
+    (appointmentsPrismaRepository.hasConflict as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+
+    await expect(publicBookingService.createPendingAppointment('studio-aurora', VALID_INPUT)).rejects.toThrow(ConflictError);
+    expect(publicBookingRepository.createPendingAppointment).not.toHaveBeenCalled();
   });
 
   it('rejeita horário que não está na lista de slots disponíveis (fora do expediente, dia fechado, ou grid incompatível)', async () => {

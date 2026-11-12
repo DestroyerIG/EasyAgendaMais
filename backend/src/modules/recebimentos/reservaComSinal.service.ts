@@ -44,7 +44,35 @@ const resolverForma = async (businessId: string, pedida: FormaSinal | undefined)
   return { formas, formaPedida, cartaoForaDoAr };
 };
 
+export interface EntradaReservaSemSinal {
+  businessId: string; clientId: string; professionalId: string; serviceId: string;
+  date: string; time: string; // 'YYYY-MM-DD', 'HH:mm'
+  origem: 'publico' | 'whatsapp';
+}
+
 export const reservaComSinalService = {
+  /**
+   * Serviço sem sinal: não há o que pagar, então a reserva já nasce confirmada e sem prazo.
+   * Mesma trava por profissional+dia da reserva com sinal, para dois pedidos simultâneos não pegarem o mesmo horário.
+   */
+  async criarSemSinal(e: EntradaReservaSemSinal) {
+    const appointment = await publicBookingRepository.withProfessionalDayLock(
+      e.professionalId, e.date, async (tx) => {
+        const conflict = await appointmentsPrismaRepository.hasConflict(
+          e.businessId, e.professionalId, e.date, `${e.time}:00`, undefined, tx,
+        );
+        if (conflict) throw new ConflictError('Este horário acabou de ser reservado por outra pessoa');
+
+        return publicBookingRepository.createPendingAppointment({
+          businessId: e.businessId, clientId: e.clientId, professionalId: e.professionalId, serviceId: e.serviceId,
+          date: e.date, time: e.time, expiresAt: null, depositAmount: 0, source: e.origem, status: 'confirmado',
+        }, tx);
+      },
+    );
+    logger.info({ appointmentId: appointment.id, businessId: e.businessId, origem: e.origem }, 'Reserva sem sinal criada e confirmada');
+    return appointment;
+  },
+
   /** Só valida a forma pedida (lança se o negócio não recebe no cartão), sem criar nada. */
   async validarForma(businessId: string, pedida: FormaSinal | undefined): Promise<void> {
     await resolverForma(businessId, pedida);

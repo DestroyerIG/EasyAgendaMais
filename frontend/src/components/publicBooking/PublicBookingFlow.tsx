@@ -323,7 +323,8 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
     setSubmitting(true);
     setError(null);
     try {
-      const soPix = formasLiberadas.length === 1 && formasLiberadas[0] === 'pix';
+      const semSinalAgora = (storefront?.services.find((s) => s.id === serviceId)?.depositAmount ?? 0) <= 0;
+      const soPix = semSinalAgora || (formasLiberadas.length === 1 && formasLiberadas[0] === 'pix');
       const result = await publicBookingApi.createAppointment(slug, {
         serviceId, professionalId, date, time, clientName, clientPhone, whatsappConsent,
         ...(soPix ? {} : { formaPagamento: formaEfetiva }),
@@ -343,6 +344,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
         checkoutUrl: result.checkoutUrl ?? null,
         expiresAt: result.expiresAt,
       });
+      if (result.confirmada) setSituacao('confirmado');
       if (result.forma === 'cartao' && result.checkoutUrl) {
         // Quem usa "voltar" no Checkout precisa achar a reserva no endereço, e não o próprio horário ocupado.
         const busca = new URLSearchParams(window.location.search);
@@ -479,6 +481,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
       }
       : null;
   const sinalDoResumo = reserva ? reserva.sinal : (selectedService?.depositAmount ?? 0);
+  const semSinal = sinalDoResumo <= 0;
   const tituloEtapa: Record<Step, string> = {
     perfil: 'Perfil', servico: 'Serviços', profissional: prof.S, horario: 'Horário', pagamento: 'Pagamento',
   };
@@ -525,9 +528,11 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                     <SelectableCard key={s.id} selected={serviceId === s.id} onClick={() => setServiceId(s.id)}>
                       <span className="mb-1 flex flex-wrap items-center gap-2">
                         <span className="text-[17px] font-bold text-ink">{s.name}</span>
-                        <span className="inline-flex rounded-full bg-brand/12 px-2 py-0.5 text-[12px] font-bold text-brand-text">
-                          Sinal de {formatCurrency(s.depositAmount)}
-                        </span>
+                        {s.depositAmount > 0 && (
+                          <span className="inline-flex rounded-full bg-brand/12 px-2 py-0.5 text-[12px] font-bold text-brand-text">
+                            Sinal de {formatCurrency(s.depositAmount)}
+                          </span>
+                        )}
                       </span>
                       <span className="block text-[13px] text-muted">
                         <span className="font-bold tabular-nums text-ink">{formatCurrency(s.price)}</span>
@@ -538,6 +543,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                     </SelectableCard>
                   ))}
                 </div>
+                {vitrine.services.some((s) => s.depositAmount > 0) && (
                 <div className="mt-5 flex items-center gap-3 rounded-card bg-surface-2 p-4">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface text-brand-text">
                     <Icon name="info" size={20} />
@@ -546,6 +552,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                     O sinal confirma seu horário na agenda e é descontado do valor do serviço no dia do atendimento.
                   </p>
                 </div>
+                )}
               </>
             )}
             <ClubeVitrine slug={slug} />
@@ -634,11 +641,17 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                     </div>
                   )}
                 </div>
+                {semSinal ? (
+                  <div className="grid grid-cols-1 gap-2 text-center">
+                    <Resumo rotulo="Total, pago no atendimento" valor={formatCurrency(resumo.servico.price)} destaque />
+                  </div>
+                ) : (
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <Resumo rotulo="Total" valor={formatCurrency(resumo.servico.price)} />
                   <Resumo rotulo={ehInfinitePay ? 'Sinal' : resumo.forma === 'cartao' ? 'Sinal cartão' : 'Sinal Pix'} valor={formatCurrency(sinalDoResumo)} destaque />
                   <Resumo rotulo="No atendimento" valor={formatCurrency(resumo.servico.price - sinalDoResumo)} />
                 </div>
+                )}
               </section>
 
               {!reserva && (
@@ -681,10 +694,11 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                       </span>
                     </span>
                   </label>
-                  <EscolhaFormaPagamento formas={formasLiberadas} valor={formaEfetiva} onChange={setFormaEscolhida} />
+                  {!semSinal && <EscolhaFormaPagamento formas={formasLiberadas} valor={formaEfetiva} onChange={setFormaEscolhida} />}
                 </section>
               )}
 
+              {!semSinal && (
               <section className="flex flex-col gap-3.5 rounded-card border border-line bg-surface p-4 shadow-sm">
                 <TituloSecao numero={reserva ? 1 : 2}>
                   {ehInfinitePay
@@ -773,6 +787,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                   </>
                 )}
               </section>
+              )}
             </div>
           </>
         )}
@@ -811,7 +826,9 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
                   <>
                     <p className="truncate text-xs text-muted">{selectedService.name}</p>
                     <p className="text-[15px] font-bold tabular-nums text-ink">Total: {formatCurrency(selectedService.price)}</p>
-                    <p className="truncate text-xs font-bold text-brand-text">Sinal necessário: {formatCurrency(selectedService.depositAmount)}</p>
+                    {selectedService.depositAmount > 0 && (
+                      <p className="truncate text-xs font-bold text-brand-text">Sinal necessário: {formatCurrency(selectedService.depositAmount)}</p>
+                    )}
                   </>
                 ) : (
                   <p className="text-[13px] text-muted">Nenhum serviço selecionado</p>
@@ -851,7 +868,7 @@ export function PublicBookingFlow({ slug }: { slug: string }) {
         {step === 'pagamento' && !reserva && (
           <BarraAcao>
             <Button type="button" size="lg" fullWidth disabled={submitting || !clientName || !clientPhone} loading={submitting} onClick={submit}>
-              {ehInfinitePay ? 'Pagar o sinal na InfinitePay (Pix ou cartão)' : 'Confirmar agendamento'}
+              {ehInfinitePay && !semSinal ? 'Pagar o sinal na InfinitePay (Pix ou cartão)' : 'Confirmar agendamento'}
             </Button>
             <p className="mt-1.5 text-center text-xs text-muted">Sem necessidade de cadastro com senha</p>
           </BarraAcao>

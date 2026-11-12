@@ -18,11 +18,9 @@ export const publicBookingRepository = {
   },
 
   async findEligibleServices(businessId: string) {
-    // `gt: 0` (em vez de `not: null`) exclui tanto "sem sinal configurado" (null)
-    // quanto "sinal configurado como 0%" — ambos não devem aparecer na vitrine
-    // pública, pois um depósito de R$0 faz buildPixPayload lançar (amount <= 0).
+    // Serviço sem sinal (null ou 0%) também aparece: a reserva dele é confirmada direto, sem Pix.
     return prisma.service.findMany({
-      where: { businessId, active: true, depositPercentage: { gt: 0 } },
+      where: { businessId, active: true },
       select: { id: true, name: true, price: true, durationMinutes: true, depositPercentage: true, description: true },
     });
   },
@@ -36,7 +34,7 @@ export const publicBookingRepository = {
 
   async findServiceForBusiness(businessId: string, serviceId: string) {
     return prisma.service.findFirst({
-      where: { id: serviceId, businessId, active: true, depositPercentage: { gt: 0 } },
+      where: { id: serviceId, businessId, active: true },
       select: { id: true, name: true, price: true, durationMinutes: true, depositPercentage: true },
     });
   },
@@ -102,9 +100,11 @@ export const publicBookingRepository = {
     serviceId: string;
     date: string;
     time: string;
-    expiresAt: Date;
+    expiresAt: Date | null;
     depositAmount: number;
     source?: 'publico' | 'whatsapp';
+    /** Padrão `aguardando_pagamento`; sem sinal a reserva já nasce `confirmado`. */
+    status?: 'aguardando_pagamento' | 'confirmado';
   }, db: Tx = prisma) {
     return db.appointment.create({
       data: {
@@ -114,7 +114,7 @@ export const publicBookingRepository = {
         serviceId: data.serviceId,
         date: new Date(data.date),
         time: new Date(`1970-01-01T${data.time}:00Z`),
-        status: 'aguardando_pagamento',
+        status: data.status ?? 'aguardando_pagamento',
         expiresAt: data.expiresAt,
         source: data.source ?? 'publico',
         depositAmount: data.depositAmount,

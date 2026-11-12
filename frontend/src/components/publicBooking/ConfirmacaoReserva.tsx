@@ -87,6 +87,7 @@ export function ConfirmacaoReserva({
             </a>
           </Linha>
         )}
+        {sinal > 0 ? (
         <div className="grid grid-cols-2 gap-2 border-t border-line/60 pt-3">
           <div>
             <p className="text-xs text-muted">{forma === 'cartao' ? 'Sinal pago no cartão' : 'Sinal pago via Pix'}</p>
@@ -97,6 +98,12 @@ export function ConfirmacaoReserva({
             <p className="text-[15px] font-bold tabular-nums text-ink">{moeda(servico.price - sinal)}</p>
           </div>
         </div>
+        ) : (
+          <div className="border-t border-line/60 pt-3">
+            <p className="text-xs text-muted">Pagamento no atendimento</p>
+            <p className="text-[15px] font-bold tabular-nums text-ink">{moeda(servico.price)}</p>
+          </div>
+        )}
       </section>
 
       {comLembretes && (

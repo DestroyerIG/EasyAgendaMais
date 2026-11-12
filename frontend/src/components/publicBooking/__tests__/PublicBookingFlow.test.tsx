@@ -143,6 +143,33 @@ describe('PublicBookingFlow', () => {
     expect(screen.queryByTitle('Localização do negócio')).not.toBeInTheDocument();
   });
 
+  it('serviço sem sinal aparece sem selo de sinal e a reserva é confirmada direto, sem Pix', async () => {
+    api.getStorefront.mockResolvedValue({
+      ...STOREFRONT,
+      services: [{ id: 'srv-2', name: 'Escova', price: 80, durationMinutes: 45, depositPercentage: 0, depositAmount: 0 }],
+    });
+    api.createAppointment.mockResolvedValue({
+      appointmentId: 'appt-9', depositAmount: 0, pixPayload: null, checkoutUrl: null, forma: 'pix', confirmada: true, expiresAt: null,
+    });
+    const user = userEvent.setup();
+    await goToServiceStep(user);
+    expect(screen.queryByText(/Sinal de/)).not.toBeInTheDocument();
+    await user.click(await screen.findByText('Escova'));
+    await clickContinuar(user);
+    await screen.findByLabelText('Data do agendamento');
+    fireEvent.change(screen.getByLabelText('Data do agendamento'), { target: { value: '2099-10-24' } });
+    await user.click(await screen.findByRole('button', { name: '14:00' }));
+    await clickContinuar(user);
+    expect(screen.queryByText(/Pagamento do sinal/)).not.toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText('Seu nome'), 'Mariana');
+    await user.type(screen.getByPlaceholderText('Seu WhatsApp'), '83999990000');
+    await user.click(screen.getByRole('button', { name: /confirmar agendamento/i }));
+
+    expect(await screen.findByText('Agendamento confirmado!')).toBeInTheDocument();
+    expect(screen.getByText('Pagamento no atendimento')).toBeInTheDocument();
+    expect(api.createAppointment).toHaveBeenCalledWith('studio-aurora', expect.not.objectContaining({ formaPagamento: expect.anything() }));
+  });
+
   it('exige selecionar um serviço antes de habilitar Continuar', async () => {
     await goToServiceStep(userEvent.setup());
     await screen.findByText('Manutenção Fibra');
