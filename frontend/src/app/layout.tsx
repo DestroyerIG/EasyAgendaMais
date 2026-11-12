@@ -3,6 +3,7 @@ import { ToastProvider } from '@/components/Toast'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
+import { siteUrl } from '@/lib/siteUrl'
 import localFont from 'next/font/local'
 import easyAgendaLogo from '@/icons/easyagenda-logo.png'
 
@@ -23,6 +24,10 @@ const spaceGrotesk = localFont({
 });
 
 export const metadata = {
+  // Base das URLs absolutas e canônica de cada página: evita que o mesmo conteúdo
+  // aberto por outro endereço (ex.: o *.vercel.app) seja tratado como cópia.
+  metadataBase: new URL(siteUrl()),
+  alternates: { canonical: './' },
   title: 'EasyAgenda+ - Gestão para Negócios de Beleza',
   description: 'EasyAgenda+ é a plataforma de agendamentos, clientes, financeiro e crescimento previsível para negócios de beleza e bem-estar.',
   keywords: 'easyagenda, agendamento online, negócios de beleza, bem-estar, gestão financeira, sistema de agendamento',
