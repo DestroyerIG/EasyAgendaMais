@@ -253,21 +253,41 @@ export const publicBookingService = {
     return { pixPayload: manual, forma: 'pix' as const, expiresAt };
   },
 
+  /** Fora da transação da reserva: se gravar o consentimento falhar, a reserva continua valendo. */
+  async registrarConsentimentoENotificar(businessId: string, clientId: string, data: CreatePublicAppointmentInput, serviceName: string) {
+    if (data.whatsappConsent === true) {
+      try {
+        await publicBookingRepository.registrarConsentimento({ businessId, clientId });
+      } catch (err) {
+        logger.error({ err, businessId, clientId }, 'Falha ao gravar consentimento da reserva pública');
+      }
+    }
+
+    const [year, month, day] = data.date.split('-');
+    await notificationsService.notify(businessId, {
+      type: 'nova_reserva',
+      title: 'Nova reserva online',
+      description: `${data.clientName} · ${serviceName} · ${day}/${month}/${year} às ${data.time}`,
+    });
+  },
+
   async createPendingAppointment(slug: string, data: CreatePublicAppointmentInput) {
     const business = await publicBookingRepository.findBusinessBySlug(slug);
     if (!business) throw new NotFoundError('Página');
     if ((await estadoContaService.doNegocio(business.id)).tipo !== 'ativa') {
       throw new ConflictError(textoAgendaPausada(business.name));
     }
-    if (!business.pixKey || !business.pixKeyType) {
-      throw new ValidationError('Este negócio ainda não configurou o recebimento de sinal via Pix');
-    }
-
-    // Pedido de cartão que o negócio não recebe é recusado antes de qualquer coisa ser criada.
-    await reservaComSinalService.validarForma(business.id, data.formaPagamento);
-
     const service = await publicBookingRepository.findServiceForBusiness(business.id, data.serviceId);
     if (!service) throw new ValidationError('Serviço indisponível para este negócio');
+
+    const semSinal = calcDeposit(Number(service.price), Number(service.depositPercentage ?? 0)) <= 0;
+    if (!semSinal) {
+      if (!business.pixKey || !business.pixKeyType) {
+        throw new ValidationError('Este negócio ainda não configurou o recebimento de sinal via Pix');
+      }
+      // Pedido de cartão que o negócio não recebe é recusado antes de qualquer coisa ser criada.
+      await reservaComSinalService.validarForma(business.id, data.formaPagamento);
+    }
 
     const professional = await publicBookingRepository.findProfessionalForBusiness(business.id, data.professionalId);
     if (!professional) throw new ValidationError('Profissional indisponível para este negócio');
@@ -281,9 +301,22 @@ export const publicBookingService = {
 
     const client = await publicBookingRepository.findOrCreateClient(business.id, data.clientName, data.clientPhone);
 
+    if (semSinal) {
+      const appointment = await reservaComSinalService.criarSemSinal({
+        businessId: business.id, clientId: client.id, professionalId: data.professionalId, serviceId: data.serviceId,
+        date: data.date, time: data.time, origem: 'publico',
+      });
+      void googleAgendaService.sincronizarSaida({ appointmentId: appointment.id });
+      await publicBookingService.registrarConsentimentoENotificar(business.id, client.id, data, service.name);
+      return {
+        appointmentId: appointment.id, depositAmount: 0, pixPayload: null, checkoutUrl: null,
+        forma: 'pix' as FormaSinal, automatica: false, cartaoIndisponivel: false, confirmada: true, expiresAt: null,
+      };
+    }
+
     const { appointment, depositAmount, pixPayload, checkoutUrl, forma, automatica, cartaoIndisponivel, toleranciaMin, expiresAt } =
       await reservaComSinalService.criar({
-        business: { id: business.id, name: business.name, slug, pixKey: business.pixKey, pixKeyType: business.pixKeyType },
+        business: { id: business.id, name: business.name, slug, pixKey: business.pixKey!, pixKeyType: business.pixKeyType! },
         clientId: client.id, professionalId: data.professionalId, serviceId: data.serviceId,
         serviceName: service.name, servicePrice: Number(service.price), depositPercentage: Number(service.depositPercentage),
         date: data.date, time: data.time, origem: 'publico', formaPedida: data.formaPagamento,
@@ -292,24 +325,11 @@ export const publicBookingService = {
     logger.info({ appointmentId: appointment.id, businessId: business.id }, 'Reserva pública criada, aguardando pagamento');
     void googleAgendaService.sincronizarSaida({ appointmentId: appointment.id });
 
-    // Fora da transação da reserva: se gravar o consentimento falhar, a reserva continua valendo.
-    if (data.whatsappConsent === true) {
-      try {
-        await publicBookingRepository.registrarConsentimento({ businessId: business.id, clientId: client.id });
-      } catch (err) {
-        logger.error({ err, businessId: business.id, clientId: client.id }, 'Falha ao gravar consentimento da reserva pública');
-      }
-    }
-
-    const [year, month, day] = data.date.split('-');
-    await notificationsService.notify(business.id, {
-      type: 'nova_reserva',
-      title: 'Nova reserva online',
-      description: `${data.clientName} · ${service.name} · ${day}/${month}/${year} às ${data.time}`,
-    });
+    await publicBookingService.registrarConsentimentoENotificar(business.id, client.id, data, service.name);
 
     // Só o Pix manda o código; no cartão a cliente paga no Checkout.
     if (pixPayload) {
+      const [, month, day] = data.date.split('-');
       void automacoesGatilhos.aoCriarReservaComSinal(business.id, appointment.id, {
         phone: data.clientPhone, nome: data.clientName, servico: service.name, valorSinal: depositAmount, pixPayload,
         data: `${day}/${month}`, horario: data.time, toleranciaMin,
@@ -324,6 +344,7 @@ export const publicBookingService = {
       forma,
       automatica,
       cartaoIndisponivel,
+      confirmada: false,
       expiresAt: expiresAt.toISOString(),
     };
   },

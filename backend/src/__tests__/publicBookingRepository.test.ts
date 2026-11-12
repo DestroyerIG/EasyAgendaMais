@@ -23,25 +23,25 @@ vi.mock('../repositories/clientRepository.js', () => ({
   },
 }));
 
-describe('publicBookingRepository — exclusão de sinal 0%', () => {
+describe('publicBookingRepository — serviço sem sinal', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('findEligibleServices filtra depositPercentage com gt: 0 (exclui null e 0%)', async () => {
+  it('findEligibleServices não filtra por sinal (serviço sem sinal também é reservável)', async () => {
     (prisma.service.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
     await publicBookingRepository.findEligibleServices('biz-1');
 
     const whereArg = (prisma.service.findMany as ReturnType<typeof vi.fn>).mock.calls[0][0].where;
-    expect(whereArg.depositPercentage).toEqual({ gt: 0 });
+    expect(whereArg).toEqual({ businessId: 'biz-1', active: true });
   });
 
-  it('findServiceForBusiness filtra depositPercentage com gt: 0 (exclui null e 0%)', async () => {
+  it('findServiceForBusiness não filtra por sinal (serviço sem sinal também é reservável)', async () => {
     (prisma.service.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
     await publicBookingRepository.findServiceForBusiness('biz-1', 'srv-1');
 
     const whereArg = (prisma.service.findFirst as ReturnType<typeof vi.fn>).mock.calls[0][0].where;
-    expect(whereArg.depositPercentage).toEqual({ gt: 0 });
+    expect(whereArg).toEqual({ id: 'srv-1', businessId: 'biz-1', active: true });
   });
 });
 

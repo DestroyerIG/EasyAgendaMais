@@ -69,7 +69,9 @@ export interface CreatePublicAppointmentResponse {
   forma?: FormaSinal;
   automatica?: boolean;
   cartaoIndisponivel?: boolean;
-  expiresAt: string;
+  /** Serviço sem sinal: a reserva já nasce confirmada, sem Pix nem prazo. */
+  confirmada?: boolean;
+  expiresAt: string | null;
 }
 
 /** O que a página precisa para remontar a reserva; sem dado pessoal da cliente. */
