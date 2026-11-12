@@ -15,6 +15,7 @@ import { estadoContaService } from '../modules/conta/estadoConta.service.js';
 import { motivoParaNaoEstenderTeste } from '../modules/admin/painel.rules.js';
 import { SalaoSobConsultaError, valorCombinadoDe } from '../config/valorPlano.js';
 import { asaasService } from '../integrations/asaas/service.js';
+import { professionalService } from './professionalService.js';
 import type { Request } from 'express';
 
 interface AuthUser {
@@ -49,6 +50,25 @@ const actorPayload = (authUser: AuthUser | null | undefined): { actorUserId: str
 });
 
 export const adminService = {
+  /** Profissionais do negócio, com a disponibilidade, para a tela de detalhe da conta. */
+  async listarProfissionais(tenantId: string): Promise<unknown> {
+    return professionalService.getProfessionals(tenantId);
+  },
+
+  async definirDisponibilidade(authUser: AuthUser | null, tenantId: string, professionalId: string, available: boolean, req: Request): Promise<unknown> {
+    const resultado = await professionalService.setAvailability(professionalId, tenantId, available);
+    await auditLogService.logAdminAction({
+      req,
+      actionType: 'PROFESSIONAL_AVAILABILITY_CHANGED',
+      ...actorPayload(authUser),
+      targetBusinessId: tenantId,
+      resourceType: 'professional',
+      resourceId: professionalId,
+      details: { available },
+    });
+    return resultado;
+  },
+
   async listSubscriptions(query: Record<string, unknown> = {}): Promise<unknown> {
     return adminRepository.listSubscriptions(query);
   },

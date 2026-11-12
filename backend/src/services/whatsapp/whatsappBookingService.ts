@@ -72,7 +72,7 @@ interface BookingMessageResult {
 /** O exemplo não tem serviço nem profissional: usa os primeiros ativos para a escolha de data achar horários. */
 const agendamentoExemploCompleto = async (businessId: string): Promise<AppointmentListRow[]> => {
   const [servico, profissional] = await Promise.all([
-    prisma.service.findFirst({ where: { businessId, active: true }, select: { id: true }, orderBy: { name: 'asc' } }),
+    prisma.service.findFirst({ where: { businessId, active: true, available: true }, select: { id: true }, orderBy: { name: 'asc' } }),
     prisma.professional.findFirst({ where: { businessId, active: true }, select: { id: true }, orderBy: { name: 'asc' } }),
   ]);
   return [{

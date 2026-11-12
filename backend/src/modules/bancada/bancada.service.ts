@@ -21,6 +21,7 @@ import {
   parteDaProfissional, resumoAvaliacoes, textoCancelado, textoReagendado,
 } from './bancada.rules.js';
 import { clientService } from '../../services/clientService.js';
+import { professionalService } from '../../services/professionalService.js';
 import type {
   BancadaCobrarInput, BancadaComandaInput, CancelarInput, NovoAgendamentoInput, NovoClienteInput, Profissional, ReagendarInput,
 } from './bancada.types.js';
@@ -152,6 +153,17 @@ export const bancadaService = {
   async iniciar(businessId: string, p: Profissional, appointmentId: string) {
     await exigirAgendamento(businessId, p, appointmentId);
     return comCobranca(businessId, await comandasService.open(appointmentId, businessId));
+  },
+
+  /** Se a agenda dela está aberta e quantos agendamentos futuros continuam marcados. */
+  async disponibilidade(businessId: string, p: Profissional) {
+    const r = await professionalService.getDisponibilidade(p.id, businessId);
+    return { disponivel: r.available, agendamentosFuturos: r.agendamentosFuturos };
+  },
+
+  async definirDisponibilidade(businessId: string, p: Profissional, disponivel: boolean) {
+    const r = await professionalService.setAvailability(p.id, businessId, disponivel);
+    return { disponivel: r.available, agendamentosFuturos: r.agendamentosFuturos };
   },
 
   async horarios(businessId: string, p: Profissional, appointmentId: string, data: string) {

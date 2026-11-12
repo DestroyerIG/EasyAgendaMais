@@ -16,6 +16,7 @@ import { AuditoriaNegocio } from '@/components/admin/detalhe/AuditoriaNegocio';
 import { CabecalhoNegocio, TrilhaNegocio } from '@/components/admin/detalhe/CabecalhoNegocio';
 import { CartoesNegocio } from '@/components/admin/detalhe/CartoesNegocio';
 import { LinhaDoTempoCobranca } from '@/components/admin/detalhe/LinhaDoTempoCobranca';
+import { ProfissionaisNegocio } from '@/components/admin/detalhe/ProfissionaisNegocio';
 import { UsoEmProducao } from '@/components/admin/detalhe/UsoEmProducao';
 import { CAIXA } from '@/components/admin/formato';
 import { adminApi } from '@/lib/adminApi';
@@ -90,6 +91,7 @@ export default function AdminNegocioDetalhePage() {
             <div className="space-y-6 lg:col-span-7">
               <LinhaDoTempoCobranca proximaCobranca={detalhe.proximaCobranca} faturas={detalhe.faturas} />
               <UsoEmProducao uso={detalhe.uso} />
+              <ProfissionaisNegocio tenantId={id} onAlterado={() => setVersao((v) => v + 1)} />
             </div>
             <div className="lg:col-span-5">
               <AuditoriaNegocio tenantId={id} versao={versao} />

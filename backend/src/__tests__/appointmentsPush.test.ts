@@ -23,7 +23,7 @@ const appt = (over: Record<string, unknown> = {}) => ({
 beforeEach(() => {
   vi.clearAllMocks();
   push.paraProfissional.mockResolvedValue(0);
-  repo.validateOwnership.mockResolvedValue({ clientOk: true, professionalOk: true, serviceOk: true });
+  repo.validateOwnership.mockResolvedValue({ clientOk: true, professionalOk: true, professionalDisponivel: true, serviceOk: true });
   repo.hasConflict.mockResolvedValue(false);
 });
 

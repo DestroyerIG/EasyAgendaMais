@@ -37,3 +37,12 @@ export const deleteProfessional = async (req: Request, res: Response, next: Next
     next(error);
   }
 };
+
+export const setProfessionalAvailability = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await professionalService.setAvailability(req.params['id'] as string, req.user.businessId!, req.body.available);
+    sendSuccess(res, data);
+  } catch (error) {
+    next(error);
+  }
+};

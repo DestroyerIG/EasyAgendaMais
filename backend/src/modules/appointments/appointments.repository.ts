@@ -100,7 +100,7 @@ export const appointmentsPrismaRepository = {
   async validateOwnership(
     businessId: string,
     data: { clientId: string; professionalId: string; serviceId: string }
-  ): Promise<{ clientOk: boolean; professionalOk: boolean; serviceOk: boolean }> {
+  ): Promise<{ clientOk: boolean; professionalOk: boolean; professionalDisponivel: boolean; serviceOk: boolean }> {
     const [client, professional, service] = await Promise.all([
       prisma.client.findFirst({
         where: { id: data.clientId, businessId, active: true },
@@ -108,7 +108,7 @@ export const appointmentsPrismaRepository = {
       }),
       prisma.professional.findFirst({
         where: { id: data.professionalId, businessId, active: true },
-        select: { id: true },
+        select: { id: true, available: true },
       }),
       prisma.service.findFirst({
         where: { id: data.serviceId, businessId, active: true },
@@ -119,6 +119,7 @@ export const appointmentsPrismaRepository = {
     return {
       clientOk: client !== null,
       professionalOk: professional !== null,
+      professionalDisponivel: professional?.available ?? false,
       serviceOk: service !== null,
     };
   },

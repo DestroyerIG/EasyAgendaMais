@@ -16,6 +16,7 @@ import { getApiErrorCode, getApiErrorMessage } from '@/utils/handleApiError';
 import { useRouter } from 'next/navigation';
 import { useVocabulario } from '@/hooks/useVocabulario';
 import { equipeApi } from '@/lib/equipe';
+import { avisoAgendamentosMantidos, disponibilidadeApi } from '@/lib/disponibilidade';
 
 export const ServiceProfessionalModule = () => {
   const [activeTab, setActiveTab] = useState<'servicos' | 'profissionais' | 'produtos'>('servicos');
@@ -127,6 +128,25 @@ export const ServiceProfessionalModule = () => {
     }
   };
 
+  const [salvandoDisponibilidade, setSalvandoDisponibilidade] = useState<string | null>(null);
+
+  const handleToggleDisponivel = async (p: Professional, disponivel: boolean) => {
+    setSalvandoDisponibilidade(p.id);
+    try {
+      const r = await disponibilidadeApi.definir(p.id, disponivel);
+      setProfessionals(lista => lista.map(x => (x.id === p.id ? { ...x, available: r.available, agendamentosFuturos: r.agendamentosFuturos } : x)));
+      const mantidos = avisoAgendamentosMantidos(r.agendamentosFuturos);
+      showToast(
+        disponivel ? `${p.name} voltou a ficar disponível` : `${p.name} está indisponível. ${mantidos ? `${mantidos}.` : 'Novos agendamentos estão bloqueados.'}`,
+        'success',
+      );
+    } catch (error: unknown) {
+      showToast(getApiErrorMessage(error, 'Não foi possível alterar a disponibilidade'), 'error');
+    } finally {
+      setSalvandoDisponibilidade(null);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir?')) return;
     try {
@@ -225,6 +245,8 @@ export const ServiceProfessionalModule = () => {
                   onEdit={() => handleOpenModal(b)}
                   onDelete={() => handleDelete(b.id)}
                   onViewAgenda={() => setSelectedProfessionalForAgenda(b)}
+                  onToggleDisponivel={(v) => void handleToggleDisponivel(b, v)}
+                  salvandoDisponibilidade={salvandoDisponibilidade === b.id}
                 />
               ))}
             </div>

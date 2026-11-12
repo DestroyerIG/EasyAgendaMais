@@ -17,6 +17,8 @@ import {
   adminAuditLogQuerySchema,
   adminActionParamsSchema,
   adminActionBodySchema,
+  adminProfessionalParamsSchema,
+  adminProfessionalAvailabilityBodySchema,
 } from '../validators/schemas/index.js';
 
 export {
@@ -28,6 +30,8 @@ export {
   adminAuditLogQuerySchema,
   adminActionParamsSchema,
   adminActionBodySchema,
+  adminProfessionalParamsSchema,
+  adminProfessionalAvailabilityBodySchema,
 };
 
 export const getAdminMetrics = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -206,6 +210,25 @@ export const getAdminAuditLogs = async (req: Request, res: Response, next: NextF
   try {
     const result = await adminService.listAuditLogs(req.query) as { data: unknown[]; meta: import('../utils/response.js').PaginationMeta };
     sendSuccess(res, result.data, 200, result.meta);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAdminTenantProfessionals = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    sendSuccess(res, await adminService.listarProfissionais(req.params['id'] as string));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const setAdminProfessionalAvailability = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await adminService.definirDisponibilidade(
+      req.user, req.params['id'] as string, req.params['professionalId'] as string, req.body.available, req,
+    );
+    sendSuccess(res, data);
   } catch (error) {
     next(error);
   }

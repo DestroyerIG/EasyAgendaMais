@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/components/ui';
 import { NEW_APPOINTMENT_HREF, getNavItem } from '@/lib/navigation';
@@ -39,19 +40,21 @@ export interface SaudacaoDiaProps {
   data?: string;
   /** Nome do negócio para a pílula do celular (hoje-mobile.html: "Studio Aurora · …"). */
   businessName?: string;
+  /** Atalho da equipe (pílula de disponibilidade); só a dona vê. Fica junto das ações, no canto direito. */
+  equipe?: ReactNode;
 }
 
 // Saudação da tela Hoje (hoje-desktop.html / hoje-mobile.html: "Bom dia, Carla"):
 // saudação pela hora local + nome da dona; a data por extenso é a do negócio.
 // A pílula do celular traz só o nome do negócio — a referência soma "· 3 ativas",
 // número que o sistema não calcula, então ele fica de fora em vez de inventado.
-export function SaudacaoDia({ ownerName, data, businessName }: SaudacaoDiaProps) {
+export function SaudacaoDia({ ownerName, data, businessName, equipe }: SaudacaoDiaProps) {
   const { bloqueado, dica } = useBloqueadoNaCarencia();
   const agora = new Date();
   const dia = data ? dataDoDia(data) : agora;
 
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-ink">
           {saudacaoPorHora(agora.getHours())}, {ownerName}
@@ -67,7 +70,9 @@ export function SaudacaoDia({ ownerName, data, businessName }: SaudacaoDiaProps)
       {/* Ações do computador (hoje-desktop.html): sem equivalente no celular, onde o
           "+" da barra inferior já cobre "Novo agendamento" e o WhatsApp mora no menu
           "Mais". Os dois levam para telas reais — nenhuma é decorativa. */}
-      <div className="hidden shrink-0 items-center gap-3 lg:flex">
+      <div className="flex shrink-0 items-center gap-3">
+      {equipe}
+      <div className="hidden items-center gap-3 lg:flex">
         <Link
           href={getNavItem('whatsapp').href}
           className="inline-flex items-center gap-2 rounded-control border border-line bg-surface px-4 py-2 text-[14px] font-bold text-whatsapp shadow-sm transition-colors hover:border-whatsapp/40 hover:bg-whatsapp/5"
@@ -94,6 +99,7 @@ export function SaudacaoDia({ ownerName, data, businessName }: SaudacaoDiaProps)
             Novo agendamento
           </Link>
         )}
+      </div>
       </div>
     </div>
   );

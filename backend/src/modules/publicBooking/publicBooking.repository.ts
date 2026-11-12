@@ -29,7 +29,7 @@ export const publicBookingRepository = {
 
   async findProfessionalsForService(businessId: string) {
     return prisma.professional.findMany({
-      where: { businessId, active: true },
+      where: { businessId, active: true, available: true },
       select: { id: true, name: true },
     });
   },
@@ -43,7 +43,7 @@ export const publicBookingRepository = {
 
   async findProfessionalForBusiness(businessId: string, professionalId: string) {
     return prisma.professional.findFirst({
-      where: { id: professionalId, businessId, active: true },
+      where: { id: professionalId, businessId, active: true, available: true },
       select: { id: true },
     });
   },

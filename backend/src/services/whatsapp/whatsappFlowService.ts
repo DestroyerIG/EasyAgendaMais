@@ -1372,7 +1372,7 @@ const handleChooseServiceStep = async (
   }
 
   const professionals = await prisma.professional.findMany({
-    where: { businessId, active: true },
+    where: { businessId, active: true, available: true },
     select: { id: true, name: true },
     orderBy: { name: 'asc' },
   });
