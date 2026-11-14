@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/cn';
@@ -20,6 +20,7 @@ export function EquipePilula() {
   const [aberta, setAberta] = useState(false);
   const [salvando, setSalvando] = useState<string | null>(null);
   const raiz = useRef<HTMLDivElement>(null);
+  const painelRef = useRef<HTMLDivElement>(null);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -34,6 +35,26 @@ export function EquipePilula() {
       .catch(() => { if (vivo) setEquipe([]); });
     return () => { vivo = false; };
   }, []);
+
+  // No celular a pílula pode cair para a segunda linha, à esquerda: o painel (ancorado à direita
+  // dela) estouraria a tela. Ao abrir, empurra o painel para dentro da janela.
+  useLayoutEffect(() => {
+    const painel = painelRef.current;
+    if (!aberta || !painel) return;
+    const ajustar = () => {
+      painel.style.transform = '';
+      const { left, right } = painel.getBoundingClientRect();
+      const margem = 16;
+      const largura = document.documentElement.clientWidth;
+      let desloca = 0;
+      if (left < margem) desloca = margem - left;
+      else if (right > largura - margem) desloca = largura - margem - right;
+      if (desloca) painel.style.transform = `translateX(${Math.round(desloca)}px)`;
+    };
+    ajustar();
+    window.addEventListener('resize', ajustar);
+    return () => window.removeEventListener('resize', ajustar);
+  }, [aberta]);
 
   useEffect(() => {
     if (!aberta) return;
@@ -90,6 +111,7 @@ export function EquipePilula() {
 
       {aberta && (
         <div
+          ref={painelRef}
           role="dialog"
           aria-label="Disponibilidade da equipe"
           className="absolute right-0 top-full z-30 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-card border border-line bg-surface p-3 shadow-xl"
