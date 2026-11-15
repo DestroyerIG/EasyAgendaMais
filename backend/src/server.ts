@@ -111,6 +111,12 @@ const requiredEnvVars = [
   'DATABASE_URL',
 ];
 
+const PLACEHOLDERS_JWT_SECRET = new Set(['troque-este-segredo-local', 'changeme', 'secret', 'test-secret']);
+if (process.env.NODE_ENV === 'production' && PLACEHOLDERS_JWT_SECRET.has(String(process.env.JWT_SECRET || '').trim())) {
+  logger.fatal('JWT_SECRET usa um valor de exemplo conhecido. Defina um segredo forte antes de subir em produção.');
+  process.exit(1);
+}
+
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
     logger.fatal(

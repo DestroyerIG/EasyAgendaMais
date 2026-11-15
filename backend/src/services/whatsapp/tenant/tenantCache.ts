@@ -13,6 +13,7 @@ interface CacheEntry<T> {
 
 const DEFAULT_TTL_MS = 60_000;
 
+const MAX_ENTRIES = 5_000;
 const _store = new Map<string, CacheEntry<unknown>>();
 let _writeCount = 0;
 
@@ -43,6 +44,14 @@ export const getTenant = <T = unknown>(key: string): T | undefined => {
  */
 export const setTenant = <T = unknown>(key: string, value: T, ttlMs: number = DEFAULT_TTL_MS): void => {
   if (!key) return;
+  if (_store.size >= MAX_ENTRIES && !_store.has(key)) {
+    // Limite de memória (chaves vindas de webhook não autenticado): remove expiradas e, se preciso, a mais antiga.
+    _cleanup();
+    if (_store.size >= MAX_ENTRIES) {
+      const oldest = _store.keys().next().value;
+      if (oldest !== undefined) _store.delete(oldest);
+    }
+  }
   _store.set(key, { value, expiresAt: Date.now() + ttlMs });
   _writeCount += 1;
   if (_writeCount >= 500) {

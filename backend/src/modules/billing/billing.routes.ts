@@ -44,6 +44,12 @@ const asaasWebhookMiddleware = (req: Request, res: Response, next: NextFunction)
   const expected = process.env.ASAAS_WEBHOOK_TOKEN;
 
   if (!expected) {
+    // Sem token configurado o webhook ficaria aberto a qualquer chamador: em produção, falha fechado.
+    if (process.env.NODE_ENV === 'production') {
+      logger.error({ requestId: req.requestId }, 'Asaas webhook recusado: ASAAS_WEBHOOK_TOKEN não configurado');
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
     next();
     return;
   }

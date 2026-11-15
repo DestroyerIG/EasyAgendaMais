@@ -15,6 +15,7 @@ import {
   internalHealth,
 } from './whatsapp.controller.js';
 import logger from '../../utils/logger.js';
+import { webhookSecretGuard } from '../../services/whatsapp/webhookSecret.js';
 
 const router = express.Router();
 
@@ -54,7 +55,7 @@ const extractInstanceFromBody = (body: Record<string, unknown>): string | null =
 // Evolution retentar em loop e gera 410-spam nos logs dela.
 
 // Catch-all: Evolution global webhook (single endpoint) cai aqui.
-router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
+router.post('/webhook', webhookSecretGuard, async (req: Request, res: Response): Promise<void> => {
   const body = (req.body ?? {}) as Record<string, unknown>;
   const event = normalizeEventName(body['event'] ?? body['eventType'] ?? body['type']);
   const instanceName = extractInstanceFromBody(body);
@@ -90,7 +91,7 @@ router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-router.post('/webhook/:event', async (req: Request, res: Response): Promise<void> => {
+router.post('/webhook/:event', webhookSecretGuard, async (req: Request, res: Response): Promise<void> => {
   const event = normalizeEventName(req.params['event'] ?? '');
   const body = (req.body ?? {}) as Record<string, unknown>;
   const instanceName = extractInstanceFromBody(body);

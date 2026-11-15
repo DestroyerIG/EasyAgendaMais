@@ -54,11 +54,24 @@ interface InternalUserRecord {
   [key: string]: unknown;
 }
 
+// As senhas NUNCA ficam no código: vêm de variáveis de ambiente e são exigidas só na execução do seed.
+const seedPassword = (envName: string): string => {
+  const value = String(process.env[envName] || '');
+  if (value.length < 12) {
+    throw new Error(
+      `Defina ${envName} (mínimo de 12 caracteres) para executar seed:system-users. Não reutilize senhas de outros ambientes.`
+    );
+  }
+  return value;
+};
+
 const ACCOUNTS: Record<string, SeedAccount> = {
   platformAdmin: {
     key: 'platform-admin',
     email: 'contato@easyconnectcg.com.br',
-    password: '@Easyconnect08',
+    get password(): string {
+      return seedPassword('SEED_PLATFORM_ADMIN_PASSWORD');
+    },
     role: 'platform_admin',
     business: {
       name: 'EasyAgenda Plataforma',
@@ -71,7 +84,9 @@ const ACCOUNTS: Record<string, SeedAccount> = {
   premiumTenantAdmin: {
     key: 'premium-tenant-admin',
     email: 'teste@easyagenda.local',
-    password: '@Easyconnect08',
+    get password(): string {
+      return seedPassword('SEED_TENANT_ADMIN_PASSWORD');
+    },
     role: 'tenant_admin',
     business: {
       name: 'EasyAgenda Teste Premium',
@@ -108,6 +123,13 @@ const parseExecutionScope = (): string => {
 };
 
 const resolveSupabaseAdminClient = (): SupabaseClient => {
+  // O seed redefine senhas e confirma emails via API administrativa: nunca contra produção por engano.
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SEED_IN_PRODUCTION !== 'true') {
+    throw new Error(
+      'seed:system-users recusado com NODE_ENV=production. Defina ALLOW_SEED_IN_PRODUCTION=true apenas se for intencional.'
+    );
+  }
+
   const supabaseUrl = String(process.env.SUPABASE_URL || '').trim();
   const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 

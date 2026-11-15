@@ -629,10 +629,6 @@ const criarCheckoutCartao = async ({
     checkoutCartao: { id: checkout.checkoutId, plano: plan, criadoEm: agora.toISOString() },
     ...(desconto > 0 ? { descontoPrimeiraMensalidade: { valor: desconto, cupom: cupom?.code ?? couponCode } } : {}),
   });
-  if (cupom) {
-    await couponService.validateAndApply(couponCode ?? '', valorCheio);
-  }
-
   logger.info(
     { businessId: business.id, plan, emTeste, nextDueDate: nextDueDate.toISOString(), reason: 'card_checkout_created' },
     'Checkout de cartão do Asaas criado'
@@ -663,6 +659,9 @@ export const billingService = {
       },
       'Iniciando checkout de billing'
     );
+
+    // Uso de cupom reservado (atômico) antes de qualquer cobrança; devolvido se o checkout falhar.
+    let couponReservadoId: string | null = null;
 
     try {
       if (!VALID_PAYMENT_METHODS.has(paymentMethod)) {
@@ -732,6 +731,11 @@ export const billingService = {
         discount = Number((baseAmount - finalAmount).toFixed(2));
       }
 
+      if (appliedCoupon) {
+        await couponService.reserve(appliedCoupon.id);
+        couponReservadoId = appliedCoupon.id;
+      }
+
       if (finalAmount === 0) {
         const activationCouponCode = appliedCoupon?.code || couponCode || null;
 
@@ -743,10 +747,7 @@ export const billingService = {
           cancelAtPeriodEnd: false,
         });
 
-        // Consumir cupom somente após ativação bem-sucedida
-        if (appliedCoupon) {
-          await couponService.validateAndApply(couponCode ?? '', baseAmount);
-        }
+        couponReservadoId = null; // ativação concluída: o uso fica consumido
 
         logger.info(
           {
@@ -771,7 +772,7 @@ export const billingService = {
       }
 
       if (paymentMethod === 'card') {
-        return await criarCheckoutCartao({
+        const checkoutCartao = await criarCheckoutCartao({
           business,
           plan: checkoutPlan as PlanId,
           valorCheio: baseAmount,
@@ -779,6 +780,8 @@ export const billingService = {
           cupom: appliedCoupon,
           couponCode,
         });
+        couponReservadoId = null; // checkout criado: o uso fica consumido
+        return checkoutCartao;
       }
 
       const idempotencyKey = `pix-checkout:${businessId}:${plan}:${crypto.randomUUID()}`;
@@ -791,10 +794,7 @@ export const billingService = {
           subscriptionRepository.setAsaasCustomerId(businessId, customer as string),
       });
 
-      // Consumir cupom somente após checkout Asaas bem-sucedido
-      if (appliedCoupon) {
-        await couponService.validateAndApply(couponCode ?? '', baseAmount);
-      }
+      couponReservadoId = null; // checkout Asaas criado: o uso fica consumido
 
       const pxCheckout = pixCheckout as {
         payment?: AsaasPayment | null;
@@ -869,6 +869,11 @@ export const billingService = {
           : null,
       };
     } catch (error) {
+      if (couponReservadoId) {
+        await couponService.release(couponReservadoId).catch((releaseErr: unknown) => {
+          logger.error({ err: releaseErr, businessId }, 'Falha ao devolver uso reservado do cupom');
+        });
+      }
       const traceCode = `billing-checkout:${crypto.randomUUID()}`;
 
       const err = error as {
@@ -1265,6 +1270,10 @@ export const billingService = {
     const configuredToken = process.env.ASAAS_WEBHOOK_TOKEN;
 
     if (!configuredToken) {
+      // Fora de produção (dev/teste) o webhook pode rodar sem token; em produção falha fechado.
+      if (process.env.NODE_ENV === 'production') {
+        throw new UnauthorizedError('Assinatura do webhook Asaas inválida');
+      }
       return true;
     }
 

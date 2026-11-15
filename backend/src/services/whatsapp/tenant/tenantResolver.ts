@@ -15,6 +15,8 @@ import logger from '../../../utils/logger.js';
 import { prisma } from '../../../config/prisma.js';
 import { getTenant, setTenant } from './tenantCache.js';
 
+const NEGATIVE_TTL_MS = 15_000;
+
 export interface TenantBusiness {
   id: string;
   name: string;
@@ -67,6 +69,8 @@ export const resolveTenant = async (instanceName: string): Promise<TenantData | 
 
     if (!rows.length) {
       logger.debug({ instanceName: key }, 'resolveTenant: business not found');
+      // Cache negativo curto: o webhook é público e instâncias desconhecidas não devem custar uma consulta por requisição.
+      setTenant(key, null, NEGATIVE_TTL_MS);
       return null;
     }
 

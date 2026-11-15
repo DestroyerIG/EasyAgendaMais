@@ -1,6 +1,7 @@
 import logger from '../utils/logger.js';
 import { normalizePhoneForSend } from '../utils/whatsapp.js';
 import { evolutionCircuitBreaker } from '../utils/circuitBreaker.js';
+import { webhookSecretHeaders } from './whatsapp/webhookSecret.js';
 
 const DEFAULT_TIMEOUT_MS = 10000;
 const DEFAULT_RETRY_ATTEMPTS = 1;
@@ -837,6 +838,7 @@ export const setInstanceWebhook = async ({ instanceName = null, webhookUrl = nul
             events: desiredConfig.events,
             webhook_by_events: desiredConfig.webhook_by_events,
             webhook_base64: desiredConfig.webhook_base64,
+            ...(webhookSecretHeaders() ? { headers: webhookSecretHeaders() } : {}),
           },
         },
         expectedStatuses: [200, 201],
@@ -990,6 +992,7 @@ export const createInstance = async ({ instanceName = null, webhookUrl = null }:
               events: desiredWebhookConfig.events,
               webhook_by_events: desiredWebhookConfig.webhook_by_events,
               webhook_base64: desiredWebhookConfig.webhook_base64,
+              ...(webhookSecretHeaders() ? { headers: webhookSecretHeaders() } : {}),
             },
           } : {}),
         },
