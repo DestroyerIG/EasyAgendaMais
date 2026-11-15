@@ -9,13 +9,25 @@ const ROTULO_ORIGEM: Record<string, string> = {
   confirmacao: 'Confirmações',
   sinal_pix: 'Cobranças de sinal Pix',
   retorno: 'Alertas de retorno',
+  pix_recibo: 'Recibos de Pix',
+  avaliacao: 'Pedidos de avaliação',
+  aniversario: 'Aniversários',
+  campanha: 'Campanhas',
+  lista_espera: 'Lista de espera',
+  clube: 'Clube',
+  bot: 'Assistente (bot)',
+  manual_painel: 'Mensagens manuais (painel)',
+  manual_celular: 'Mensagens manuais (celular)',
+  cliente: 'Respostas a clientes',
+  painel_evento: 'Avisos do painel',
+  sistema: 'Avisos do sistema',
 };
 const ORDEM = Object.keys(ROTULO_ORIGEM);
 const OUTROS = 'Outros';
 
 type Disparo = AdminVisaoGeral['disparos24h'][number];
 
-/** Junta as origens sem rótulo em "Outros" e ordena: lembretes, confirmações, sinal, retorno, outros. */
+/** Junta as origens sem rótulo em "Outros" e ordena na ordem de ROTULO_ORIGEM, com os outros por último. */
 function agrupar(disparos: Disparo[]) {
   const grupos = new Map<string, { rotulo: string; enviados: number; falhos: number }>();
   for (const d of disparos) {

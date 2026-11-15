@@ -58,8 +58,10 @@ beforeEach(() => {
 describe('GET /admin/metrics', () => {
   it('devolve a visão geral com o MRR somado dos pagantes e atualizadoEm em ISO', async () => {
     repo.linhasNegocios.mockResolvedValue([
-      linha({ plano: 'basico' }),
-      linha({ plano: 'premium', statusAssinatura: 'past_due', inadimplenteDesde: dias(-2) }),
+      linha({ plano: 'basico', valorPago: PLAN_PRICES.basico }),
+      linha({ plano: 'premium', statusAssinatura: 'past_due', inadimplenteDesde: dias(-2), valorPago: PLAN_PRICES.premium }),
+      // Ativo sem pagamento (cupom gratuito ou ajuste do admin): fora do MRR.
+      linha({ plano: 'premium', jaPagou: false, valorPago: null }),
       linha({ plano: 'premium', statusAssinatura: 'trialing', jaPagou: false }),
       linha({ plano: 'premium', statusAssinatura: 'canceled' }),
     ]);

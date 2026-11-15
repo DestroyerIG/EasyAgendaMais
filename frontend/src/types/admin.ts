@@ -62,6 +62,21 @@ export interface AdminVisaoGeral {
     receitaCancelada: number;
     retencaoPct: number | null;
   };
+  cadastros: {
+    hoje: number;
+    ultimos7d: number;
+    ultimos30d: number;
+    recentes: Array<{
+      id: string;
+      nome: string;
+      dono: string;
+      plano: string;
+      segmento: string;
+      criadoEm: string;
+      status: StatusAdmin;
+      onboardingConcluido: boolean;
+    }>;
+  };
   emRisco: NegocioEmRisco[];
   disparos24h: Array<{ origem: string; enviados: number; falhos: number }>;
 }

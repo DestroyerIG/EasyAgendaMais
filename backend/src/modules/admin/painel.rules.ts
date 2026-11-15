@@ -19,6 +19,8 @@ export interface LinhaNegocio {
   temInstanciaWhatsapp: boolean; whatsappConectadoEm: Date | null; ultimoEnvioEm: Date | null;
   agendamentos30d: number; ultimoAgendamentoEm: Date | null;
   primeiroPagamentoEm: Date | null; pagouMesAnterior: boolean;
+  /** Valor do último pagamento confirmado de mensalidade (já com desconto de cupom). Null se nunca pagou. */
+  valorPago?: number | null;
 }
 
 export type StatusAdmin =
@@ -32,6 +34,8 @@ function partesLocais(d: Date): { ano: number; mes: number; dia: number } {
   const pega = (tipo: string) => Number(partes.find((p) => p.type === tipo)?.value);
   return { ano: pega('year'), mes: pega('month'), dia: pega('day') };
 }
+
+const chaveDia = (d: Date): string => { const p = partesLocais(d); return `${p.ano}-${p.mes}-${p.dia}`; };
 
 /**
  * Meia-noite do dia 1º do mês local (America/Sao_Paulo), em UTC, `mesesAtras` meses antes.
@@ -69,25 +73,30 @@ export function statusAdmin(l: LinhaNegocio, agora: Date): StatusAdmin {
   return 'cancelado';
 }
 
-type ComStatus = { l: LinhaNegocio; status: StatusAdmin; preco: number };
+/** `preco` é o preço de tabela do plano; `receita` é o que o negócio de fato pagou (cupom com desconto entra pelo valor pago). */
+type ComStatus = { l: LinhaNegocio; status: StatusAdmin; preco: number; receita: number };
 
 function comStatus(ls: LinhaNegocio[], agora: Date): ComStatus[] {
-  return ls.map((l) => ({ l, status: statusAdmin(l, agora), preco: precoDoPlano(l.plano, l.valorCombinado ?? null) }));
+  return ls.map((l) => ({
+    l, status: statusAdmin(l, agora), preco: precoDoPlano(l.plano, l.valorCombinado ?? null),
+    receita: l.valorPago && l.valorPago > 0 ? l.valorPago : 0,
+  }));
 }
 
-// Pagante = ativo ou em carência: é a base do MRR.
-const ehPagante = (x: ComStatus) => x.status === 'ativo' || x.status === 'carencia';
+// Pagante = ativo ou em carência E com pagamento confirmado: é a base do MRR. Conta de cupom gratuito,
+// cortesia ou ajuste manual do admin (status ativo sem pagamento) não é pagante e não entra no MRR.
+const ehPagante = (x: ComStatus) => (x.status === 'ativo' || x.status === 'carencia') && x.receita > 0;
 // Quem pagou no mês anterior e hoje está cancelado ou bloqueado por cobrança saiu da base.
 const ehChurn = (x: ComStatus) =>
   x.l.pagouMesAnterior && (x.status === 'cancelado' || x.status === 'bloqueado_cobranca');
-const soma = (xs: ComStatus[]) => xs.reduce((acc, x) => acc + x.preco, 0);
+const soma = (xs: ComStatus[]) => xs.reduce((acc, x) => acc + x.receita, 0);
 const pct = (parte: number, total: number) => (total === 0 ? null : (parte / total) * 100);
 
 export function resumoMrr(ls: LinhaNegocio[], agora: Date) {
   const xs = comStatus(ls, agora);
   const mesAtual = inicioDoMes(agora).getTime();
   const mrr = soma(xs.filter(ehPagante));
-  // O preço é o do plano atual: não há histórico de troca de plano.
+  // O valor é o do último pagamento de mensalidade: não há histórico de troca de plano.
   const mrrMesAnterior = soma(xs.filter((x) => x.l.pagouMesAnterior));
   const novos = soma(xs.filter((x) => ehPagante(x)
     && x.l.primeiroPagamentoEm !== null && x.l.primeiroPagamentoEm.getTime() >= mesAtual));
@@ -145,7 +154,6 @@ export function cartoesGestao(ls: LinhaNegocio[], agora: Date) {
   const pagantes = xs.filter(ehPagante);
   const mrr = soma(pagantes);
   const testes = xs.filter((x) => x.status === 'teste');
-  const chaveDia = (d: Date) => { const p = partesLocais(d); return `${p.ano}-${p.mes}-${p.dia}`; };
   const hoje = chaveDia(agora);
   const inadimplentes = xs.filter((x) => x.status === 'carencia' || x.status === 'bloqueado_cobranca');
   return {
@@ -162,12 +170,32 @@ export function cartoesGestao(ls: LinhaNegocio[], agora: Date) {
   };
 }
 
+/** Cadastros novos: contagem por janela ("hoje" é o dia local) e os mais recentes. Vale para qualquer status. */
+export function resumoCadastros(ls: LinhaNegocio[], agora: Date, limite = 8) {
+  const t = agora.getTime();
+  const hoje = chaveDia(agora);
+  const desde = (dias: number) => ls.filter((l) => l.criadoEm.getTime() >= t - dias * MS_DIA).length;
+  const recentes = [...ls]
+    .sort((a, b) => b.criadoEm.getTime() - a.criadoEm.getTime())
+    .slice(0, limite)
+    .map((l) => ({
+      id: l.id, nome: l.nome, dono: l.dono, plano: l.plano, segmento: segmentoDe(l.segmento),
+      criadoEm: l.criadoEm, status: statusAdmin(l, agora), onboardingConcluido: l.onboardingConcluido,
+    }));
+  return {
+    hoje: ls.filter((l) => chaveDia(l.criadoEm) === hoje).length,
+    ultimos7d: desde(7),
+    ultimos30d: desde(30),
+    recentes,
+  };
+}
+
 const ORDEM_ALERTA: TipoAlerta[] = ['cobranca', 'teste_sem_onboarding', 'whatsapp', 'sem_agendamento'];
 
 export interface AlertaRisco {
   id: string; nome: string; dono: string; whatsapp: string; segmento: string; plano: string;
   tipo: TipoAlerta; desde: Date;
-  /** Preço do plano. Só é MRR de fato quando `pagante`; nos demais é o valor em potencial. */
+  /** Pagante: o valor pago de fato. Nos demais, o preço de tabela (valor em potencial). */
   mrr: number;
   pagante: boolean;
 }
@@ -208,7 +236,7 @@ export function negociosEmRisco(ls: LinhaNegocio[], agora: Date): AlertaRisco[] 
       alertas.push({
         id: l.id, nome: l.nome, dono: l.dono, whatsapp: l.whatsapp,
         segmento: segmentoDe(l.segmento), plano: l.plano, tipo, desde,
-        mrr: preco, pagante: ehPagante(x),
+        mrr: ehPagante(x) ? x.receita : preco, pagante: ehPagante(x),
       });
     }
   }

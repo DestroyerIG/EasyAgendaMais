@@ -7,7 +7,7 @@ import type { PlanId } from '../../types/domain.js';
 import { NotFoundError } from '../../utils/errors.js';
 import logger from '../../utils/logger.js';
 import {
-  cartoesGestao, conversaoPorSegmento, motivoParaNaoEstenderTeste, negociosEmRisco, precoDoPlano, resumoCancelamentos,
+  cartoesGestao, conversaoPorSegmento, resumoCadastros, motivoParaNaoEstenderTeste, negociosEmRisco, precoDoPlano, resumoCancelamentos,
   resumoMrr, resumoTestes, segmentoDe, statusAdmin,
   type LinhaNegocio, type StatusAdmin,
 } from './painel.rules.js';
@@ -130,6 +130,7 @@ export const painelService = {
       testes: resumoTestes(ls, agora),
       conversao: conversaoPorSegmento(ls, agora, periodDays),
       cancelamentos: resumoCancelamentos(ls, agora),
+      cadastros: resumoCadastros(ls, agora),
       emRisco: negociosEmRisco(ls, agora),
       disparos24h,
     };

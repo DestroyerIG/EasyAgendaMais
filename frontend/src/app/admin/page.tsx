@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Banner, Icon, Skeleton, buttonVariants } from '@/components/ui';
+import { CartaoCadastros } from '@/components/admin/visaoGeral/CartaoCadastros';
 import { CartaoCancelamentos } from '@/components/admin/visaoGeral/CartaoCancelamentos';
 import { CartaoConversao } from '@/components/admin/visaoGeral/CartaoConversao';
 import { CartaoMrr } from '@/components/admin/visaoGeral/CartaoMrr';
@@ -110,6 +111,7 @@ export default function AdminHomePage() {
             <CartaoConversao geral={dados.conversao.geral} />
             <CartaoCancelamentos cancelamentos={dados.cancelamentos} />
           </div>
+          <CartaoCadastros cadastros={dados.cadastros} agora={new Date(dados.atualizadoEm)} />
           <ConversaoPorSegmento segmentos={dados.conversao.segmentos} />
           <TabelaEmRisco negocios={dados.emRisco} agora={new Date(dados.atualizadoEm)} />
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
