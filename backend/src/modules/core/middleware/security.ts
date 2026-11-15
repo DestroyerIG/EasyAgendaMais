@@ -60,9 +60,10 @@ export function applySecurityMiddleware(app: Application): void {
         return ipKeyGenerator(req.ip ?? 'unknown');
       },
 
+      // Caminho (sem query string) com segmento "webhook"/"webhooks": uma query com "/webhook" não escapa do limite.
       skip: (req: Request): boolean =>
         req.method === 'OPTIONS' ||
-        req.originalUrl.includes('/webhook'),
+        /\/webhooks?(\/|$)/.test(req.originalUrl.split('?')[0] ?? ''),
 
       message: {
         success: false,

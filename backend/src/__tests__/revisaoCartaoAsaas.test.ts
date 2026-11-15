@@ -31,7 +31,7 @@ const asaas = vi.hoisted(() => ({
   criarAssinaturaComToken: vi.fn(),
   getPaymentWithPixData: vi.fn(),
 }));
-const cupons = vi.hoisted(() => ({ validate: vi.fn(), validateAndApply: vi.fn() }));
+const cupons = vi.hoisted(() => ({ validate: vi.fn(), validateAndApply: vi.fn(), reserve: vi.fn(), release: vi.fn() }));
 
 vi.mock('../repositories/subscriptionRepository.js', () => ({ subscriptionRepository: repo }));
 vi.mock('../integrations/asaas/service.js', () => ({ asaasService: asaas }));

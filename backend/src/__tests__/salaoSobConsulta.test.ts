@@ -24,7 +24,7 @@ const repoTroca = vi.hoisted(() => ({
   agendarPlano: vi.fn(),
   aplicarPlano: vi.fn(),
 }));
-const cupons = vi.hoisted(() => ({ validate: vi.fn(), validateAndApply: vi.fn() }));
+const cupons = vi.hoisted(() => ({ validate: vi.fn(), validateAndApply: vi.fn(), reserve: vi.fn(), release: vi.fn() }));
 
 vi.mock('../repositories/subscriptionRepository.js', () => ({ subscriptionRepository: subs }));
 vi.mock('../integrations/asaas/service.js', () => ({ asaasService: asaas }));

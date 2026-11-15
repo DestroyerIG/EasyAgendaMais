@@ -1,5 +1,6 @@
 import logger from '../../utils/logger.js';
 import { EvolutionApiError, InstanceNotFoundError } from './whatsapp.types.js';
+import { webhookSecretHeaders } from '../../services/whatsapp/webhookSecret.js';
 
 const TIMEOUT_MS = 15_000;
 
@@ -253,6 +254,7 @@ export const evolutionApi = {
         webhookBase64: false,
         webhook_by_events: true,
         webhook_base64: false,
+        ...(webhookSecretHeaders() ? { headers: webhookSecretHeaders() } : {}),
       },
     };
     logger.info(

@@ -244,7 +244,7 @@ export const authMiddleware = async (
       return next(new UnauthorizedError('Token não fornecido'));
     }
 
-    const decoded = jwt.verify(token, resolveJwtSecret()) as JwtPayload;
+    const decoded = jwt.verify(token, resolveJwtSecret(), { algorithms: ['HS256'] }) as JwtPayload;
     req.user = {
       ...decoded,
       role: normalizeRole(decoded.role) ?? decoded.role,

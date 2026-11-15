@@ -18,6 +18,28 @@ const HOP_BY_HOP_HEADERS = new Set([
   'content-encoding',
 ]);
 
+/**
+ * Os ids das rotas do BFF entram no caminho do backend sem codificação. Um segmento "." ou ".." (inclusive
+ * codificado, como %2e%2e) faria o fetch normalizar o caminho e alcançar outra rota da API.
+ */
+export function caminhoSeguro(path: string): boolean {
+  if (typeof path !== 'string' || !path.startsWith('/')) return false;
+  const semQuery = path.split(/[?#]/)[0] ?? '';
+  for (const segmento of semQuery.split('/')) {
+    let decodificado: string;
+    try {
+      decodificado = decodeURIComponent(segmento);
+    } catch {
+      return false;
+    }
+    if (decodificado === '.' || decodificado === '..' || decodificado.includes('\\')) return false;
+  }
+  return true;
+}
+
+const REQUISICAO_INVALIDA = () =>
+  NextResponse.json({ success: false, message: 'Requisição inválida' }, { status: 400 });
+
 function buildBackendUrl(request: Request, path: string) {
   const requestUrl = new URL(request.url);
   return `${BACKEND_URL}${path}${requestUrl.search}`;
@@ -91,6 +113,7 @@ export async function proxyRequest(
   path: string,
   method?: string
 ) {
+  if (!caminhoSeguro(path)) return REQUISICAO_INVALIDA();
   const requestMethod = method || request.method;
   const backendUrl = buildBackendUrl(request, path);
 
@@ -147,6 +170,7 @@ export async function proxyRequest(
  * perderia o BOM do CSV (e corromperia um binário). Mantém a query, o content-type e o nome do arquivo.
  */
 export async function proxyArquivo(request: Request, path: string) {
+  if (!caminhoSeguro(path)) return REQUISICAO_INVALIDA();
   const backendUrl = buildBackendUrl(request, path);
 
   try {

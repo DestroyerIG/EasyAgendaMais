@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { AppError, UnauthorizedError } from '../utils/errors.js';
+import { AppError, ConflictError, UnauthorizedError } from '../utils/errors.js';
 import logger from '../utils/logger.js';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
@@ -308,6 +308,31 @@ const resolveFrontendBaseUrl = (): string => {
   return 'http://localhost:3000';
 };
 
+/** Origens (esquema + host) em que o próprio app serve /auth/confirm. */
+const allowedEmailRedirectOrigins = (): Set<string> => {
+  const origins = new Set<string>();
+  const add = (raw: unknown): void => {
+    const text = String(raw || '').trim();
+    if (!text) return;
+    try {
+      const parsed = new URL(text);
+      origins.add(parsed.origin);
+      // aceita a variante com/sem "www" do mesmo domínio configurado
+      const host = parsed.hostname;
+      const alt = host.startsWith('www.') ? host.slice(4) : `www.${host}`;
+      origins.add(`${parsed.protocol}//${alt}${parsed.port ? `:${parsed.port}` : ''}`);
+    } catch {
+      /* variável de ambiente malformada é ignorada */
+    }
+  };
+  add(resolveFrontendBaseUrl());
+  add(process.env.FRONTEND_URL);
+  add(process.env.APP_URL);
+  add(process.env.NEXT_PUBLIC_APP_URL);
+  add(process.env.AUTH_SUPABASE_REDIRECT_TO);
+  return origins;
+};
+
 const normalizeEmailRedirectTo = (value: unknown): string | null => {
   const resolved = ensureAbsoluteUrl(value, 'emailRedirectTo');
 
@@ -319,6 +344,15 @@ const normalizeEmailRedirectTo = (value: unknown): string | null => {
   if (parsed.pathname.replace(/\/+$/, '') !== '/auth/confirm') {
     throw new AppError(
       'URL de confirmação deve apontar para /auth/confirm.',
+      400,
+      'INVALID_EMAIL_REDIRECT_TO'
+    );
+  }
+
+  // O link de verificação carrega a sessão do usuário: só pode voltar para o próprio app.
+  if (!allowedEmailRedirectOrigins().has(parsed.origin)) {
+    throw new AppError(
+      'URL de confirmação deve apontar para o próprio aplicativo.',
       400,
       'INVALID_EMAIL_REDIRECT_TO'
     );
@@ -566,6 +600,8 @@ const mapSupabaseUser = (user: unknown, fallbackEmail: string | null = null): Ma
     raw: u,
   };
 };
+
+const ORIGEM_CONVITE_PROFISSIONAL = 'convite_profissional';
 
 // ─── Exported service ─────────────────────────────────────────────────────────
 
@@ -1068,8 +1104,10 @@ export const supabaseAuthService = {
   },
 
   /**
-   * Convite da profissional: o link já provou o e-mail, então a conta nasce confirmada.
-   * Se o e-mail já existe no Supabase (aceite anterior que falhou no meio), só troca a senha e confirma.
+   * Convite da profissional: a conta nasce confirmada e marcada com a origem "convite_profissional".
+   * Se o e-mail já existe no Supabase, só reaproveita a identidade criada por um convite anterior que
+   * falhou no meio. Qualquer outra identidade (inclusive cadastro ainda não confirmado) é recusada:
+   * quem convida recebe o link, então o aceite NÃO prova a posse do e-mail.
    */
   async createConfirmedUser(email: string, password: string): Promise<{ userId: string }> {
     const normalizedEmail = normalizeEmail(email);
@@ -1080,7 +1118,13 @@ export const supabaseAuthService = {
     try {
       ({ data, error } = await runSupabaseOperation(
         { operation: 'createConfirmedUser', context: { email: normalizedEmail } },
-        () => client.auth.admin.createUser({ email: normalizedEmail, password, email_confirm: true })
+        () =>
+          client.auth.admin.createUser({
+            email: normalizedEmail,
+            password,
+            email_confirm: true,
+            user_metadata: { origem: ORIGEM_CONVITE_PROFISSIONAL },
+          })
       ) as { data: Record<string, unknown>; error: unknown });
     } catch (operationError: unknown) {
       throw mapSupabaseError(operationError, 'Não foi possível criar o acesso no provedor de identidade.');
@@ -1092,6 +1136,12 @@ export const supabaseAuthService = {
     const existente = await this.getUserByEmail(normalizedEmail);
     if (!existente?.id) {
       throw mapSupabaseError(error, 'Não foi possível criar o acesso no provedor de identidade.');
+    }
+    const metadata = (existente.raw?.user_metadata ?? {}) as Record<string, unknown>;
+    if (metadata.origem !== ORIGEM_CONVITE_PROFISSIONAL) {
+      throw new ConflictError(
+        'Este e-mail já tem cadastro no EasyAgenda+. Peça à dona um convite com outro e-mail.'
+      );
     }
     try {
       ({ error } = await runSupabaseOperation(

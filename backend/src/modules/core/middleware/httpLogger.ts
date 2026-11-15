@@ -1,6 +1,12 @@
 import type { Request, Response, NextFunction } from 'express';
 import logger from '../../../utils/logger.js';
 
+/** Remove a query string e mascara tokens em caminhos como /convites/:token e /avaliacoes/:token. */
+export function urlParaLog(originalUrl: string): string {
+  const semQuery = (originalUrl || '').split('?')[0] ?? '';
+  return semQuery.replace(/\/(convites|avaliacoes)\/[^/]+/gi, '/$1/[token]');
+}
+
 export function httpLoggerMiddleware(req: Request, res: Response, next: NextFunction): void {
   const start = Date.now();
 
@@ -11,7 +17,7 @@ export function httpLoggerMiddleware(req: Request, res: Response, next: NextFunc
     logger[level]({
       requestId: req.requestId,
       method: req.method,
-      url: req.originalUrl,
+      url: urlParaLog(req.originalUrl),
       status: res.statusCode,
       duration,
       ip: req.ip,
