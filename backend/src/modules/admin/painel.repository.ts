@@ -8,10 +8,8 @@ import { inicioDoMes, type LinhaNegocio } from './painel.rules.js';
 
 /**
  * CTE `pagamentos(business_id, pago_em timestamptz, valor numeric, tipo text)`: todo pagamento
- * confirmado, de billing_payments (Pix/Asaas) ou de eventos de fatura paga do gateway (valor em centavos).
- * O webhook grava invoice.paid e invoice.payment_succeeded para a mesma fatura: o ramo do gateway
- * fica com um evento por fatura (payload->>'id'), o mais antigo. `tipo` vem de billing_payments
- * (mensalidade, upgrade...) e é nulo no gateway.
+ * confirmado, lido só de billing_payments (cartão e Pix, ambos pelo Asaas). `tipo` é o da cobrança
+ * (mensalidade, upgrade...).
  * Usado como `WITH ${SQL_PAGAMENTOS_CONFIRMADOS}, ...`.
  */
 export const SQL_PAGAMENTOS_CONFIRMADOS = Prisma.sql`
@@ -91,6 +89,7 @@ function paraLinha(r: LinhaCrua): LinhaNegocio {
     ultimoAgendamentoEm: data(r.ultimo_agendamento_em),
     primeiroPagamentoEm: data(r.primeiro_pagamento_em),
     pagouMesAnterior: bool(r.pagou_mes_anterior),
+    valorPago: r.ultimo_valor_pago === null || r.ultimo_valor_pago === undefined ? null : Number(r.ultimo_valor_pago),
   };
 }
 
@@ -129,7 +128,7 @@ async function consultar(id?: string): Promise<LinhaNegocio[]> {
            b.whatsapp_connected_at,
            ap.agendamentos_30d, ap.ultimo_agendamento_em,
            wz.ultimo_envio_em,
-           pg.primeiro_pagamento_em, pg.pagou_mes_anterior
+           pg.primeiro_pagamento_em, pg.pagou_mes_anterior, pg.ultimo_valor_pago
     FROM businesses b
     LEFT JOIN business_settings s ON s.business_id = b.id
     LEFT JOIN LATERAL (
@@ -145,10 +144,13 @@ async function consultar(id?: string): Promise<LinhaNegocio[]> {
     ) wz ON true
     LEFT JOIN LATERAL (
       SELECT MIN(p.pago_em) AS primeiro_pagamento_em,
+             -- Upgrade é cobrança avulsa de diferença, não a mensalidade do mês.
              COALESCE(bool_or(
-               p.pago_em >= (date_trunc('month', now() AT TIME ZONE 'America/Sao_Paulo') - interval '1 month') AT TIME ZONE 'America/Sao_Paulo'
+               p.tipo IS DISTINCT FROM 'upgrade' AND p.pago_em >= (date_trunc('month', now() AT TIME ZONE 'America/Sao_Paulo') - interval '1 month') AT TIME ZONE 'America/Sao_Paulo'
                AND p.pago_em < date_trunc('month', now() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo'
-             ), false) AS pagou_mes_anterior
+             ), false) AS pagou_mes_anterior,
+             -- Valor do último pagamento de mensalidade (com o desconto do cupom, se houve).
+             (array_agg(p.valor ORDER BY p.pago_em DESC) FILTER (WHERE p.tipo IS DISTINCT FROM 'upgrade'))[1] AS ultimo_valor_pago
       FROM pagamentos p
       WHERE p.business_id = b.id
     ) pg ON true

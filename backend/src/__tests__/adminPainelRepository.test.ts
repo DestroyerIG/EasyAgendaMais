@@ -106,6 +106,22 @@ describe('painelRepository', () => {
     expect(sql).toMatch(/bp\.tipo AS tipo/);
   });
 
+  it('"pagou no mês anterior" não conta a cobrança de upgrade', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([]);
+    await painelRepository.linhasNegocios();
+    const sql = (prismaMock.$queryRaw.mock.calls[0][0] as { sql: string }).sql;
+    expect(sql).toMatch(/bool_or\(\s*p\.tipo IS DISTINCT FROM 'upgrade' AND p\.pago_em >=/);
+  });
+
+  it('valorPago vem do último pagamento de mensalidade (sem upgrade) e é null quando nunca pagou', async () => {
+    prismaMock.$queryRaw.mockResolvedValue([linhaCrua({ ultimo_valor_pago: '49.50' }), linhaCrua({ ultimo_valor_pago: null })]);
+    const [pago, nunca] = await painelRepository.linhasNegocios();
+    expect(pago.valorPago).toBe(49.5);
+    expect(nunca.valorPago).toBeNull();
+    const sql = (prismaMock.$queryRaw.mock.calls[0][0] as { sql: string }).sql;
+    expect(sql).toMatch(/array_agg\(p\.valor ORDER BY p\.pago_em DESC\) FILTER \(WHERE p\.tipo IS DISTINCT FROM 'upgrade'\)\)\[1\] AS ultimo_valor_pago/);
+  });
+
   it('linhaNegocio devolve null quando a consulta vem vazia', async () => {
     prismaMock.$queryRaw.mockResolvedValue([]);
     expect(await painelRepository.linhaNegocio('n1')).toBeNull();

@@ -1,3 +1,4 @@
+import { avisarNovoCadastro, type NovoCadastro } from '../modules/admin/novoCadastro.aviso.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { authRepository } from '../repositories/authRepository.js';
@@ -601,6 +602,7 @@ const reconcileSupabaseConfirmedUser = async ({
   }
 
   const client = null;
+  let novoCadastro: NovoCadastro | null = null;
 
   try {
     const [userBySupabaseId, userByEmail, pendingRegistration] = await Promise.all([
@@ -709,6 +711,10 @@ const reconcileSupabaseConfirmedUser = async ({
         });
         businessId = (createdBusiness as Record<string, unknown>).id as string;
         summary.businessCreated = true;
+        novoCadastro = {
+          businessId, nome: pendingReg.business_name as string, dono: pendingReg.owner_name as string,
+          plano: (pendingReg.desired_plan as string) || DEFAULT_PLAN, whatsapp: pendingReg.whatsapp as string,
+        };
         logger.info(
           { event: 'tenant_created_new', businessId, email: normalizedEmail, supabaseUserId, reason, source: 'pending_registration' },
           'Reconciliação: novo tenant criado a partir de pending_registration'
@@ -727,6 +733,7 @@ const reconcileSupabaseConfirmedUser = async ({
         });
         businessId = (createdBusiness as Record<string, unknown>).id as string;
         summary.businessCreated = true;
+        novoCadastro = { businessId, nome: displayName, dono: displayName, plano: DEFAULT_PLAN, whatsapp: null };
         logger.info(
           { event: 'tenant_created_new', businessId, email: normalizedEmail, supabaseUserId, reason, source: 'supabase_identity' },
           'Reconciliação: novo tenant criado a partir de identidade Supabase'
@@ -832,6 +839,9 @@ const reconcileSupabaseConfirmedUser = async ({
     }
 
     summary.syncApplied = Boolean(localUser?.id || summary.pendingRegistrationCompleted);
+
+    // Avisa o admin da plataforma sem esperar nem falhar o cadastro (platform_admin não é cliente).
+    if (novoCadastro && !PLATFORM_ADMIN_EMAILS.has(normalizedEmail)) void avisarNovoCadastro(novoCadastro);
 
     logger.info(
       {

@@ -37,6 +37,17 @@ const metricas = (extra: Partial<AdminVisaoGeral> = {}): AdminVisaoGeral => ({
       pagante: true,
     },
   ],
+  cadastros: {
+    hoje: 2,
+    ultimos7d: 5,
+    ultimos30d: 9,
+    recentes: [
+      {
+        id: 'c1', nome: 'Studio Aurora', dono: 'Marina Costa', plano: 'profissional', segmento: 'cabelo',
+        criadoEm: '2026-10-28T12:00:00.000Z', status: 'teste', onboardingConcluido: false,
+      },
+    ],
+  },
   disparos24h: [
     { origem: 'lembrete', enviados: 90, falhos: 10 },
     { origem: 'xpto', enviados: 5, falhos: 0 },
@@ -145,6 +156,25 @@ describe('Visão geral do SuperAdmin', () => {
     expect(within(bloco).getByText('Taxa 90,5%')).toBeInTheDocument();
     expect(within(bloco).getByText('Lembretes')).toBeInTheDocument();
     expect(within(bloco).getByText('Outros')).toBeInTheDocument();
+  });
+
+  it('cadastros novos: contagens por janela e a lista dos mais recentes', async () => {
+    render(<AdminHomePage />);
+    const bloco = await screen.findByRole('region', { name: 'Cadastros novos' });
+    expect(within(bloco).getByText('Hoje').nextSibling).toHaveTextContent('2');
+    expect(within(bloco).getByText('7 dias').nextSibling).toHaveTextContent('5');
+    expect(within(bloco).getByText('30 dias').nextSibling).toHaveTextContent('9');
+    expect(within(bloco).getByText('Studio Aurora')).toBeInTheDocument();
+    expect(within(bloco).getByText(/Marina Costa · Equipe · sem configurar/)).toBeInTheDocument();
+    expect(within(bloco).getByText('Em teste')).toBeInTheDocument();
+  });
+
+  it('cadastros novos: sem nenhum, mostra o estado vazio', async () => {
+    adminApi.getMetrics.mockResolvedValue(
+      metricas({ cadastros: { hoje: 0, ultimos7d: 0, ultimos30d: 0, recentes: [] } }),
+    );
+    render(<AdminHomePage />);
+    expect(await screen.findByText('Nenhum cadastro ainda.')).toBeInTheDocument();
   });
 
   it('recarregar busca as métricas de novo', async () => {

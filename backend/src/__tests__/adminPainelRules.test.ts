@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   inicioDoMes, precoDoPlano, segmentoDe, statusAdmin, resumoMrr, resumoTestes,
-  conversaoPorSegmento, resumoCancelamentos, cartoesGestao, negociosEmRisco, motivoParaNaoEstenderTeste,
+  conversaoPorSegmento, resumoCancelamentos, cartoesGestao, negociosEmRisco, motivoParaNaoEstenderTeste, resumoCadastros,
   type LinhaNegocio,
 } from '../modules/admin/painel.rules.js';
 import { PLAN_PRICES } from '../config/planCatalog.js';
@@ -15,7 +15,7 @@ let seq = 0;
 
 function linha(parcial: Partial<LinhaNegocio> = {}): LinhaNegocio {
   seq += 1;
-  return {
+  const l: LinhaNegocio = {
     id: `n${seq}`, nome: `Negócio ${seq}`, dono: 'Dona', email: 'a@b.com', whatsapp: '11999999999',
     cpfCnpj: null, endereco: null, segmento: 'barbearia',
     plano: 'profissional', statusAssinatura: 'active', ativo: true,
@@ -26,6 +26,9 @@ function linha(parcial: Partial<LinhaNegocio> = {}): LinhaNegocio {
     primeiroPagamentoEm: null, pagouMesAnterior: false,
     ...parcial,
   };
+  // Por padrão pagou o preço de tabela do plano; os testes de cupom sobrescrevem valorPago.
+  if (!('valorPago' in parcial)) l.valorPago = precoDoPlano(l.plano, l.valorCombinado ?? null);
+  return l;
 }
 
 describe('statusAdmin', () => {
@@ -258,5 +261,61 @@ describe('motivoParaNaoEstenderTeste', () => {
   });
   it('teste com cartão cadastrado também pode (o vencimento é movido no Asaas)', () => {
     expect(motivoParaNaoEstenderTeste(linha({ statusAssinatura: 'trialing', jaPagou: false }))).toBeNull();
+  });
+});
+
+describe('MRR só com pagamento de fato', () => {
+  it('conta ativa sem pagamento (cupom gratuito, cortesia, ajuste do admin) fica fora do MRR e dos pagantes', () => {
+    const ls = [
+      linha({ plano: 'profissional' }),
+      linha({ plano: 'profissional', jaPagou: false, valorPago: null }),
+      linha({ plano: 'premium', jaPagou: false, valorPago: null }),
+    ];
+    expect(resumoMrr(ls, agora).mrr).toBe(PLAN_PRICES.profissional);
+    const c = cartoesGestao(ls, agora);
+    expect(c.pagantes).toBe(1);
+    expect(c.ticketMedio).toBe(PLAN_PRICES.profissional);
+  });
+  it('cupom com desconto conta só o valor pago, não o preço de tabela', () => {
+    const ls = [linha({ plano: 'profissional', valorPago: 49.5 }), linha({ plano: 'basico', valorPago: 29 })];
+    expect(resumoMrr(ls, agora).mrr).toBeCloseTo(78.5, 5);
+    expect(cartoesGestao(ls, agora).ticketMedio).toBeCloseTo(39.25, 5);
+  });
+  it('churn e novos usam o valor pago', () => {
+    const ls = [
+      linha({ statusAssinatura: 'canceled', pagouMesAnterior: true, valorPago: 49.5 }),
+      linha({ primeiroPagamentoEm: h(-1), valorPago: 49.5 }),
+    ];
+    const r = resumoMrr(ls, agora);
+    expect(r.churn).toBe(49.5);
+    expect(r.novos).toBe(49.5);
+  });
+  it('em risco: pagante mostra o valor pago; não pagante, o preço de tabela', () => {
+    const ls = [
+      linha({ statusAssinatura: 'past_due', inadimplenteDesde: dias(-3), valorPago: 49.5 }),
+    ];
+    expect(negociosEmRisco(ls, agora)[0]).toMatchObject({ pagante: true, mrr: 49.5 });
+  });
+});
+
+describe('resumoCadastros', () => {
+  it('conta hoje (dia local), 7 e 30 dias, e lista os mais recentes primeiro', () => {
+    const ls = [
+      linha({ nome: 'Velho', criadoEm: dias(-40) }),
+      linha({ nome: 'Hoje', criadoEm: h(-2), statusAssinatura: 'trialing', jaPagou: false, onboardingConcluido: false }),
+      linha({ nome: 'Ontem à noite', criadoEm: new Date('2026-10-28T01:00:00Z') }), // 22h de 27/10 em São Paulo
+      linha({ nome: 'Semana', criadoEm: dias(-5) }),
+    ];
+    const r = resumoCadastros(ls, agora);
+    expect(r.hoje).toBe(1);
+    expect(r.ultimos7d).toBe(3);
+    expect(r.ultimos30d).toBe(3);
+    expect(r.recentes.map((c) => c.nome)).toEqual(['Hoje', 'Ontem à noite', 'Semana', 'Velho']);
+    expect(r.recentes[0]).toMatchObject({ status: 'teste', onboardingConcluido: false, segmento: 'barbearia' });
+  });
+  it('limita a lista e aceita base vazia', () => {
+    expect(resumoCadastros([], agora)).toEqual({ hoje: 0, ultimos7d: 0, ultimos30d: 0, recentes: [] });
+    const muitos = Array.from({ length: 12 }, (_, i) => linha({ criadoEm: dias(-i) }));
+    expect(resumoCadastros(muitos, agora, 8).recentes).toHaveLength(8);
   });
 });
