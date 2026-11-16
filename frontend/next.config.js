@@ -3,9 +3,18 @@ const path = require('path');
 const PRODUCTION_BACKEND_ORIGIN =
   process.env.BACKEND_ORIGIN || 'https://easybarber-backend.onrender.com';
 
+// Pixel da Meta (conjunto de dados "EasyAgenda+ Site"). Em produção vale este ID, a menos
+// que NEXT_PUBLIC_META_PIXEL_ID esteja definida (vazia = pixel desligado). Fora de produção
+// fica desligado, para o desenvolvimento local não mandar eventos ao pixel real.
+const META_PIXEL_ID = (
+  process.env.NEXT_PUBLIC_META_PIXEL_ID ??
+  (process.env.NODE_ENV === 'production' ? '2166081767603206' : '')
+).trim();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  env: { NEXT_PUBLIC_META_PIXEL_ID: META_PIXEL_ID },
   output: 'standalone',
   outputFileTracingRoot: path.join(__dirname, '..'),
 
@@ -31,6 +40,11 @@ const nextConfig = {
     const supabaseWssOrigin = supabaseOrigin.replace(/^https:/, 'wss:');
 
     const isProd = process.env.NODE_ENV === 'production';
+
+    // Pixel da Meta: só libera os domínios dela quando o pixel está configurado.
+    const pixelAtivo = /^\d{8,20}$/.test(META_PIXEL_ID);
+    const metaScript = pixelAtivo ? ' https://connect.facebook.net' : '';
+    const metaConnect = pixelAtivo ? ' https://www.facebook.com https://connect.facebook.net' : '';
 
     return [
       {
@@ -77,11 +91,11 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               // unsafe-eval apenas em dev (Next.js HMR)
-              `script-src 'self' 'unsafe-inline'${isProd ? '' : " 'unsafe-eval'"}`,
+              `script-src 'self' 'unsafe-inline'${metaScript}${isProd ? '' : " 'unsafe-eval'"}`,
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self'",
-              `connect-src 'self' ${apiOrigin} ${PRODUCTION_BACKEND_ORIGIN} ${supabaseOrigin} ${supabaseWssOrigin}`,
+              `connect-src 'self' ${apiOrigin} ${PRODUCTION_BACKEND_ORIGIN} ${supabaseOrigin} ${supabaseWssOrigin}${metaConnect}`,
               // Mapa de localização na vitrine pública (/agendar/:slug) via iframe do Google Maps.
               "frame-src 'self' https://www.google.com https://maps.google.com",
               "frame-ancestors 'none'",

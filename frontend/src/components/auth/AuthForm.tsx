@@ -12,6 +12,7 @@ import { formatCpfCnpj, isValidCpfCnpj, normalizeCpfCnpjDigits } from '@/utils/c
 import { resolveAuthConfirmRedirectUrl } from '@/lib/supabase/client';
 import { guardarSegmentoDoCadastro } from '@/lib/onboarding';
 import { guardarEscolhaTeste, type EscolhaTeste } from '@/lib/escolhaTeste';
+import { trackCadastroConcluido } from '@/lib/metaPixel';
 import { BotaoGoogle } from './BotaoGoogle';
 import { TelaCarregandoPainel } from './TelaCarregandoPainel';
 
@@ -133,6 +134,9 @@ export function AuthForm({ mode }: AuthFormProps) {
           password: formData.password,
         });
 
+        // Conversão dos anúncios: conta criada (sem dados pessoais no evento).
+        trackCadastroConcluido('email');
+
         // ✅ Redireciona para tela de verificação após cadastro bem-sucedido
         if (result.verificationRequired) {
           router.push(
@@ -228,32 +232,54 @@ export function AuthForm({ mode }: AuthFormProps) {
   }
 
   return (
-    <div className="app-theme min-h-screen px-4 py-10">
-      <div className="mx-auto flex max-w-5xl flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-        <section className="max-w-xl">
+    <div className="app-theme min-h-screen px-4 py-8 sm:py-12">
+      {/* Duas colunas alinhadas ao topo: o texto acompanha o formulário em vez de ficar
+          centralizado na vertical contra um cartão alto (deixava o título fora da tela). */}
+      <div className="mx-auto grid w-full max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_28rem] lg:items-start lg:gap-14">
+        <section className="max-w-xl lg:sticky lg:top-12 lg:pt-4">
           <div className="inline-flex items-center gap-3">
-            <BrandLogo size={40} priority />
+            <BrandLogo size={36} priority />
             <p className="text-xs uppercase tracking-[0.24em] text-brand-text">EasyAgenda+</p>
           </div>
-          <h1 className="mt-3 text-3xl font-black leading-tight text-ink sm:text-4xl lg:text-5xl">
+          <h1 className="mt-3 text-[1.75rem] font-black leading-tight text-ink sm:text-4xl lg:text-5xl">
             {isLogin
               ? 'Acesse sua operação e mantenha o controle do seu negócio.'
-              : 'Abra sua conta e transforme seu negócio em uma operação previsível.'}
+              : 'Agenda cheia, sem cliente faltando.'}
           </h1>
-          <p className="mt-4 text-muted">
+          <p className="mt-3 text-muted lg:mt-4">
             {isLogin
               ? 'Dashboard completo de agendamentos, clientes, financeiro e performance da equipe.'
-              : 'Estrutura SaaS pronta para vender mais, reduzir no-show e operar com eficiência.'}
+              : 'Para salão, barbearia, nail designer e clínica de estética: agenda online, lembrete automático no WhatsApp e caixa em um só lugar.'}
           </p>
 
           {!isLogin && (
-            <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-line bg-surface-2 px-4 py-2 text-sm text-brand-text">
-              Teste grátis: 7 dias sem cartão ou 14 com cartão
-            </div>
+            <>
+              <ul className="mt-6 hidden space-y-3 text-sm text-ink lg:block">
+                {[
+                  'Seu cliente agenda sozinho, pelo celular',
+                  'O robô confirma e lembra pelo WhatsApp',
+                  'Agenda, clientes e financeiro no mesmo lugar',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3">
+                    <span
+                      aria-hidden="true"
+                      className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand/15 text-xs font-bold text-brand-text"
+                    >
+                      ✓
+                    </span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-line bg-surface-2 px-4 py-2 text-sm text-brand-text lg:mt-6">
+                Teste grátis: 7 dias sem cartão ou 14 com cartão
+              </div>
+            </>
           )}
         </section>
 
-        <Card className="mx-auto w-full max-w-md">
+        <Card className="mx-auto w-full max-w-md lg:mx-0 lg:ml-auto">
           <div className="mb-6 flex items-center gap-3">
             <BrandLogo size={40} />
             <div>
