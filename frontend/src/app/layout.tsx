@@ -3,6 +3,7 @@ import { ToastProvider } from '@/components/Toast'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
+import { MetaPixel } from '@/components/analytics/MetaPixel'
 import { siteUrl } from '@/lib/siteUrl'
 import localFont from 'next/font/local'
 import easyAgendaLogo from '@/icons/easyagenda-logo.png'
@@ -60,6 +61,7 @@ export default function RootLayout({
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:bg-brand focus:text-on-brand focus:px-4 focus:py-2 focus:rounded-lg focus:font-bold">
           Pular para o conteúdo
         </a>
+        <MetaPixel />
         <ThemeProvider>
           <ErrorBoundary>
             <ToastProvider>
