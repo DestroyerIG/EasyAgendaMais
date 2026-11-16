@@ -30,13 +30,14 @@ const sections = [
     title: '3. Como utilizamos os dados',
     paragraphs: [
       'Utilizamos os dados para fornecer e operar a plataforma, processar pagamentos, enviar notificações e lembretes, prestar suporte, garantir segurança e cumprir obrigações legais e regulatórias.',
-      'Não vendemos dados pessoais. O tratamento ocorre conforme as bases legais previstas na LGPD, como execução de contrato, cumprimento de obrigação legal e legítimo interesse.',
+      'Não vendemos dados pessoais. O tratamento ocorre conforme as bases legais previstas na LGPD, como execução de contrato, cumprimento de obrigação legal, legítimo interesse e consentimento (por exemplo, para cookies de marketing).',
     ],
   },
   {
     title: '4. Compartilhamento com terceiros',
     paragraphs: [
       'Podemos compartilhar dados com provedores que viabilizam o serviço, como processadores de pagamento (Asaas), serviços de hospedagem, banco de dados e envio de mensagens, sempre limitados à finalidade necessária.',
+      'Com o seu consentimento, usamos também o pixel da Meta (Facebook e Instagram) nas páginas públicas para medir a eficácia dos nossos anúncios. A Meta pode tratar os dados coletados conforme as próprias políticas.',
       'Esses provedores estão sujeitos a obrigações de confidencialidade e proteção de dados compatíveis com a legislação aplicável.',
     ],
   },
@@ -96,7 +97,7 @@ export default function PrivacidadePage() {
       <PublicNavbar />
 
       <main id="main-content" className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
-        <p className="section-eyebrow">Documentos legais</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-text">Documentos legais</p>
         <h1 className="mt-3 text-3xl font-black sm:text-4xl">Política de Privacidade</h1>
         <p className="mt-3 text-sm text-muted">Última atualização: {LAST_UPDATE}</p>
 

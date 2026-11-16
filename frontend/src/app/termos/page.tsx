@@ -91,7 +91,7 @@ export default function TermosPage() {
       <PublicNavbar />
 
       <main id="main-content" className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
-        <p className="section-eyebrow">Documentos legais</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-text">Documentos legais</p>
         <h1 className="mt-3 text-3xl font-black sm:text-4xl">Termos de Uso</h1>
         <p className="mt-3 text-sm text-muted">Última atualização: {LAST_UPDATE}</p>
 

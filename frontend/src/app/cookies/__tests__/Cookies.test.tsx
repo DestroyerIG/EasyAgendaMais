@@ -23,10 +23,23 @@ describe('Política de Cookies', () => {
     expect(texto).toContain('Necessários');
     expect(texto).toContain('Marketing');
     expect(texto).toContain('pixel da Meta');
-    for (const nome of ['access_token', 'refresh_token', 'cookie_consent', 'easyagenda-theme', '_fbp', 'fr']) {
+    for (const nome of ['access_token', 'refresh_token', 'cookie_consent', 'easyagenda-theme', '_fbp', '_fbc', 'fr']) {
       expect(texto).toContain(nome);
     }
     expect(texto).toContain('contato@easyconnectcg.com.br');
+  });
+
+  it('não promete mais do que o código garante sobre dados enviados', () => {
+    const { container } = render(<CookiesPage />);
+    const texto = container.textContent ?? '';
+    expect(texto).not.toContain('não enviamos nome');
+    expect(texto).toContain('nossos eventos não incluem');
+    expect(texto).toContain('fbclid');
+  });
+
+  it('usa rótulo de seção com cor de token legível no claro', () => {
+    const { container } = render(<CookiesPage />);
+    expect(container.querySelector('.section-eyebrow')).toBeNull();
   });
 
   it('o botão "Gerenciar cookies" reabre as preferências', () => {

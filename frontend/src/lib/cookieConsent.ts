@@ -25,7 +25,7 @@ export function lerConsentimento(agora: number = Date.now()): Consentimento | nu
     const dado = JSON.parse(bruto) as Partial<Consentimento> | null;
     if (!dado || dado.versao !== CONSENT_VERSION) return null;
     if (typeof dado.marketing !== 'boolean' || typeof dado.em !== 'number') return null;
-    if (agora - dado.em > CONSENT_MAX_AGE_MS) return null;
+    if (dado.em > agora || agora - dado.em > CONSENT_MAX_AGE_MS) return null;
     return { versao: dado.versao, marketing: dado.marketing, em: dado.em };
   } catch {
     return null;

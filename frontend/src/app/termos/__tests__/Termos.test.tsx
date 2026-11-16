@@ -12,5 +12,6 @@ describe('Termos de Uso', () => {
     const { container } = render(<TermosPage />);
     expect(container.textContent).toContain('Termos de Uso');
     expect(container.querySelector('.dark')).toBeNull();
+    expect(container.querySelector('.section-eyebrow')).toBeNull();
   });
 });

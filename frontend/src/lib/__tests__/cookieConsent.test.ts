@@ -42,6 +42,11 @@ describe('cookieConsent', () => {
     expect(lerConsentimento(366 * DIA)).toBeNull();
   });
 
+  it('descarta escolha com data no futuro (relógio errado ou valor adulterado)', () => {
+    salvarConsentimento(true, 10 * DIA);
+    expect(lerConsentimento(1 * DIA)).toBeNull();
+  });
+
   it('tolera localStorage que lança', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('bloqueado');

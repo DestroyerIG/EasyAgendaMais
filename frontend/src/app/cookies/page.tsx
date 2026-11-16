@@ -17,6 +17,7 @@ const cookies = [
   { nome: 'easyagenda-theme', categoria: 'Necessário', finalidade: 'Lembra a sua preferência de tema no painel.', duracao: 'Até ser apagado' },
   { nome: 'cookie_consent', categoria: 'Necessário', finalidade: 'Guarda a sua escolha sobre cookies.', duracao: '12 meses' },
   { nome: '_fbp', categoria: 'Marketing', finalidade: 'Pixel da Meta: identifica o navegador para medir anúncios no Facebook e Instagram.', duracao: '90 dias' },
+  { nome: '_fbc', categoria: 'Marketing', finalidade: 'Pixel da Meta: guarda o clique em um anúncio (parâmetro fbclid da URL) para medir conversões.', duracao: '90 dias' },
   { nome: 'fr', categoria: 'Marketing', finalidade: 'Pixel da Meta (domínio da Meta): entrega e mede a relevância dos anúncios.', duracao: '90 dias' },
 ];
 
@@ -26,7 +27,7 @@ export default function CookiesPage() {
       <PublicNavbar />
 
       <main id="main-content" className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
-        <p className="section-eyebrow">Documentos legais</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-text">Documentos legais</p>
         <h1 className="mt-3 text-3xl font-black sm:text-4xl">Política de Cookies</h1>
         <p className="mt-3 text-sm text-muted">Última atualização: {LAST_UPDATE}</p>
 
@@ -49,7 +50,7 @@ export default function CookiesPage() {
             <p className="mt-3 leading-relaxed">
               <strong className="text-ink">Marketing (só com o seu aceite).</strong> O pixel da Meta mede e melhora os
               nossos anúncios no Facebook e Instagram. Ele só roda nas páginas públicas (nunca dentro do painel), só
-              depois que você aceita, e não enviamos nome, e-mail, CPF/CNPJ nem telefone.
+              depois que você aceita, e nossos eventos não incluem nome, e-mail, CPF/CNPJ nem telefone. A Meta pode, porém, coletar por conta própria dados técnicos do navegador e o identificador do clique em anúncios (parâmetro fbclid da URL). Ao revogar, o pixel é desativado e o cookie _fbp é apagado.
             </p>
           </section>
 

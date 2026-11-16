@@ -53,6 +53,29 @@ export function trackMetaEvent(evento: string, parametros?: Record<string, unkno
   }
 }
 
+/** Apaga o cookie _fbp (host atual e domínio pai), que o pixel grava no site por 90 dias. */
+function apagarCookieFbp(): void {
+  if (typeof document === 'undefined') return;
+  const expirar = '; Max-Age=0; path=/';
+  document.cookie = `_fbp=${expirar}`;
+  const partes = window.location.hostname.split('.');
+  if (partes.length > 1) document.cookie = `_fbp=${expirar}; domain=.${partes.slice(-2).join('.')}`;
+}
+
+/**
+ * Informa ao pixel já carregado se ele pode medir. Sem isto, revogar só esconde o script:
+ * o fbevents.js continuaria ativo até recarregar a página. Ao revogar, apaga também o _fbp.
+ */
+export function atualizarConsentimentoPixel(concedido: boolean): void {
+  if (typeof window === 'undefined' || typeof window.fbq !== 'function') return;
+  try {
+    window.fbq('consent', concedido ? 'grant' : 'revoke');
+  } catch {
+    // Anúncio nunca pode quebrar o site.
+  }
+  if (!concedido) apagarCookieFbp();
+}
+
 /** Cadastro concluído (e-mail ou Google). Sem dados pessoais. */
 export function trackCadastroConcluido(metodo: 'email' | 'google'): void {
   trackMetaEvent('CompleteRegistration', { status: true, content_name: `cadastro_${metodo}` });

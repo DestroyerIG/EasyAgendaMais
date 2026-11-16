@@ -29,4 +29,12 @@ describe('Política de Privacidade', () => {
     const { container } = render(<PrivacidadePage />);
     expect(container.querySelector('.dark')).toBeNull();
   });
+
+  it('declara o consentimento como base legal e a Meta entre os terceiros', () => {
+    const { container } = render(<PrivacidadePage />);
+    const texto = container.textContent ?? '';
+    expect(texto).toMatch(/consentimento/i);
+    expect(texto).toContain('Meta');
+    expect(container.querySelector('.section-eyebrow')).toBeNull();
+  });
 });
