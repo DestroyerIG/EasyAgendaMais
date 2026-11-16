@@ -50,6 +50,8 @@ describe('CookieBanner', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Personalizar' }));
     const necessarios = screen.getByRole('switch', { name: 'Necessários' });
     const marketing = screen.getByRole('switch', { name: 'Marketing' });
+    expect(screen.getByText(/nossos eventos não incluem nome, e-mail ou telefone/i)).toBeInTheDocument();
+    expect(screen.queryByText(/não enviamos/i)).toBeNull();
     expect(necessarios).toBeDisabled();
     expect(necessarios).toBeChecked();
     expect(marketing).not.toBeChecked();
