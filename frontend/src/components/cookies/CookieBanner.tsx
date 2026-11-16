@@ -115,7 +115,7 @@ export function CookieBanner() {
               />
               <Interruptor
                 rotulo="Marketing"
-                descricao="Pixel da Meta: mede anúncios no Facebook e Instagram. Não enviamos nome, e-mail ou telefone."
+                descricao="Pixel da Meta: mede anúncios no Facebook e Instagram. Nossos eventos não incluem nome, e-mail ou telefone."
                 ligado={marketing}
                 onChange={setMarketing}
               />
