@@ -3,17 +3,20 @@
 import Script from 'next/script';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
+import { useConsentimento } from '@/lib/cookieConsent';
 import { META_PIXEL_ID, pixelAtivo, rotaPermitePixel, trackMetaEvent } from '@/lib/metaPixel';
 
 /**
- * Carrega o pixel da Meta só nas páginas públicas e só com NEXT_PUBLIC_META_PIXEL_ID.
+ * Carrega o pixel da Meta só nas páginas públicas, só com NEXT_PUBLIC_META_PIXEL_ID e só
+ * depois que o visitante aceita os cookies de Marketing.
  * A primeira PageView sai do próprio snippet; as seguintes (navegação sem recarregar)
  * saem daqui.
  */
 export function MetaPixel() {
   const pathname = usePathname();
   const primeira = useRef(true);
-  const permitido = pixelAtivo() && rotaPermitePixel(pathname);
+  const consentimento = useConsentimento();
+  const permitido = pixelAtivo() && rotaPermitePixel(pathname) && consentimento?.marketing === true;
 
   useEffect(() => {
     if (!permitido) return;
