@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 
 vi.mock('@/components/marketing/PublicNavbar', () => ({ PublicNavbar: () => null }));
 vi.mock('@/components/marketing/PublicFooter', () => ({ PublicFooter: () => null }));
-vi.mock('@/components/theme/ForcedDark', () => ({ ForcedDark: ({ children }: { children?: React.ReactNode }) => children ?? null }));
+vi.mock('@/components/theme/ForcedLight', () => ({ ForcedLight: ({ children }: { children?: React.ReactNode }) => children ?? null }));
 
 const { default: PrivacidadePage } = await import('../page');
 
@@ -17,5 +17,16 @@ describe('Política de Privacidade', () => {
     expect(texto).toContain('EasyAgenda+');
     expect(texto).toMatch(/desconectar/i);
     expect(texto).toContain('Limited Use');
+  });
+
+  it('a seção de cookies cita o pixel da Meta e liga à política de cookies', () => {
+    const { container } = render(<PrivacidadePage />);
+    expect(container.textContent).toContain('pixel da Meta');
+    expect(screen.getByRole('link', { name: 'Política de Cookies' })).toHaveAttribute('href', '/cookies');
+  });
+
+  it('fica no tema claro', () => {
+    const { container } = render(<PrivacidadePage />);
+    expect(container.querySelector('.dark')).toBeNull();
   });
 });

@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import { PublicNavbar } from '@/components/marketing/PublicNavbar';
 import { PublicFooter } from '@/components/marketing/PublicFooter';
-import { ForcedDark } from '@/components/theme/ForcedDark';
+import { ForcedLight } from '@/components/theme/ForcedLight';
 
 export const metadata = {
   title: 'Política de Privacidade - EasyAgenda+',
   description: 'Como o EasyAgenda+ coleta, usa e protege os seus dados pessoais, em conformidade com a LGPD.',
 };
 
-const LAST_UPDATE = '26 de outubro de 2026';
+const LAST_UPDATE = '16 de novembro de 2026';
 
 const sections = [
   {
@@ -73,6 +73,7 @@ const sections = [
     title: '9. Cookies e tecnologias semelhantes',
     paragraphs: [
       'Utilizamos cookies e tecnologias semelhantes para autenticação, manutenção de sessão e melhoria da experiência. Você pode gerenciar as preferências de cookies no seu navegador, ciente de que isso pode afetar funcionalidades da plataforma.',
+      'Cookies de marketing, como o pixel da Meta, só são ativados depois que você os aceita no aviso de cookies do site, e você pode revogar a escolha a qualquer momento. A lista completa de cookies, suas finalidades e durações está na Política de Cookies.',
     ],
   },
   {
@@ -91,19 +92,19 @@ const sections = [
 
 export default function PrivacidadePage() {
   return (
-    <ForcedDark className="min-h-screen">
+    <ForcedLight className="min-h-screen bg-bg text-ink">
       <PublicNavbar />
 
       <main id="main-content" className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
         <p className="section-eyebrow">Documentos legais</p>
         <h1 className="mt-3 text-3xl font-black sm:text-4xl">Política de Privacidade</h1>
-        <p className="mt-3 text-sm text-gray-500">Última atualização: {LAST_UPDATE}</p>
+        <p className="mt-3 text-sm text-muted">Última atualização: {LAST_UPDATE}</p>
 
         <div className="mt-10 space-y-10">
           {sections.map((section) => (
             <section key={section.title}>
-              <h2 className="text-xl font-bold text-white">{section.title}</h2>
-              <div className="mt-3 space-y-3 text-gray-300">
+              <h2 className="text-xl font-bold text-ink">{section.title}</h2>
+              <div className="mt-3 space-y-3 text-muted">
                 {section.paragraphs.map((paragraph, index) => (
                   <p key={index} className="leading-relaxed">{paragraph}</p>
                 ))}
@@ -112,13 +113,15 @@ export default function PrivacidadePage() {
           ))}
         </div>
 
-        <div className="mt-12 border-t border-white/10 pt-6 text-sm text-gray-400">
+        <div className="mt-12 border-t border-line pt-6 text-sm text-muted">
           Consulte também os nossos{' '}
-          <Link href="/termos" className="text-primary hover:underline">Termos de Uso</Link>.
+          <Link href="/termos" className="font-semibold text-brand-text hover:underline">Termos de Uso</Link>{' '}
+          e a{' '}
+          <Link href="/cookies" className="font-semibold text-brand-text hover:underline">Política de Cookies</Link>.
         </div>
       </main>
 
       <PublicFooter />
-    </ForcedDark>
+    </ForcedLight>
   );
 }
