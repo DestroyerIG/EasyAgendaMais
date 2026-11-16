@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { BrandLogo, Icon } from '@/components/ui';
+import { GerenciarCookiesButton } from '@/components/cookies/GerenciarCookiesButton';
 
 const EASYCONNECT_URL = 'https://easyconnectcg.com.br';
 
@@ -85,6 +86,10 @@ export function PublicFooter() {
               <Link href="/privacidade" className="text-sm text-muted hover:text-ink">
                 Política de Privacidade
               </Link>
+              <Link href="/cookies" className="text-sm text-muted hover:text-ink">
+                Política de Cookies
+              </Link>
+              <GerenciarCookiesButton className="w-fit text-left text-sm text-muted hover:text-ink" />
               <a href={contactUrl} target="_blank" rel="noreferrer" className="text-sm text-muted hover:text-ink">
                 Suporte via WhatsApp
               </a>
@@ -105,6 +110,10 @@ export function PublicFooter() {
             <span className="text-line">·</span>
             <Link href="/privacidade" className="text-xs text-muted hover:text-ink">
               Privacidade
+            </Link>
+            <span className="text-line">·</span>
+            <Link href="/cookies" className="text-xs text-muted hover:text-ink">
+              Cookies
             </Link>
             <span className="text-line">·</span>
             <Link href="/privacidade" className="text-xs text-muted hover:text-ink">

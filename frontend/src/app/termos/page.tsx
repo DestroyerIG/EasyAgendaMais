@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { PublicNavbar } from '@/components/marketing/PublicNavbar';
 import { PublicFooter } from '@/components/marketing/PublicFooter';
-import { ForcedDark } from '@/components/theme/ForcedDark';
+import { ForcedLight } from '@/components/theme/ForcedLight';
 
 export const metadata = {
   title: 'Termos de Uso - EasyAgenda+',
@@ -87,19 +87,19 @@ const sections = [
 
 export default function TermosPage() {
   return (
-    <ForcedDark className="min-h-screen">
+    <ForcedLight className="min-h-screen bg-bg text-ink">
       <PublicNavbar />
 
       <main id="main-content" className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
-        <p className="section-eyebrow">Documentos legais</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-text">Documentos legais</p>
         <h1 className="mt-3 text-3xl font-black sm:text-4xl">Termos de Uso</h1>
-        <p className="mt-3 text-sm text-gray-500">Última atualização: {LAST_UPDATE}</p>
+        <p className="mt-3 text-sm text-muted">Última atualização: {LAST_UPDATE}</p>
 
         <div className="mt-10 space-y-10">
           {sections.map((section) => (
             <section key={section.title}>
-              <h2 className="text-xl font-bold text-white">{section.title}</h2>
-              <div className="mt-3 space-y-3 text-gray-300">
+              <h2 className="text-xl font-bold text-ink">{section.title}</h2>
+              <div className="mt-3 space-y-3 text-muted">
                 {section.paragraphs.map((paragraph, index) => (
                   <p key={index} className="leading-relaxed">{paragraph}</p>
                 ))}
@@ -108,13 +108,13 @@ export default function TermosPage() {
           ))}
         </div>
 
-        <div className="mt-12 border-t border-white/10 pt-6 text-sm text-gray-400">
+        <div className="mt-12 border-t border-line pt-6 text-sm text-muted">
           Consulte também a nossa{' '}
-          <Link href="/privacidade" className="text-primary hover:underline">Política de Privacidade</Link>.
+          <Link href="/privacidade" className="font-semibold text-brand-text hover:underline">Política de Privacidade</Link>.
         </div>
       </main>
 
       <PublicFooter />
-    </ForcedDark>
+    </ForcedLight>
   );
 }

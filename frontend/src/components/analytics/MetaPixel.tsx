@@ -3,17 +3,25 @@
 import Script from 'next/script';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
-import { META_PIXEL_ID, pixelAtivo, rotaPermitePixel, trackMetaEvent } from '@/lib/metaPixel';
+import { useConsentimento } from '@/lib/cookieConsent';
+import { META_PIXEL_ID, atualizarConsentimentoPixel, pixelAtivo, rotaPermitePixel, trackMetaEvent } from '@/lib/metaPixel';
 
 /**
- * Carrega o pixel da Meta só nas páginas públicas e só com NEXT_PUBLIC_META_PIXEL_ID.
+ * Carrega o pixel da Meta só nas páginas públicas, só com NEXT_PUBLIC_META_PIXEL_ID e só
+ * depois que o visitante aceita os cookies de Marketing.
  * A primeira PageView sai do próprio snippet; as seguintes (navegação sem recarregar)
  * saem daqui.
  */
 export function MetaPixel() {
   const pathname = usePathname();
   const primeira = useRef(true);
-  const permitido = pixelAtivo() && rotaPermitePixel(pathname);
+  const consentimento = useConsentimento();
+  const permitido = pixelAtivo() && rotaPermitePixel(pathname) && consentimento?.marketing === true;
+
+  // Revogar (ou sair das rotas públicas) precisa calar o pixel que já foi carregado.
+  useEffect(() => {
+    atualizarConsentimentoPixel(permitido);
+  }, [permitido]);
 
   useEffect(() => {
     if (!permitido) return;
@@ -28,7 +36,7 @@ export function MetaPixel() {
 
   return (
     <Script id="meta-pixel" strategy="afterInteractive">
-      {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${META_PIXEL_ID}');fbq('track','PageView');`}
+      {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];n.disablePushState=!0;t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${META_PIXEL_ID}');fbq('track','PageView');`}
     </Script>
   );
 }

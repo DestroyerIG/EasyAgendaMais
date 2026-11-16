@@ -4,6 +4,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
 import { MetaPixel } from '@/components/analytics/MetaPixel'
+import { CookieBanner } from '@/components/cookies/CookieBanner'
 import { siteUrl } from '@/lib/siteUrl'
 import localFont from 'next/font/local'
 import easyAgendaLogo from '@/icons/easyagenda-logo.png'
@@ -62,6 +63,7 @@ export default function RootLayout({
           Pular para o conteúdo
         </a>
         <MetaPixel />
+        <CookieBanner />
         <ThemeProvider>
           <ErrorBoundary>
             <ToastProvider>
