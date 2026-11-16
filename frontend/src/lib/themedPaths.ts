@@ -5,6 +5,7 @@ export const THEMED_PATHS: readonly string[] = [
   'src/components/theme/ThemeProvider.tsx',
   'src/components/theme/ForcedLight.tsx',
   'src/components/cookies',
+  'src/app/cookies',
   'src/components/ui',
   'src/components/Toast.tsx',
   'src/components/dev',

@@ -10,6 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { caminho: '/login', prioridade: 0.5 },
     { caminho: '/privacidade', prioridade: 0.3 },
     { caminho: '/termos', prioridade: 0.3 },
+    { caminho: '/cookies', prioridade: 0.3 },
   ];
   return paginas.map(({ caminho, prioridade }) => ({
     url: `${base}${caminho}`,
